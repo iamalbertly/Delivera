@@ -89,6 +89,8 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
     'ssot',
     'trust',
     'velocity',
+    'host',
+    'table',
   ];
 
   for (const rawChanged of changedFiles) {

@@ -10,7 +10,10 @@ import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
 export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
-  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn" type="button" aria-label="Export sprint snapshot" aria-haspopup="true" aria-expanded="false" aria-live="polite">Export snapshot</button>';
+  html += '<span class="export-split-group">';
+  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" data-action="copy-text" aria-label="Copy sprint summary to clipboard" aria-live="polite">Copy summary</button>';
+  html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">&#9662;</button>';
+  html += '</span>';
   html += '<div class="export-menu hidden" id="export-menu" role="menu">';
   html += '<button class="export-option" data-action="copy-text" role="menuitem">Copy as Text</button>';
   html += '<button class="export-option" data-action="export-markdown" role="menuitem">Markdown</button>';
@@ -59,21 +62,36 @@ export function wireExportHandlers(data) {
   container.dataset.wiredExportHandlers = '1';
 
   const btn = container.querySelector('.export-dashboard-btn');
+  const menuToggle = container.querySelector('.export-menu-toggle');
   const menu = container.querySelector('#export-menu');
-  if (!btn || !menu) return;
+  if (!menu) return;
+  const effectiveBtn = btn || menuToggle;
+  if (!effectiveBtn) return;
 
-  btn.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    menu.classList.toggle('hidden');
-    const expanded = !menu.classList.contains('hidden');
-    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-  });
+  // Primary button: direct copy-text action (1-click export)
+  if (btn) {
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      copyDashboardAsText(data, btn);
+    });
+  }
+
+  // Menu toggle: expand/collapse the full options menu
+  if (menuToggle) {
+    menuToggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      menu.classList.toggle('hidden');
+      const expanded = !menu.classList.contains('hidden');
+      menuToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+  }
 
   document.addEventListener('click', (event) => {
     if (!container.contains(event.target) && !menu.classList.contains('hidden')) {
       menu.classList.add('hidden');
-      btn.setAttribute('aria-expanded', 'false');
+      if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
     }
   });
 

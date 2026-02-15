@@ -65,6 +65,20 @@ function initLeadershipPage() {
       }
       return;
     }
+    const limitedToggle = ev.target && ev.target.closest ? ev.target.closest('[data-action="toggle-limited-boards"]') : null;
+    if (limitedToggle) {
+      const limitedWrap = document.getElementById('leadership-limited-cards');
+      if (limitedWrap) {
+        const show = limitedWrap.hidden;
+        limitedWrap.hidden = !show;
+        limitedToggle.setAttribute('aria-expanded', show ? 'true' : 'false');
+        const count = limitedWrap.querySelectorAll('.leadership-board-card').length;
+        limitedToggle.textContent = show
+          ? count + ' board' + (count !== 1 ? 's' : '') + ' with insufficient data — Hide'
+          : count + ' board' + (count !== 1 ? 's' : '') + ' hidden (insufficient data) — Show all';
+      }
+      return;
+    }
     const th = ev.target && ev.target.closest ? ev.target.closest('#leadership-content th.sortable[data-sort]') : null;
     if (!th) return;
     const table = th.closest('table.leadership-boards-table');

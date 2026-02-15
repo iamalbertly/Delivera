@@ -74,6 +74,14 @@ router.get('/report', requireAuth, (req, res) => {
 });
 
 /**
+ * GET /reports - backward-compatible alias for report page
+ */
+router.get('/reports', requireAuth, (req, res) => {
+    const suffix = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    res.redirect(301, `/report${suffix}`);
+});
+
+/**
  * GET /current-sprint - Current sprint transparency page (squad view)
  */
 router.get('/current-sprint', requireAuth, (req, res) => {

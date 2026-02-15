@@ -29,7 +29,7 @@ export function renderWorkRisksMerged(data) {
   }
 
   const headers = ['Source', 'Risk', 'Issue', 'Summary', 'Type', 'SP', 'Status', 'Reporter', 'Assignee', 'Est Hrs', 'Logged Hrs', 'Hours in status', 'Updated'];
-  html += '<div class="data-table-scroll-wrap"><table class="data-table" id="work-risks-table" style="table-layout: auto;">';
+  html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table" id="work-risks-table" style="table-layout: auto;">';
   html += '<thead><tr><th>Source</th><th>Risk</th><th>Issue</th><th class="cell-wrap">Summary</th><th>Type</th><th>SP</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Est Hrs</th><th>Logged Hrs</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
 
   for (const row of toShow) {
@@ -91,7 +91,7 @@ export function renderStuckCandidates(data) {
   } else {
     // Limit initial rows to reduce DOM nodes
     const initialLimit = 10;
-    html += '<table class="data-table" id="stuck-table"><thead><tr><th>Issue</th><th class="cell-wrap">Summary</th><th>Status</th><th>Assignee</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
+    html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table" id="stuck-table"><thead><tr><th>Issue</th><th class="cell-wrap">Summary</th><th>Status</th><th>Assignee</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
     const toShow = stuck.slice(0, initialLimit);
     const remaining = stuck.slice(initialLimit);
     for (const row of toShow) {
@@ -104,7 +104,7 @@ export function renderStuckCandidates(data) {
       html += '<td>' + escapeHtml(formatDateTime(row.updated)) + '</td>';
       html += '</tr>';
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
 
     if (remaining.length > 0) {
       // Provide a show-more button and a template with remaining rows
@@ -143,7 +143,7 @@ export function renderSubtaskTracking(data) {
     const toShow = rows.slice(0, initialLimit);
     const remaining = rows.slice(initialLimit);
 
-    html += '<table class="data-table" id="subtask-table">';
+    html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table" id="subtask-table">';
     html += '<thead><tr><th>Sub-task</th><th class="cell-wrap">Summary</th><th>Status</th><th>Assignee</th><th>Estimate</th><th>Logged</th><th>Remaining</th><th>Hours in status</th><th>Created</th><th>Updated</th></tr></thead><tbody>';
     for (const row of toShow) {
       const hoursCell = row.hoursInStatus != null
@@ -162,7 +162,7 @@ export function renderSubtaskTracking(data) {
       html += '<td>' + escapeHtml(formatDateTime(row.updated)) + '</td>';
       html += '</tr>';
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
 
     if (remaining.length > 0) {
       html += '<button class="btn btn-secondary btn-compact subtask-show-more" data-count="' + remaining.length + '">Show ' + remaining.length + ' more</button>';

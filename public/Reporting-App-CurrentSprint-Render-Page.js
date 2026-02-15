@@ -58,13 +58,31 @@ export function renderCurrentSprintPage(data) {
 
   // Flaw 3: Single-line verdict bar first (one sentence, one color, one action)
   html += renderVerdictBar(data);
-  html += renderDataAvailabilitySummaryHtml({ title: 'Hidden sections', items: availabilityGaps });
+
+  // Edge Case #1: All sections hidden → single full-page empty state instead of a wall of hidden-section chips
+  const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData && !hasCapacityData && !hasHealthData;
+  if (allSectionsHidden) {
+    html += renderDataAvailabilitySummaryHtml({ title: 'Hidden sections', items: availabilityGaps });
+    html += renderEmptyStateHtml(
+      'No trackable work in this sprint yet',
+      'This sprint has no stories, estimates, or logged work. Add stories in Jira to see health metrics here.',
+      'Check the board configuration or select a different sprint from the carousel.'
+    );
+    try {
+      const sprintState = (data.sprint?.state || '').toLowerCase();
+      const freshLabel = sprintState === 'active' ? 'Live sprint data' : 'Snapshot: ' + (data.sprint?.name || '');
+      window.dispatchEvent(new CustomEvent('app:data-freshness', { detail: { label: freshLabel, state: sprintState === 'active' ? 'live' : 'stale' } }));
+    } catch (_) {}
+    return html;
+  }
 
   html += renderHeaderBar(data);
   html += renderAlertBanner(data);
   html += renderSprintCarousel(data);
 
-  const jumpLinks = ['<a href="#stuck-card">Risks</a>'];
+  const jumpLinks = [];
+  const hasRisks = riskCount > 0 || stuckCount > 0 || (data.stuckCandidates || []).length > 0;
+  if (hasRisks) jumpLinks.push('<a href="#stuck-card">Risks</a>');
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Burndown</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
@@ -73,10 +91,13 @@ export function renderCurrentSprintPage(data) {
   html += '<div class="current-sprint-grid-layout">';
 
   // Priority order: Blockers/Risks first, then burndown/scope, then details (progressive disclosure)
-  html += '<div class="sprint-cards-row risks-row">';
-  html += '<div class="card-column risks-stuck-column">' + renderWorkRisksMerged(data) + '</div>';
-  if (hasBurndownData) html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
-  html += '</div>';
+  // Edge Case #3: When zero risks, skip the risks row entirely — no empty table
+  if (hasRisks || hasBurndownData) {
+    html += '<div class="sprint-cards-row risks-row">';
+    if (hasRisks) html += '<div class="card-column risks-stuck-column">' + renderWorkRisksMerged(data) + '</div>';
+    if (hasBurndownData) html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
+    html += '</div>';
+  }
 
   html += '<div class="sprint-cards-row secondary-row">';
   html += '<div class="card-column countdown-column">' + renderCountdownTimer(data) + '</div>';
@@ -105,6 +126,12 @@ export function renderCurrentSprintPage(data) {
   html += '</div>';
 
   html += '</div>';
+
+  try {
+    const sprintState = (data.sprint?.state || '').toLowerCase();
+    const freshLabel = sprintState === 'active' ? 'Live sprint data' : 'Snapshot: ' + (data.sprint?.name || '');
+    window.dispatchEvent(new CustomEvent('app:data-freshness', { detail: { label: freshLabel, state: sprintState === 'active' ? 'live' : 'stale' } }));
+  } catch (_) {}
 
   return html;
 }

@@ -392,6 +392,27 @@ test.describe('UX Reliability & Technical Debt Fixes', () => {
     console.log(`[TEST] ${hasEpicTTMSection ? '✓' : '⚠'} Epic TTM section ${hasEpicTTMSection ? 'present' : 'not present'}`);
     // Note: Epic TTM section may be empty if no epics found, but preview should still succeed
   });
+
+  test('Epic TTM section shows explicit Jira link status line', async ({ page }) => {
+    test.setTimeout(180000);
+    await runDefaultPreview(page);
+    const opened = await openProjectEpicTabIfVisible(page);
+    if (!opened) {
+      test.skip();
+      return;
+    }
+    const section = page.locator('#project-epic-level-content');
+    const hasEpicSection = await section.locator('h3:has-text("Epic Time-To-Market")').count();
+    if (!hasEpicSection) {
+      test.skip();
+      return;
+    }
+    const statusLine = section.locator('.jira-link-status-line').first();
+    await expect(statusLine).toBeVisible();
+    const statusText = (await statusLine.textContent() || '').toLowerCase();
+    expect(statusText.includes('jira links')).toBeTruthy();
+    expect(statusText.includes('enabled') || statusText.includes('unavailable')).toBeTruthy();
+  });
 });
 
 // ============================================================
@@ -399,6 +420,46 @@ test.describe('UX Reliability & Technical Debt Fixes', () => {
 // fixes implemented per the audit response (Feb 2026)
 // ============================================================
 test.describe('UX Audit Fixes — Current Sprint + Report Pages', () => {
+  test('SSOT host contract: preview meta exposes normalized jiraHostResolved string', async ({ request }) => {
+    test.setTimeout(180000);
+    let response;
+    try {
+      response = await request.get(`/preview.json${DEFAULT_Q2_QUERY}`, { timeout: 45000 });
+    } catch (error) {
+      test.skip(`Preview not reachable for SSOT host contract check: ${error.message}`);
+      return;
+    }
+    if (response.status() !== 200) {
+      test.skip(`Preview returned ${response.status()} for SSOT host contract check`);
+      return;
+    }
+    const data = await response.json();
+    expect(typeof data.meta?.jiraHostResolved).toBe('string');
+    if (data.meta?.jiraHostResolved) {
+      expect(data.meta.jiraHostResolved.startsWith('http://') || data.meta.jiraHostResolved.startsWith('https://')).toBeTruthy();
+    }
+  });
+
+  test('SSOT table containment: boards table uses local vertical scroller and semantic table layout', async ({ page }) => {
+    test.setTimeout(180000);
+    await runDefaultPreview(page);
+    const previewVisible = await page.locator('#preview-content').isVisible().catch(() => false);
+    if (!previewVisible) { test.skip(); return; }
+
+    const boardsTab = page.locator('.tab-btn[data-tab="project-epic-level"]').first();
+    const boardsTabVisible = await boardsTab.isVisible().catch(() => false);
+    if (!boardsTabVisible) { test.skip(); return; }
+    await boardsTab.click();
+    await page.waitForSelector('#project-epic-level-content', { state: 'visible', timeout: 15000 }).catch(() => {});
+
+    const wrap = page.locator('#project-epic-level-content .data-table-scroll-wrap--with-vertical-limit').first();
+    await expect(wrap).toBeVisible();
+    const maxHeight = await wrap.evaluate((el) => window.getComputedStyle(el).maxHeight);
+    expect(maxHeight).not.toBe('none');
+
+    const display = await page.locator('#boards-table').evaluate((el) => window.getComputedStyle(el).display);
+    expect(display).toBe('table');
+  });
 
   // ── UX Fix #1: Human-readable freshness badge (no [Cached]/[Live] dev-speak) ──
   test('UX-01: Report meta badge does not contain [Cached] or [Live] bracket text', async ({ page }) => {

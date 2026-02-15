@@ -255,7 +255,7 @@ function initReportPage() {
       if (!hash) {
         const activeBtn = document.querySelector('.tab-btn.active');
         if (!activeBtn) {
-          const defaultBtn = document.getElementById('tab-btn-done-stories');
+          const defaultBtn = document.getElementById('tab-btn-done-stories') || document.getElementById('tab-btn-project-epic-level');
           if (defaultBtn) defaultBtn.click();
         }
       }

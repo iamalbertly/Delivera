@@ -9,7 +9,7 @@
 import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { createModalBehavior } from './Reporting-App-Core-UI-02Primitives-Modal.js';
-import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
+import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 
 export function renderScopeIndicator(data) {
   const scopeChanges = data.scopeChanges || [];
@@ -49,7 +49,7 @@ export function renderScopeIndicator(data) {
     html += '</span>';
   }
 
-  const jiraHost = data?.meta?.jiraHost || data?.meta?.host || '';
+  const jiraHost = getResolvedJiraHostFromMeta(data?.meta);
   const showInline = scopeChanges.length <= 15;
   const inlineLimit = 15;
   const itemsToShow = showInline ? scopeChanges : scopeChanges.slice(0, inlineLimit);
@@ -99,7 +99,7 @@ export function renderScopeIndicator(data) {
  */
 export function renderScopeModal(data) {
   const scopeChanges = data.scopeChanges || [];
-  const jiraHost = data?.meta?.jiraHost || data?.meta?.host || '';
+  const jiraHost = getResolvedJiraHostFromMeta(data?.meta);
 
   if (scopeChanges.length === 0) {
     return '';

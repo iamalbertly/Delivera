@@ -10,7 +10,7 @@ import { streamCSV, CSV_COLUMNS } from '../lib/csv.js';
 import { generateExcelWorkbook, generateExcelFilename, formatDateRangeForFilename } from '../lib/excel.js';
 import { getQuarterLabelAndPeriod, getQuartersUpToCurrent } from '../lib/Jira-Reporting-App-Data-VodacomQuarters-01Bounds.js';
 import { DEFAULT_WINDOW_START, DEFAULT_WINDOW_END } from '../lib/Jira-Reporting-App-Config-DefaultWindow.js';
-import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity } from '../lib/server-utils.js';
+import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resolveJiraHostFromEnv } from '../lib/server-utils.js';
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
 
@@ -24,6 +24,7 @@ const FEEDBACK_DIR = join(__dirname, '..', 'data');
 const FEEDBACK_FILE = join(FEEDBACK_DIR, 'JiraReporting-Feedback-UserInput-Submission-Log.jsonl');
 
 const router = express.Router();
+const resolvedJiraHost = () => resolveJiraHostFromEnv();
 
 router.get('/api/csv-columns', requireAuth, (req, res) => {
     res.json({ columns: CSV_COLUMNS });
@@ -131,7 +132,8 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                 out.meta = out.meta || {};
                 out.meta.fromSnapshot = true;
                 out.meta.snapshotAt = cached?.cachedAt ?? null;
-                out.meta.jiraHost = out.meta.jiraHost || process.env.JIRA_HOST || '';
+                out.meta.jiraHost = resolvedJiraHost();
+                out.meta.jiraHostResolved = out.meta.jiraHost || '';
                 return res.json(out);
             }
         }
@@ -154,7 +156,8 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         payload.meta.completionAnchor = anchor;
         payload.meta.fromSnapshot = false;
         payload.meta.snapshotAt = null;
-        payload.meta.jiraHost = process.env.JIRA_HOST || '';
+        payload.meta.jiraHost = resolvedJiraHost();
+        payload.meta.jiraHostResolved = payload.meta.jiraHost || '';
 
         try {
             await cache.set(snapshotKey, payload, CACHE_TTL.CURRENT_SPRINT_SNAPSHOT, { namespace: 'currentSprintSnapshot' });

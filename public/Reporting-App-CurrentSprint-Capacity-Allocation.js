@@ -7,13 +7,13 @@
 
 import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
+import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 
 export function renderCapacityAllocation(data) {
   const issues = data.stories || [];
   const summary = data.summary || {};
   const daysMeta = data.daysMeta || {};
-  const jiraHost = data?.meta?.jiraHost || data?.meta?.host || '';
+  const jiraHost = getResolvedJiraHostFromMeta(data?.meta);
 
   // Build assignee map
   const assigneeMap = {};

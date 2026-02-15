@@ -15,6 +15,9 @@
   --focus: 0 0 0 3px rgba(11, 87, 163, 0.2);
   --radius: 10px;
   --radius-lg: 16px;
+  --sticky-global-nav-top: 64px;
+  --sticky-summary-top: 72px;
+  --sticky-table-head-top: 64px;
 }
 
 * {

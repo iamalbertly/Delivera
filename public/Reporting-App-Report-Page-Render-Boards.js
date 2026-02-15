@@ -5,7 +5,7 @@ import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml } from './Repor
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { computeBoardRowFromSummary, computeBoardsSummaryRow } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { buildPredictabilityTableHeaderHtml, buildEpicAdhocRows, renderEpicKeyCell, renderEpicTitleCell, renderEpicStoryList, renderEpicSubtaskHours } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
+import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 
 const BOARD_TABLE_COLUMN_ORDER = [
@@ -160,7 +160,10 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       summaryRow['Board'] = 'All Boards (Comparison)';
       rowsForRender.unshift({ __rowClass: 'boards-summary-row', ...summaryRow });
     }
-    html += buildDataTableHtml(columns, rowsForRender, { id: 'boards-table' });
+    html += buildDataTableHtml(columns, rowsForRender, {
+      id: 'boards-table',
+      wrapperClass: 'data-table-scroll-wrap--with-vertical-limit',
+    });
     html += '<p class="metrics-hint"><small>Throughput signals are merged into Boards columns (Throughput Stories, Throughput SP). Sprint-level throughput remains in Sprint history.</small></p>';
     html += '<p class="table-scroll-hint metrics-hint" aria-live="polite"><small>Scroll right for more columns. Export includes all columns.</small></p>';
   }
@@ -182,7 +185,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       html += '<h3>Predictability</h3>';
       html += `<p>Mode: ${escapeHtml(metrics.predictability.mode)}</p>`;
       html += '<p class="metrics-hint"><small>Detection: Planned carryover = created before sprint start and delivered. Unplanned spillover = added mid-sprint and delivered. Do not use unplanned spillover as a failure metric.</small></p>';
-      html += '<div class="data-table-scroll-wrap">';
+      html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit">';
       html += buildPredictabilityTableHeaderHtml();
       const predictPerSprint = metrics.predictability.perSprint || {};
       for (const data of Object.values(predictPerSprint)) {
@@ -225,44 +228,10 @@ export function renderProjectEpicLevelTab(boards, metrics) {
           reason: 'No epics with usable timing data in this window.'
         });
       } else {
-        html += '<h3>Epic Time-To-Market</h3>';
-        html += '<p class="metrics-hint"><strong>Definition:</strong> Epic Time-To-Market measures days from Epic creation to Epic resolution (or first story created to last story resolved if Epic dates unavailable).</p>';
-        if (meta?.epicTTMFallbackCount > 0) {
-          html += `<p class="data-quality-warning"><small>Note: ${meta.epicTTMFallbackCount} epic(s) used story date fallback (Epic issues unavailable).</small></p>`;
-        }
-        if (meta?.epicTitleMissingCount > 0) {
-          html += `<p class="data-quality-warning"><small>Note: ${meta.epicTitleMissingCount} epic(s) are missing titles. Check Jira permissions or Epic keys.</small></p>`;
-        }
-        html += '<p class="metrics-hint"><small>Completion anchored to: Resolution date.</small></p>';
-        if (!meta?.jiraHost) {
-          html += '<p class="metrics-hint data-quality-warning"><small>Jira issue links are unavailable. Set JIRA_HOST in the server environment to enable links.</small></p>';
-        }
-        html += '<div class="data-table-scroll-wrap"><table class="data-table data-table--mobile-scroll"><thead><tr>' +
-          '<th title="Epic identifier in Jira." data-tooltip="Epic identifier in Jira.">Epic Key</th>' +
-          '<th class="cell-wrap" title="Epic summary/title." data-tooltip="Epic summary/title.">Epic Name</th>' +
-          '<th class="cell-wrap" title="User stories linked to this epic in the window. Hover to see summaries." data-tooltip="User stories linked to this epic in the window. Hover to see summaries.">Story IDs</th>' +
-          '<th title="Number of stories linked to the epic in this window." data-tooltip="Number of stories linked to the epic in this window.">Story Count</th>' +
-          '<th title="Epic start date (Epic created or first story created if Epic dates missing)." data-tooltip="Epic start date (Epic created or first story created if Epic dates missing).">Start Date</th>' +
-          '<th title="Epic end date (Epic resolved or last story resolved if Epic dates missing)." data-tooltip="Epic end date (Epic resolved or last story resolved if Epic dates missing).">End Date</th>' +
-          '<th title="Calendar days from start to end (includes weekends)." data-tooltip="Calendar days from start to end (includes weekends).">Calendar TTM (days)</th>' +
-          '<th title="Working days from start to end (excludes weekends). Use this to compare team flow." data-tooltip="Working days from start to end (excludes weekends). Use this to compare team flow.">Working TTM (days)</th>' +
-          '<th title="Sum of subtask time spent (hours) across stories in this epic." data-tooltip="Sum of subtask time spent (hours) across stories in this epic.">Subtask Spent (Hrs)</th>' +
-          '</tr></thead><tbody>';
-        const epicRows = [...epicTTMRows, ...buildEpicAdhocRows(reportState.previewRows)];
-        for (const epic of epicRows) {
-          html += `<tr>
-          <td>${renderEpicKeyCell(epic, meta)}</td>
-          <td class="cell-wrap">${renderEpicTitleCell(epic)}</td>
-          <td class="cell-wrap">${renderEpicStoryList(epic, meta, reportState.previewRows)}</td>
-          <td>${epic.storyCount}</td>
-          <td>${escapeHtml(formatDateForDisplay(epic.startDate))}</td>
-          <td>${escapeHtml(formatDateForDisplay(epic.endDate || ''))}</td>
-          <td>${epic.calendarTTMdays ?? ''}</td>
-          <td>${epic.workingTTMdays ?? ''}</td>
-          <td>${renderEpicSubtaskHours(epic)}</td>
-        </tr>`;
-        }
-        html += '</tbody></table></div>';
+        html += buildEpicTtmSectionHtml(epicTTMRows, meta, reportState.previewRows, {
+          includeCompletionAnchor: true,
+          wrapperClass: 'data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit',
+        });
       }
     }
   } else {

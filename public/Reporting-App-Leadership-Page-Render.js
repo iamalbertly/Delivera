@@ -157,21 +157,46 @@ export function renderLeadershipPage(data) {
     if (allStrong && boards.length > 0) {
       html += '<p class="leadership-all-strong">All boards delivering on track.</p>';
     }
+    const sufficientCards = boardCards.filter(c => !c.hasLimitedHistory);
+    const limitedCards = boardCards.filter(c => c.hasLimitedHistory);
     html += '<div id="leadership-boards-cards" class="leadership-boards-cards" role="region" aria-label="Boards overview">';
-    for (const card of boardCards) {
+    for (const card of sufficientCards) {
       const onTimeStr = card.onTimePct != null ? card.onTimePct.toFixed(0) + '%' : '-';
       const gradeClass = (card.grade || '').toLowerCase().replace(/\s+/g, '-');
-      html += '<div class="leadership-board-card' + (card.hasLimitedHistory ? ' leadership-board-card--limited' : '') + '">';
+      html += '<div class="leadership-board-card">';
       html += '<div class="leadership-board-card-grade ' + gradeClass + '">' + escapeHtml(card.grade || '-') + '</div>';
       html += '<div class="leadership-board-card-name">' + escapeHtml(card.board.name) + '</div>';
       html += '<div class="leadership-board-card-metric">On-time ' + onTimeStr + '</div>';
-      if (card.hasLimitedHistory) html += '<div class="leadership-board-card-note">Insufficient data</div>';
       html += '</div>';
     }
     html += '</div>';
+    if (limitedCards.length > 0) {
+      if (sufficientCards.length === 0) {
+        html += '<div class="leadership-all-limited-empty">';
+        html += '<p>Trend analysis requires 3+ completed sprints. Your boards are building history — check back next sprint.</p>';
+        html += '</div>';
+        html += '<div id="leadership-limited-cards" class="leadership-boards-cards leadership-limited-cards">';
+      } else {
+        html += '<div class="leadership-limited-toggle-wrap">';
+        html += '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-limited-boards" aria-expanded="false">' + limitedCards.length + ' board' + (limitedCards.length !== 1 ? 's' : '') + ' hidden (insufficient data) — Show all</button>';
+        html += '</div>';
+        html += '<div id="leadership-limited-cards" class="leadership-boards-cards leadership-limited-cards" hidden>';
+      }
+      for (const card of limitedCards) {
+        const onTimeStr = card.onTimePct != null ? card.onTimePct.toFixed(0) + '%' : '-';
+        const gradeClass = (card.grade || '').toLowerCase().replace(/\s+/g, '-');
+        html += '<div class="leadership-board-card leadership-board-card--limited">';
+        html += '<div class="leadership-board-card-grade ' + gradeClass + '">' + escapeHtml(card.grade || '-') + '</div>';
+        html += '<div class="leadership-board-card-name">' + escapeHtml(card.board.name) + '</div>';
+        html += '<div class="leadership-board-card-metric">On-time ' + onTimeStr + '</div>';
+        html += '<div class="leadership-board-card-note">Needs 3+ sprints for trends</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
     html += '<div id="leadership-boards-table-wrap" class="leadership-boards-table-wrap" hidden>';
     html += '<div id="leadership-sort-label" class="leadership-sort-label" aria-live="polite"></div>';
-    html += '<div class="data-table-scroll-wrap"><table class="data-table data-table--mobile-scroll leadership-boards-table"><thead><tr>';
+    html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table data-table--mobile-scroll leadership-boards-table"><thead><tr>';
     html += '<th class="sortable" data-sort="board" scope="col">Board</th>';
     html += '<th class="sortable" data-sort="projects" scope="col">Projects</th>';
     html += '<th class="sortable" data-sort="sprints" scope="col">Sprints</th>';
@@ -245,15 +270,23 @@ export function renderLeadershipPage(data) {
     { key: 'grade', label: 'Signal', title: 'Grade: Based on on-time % and predictability. Strong >=90%, Critical <60%. Not for performance review.' },
     { key: 'quality', label: 'Data quality', title: '' },
   ];
-  const velocityRows = velocityWindows.map((row) => ({
-    window: row.months === 1 ? '1 month' : row.months + ' months',
-    sprintCount: row.current?.sprintCount ?? 0,
-    avg: row.current?.avg != null ? formatNumber(row.current.avg, 2, '-') : '-',
-    diff: row.diff != null ? formatNumber(row.diff, 1, '-') + '%' : '-',
-    onTimePct: row.current?.onTimePct != null ? formatNumber(row.current.onTimePct, 1, '-') + '%' : '-',
-    grade: row.grade || '-',
-    quality: row.current?.sprintCount != null && row.current.sprintCount < 3 ? 'Low sample' : 'OK',
-  }));
+  const velocityRows = velocityWindows.map((row) => {
+    let diffLabel = '-';
+    if (row.diff != null) {
+      const arrow = row.diff >= 10 ? '\u2191' : (row.diff <= -10 ? '\u2193' : '\u2192');
+      const color = row.diff >= 10 ? 'color:#166534' : (row.diff <= -10 ? 'color:#991b1b' : 'color:#6b7280');
+      diffLabel = '<span style="' + color + '">' + arrow + ' ' + formatNumber(row.diff, 1, '-') + '%</span>';
+    }
+    return {
+      window: row.months === 1 ? '1 month' : row.months + ' months',
+      sprintCount: row.current?.sprintCount ?? 0,
+      avg: row.current?.avg != null ? formatNumber(row.current.avg, 2, '-') : '-',
+      diff: diffLabel,
+      onTimePct: row.current?.onTimePct != null ? formatNumber(row.current.onTimePct, 1, '-') + '%' : '-',
+      grade: row.grade || '-',
+      quality: row.current?.sprintCount != null && row.current.sprintCount < 3 ? 'Low sample' : 'OK',
+    };
+  });
   html += buildDataTableHtml(velocityColumns, velocityRows);
   html += '</div>';
   html += '</details>';
@@ -284,7 +317,7 @@ export function renderLeadershipPage(data) {
     html += '<div class="leadership-card">';
     html += '<h2>Predictability by sprint (committed vs delivered)</h2>';
     html += '<p class="metrics-hint">Planned = created before sprint start; unplanned = added after. Detection assumptions apply.</p>';
-    html += '<div class="data-table-scroll-wrap"><table class="data-table data-table--mobile-scroll"><thead><tr><th>Sprint</th><th>Start</th><th>End</th><th>Committed Stories</th><th>Delivered Stories</th><th>Committed SP</th><th>Delivered SP</th><th>Stories %</th><th>SP %</th></tr></thead><tbody>';
+    html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table data-table--mobile-scroll"><thead><tr><th>Sprint</th><th>Start</th><th>End</th><th>Committed Stories</th><th>Delivered Stories</th><th>Committed SP</th><th>Delivered SP</th><th>Stories %</th><th>SP %</th></tr></thead><tbody>';
     for (const row of perSprintRows) {
       html += '<tr>';
       html += '<td>' + escapeHtml(row.sprintName) + '</td>';

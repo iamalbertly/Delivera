@@ -4,20 +4,18 @@ import { LOADING_STEP_LIMIT } from './Reporting-App-Report-Config-Constants.js';
 const LOADING_CHIP_MIN_VISIBLE_MS = 300;
 // Length must match LOADING_STAGE_PERCENT; used for progress bar and aria
 const LOADING_STAGES = [
-  'Syncing with Jira…',
-  'Gathering sprint history…',
-  'Computing delivery metrics…',
-  'Preparing your report…',
-  'Final checks…',
+  'Loading data from Jira…',
+  'Processing metrics…',
+  'Rendering report…',
 ];
-const LOADING_STAGE_PERCENT = [10, 40, 70, 85, 100];
+const LOADING_STAGE_PERCENT = [15, 60, 100];
 // Theater: fast ramp 40→65% in 2.5s so cache/fast responses feel instant; then hold at 65% for long runs
 const THEATER_FILL_START = 40;
 const THEATER_FILL_CAP = 65;
 const THEATER_FAST_RAMP_MS = 2500;
 const THEATER_SUB_MESSAGE_INTERVAL_MS = 1200;
 const THEATER_STEP_CUE_MS = 800;
-const GATHERING_SUB_MESSAGES = ['Fetching boards…', 'Loading sprint list…', 'Pulling completed work…'];
+const GATHERING_SUB_MESSAGES = ['Loading boards…', 'Loading sprints…', 'Loading work items…'];
 let loadingChipShowTimerId = null;
 let theaterFillIntervalId = null;
 let theaterMessageIntervalId = null;
@@ -128,8 +126,9 @@ export function startTheaterGathering(getElapsedMs) {
   function updateStepCue() {
     if (!stepCueEl) return;
     const elapsed = typeof getElapsedMs === 'function' ? getElapsedMs() : 0;
-    const step = Math.min(3, Math.floor(elapsed / THEATER_STEP_CUE_MS) + 1);
-    stepCueEl.textContent = 'Step ' + step + ' of 3';
+    const sec = Math.floor(elapsed / 1000);
+    if (sec > 5) stepCueEl.textContent = sec + 's elapsed';
+    else stepCueEl.textContent = '';
   }
   updateStepCue();
   theaterStepCueIntervalId = setInterval(updateStepCue, 200);

@@ -22,6 +22,20 @@ export function getSteps(projectRoot) {
 
   return [
     ...installStep,
+    {
+      name: 'Run Focused SSOT Host and Table Containment Tests',
+      command: 'npx',
+      args: [
+        PLAYWRIGHT_CMD,
+        ...PLAYWRIGHT_BASE_ARGS,
+        'tests/Jira-Reporting-App-API-Integration-Tests.spec.js',
+        'tests/Jira-Reporting-App-UX-Reliability-Fixes-Tests.spec.js',
+        '--grep',
+        'jiraHostResolved',
+        ...PLAYWRIGHT_COMMON_FLAGS,
+      ],
+      cwd: projectRoot
+    },
     { name: 'Run Focused Cache Reliability API Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-API-Integration-Tests.spec.js', ['--grep', 'cache']), cwd: projectRoot },
     { name: 'Run Navigation Consistency Mobile Trust Realtime Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Focused Mobile Responsive UX Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Mobile-Responsive-UX-Validation-Tests.spec.js'), cwd: projectRoot },

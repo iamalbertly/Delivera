@@ -60,15 +60,15 @@
   }
 
   .preview-summary-sticky {
-    top: 56px;
+    top: var(--sticky-global-nav-top, 56px);
   }
 
   .leadership-context-sticky {
-    top: 56px;
+    top: var(--sticky-global-nav-top, 56px);
   }
 
   .current-sprint-outcome-line {
-    top: 56px;
+    top: var(--sticky-global-nav-top, 56px);
   }
 
   .container {
@@ -260,7 +260,7 @@
   font-size: 0.95rem;
   margin-bottom: 12px;
   position: sticky;
-  top: 72px;
+  top: var(--sticky-summary-top, 72px);
   z-index: 45;
   background: var(--bg);
   padding-top: 4px;
@@ -1905,6 +1905,25 @@ body.notification-dock-visible .export-dashboard-container {
   bottom: 86px;
 }
 
+.export-split-group {
+  display: inline-flex;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(15, 76, 129, 0.15);
+}
+.export-split-group .export-default-action {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: none;
+}
+.export-split-group .export-menu-toggle {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid var(--border);
+  box-shadow: none;
+  padding: 8px 10px;
+  min-width: 32px;
+}
 .export-dashboard-btn {
   padding: 12px 16px;
   border-radius: 8px;

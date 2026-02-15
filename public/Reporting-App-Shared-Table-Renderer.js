@@ -1,10 +1,14 @@
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 
 export function buildDataTableHtml(columns, rows, options = {}) {
-  const { id, rowClassKey = '__rowClass', footerRow = null, footerTooltips = null } = options;
+  const { id, rowClassKey = '__rowClass', footerRow = null, footerTooltips = null, wrapperClass = '', tableClass = '' } = options;
+  const safeWrapperClass = String(wrapperClass || '').trim();
+  const safeTableClass = String(tableClass || '').trim();
+  const wrapClassName = ['data-table-scroll-wrap', safeWrapperClass].filter(Boolean).join(' ');
+  const tableClassName = ['data-table', 'data-table--mobile-scroll', safeTableClass].filter(Boolean).join(' ');
   let html = '';
-  html += '<div class="data-table-scroll-wrap">';
-  html += (id ? `<table class="data-table data-table--mobile-scroll" id="${id}">` : '<table class="data-table data-table--mobile-scroll">');
+  html += `<div class="${wrapClassName}">`;
+  html += (id ? `<table class="${tableClassName}" id="${id}">` : `<table class="${tableClassName}">`);
   html += '<thead><tr>';
   for (const col of columns) {
     const title = col.title || col;

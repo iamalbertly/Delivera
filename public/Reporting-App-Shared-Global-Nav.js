@@ -63,7 +63,7 @@ function buildSidebarHTML() {
   }
   html += '</nav>';
   html += '<div id="sidebar-context-card" class="sidebar-context-card" aria-live="polite"></div>';
-  html += '<div class="sidebar-footer">Outcome first: speed, simplicity, trust</div>';
+  html += '<div class="sidebar-footer sidebar-data-pulse" id="sidebar-data-pulse" aria-live="polite" title="Data freshness indicator"></div>';
   return html;
 }
 
@@ -254,8 +254,29 @@ function ensureGlobalNav() {
     }
 
     initSidebarController();
+    initDataPulseListener();
     window.dispatchEvent(new CustomEvent('app:nav-rendered', { detail: { current } }));
   } catch (_) {}
+}
+
+function updateDataPulse(label, state) {
+  const el = document.getElementById('sidebar-data-pulse');
+  if (!el) return;
+  const dotClass = state === 'live' ? 'pulse-live' : (state === 'stale' ? 'pulse-stale' : 'pulse-idle');
+  el.innerHTML = '<span class="pulse-dot ' + dotClass + '" aria-hidden="true"></span> ' + (label || '');
+}
+
+let dataPulseBound = false;
+function initDataPulseListener() {
+  if (dataPulseBound) return;
+  dataPulseBound = true;
+  window.addEventListener('app:data-freshness', (ev) => {
+    try {
+      const { label, state } = ev.detail || {};
+      updateDataPulse(label || '', state || 'idle');
+    } catch (_) {}
+  });
+  updateDataPulse('No data loaded', 'idle');
 }
 
 if (typeof document !== 'undefined') {

@@ -152,9 +152,18 @@ function refreshBoards(preferredId, preferredSprintId) {
         return null;
       }
       const boardIds = boards.map((b) => String(b.id));
-      const boardId = preferredId && boardIds.includes(preferredId) ? preferredId : boardIds[0];
+      const preferredStillExists = preferredId && boardIds.includes(preferredId);
+      const boardId = preferredStillExists ? preferredId : boardIds[0];
       boardSelect.value = boardId;
       currentBoardId = boardId;
+      if (preferredId && !preferredStillExists) {
+        try { localStorage.removeItem(currentSprintKeys.boardKey); } catch (_) {}
+        try { localStorage.removeItem(currentSprintKeys.sprintKey); } catch (_) {}
+        preferredSprintId = null;
+        const boardName = boards.find(b => String(b.id) === boardId)?.name || boardId;
+        const hint = document.getElementById('current-sprint-single-project-hint');
+        if (hint) hint.textContent = 'Previously saved board is no longer available. Switched to ' + boardName + '.';
+      }
       showLoading('Loading current sprint...');
       const sprintRequestId = ++lastBoardsRefreshRequestId;
       return loadCurrentSprintWithGuard(boardId, preferredSprintId)

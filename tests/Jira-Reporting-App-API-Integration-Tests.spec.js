@@ -98,6 +98,18 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     expect(json.code).toBe('INVALID_DATE_FORMAT');
   });
 
+  test('GET /reports should redirect to canonical /report', async ({ request }) => {
+    const response = await request.get('/reports');
+    if (response.status() === 301 || response.status() === 302) {
+      const location = response.headers()['location'] || '';
+      expect(location.startsWith('/report')).toBeTruthy();
+      return;
+    }
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    expect(body).toContain('VodaAgileBoard');
+  });
+
   test('GET /preview.json should accept valid parameters', async ({ request }) => {
     // This test may fail if Jira credentials are not configured
     // That's expected - we're testing the API accepts the request format
@@ -140,6 +152,12 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
       expect(json.meta).toHaveProperty('windowStart');
       expect(json.meta).toHaveProperty('windowEnd');
       expect(Array.isArray(json.meta.selectedProjects)).toBeTruthy();
+      expect(typeof json.meta.jiraHostResolved).toBe('string');
+      expect(typeof json.meta.jiraHostMismatch).toBe('boolean');
+      expect(typeof json.meta.jiraHostFromCache).toBe('string');
+      if (json.meta.jiraHostResolved) {
+        expect(json.meta.jiraHostResolved.startsWith('http://') || json.meta.jiraHostResolved.startsWith('https://')).toBeTruthy();
+      }
 
       // Field inventory contract for API field discovery mapping
       expect(json.meta).toHaveProperty('fieldInventory');
@@ -252,6 +270,7 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     expect(json).toHaveProperty('meta');
     expect(json.meta.windowStart).toBeDefined();
     expect(json.meta.windowEnd).toBeDefined();
+    expect(typeof json.meta.jiraHostResolved).toBe('string');
     if (json.meta.cachedKeyUsed != null) {
       expect(String(json.meta.cachedKeyUsed)).toContain('preview:v2:');
     }

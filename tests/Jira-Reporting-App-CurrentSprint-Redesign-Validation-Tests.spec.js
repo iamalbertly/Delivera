@@ -822,6 +822,10 @@ test.describe('CurrentSprint Redesign - API Contracts', () => {
     expect(data.summary).toBeTruthy();
     expect(data.daysMeta).toBeTruthy();
     expect(data.stuckCandidates).toBeTruthy();
+    expect(typeof data.meta?.jiraHostResolved).toBe('string');
+    if (data.meta?.jiraHostResolved) {
+      expect(data.meta.jiraHostResolved.startsWith('http://') || data.meta.jiraHostResolved.startsWith('https://')).toBeTruthy();
+    }
   });
 
   test('API: Error handling on missing boardId', async ({ request }) => {

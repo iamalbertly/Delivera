@@ -4,6 +4,22 @@ VodaAgileBoard is the tool for scrum masters and leaders: a Node.js web applicat
 
 This README is the SSOT for usage and validation. Supplemental documents (e.g. `Jira-Reporting-Gap-Analysis-Plan.md`) provide planning context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-02-15)
+
+- Added a canonical route alias: `/reports` now redirects to `/report` to prevent dead-entry errors.
+- Strengthened Jira host SSOT behavior in preview APIs:
+  - Cached/live/partial preview responses now consistently expose `meta.jiraHostResolved`.
+  - Added `meta.jiraHostMismatch` and `meta.jiraHostFromCache` for cache-vs-runtime host diagnostics.
+- Hardened current sprint snapshot host metadata so cached snapshots always use current resolved host.
+- Consolidated duplicate Epic TTM rendering logic into shared helpers to reduce drift and reliability regressions.
+- Added explicit Jira-link availability status in Epic TTM sections so users can immediately see linkability state.
+- Improved unlinked Epic/Story key rendering clarity with explicit unlinked styling instead of silent plain-text ambiguity.
+- Fixed test orchestration step quoting on Windows for focused grep execution in fail-fast runs.
+- Updated API and UX validation tests for:
+  - `/reports` canonical route behavior
+  - Preview host metadata contract fields
+  - Epic TTM Jira-link availability status rendering
+
 ## Features
 
 - **Preview-First Workflow**: Preview data before exporting to ensure accuracy

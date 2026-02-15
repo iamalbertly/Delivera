@@ -28,7 +28,8 @@
     "test:ux-reliability": "playwright test tests/Jira-Reporting-App-UX-Reliability-Fixes-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed",
     "test:customer-speed-trust-realtime": "playwright test tests/Jira-Reporting-App-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed",
     "test:cache-reliability": "playwright test tests/Jira-Reporting-App-API-Integration-Tests.spec.js --grep \"cache|preview\" --max-failures=1 --workers=1 --reporter=list --headed",
-    "test:navigation-consistency": "playwright test tests/Jira-Reporting-App-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed"
+    "test:navigation-consistency": "playwright test tests/Jira-Reporting-App-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed",
+    "test:ssot-host-table": "playwright test tests/Jira-Reporting-App-API-Integration-Tests.spec.js tests/Jira-Reporting-App-UX-Reliability-Fixes-Tests.spec.js --grep \"SSOT\" --max-failures=1 --workers=1 --reporter=list --headed"
   },
   "keywords": [
     "voda-agile-board",

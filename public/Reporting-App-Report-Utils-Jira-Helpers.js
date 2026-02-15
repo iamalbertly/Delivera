@@ -5,6 +5,28 @@ function normalizeJiraHost(host) {
   return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
 }
 
+export function getResolvedJiraHostFromMeta(meta) {
+  return normalizeJiraHost(
+    (meta && (meta.jiraHostResolved || meta.jiraHost || meta.host)) || ''
+  );
+}
+
+export function hasResolvedJiraHost(meta) {
+  return getResolvedJiraHostFromMeta(meta) !== '';
+}
+
+export function getJiraLinkAvailability(meta) {
+  const host = getResolvedJiraHostFromMeta(meta);
+  const fromCache = !!meta?.fromCache;
+  const mismatch = !!meta?.jiraHostMismatch;
+  return {
+    enabled: host !== '',
+    host,
+    fromCache,
+    mismatch,
+  };
+}
+
 export function buildJiraIssueUrl(host, issueKey) {
   if (!host || !issueKey) return '';
   return `${normalizeJiraHost(host)}/browse/${issueKey}`;

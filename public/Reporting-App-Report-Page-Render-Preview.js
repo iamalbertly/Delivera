@@ -124,6 +124,16 @@ export function renderPreview() {
   updateDateDisplay();
   renderSidebarContextCard();
 
+  try {
+    const ageMs = meta.cacheAgeMs ?? 0;
+    const ageMins = Math.round(ageMs / 60000);
+    const freshLabel = meta.fromCache
+      ? (ageMins < 1 ? 'Updated just now' : (ageMins < 60 ? 'Updated ' + ageMins + 'm ago' : 'Updated >1h ago'))
+      : 'Updated just now';
+    const freshState = ageMins > 30 ? 'stale' : 'live';
+    window.dispatchEvent(new CustomEvent('app:data-freshness', { detail: { label: freshLabel, state: freshState } }));
+  } catch (_) {}
+
   scheduleRender(() => {
     populateBoardsPills();
     populateSprintsPills();
