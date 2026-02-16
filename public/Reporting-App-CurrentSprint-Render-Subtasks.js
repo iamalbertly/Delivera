@@ -15,7 +15,33 @@ export function renderWorkRisksMerged(data) {
 
   let html = '<div class="transparency-card" id="stuck-card">';
   html += '<div class="meta-row"><small id="scope-changes-card">Scope changes merged with stuck flow, sub-task tracking, and sprint ownership.</small></div>';
+  const blockerRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('stuck') || Number(row.hoursInStatus || 0) >= 24);
+  const blockerPreview = blockerRows.slice(0, 6);
+  const groupedReasons = blockerRows.reduce((acc, row) => {
+    const key = String(row.riskType || 'Risk');
+    acc.set(key, (acc.get(key) || 0) + 1);
+    return acc;
+  }, new Map());
   html += '<h2>Work risks (Scope + Stuck + Sub-task + Sprint issues)</h2>';
+  if (blockerRows.length > 0) {
+    html += '<div class="work-risk-blocker-strip" aria-live="polite">';
+    html += '<strong>Blockers now: ' + blockerRows.length + '</strong>';
+    if (blockerPreview.length > 0) {
+      html += '<span class="work-risk-blocker-links">';
+      blockerPreview.forEach((row) => {
+        html += renderIssueKeyLink(row.issueKey || '-', row.issueUrl) + ' ';
+      });
+      if (blockerRows.length > blockerPreview.length) {
+        html += '<span class="work-risk-blocker-more">+' + (blockerRows.length - blockerPreview.length) + ' more</span>';
+      }
+      html += '</span>';
+    }
+    if (groupedReasons.size > 0) {
+      const reasonText = [...groupedReasons.entries()].slice(0, 3).map(([reason, count]) => reason + ': ' + count).join(' · ');
+      html += '<div class="work-risk-blocker-reasons">Why: ' + escapeHtml(reasonText) + '</div>';
+    }
+    html += '</div>';
+  }
   html += '<p class="section-definition"><small>Scope changes, items stuck >24h, sub-task time-tracking risks, and in-sprint ownership gaps in one place.</small></p>';
   if (scopeChanges.length > 0) {
     html += '<p class="meta-row"><small>Scope impact: ' + scopeChanges.length + ' added mid-sprint, +' + formatNumber(scopeSP, 1, '0') + ' SP' + (scopeUnestimated > 0 ? ' (' + scopeUnestimated + ' unestimated)' : '') + '.</small></p>';

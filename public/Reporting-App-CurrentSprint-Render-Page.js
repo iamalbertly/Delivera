@@ -9,7 +9,6 @@ import { renderAlertBanner, renderVerdictBar } from './Reporting-App-CurrentSpri
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { renderCapacityAllocation } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
-import { renderCountdownTimer } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
 
 export function renderCurrentSprintPage(data) {
   if (!data.sprint) {
@@ -100,14 +99,13 @@ export function renderCurrentSprintPage(data) {
   }
 
   html += '<div class="sprint-cards-row secondary-row">';
-  html += '<div class="card-column countdown-column">' + renderCountdownTimer(data) + '</div>';
   html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
   html += '</div>';
 
   const detailsCollapsed = riskCount >= 1 ? ' card-details-collapsed' : '';
   if (hasHealthData || hasCapacityData) {
     html += '<div class="sprint-cards-row top-row card-details-toggle-wrap' + detailsCollapsed + '" data-region="details">';
-    html += '<button type="button" class="card-details-toggle btn btn-secondary btn-compact" aria-expanded="' + (riskCount >= 1 ? 'false' : 'true') + '" aria-controls="card-details-region">' + (riskCount >= 1 ? 'Show details (countdown, health, capacity)' : 'Hide details') + '</button>';
+    html += '<button type="button" class="card-details-toggle btn btn-secondary btn-compact" aria-expanded="' + (riskCount >= 1 ? 'false' : 'true') + '" aria-controls="card-details-region">' + (riskCount >= 1 ? 'Show details (health, capacity)' : 'Hide details') + '</button>';
     html += '</div>';
     html += '<div class="sprint-cards-row top-row" id="card-details-region" aria-hidden="' + (riskCount >= 1 ? 'true' : 'false') + '">';
     if (hasHealthData) html += '<div class="card-column health-column">' + renderHealthDashboard(data) + '</div>';

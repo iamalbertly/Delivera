@@ -23,6 +23,7 @@
     "test:nav-outcome-trust": "playwright test tests/Jira-Reporting-App-UX-Outcome-First-Nav-And-Trust-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed",
     "test:current-sprint-ux-ssot": "playwright test tests/Jira-Reporting-App-Current-Sprint-UX-SSOT-Validation-Tests.spec.js",
     "test:current-sprint-redesign": "playwright test tests/Jira-Reporting-App-CurrentSprint-Redesign-Validation-Tests.spec.js",
+    "test:current-sprint-direct-value": "playwright test tests/Jira-Reporting-App-Current-Sprint-Blockers-Snapshot-Direct-Value-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed",
     "test:throughput-merge": "playwright test tests/Jira-Reporting-App-Throughput-Merge.spec.js --max-failures=1 --workers=1 --reporter=list --headed",
     "test:leadership-trends": "playwright test tests/Jira-Reporting-App-Leadership-Trends-Usage-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed",
     "test:ux-reliability": "playwright test tests/Jira-Reporting-App-UX-Reliability-Fixes-Tests.spec.js --max-failures=1 --workers=1 --reporter=list --headed",

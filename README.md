@@ -6,6 +6,25 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 
 ## Latest Reliability and UX Updates (2026-02-16)
 
+- Current Sprint direct-to-value fixes for blocker discoverability and fast stakeholder snapshot:
+  - Verdict bar now links blocker states directly to `#work-risks-table` with explicit `Why:` reasons.
+  - Header now includes compact countdown widget (small ring) and explicit blocker drilldown link.
+  - Removed separate oversized countdown card from secondary content row to reduce vertical friction.
+  - Work-risks card now surfaces a top blocker strip with issue-key links and grouped blocker reasons.
+  - Sprint carousel cards now show state + duration metadata for faster sprint-to-sprint comparison.
+  - Risks & Insights blocker action form now includes owner + action-time fields and consistent live char counters.
+- Reliability hardening:
+  - Current Sprint delegated handlers are now idempotent to prevent duplicate event binding across rerenders.
+  - `/report` Done Stories now resolves Jira host from `jiraHostResolved` SSOT and renders safe unlinked fallback text when host is missing.
+  - Current Sprint export primary action now keeps one-click copy and also opens menu for zero-friction follow-up export actions.
+- Added focused fail-fast validation suite:
+  - `tests/Jira-Reporting-App-Current-Sprint-Blockers-Snapshot-Direct-Value-Validation-Tests.spec.js`
+  - Covers 13 direct UX/reliability validations + 3 realistic edge-case checks for blockers/snapshot behavior.
+- Orchestration update:
+  - Added the new direct-value sprint validation spec into `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`.
+- Validation status:
+  - `npm run test:all` passed end-to-end (`45/45` selected steps, fail-fast mode, headed, workers=1).
+
 - Refactored duplicated page bootstrap behaviors into shared SSOT helpers:
   - `public/Reporting-App-Shared-Page-Identity-Scroll-Helpers.js`
   - `public/Reporting-App-Report-Page-Init-Filters-Panel-State-Helpers.js`

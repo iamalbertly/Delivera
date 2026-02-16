@@ -1,13 +1,17 @@
-/**
+﻿/**
  * Sprint Navigation Carousel Component
- * Visual quick-switch tabs showing last 8 sprints with mini health indicators
- * Keyboard navigation support (arrow keys, Enter)
- * Color-coded completion: Green (100% done), Yellow (50-99%), Gray (0-49%), Muted (closed)
- * Rationale: Customer - Fast historical comparison. Simplicity - Visual vs. text links. Trust - Visible sprint health for all.
+ * Visual quick-switch tabs showing last 8 sprints with mini health indicators.
  */
 
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
+
+function computeDurationDays(startDate, endDate) {
+  const start = startDate ? new Date(startDate).getTime() : NaN;
+  const end = endDate ? new Date(endDate).getTime() : NaN;
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) return null;
+  return Math.max(1, Math.round((end - start) / (24 * 60 * 60 * 1000)));
+}
 
 export function renderSprintCarousel(data) {
   const sprints = data.recentSprints || [];
@@ -17,17 +21,16 @@ export function renderSprintCarousel(data) {
 
   const maxTabs = 8;
   const slice = sprints.slice(0, maxTabs);
-  const currentIdx = slice.findIndex(s => s.id === currentSprint.id);
   const hasEnoughHistory = slice.length >= 3;
 
   let html = '<div class="sprint-carousel-container">';
 
   if (hasEnoughHistory) {
-    const points = slice.map(s => {
+    const points = slice.map((s) => {
       const pct = s.completionPercent ?? 0;
       return { pct: Math.min(100, Math.max(0, pct)), sprint: s };
     });
-    const maxPct = Math.max(1, ...points.map(p => p.pct));
+    const maxPct = Math.max(1, ...points.map((p) => p.pct));
     const w = 320;
     const h = 36;
     const pad = 4;
@@ -45,7 +48,6 @@ export function renderSprintCarousel(data) {
       const x = pad + i * step;
       const y = h - pad - (p.pct / maxPct) * (h - pad * 2);
       const isActive = p.sprint.id === currentSprint.id;
-      const label = (p.sprint.completionPercent == null || (p.sprint.state || '').toLowerCase() === 'closed' && p.pct === 0) ? 'No data' : (p.pct + '%');
       const r = isActive ? 6 : 4;
       html += '<circle class="sparkline-dot' + (isActive ? ' sparkline-dot-current' : '') + '" cx="' + x + '" cy="' + y + '" r="' + r + '" data-sprint-id="' + p.sprint.id + '" data-index="' + i + '"/>';
     });
@@ -58,48 +60,49 @@ export function renderSprintCarousel(data) {
 
   html += '<div class="sprint-carousel" role="tablist" aria-label="Sprint navigation">';
 
-  slice.forEach(sprint => {
+  slice.forEach((sprint) => {
     const isActive = sprint.id === currentSprint.id;
     const isOpen = (sprint.state || '').toLowerCase() === 'active';
     const isClosed = (sprint.state || '').toLowerCase() === 'closed';
     const completionPercent = sprint.completionPercent ?? 0;
     const noData = isClosed && completionPercent === 0;
+
     let completionColor = 'gray';
     if (completionPercent >= 100) completionColor = 'green';
     else if (completionPercent >= 50) completionColor = 'yellow';
     if (isClosed && completionPercent < 100) completionColor = 'muted';
 
-    const sprintName = (sprint.name || ('Sprint ' + sprint.id)).slice(0, 24) + ((sprint.name || '').length > 24 ? '…' : '');
+    const sprintName = (sprint.name || ('Sprint ' + sprint.id)).slice(0, 24) + ((sprint.name || '').length > 24 ? '...' : '');
     const startDate = sprint.startDate ? formatDate(sprint.startDate) : '-';
     const endDate = sprint.endDate ? formatDate(sprint.endDate) : '-';
+    const durationDays = computeDurationDays(sprint.startDate, sprint.endDate);
+    const durationLabel = durationDays == null ? '-' : (durationDays + 'd');
+    const stateLabel = isOpen ? 'Active' : (isClosed ? 'Closed' : 'Planned');
     const tooltip = sprintName + '\nStart: ' + startDate + '\nEnd: ' + endDate + '\n' + (noData ? 'No data' : completionPercent + '%');
 
-    // UX Fix #7: No-data closed cards collapse to minimal size — saves 70% of visual noise
-    // when board has no historical SP tracking. A tooltip explains WHY data is absent.
     const noDataClass = noData ? ' carousel-tab--no-data' : '';
-    const noDataTooltip = noData ? sprintName + '\n' + startDate + ' → ' + endDate + '\nNo data — SP tracking may not have been enabled for this sprint.' : tooltip;
+    const noDataTooltip = noData ? sprintName + '\n' + startDate + ' -> ' + endDate + '\nNo data - SP tracking may not have been enabled for this sprint.' : tooltip;
     html += '<button class="carousel-tab ' + (isActive ? 'active carousel-tab-current' : '') + ' ' + completionColor + noDataClass + '" ';
     html += 'type="button" role="tab" aria-selected="' + (isActive ? 'true' : 'false') + '" data-sprint-id="' + sprint.id + '" title="' + escapeHtml(noDataTooltip) + '">';
     html += '<span class="carousel-tab-name">' + escapeHtml(sprintName) + '</span>';
+    html += '<span class="carousel-tab-meta">' + stateLabel + ' · ' + durationLabel + '</span>';
     if (!noData) {
-      html += '<span class="carousel-tab-dates">' + startDate + ' → ' + endDate + '</span>';
+      html += '<span class="carousel-tab-dates">' + startDate + ' -> ' + endDate + '</span>';
       html += '<div class="carousel-health-indicator" style="width: ' + completionPercent + '%;" role="img" aria-label="' + completionPercent + '% complete"></div>';
     }
     if (isOpen) html += '<span class="carousel-status current">Current</span>';
     else if (isClosed && !noData) html += '<span class="carousel-status closed">Closed</span>';
-    html += '<span class="carousel-completion">' + (noData ? '—' : completionPercent + '%') + '</span>';
+    html += '<span class="carousel-completion">' + (noData ? '-' : completionPercent + '%') + '</span>';
     html += '</button>';
   });
 
   html += '</div>';
-  // M6: Horizontal scroll affordance hint (auto-hides on first scroll via wireSprintCarouselHandlers)
-  html += '<div class="carousel-scroll-hint sprint-carousel-scroll-hint" aria-hidden="true">← swipe for older sprints →</div>';
+  html += '<div class="carousel-scroll-hint sprint-carousel-scroll-hint" aria-hidden="true"><- swipe for older sprints -></div>';
   html += '<div class="carousel-legend">';
   html += '<span class="legend-item"><span class="legend-dot green"></span>100%</span>';
   html += '<span class="legend-item"><span class="legend-dot yellow"></span>50-99%</span>';
   html += '<span class="legend-item"><span class="legend-dot gray"></span>0-49%</span>';
-  // UX Fix #7: "No data" legend item — collapsed/muted card style (hover tooltip explains cause)
-  html += '<span class="legend-item"><span class="legend-dot muted"></span>— No data</span>';
+  html += '<span class="legend-item"><span class="legend-dot muted"></span>- No data</span>';
   html += '</div>';
   html += '</div>';
 
@@ -126,7 +129,6 @@ export function wireSprintCarouselHandlers(onSprintSelect) {
     });
   }
 
-  // M6: Auto-hide scroll hint on first carousel scroll
   const scrollHint = document.querySelector('.sprint-carousel-scroll-hint');
   if (scrollHint) {
     carousel.addEventListener('scroll', () => {
@@ -141,7 +143,7 @@ export function wireSprintCarouselHandlers(onSprintSelect) {
         onSprintSelect(sprintId);
       }
 
-      tabs.forEach(t => {
+      tabs.forEach((t) => {
         t.classList.remove('active', 'carousel-tab-current');
         t.setAttribute('aria-selected', 'false');
       });
@@ -151,13 +153,11 @@ export function wireSprintCarouselHandlers(onSprintSelect) {
       tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     });
 
-    // Keyboard navigation
     tab.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         const nextTab = tabs[idx + 1];
         if (nextTab) {
-          // Move focus without triggering a click/refresh
           nextTab.focus();
           nextTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }

@@ -9,6 +9,7 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
+import { renderCountdownTimer } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
 
 export function renderHeaderBar(data) {
   const sprint = data.sprint || {};
@@ -63,11 +64,15 @@ export function renderHeaderBar(data) {
   if (missingEstimates > 0) compactRiskParts.push(missingEstimates + ' missing est');
   if (missingLoggedItems > 0) compactRiskParts.push(missingLoggedItems + ' no log');
   const compactRiskLine = compactRiskParts.length ? compactRiskParts.join(' · ') : 'No active delivery risks';
+  const blockerDrillDown = stuckCount > 0
+    ? '<a href="#work-risks-table" class="sprint-verdict-drilldown">' + stuckCount + ' blockers - open list</a>'
+    : '<span class="sprint-verdict-drilldown sprint-verdict-drilldown-ok">No blockers</span>';
 
   let html = '<div class="current-sprint-header-bar" data-sprint-id="' + (sprint.id || '') + '">';
   html += '<div class="sprint-outcome-line" aria-live="polite">' + escapeHtml(outcomeLine) + '</div>';
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictInfo.color) + '" aria-live="polite">';
   html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong> · ' + escapeHtml(compactRiskLine);
+  html += ' · ' + blockerDrillDown;
   html += '</div>';
 
   const boardName = (data.board && data.board.name) ? data.board.name : '';
@@ -126,6 +131,7 @@ export function renderHeaderBar(data) {
   const hasExportableRows = issuesCount > 0;
   const exportReadiness = hasExportableRows ? 'Export ready' : 'No exportable rows';
   html += '<div class="header-bar-right">';
+  html += renderCountdownTimer(data, { compact: true });
   html += '<div class="status-badge ' + statusClass + '" role="status" aria-label="Data status: ' + escapeHtml(statusBadge) + '">' + escapeHtml(statusBadge) + '</div>';
   html += '<small class="header-export-readiness">' + escapeHtml(exportReadiness) + '</small>';
   html += '<div class="header-updated">' + (freshnessLabel ? '<small class="last-updated">' + escapeHtml(freshnessLabel) + '</small>' : '') + '</div>';

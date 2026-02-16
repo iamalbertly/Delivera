@@ -4,8 +4,13 @@ import { getErrorMessage, loadCurrentSprint } from './Reporting-App-CurrentSprin
 import { showContent } from './Reporting-App-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Page.js';
 
-export function wireDynamicHandlers(data) {
-  // Optimistic Prefetch
+let isGlobalHoverBound = false;
+let isGlobalClickBound = false;
+let isCardToggleBound = false;
+
+function bindGlobalPrefetchHover() {
+  if (isGlobalHoverBound) return;
+  isGlobalHoverBound = true;
   document.addEventListener('mouseover', (e) => {
     const trigger = e.target.closest('[data-sprint-id], [data-action="drill-down"]');
     if (!trigger || trigger.dataset.prefetched) return;
@@ -16,7 +21,11 @@ export function wireDynamicHandlers(data) {
       // In next phase: fetch(`/api/sprint-details/${sprintId}`).catch(()=>{});
     }
   }, { passive: true });
+}
 
+function bindGlobalClickHandlers() {
+  if (isGlobalClickBound) return;
+  isGlobalClickBound = true;
   document.addEventListener('click', (e) => {
     const toggle = e.target.closest('.card-details-toggle');
     if (toggle) {
@@ -35,8 +44,12 @@ export function wireDynamicHandlers(data) {
       if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
+}
 
-  document.querySelectorAll('.card-toggle').forEach(btn => {
+function bindCardToggles() {
+  if (isCardToggleBound) return;
+  isCardToggleBound = true;
+  document.querySelectorAll('.card-toggle').forEach((btn) => {
     btn.addEventListener('click', () => {
       const targetId = btn.getAttribute('data-target');
       const card = targetId ? document.getElementById(targetId) : null;
@@ -46,6 +59,12 @@ export function wireDynamicHandlers(data) {
       }
     });
   });
+}
+
+export function wireDynamicHandlers(data) {
+  bindGlobalPrefetchHover();
+  bindGlobalClickHandlers();
+  bindCardToggles();
 
   const saveBtn = document.getElementById('notes-save');
   // Clean event listener replacement

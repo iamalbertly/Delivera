@@ -6,11 +6,10 @@
  * Rationale: Customer - Color triggers urgency response faster than text. Simplicity - Visual > numeric. Trust - Consistent color coding.
  */
 
-import { formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-
-export function renderCountdownTimer(data) {
+export function renderCountdownTimer(data, options = {}) {
   const days = data.daysMeta || {};
   const sprint = data.sprint || {};
+  const compact = options.compact !== false;
 
   const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
   const sprintEndDate = sprint.endDate;
@@ -64,17 +63,20 @@ export function renderCountdownTimer(data) {
   const progressPercent = Math.min(100, Math.max(0, (remainingDays / maxDays) * 100));
 
   // SVG for circular progress
-  const circumference = 2 * Math.PI * 45; // 45px radius
+  const radius = compact ? 24 : 45;
+  const size = compact ? 64 : 120;
+  const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
-  let html = '<div class="countdown-timer-widget" aria-live="polite" aria-label="' + ariaLabel + '">';
-  html += '<svg class="countdown-ring ' + color + (isUrgent ? ' urgent' : '') + '" width="120" height="120" viewBox="0 0 120 120">';
+  let html = '<div class="countdown-timer-widget' + (compact ? ' countdown-timer-widget-compact' : '') + '" aria-live="polite" aria-label="' + ariaLabel + '">';
+  html += '<span class="countdown-title">Remaining</span>';
+  html += '<svg class="countdown-ring ' + color + (isUrgent ? ' urgent' : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
   
   // Background ring
-  html += '<circle cx="60" cy="60" r="45" class="countdown-ring-background"></circle>';
+  html += '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="countdown-ring-background"></circle>';
   
   // Progress ring
-  html += '<circle cx="60" cy="60" r="45" class="countdown-ring-progress" style="stroke-dashoffset: ' + strokeDashoffset + 'px;"></circle>';
+  html += '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" class="countdown-ring-progress" style="stroke-dasharray: ' + circumference + '; stroke-dashoffset: ' + strokeDashoffset + 'px;"></circle>';
   
   // Center text
   html += '</svg>';

@@ -11,7 +11,7 @@ export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
   html += '<span class="export-split-group">';
-  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" data-action="copy-text" aria-label="Copy sprint summary to clipboard" aria-live="polite">Copy summary</button>';
+  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary to clipboard" aria-live="polite">Copy summary</button>';
   html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">&#9662;</button>';
   html += '</span>';
   html += '<div class="export-menu hidden" id="export-menu" role="menu">';
@@ -74,6 +74,8 @@ export function wireExportHandlers(data) {
       event.preventDefault();
       event.stopPropagation();
       copyDashboardAsText(data, btn);
+      menu.classList.remove('hidden');
+      if (menuToggle) menuToggle.setAttribute('aria-expanded', 'true');
     });
   }
 

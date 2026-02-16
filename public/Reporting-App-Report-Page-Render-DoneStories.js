@@ -4,7 +4,7 @@ import { reportDom } from './Reporting-App-Report-Page-Context.js';
 import { getSafeMeta, renderEmptyState } from './Reporting-App-Report-Page-Render-Helpers.js';
 import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
+import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 import { VirtualScroller } from './Reporting-App-Shared-Virtual-Scroller.js';
 
 export function toggleSprint(id) {
@@ -28,7 +28,7 @@ export function renderDoneStoriesTab(rows) {
   const content = document.getElementById('done-stories-content');
   const totalsBar = document.getElementById('done-stories-totals');
   const meta = getSafeMeta(reportState.previewData);
-  const jiraHost = meta?.jiraHost || meta?.host || '';
+  const jiraHost = getResolvedJiraHostFromMeta(meta);
 
   if (!rows || rows.length === 0) {
     renderEmptyState(content, 'No done stories', "No done stories in this window.", '', 'Adjust filters');
@@ -140,8 +140,11 @@ function renderTableHtml(rows, meta, jiraHost) {
 
 function renderRowHtml(row, meta, jiraHost) {
   const issueUrl = buildJiraIssueUrl(jiraHost, row.issueKey);
+  const issueKeyHtml = issueUrl
+    ? `<a href="${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.issueKey || '')}</a>`
+    : `<span class="issue-key-unlinked">${escapeHtml(row.issueKey || '')}</span>`;
   return `<div style="display: flex; padding: 5px 10px; border-bottom: 1px solid #eee; height: 40px; align-items: center;">
-     <div style="flex: 1"><a href="${issueUrl}" target="_blank">${row.issueKey}</a></div>
+     <div style="flex: 1">${issueKeyHtml}</div>
      <div style="flex: 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(row.issueSummary)}</div>
      <div style="flex: 1">${escapeHtml(row.issueStatus)}</div>
      <div style="flex: 1">${escapeHtml(row.issueType)}</div>
@@ -152,8 +155,11 @@ function renderRowHtml(row, meta, jiraHost) {
 
 function renderRowHtmlAsTr(row, meta, jiraHost) {
   const issueUrl = buildJiraIssueUrl(jiraHost, row.issueKey);
+  const issueKeyHtml = issueUrl
+    ? `<a href="${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.issueKey || '')}</a>`
+    : `<span class="issue-key-unlinked">${escapeHtml(row.issueKey || '')}</span>`;
   return `<tr>
-     <td><a href="${issueUrl}" target="_blank">${row.issueKey}</a></td>
+     <td>${issueKeyHtml}</td>
      <td>${escapeHtml(row.issueSummary)}</td>
      <td>${escapeHtml(row.issueStatus)}</td>
      <td>${escapeHtml(row.issueType)}</td>

@@ -1,4 +1,4 @@
-/**
+ï»¿/**
  * Alert/Warning Banner Component
  * Dynamic alerts for: stuck items (>24h), scope growth, burndown trend, sub-task risks
  * Color-coded: Yellow (1-2 risks), Orange (3-5 risks), Red (6+ risks or critical)
@@ -35,18 +35,18 @@ export function buildAlerts(data) {
       ? previewKeys.join(', ') + (stuckCount > 2 ? ' +' + (stuckCount - 2) + ' more' : '')
       : '';
     const oldestHours = stuckItems.reduce((max, s) => Math.max(max, s.hoursInStatus || 0), 0);
-    const oldestSuffix = oldestHours > 0 ? ' · Oldest: ' + Math.round(oldestHours) + 'h' : '';
+    const oldestSuffix = oldestHours > 0 ? ' Â· Oldest: ' + Math.round(oldestHours) + 'h' : '';
     const titleText = stuckCount + ' blocker' + (stuckCount > 1 ? 's' : '')
-      + (keyPreview ? ' · ' + keyPreview : '') + oldestSuffix;
+      + (keyPreview ? ' Â· ' + keyPreview : '') + oldestSuffix;
     alerts.push({
       id: 'stuck-items',
       type: 'stuck',
       severity,
-      icon: '?',
+      icon: '!',
       title: titleText,
       message: 'Items stuck >24h in the same status. Unblock immediately to protect delivery.',
-      action: 'View all',
-      actionHref: '#stuck-card',
+      action: 'Open blocker list',
+      actionHref: '#work-risks-table',
       actionData: 'view-blockers',
       color: severity === 'critical' ? 'red' : (severity === 'high' ? 'orange' : 'yellow')
     });
@@ -62,7 +62,7 @@ export function buildAlerts(data) {
         id: 'scope-growth',
         type: 'scope',
         severity: 'high',
-        icon: '?',
+        icon: '!',
         title: 'Scope growth: +' + scopePercent.toFixed(0) + '%',
         message: scopeChanges.length + ' new issues added (' + scopeSP + ' SP). Sprint commitment at risk.',
         action: 'Review Risks',
@@ -75,7 +75,7 @@ export function buildAlerts(data) {
         id: 'scope-growth',
         type: 'scope',
         severity: 'medium',
-        icon: '?',
+        icon: '!',
         title: 'Scope growth: +' + scopePercent.toFixed(0) + '%',
         message: scopeChanges.length + ' new items. Monitor impact on delivery.',
         action: 'Review Risks',
@@ -93,7 +93,7 @@ export function buildAlerts(data) {
       id: 'missing-estimates',
       type: 'estimation',
       severity: 'high',
-      icon: '?',
+      icon: '!',
       title: missingEstimates + ' sub-tasks missing estimates',
       message: 'Cannot accurately forecast completion. Add estimates immediately.',
       action: 'View Sub-tasks',
@@ -105,7 +105,7 @@ export function buildAlerts(data) {
       id: 'missing-estimates',
       type: 'estimation',
       severity: 'medium',
-      icon: '?',
+      icon: '!',
       title: missingEstimates + ' sub-tasks missing estimates',
       message: 'Reduce forecast uncertainty by adding estimates.',
       action: 'View Sub-tasks',
@@ -121,7 +121,7 @@ export function buildAlerts(data) {
       id: 'low-logging',
       type: 'logging',
       severity: 'medium',
-      icon: '??',
+      icon: '!',
       title: 'No time logged on sub-tasks',
       message: 'Team members need to log hours for accurate burndown visibility.',
       action: 'View Tracking',
@@ -157,30 +157,49 @@ export function deriveSprintVerdict(data) {
   }
 
   let detail = donePct + '% done';
-  if (stuckCount > 0) detail += ' · ' + stuckCount + ' blockers';
-  if (missingEstimate > 0) detail += ' · ' + missingEstimate + ' missing estimates';
-  if (missingLogged > 0) detail += ' · ' + missingLogged + ' no log';
-  return { verdict, color, detail };
+  if (stuckCount > 0) detail += ' Â· ' + stuckCount + ' blockers';
+  if (missingEstimate > 0) detail += ' Â· ' + missingEstimate + ' missing estimates';
+  if (missingLogged > 0) detail += ' Â· ' + missingLogged + ' no log';
+  return {
+    verdict,
+    color,
+    detail,
+    stuckCount,
+    missingEstimate,
+    missingLogged,
+  };
 }
 
 /**
- * Single-line verdict bar: one sentence, one color, one action (Flaw 3).
+ * Single-line verdict bar: one sentence, one color, one action.
  */
 export function renderVerdictBar(data) {
   const alerts = buildAlerts(data);
   const first = alerts[0] || null;
   const moreCount = alerts.length > 0 ? alerts.length - 1 : 0;
-  const { verdict, color, detail } = deriveSprintVerdict(data);
+  const { verdict, color, detail, stuckCount, missingEstimate, missingLogged } = deriveSprintVerdict(data);
+
+  const quickReasons = [];
+  if (stuckCount > 0) quickReasons.push('blocked >24h');
+  if (missingEstimate > 0) quickReasons.push('missing estimates');
+  if (missingLogged > 0) quickReasons.push('missing logs');
+  const explainLine = quickReasons.length
+    ? 'Why: ' + quickReasons.join(', ') + '.'
+    : 'Why: no blocker or sub-task hygiene risks detected.';
 
   let html = '<div class="verdict-bar verdict-bar-' + color + '" role="status" aria-live="polite">';
   html += '<span class="verdict-text">' + escapeHtml(verdict) + '</span>';
-  html += '<span class="verdict-detail">' + escapeHtml(detail) + '</span>';
+  if (stuckCount > 0) {
+    html += '<a href="#work-risks-table" class="verdict-detail verdict-detail-link" title="Open blocker drilldown table">' + escapeHtml(detail) + '</a>';
+  } else {
+    html += '<span class="verdict-detail">' + escapeHtml(detail) + '</span>';
+  }
   if (moreCount > 0) {
     html += '<button type="button" class="verdict-more" data-action="expand-verdict" aria-expanded="false">+' + moreCount + ' more</button>';
   }
-  html += ' <a href="' + (first?.actionHref || '#stuck-card') + '" class="verdict-action btn btn-primary btn-compact">' + escapeHtml(first?.action || 'Review') + '</a>';
+  html += ' <a href="' + (first?.actionHref || '#work-risks-table') + '" class="verdict-action btn btn-primary btn-compact">' + escapeHtml(first?.action || 'Review') + '</a>';
   if (verdict !== 'Healthy') {
-    html += '<span class="verdict-explain">Based on blockers, progress pace, and sub-task hygiene.</span>';
+    html += '<span class="verdict-explain">' + escapeHtml(explainLine) + '</span>';
   }
   html += '</div>';
   return html;
@@ -228,7 +247,7 @@ export function renderAlertBanner(data) {
   });
 
   html += '</div>';
-  html += '<button class="alert-dismiss" type="button" aria-label="Dismiss alert" title="Dismiss for 4 hours">?</button>';
+  html += '<button class="alert-dismiss" type="button" aria-label="Dismiss alert" title="Dismiss for 4 hours">Ã—</button>';
   html += '</div>';
 
   return html;
@@ -265,7 +284,7 @@ export function wireAlertBannerHandlers() {
       const href = link.getAttribute('href');
       const actionData = link.getAttribute('data-action') || '';
       if (actionData === 'view-blockers' || actionData === 'review-risks') {
-        const target = document.querySelector('#stuck-card');
+        const target = document.querySelector('#work-risks-table') || document.querySelector('#stuck-card');
         if (target) {
           target.scrollIntoView({ behavior: 'smooth' });
           target.classList.add('highlight-flash');

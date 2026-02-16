@@ -22,6 +22,8 @@ export function renderHealthDashboard(data) {
   const percentDone = summary.percentDone ?? 0;
   const newFeaturesSP = summary.newFeaturesSP || 0;
   const supportOpsSP = summary.supportOpsSP || 0;
+  const daysMeta = data.daysMeta || {};
+  const remainingDays = daysMeta.daysRemainingWorking != null ? daysMeta.daysRemainingWorking : daysMeta.daysRemainingCalendar;
 
   // Sub-task tracking
   const totalEstimate = formatNumber(trackingSummary.totalEstimateHours || 0, 1, '0');
@@ -45,6 +47,9 @@ export function renderHealthDashboard(data) {
 
   let html = '<div class="transparency-card health-dashboard-card" id="health-dashboard-card">';
   html += '<h2>Sprint Health Dashboard</h2>';
+  html += '<div class="health-snapshot-row">';
+  html += '<strong>Snapshot:</strong> ' + doneStories + '/' + totalStories + ' done · ' + totalSP + ' SP · ' + (remainingDays == null ? '-' : remainingDays + 'd left');
+  html += '</div>';
 
   const breakdownReasons = [];
   if (stuckCount > 0) {
@@ -149,7 +154,7 @@ export function renderHealthDashboard(data) {
   // Action buttons (snapshot already visible above; Details = optional expand, Copy = clipboard)
   html += '<div class="health-actions">';
   html += '<button class="btn btn-compact health-detail-btn" data-action="expand-details" title="Show more detailed metrics">More details</button>';
-  html += '<button class="btn btn-compact health-copy-btn" data-action="copy-metrics" title="Copy metrics as text">Copy Metrics</button>';
+  html += '<button class="btn btn-compact health-copy-btn" data-action="copy-metrics" title="Copy summary and blockers for stakeholders">Quick snapshot</button>';
   html += '</div>';
 
   html += '</div>';
