@@ -2677,6 +2677,12 @@ body .preview-area {
   width: auto;
 }
 
+.boards-column-toggle-row {
+  margin: 8px 0 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* Done Stories */
 .done-stories-controls {
   margin-bottom: 20px;
@@ -4091,6 +4097,59 @@ body .preview-area {
   text-decoration: underline;
 }
 
+.sprint-executive-snapshot {
+  margin-bottom: 14px;
+  border-left: 4px solid var(--primary);
+}
+
+.snapshot-question-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+.snapshot-question-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-muted);
+}
+
+.snapshot-question {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.snapshot-answer {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.snapshot-actions {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.snapshot-actions a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.snapshot-actions a:hover {
+  text-decoration: underline;
+}
+
 .sprint-carousel {
   display: flex;
   gap: 8px;
@@ -5010,6 +5069,10 @@ body.notification-dock-visible .export-dashboard-container {
   }
 
   .insight-input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .snapshot-question-list {
     grid-template-columns: 1fr;
   }
 }

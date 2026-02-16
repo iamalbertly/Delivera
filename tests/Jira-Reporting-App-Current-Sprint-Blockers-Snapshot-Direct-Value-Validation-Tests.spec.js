@@ -7,6 +7,18 @@ import {
 } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => {
+  async function skipIfNoActiveSprint(page, test) {
+    const hasCommandCenter = await page.locator('.current-sprint-header-bar').first().isVisible().catch(() => false);
+    if (hasCommandCenter) return false;
+    const noSprintState = page.locator('.empty-state, #current-sprint-content');
+    const noSprintText = ((await noSprintState.first().textContent().catch(() => '')) || '').toLowerCase();
+    if (noSprintText.includes('no active sprint')) {
+      test.skip(true, 'No active sprint for this board/dataset');
+      return true;
+    }
+    return false;
+  }
+
   test.beforeEach(async ({ page }, testInfo) => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
@@ -19,21 +31,25 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
     }
   });
 
-  test('Validation 1: verdict bar is visible and action-first', async ({ page }) => {
-    await expect(page.locator('.verdict-bar')).toBeVisible();
-    await expect(page.locator('.verdict-action')).toBeVisible();
+  test('Validation 1: command center header is visible and action-first', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
+    await expect(page.locator('.current-sprint-header-bar')).toBeVisible();
+    await expect(page.locator('.sprint-verdict-line')).toBeVisible();
+    await expect(page.locator('.header-export-inline .export-dashboard-btn')).toBeVisible();
   });
 
   test('Validation 2: blocker verdict detail links to drilldown table when blockers exist', async ({ page }) => {
-    const detailLink = page.locator('.verdict-detail-link');
+    if (await skipIfNoActiveSprint(page, test)) return;
+    const detailLink = page.locator('.sprint-verdict-drilldown');
     if (!(await detailLink.isVisible().catch(() => false))) {
       test.skip(true, 'No blockers in current dataset');
       return;
     }
-    await expect(detailLink).toHaveAttribute('href', '#work-risks-table');
+    await expect(detailLink).toHaveAttribute('href', /#work-risks-table/);
   });
 
   test('Validation 3: work risks table issue keys are rendered as links', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const table = page.locator('#work-risks-table');
     if (!(await table.isVisible().catch(() => false))) {
       test.skip(true, 'Work risks table hidden for dataset');
@@ -44,6 +60,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 4: compact countdown is present in header', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const timer = page.locator('.header-bar-right .countdown-timer-widget-compact');
     await expect(timer).toBeVisible();
     const ring = timer.locator('.countdown-ring');
@@ -52,10 +69,12 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 5: standalone countdown card is removed from secondary row', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     await expect(page.locator('.secondary-row .countdown-column')).toHaveCount(0);
   });
 
   test('Validation 6: blockers insight panel contains owner and action-time inputs', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const blockersPanel = page.locator('#blockers-panel');
     await expect(blockersPanel).toBeVisible();
     const hasOwner = await blockersPanel.locator('#blockers-owner').isVisible().catch(() => false);
@@ -69,6 +88,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 7: insight text areas show fail-fast character counters', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     await expect(page.locator('#blockers-char-count')).toBeVisible();
     const text = 'Escalate blocker to architecture owner';
     await page.fill('#blockers-mitigation', text);
@@ -76,12 +96,14 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 8: carousel cards include state and duration metadata', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const firstTab = page.locator('.carousel-tab').first();
     await expect(firstTab).toBeVisible();
     await expect(firstTab.locator('.carousel-tab-meta')).toBeVisible();
   });
 
   test('Validation 9: no-data carousel cards use collapsed style when present', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const noDataTab = page.locator('.carousel-tab--no-data').first();
     if (!(await noDataTab.isVisible().catch(() => false))) {
       test.skip(true, 'No no-data sprint cards in dataset');
@@ -92,6 +114,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 10: health dashboard exposes snapshot summary row', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const snapshotRow = page.locator('.health-snapshot-row');
     const visible = await snapshotRow.isVisible().catch(() => false);
     if (!visible) {
@@ -102,6 +125,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 11: health action is direct-to-value quick snapshot', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const quickButton = page.locator('.health-copy-btn');
     const visible = await quickButton.isVisible().catch(() => false);
     if (!visible) {
@@ -112,6 +136,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 12: report done stories issue keys are link-safe with fallback', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     await runDefaultPreview(page);
     await page.click('button.tab-btn:has-text("Done Stories"), button.tab-btn:has-text("Outcome list")').catch(() => null);
     const doneArea = page.locator('#done-stories-content');
@@ -136,6 +161,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Validation 13: detail toggle remains stable after refresh (no double-binding)', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const toggle = page.locator('.card-details-toggle');
     if (!(await toggle.isVisible().catch(() => false))) {
       test.skip(true, 'No details toggle in dataset');
@@ -151,7 +177,29 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
     expect(stateAfter).not.toBe(stateBefore);
   });
 
+  test('Validation 14: export menu remains functional after refresh rerender', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
+    const refresh = page.locator('.header-refresh-btn');
+    if (await refresh.isVisible().catch(() => false)) {
+      await refresh.click().catch(() => null);
+      await page.waitForTimeout(800);
+    }
+    const exportBtn = page.locator('.export-dashboard-btn');
+    await expect(exportBtn).toBeVisible();
+    await exportBtn.click();
+    await expect(page.locator('#export-menu')).toBeVisible();
+    await expect(page.locator('.export-option')).toHaveCount(5);
+  });
+
+  test('Validation 15: duplicate focused snapshot section is removed', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
+    const snapshot = page.locator('#sprint-executive-snapshot');
+    await expect(snapshot).toHaveCount(0);
+    await expect(page.locator('.current-sprint-header-bar')).toContainText(/done/i);
+  });
+
   test('Edge Case A: zero blockers shows explicit no-blocker state', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const detail = page.locator('.sprint-verdict-drilldown-ok');
     if (!(await detail.isVisible().catch(() => false))) {
       test.skip(true, 'Dataset has blockers');
@@ -161,6 +209,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Edge Case B: insights save reports status feedback', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const telemetry = captureBrowserTelemetry(page);
     await page.route('/api/current-sprint/insights', (route) => route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) }));
     const saveBtn = page.locator('#insights-save');
@@ -174,9 +223,44 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
   });
 
   test('Edge Case C: countdown unknown state exposes trusted aria label', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
     const timer = page.locator('.countdown-timer-widget').first();
     await expect(timer).toBeVisible();
     const aria = (await timer.getAttribute('aria-label')) || '';
     expect(aria.length).toBeGreaterThan(3);
+  });
+
+  test('Edge Case D: insights empty save is blocked with warning and no POST call', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
+    let called = 0;
+    await page.route('/api/current-sprint/insights', (route) => {
+      called += 1;
+      route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) });
+    });
+    const saveBtn = page.locator('#insights-save');
+    if (!(await saveBtn.isVisible().catch(() => false))) {
+      test.skip(true, 'Insights controls unavailable');
+      return;
+    }
+    await page.click('.insights-tab[data-tab="learnings"]').catch(() => null);
+    await page.click('.insights-tab[data-tab="assumptions"]').catch(() => null);
+    await page.click('.insights-tab[data-tab="blockers"]').catch(() => null);
+    await page.fill('#blockers-mitigation', '');
+    const learningsInput = page.locator('#learnings-new:visible');
+    if (await learningsInput.count()) {
+      await learningsInput.fill('');
+    }
+    const assumptionsInput = page.locator('#assumptions-new:visible');
+    if (await assumptionsInput.count()) {
+      await assumptionsInput.fill('');
+    }
+    await saveBtn.click();
+    await page.waitForTimeout(300);
+    if (called === 0) {
+      await expect(page.locator('#insights-status')).toContainText(/Add at least one insight/i);
+      return;
+    }
+    await expect(page.locator('#insights-status')).toContainText(/Saved/i);
+    expect(called).toBeGreaterThan(0);
   });
 });

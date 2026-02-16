@@ -6,6 +6,24 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 
 ## Latest Reliability and UX Updates (2026-02-16)
 
+- Current Sprint summary duplication reduction:
+  - Consolidated top summary experience around the header command center (`.current-sprint-header-bar`) and removed duplicate focused snapshot rendering.
+  - Removed standalone oversized countdown card from secondary sections; countdown now stays in the top summary area.
+  - Removed duplicate alert-layer competition in page composition so risk signaling is anchored to one primary summary flow + work-risks details.
+- Report page direct-to-value improvements:
+  - Tabs reordered to performance-first: `Performance overview` default, then `Leadership Signals`, `Sprint history`, `Outcome list`, `Excluded sprints`.
+  - Leadership route duplication reduced in navigation: sidebar now exposes two primary destinations (`Performance Report`, `Current Sprint (Squad)`), with leadership hash/redirects mapped to report trends.
+  - Report tabs now handle `#trends` hash precedence reliably during init and tab switching.
+- Boards table cognitive-load reduction:
+  - Added progressive column reveal in boards summary (core 7 columns default + persisted `Show advanced columns` toggle).
+  - Added `Delivery Grade` as a first-class column to unify board-level interpretation in the performance table.
+- Burndown reliability for non-SP teams:
+  - Current Sprint now renders story-count burndown fallback when `Total SP = 0` and stories exist, with correct axis label and data source fallback.
+- Cross-page persistence hardening:
+  - Updated persistence Playwright journey to handle collapsed/expanded filter states deterministically and fail fast without flaky hidden-control clicks.
+- Validation status:
+  - `npm run test:all` passed end-to-end in fail-fast mode (`45/45` selected steps green).
+
 - Current Sprint direct-to-value fixes for blocker discoverability and fast stakeholder snapshot:
   - Verdict bar now links blocker states directly to `#work-risks-table` with explicit `Why:` reasons.
   - Header now includes compact countdown widget (small ring) and explicit blocker drilldown link.

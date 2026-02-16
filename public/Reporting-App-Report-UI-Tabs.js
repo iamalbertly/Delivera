@@ -3,7 +3,7 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
   const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
   const tabPanes = Array.from(document.querySelectorAll('.tab-pane'));
   const tabsContainer = document.querySelector('.tabs');
-  const secondaryTabs = new Set(['unusable-sprints', 'trends']);
+  const secondaryTabs = new Set(['unusable-sprints', 'done-stories']);
   const moreItems = [];
   let moreButton = null;
   let moreMenu = null;
@@ -54,6 +54,13 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
     }
     updateMoreButtonLabel(tabName);
     closeMoreMenu();
+    try {
+      if (window.location.pathname.endsWith('/report') && tabName === 'trends') {
+        if (window.location.hash !== '#trends') history.replaceState(null, '', '/report#trends');
+      } else if (window.location.pathname.endsWith('/report') && window.location.hash === '#trends') {
+        history.replaceState(null, '', '/report');
+      }
+    } catch (_) {}
     try { sessionStorage.setItem(REPORT_ACTIVE_TAB_KEY, tabName); } catch (_) {}
     if (updateExportFilteredState) updateExportFilteredState();
     if (onTabActivate && typeof onTabActivate === 'function') onTabActivate(tabName);
@@ -170,8 +177,19 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
   const activeTab = tabButtons.find((b) => b.classList.contains('active'));
   updateMoreButtonLabel(activeTab?.dataset?.tab || '');
   try {
+    const hashTab = (window.location && window.location.hash === '#trends')
+      ? tabButtons.find((b) => b.dataset.tab === 'trends')
+      : null;
+    if (hashTab) {
+      activateTab(hashTab, { skipFocus: true });
+      return;
+    }
     const savedTab = sessionStorage.getItem(REPORT_ACTIVE_TAB_KEY);
     const savedButton = savedTab ? tabButtons.find((b) => b.dataset.tab === savedTab) : null;
-    if (savedButton) activateTab(savedButton, { skipFocus: true });
+    if (savedButton) {
+      activateTab(savedButton, { skipFocus: true });
+    } else if (activeTab) {
+      activateTab(activeTab, { skipFocus: true });
+    }
   } catch (_) {}
 }

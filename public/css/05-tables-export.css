@@ -272,6 +272,12 @@ body .preview-area {
   width: auto;
 }
 
+.boards-column-toggle-row {
+  margin: 8px 0 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* Done Stories */
 .done-stories-controls {
   margin-bottom: 20px;

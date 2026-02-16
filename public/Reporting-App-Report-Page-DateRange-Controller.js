@@ -172,7 +172,7 @@ function tryFirstRunAutoSetRange(startInput, endInput) {
 export function initDateRangeControls(onApply, onValidationChange) {
   const startInput = document.getElementById('start-date');
   const endInput = document.getElementById('end-date');
-  hydrateSharedDateRange(startInput, endInput);
+  const hydratedFromShared = hydrateSharedDateRange(startInput, endInput);
 
   const syncSummaryAndValidation = () => {
     updateRangeSummary(null);
@@ -205,7 +205,18 @@ export function initDateRangeControls(onApply, onValidationChange) {
     },
     onHideCustom: () => {},
     onClearSelection: () => { updateRangeHint(); },
-    onQuartersLoaded: () => { updateRangeHint(); updateRangeSummary(lastQuarterLabel); },
+    onQuartersLoaded: () => {
+      updateRangeHint();
+      updateRangeSummary(lastQuarterLabel);
+      if (hydratedFromShared) return;
+      const hasStart = !!(startInput?.value || '');
+      const hasEnd = !!(endInput?.value || '');
+      if (hasStart && hasEnd) return;
+      const firstQuarterPill = document.querySelector('.quarter-strip-inner .quarter-pill:not(.quarter-pill-custom)');
+      if (firstQuarterPill) {
+        firstQuarterPill.click();
+      }
+    },
     onApply: (data) => {
       updateRangeSummary(data?.data?.label ?? null);
       persistSharedDateRange();

@@ -194,6 +194,13 @@ test.describe('Jira Reporting App - UX Critical Fixes Tests', () => {
 
     const boardsTable = page.locator('#project-epic-level-content table.data-table').first();
     await expect(boardsTable).toBeVisible();
+    const showAdvanced = page.locator('#boards-columns-toggle');
+    if (await showAdvanced.isVisible().catch(() => false)) {
+      const expanded = await showAdvanced.getAttribute('aria-expanded');
+      if (expanded !== 'true') {
+        await showAdvanced.click();
+      }
+    }
 
     await expect(boardsTable.locator('th', { hasText: 'Active Assignees' })).toBeVisible();
     await expect(boardsTable.locator('th', { hasText: 'Stories / Assignee' })).toBeVisible();

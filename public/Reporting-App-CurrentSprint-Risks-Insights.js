@@ -4,6 +4,7 @@
  */
 
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+const INSIGHT_MAX_LEN = 1000;
 
 function toLocalIsoMinute(date = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -139,6 +140,13 @@ function wireCharCount(root, textAreaSelector, countSelector, maxLen) {
   updateCount();
 }
 
+function setInsightsStatus(card, text, cssVarName) {
+  const statusEl = card.querySelector('#insights-status');
+  if (!statusEl) return;
+  statusEl.textContent = text;
+  statusEl.style.color = cssVarName ? `var(${cssVarName})` : '';
+}
+
 /**
  * Wire Risks & Insights tab navigation and handlers
  */
@@ -183,9 +191,9 @@ export function wireRisksAndInsightsHandlers() {
     });
   });
 
-  wireCharCount(card, '#blockers-mitigation', '#blockers-char-count', 1000);
-  wireCharCount(card, '#learnings-new', '#learnings-char-count', 1000);
-  wireCharCount(card, '#assumptions-new', '#assumptions-char-count', 1000);
+  wireCharCount(card, '#blockers-mitigation', '#blockers-char-count', INSIGHT_MAX_LEN);
+  wireCharCount(card, '#learnings-new', '#learnings-char-count', INSIGHT_MAX_LEN);
+  wireCharCount(card, '#assumptions-new', '#assumptions-char-count', INSIGHT_MAX_LEN);
 
   const saveBtn = card.querySelector('#insights-save');
   if (saveBtn) {
@@ -193,12 +201,22 @@ export function wireRisksAndInsightsHandlers() {
       const actionType = card.querySelector('#blockers-action-type')?.value || '';
       const blockersOwner = (card.querySelector('#blockers-owner')?.value || '').trim();
       const blockersEffectiveAt = card.querySelector('#blockers-effective-at')?.value || '';
-      let blockersMitigation = (card.querySelector('#blockers-mitigation')?.value || '').slice(0, 1000);
+      let blockersMitigation = (card.querySelector('#blockers-mitigation')?.value || '').slice(0, INSIGHT_MAX_LEN);
       if (actionType) blockersMitigation = '[' + actionType + '] ' + blockersMitigation;
       if (blockersOwner) blockersMitigation = '[Owner: ' + blockersOwner + '] ' + blockersMitigation;
-      if (blockersEffectiveAt) blockersMitigation = '[Action time: ' + blockersEffectiveAt + '] ' + blockersMitigation;
-      const learningsNew = (card.querySelector('#learnings-new')?.value || '').slice(0, 1000);
-      const assumptionsNew = (card.querySelector('#assumptions-new')?.value || '').slice(0, 1000);
+      if (blockersEffectiveAt) {
+        const normalized = new Date(blockersEffectiveAt);
+        const actionStamp = Number.isNaN(normalized.getTime()) ? blockersEffectiveAt : normalized.toISOString();
+        blockersMitigation = '[Action time: ' + actionStamp + '] ' + blockersMitigation;
+      }
+      const learningsNew = (card.querySelector('#learnings-new')?.value || '').slice(0, INSIGHT_MAX_LEN);
+      const assumptionsNew = (card.querySelector('#assumptions-new')?.value || '').slice(0, INSIGHT_MAX_LEN);
+
+      const hasAnyInput = [blockersMitigation, learningsNew, assumptionsNew].some((v) => String(v || '').trim().length > 0);
+      if (!hasAnyInput) {
+        setInsightsStatus(card, 'Add at least one insight before saving', '--warning');
+        return;
+      }
 
       const payload = {
         blockerMitigation: blockersMitigation,
@@ -207,6 +225,7 @@ export function wireRisksAndInsightsHandlers() {
       };
 
       try {
+        saveBtn.disabled = true;
         const response = await fetch('/api/current-sprint/insights', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -214,28 +233,22 @@ export function wireRisksAndInsightsHandlers() {
         });
 
         if (response.ok) {
-          const statusEl = card.querySelector('#insights-status');
-          if (statusEl) {
-            statusEl.textContent = 'Saved';
-            statusEl.style.color = 'var(--accent)';
-          }
+          setInsightsStatus(card, 'Saved', '--accent');
           const savedAgoEl = card.querySelector('#insights-saved-ago');
           if (savedAgoEl) {
             savedAgoEl.textContent = 'Saved just now';
             savedAgoEl.style.display = 'block';
           }
           setTimeout(() => {
-            if (statusEl) statusEl.textContent = '';
+            setInsightsStatus(card, '', '');
           }, 3000);
         } else {
           throw new Error('Failed to save insights');
         }
       } catch (_err) {
-        const statusEl = card.querySelector('#insights-status');
-        if (statusEl) {
-          statusEl.textContent = 'Error saving';
-          statusEl.style.color = 'var(--danger)';
-        }
+        setInsightsStatus(card, 'Error saving', '--danger');
+      } finally {
+        saveBtn.disabled = false;
       }
     });
   }

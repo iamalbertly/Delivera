@@ -2,7 +2,6 @@ import { renderSidebarContextCard } from './Reporting-App-Shared-Context-From-St
 
 const PAGE_REPORT = 'report';
 const PAGE_SPRINT = 'current-sprint';
-const PAGE_LEADERSHIP = 'leadership';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
@@ -10,7 +9,7 @@ const LEADERSHIP_HASH = '#trends';
 const NAV_ITEMS = [
   {
     key: PAGE_REPORT,
-    label: 'High-Level Performance',
+    label: 'Performance Report',
     href: '/report',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
   },
@@ -19,12 +18,6 @@ const NAV_ITEMS = [
     label: 'Current Sprint (Squad)',
     href: '/current-sprint',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM7 3h2v4H7zm8 0h2v4h-2z"/></svg>',
-  },
-  {
-    key: PAGE_LEADERSHIP,
-    label: 'Leadership Signals',
-    href: '/sprint-leadership',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h4V8H4zm6 0h4V4h-4zm6 0h4v-6h-4z"/></svg>',
   },
 ];
 
@@ -37,10 +30,10 @@ function getPathState() {
 function getCurrentPage() {
   const { path, hash } = getPathState();
   if (path === '/login' || path.endsWith('/login')) return PAGE_LOGIN;
-  if ((path === '/report' || path.endsWith('/report')) && hash === LEADERSHIP_HASH) return PAGE_LEADERSHIP;
+  if ((path === '/report' || path.endsWith('/report')) && hash === LEADERSHIP_HASH) return PAGE_REPORT;
   if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
   if (path === '/current-sprint' || path.endsWith('/current-sprint')) return PAGE_SPRINT;
-  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_LEADERSHIP;
+  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_REPORT;
   return PAGE_REPORT;
 }
 
@@ -123,12 +116,6 @@ function navigateTo(itemKey, itemHref) {
 
   if (itemKey === PAGE_REPORT && isReportPath) {
     if (hash) history.replaceState(null, '', '/report');
-    dispatchHashSync();
-    return;
-  }
-
-  if (itemKey === PAGE_LEADERSHIP && isReportPath) {
-    if (hash !== LEADERSHIP_HASH) history.pushState(null, '', '/report' + LEADERSHIP_HASH);
     dispatchHashSync();
     return;
   }

@@ -1,6 +1,18 @@
 import { formatDateForDisplay, formatNumber, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { calculateVariance } from './Reporting-App-Report-Page-Sorting.js';
 
+function deriveDeliveryGrade(onTimePct, spEstimationPct, sprintCount) {
+  if (!Number.isFinite(onTimePct) || !Number.isFinite(spEstimationPct) || (sprintCount || 0) < 2) {
+    return 'Insufficient data';
+  }
+  const score = (onTimePct + spEstimationPct) / 2;
+  if (score >= 90) return 'Strong';
+  if (score >= 80) return 'Solid';
+  if (score >= 65) return 'Mixed';
+  if (score >= 50) return 'Weak';
+  return 'Critical';
+}
+
 export function getWindowMonths(meta) {
   const start = meta?.windowStart ? new Date(meta.windowStart) : null;
   const end = meta?.windowEnd ? new Date(meta.windowEnd) : null;
@@ -26,6 +38,7 @@ export function computeBoardRowFromSummary(board, summary, meta, spEnabled, hasP
   const avgSpPerSprint = spEnabled && summary.sprintCount > 0 ? doneSP / summary.sprintCount : null;
   const spVariance = spEnabled && summary.sprintSpValues?.length ? calculateVariance(summary.sprintSpValues) : null;
   const spEstimationPct = hasPredictability && summary.committedSP > 0 ? (summary.deliveredSP / summary.committedSP) * 100 : null;
+  const deliveryGrade = deriveDeliveryGrade(doneBySprintEndPct, spEstimationPct, summary.sprintCount || 0);
   const activeAssignees = summary.assignees?.size || 0;
   const storiesPerAssignee = activeAssignees > 0 ? doneStories / activeAssignees : null;
   const spPerAssignee = spEnabled && activeAssignees > 0 ? doneSP / activeAssignees : null;
@@ -60,6 +73,7 @@ export function computeBoardRowFromSummary(board, summary, meta, spEnabled, hasP
     'Committed SP': formatNumber(hasPredictability ? summary.committedSP : null, 2),
     'Delivered SP': formatNumber(hasPredictability ? summary.deliveredSP : null, 2),
     'SP Estimation %': formatPercent(spEstimationPct),
+    'Delivery Grade': deliveryGrade,
     'Stories / Sprint': formatNumber(storiesPerSprint),
     'SP / Story': formatNumber(spPerStory),
     'Stories / Day': formatNumber(storiesPerSprintDay),
@@ -144,6 +158,9 @@ export function computeBoardsSummaryRow(boards, boardSummaries, meta, spEnabled,
   // 'Projects: Multiple' replaces '??-' on the All Boards comparison row — it's accurate AND readable.
   const sprintWindow = earliestStart && latestEnd ? `${formatDateForDisplay(earliestStart)} to ${formatDateForDisplay(latestEnd)}` : '—';
   const latestEndStr = latestEnd ? formatDateForDisplay(latestEnd) : '—';
+  const avgOnTime = avg(onTimeArr);
+  const avgSpEstimation = avg(spEstimationArr);
+  const deliveryGrade = deriveDeliveryGrade(avgOnTime, avgSpEstimation, sumSprints);
 
   return {
     'Board ID': '—',
@@ -160,6 +177,7 @@ export function computeBoardsSummaryRow(boards, boardSummaries, meta, spEnabled,
     'Committed SP': formatNumber(hasPredictability ? sumCommittedSP : null, 2),
     'Delivered SP': formatNumber(hasPredictability ? sumDeliveredSP : null, 2),
     'SP Estimation %': formatPercent(avg(spEstimationArr)),
+    'Delivery Grade': deliveryGrade,
     'Stories / Sprint': formatNumber(avg(storiesPerSprintArr)),
     'SP / Story': formatNumber(avg(spPerStoryArr)),
     'Stories / Day': formatNumber(avg(storiesPerDayArr)),

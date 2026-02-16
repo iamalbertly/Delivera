@@ -14,7 +14,7 @@ export function renderWorkRisksMerged(data) {
   const remaining = rows.slice(initialLimit);
 
   let html = '<div class="transparency-card" id="stuck-card">';
-  html += '<div class="meta-row"><small id="scope-changes-card">Scope changes merged with stuck flow, sub-task tracking, and sprint ownership.</small></div>';
+  html += '<div class="meta-row"><small id="scope-changes-card">Merged risk view: scope, blockers, tracking, and ownership.</small></div>';
   const blockerRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('stuck') || Number(row.hoursInStatus || 0) >= 24);
   const blockerPreview = blockerRows.slice(0, 6);
   const groupedReasons = blockerRows.reduce((acc, row) => {
@@ -42,11 +42,11 @@ export function renderWorkRisksMerged(data) {
     }
     html += '</div>';
   }
-  html += '<p class="section-definition"><small>Scope changes, items stuck >24h, sub-task time-tracking risks, and in-sprint ownership gaps in one place.</small></p>';
+  html += '<p class="section-definition"><small>Single risk table: scope changes, blockers, tracking gaps, and ownership gaps.</small></p>';
   if (scopeChanges.length > 0) {
     html += '<p class="meta-row"><small>Scope impact: ' + scopeChanges.length + ' added mid-sprint, +' + formatNumber(scopeSP, 1, '0') + ' SP' + (scopeUnestimated > 0 ? ' (' + scopeUnestimated + ' unestimated)' : '') + '.</small></p>';
   }
-  html += '<p class="meta-row"><small>Stuck threshold: in-progress for more than 24 hours.</small></p>';
+  html += '<p class="meta-row"><small>Blocker threshold: in-progress for more than 24 hours.</small></p>';
 
   if (!rows.length) {
     html += '<p>No risks detected from scope changes, flow, sub-task tracking, or issue ownership.</p>';

@@ -5,7 +5,7 @@ import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Hel
 import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 
-function buildBurndownChart(remaining, ideal) {
+function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
   const width = 640;
   const height = 220;
@@ -63,7 +63,7 @@ function buildBurndownChart(remaining, ideal) {
       : '') +
     '</svg>' +
     '<div class="burndown-axis">' +
-    '<span class="burndown-axis-y">Remaining SP</span>' +
+    '<span class="burndown-axis-y">' + escapeHtml(yAxisLabel) + '</span>' +
     '<div class="burndown-axis-x">' +
     '<span>' + escapeHtml(startLabel) + '</span>' +
     '<span>' + escapeHtml(midLabel) + '</span>' +
@@ -113,6 +113,8 @@ export function renderBurndown(data) {
   const remaining = data.remainingWorkByDay || [];
   const ideal = data.idealBurndown || [];
   const daysMeta = data.daysMeta || {};
+  const stories = data.stories || [];
+  const daily = data?.dailyCompletions?.stories || [];
   const sprintEnded = daysMeta.daysRemainingCalendar != null && daysMeta.daysRemainingCalendar <= 0;
 
   if (!remaining.length) {
@@ -124,8 +126,37 @@ export function renderBurndown(data) {
   const doneSP = totalSP - lastRemaining;
   const pct = totalSP > 0 ? Math.round((doneSP / totalSP) * 100) : 0;
 
+  if (totalSP === 0 && stories.length > 0) {
+    const sortedDaily = [...daily]
+      .filter((r) => r && r.date)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const series = [];
+    let completed = 0;
+    if (sortedDaily.length > 0) {
+      sortedDaily.forEach((row) => {
+        completed += Number(row.count || 0);
+        const remainingStories = Math.max(0, stories.length - completed);
+        series.push({ date: row.date, remainingSP: remainingStories });
+      });
+    } else {
+      const anchorDate = data?.sprint?.startDate || new Date().toISOString();
+      series.push({ date: anchorDate, remainingSP: stories.length });
+    }
+    const idealSeries = series.map((row, idx) => {
+      const target = Math.max(0, stories.length - (idx * (stories.length / Math.max(1, series.length - 1))));
+      return { date: row.date, remainingSP: target };
+    });
+    let html = '<div class="transparency-card" id="burndown-card">';
+    html += '<h2>Burndown</h2>';
+    html += '<p class="burndown-status-card">Burndown by story count (story points are not configured).</p>';
+    html += '<p><strong>' + Math.max(0, Math.round(((stories.length - series[series.length - 1].remainingSP) / Math.max(1, stories.length)) * 100)) + '%</strong> complete (' + (stories.length - series[series.length - 1].remainingSP) + ' done of ' + stories.length + ' stories).</p>';
+    html += buildBurndownChart(series, idealSeries, 'Remaining Stories');
+    html += '</div>';
+    return html;
+  }
+
   if (totalSP === 0) {
-    return '<div class="transparency-card" id="burndown-card"><h2>Burndown</h2><p class="burndown-status-card">No work planned for this sprint.</p></div>';
+    return '<div class="transparency-card" id="burndown-card"><h2>Burndown</h2><p class="burndown-status-card">No story points or story completion history available yet.</p></div>';
   }
 
   const sprintJustStarted = remaining.length <= 2 && doneSP === 0;
@@ -148,7 +179,7 @@ export function renderBurndown(data) {
     const health = burndownHealth(remaining, ideal, totalSP);
     if (health.label) html += '<p class="burndown-health ' + health.class + '"><span class="burndown-health-label">' + escapeHtml(health.label) + '</span></p>';
     if (burstDelivery) html += '<p class="burndown-annotation"><small>Burst delivery: work completed on final day.</small></p>';
-    html += buildBurndownChart(remaining, ideal);
+    html += buildBurndownChart(remaining, ideal, 'Remaining SP');
   }
 
   html += '<table class="data-table" id="burndown-table">';

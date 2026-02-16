@@ -2,10 +2,7 @@ import { updateHeader } from './Reporting-App-CurrentSprint-Render-Overview.js';
 import { renderDailyCompletion, renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Render-Progress.js';
 import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
-// New redesign components
 import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
-import { renderHealthDashboard } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
-import { renderAlertBanner, renderVerdictBar } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { renderCapacityAllocation } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
@@ -28,8 +25,7 @@ export function renderCurrentSprintPage(data) {
 
   let html = '';
   const summary = data.summary || {};
-  const tracking = data.subtaskTracking || {};
-  const trackingRows = tracking.rows || [];
+  const trackingRows = data?.subtaskTracking?.rows || [];
   const stuckCount = (data.stuckCandidates || []).length || 0;
   const missingEstimates = trackingRows.filter((r) => !r.estimateHours || r.estimateHours === 0).length;
   const missingLoggedItems = trackingRows.filter((r) => !r.loggedHours || r.loggedHours === 0).length;
@@ -46,20 +42,17 @@ export function renderCurrentSprintPage(data) {
   const hasStories = Array.isArray(data.stories) && data.stories.length > 0;
   const hasDailyCompletions = Array.isArray(data?.dailyCompletions?.stories) && data.dailyCompletions.stories.length > 0;
   const hasBurndownSeries = Array.isArray(data.remainingWorkByDay) && data.remainingWorkByDay.length > 0;
-  const hasBurndownData = hasBurndownSeries && Number(summary.totalSP || 0) > 0;
+  const hasBurndownData = hasBurndownSeries || hasStories;
   const hasCapacityData = hasStories && Number(summary.totalSP || 0) > 0;
-  const hasHealthData = hasStories || hasBurndownSeries || trackingRows.length > 0;
+
   if (!hasStories) availabilityGaps.push({ source: 'Data', label: 'Work items hidden', reason: 'No sprint issues returned for this board.' });
   if (!hasDailyCompletions) availabilityGaps.push({ source: 'Window', label: 'Daily completion hidden', reason: 'No completed items in this sprint window yet.' });
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
   if (!hasCapacityData) availabilityGaps.push({ source: 'Workflow', label: 'Capacity hidden', reason: 'Not enough assigned story-point data.' });
-  if (!hasHealthData) availabilityGaps.push({ source: 'Data', label: 'Health dashboard hidden', reason: 'No sprint telemetry available yet.' });
 
-  // Flaw 3: Single-line verdict bar first (one sentence, one color, one action)
-  html += renderVerdictBar(data);
+  html += renderHeaderBar(data);
 
-  // Edge Case #1: All sections hidden → single full-page empty state instead of a wall of hidden-section chips
-  const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData && !hasCapacityData && !hasHealthData;
+  const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData && !hasCapacityData;
   if (allSectionsHidden) {
     html += renderDataAvailabilitySummaryHtml({ title: 'Hidden sections', items: availabilityGaps });
     html += renderEmptyStateHtml(
@@ -75,8 +68,6 @@ export function renderCurrentSprintPage(data) {
     return html;
   }
 
-  html += renderHeaderBar(data);
-  html += renderAlertBanner(data);
   html += renderSprintCarousel(data);
 
   const jumpLinks = [];
@@ -89,8 +80,6 @@ export function renderCurrentSprintPage(data) {
 
   html += '<div class="current-sprint-grid-layout">';
 
-  // Priority order: Blockers/Risks first, then burndown/scope, then details (progressive disclosure)
-  // Edge Case #3: When zero risks, skip the risks row entirely — no empty table
   if (hasRisks || hasBurndownData) {
     html += '<div class="sprint-cards-row risks-row">';
     if (hasRisks) html += '<div class="card-column risks-stuck-column">' + renderWorkRisksMerged(data) + '</div>';
@@ -102,14 +91,13 @@ export function renderCurrentSprintPage(data) {
   html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
   html += '</div>';
 
-  const detailsCollapsed = riskCount >= 1 ? ' card-details-collapsed' : '';
-  if (hasHealthData || hasCapacityData) {
+  const detailsCollapsed = riskCount === 0 ? ' card-details-collapsed' : '';
+  if (hasCapacityData) {
     html += '<div class="sprint-cards-row top-row card-details-toggle-wrap' + detailsCollapsed + '" data-region="details">';
-    html += '<button type="button" class="card-details-toggle btn btn-secondary btn-compact" aria-expanded="' + (riskCount >= 1 ? 'false' : 'true') + '" aria-controls="card-details-region">' + (riskCount >= 1 ? 'Show details (health, capacity)' : 'Hide details') + '</button>';
+    html += '<button type="button" class="card-details-toggle btn btn-secondary btn-compact" aria-expanded="' + (riskCount === 0 ? 'false' : 'true') + '" aria-controls="card-details-region">' + (riskCount === 0 ? 'Show capacity details' : 'Hide capacity details') + '</button>';
     html += '</div>';
-    html += '<div class="sprint-cards-row top-row" id="card-details-region" aria-hidden="' + (riskCount >= 1 ? 'true' : 'false') + '">';
-    if (hasHealthData) html += '<div class="card-column health-column">' + renderHealthDashboard(data) + '</div>';
-    if (hasCapacityData) html += '<div class="card-column capacity-column">' + renderCapacityAllocation(data) + '</div>';
+    html += '<div class="sprint-cards-row top-row" id="card-details-region" aria-hidden="' + (riskCount === 0 ? 'true' : 'false') + '">';
+    html += '<div class="card-column capacity-column">' + renderCapacityAllocation(data) + '</div>';
     html += '</div>';
   }
 

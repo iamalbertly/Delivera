@@ -2,11 +2,9 @@
  * Export Dashboard Component
  * Copy as Text, Markdown, PNG snapshot, Share URL, Email options
  */
-
 import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { exportRisksInsightsAsMarkdown } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
-
 export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
@@ -24,8 +22,8 @@ export function renderExportButton(inline = false) {
   html += '</div>';
   return html;
 }
-
 function setButtonStatus(btn, text, originalText, disabled = false, resetAfterMs = 2000) {
+  if (!btn) return;
   btn.textContent = text;
   btn.disabled = disabled;
   if (!originalText) return;
@@ -34,13 +32,11 @@ function setButtonStatus(btn, text, originalText, disabled = false, resetAfterMs
     btn.disabled = false;
   }, resetAfterMs);
 }
-
 async function writeTextToClipboardWithFallback(text) {
   if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
     await navigator.clipboard.writeText(text);
     return;
   }
-
   const ta = document.createElement('textarea');
   ta.value = text;
   ta.setAttribute('readonly', 'true');
@@ -54,20 +50,17 @@ async function writeTextToClipboardWithFallback(text) {
   document.body.removeChild(ta);
   if (!ok) throw new Error('Clipboard copy unavailable');
 }
-
 export function wireExportHandlers(data) {
   const container = document.querySelector('.export-dashboard-container');
   if (!container) return;
   if (container.dataset.wiredExportHandlers === '1') return;
   container.dataset.wiredExportHandlers = '1';
-
   const btn = container.querySelector('.export-dashboard-btn');
   const menuToggle = container.querySelector('.export-menu-toggle');
   const menu = container.querySelector('#export-menu');
   if (!menu) return;
   const effectiveBtn = btn || menuToggle;
   if (!effectiveBtn) return;
-
   // Primary button: direct copy-text action (1-click export)
   if (btn) {
     btn.addEventListener('click', (event) => {
@@ -78,7 +71,6 @@ export function wireExportHandlers(data) {
       if (menuToggle) menuToggle.setAttribute('aria-expanded', 'true');
     });
   }
-
   // Menu toggle: expand/collapse the full options menu
   if (menuToggle) {
     menuToggle.addEventListener('click', (event) => {
@@ -89,47 +81,58 @@ export function wireExportHandlers(data) {
       menuToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
   }
-
-  document.addEventListener('click', (event) => {
-    if (!container.contains(event.target) && !menu.classList.contains('hidden')) {
-      menu.classList.add('hidden');
-      if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
-    }
-  });
-
+  if (!window.__currentSprintExportOutsideClickBound) {
+    window.__currentSprintExportOutsideClickBound = true;
+    document.addEventListener('click', (event) => {
+      const activeContainer = document.querySelector('.export-dashboard-container');
+      const activeMenu = activeContainer?.querySelector('#export-menu');
+      const activeToggle = activeContainer?.querySelector('.export-menu-toggle');
+      if (!activeContainer || !activeMenu) return;
+      if (!activeContainer.contains(event.target) && !activeMenu.classList.contains('hidden')) {
+        activeMenu.classList.add('hidden');
+        if (activeToggle) activeToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
   const options = container.querySelectorAll('.export-option');
   options.forEach((option) => {
     option.addEventListener('click', () => {
       const action = option.dataset.action;
       menu.classList.add('hidden');
-      btn.setAttribute('aria-expanded', 'false');
-
+      if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
       if (action === 'copy-text') {
-        copyDashboardAsText(data, btn);
+        copyDashboardAsText(data, btn || menuToggle);
       } else if (action === 'export-markdown') {
-        exportDashboardAsMarkdown(data, btn);
+        exportDashboardAsMarkdown(data, btn || menuToggle);
       } else if (action === 'export-png') {
-        exportDashboardAsPng(data, btn);
+        exportDashboardAsPng(data, btn || menuToggle);
       } else if (action === 'copy-link') {
-        copyDashboardLink(data, btn);
+        copyDashboardLink(data, btn || menuToggle);
       } else if (action === 'email') {
-        emailDashboard(data, btn);
+        emailDashboard(data, btn || menuToggle);
       }
     });
   });
-
-  document.addEventListener('click', (event) => {
-    const actionTarget = event.target?.closest?.('[data-action="copy-export-text"]');
-    if (!actionTarget) return;
-    copyDashboardAsText(data, btn);
-  });
+  if (!window.__currentSprintExportCopyTextActionBound) {
+    window.__currentSprintExportCopyTextActionBound = true;
+    document.addEventListener('click', (event) => {
+      const actionTarget = event.target?.closest?.('[data-action="copy-export-text"]');
+      if (!actionTarget) return;
+      const activeContainer = document.querySelector('.export-dashboard-container');
+      const activeBtn = activeContainer?.querySelector('.export-dashboard-btn')
+        || activeContainer?.querySelector('.export-menu-toggle');
+      copyDashboardAsText(data, activeBtn);
+    });
+  }
 }
-
 async function exportDashboardAsPng(data, btn) {
   const originalText = btn.textContent;
   setButtonStatus(btn, 'Rendering...', null, true, 4000);
   try {
-    const target = document.getElementById('current-sprint-content') || document.querySelector('.current-sprint-grid-layout') || document.body;
+    const target = document.querySelector('.current-sprint-header-bar')
+      || document.getElementById('current-sprint-content')
+      || document.querySelector('.current-sprint-grid-layout')
+      || document.body;
     if (!target) throw new Error('Snapshot target not found');
     const module = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm');
     const html2canvas = module?.default;
@@ -143,7 +146,7 @@ async function exportDashboardAsPng(data, btn) {
       windowHeight: document.documentElement.scrollHeight,
     });
     const sprint = data?.sprint || {};
-    const fileName = 'sprint-' + String(sprint.name || 'snapshot').replace(/[^a-zA-Z0-9-_]+/g, '-') + '.png';
+    const fileName = 'sprint-summary-' + String(sprint.name || 'snapshot').replace(/[^a-zA-Z0-9-_]+/g, '-') + '.png';
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
     a.download = fileName;
@@ -163,28 +166,24 @@ async function exportDashboardAsPng(data, btn) {
     setButtonStatus(btn, 'PNG failed', originalText);
   }
 }
-
 async function copyDashboardAsText(data, btn) {
-  const originalText = btn.textContent;
+  const originalText = btn?.textContent || '';
   setButtonStatus(btn, 'Copying...', null, true);
-
   try {
     const sprint = data.sprint || {};
     const summary = data.summary || {};
     const stuck = data.stuckCandidates || [];
-
     let text = `Sprint: ${sprint.name || 'N/A'}\n`;
     text += `Dates: ${formatDate(sprint.startDate) || 'N/A'} - ${formatDate(sprint.endDate) || 'N/A'}\n\n`;
     text += `Stories: ${summary.doneStories || 0} of ${summary.totalStories || 0} done\n`;
     text += `Story Points: ${summary.doneSP || 0} of ${summary.totalSP || 0} (${summary.percentDone || 0}%)\n`;
-
     if (stuck.length > 0) {
       text += `\nStuck Items (${stuck.length}):\n`;
       stuck.forEach((item) => {
-        text += `  - ${(item && item.key) || 'N/A'}: ${(item && item.summary) || 'N/A'} (${(item && item.hoursInStatus) ?? 'N/A'}h)\n`;
+        const key = (item && (item.issueKey || item.key)) || 'N/A';
+        text += `  - ${key}: ${(item && item.summary) || 'N/A'} (${(item && item.hoursInStatus) ?? 'N/A'}h)\n`;
       });
     }
-
     await writeTextToClipboardWithFallback(text);
     setButtonStatus(btn, 'Copied!', originalText);
   } catch (error) {
@@ -192,71 +191,60 @@ async function copyDashboardAsText(data, btn) {
     setButtonStatus(btn, 'Copy failed', originalText);
   }
 }
-
 async function exportDashboardAsMarkdown(data, btn) {
-  const originalText = btn.textContent;
+  const originalText = btn?.textContent || '';
   setButtonStatus(btn, 'Generating...', null, true);
-
   try {
     const sprint = data.sprint || {};
     const summary = data.summary || {};
-
     let markdown = `# Sprint: ${sprint.name || 'N/A'}\n\n`;
     markdown += `**Date:** ${formatDate(sprint.startDate) || 'N/A'} -> ${formatDate(sprint.endDate) || 'N/A'}\n`;
     markdown += `**Date Generated:** ${new Date().toLocaleString()}\n\n`;
-
     markdown += '## Overview\n';
     markdown += `- **Stories:** ${summary.doneStories || 0} of ${summary.totalStories || 0} done\n`;
     markdown += `- **Story Points:** ${summary.doneSP || 0} of ${summary.totalSP || 0} done (${summary.percentDone || 0}%)\n`;
     markdown += `- **New Features:** ${summary.newFeaturesSP || 0} SP\n`;
     markdown += `- **Support & Ops:** ${summary.supportOpsSP || 0} SP\n\n`;
-
     const tracking = data.subtaskTracking || {};
     const trackingSummary = tracking.summary || {};
     markdown += '## Sub-task Tracking\n';
     markdown += `- **Estimated:** ${trackingSummary.totalEstimateHours || 0} hours\n`;
     markdown += `- **Logged:** ${trackingSummary.totalLoggedHours || 0} hours\n`;
     markdown += `- **Remaining:** ${trackingSummary.totalRemainingHours || 0} hours\n\n`;
-
     const stuck = data.stuckCandidates || [];
     if (stuck.length > 0) {
       markdown += '## Stuck Items (>24h)\n';
       stuck.forEach((item) => {
-        markdown += `- ${(item && item.key) || 'N/A'}: ${(item && item.summary) || 'N/A'} (${(item && item.hoursInStatus) ?? 'N/A'} hours)\n`;
+        const key = (item && (item.issueKey || item.key)) || 'N/A';
+        markdown += `- ${key}: ${(item && item.summary) || 'N/A'} (${(item && item.hoursInStatus) ?? 'N/A'} hours)\n`;
       });
       markdown += '\n';
     }
-
     markdown += exportRisksInsightsAsMarkdown(data);
-
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `sprint-${sprint.name || 'export'}.md`;
     link.click();
     URL.revokeObjectURL(link.href);
-
     setButtonStatus(btn, 'Exported!', originalText);
   } catch (error) {
     console.error('Markdown export error:', error);
     setButtonStatus(btn, 'Export failed', originalText);
   }
 }
-
 async function copyDashboardLink(data, btn) {
-  const originalText = btn.textContent;
+  const originalText = btn?.textContent || '';
   try {
     const sprint = data.sprint || {};
     const baseUrl = window.location.origin;
     const currentPath = window.location.pathname;
     const boardSelect = document.querySelector('#board-select');
     const boardId = boardSelect?.value;
-
     let url = baseUrl + currentPath;
     if (boardId) {
       url += '?boardId=' + encodeURIComponent(boardId) + '&sprintId=' + encodeURIComponent(String(sprint.id || ''));
     }
-
     await writeTextToClipboardWithFallback(url);
     setButtonStatus(btn, 'Link copied!', originalText);
   } catch (error) {
@@ -264,11 +252,9 @@ async function copyDashboardLink(data, btn) {
     setButtonStatus(btn, 'Copy failed', originalText);
   }
 }
-
 async function emailDashboard(data, btn) {
-  const originalText = btn.textContent;
+  const originalText = btn?.textContent || '';
   setButtonStatus(btn, 'Sending...', null, true);
-
   try {
     const sprint = data.sprint || {};
     const response = await fetch('/api/current-sprint/email', {
@@ -279,7 +265,6 @@ async function emailDashboard(data, btn) {
         sprintName: sprint.name,
       }),
     });
-
     if (response.ok) {
       setButtonStatus(btn, 'Sent!', originalText);
     } else {

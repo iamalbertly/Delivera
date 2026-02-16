@@ -8,6 +8,20 @@
 
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 
+function safeLocalStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (_) {
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (_) {}
+}
+
 /**
  * Build alerts array from sprint data (shared for verdict bar and banner).
  */
@@ -223,7 +237,7 @@ export function renderAlertBanner(data) {
   const bannerColor = bannerSeverity === 'critical' ? 'red' : (bannerSeverity === 'high' ? 'orange' : 'yellow');
 
   const dismissKey = `alert_banner_dismissed_${data.sprint?.id || 'unknown'}`;
-  const dismissedTime = localStorage.getItem(dismissKey);
+  const dismissedTime = safeLocalStorageGet(dismissKey);
   const now = Date.now();
   const fourHoursMs = 4 * 60 * 60 * 1000;
   const isDismissed = dismissedTime && (now - parseInt(dismissedTime, 10)) < fourHoursMs;
@@ -268,8 +282,8 @@ export function wireAlertBannerHandlers() {
       const dismissKey = `alert_banner_dismissed_${sprintId}`;
       const genericKey = 'alert_banner_dismissed_unknown';
       const ts = String(Date.now());
-      localStorage.setItem(dismissKey, ts);
-      localStorage.setItem(genericKey, ts);
+      safeLocalStorageSet(dismissKey, ts);
+      safeLocalStorageSet(genericKey, ts);
       banner.style.animation = 'fadeOut 0.3s ease-out';
       setTimeout(() => {
         banner.style.display = 'none';
@@ -307,7 +321,7 @@ export function wireAlertBannerHandlers() {
 export function shouldShowAlertBanner(sprintId) {
   const dismissKey = `alert_banner_dismissed_${sprintId}`;
   const genericKey = 'alert_banner_dismissed_unknown';
-  const dismissedTime = localStorage.getItem(dismissKey) || localStorage.getItem(genericKey);
+  const dismissedTime = safeLocalStorageGet(dismissKey) || safeLocalStorageGet(genericKey);
   if (!dismissedTime) return true;
 
   const now = Date.now();

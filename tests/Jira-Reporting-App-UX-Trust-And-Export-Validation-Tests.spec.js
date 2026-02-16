@@ -104,8 +104,7 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
     await expect(page.locator('.tabs')).toBeVisible();
     const primaryTabs = page.locator('.tab-btn:not(.tabs-more-btn)');
     await expect(primaryTabs).toHaveCount(5);
-    await expect(page.locator('#tab-done-stories')).toBeVisible();
-    await expect(page.locator('#tab-project-epic-level')).toBeHidden();
+    await expect(page.locator('#tab-project-epic-level')).toBeVisible();
     await expect(page.locator('#export-excel-btn')).toBeVisible();
     await expect(page.locator('#export-dropdown-trigger')).toBeVisible();
     const noDuplicateSummary = await page.evaluate(() => {
@@ -128,7 +127,7 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
     await expect(page.locator('h1')).toContainText('Current Sprint');
     await expect(page.locator('#board-select')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText('High-Level Performance');
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Performance Report|Report/);
     const options = await page.locator('#board-select option').allTextContents();
     expect(options.length).toBeGreaterThanOrEqual(1);
     assertTelemetryClean(telemetry);

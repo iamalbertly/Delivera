@@ -34,17 +34,41 @@ test.describe('Cross-Page Persistence', () => {
     const endVal = '2025-12-31T23:59';
     const projectIds = ['project-sd', 'project-mas', 'project-bio', 'project-rpa'];
     const projectCodes = 'SD,MAS,BIO,RPA';
+    const ensureReportFiltersVisible = async () => {
+      const mpsaBox = page.locator('#project-mpsa');
+      if (await mpsaBox.isVisible().catch(() => false)) return;
+      const showFilters = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"]');
+      if (await showFilters.isVisible().catch(() => false)) {
+        await showFilters.click();
+      }
+      await expect(mpsaBox).toBeVisible();
+    };
+    const triggerPreview = async () => {
+      await ensureReportFiltersVisible();
+      await page.evaluate(() => {
+        const el = document.getElementById('preview-btn');
+        if (el) el.click();
+      });
+    };
 
     await expect(page.locator('#preview-btn')).toBeVisible();
+    await ensureReportFiltersVisible();
 
-    await page.uncheck('#project-mpsa');
-    await page.uncheck('#project-mas');
-    for (const id of projectIds) {
-      await page.check('#' + id);
-    }
+    await page.evaluate((ids) => {
+      const setBox = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.checked = value;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      setBox('project-mpsa', false);
+      setBox('project-mas', false);
+      ids.forEach((id) => setBox(id, true));
+    }, projectIds);
     await page.fill('#start-date', startVal);
     await page.fill('#end-date', endVal);
-    await page.click('#preview-btn');
+    await triggerPreview();
 
     await Promise.race([
       page.waitForSelector('#loading', { state: 'visible', timeout: 10000 }).catch(() => null),
@@ -94,6 +118,7 @@ test.describe('Cross-Page Persistence', () => {
       test.skip(true, 'Redirected to login');
       return;
     }
+    await ensureReportFiltersVisible();
     for (const id of projectIds) {
       await expect(page.locator('#' + id)).toBeChecked();
     }

@@ -10,11 +10,13 @@ import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 
 const BOARD_TABLE_COLUMN_ORDER = [
   'Board', 'Projects', 'Sprints', 'Sprint Days', 'Avg Sprint Days', 'Done Stories', 'Throughput Stories', 'Registered Work Hours', 'Estimated Work Hours', 'Done SP', 'Throughput SP',
-  'Committed SP', 'Delivered SP', 'SP Estimation %', 'Stories / Sprint', 'SP / Story', 'Stories / Day',
+  'Committed SP', 'Delivered SP', 'SP Estimation %', 'Delivery Grade', 'Stories / Sprint', 'SP / Story', 'Stories / Day',
   'SP / Day', 'SP / Sprint', 'SP Variance', 'Indexed Delivery', 'On-Time %', 'Planned', 'Ad-hoc',
   'Active Assignees', 'Stories / Assignee', 'SP / Assignee', 'Assumed Capacity (PD)', 'Assumed Waste %',
   'Sprint Window', 'Latest End'
 ];
+const BOARD_COLUMNS_PREF_KEY = 'report-boards-columns-expanded';
+const CORE_BOARD_COLUMNS = new Set(['Board', 'Sprints', 'Done Stories', 'Done SP', 'SP / Day', 'On-Time %', 'Delivery Grade']);
 
 const BOARD_TABLE_HEADER_TOOLTIPS = {
   'Board': 'Board name in Jira.',
@@ -65,6 +67,7 @@ const BOARD_SUMMARY_TOOLTIPS = {
   'Committed SP': 'Total committed SP.',
   'Delivered SP': 'Total delivered SP.',
   'SP Estimation %': 'Average estimation accuracy.',
+  'Delivery Grade': 'Historical delivery quality grade (on-time + predictability).',
   'Stories / Sprint': 'Average stories per sprint.',
   'SP / Story': 'Average SP per story.',
   'Stories / Day': 'Average stories per day.',
@@ -83,6 +86,44 @@ const BOARD_SUMMARY_TOOLTIPS = {
   'Sprint Window': 'Overall window.',
   'Latest End': 'Latest end date.',
 };
+
+function applyBoardsColumnVisibility() {
+  const table = document.getElementById('boards-table');
+  const toggle = document.getElementById('boards-columns-toggle');
+  if (!table || !toggle) return;
+
+  let expanded = false;
+  try {
+    expanded = localStorage.getItem(BOARD_COLUMNS_PREF_KEY) === '1';
+  } catch (_) {}
+
+  const headerCells = Array.from(table.querySelectorAll('thead th'));
+  const labels = headerCells.map((th) => (th.textContent || '').trim());
+
+  const render = () => {
+    headerCells.forEach((th, colIndex) => {
+      const key = labels[colIndex];
+      const show = expanded || CORE_BOARD_COLUMNS.has(key);
+      th.style.display = show ? '' : 'none';
+      table.querySelectorAll('tbody tr').forEach((row) => {
+        const cell = row.children[colIndex];
+        if (cell) cell.style.display = show ? '' : 'none';
+      });
+    });
+    toggle.textContent = expanded ? 'Show core columns' : 'Show advanced columns';
+    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  };
+
+  toggle.onclick = () => {
+    expanded = !expanded;
+    try {
+      localStorage.setItem(BOARD_COLUMNS_PREF_KEY, expanded ? '1' : '0');
+    } catch (_) {}
+    render();
+  };
+
+  render();
+}
 
 export function renderProjectEpicLevelTab(boards, metrics) {
   const content = document.getElementById('project-epic-level-content');
@@ -164,6 +205,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       id: 'boards-table',
       wrapperClass: 'data-table-scroll-wrap--with-vertical-limit',
     });
+    html += '<div class="boards-column-toggle-row"><button type="button" class="btn btn-secondary btn-compact" id="boards-columns-toggle" aria-expanded="false">Show advanced columns</button></div>';
     html += '<p class="metrics-hint"><small>Throughput signals are merged into Boards columns (Throughput Stories, Throughput SP). Sprint-level throughput remains in Sprint history.</small></p>';
     html += '<p class="table-scroll-hint metrics-hint" aria-live="polite"><small>Scroll right for more columns. Export includes all columns.</small></p>';
   }
@@ -244,6 +286,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
   }
 
   content.innerHTML = html;
+  applyBoardsColumnVisibility();
   // Add hover titles for truncated headers/cells for better discoverability (dynamic import)
   try { import('./Reporting-App-Shared-Dom-Escape-Helpers.js').then(({ addTitleForTruncatedCells }) => addTitleForTruncatedCells('#project-epic-level-content table.data-table th, #project-epic-level-content table.data-table td')).catch(() => {}); } catch (e) {}
 }

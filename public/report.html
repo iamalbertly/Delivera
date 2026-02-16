@@ -237,20 +237,20 @@
             <div id="preview-status" class="preview-status" style="display: none;"></div>
           </div>
           <div id="preview-summary-sticky" class="preview-summary-sticky" aria-hidden="true"></div>
-          <!-- Tabs: Outcome list first (default); order: Outcome list | Team performance | Sprint history | Trends | Excluded sprints -->
+          <!-- Tabs: Performance first; order: Performance overview | Leadership Signals | Sprint history | Outcome list | Excluded sprints -->
           <div class="tabs" role="tablist">
-            <button id="tab-btn-done-stories" class="tab-btn active" data-tab="done-stories" role="tab"
-              aria-selected="true" aria-controls="tab-done-stories" tabindex="0">Outcome list</button>
-            <button id="tab-btn-project-epic-level" class="tab-btn" data-tab="project-epic-level" role="tab"
-              aria-selected="false" aria-controls="tab-project-epic-level" tabindex="-1">Team performance</button>
+            <button id="tab-btn-project-epic-level" class="tab-btn active" data-tab="project-epic-level" role="tab"
+              aria-selected="true" aria-controls="tab-project-epic-level" tabindex="0">Performance overview</button>
+            <button id="tab-btn-trends" class="tab-btn" data-tab="trends" role="tab" aria-selected="false"
+              aria-controls="tab-trends" tabindex="-1">Leadership Signals (Trends)</button>
             <button id="tab-btn-sprints" class="tab-btn" data-tab="sprints" role="tab" aria-selected="false"
               aria-controls="tab-sprints" tabindex="-1">Sprint history</button>
+            <button id="tab-btn-done-stories" class="tab-btn" data-tab="done-stories" role="tab"
+              aria-selected="false" aria-controls="tab-done-stories" tabindex="-1">Outcome list</button>
             <button id="tab-btn-unusable-sprints" class="tab-btn" data-tab="unusable-sprints" role="tab"
               aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">Excluded sprints</button>
-            <button id="tab-btn-trends" class="tab-btn" data-tab="trends" role="tab" aria-selected="false"
-              aria-controls="tab-trends" tabindex="-1">Trends</button>
           </div>
-          <p class="tab-hint" id="tab-outcome-hint"><small>Done Stories outcome list shows finished work; Trends shows delivery
+          <p class="tab-hint" id="tab-outcome-hint"><small>Performance overview opens first for decision speed; Leadership Signals shows delivery
               health over time; use Export for stakeholder updates.</small></p>
 
           <!-- Tab Content -->
@@ -290,7 +290,7 @@
               </div>
             </div>
 
-            <div id="tab-done-stories" class="tab-pane active" role="tabpanel" aria-labelledby="tab-btn-done-stories">
+            <div id="tab-done-stories" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-done-stories">
               <div class="done-stories-controls">
                 <div class="search-input-wrap">
                   <input type="text" id="search-box" placeholder="Search by key or summary..."

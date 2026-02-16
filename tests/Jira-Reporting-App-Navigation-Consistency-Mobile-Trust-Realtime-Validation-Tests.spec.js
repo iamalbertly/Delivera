@@ -23,20 +23,19 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await expect(page.locator('.app-sidebar')).toBeVisible();
     await expect(page.locator('.app-sidebar .sidebar-link[data-nav-key="report"]')).toBeVisible();
     await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="leadership"]')).toBeVisible();
     await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 
-  test('02 leadership navigation from report uses direct hash-to-value and activates Trends', async ({ page }) => {
+  test('02 trends tab activation from report uses direct hash-to-value', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="leadership"]');
+    await page.click('#tab-btn-trends');
     await expect(page).toHaveURL(/\/report#trends/);
     await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="leadership"]')).toBeVisible();
+    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 
@@ -46,7 +45,7 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     if (await skipIfAuthRedirect(page)) return;
 
     await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="leadership"]')).toBeVisible();
+    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 
@@ -55,7 +54,7 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await page.goto('/report#trends');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="report"]');
+    await page.click('#tab-btn-project-epic-level');
     await expect(page).toHaveURL(/\/report$/);
     await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
     assertTelemetryClean(telemetry);
@@ -71,14 +70,13 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     assertTelemetryClean(telemetry);
   });
 
-  test('06 current sprint leadership nav resolves to report trends destination', async ({ page }) => {
+  test('06 current sprint report nav resolves to report destination', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/current-sprint');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="leadership"]');
-    await expect(page).toHaveURL(/\/report#trends/);
-    await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
+    await page.click('.app-sidebar a.sidebar-link[data-nav-key="report"]');
+    await expect(page).toHaveURL(/\/report$/);
     assertTelemetryClean(telemetry);
   });
 
@@ -170,10 +168,10 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
 
     await page.click('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]');
     await expect(page).toHaveURL(/\/current-sprint/);
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="leadership"]');
-    await expect(page).toHaveURL(/\/report#trends/);
     await page.click('.app-sidebar a.sidebar-link[data-nav-key="report"]');
     await expect(page).toHaveURL(/\/report$/);
+    await page.click('#tab-btn-project-epic-level');
+    await expect(page).toHaveURL(/\/report(#.*)?$/);
     assertTelemetryClean(telemetry);
   });
 });

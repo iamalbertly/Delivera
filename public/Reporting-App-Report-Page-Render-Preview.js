@@ -151,10 +151,12 @@ export function renderPreview() {
     const tabSprints = document.getElementById('tab-btn-sprints');
     const tabDoneStories = document.getElementById('tab-btn-done-stories');
     const tabUnusable = document.getElementById('tab-btn-unusable-sprints');
-    if (tabBoards) tabBoards.textContent = 'Team performance (' + boardsCountForTab + ')';
+    if (tabBoards) tabBoards.textContent = 'Performance overview (' + boardsCountForTab + ')';
     if (tabSprints) tabSprints.textContent = 'Sprint history (' + sprintsCountForTab + ')';
     if (tabDoneStories) tabDoneStories.textContent = 'Outcome list (' + visibleRows.length + ')';
     if (tabUnusable) tabUnusable.textContent = 'Excluded sprints (' + unusableCountForTab + ')';
+    const tabTrends = document.getElementById('tab-btn-trends');
+    if (tabTrends) tabTrends.textContent = 'Leadership Signals (Trends)';
     let preferredTab = null;
     try {
       preferredTab = sessionStorage.getItem('report-active-tab');
@@ -166,8 +168,8 @@ export function renderPreview() {
       if (trendsBtn && !trendsBtn.classList.contains('active')) trendsBtn.click();
     } else if (preferredBtn && !preferredBtn.classList.contains('active')) {
       preferredBtn.click();
-    } else if (tabDoneStories && !tabDoneStories.classList.contains('active')) {
-      tabDoneStories.click();
+    } else if (tabBoards && !tabBoards.classList.contains('active')) {
+      tabBoards.click();
     }
 
     requestAnimationFrame(() => {

@@ -18,6 +18,15 @@ const BOARD_COLUMN_ORDER = [
 
 test.describe('Jira Reporting App - Refactor SSOT Validation Tests', () => {
   const getBoardsTable = (page) => page.locator('#project-epic-level-content table.data-table').first();
+  const expandBoardsAdvancedColumns = async (page) => {
+    const toggle = page.locator('#boards-columns-toggle');
+    const isVisible = await toggle.isVisible().catch(() => false);
+    if (!isVisible) return;
+    const expanded = await toggle.getAttribute('aria-expanded');
+    if (expanded !== 'true') {
+      await toggle.click();
+    }
+  };
   const hasBoardsTable = async (page) => {
     const table = getBoardsTable(page);
     return (await table.count()) > 0;
@@ -91,6 +100,7 @@ test.describe('Jira Reporting App - Refactor SSOT Validation Tests', () => {
     }
     const boardsTable = getBoardsTable(page);
     await expect(boardsTable).toBeVisible({ timeout: 5000 });
+    await expandBoardsAdvancedColumns(page);
     await expect(boardsTable.locator('th', { hasText: 'Active Assignees' })).toBeVisible();
     await expect(boardsTable.locator('th', { hasText: 'Assumed Capacity (PD)' })).toBeVisible();
     await expect(boardsTable.locator('th', { hasText: 'Assumed Waste %' })).toBeVisible();
