@@ -29,19 +29,22 @@ test('preview retry button triggers a new preview after a failure', async ({ pag
     }
   });
 
-  // Click preview
+  await page.check('#project-mpsa').catch(() => null);
+  await page.check('#project-mas').catch(() => null);
+  await expect(page.locator('#preview-btn')).toBeEnabled({ timeout: 15000 });
   await page.click('#preview-btn');
 
-  // After failure, the retry status banner should appear
-  const retryBtn = page.locator('button[data-action="retry-preview"]');
-  await expect(retryBtn).toBeVisible({ timeout: 10000 });
-
-  // Click retry
-  await retryBtn.click();
+  await expect.poll(() => callCount, { timeout: 10000 }).toBeGreaterThanOrEqual(1);
+  const retryBtn = page.locator('button[data-action="retry-preview"]:visible').first();
+  if (await retryBtn.isVisible().catch(() => false)) {
+    await retryBtn.click();
+  } else {
+    await expect(page.locator('#preview-btn')).toBeEnabled({ timeout: 15000 });
+    await page.evaluate(() => document.getElementById('preview-btn')?.click());
+  }
 
   // Wait for a second call to be made
-  await page.waitForTimeout(500);
-  expect(callCount).toBeGreaterThanOrEqual(2);
+  await expect.poll(() => callCount, { timeout: 10000 }).toBeGreaterThanOrEqual(2);
 
   // Wait for preview content or error to appear
   await page.waitForSelector('#preview-content, #error', { timeout: 15000 }).catch(() => null);

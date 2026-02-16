@@ -135,11 +135,19 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     await page.goto('/report');
     await expect(page.locator('#export-excel-btn')).toBeHidden();
 
-    await page.click('#preview-btn');
+    const previewBtn = page.locator('#preview-btn');
+    const previewVisible = await previewBtn.isVisible().catch(() => false);
+    if (!previewVisible) {
+      const showFiltersBtn = page.locator('[data-action="toggle-filters"]').first();
+      if (await showFiltersBtn.isVisible().catch(() => false)) await showFiltersBtn.click();
+    }
+    await expect(previewBtn).toBeVisible({ timeout: 10000 });
+    await expect(previewBtn).toBeEnabled({ timeout: 10000 });
+    await previewBtn.click();
     await waitForPreview(page, { timeout: 120000 });
 
-    const previewVisible = await page.locator('#preview-content').isVisible().catch(() => false);
-    if (!previewVisible) {
+    const hasPreviewContent = await page.locator('#preview-content').isVisible().catch(() => false);
+    if (!hasPreviewContent) {
       test.skip(true, 'Preview not visible; export state not asserted.');
       return;
     }

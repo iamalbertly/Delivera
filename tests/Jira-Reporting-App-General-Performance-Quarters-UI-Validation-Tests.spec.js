@@ -87,9 +87,16 @@ test.describe('Jira Reporting App - General Performance Quarters UI Validation',
     await page.click('.tab-btn[data-tab="project-epic-level"]').catch(() => null);
     await page.waitForSelector('#project-epic-level-content .data-table', { timeout: 15000 });
 
-    // table should be horizontally scrollable rather than wrapping cells
-    const tableOverflowX = await page.evaluate(() => getComputedStyle(document.querySelector('#project-epic-level-content .data-table')).overflowX);
-    expect(tableOverflowX === 'auto' || tableOverflowX === 'scroll').toBeTruthy();
+    // Horizontal scrolling can be configured on table or its dedicated wrapper.
+    const horizontalScrollEnabled = await page.evaluate(() => {
+      const table = document.querySelector('#project-epic-level-content .data-table');
+      const wrapper = document.querySelector('#project-epic-level-content .data-table-scroll-wrap');
+      if (!table) return false;
+      const tableOverflowX = getComputedStyle(table).overflowX;
+      const wrapperOverflowX = wrapper ? getComputedStyle(wrapper).overflowX : '';
+      return ['auto', 'scroll'].includes(tableOverflowX) || ['auto', 'scroll'].includes(wrapperOverflowX);
+    });
+    expect(horizontalScrollEnabled).toBeTruthy();
 
     // header whitespace should be nowrap to avoid vertical character stacking
     const headerWhiteSpace = await page.evaluate(() => getComputedStyle(document.querySelector('#project-epic-level-content .data-table th')).whiteSpace);

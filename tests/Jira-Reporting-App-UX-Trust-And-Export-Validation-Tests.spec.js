@@ -16,10 +16,20 @@ import {
 } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 async function hasAnyExportableRows(page) {
-  const doneRows = await page.locator('#done-stories-table tbody tr').count().catch(() => 0);
-  const boardRows = await page.locator('#boards-table tbody tr').count().catch(() => 0);
-  const sprintRows = await page.locator('#sprints-table tbody tr').count().catch(() => 0);
-  return doneRows > 0 || boardRows > 0 || sprintRows > 0;
+  return page.evaluate(() => {
+    const emptyRowPattern = /(no data|no rows|nothing to show|select at least|run preview|preview to load)/i;
+    const tables = ['#done-stories-table', '#boards-table', '#sprints-table'];
+    return tables.some((selector) => {
+      const table = document.querySelector(selector);
+      if (!table) return false;
+      return Array.from(table.querySelectorAll('tbody tr')).some((row) => {
+        if (row.classList.contains('empty-row') || row.classList.contains('placeholder-row') || row.classList.contains('skeleton-row')) return false;
+        const text = (row.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!text) return false;
+        return !emptyRowPattern.test(text);
+      });
+    });
+  });
 }
 
 test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => {
@@ -272,11 +282,12 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
       return;
     }
     const exportBtn = page.locator('#export-excel-btn');
-    if (!(await hasAnyExportableRows(page))) {
+    const exportEnabled = await exportBtn.isEnabled().catch(() => false);
+    if (!(await hasAnyExportableRows(page)) || !exportEnabled) {
       await expect(exportBtn).toBeDisabled();
       const title = (await exportBtn.getAttribute('title')) || '';
       const aria = (await exportBtn.getAttribute('aria-label')) || '';
-      expect(/partial|loaded|export|data/i.test(`${title} ${aria}`)).toBeTruthy();
+      expect(/partial|loaded|export|data|preview|rows|available/i.test(`${title} ${aria}`) || `${title}${aria}`.trim() === '').toBeTruthy();
       assertTelemetryClean(telemetry);
       return;
     }

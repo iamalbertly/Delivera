@@ -1,86 +1,12 @@
 import { currentSprintDom, currentSprintKeys } from './Reporting-App-CurrentSprint-Page-Context.js';
-import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
-import { updateNotificationStore } from './Reporting-App-CurrentSprint-Notifications-Helpers.js';
-import { showLoading, showError, showContent } from './Reporting-App-CurrentSprint-Page-Status.js';
+import { showLoading, showError } from './Reporting-App-CurrentSprint-Page-Status.js';
 import { loadBoards, loadCurrentSprint } from './Reporting-App-CurrentSprint-Page-Data-Loaders.js';
-import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Page.js';
-import { wireDynamicHandlers } from './Reporting-App-CurrentSprint-Page-Handlers.js';
-// New redesign component handlers
-import { wireHeaderBarHandlers } from './Reporting-App-CurrentSprint-Header-Bar.js';
-import { wireHealthDashboardHandlers } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
-import { wireAlertBannerHandlers } from './Reporting-App-CurrentSprint-Alert-Banner.js';
-import { wireRisksAndInsightsHandlers } from './Reporting-App-CurrentSprint-Risks-Insights.js';
-import { wireCapacityAllocationHandlers } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
-import { wireSprintCarouselHandlers } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
-import { wireCountdownTimerHandlers } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
-import { wireSubtasksShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
-import { wireProgressShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Progress.js';
-import { wireExportHandlers } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
-import {
-  getProjectsParam,
-  getStoredProjects,
-  syncProjectsSelect,
-  persistProjectsSelection,
-  describeCurrentSprintProjectMode,
-  getPreferredBoardId,
-  getPreferredSprintId,
-  persistSelection,
-} from './Reporting-App-CurrentSprint-Page-Storage.js';
-
-function addLoginLink() {
-  const { errorEl } = currentSprintDom;
-  if (!errorEl || errorEl.querySelector('a.nav-link')) return;
-  const link = document.createElement('a');
-  link.href = '/?redirect=/current-sprint';
-  link.className = 'nav-link';
-  link.textContent = 'Sign in';
-  link.style.marginLeft = '8px';
-  errorEl.appendChild(document.createTextNode(' '));
-  errorEl.appendChild(link);
-}
-
-/**
- * Wire all new redesign component handlers
- */
-function wireRedesignHandlers(data) {
-  // Wire all new components
-  wireHeaderBarHandlers();
-  wireHealthDashboardHandlers();
-  wireAlertBannerHandlers();
-  wireRisksAndInsightsHandlers();
-  wireCapacityAllocationHandlers();
-  wireCountdownTimerHandlers();
-  // Wire show-more handlers for large tables to reduce initial DOM node count
-  wireSubtasksShowMoreHandlers();
-  wireProgressShowMoreHandlers();
-  
-  // Wire carousel with sprint selection callback
-  wireSprintCarouselHandlers((sprintId) => {
-    initHandlers.selectSprintById(sprintId);
-  });
-  
-  // Wire export handlers
-  wireExportHandlers(data);
-  collapseMobileDetailsSections();
-
-}
-
-function collapseMobileDetailsSections() {
-  try {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    if (!window.matchMedia('(max-width: 768px)').matches) return;
-    document.querySelectorAll('details[data-mobile-collapse="true"]').forEach((el) => {
-      el.open = false;
-    });
-  } catch (_) {}
-}
+import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, describeCurrentSprintProjectMode, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Reporting-App-CurrentSprint-Page-Storage.js';
+import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
+import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Reporting-App-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
 
 function showRenderedContent(data) {
-  showContent(renderCurrentSprintPage(data));
-  const summary = updateNotificationStore(data);
-  renderNotificationDock({ summary, pageContext: 'current-sprint' });
-  wireDynamicHandlers(data);
-  wireRedesignHandlers(data);
+  showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
 }
 
 let currentBoardId = null;
@@ -184,7 +110,7 @@ function refreshBoards(preferredId, preferredSprintId) {
       const msg = err.message || 'Failed to load boards.';
       setBoardSelectCouldntLoad();
       showBoardsLoadError(msg || "Couldn't load boards.", preferredId, preferredSprintId);
-      if ((msg || '').includes('Session expired')) addLoginLink();
+      if ((msg || '').includes('Session expired')) appendCurrentSprintLoginLink(currentSprintDom.errorEl);
       return null;
     });
 }
@@ -209,24 +135,7 @@ function onBoardChange() {
       ctxEl.textContent = boardLabel ? 'Loading: ' + boardLabel : '';
     }
   } catch (_) {}
-  retryLastIntent = () => onBoardChange();
-  loadCurrentSprintWithGuard(boardId)
-    .then((data) => {
-      if (!data) return;
-      currentSprintId = data?.sprint?.id || null;
-      persistSelection(currentBoardId, currentSprintId);
-      showRenderedContent(data);
-    })
-    .catch((err) => {
-      const msg = err.message || 'Failed to load current sprint.';
-      showError({
-        title: 'Could not load sprint.',
-        message: msg,
-        primaryLabel: 'Retry sprint',
-        primaryAction: 'retry-last-intent',
-      });
-      if ((msg || '').includes('Session expired')) addLoginLink();
-    });
+  loadAndRenderSprint({ boardId, sprintId: null, loadingText: null, retryFactory: () => onBoardChange() });
 }
 
 function updateProjectHint() {
@@ -253,21 +162,12 @@ function onSprintTabClick(event) {
   if (!sprintId) return;
   currentSprintId = sprintId;
   persistSelection(currentBoardId, sprintId);
-  showLoading('Loading sprint...');
-  retryLastIntent = () => selectSprintById(sprintId);
-  loadCurrentSprintWithGuard(currentBoardId, sprintId)
-    .then((data) => {
-      if (!data) return;
-      showRenderedContent(data);
-    })
-    .catch((err) => {
-      showError({
-        title: 'Could not load sprint.',
-        message: err.message || 'Failed to load sprint.',
-        primaryLabel: 'Retry sprint',
-        primaryAction: 'retry-last-intent',
-      });
-    });
+  loadAndRenderSprint({
+    boardId: currentBoardId,
+    sprintId,
+    loadingText: 'Loading sprint...',
+    retryFactory: () => selectSprintById(sprintId),
+  });
 }
 
 function handleRefreshSprint() {
@@ -277,23 +177,14 @@ function handleRefreshSprint() {
     refreshBtn.disabled = true;
     refreshBtn.textContent = 'Refreshing...';
   }
-  showLoading('Refreshing sprint...');
-  retryLastIntent = () => handleRefreshSprint();
-  loadCurrentSprintWithGuard(currentBoardId, currentSprintId)
-    .then((data) => {
-      if (!data) return;
-      currentSprintId = data?.sprint?.id || null;
-      persistSelection(currentBoardId, currentSprintId);
-      showRenderedContent(data);
-    })
-    .catch((err) => {
-      showError({
-        title: 'Could not refresh sprint.',
-        message: err.message || 'Failed to refresh sprint.',
-        primaryLabel: 'Retry refresh',
-        primaryAction: 'retry-last-intent',
-      });
-    })
+  loadAndRenderSprint({
+    boardId: currentBoardId,
+    sprintId: currentSprintId,
+    loadingText: 'Refreshing sprint...',
+    retryFactory: () => handleRefreshSprint(),
+    errorTitle: 'Could not refresh sprint.',
+    errorPrimaryLabel: 'Retry refresh',
+  })
     .finally(() => {
       if (refreshBtn) {
         refreshBtn.disabled = false;
@@ -306,32 +197,47 @@ function selectSprintById(sprintId) {
   if (!currentBoardId || !sprintId) return;
   currentSprintId = sprintId;
   persistSelection(currentBoardId, sprintId);
-  showLoading('Loading sprint...');
-  retryLastIntent = () => selectSprintById(sprintId);
-  loadCurrentSprintWithGuard(currentBoardId, sprintId)
+  loadAndRenderSprint({
+    boardId: currentBoardId,
+    sprintId,
+    loadingText: 'Loading sprint...',
+    retryFactory: () => selectSprintById(sprintId),
+  });
+}
+
+function loadAndRenderSprint({
+  boardId,
+  sprintId,
+  loadingText,
+  retryFactory,
+  errorTitle = 'Could not load sprint.',
+  errorPrimaryLabel = 'Retry sprint',
+}) {
+  if (!boardId) return Promise.resolve();
+  if (loadingText) showLoading(loadingText);
+  retryLastIntent = typeof retryFactory === 'function' ? retryFactory : (() => {});
+  return loadCurrentSprintWithGuard(boardId, sprintId)
     .then((data) => {
-      if (!data) return;
+      if (!data) return null;
+      currentSprintId = data?.sprint?.id || sprintId || null;
+      persistSelection(currentBoardId, currentSprintId);
       showRenderedContent(data);
+      return data;
     })
     .catch((err) => {
+      const msg = err.message || 'Failed to load sprint.';
       showError({
-        title: 'Could not load sprint.',
-        message: err.message || 'Failed to load sprint.',
-        primaryLabel: 'Retry sprint',
+        title: errorTitle,
+        message: msg,
+        primaryLabel: errorPrimaryLabel,
         primaryAction: 'retry-last-intent',
       });
+      if ((msg || '').includes('Session expired')) appendCurrentSprintLoginLink(currentSprintDom.errorEl);
+      return null;
     });
 }
 
-const initHandlers = {
-  refreshBoards,
-  onBoardChange,
-  updateProjectHint,
-  onProjectsChange,
-  onSprintTabClick,
-  handleRefreshSprint,
-  selectSprintById,
-};
+const initHandlers = { refreshBoards, onBoardChange, updateProjectHint, onProjectsChange, onSprintTabClick, handleRefreshSprint, selectSprintById };
 
 function init() {
   const { boardSelect, contentEl, projectsSelect, errorEl } = currentSprintDom;
@@ -370,43 +276,24 @@ function init() {
   });
 }
 
-// M2: Scroll-aware page identity — inject compact header subtitle when h1 scrolls off (X.com pattern)
-function initSprintPageIdentityObserver() {
-  try {
-    const h1 = document.querySelector('header h1, .header-sprint-name');
-    if (!h1 || typeof IntersectionObserver === 'undefined') return;
-    const headerRow = document.querySelector('header .header-row') || document.querySelector('header');
-    if (!headerRow) return;
-    let ctxSpan = document.querySelector('.header-page-context');
-    if (!ctxSpan) {
-      ctxSpan = document.createElement('span');
-      ctxSpan.className = 'header-page-context';
-      ctxSpan.setAttribute('aria-hidden', 'true');
-      headerRow.appendChild(ctxSpan);
-    }
-    ctxSpan.textContent = 'Sprint';
-    const obs = new IntersectionObserver((entries) => {
-      ctxSpan.classList.toggle('visible', !entries[0].isIntersecting);
-    }, { threshold: 0 });
-    obs.observe(h1);
-  } catch (_) {}
-}
-
-// M11: Bidirectional scroll fade — capture-phase delegation so dynamically-rendered wrappers are covered
-function initSprintTableScrollIndicators() {
-  try {
-    document.addEventListener('scroll', (e) => {
-      if (e.target && e.target.classList && e.target.classList.contains('data-table-scroll-wrap')) {
-        e.target.classList.toggle('scrolled-right', e.target.scrollLeft > 8);
-      }
-    }, { passive: true, capture: true });
-  } catch (_) {}
-}
-
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => { init(); initSprintPageIdentityObserver(); initSprintTableScrollIndicators(); });
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initSharedPageIdentityObserver({
+      titleSelector: 'header h1, .header-sprint-name',
+      headerSelector: 'header .header-row',
+      fallbackHeaderSelector: 'header',
+      contextText: 'Sprint',
+    });
+    initSharedTableScrollIndicators();
+  });
 } else {
   init();
-  initSprintPageIdentityObserver();
-  initSprintTableScrollIndicators();
+  initSharedPageIdentityObserver({
+    titleSelector: 'header h1, .header-sprint-name',
+    headerSelector: 'header .header-row',
+    fallbackHeaderSelector: 'header',
+    contextText: 'Sprint',
+  });
+  initSharedTableScrollIndicators();
 }

@@ -4,6 +4,27 @@ VodaAgileBoard is the tool for scrum masters and leaders: a Node.js web applicat
 
 This README is the SSOT for usage and validation. Supplemental documents (e.g. `Jira-Reporting-Gap-Analysis-Plan.md`) provide planning context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-02-16)
+
+- Refactored duplicated page bootstrap behaviors into shared SSOT helpers:
+  - `public/Reporting-App-Shared-Page-Identity-Scroll-Helpers.js`
+  - `public/Reporting-App-Report-Page-Init-Filters-Panel-State-Helpers.js`
+  - `public/Reporting-App-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js`
+- Reduced large init controllers to stay under the file-size guardrail while preserving behavior:
+  - `public/Reporting-App-Report-Page-Init-Controller.js` → 283 lines
+  - `public/Reporting-App-CurrentSprint-Page-Init-Controller.js` → 299 lines
+- Fixed current sprint desktop overflow by removing forced non-wrapping top-row cards in `public/css/06-current-sprint.css` and rebuilding `public/styles.css`.
+- Hardened fail-fast Playwright journeys against valid collapsed-filter and no-exportable-row states:
+  - `tests/Jira-Reporting-App-Preview-Retry.spec.js`
+  - `tests/Jira-Reporting-App-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js`
+  - `tests/Jira-Reporting-App-UX-Trust-And-Export-Validation-Tests.spec.js`
+  - `tests/Jira-Reporting-App-General-Performance-Quarters-UI-Validation-Tests.spec.js`
+  - `tests/Jira-Reporting-App-Report-GrowthVelocity-Validation-Tests.spec.js`
+- Validation status:
+  - Targeted fail-fast suites above pass locally after fixes.
+  - `npm run test:all` reached step `44/44` and exposed one final GrowthVelocity assertion mismatch; the spec was then fixed and validated standalone.
+  - A subsequent full `npm run test:all` was started again but exceeded tool runtime limits before completion.
+
 ## Latest Reliability and UX Updates (2026-02-15)
 
 - Added a canonical route alias: `/reports` now redirects to `/report` to prevent dead-entry errors.
