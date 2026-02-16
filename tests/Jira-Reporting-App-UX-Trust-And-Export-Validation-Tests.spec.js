@@ -13,6 +13,7 @@ import {
   assertTelemetryClean,
   EXCEL_DOWNLOAD_TIMEOUT_MS,
   skipIfRedirectedToLogin,
+  getReportExportButtonState,
 } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 async function hasAnyExportableRows(page) {
@@ -282,12 +283,12 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
       return;
     }
     const exportBtn = page.locator('#export-excel-btn');
-    const exportEnabled = await exportBtn.isEnabled().catch(() => false);
+    const exportState = await getReportExportButtonState(page);
+    const exportEnabled = exportState.enabled;
     if (!(await hasAnyExportableRows(page)) || !exportEnabled) {
       await expect(exportBtn).toBeDisabled();
-      const title = (await exportBtn.getAttribute('title')) || '';
-      const aria = (await exportBtn.getAttribute('aria-label')) || '';
-      expect(/partial|loaded|export|data|preview|rows|available/i.test(`${title} ${aria}`) || `${title}${aria}`.trim() === '').toBeTruthy();
+      const reasonText = `${exportState.title} ${exportState.aria}`.trim();
+      expect(/partial|loaded|export|data|preview|rows|available/i.test(reasonText) || reasonText === '').toBeTruthy();
       assertTelemetryClean(telemetry);
       return;
     }

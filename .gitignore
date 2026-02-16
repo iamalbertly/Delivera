@@ -5,3 +5,8 @@ node_modules/
 .cursor/
 test-results/
 data/
+.playwright-cli/
+output/
+scripts/Jira-Reporting-App-Test-Last-Failed.json
+scripts/Jira-Reporting-App-Test-Orchestration-State.json
+temp_diff.txt

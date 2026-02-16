@@ -173,6 +173,50 @@ export async function runDefaultPreview(page, overrides = {}) {
 }
 
 /**
+ * Ensures report filters are visible before interacting with filter inputs/actions.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function ensureReportFiltersVisible(page) {
+  const startInput = page.locator('#start-date');
+  if (await startInput.isVisible().catch(() => false)) return;
+  const showFilters = page.locator('[data-action="toggle-filters"]').first();
+  if (await showFilters.isVisible().catch(() => false)) {
+    await showFilters.click().catch(() => null);
+  }
+  await startInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
+}
+
+/**
+ * Clicks report preview button even when filters panel is initially collapsed.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function clickReportPreviewFromCurrentState(page) {
+  const previewBtn = page.locator('#preview-btn');
+  if (!(await previewBtn.isVisible().catch(() => false))) {
+    await ensureReportFiltersVisible(page);
+  }
+  await previewBtn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
+  await previewBtn.waitFor({ state: 'attached', timeout: 10000 }).catch(() => null);
+  const enabled = await previewBtn.isEnabled().catch(() => false);
+  if (!enabled) return false;
+  await previewBtn.click().catch(() => null);
+  return true;
+}
+
+/**
+ * Returns report export button state after preview completion.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function getReportExportButtonState(page) {
+  const exportBtn = page.locator('#export-excel-btn');
+  const visible = await exportBtn.isVisible().catch(() => false);
+  const enabled = visible ? await exportBtn.isEnabled().catch(() => false) : false;
+  const title = visible ? ((await exportBtn.getAttribute('title')) || '') : '';
+  const aria = visible ? ((await exportBtn.getAttribute('aria-label')) || '') : '';
+  return { visible, enabled, title, aria };
+}
+
+/**
  * Checks key layout containers for horizontal clipping/offset against viewport.
  * Detects hidden overflows that scrollWidth-based checks can miss.
  * @param {import('@playwright/test').Page} page

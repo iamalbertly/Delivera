@@ -1,5 +1,6 @@
 
 import { test, expect } from '@playwright/test';
+import { clickReportPreviewFromCurrentState, ensureReportFiltersVisible, getReportExportButtonState } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Growth & Velocity Plan Validation', () => {
 
@@ -52,20 +53,15 @@ test.describe('Growth & Velocity Plan Validation', () => {
 
         await page.goto('/report');
         const previewBtn = page.locator('#preview-btn');
-        if (!(await previewBtn.isVisible().catch(() => false))) {
-            const showFiltersBtn = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"]').first();
-            if (await showFiltersBtn.isVisible().catch(() => false)) {
-                await showFiltersBtn.click({ force: true }).catch(() => null);
-            }
-            await previewBtn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
-        }
+        await ensureReportFiltersVisible(page);
 
         // Verify inputs hydrated
         // Assuming start-date input exists
         // await expect(page.locator('#start-date')).toHaveValue('2023-01-01T00:00'); // Check format if needed
 
         // Trigger Preview
-        await previewBtn.click();
+        const clicked = await clickReportPreviewFromCurrentState(page);
+        expect(clicked).toBeTruthy();
 
         // Wait for Done Stories tab to be populated
         // Check if Virtual Scroller initialized
@@ -88,8 +84,9 @@ test.describe('Growth & Velocity Plan Validation', () => {
                 await expect(page.locator('#share-insight-btn')).toBeVisible();
             }
         } else {
+            const exportState = await getReportExportButtonState(page);
             await expect(exportExcelBtn).toBeVisible();
-            const enabled = await exportExcelBtn.isEnabled().catch(() => false);
+            const enabled = exportState.enabled;
             if (enabled) {
                 await expect(exportExcelBtn).toContainText(/Export|Share/i);
             } else {

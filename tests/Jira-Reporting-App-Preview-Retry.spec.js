@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { clickReportPreviewFromCurrentState } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test('preview retry button triggers a new preview after a failure', async ({ page }) => {
   await page.goto('/report');
@@ -31,8 +32,8 @@ test('preview retry button triggers a new preview after a failure', async ({ pag
 
   await page.check('#project-mpsa').catch(() => null);
   await page.check('#project-mas').catch(() => null);
-  await expect(page.locator('#preview-btn')).toBeEnabled({ timeout: 15000 });
-  await page.click('#preview-btn');
+  const clicked = await clickReportPreviewFromCurrentState(page);
+  expect(clicked).toBeTruthy();
 
   await expect.poll(() => callCount, { timeout: 10000 }).toBeGreaterThanOrEqual(1);
   const retryBtn = page.locator('button[data-action="retry-preview"]:visible').first();

@@ -6,6 +6,7 @@ import {
   assertTelemetryClean,
   getViewportClippingReport,
   skipIfRedirectedToLogin,
+  clickReportPreviewFromCurrentState,
 } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 // Customer + Speed + Simplicity + Trust validation with fail-fast telemetry checks.
@@ -135,15 +136,8 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     await page.goto('/report');
     await expect(page.locator('#export-excel-btn')).toBeHidden();
 
-    const previewBtn = page.locator('#preview-btn');
-    const previewVisible = await previewBtn.isVisible().catch(() => false);
-    if (!previewVisible) {
-      const showFiltersBtn = page.locator('[data-action="toggle-filters"]').first();
-      if (await showFiltersBtn.isVisible().catch(() => false)) await showFiltersBtn.click();
-    }
-    await expect(previewBtn).toBeVisible({ timeout: 10000 });
-    await expect(previewBtn).toBeEnabled({ timeout: 10000 });
-    await previewBtn.click();
+    const clicked = await clickReportPreviewFromCurrentState(page);
+    expect(clicked).toBeTruthy();
     await waitForPreview(page, { timeout: 120000 });
 
     const hasPreviewContent = await page.locator('#preview-content').isVisible().catch(() => false);

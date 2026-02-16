@@ -20,10 +20,16 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - `tests/Jira-Reporting-App-UX-Trust-And-Export-Validation-Tests.spec.js`
   - `tests/Jira-Reporting-App-General-Performance-Quarters-UI-Validation-Tests.spec.js`
   - `tests/Jira-Reporting-App-Report-GrowthVelocity-Validation-Tests.spec.js`
+- Added shared Playwright SSOT helpers to remove duplicated test logic:
+  - `clickReportPreviewFromCurrentState(page)` for collapsed-filter safe preview clicks
+  - `ensureReportFiltersVisible(page)` for deterministic filter interaction
+  - `getReportExportButtonState(page)` for normalized export-state checks
+  - Implemented in `tests/JiraReporting-Tests-Shared-PreviewExport-Helpers.js`
+- Added repository ignores for generated local test artifacts in `.gitignore` (`.playwright-cli/`, `output/`, orchestration temp state files).
 - Validation status:
   - Targeted fail-fast suites above pass locally after fixes.
   - `npm run test:all` reached step `44/44` and exposed one final GrowthVelocity assertion mismatch; the spec was then fixed and validated standalone.
-  - A subsequent full `npm run test:all` was started again but exceeded tool runtime limits before completion.
+  - A later orchestration run completed through step `16/44` and was externally interrupted by a cancel flag before the next step.
 
 ## Latest Reliability and UX Updates (2026-02-15)
 
