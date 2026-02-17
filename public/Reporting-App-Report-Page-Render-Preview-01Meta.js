@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Report preview meta and status HTML builder. SSOT for buildPreviewMetaAndStatus.
  */
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
@@ -142,9 +142,9 @@ export function buildPreviewMetaAndStatus(params) {
   }
   const outcomeLine = rowsCount + ' done stories | ' + sprintsCount + ' sprints | ' + boardsCount + ' boards in window' + partialSuffix;
   const compactSummaryLine = 'Window coverage: Boards ' + boardsCount + (sprintsCount > 0 ? ' | Sprints ' + sprintsCount : '');
-  // UX Fix #1: contextLine = scope info only; freshness is carried by the badge (avoids "9 min ago 9 min ago" duplication)
+  // UX Fix #1: contextLine = scope info only; freshness and partial/time-limit reasons live in the badge and status banner.
   const activeFiltersLine = buildActiveFiltersContextLabel(selectedProjectsLabel, meta.windowStart, meta.windowEnd);
-  const contextLine = `${escapeHtml(activeFiltersLine)}${metaSummaryWhy ? ' | ' + escapeHtml(metaSummaryWhy.replace(/^ \| /, '')) : ''}`;
+  const contextLine = escapeHtml(activeFiltersLine);
   // data-state-badge--stale triggers amber warning colour via CSS (> 30 min = stale signal to user)
   const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
   const previewMetaHTML = `

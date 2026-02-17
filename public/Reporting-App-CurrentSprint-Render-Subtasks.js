@@ -31,7 +31,8 @@ export function renderWorkRisksMerged(data) {
   const remainingParents = topLevelRows.slice(initialLimit);
 
   let html = '<div class="transparency-card" id="stuck-card">';
-  html += '<div class="meta-row"><small id="scope-changes-card">Merged risk view: scope, blockers, tracking, and ownership.</small></div>';
+  // Short headline; avoid re-enumerating all risk types already explained below.
+  html += '<div class="meta-row"><small id="scope-changes-card">One merged view for sprint risks.</small></div>';
   const blockerRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('stuck >24h'));
   const blockerPreview = blockerRows.slice(0, 6);
   const groupedReasons = blockerRows.reduce((acc, row) => {
@@ -42,7 +43,8 @@ export function renderWorkRisksMerged(data) {
   html += '<h2>Work risks (Scope + Stuck + Sub-task + Sprint issues)</h2>';
   if (blockerRows.length > 0) {
     html += '<div class="work-risk-blocker-strip" aria-live="polite">';
-    html += '<strong>Blockers now: ' + blockerRows.length + '</strong>';
+    // Header already exposes the blocker count; keep this line focused on the list.
+    html += '<strong>Blocker issues</strong>';
     if (blockerPreview.length > 0) {
       html += '<span class="work-risk-blocker-links">';
       blockerPreview.forEach((row) => { html += renderIssueKeyLink(row.issueKey || '-', row.issueUrl) + ' '; });
@@ -57,7 +59,7 @@ export function renderWorkRisksMerged(data) {
     }
     html += '</div>';
   }
-  html += '<p class="section-definition"><small>Single risk table: scope changes, blockers, tracking gaps, and ownership gaps.</small></p>';
+  html += '<p class="section-definition"><small>Single risk table for scope changes, blockers, tracking gaps, and ownership gaps.</small></p>';
   if (scopeChanges.length > 0) {
     html += '<p class="meta-row"><small>Scope impact: ' + scopeChanges.length + ' added mid-sprint, +' + formatNumber(scopeSP, 1, '0') + ' SP' + (scopeUnestimated > 0 ? ' (' + scopeUnestimated + ' unestimated)' : '') + '.</small></p>';
   }

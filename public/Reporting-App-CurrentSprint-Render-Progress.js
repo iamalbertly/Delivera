@@ -241,7 +241,8 @@ export function renderStories(data) {
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
   html += '<h2>Issues in this sprint</h2>';
-  html += '<p class="meta-row"><span>Planned:</span> <strong>' + formatDate(planned.start) + ' - ' + formatDate(planned.end) + '</strong></p>';
+  // Dates are already shown in the sticky header; keep this line focused on intent to avoid duplicate date scanning.
+  html += '<p class="meta-row"><small>Planned work for the sprint window shown in the header above.</small></p>';
   html += '<p class="meta-row"><small>Type guide: Parent issues carry outcome fields (story points, ownership). Sub-tasks are shown as child rows focused on time tracking.</small></p>';
 
   function renderStoryRow(row) {

@@ -98,7 +98,6 @@ export function renderHeaderBar(data) {
       + '</span>';
   }
   html += '</div>';
-  if (boardName) html += '<div class="header-board-label" aria-label="Current board">Board: ' + escapeHtml(boardName) + '</div>';
   html += '<div class="header-sprint-name">' + escapeHtml(sprint.name || 'Sprint ' + sprint.id) + '</div>';
   html += '<div class="header-sprint-dates">';
   html += formatDate(planned.start || sprint.startDate) + ' - ' + formatDate(planned.end || sprint.endDate);
