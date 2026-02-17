@@ -212,34 +212,56 @@ async function copyDashboardAsText(data, btn) {
     const pctDone = summary.percentDone || 0;
     const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
 
-    // Derive verdict inline for copy context
-    let verdict = 'Healthy';
-    if (stuck.length >= 5 || pctDone < 20) verdict = 'Critical';
-    else if (stuck.length >= 3 || pctDone < 40) verdict = 'At Risk';
-    else if (stuck.length >= 1) verdict = 'Caution';
+    // Use the real verdict from the shared SSOT
+    const { deriveSprintVerdict } = await import('./Reporting-App-CurrentSprint-Alert-Banner.js');
+    const verdictInfo = deriveSprintVerdict(data);
+    const verdict = verdictInfo.verdict;
+
+    // Categorize stories by issue type for the summary
+    const byType = new Map();
+    stories.forEach((s) => {
+      const t = (s.issueType || 'Unknown').toLowerCase().includes('bug') ? 'Bug'
+        : (s.issueType || 'Unknown').toLowerCase().includes('task') ? 'Task'
+        : (s.issueType || 'Unknown').toLowerCase().includes('story') ? 'Story' : (s.issueType || 'Other');
+      byType.set(t, (byType.get(t) || 0) + 1);
+    });
+    const typeBreakdown = [...byType.entries()].map(([t, c]) => `${c} ${t}${c > 1 ? 's' : ''}`).join(', ');
+
+    // Separate blocked items (In Progress >24h) from not-started items (To Do)
+    const inProgressStuck = stuck.filter((s) => {
+      const st = (s && s.status || '').toLowerCase();
+      return st !== 'to do' && st !== 'open' && st !== 'backlog';
+    });
+    const notStartedStuck = stuck.filter((s) => {
+      const st = (s && s.status || '').toLowerCase();
+      return st === 'to do' || st === 'open' || st === 'backlog';
+    });
 
     let text = '';
     // 1. Status headline
     text += `${sprint.name || 'Sprint'} - ${verdict.toUpperCase()}\n`;
     text += `${pctDone}% done | ${doneStories}/${totalStories} stories | ${remainingDays != null ? remainingDays + 'd left' : 'ended'}\n`;
     text += `${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'}\n`;
-    text += `Generated: ${new Date().toLocaleString()}\n`;
-    if (meta.generatedAt || meta.snapshotAt) {
-      const sourceTs = new Date(meta.generatedAt || meta.snapshotAt);
-      if (!Number.isNaN(sourceTs.getTime())) {
-        text += `Data freshness: ${sourceTs.toLocaleString()}\n`;
-      }
-    }
-    if (meta.windowStart || meta.windowEnd) {
-      text += `${buildReportRangeLabel(meta.windowStart, meta.windowEnd)}\n`;
-    }
+    if (typeBreakdown) text += `Work mix: ${typeBreakdown}\n`;
     text += '\n';
 
-    // 2. Blockers - actionable list grouped by assignee
-    if (stuck.length > 0) {
-      text += `BLOCKERS (${stuck.length}): in progress >24h with no recent subtask activity.\n`;
+    // 2. Time tracking - critical signal for scrum masters
+    const estHrs = tracking.totalEstimateHours || 0;
+    const logHrs = tracking.totalLoggedHours || 0;
+    const remainHrs = tracking.totalRemainingHours || 0;
+    if (estHrs > 0 || logHrs > 0) {
+      const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
+      const timeFlag = logHrs === 0 && estHrs > 0 ? ' !! NO TIME LOGGED' : '';
+      text += `TIME TRACKING: ${logHrs}h logged / ${estHrs}h estimated (${logPct}%)${timeFlag}\n`;
+      if (remainHrs > 0) text += `  Remaining: ${remainHrs}h\n`;
+      text += '\n';
+    }
+
+    // 3. Actively blocked items - the real blockers (In Progress but stuck)
+    if (inProgressStuck.length > 0) {
+      text += `BLOCKED (${inProgressStuck.length}): in-progress >24h, no subtask movement\n`;
       const byAssignee = new Map();
-      stuck.forEach((item) => {
+      inProgressStuck.forEach((item) => {
         const assignee = (item && item.assignee) || 'Unassigned';
         if (!byAssignee.has(assignee)) byAssignee.set(assignee, []);
         byAssignee.get(assignee).push(item);
@@ -248,44 +270,69 @@ async function copyDashboardAsText(data, btn) {
         text += `  ${assignee}:\n`;
         items.forEach((item) => {
           const key = (item && (item.issueKey || item.key)) || '?';
-          const hrs = (item && item.hoursInStatus) != null ? Math.round(item.hoursInStatus) + 'h stuck' : '';
-          const status = (item && item.status) || '';
-          text += `    ${key} - ${(item && item.summary) || '?'}`;
-          if (status || hrs) text += ` [${[status, hrs].filter(Boolean).join(', ')}]`;
-          text += '\n';
+          const hrs = (item && item.hoursInStatus) != null ? Math.round(item.hoursInStatus) + 'h' : '';
+          text += `    ${key} - ${(item && item.summary) || '?'} [${hrs}]\n`;
         });
       }
       text += '\n';
     }
 
-    // 3. Scope changes
+    // 4. Not started work - separate from blockers
+    if (notStartedStuck.length > 0) {
+      text += `NOT STARTED (${notStartedStuck.length}): still in To Do / Open\n`;
+      notStartedStuck.forEach((item) => {
+        const key = (item && (item.issueKey || item.key)) || '?';
+        const owner = (item && item.assignee) || 'Unassigned';
+        text += `  ${key} - ${(item && item.summary) || '?'} [${owner}]\n`;
+      });
+      text += '\n';
+    }
+
+    // 5. Scope changes with type breakdown
     if (scopeChanges.length > 0) {
       const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
-      text += `SCOPE: +${scopeChanges.length} items added mid-sprint (+${scopeSP} SP)\n\n`;
+      const scopeByType = new Map();
+      scopeChanges.forEach((r) => {
+        const t = r.classification || 'other';
+        scopeByType.set(t, (scopeByType.get(t) || 0) + 1);
+      });
+      const scopeTypeStr = [...scopeByType.entries()].map(([t, c]) => `${c} ${t}`).join(', ');
+      text += `SCOPE: +${scopeChanges.length} added mid-sprint (${scopeTypeStr})${scopeSP > 0 ? ' +' + scopeSP + ' SP' : ''}\n\n`;
     }
 
-    // 4. Time tracking pulse
-    const estHrs = tracking.totalEstimateHours || 0;
-    const logHrs = tracking.totalLoggedHours || 0;
-    if (estHrs > 0 || logHrs > 0) {
-      text += `TIME: ${logHrs}h logged / ${estHrs}h estimated\n\n`;
+    // 6. Per-story subtask summary for scrum master context
+    const storiesWithSubtasks = stories.filter((s) => Array.isArray(s.subtasks) && s.subtasks.length > 0);
+    if (storiesWithSubtasks.length > 0) {
+      text += `WORK BREAKDOWN (${storiesWithSubtasks.length} stories with subtasks):\n`;
+      storiesWithSubtasks.forEach((s) => {
+        const subs = s.subtasks || [];
+        const subDone = subs.filter((st) => (st.status || '').toLowerCase().includes('done')).length;
+        const subEst = subs.reduce((sum, st) => sum + (st.estimateHours || 0), 0);
+        const subLog = subs.reduce((sum, st) => sum + (st.loggedHours || 0), 0);
+        text += `  ${s.issueKey} (${s.assignee || 'Unassigned'}): ${subDone}/${subs.length} subtasks done`;
+        if (subEst > 0 || subLog > 0) text += ` | ${subLog}h/${subEst}h`;
+        text += '\n';
+      });
+      text += '\n';
     }
 
-    // 5. Unassigned work
+    // 7. Unassigned work
     const unassigned = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
     if (unassigned.length > 0) {
       text += `UNASSIGNED (${unassigned.length}): ${unassigned.map((s) => s.issueKey || s.key || '?').join(', ')}\n\n`;
     }
 
-    // 6. Action needed summary
+    // 8. Action needed summary - prioritized
     const actions = [];
-    if (stuck.length > 0) actions.push(`Unblock ${stuck.length} stuck item${stuck.length > 1 ? 's' : ''}`);
-    if (excludedParents > 0) actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as blockers)`);
+    if (logHrs === 0 && estHrs > 0) actions.push(`Log time - ${estHrs}h estimated but 0h logged`);
+    if (inProgressStuck.length > 0) actions.push(`Unblock ${inProgressStuck.length} stuck item${inProgressStuck.length > 1 ? 's' : ''}`);
+    if (notStartedStuck.length > 0) actions.push(`Start ${notStartedStuck.length} item${notStartedStuck.length > 1 ? 's' : ''} still in To Do`);
+    if (excludedParents > 0) actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as stuck)`);
     if (unassigned.length > 0) actions.push(`Assign ${unassigned.length} unowned stor${unassigned.length > 1 ? 'ies' : 'y'}`);
     if (pctDone < 30 && remainingDays != null && remainingDays < 5) actions.push('Velocity behind - consider scope cut');
     if (actions.length > 0) {
       text += `ACTION NEEDED:\n`;
-      actions.forEach((a) => { text += `  -> ${a}\n`; });
+      actions.forEach((a, i) => { text += `  ${i + 1}. ${a}\n`; });
     }
 
     await writeTextToClipboardWithFallback(text);

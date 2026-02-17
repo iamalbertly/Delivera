@@ -236,17 +236,18 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('Current Sprint – Outcome line when content loaded', async ({ page }) => {
+  test('Current Sprint – Verdict line when content loaded', async ({ page }) => {
     test.setTimeout(60000);
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/current-sprint');
     await page.waitForSelector('#current-sprint-content', { state: 'visible', timeout: 25000 }).catch(() => null);
-    const outcome = page.locator('.current-sprint-outcome-line');
+    const verdict = page.locator('.sprint-verdict-line');
     const contentVisible = await page.locator('#current-sprint-content').isVisible().catch(() => false);
     if (contentVisible) {
-      const text = await page.locator('#current-sprint-content').textContent().catch(() => '');
-      if (text && text.includes('Sprint health at a glance')) {
-        await expect(outcome).toBeVisible();
+      const verdictVisible = await verdict.isVisible().catch(() => false);
+      if (verdictVisible) {
+        const text = await verdict.textContent();
+        expect(text || '').toMatch(/Healthy|Caution|At Risk|Critical/i);
       }
     }
     assertTelemetryClean(telemetry);

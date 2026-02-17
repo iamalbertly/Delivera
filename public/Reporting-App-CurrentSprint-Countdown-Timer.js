@@ -58,8 +58,12 @@ export function renderCountdownTimer(data, options = {}) {
     ariaLabel = 'Sprint ends in ' + Math.floor(remainingDays) + ' days';
   }
 
-  // Calculate percentage for progress ring
-  const maxDays = 14; // Assume max 2-week sprint
+  // Calculate percentage for progress ring - derive max from actual sprint dates
+  let maxDays = 14;
+  if (sprint.startDate && sprint.endDate) {
+    const sprintMs = new Date(sprint.endDate).getTime() - new Date(sprint.startDate).getTime();
+    if (sprintMs > 0) maxDays = Math.ceil(sprintMs / (1000 * 60 * 60 * 24));
+  }
   const progressPercent = Math.min(100, Math.max(0, (remainingDays / maxDays) * 100));
 
   // SVG for circular progress
@@ -122,14 +126,21 @@ export function wireCountdownTimerHandlers() {
 }
 
 /**
- * Update countdown timer in real-time (call every minute)
+ * Update countdown timer in real-time (call every minute).
+ * Uses innerHTML on parent to avoid outerHTML orphan-node memory leak.
  */
 export function updateCountdownTimer(data) {
-  // Re-render and replace old timer
   const oldTimer = document.querySelector('.countdown-timer-widget');
-  if (oldTimer) {
+  if (oldTimer && oldTimer.parentNode) {
+    const wrapper = oldTimer.parentNode;
     const newHtml = renderCountdownTimer(data);
-    oldTimer.outerHTML = newHtml;
-    wireCountdownTimerHandlers();
+    // Replace the specific child rather than outerHTML to preserve parent event listeners
+    const temp = document.createElement('div');
+    temp.innerHTML = newHtml;
+    const newEl = temp.firstElementChild;
+    if (newEl) {
+      wrapper.replaceChild(newEl, oldTimer);
+      wireCountdownTimerHandlers();
+    }
   }
 }

@@ -26,19 +26,29 @@ export function renderCapacityAllocation(data) {
     assigneeMap[assignee].count += 1;
   });
 
+  // Detect if SP tracking is active for this board
+  const hasSP = issues.some(i => (i.storyPoints || 0) > 0);
+
   // Calculate team velocity (simplified: assume ~10 SP per person per 2-week sprint)
   const sprintDurationDays = daysMeta.daysInSprintWorking || 10;
   const avgVelocityPerDay = 2; // Configurable: typically 1-3 SP per person per day
   const expectedCapacitySP = sprintDurationDays * avgVelocityPerDay;
+  // Story-count fallback: assume ~1 story per person per day as rough capacity
+  const expectedCapacityStories = sprintDurationDays;
 
-  // Build sorted list
+  // Build sorted list - use SP-based allocation when available, story count otherwise
   const assignees = Object.values(assigneeMap)
-    .sort((a, b) => b.sp - a.sp)
-    .map(a => ({
-      ...a,
-      allocPercent: Math.round((a.sp / expectedCapacitySP) * 100),
-      isOverallocated: a.sp > expectedCapacitySP
-    }));
+    .sort((a, b) => (hasSP ? b.sp - a.sp : b.count - a.count))
+    .map(a => {
+      const allocPercent = hasSP
+        ? Math.round((a.sp / expectedCapacitySP) * 100)
+        : Math.round((a.count / expectedCapacityStories) * 100);
+      return {
+        ...a,
+        allocPercent,
+        isOverallocated: hasSP ? a.sp > expectedCapacitySP : a.count > expectedCapacityStories,
+      };
+    });
 
   // Overall stats
   const totalSP = summary.totalSP || 0;
@@ -46,6 +56,7 @@ export function renderCapacityAllocation(data) {
   const unassignedPercent = issues.length > 0 ? Math.round((unassignedCount / issues.length) * 100) : 0;
   const assignedCount = issues.length - unassignedCount;
   const overallocatedCount = assignees.filter(a => a.isOverallocated).length;
+  const capacityUnit = hasSP ? 'SP' : 'stories';
 
   // Determine overall capacity health
   let capacityHealth = 'healthy';
@@ -85,7 +96,7 @@ export function renderCapacityAllocation(data) {
     html += '<div class="allocation-item">';
     html += '<div class="allocation-header">';
     html += '<span class="allocation-name">' + escapeHtml(assignee.name) + '</span>';
-    html += '<span class="allocation-stats">' + assignee.sp + ' SP, ' + assignee.count + ' issue' + (assignee.count !== 1 ? 's' : '') + '</span>';
+    html += '<span class="allocation-stats">' + (hasSP ? assignee.sp + ' SP, ' : '') + assignee.count + ' issue' + (assignee.count !== 1 ? 's' : '') + '</span>';
     html += '</div>';
     html += '<div class="allocation-bar-container">';
     html += '<div class="allocation-bar ' + barColor + '" style="width: ' + barPercent + '%;" title="' + assignee.allocPercent + '% capacity" role="progressbar" aria-valuenow="' + assignee.allocPercent + '" aria-valuemin="0" aria-valuemax="100"></div>';
@@ -105,7 +116,7 @@ export function renderCapacityAllocation(data) {
         const url = issue.issueUrl || buildJiraIssueUrl(jiraHost, key);
         html += '<span class="issue-key">' + renderIssueKeyLink(key, url) + '</span>';
         html += '<span class="issue-summary">' + escapeHtml(issue.summary || '-') + '</span>';
-        html += '<span class="issue-sp">' + (issue.storyPoints || '?') + ' SP</span>';
+        html += hasSP ? '<span class="issue-sp">' + (issue.storyPoints || '?') + ' SP</span>' : '';
         html += '</div>';
       });
       html += '</div>';
@@ -122,7 +133,8 @@ export function renderCapacityAllocation(data) {
     html += '<h3>Suggestions</h3>';
     html += '<ul>';
     assignees.filter(a => a.isOverallocated).forEach(assignee => {
-      html += '<li>Move ' + Math.ceil((assignee.sp - expectedCapacitySP) / 2) + ' SP away from ' + escapeHtml(assignee.name) + '</li>';
+      const excess = hasSP ? Math.ceil((assignee.sp - expectedCapacitySP) / 2) + ' SP' : Math.ceil((assignee.count - expectedCapacityStories) / 2) + ' stories';
+      html += '<li>Move ' + excess + ' away from ' + escapeHtml(assignee.name) + '</li>';
     });
     html += '</ul>';
     html += '</div>';

@@ -115,19 +115,19 @@ test.describe('UX Outcome-First', () => {
       test.skip(true, 'Boards not loaded; skip outcome line');
       return;
     }
-    await page.waitForSelector('.sprint-outcome-line, .header-bar, .header-metric, .current-sprint-header-bar, .transparency-card', { timeout: 35000 }).catch(() => null);
+    await page.waitForSelector('.sprint-verdict-line, .header-bar, .header-metric, .current-sprint-header-bar, .transparency-card', { timeout: 35000 }).catch(() => null);
     const body = await page.locator('body').textContent().catch(() => '');
     if (/No active or recent closed sprint|No sprint/.test(body)) {
-      test.skip(true, 'Board has no active sprint; outcome line not shown');
+      test.skip(true, 'Board has no active sprint; verdict line not shown');
       return;
     }
-    const outcomeEl = page.locator('.sprint-outcome-line');
-    const outcomeVisible = (await outcomeEl.count()) > 0 && (await outcomeEl.first().isVisible().catch(() => false));
-    const hasOutcomeText = /Sprint.*% done|days left|issues|Issues in sprint|Work items|Burndown|Scope/.test(body);
+    const verdictEl = page.locator('.sprint-verdict-line');
+    const verdictVisible = (await verdictEl.count()) > 0 && (await verdictEl.first().isVisible().catch(() => false));
+    const hasOutcomeText = /Healthy|Caution|At Risk|Critical|% done|days left|issues|Work items|Burndown|Scope/.test(body);
     const hasSelectionGuidance = /Select a board|Loading current sprint|Generated just now|Data freshness/i.test(body);
     const shellVisible = (await page.locator('h1').first().isVisible().catch(() => false))
       || (await page.locator('#board-select').isVisible().catch(() => false));
-    expect(outcomeVisible || hasOutcomeText || hasSelectionGuidance || shellVisible).toBeTruthy();
+    expect(verdictVisible || hasOutcomeText || hasSelectionGuidance || shellVisible).toBeTruthy();
 
     assertTelemetryClean(telemetry);
   });
@@ -138,7 +138,7 @@ test.describe('UX Outcome-First', () => {
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
     await page.waitForSelector('a[href="#stories-card"], .sprint-section-links, #stories-card, .current-sprint-grid, .health-dashboard-card', { timeout: 35000 }).catch(() => null);
     const pageText = await page.locator('body').textContent().catch(() => '') || '';
-    if (/Couldn't load boards|No boards available|No active or recent closed sprint|No sprint/i.test(pageText)) {
+    if (/Couldn't load boards|No boards available|No active or recent closed sprint|No sprint|No trackable work/i.test(pageText)) {
       test.skip(true, 'Current sprint sections unavailable for selected board/data');
       return;
     }

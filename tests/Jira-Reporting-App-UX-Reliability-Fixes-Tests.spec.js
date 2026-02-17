@@ -553,14 +553,16 @@ test.describe('UX Audit Fixes — Current Sprint + Report Pages', () => {
     if (!visible) { test.skip(); return; }
 
     const sprintNameEl = headerBar.locator('.header-sprint-name').first();
-    const outcomeLine = headerBar.locator('.sprint-outcome-line').first();
+    const verdictLine = headerBar.locator('.sprint-verdict-line').first();
     const sprintNameText = (await sprintNameEl.textContent() || '').trim();
-    const outcomeText = (await outcomeLine.textContent() || '').trim();
+    const verdictText = (await verdictLine.textContent() || '').trim();
 
     if (sprintNameText) {
-      // Outcome line should NOT start with the sprint name (e.g. "FY26DMS18: 0% done")
-      expect(outcomeText.startsWith(sprintNameText)).toBe(false);
-      console.log(`[TD-02] ✓ Sprint name "${sprintNameText}" not duplicated in outcome line`);
+      // Verdict line should NOT repeat the sprint name
+      expect(verdictText.startsWith(sprintNameText)).toBe(false);
+      // Verdict line should contain health status (Healthy/Caution/At Risk/Critical)
+      expect(/Healthy|Caution|At Risk|Critical/.test(verdictText)).toBeTruthy();
+      console.log(`[TD-02] ✓ Sprint name "${sprintNameText}" not duplicated in verdict line`);
     } else {
       console.log('[TD-02] ✓ No sprint loaded — skip name-duplication check');
     }

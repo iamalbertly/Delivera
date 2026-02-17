@@ -59,14 +59,12 @@ export function renderWorkRisksMerged(data) {
     }
     html += '</div>';
   }
-  html += '<p class="section-definition"><small>Single risk table for scope changes, blockers, tracking gaps, and ownership gaps.</small></p>';
-  if (scopeChanges.length > 0) {
-    html += '<p class="meta-row"><small>Scope impact: ' + scopeChanges.length + ' added mid-sprint, +' + formatNumber(scopeSP, 1, '0') + ' SP' + (scopeUnestimated > 0 ? ' (' + scopeUnestimated + ' unestimated)' : '') + '.</small></p>';
-  }
-  html += '<p class="meta-row"><small>Blocker threshold: in-progress for more than 24 hours with no movement on the issue or any of its subtasks.</small></p>';
-  html += '<p class="meta-row"><small>Each issue is counted once as a blocker even when multiple risks apply; counts dedupe by issue key.</small></p>';
-  if (excludedParents > 0) {
-    html += '<p class="meta-row"><small>' + escapeHtml(String(excludedParents)) + ' parent stor' + (excludedParents === 1 ? 'y' : 'ies') + ' are flowing via subtasks and are not counted as blockers.</small></p>';
+  // Compact meta: one-line context only, definitions moved to table header tooltips
+  const metaParts = [];
+  if (scopeChanges.length > 0) metaParts.push('+' + scopeChanges.length + ' scope (' + formatNumber(scopeSP, 1, '0') + ' SP)');
+  if (excludedParents > 0) metaParts.push(excludedParents + ' parent' + (excludedParents > 1 ? 's' : '') + ' via subtasks');
+  if (metaParts.length > 0) {
+    html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' · ')) + '</small></p>';
   }
 
   if (!rows.length) {
@@ -76,7 +74,7 @@ export function renderWorkRisksMerged(data) {
 
   const headers = ['Source', 'Risk', 'Issue', 'Summary', 'Type', 'SP', 'Status', 'Reporter', 'Assignee', 'Est Hrs', 'Logged Hrs', 'Hours in status', 'Updated'];
   html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table" id="work-risks-table" style="table-layout: auto;">';
-  html += '<thead><tr><th>Source</th><th>Risk</th><th>Issue</th><th class="cell-wrap">Summary</th><th>Type</th><th>SP</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Est Hrs</th><th>Logged Hrs</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
+  html += '<thead><tr><th>Source</th><th title="Blocker: in-progress >24h with no subtask movement. Deduped by issue key.">Risk</th><th>Issue</th><th class="cell-wrap">Summary</th><th>Type</th><th>SP</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Est Hrs</th><th>Logged Hrs</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
   for (const row of toShow) {
     const riskTypeLower = String(row.riskType || '').toLowerCase();
     const isStuck = riskTypeLower.includes('stuck >24h');

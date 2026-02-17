@@ -1,18 +1,21 @@
 import { formatDateForDisplay, formatNumber, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { calculateVariance } from './Reporting-App-Report-Page-Sorting.js';
 
-export const DELIVERY_GRADE_TOOLTIP = 'Historical delivery quality grade (on-time + predictability). Strong >=90, Solid >=80, Mixed >=65, Weak >=50. Requires at least 2 sprints.';
+export const DELIVERY_GRADE_TOOLTIP = 'Historical delivery quality grade. Uses on-time % and predictability when available; falls back to on-time alone. Strong >=90, Solid >=80, Mixed >=65, Weak >=50.';
 
 export function deriveDeliveryGrade(onTimePct, spEstimationPct, sprintCount) {
-  if (!Number.isFinite(onTimePct) || !Number.isFinite(spEstimationPct) || (sprintCount || 0) < 2) {
+  // Collect all finite metrics to compute an empirical average from whatever data is available.
+  const metrics = [onTimePct, spEstimationPct].filter((v) => Number.isFinite(v));
+  if (metrics.length === 0 || (sprintCount || 0) < 1) {
     return 'Insufficient data';
   }
-  const score = (onTimePct + spEstimationPct) / 2;
-  if (score >= 90) return 'Strong';
-  if (score >= 80) return 'Solid';
-  if (score >= 65) return 'Mixed';
-  if (score >= 50) return 'Weak';
-  return 'Critical';
+  const score = metrics.reduce((sum, v) => sum + v, 0) / metrics.length;
+  const suffix = metrics.length < 2 ? ' (partial)' : '';
+  if (score >= 90) return 'Strong' + suffix;
+  if (score >= 80) return 'Solid' + suffix;
+  if (score >= 65) return 'Mixed' + suffix;
+  if (score >= 50) return 'Weak' + suffix;
+  return 'Critical' + suffix;
 }
 
 export function getWindowMonths(meta) {

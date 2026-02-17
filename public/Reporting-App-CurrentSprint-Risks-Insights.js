@@ -21,17 +21,10 @@ export function renderRisksAndInsights(data) {
   const learnings = notes.learnings || [];
   const hasAssumptions = assumptions.length > 0;
 
+  // Dependencies only - scope changes are already shown in the Work Risks table above
   const blockersText = [];
   if (dependencies.length > 0) {
     blockersText.push(...dependencies);
-  }
-  if (scopeChanges.length > 0) {
-    const addedSP = scopeChanges.reduce((sum, item) => sum + (Number(item.storyPoints) || 0), 0);
-    const unestimated = scopeChanges.filter((item) => item.storyPoints == null || item.storyPoints === '').length;
-    blockersText.push(
-      'Scope added mid-sprint: ' + scopeChanges.length + ' item' + (scopeChanges.length !== 1 ? 's' : '') +
-      ', +' + addedSP.toFixed(1) + ' SP' + (unestimated ? ', ' + unestimated + ' unestimated' : '')
-    );
   }
 
   let html = '<div class="transparency-card risks-insights-card" id="risks-insights-card">';

@@ -43,12 +43,13 @@ export function renderCurrentSprintPage(data) {
   const hasDailyCompletions = Array.isArray(data?.dailyCompletions?.stories) && data.dailyCompletions.stories.length > 0;
   const hasBurndownSeries = Array.isArray(data.remainingWorkByDay) && data.remainingWorkByDay.length > 0;
   const hasBurndownData = hasBurndownSeries || hasStories;
-  const hasCapacityData = hasStories && Number(summary.totalSP || 0) > 0;
+  // Capacity is useful whenever we have assignee data - SP is optional (story count allocation still meaningful)
+  const hasCapacityData = hasStories;
 
   if (!hasStories) availabilityGaps.push({ source: 'Data', label: 'Work items hidden', reason: 'No sprint issues returned for this board.' });
   if (!hasDailyCompletions) availabilityGaps.push({ source: 'Window', label: 'Daily completion hidden', reason: 'No completed items in this sprint window yet.' });
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
-  if (!hasCapacityData) availabilityGaps.push({ source: 'Workflow', label: 'Capacity hidden', reason: 'Not enough assigned story-point data.' });
+  if (!hasCapacityData) availabilityGaps.push({ source: 'Workflow', label: 'Capacity hidden', reason: 'No work items in this sprint.' });
 
   html += renderHeaderBar(data);
 

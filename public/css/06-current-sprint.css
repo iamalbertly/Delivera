@@ -305,14 +305,6 @@
   color: var(--muted);
   font-size: 0.9em;
 }
-.sprint-outcome-line {
-  width: 100%;
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--primary-strong, #1a1a1a);
-}
-
 .sprint-verdict-line {
   width: 100%;
   font-size: 0.84rem;

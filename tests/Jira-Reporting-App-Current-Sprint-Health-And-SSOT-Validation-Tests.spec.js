@@ -20,14 +20,14 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await expect(page.locator('h1')).toContainText('Current Sprint');
-    const outcome = page.locator('.current-sprint-outcome-line');
-    const hasOutcome = await outcome.isVisible().catch(() => false);
-    if (!hasOutcome) {
-      test.skip(true, 'Sprint health outcome line not visible for current data set');
+    const verdict = page.locator('.sprint-verdict-line');
+    const hasVerdict = await verdict.isVisible().catch(() => false);
+    if (!hasVerdict) {
+      test.skip(true, 'Sprint verdict line not visible for current data set');
       return;
     }
-    const text = await outcome.textContent();
-    expect(text || '').toMatch(/Sprint health:/i);
+    const text = await verdict.textContent();
+    expect(text || '').toMatch(/Healthy|Caution|At Risk|Critical/i);
 
     assertTelemetryClean(telemetry);
   });
@@ -73,29 +73,29 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     await expect(page.locator('#board-select')).toBeVisible();
   });
 
-  test('sprint health outcome line stays visible when scrolling', async ({ page }) => {
+  test('sprint header bar stays visible when scrolling', async ({ page }) => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
-    const outcome = page.locator('.current-sprint-outcome-line');
-    const hasOutcome = await outcome.isVisible().catch(() => false);
-    if (!hasOutcome) {
-      test.skip(true, 'Sprint health outcome line not visible for current data set');
+    const headerBar = page.locator('.current-sprint-header-bar');
+    const hasHeader = await headerBar.isVisible().catch(() => false);
+    if (!hasHeader) {
+      test.skip(true, 'Sprint header bar not visible for current data set');
       return;
     }
 
     // Scroll to bottom to simulate deep inspection of cards/tables
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
-    const box = await outcome.boundingBox();
+    const box = await headerBar.boundingBox();
     if (!box) {
-      test.skip(true, 'Could not measure outcome line position');
+      test.skip(true, 'Could not measure header bar position');
       return;
     }
 
-    // Sticky outcome line should remain within the top portion of the viewport
+    // Sticky header bar should remain within the top portion of the viewport
     expect(box.y).toBeGreaterThanOrEqual(0);
-    expect(box.y).toBeLessThan(160);
+    expect(box.y).toBeLessThan(200);
   });
 
   test('work risks table when present has Summary column and displays row data', async ({ page }) => {

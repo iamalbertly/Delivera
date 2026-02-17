@@ -53,13 +53,6 @@ export function renderHeaderBar(data) {
   }
 
   const issuesCount = (data.stories || []).length;
-  const remainingText = remainingLabel === '-' ? remainingLabel : (remainingLabel === 'Sprint ended' || remainingLabel === '<1 day' ? remainingLabel : remainingLabel + ' left');
-  const outcomeParts = [
-    donePercentage + '% done',
-    remainingText,
-    issuesCount + ' issues'
-  ];
-  const outcomeLine = outcomeParts.join(' · ');
   const verdictInfo = deriveSprintVerdict(data);
   const compactRiskParts = [];
   if (stuckCount > 0) compactRiskParts.push(stuckCount + ' blockers');
@@ -72,7 +65,6 @@ export function renderHeaderBar(data) {
     : '<span class="sprint-verdict-drilldown sprint-verdict-drilldown-ok">No blockers</span>';
 
   let html = '<div class="current-sprint-header-bar" data-sprint-id="' + (sprint.id || '') + '">';
-  html += '<div class="sprint-outcome-line" aria-live="polite">' + escapeHtml(outcomeLine) + '</div>';
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictInfo.color) + '" aria-live="polite">';
   html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong> · ' + escapeHtml(compactRiskLine);
   html += ' · ' + blockerDrillDown;
