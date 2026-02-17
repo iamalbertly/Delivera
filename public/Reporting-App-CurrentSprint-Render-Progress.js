@@ -116,12 +116,18 @@ export function renderBurndown(data) {
   const stories = data.stories || [];
   const daily = data?.dailyCompletions?.stories || [];
   const sprintEnded = daysMeta.daysRemainingCalendar != null && daysMeta.daysRemainingCalendar <= 0;
+  const summary = data.summary || {};
+  const summaryTotalSP = Number(summary.totalSP || 0);
+  const summaryTotalAllSP = Number(summary.totalAllSP || 0);
+  const completedAfterEnd = Number(summary.completedAfterSprintEndCount || 0);
+  const hasMultiSpFields = Array.isArray(summary.storyPointsFieldCandidates) && summary.storyPointsFieldCandidates.length > 1;
 
   if (!remaining.length) {
     return '<div class="transparency-card" id="burndown-card"><h2>Burndown</h2><p class="meta-row"><small>Burndown will appear when story points and resolutions are available.</small></p></div>';
   }
 
-  const totalSP = remaining[0].remainingSP || 0;
+  const seriesTotalSP = remaining[0].remainingSP || 0;
+  const totalSP = summaryTotalSP > 0 ? summaryTotalSP : seriesTotalSP;
   const lastRemaining = remaining[remaining.length - 1].remainingSP || 0;
   const doneSP = totalSP - lastRemaining;
   const pct = totalSP > 0 ? Math.round((doneSP / totalSP) * 100) : 0;
@@ -148,7 +154,10 @@ export function renderBurndown(data) {
     });
     let html = '<div class="transparency-card" id="burndown-card">';
     html += '<h2>Burndown</h2>';
-    html += '<p class="burndown-status-card">Burndown by story count (story points are not configured).</p>';
+    const statusMessage = summaryTotalAllSP === 0
+      ? 'Burndown by story count (story points field is not configured for this board).'
+      : 'Burndown by story count (this sprint\u2019s stories currently total 0 SP).';
+    html += '<p class="burndown-status-card">' + escapeHtml(statusMessage) + '</p>';
     html += '<p><strong>' + Math.max(0, Math.round(((stories.length - series[series.length - 1].remainingSP) / Math.max(1, stories.length)) * 100)) + '%</strong> complete (' + (stories.length - series[series.length - 1].remainingSP) + ' done of ' + stories.length + ' stories).</p>';
     html += buildBurndownChart(series, idealSeries, 'Remaining Stories');
     html += '</div>';
@@ -156,7 +165,10 @@ export function renderBurndown(data) {
   }
 
   if (totalSP === 0) {
-    return '<div class="transparency-card" id="burndown-card"><h2>Burndown</h2><p class="burndown-status-card">No story points or story completion history available yet.</p></div>';
+    const message = summaryTotalAllSP === 0
+      ? 'No story points or story completion history available yet.'
+      : 'No story points completed in this sprint yet. Story-point field exists but this sprint currently totals 0 SP.';
+    return '<div class="transparency-card" id="burndown-card"><h2>Burndown</h2><p class="burndown-status-card">' + escapeHtml(message) + '</p></div>';
   }
 
   const sprintJustStarted = remaining.length <= 2 && doneSP === 0;
@@ -178,6 +190,12 @@ export function renderBurndown(data) {
     html += '<p><strong>' + pct + '%</strong> complete (' + formatNumber(doneSP, 1, '-') + ' SP done of ' + formatNumber(totalSP, 1, '-') + ' SP).</p>';
     const health = burndownHealth(remaining, ideal, totalSP);
     if (health.label) html += '<p class="burndown-health ' + health.class + '"><span class="burndown-health-label">' + escapeHtml(health.label) + '</span></p>';
+    if (hasMultiSpFields) {
+      html += '<p class="burndown-annotation"><small>Multiple Jira story point fields exist; this burndown uses the primary field only. If numbers look off for some projects, align on a single story-points field.</small></p>';
+    }
+    if (completedAfterEnd > 0) {
+      html += '<p class="burndown-annotation"><small>' + escapeHtml(String(completedAfterEnd)) + ' stor' + (completedAfterEnd === 1 ? 'y' : 'ies') + ' completed after sprint end; burndown shows sprint-only completion.</small></p>';
+    }
     if (burstDelivery) html += '<p class="burndown-annotation"><small>Burst delivery: work completed on final day.</small></p>';
     html += buildBurndownChart(remaining, ideal, 'Remaining SP');
   }
@@ -275,12 +293,14 @@ export function renderStories(data) {
     const toShow = stories.slice(0, initialLimit);
     const remaining = stories.slice(initialLimit);
 
+    html += '<div class="data-table-scroll-wrap">';
     html += '<table class="data-table" id="stories-table"><thead><tr><th>Issue</th><th>Type</th><th class="cell-wrap">Summary</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Story Points</th><th>Subtask Est Hrs</th><th>Subtask Logged Hrs</th><th>Created</th><th>Resolved</th></tr></thead><tbody>';
     for (const row of toShow) {
       html += renderStoryRow(row);
       html += renderSubtaskRows(row);
     }
     html += '</tbody></table>';
+    html += '</div>';
 
     if (remaining.length > 0) {
       html += '<button class="btn btn-secondary btn-compact stories-show-more" data-count="' + remaining.length + '">Show ' + remaining.length + ' more</button>';

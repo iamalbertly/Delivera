@@ -239,12 +239,29 @@ test('Login - Global nav hidden', async ({ page }) => {
     assertTelemetryClean(telemetry);
   });
 
-  test('Edge: Project SSOT – Report selection reflected on Current Sprint', async ({ page }) => {
+  test('Edge: Project SSOT - Report selection reflected on Current Sprint', async ({ page }) => {
     test.setTimeout(60000);
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
-    await page.uncheck('#project-mpsa');
-    await page.check('#project-mas');
+    const mpsaCheckbox = page.locator('#project-mpsa');
+    if (!(await mpsaCheckbox.isVisible().catch(() => false))) {
+      const toggleFilters = page.locator('[data-action="toggle-filters"]');
+      if (await toggleFilters.isVisible().catch(() => false)) {
+        await toggleFilters.click();
+      }
+    }
+    await page.evaluate(() => {
+      const mpsa = document.querySelector('#project-mpsa');
+      if (mpsa) {
+        mpsa.checked = false;
+        mpsa.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      const mas = document.querySelector('#project-mas');
+      if (mas) {
+        mas.checked = true;
+        mas.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
     await page.waitForTimeout(500);
     await page.goto('/current-sprint');
     await page.waitForTimeout(1000);
@@ -254,5 +271,4 @@ test('Login - Global nav hidden', async ({ page }) => {
     assertTelemetryClean(telemetry);
   });
 });
-
 

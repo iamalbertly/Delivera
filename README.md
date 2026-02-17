@@ -24,6 +24,13 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - Test runner now resolves an available git base ref (`origin/main`, `origin/master`, `master`, `main`, `HEAD~1`) before diffing, eliminating repeated ambiguous-base warnings on local environments without `origin/main`.
 - Validation status:
   - `npm run test:all` completed green in fail-fast mode for the impacted run (`45/45` selected orchestration steps).
+  - Additional reliability hardening was applied after this run:
+    - Current Sprint real-blocker logic now excludes parent items from blocker count when at least one child subtask is actively moving in the last 24h.
+    - Blocker SSOT count is unified across verdict/header/work-risk rows via merged risk rows.
+    - Report/Leadership/Current Sprint context copy now shares `Active filters ... | Report range ... (UTC)` helper semantics.
+    - Current Sprint stories table is now wrapped in the shared horizontal scroll container to prevent 1024px overflow regressions.
+    - Global navigation now deduplicates sidebar/toggle/backdrop nodes and synchronizes body scroll-lock classes to sidebar open state.
+    - Playwright resilience updates were added for hidden/collapsed filter controls and mobile sidebar click paths.
 
 ## Latest Reliability and UX Updates (2026-02-16)
 

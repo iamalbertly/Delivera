@@ -8,6 +8,7 @@ import {
   LAST_QUERY_KEY,
   REPORT_LAST_RUN_KEY,
   REPORT_LAST_META_KEY,
+  REPORT_FILTERS_STALE_KEY,
 } from './Reporting-App-Shared-Storage-Keys.js';
 
 const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
@@ -25,6 +26,15 @@ function isValidRange(start, end) {
   const endD = parseDate(end);
   if (!startD || !endD) return false;
   return startD.getTime() < endD.getTime();
+}
+
+function getFiltersStaleFlag() {
+  try {
+    if (typeof sessionStorage === 'undefined') return false;
+    return sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1';
+  } catch (_) {
+    return false;
+  }
 }
 
 /**
@@ -81,6 +91,15 @@ export function buildReportRangeLabel(startIso, endIso) {
   const endStr = formatDateForContext(endIso);
   if (!startStr || !endStr) return 'Report range: -';
   return `Report range: ${startStr}${DATE_RANGE_SEPARATOR}${endStr} (UTC)`;
+}
+
+export function buildActiveFiltersContextLabel(projectsCsv, startIso, endIso) {
+  const projectsLabel = typeof projectsCsv === 'string'
+    ? projectsCsv.split(',').map((p) => p.trim()).filter(Boolean).join(', ')
+    : '';
+  const rangeLabel = buildReportRangeLabel(startIso, endIso);
+  if (!projectsLabel) return rangeLabel;
+  return `Active filters: Projects ${projectsLabel}${CONTEXT_SEPARATOR}${rangeLabel}`;
 }
 
 /**
@@ -140,16 +159,18 @@ export function getContextDisplayString() {
   const lastRun = getLastRunSummary();
   const freshnessInfo = getLastMetaFreshnessInfo();
   const freshness = freshnessInfo.label;
+  const filtersStale = getFiltersStaleFlag();
   const proj = ctx ? ctx.projects.replace(/,/g, ', ') : '';
-  const rangeLabel = ctx ? buildReportRangeLabel(ctx.start, ctx.end) : '';
-  const contextPart = rangeLabel
-    ? `Active filters: Projects ${proj}${CONTEXT_SEPARATOR}${rangeLabel}`
+  const contextLabel = ctx ? buildActiveFiltersContextLabel(proj, ctx.start, ctx.end) : '';
+  const contextPart = contextLabel
+    ? contextLabel
     : (proj ? `Active filters: Projects ${proj}` : '');
   const freshnessPart = freshness ? `Data freshness: ${freshness}` : '';
   const pieces = [];
   if (lastRun) pieces.push(lastRun);
   if (contextPart) pieces.push(contextPart);
   if (freshnessPart) pieces.push(freshnessPart);
+  if (filtersStale) pieces.push('Filters changed; context from last run');
   if (pieces.length) return pieces.join(CONTEXT_SEPARATOR);
   return 'No report run yet';
 }
@@ -161,6 +182,7 @@ export function getContextDisplayString() {
 export function getContextCardHtml() {
   const ctx = getValidLastQuery() || getFallbackContext();
   const freshnessInfo = getLastMetaFreshnessInfo();
+  const filtersStale = getFiltersStaleFlag();
   const projCount = ctx?.projects ? ctx.projects.split(',').filter(Boolean).length : 0;
   const projectsLabel = projCount ? `Selected: ${projCount} project${projCount !== 1 ? 's' : ''}` : 'No projects selected';
   const lastLabel = freshnessInfo.label || 'No data yet';
@@ -175,6 +197,9 @@ export function getContextCardHtml() {
   html += '<p class="context-card-line">' + escapeHtml(lastLabel) + '</p>';
   if (rangeStr) html += '<p class="context-card-line context-card-range">' + escapeHtml(rangeStr) + '</p>';
   html += '<p class="context-card-line ' + freshnessClass + '" title="' + escapeHtml(freshnessText) + '">' + escapeHtml(freshnessText) + '</p>';
+  if (filtersStale) {
+    html += '<p class="context-card-line context-card-stale-hint">Filters changed; context from last run</p>';
+  }
   html += '</div>';
   return html;
 }

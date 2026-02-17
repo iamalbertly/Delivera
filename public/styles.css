@@ -1638,10 +1638,11 @@ body.sidebar-scroll-lock {
 }
 
 .leadership-board-card-grade.strong { color: var(--success, #2e7d32); }
-.leadership-board-card-grade.stable { color: #689f38; }
-.leadership-board-card-grade.watch { color: var(--warning, #f57c00); }
-.leadership-board-card-grade.at-risk { color: var(--warning, #e65100); }
+.leadership-board-card-grade.solid { color: #689f38; }
+.leadership-board-card-grade.mixed { color: var(--warning, #f57c00); }
+.leadership-board-card-grade.weak { color: var(--warning, #e65100); }
 .leadership-board-card-grade.critical { color: var(--danger, #c62828); }
+.leadership-board-card-grade.insufficient-data { color: #6b7280; }
 
 .leadership-board-card-name {
   font-weight: 600;
@@ -5044,6 +5045,58 @@ body.notification-dock-visible .export-dashboard-container {
 }
 .sprint-loading-context:empty {
   display: none;
+}
+
+@media (max-width: 1024px) {
+  .current-sprint-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-bar-center {
+    width: 100%;
+    gap: 12px;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .header-bar-right {
+    width: 100%;
+  }
+
+  .current-sprint-grid-layout,
+  #current-sprint-content,
+  .sprint-cards-row {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .card-column,
+  .risks-stuck-column,
+  .risks-insights-column,
+  .burndown-column,
+  .health-column,
+  .capacity-column,
+  .countdown-column {
+    min-width: 0;
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  #work-risks-table {
+    table-layout: fixed !important;
+    width: 100%;
+    min-width: 100%;
+  }
+
+  #work-risks-table th,
+  #work-risks-table td {
+    min-width: 0 !important;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* M10: 44px touch targets for carousel tabs on mobile */

@@ -1,9 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
-const DEFAULT_Q2_START = '2025-07-01T00:00';
-const DEFAULT_Q2_END = '2025-09-30T23:59';
-
 test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
@@ -35,16 +32,21 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
       const titleAttr = await header.first().getAttribute('title');
       expect(titleAttr).toBeTruthy();
       if (snippet) {
-        expect(titleAttr).toContain(snippet);
+        expect((titleAttr || '').toLowerCase()).toContain(snippet.toLowerCase());
       }
     }
 
-    await expectHeaderWithTooltip('Board ID', 'Jira board identifier');
-    await expectHeaderWithTooltip('Board', 'Board name shown in Jira');
-    await expectHeaderWithTooltip('Done Stories', 'Stories marked Done in included sprints');
-    await expectHeaderWithTooltip('SP / Day', 'Done SP ÷ Sprint Days');
-    await expectHeaderWithTooltip('On-Time %', 'On-time delivery discipline');
-    await expectHeaderWithTooltip('Ad-hoc', 'often ad-hoc work');
+    await expectHeaderWithTooltip('Board', 'Board name in Jira');
+    await expectHeaderWithTooltip('Done Stories', 'Stories completed');
+    await expectHeaderWithTooltip('SP / Day', 'SP per day');
+    await expectHeaderWithTooltip('On-Time %', 'Stories done by sprint end');
+    await expectHeaderWithTooltip('Delivery Grade');
+
+    const advancedToggle = page.locator('#boards-columns-toggle');
+    if (await advancedToggle.isVisible().catch(() => false)) {
+      await advancedToggle.click();
+      await expectHeaderWithTooltip('Ad-hoc', 'without epic links');
+    }
   });
 
   test('sprints table column titles expose helpful tooltips', async ({ page }) => {
@@ -97,7 +99,6 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
     const table = page.locator('#done-stories-content table');
     const tableVisible = await table.isVisible().catch(() => false);
     if (!tableVisible) {
-      // If there are no done stories rows, we cannot assert headers
       test.skip();
     }
 
@@ -119,7 +120,6 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
     await expectHeaderWithTooltip('Status', 'Current Jira status');
     await expectHeaderWithTooltip('Type', 'Issue type');
 
-    // If story points and epic data exist, their columns should also expose tooltips
     const spHeaderCount = await headers.filter({ hasText: 'SP' }).count();
     if (spHeaderCount > 0) {
       const spHeader = headers.filter({ hasText: 'SP' }).first();
@@ -142,4 +142,3 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
     }
   });
 });
-

@@ -7,7 +7,7 @@ import { initPreviewFlow, clearPreviewOnFilterChange } from './Reporting-App-Rep
 import { initSearchClearButtons } from './Reporting-App-Report-Page-Search-Clear.js';
 import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
 import { getValidLastQuery, getContextDisplayString } from './Reporting-App-Shared-Context-From-Storage.js';
-import { REPORT_FILTERS_COLLAPSED_KEY, SHARED_DATE_RANGE_KEY, LAST_QUERY_KEY, PROJECTS_SSOT_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { REPORT_FILTERS_COLLAPSED_KEY, SHARED_DATE_RANGE_KEY, LAST_QUERY_KEY, PROJECTS_SSOT_KEY, REPORT_FILTERS_STALE_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 import { DEFAULT_WINDOW_START_LOCAL, DEFAULT_WINDOW_END_LOCAL } from './Reporting-App-Report-Config-Constants.js';
 import { AUTO_PREVIEW_DELAY_MS } from './Reporting-App-Shared-AutoPreview-Config.js';
 import { applyDoneStoriesOptionalColumnsPreference } from './Reporting-App-Report-Page-DoneStories-Column-Preference.js';
@@ -154,6 +154,15 @@ function initReportPage() {
       }
 
       updateAppliedFiltersSummary();
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
+        }
+        const reportContextLine = document.getElementById('report-context-line');
+        if (reportContextLine) {
+          reportContextLine.textContent = getContextDisplayString();
+        }
+      } catch (_) {}
       if (!reportState.previewInProgress && !getCurrentSelectionComplexity().isHeavy) {
         scheduleAutoPreview(250);
       }
@@ -184,8 +193,19 @@ function initReportPage() {
       clearTimeout(autoPreviewTimer);
       autoPreviewTimer = null;
     }
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
+      }
+    } catch (_) {}
     updateAppliedFiltersSummary();
     filterPanelState.refreshCollapsedSummary();
+    try {
+      const reportContextLine = document.getElementById('report-context-line');
+      if (reportContextLine) {
+        reportContextLine.textContent = getContextDisplayString();
+      }
+    } catch (_) {}
     clearPreviewOnFilterChange();
     if (!getCurrentSelectionComplexity().isHeavy) {
       scheduleAutoPreview();
@@ -205,6 +225,9 @@ function initReportPage() {
     try {
       localStorage.removeItem(SHARED_DATE_RANGE_KEY);
       localStorage.removeItem(LAST_QUERY_KEY);
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
+      }
     } catch (_) { }
     document.querySelectorAll('.project-checkbox').forEach((cb) => { cb.checked = false; });
     const startInput = document.getElementById('start-date');
@@ -241,6 +264,11 @@ function initReportPage() {
   window.__refreshReportingContextBar = function () {
     updateAppliedFiltersSummary();
     filterPanelState.refreshCollapsedSummary();
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(REPORT_FILTERS_STALE_KEY);
+      }
+    } catch (_) {}
     if (typeof prevRefresh === 'function') prevRefresh();
   };
 

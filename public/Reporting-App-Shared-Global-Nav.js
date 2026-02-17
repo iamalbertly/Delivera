@@ -65,19 +65,28 @@ function updateToggleState(toggle, isExpanded) {
   toggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
 }
 
+function syncBodySidebarState(sidebar) {
+  const isOpen = !!(sidebar && sidebar.classList.contains('open'));
+  if (isOpen) {
+    document.body.classList.add('sidebar-open');
+    document.body.classList.add('sidebar-scroll-lock');
+    return;
+  }
+  document.body.classList.remove('sidebar-open');
+  document.body.classList.remove('sidebar-scroll-lock');
+}
+
 function closeSidebar(sidebar, toggle, backdrop) {
   sidebar?.classList.remove('open');
   backdrop?.classList.remove('active');
-  document.body.classList.remove('sidebar-open');
-  document.body.classList.remove('sidebar-scroll-lock');
+  syncBodySidebarState(sidebar);
   updateToggleState(toggle, false);
 }
 
 function openSidebar(sidebar, toggle, backdrop) {
   sidebar?.classList.add('open');
   backdrop?.classList.add('active');
-  document.body.classList.add('sidebar-open');
-  document.body.classList.add('sidebar-scroll-lock');
+  syncBodySidebarState(sidebar);
   updateToggleState(toggle, true);
 }
 
@@ -179,6 +188,7 @@ function initSidebarController() {
   window.addEventListener('resize', () => {
     if (!isMobileViewport()) closeSidebar(sidebar, toggle, backdrop);
   });
+  syncBodySidebarState(sidebar);
 }
 
 function ensureGlobalNav() {
@@ -198,7 +208,9 @@ function ensureGlobalNav() {
       return;
     }
 
-    let sidebar = document.querySelector('.app-sidebar');
+    const sidebars = Array.from(document.querySelectorAll('.app-sidebar'));
+    sidebars.slice(1).forEach((node) => node.remove());
+    let sidebar = sidebars[0] || null;
     let skipLink = document.querySelector('.skip-to-content');
     if (!skipLink) {
       skipLink = document.createElement('a');
@@ -218,7 +230,9 @@ function ensureGlobalNav() {
     sidebar.innerHTML = buildSidebarHTML();
     renderSidebarContextCard();
 
-    let toggle = document.querySelector('.sidebar-toggle');
+    const toggles = Array.from(document.querySelectorAll('.sidebar-toggle'));
+    toggles.slice(1).forEach((node) => node.remove());
+    let toggle = toggles[0] || null;
     if (!toggle) {
       toggle = document.createElement('button');
       toggle.className = 'sidebar-toggle';
@@ -230,7 +244,9 @@ function ensureGlobalNav() {
       document.body.appendChild(toggle);
     }
 
-    let backdrop = document.querySelector('.sidebar-backdrop');
+    const backdrops = Array.from(document.querySelectorAll('.sidebar-backdrop'));
+    backdrops.slice(1).forEach((node) => node.remove());
+    let backdrop = backdrops[0] || null;
     if (!backdrop) {
       backdrop = document.createElement('button');
       backdrop.className = 'sidebar-backdrop';
@@ -241,6 +257,7 @@ function ensureGlobalNav() {
     }
 
     initSidebarController();
+    updateToggleState(toggle, sidebar.classList.contains('open'));
     initDataPulseListener();
     window.dispatchEvent(new CustomEvent('app:nav-rendered', { detail: { current } }));
   } catch (_) {}

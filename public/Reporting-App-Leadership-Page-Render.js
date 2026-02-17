@@ -3,7 +3,7 @@ import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-
 import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+import { buildActiveFiltersContextLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 
 function computeVelocityWindowStats(sprints, windowEnd, months) {
   const end = parseISO(windowEnd);
@@ -54,7 +54,6 @@ export function renderLeadershipPage(data) {
 
   const rangeStart = meta.windowStart ? formatDateShort(meta.windowStart) : '-';
   const rangeEnd = meta.windowEnd ? formatDateShort(meta.windowEnd) : '-';
-  const reportRangeLabel = buildReportRangeLabel(meta.windowStart, meta.windowEnd);
   const rangeTooltip = 'Completion anchored to resolution date. Indexed Delivery = current SP/day vs own baseline (last 6 closed sprints). Use for trend visibility, not performance ranking.';
   const rangeStartAttr = meta.windowStart ? formatDateShort(meta.windowStart) : '';
   const rangeEndAttr = meta.windowEnd ? formatDateShort(meta.windowEnd) : '';
@@ -67,7 +66,8 @@ export function renderLeadershipPage(data) {
   let html = '<div class="leadership-context-sticky">';
   html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
   html += '<p class="metrics-hint leadership-context-line">';
-  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">Active filters: Projects ' + escapeHtml(projectsLabel || '-') + ' | ' + escapeHtml(reportRangeLabel) + '</span>';
+  const activeFiltersLine = buildActiveFiltersContextLabel(projectsLabel || '-', meta.windowStart, meta.windowEnd);
+  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">' + escapeHtml(activeFiltersLine) + '</span>';
   html += ' <span class="leadership-trust-hint">For trend visibility, not team ranking.</span>';
   html += '</p>';
 

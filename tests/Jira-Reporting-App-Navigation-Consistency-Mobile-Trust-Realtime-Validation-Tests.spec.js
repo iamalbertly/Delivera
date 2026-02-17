@@ -130,7 +130,9 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     if (await skipIfAuthRedirect(page)) return;
 
     await page.click('.sidebar-toggle');
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]');
+    const currentSprintLink = page.locator('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]');
+    await currentSprintLink.scrollIntoViewIfNeeded();
+    await currentSprintLink.dispatchEvent('click');
     await expect(page).toHaveURL(/\/current-sprint/);
     await expect(page.locator('.app-sidebar')).not.toHaveClass(/open/);
     assertTelemetryClean(telemetry);

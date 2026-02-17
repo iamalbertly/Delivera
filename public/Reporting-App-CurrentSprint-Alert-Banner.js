@@ -3,11 +3,12 @@
  * Legacy verdict/alert banner rendering was removed in favor of a single
  * header command center summary.
  */
+import { getUnifiedBlockerCount } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 function getRiskCounts(data) {
   const summary = data?.summary || {};
   return {
-    stuckCount: Number((data?.stuckCandidates || []).length || 0),
+    stuckCount: Number(getUnifiedBlockerCount(data) || 0),
     missingEstimate: Number(summary.subtaskMissingEstimate || 0),
     missingLogged: Number(summary.subtaskMissingLogged || 0),
     totalStories: Number(summary.totalStories || (data?.stories || []).length || 0),
@@ -45,9 +46,9 @@ export function deriveSprintVerdict(data) {
   }
 
   let detail = donePct + '% done';
-  if (counts.stuckCount > 0) detail += ' Â· ' + counts.stuckCount + ' blockers';
-  if (counts.missingEstimate > 0) detail += ' Â· ' + counts.missingEstimate + ' missing estimates';
-  if (counts.missingLogged > 0) detail += ' Â· ' + counts.missingLogged + ' no log';
+  if (counts.stuckCount > 0) detail += ' · ' + counts.stuckCount + ' blockers';
+  if (counts.missingEstimate > 0) detail += ' · ' + counts.missingEstimate + ' missing estimates';
+  if (counts.missingLogged > 0) detail += ' · ' + counts.missingLogged + ' no log';
 
   return {
     verdict,

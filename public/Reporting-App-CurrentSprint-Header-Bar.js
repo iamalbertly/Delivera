@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Fixed Header Bar Component
  * Displays sprint metadata: name, date range, days remaining, total SP, status badge
  * Sticky positioning on desktop, relative on mobile
@@ -10,7 +10,8 @@ import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js'
 import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { renderCountdownTimer } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
-import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+import { buildActiveFiltersContextLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+import { getUnifiedBlockerCount } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 export function renderHeaderBar(data) {
   const sprint = data.sprint || {};
@@ -19,7 +20,8 @@ export function renderHeaderBar(data) {
   const planned = data.plannedWindow || {};
   const meta = data.meta || {};
   const trackingRows = Array.isArray(data?.subtaskTracking?.rows) ? data.subtaskTracking.rows : [];
-  const stuckCount = (data.stuckCandidates || []).length || 0;
+  const stuckCount = getUnifiedBlockerCount(data);
+  const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
   const missingEstimates = trackingRows.filter((r) => !r.estimateHours || r.estimateHours === 0).length;
   const missingLoggedItems = trackingRows.filter((r) => !r.loggedHours || r.loggedHours === 0).length;
 
@@ -61,6 +63,7 @@ export function renderHeaderBar(data) {
   const verdictInfo = deriveSprintVerdict(data);
   const compactRiskParts = [];
   if (stuckCount > 0) compactRiskParts.push(stuckCount + ' blockers');
+  if (excludedParents > 0) compactRiskParts.push(excludedParents + ' parent stor' + (excludedParents === 1 ? 'y' : 'ies') + ' flowing via subtasks');
   if (missingEstimates > 0) compactRiskParts.push(missingEstimates + ' missing est');
   if (missingLoggedItems > 0) compactRiskParts.push(missingLoggedItems + ' no log');
   const compactRiskLine = compactRiskParts.length ? compactRiskParts.join(' · ') : 'No active delivery risks';
@@ -79,20 +82,19 @@ export function renderHeaderBar(data) {
   const selectedProject = (data.board && Array.isArray(data.board.projectKeys) && data.board.projectKeys.length > 0)
     ? data.board.projectKeys[0]
     : (meta.projects || '');
-  const contextStart = meta.windowStart ? formatDate(meta.windowStart) : '';
-  const contextEnd = meta.windowEnd ? formatDate(meta.windowEnd) : '';
-  const reportRangeLabel = buildReportRangeLabel(meta.windowStart, meta.windowEnd);
-  const hasContextWindow = contextStart && contextEnd;
   const contextProjects = (meta.projects || '')
     ? String(meta.projects).split(',').map((p) => String(p).trim()).filter(Boolean).join(', ')
     : '';
+  const contextStart = meta.windowStart ? formatDate(meta.windowStart) : '';
+  const contextEnd = meta.windowEnd ? formatDate(meta.windowEnd) : '';
+  const reportContextLine = buildActiveFiltersContextLabel(contextProjects || '', meta.windowStart, meta.windowEnd);
+  const hasContextWindow = contextStart && contextEnd;
   html += '<div class="header-bar-left">';
   html += '<div class="header-context-row">';
   html += '<span class="header-context-chip header-context-chip-active" title="Active filters driving this sprint view">Active: ' + escapeHtml(selectedProject || 'n/a') + (boardName ? ' · ' + escapeHtml(boardName) : '') + '</span>';
   if (hasContextWindow || contextProjects) {
     html += '<span class="header-context-chip header-context-chip-cache" title="Cached report context for reference only">From report cache: '
-      + (contextProjects ? ('Projects ' + escapeHtml(contextProjects)) : 'Projects n/a')
-      + (hasContextWindow ? (' · ' + escapeHtml(reportRangeLabel)) : '')
+      + escapeHtml(reportContextLine)
       + '</span>';
   }
   html += '</div>';

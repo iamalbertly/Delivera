@@ -205,6 +205,7 @@ async function copyDashboardAsText(data, btn) {
     const scopeChanges = data.scopeChanges || [];
     const stories = data.stories || [];
     const meta = data.meta || {};
+    const excludedParents = Number(data?.summary?.stuckExcludedParentsWithActiveSubtasks || 0);
 
     const doneStories = summary.doneStories || 0;
     const totalStories = summary.totalStories || 0;
@@ -236,7 +237,7 @@ async function copyDashboardAsText(data, btn) {
 
     // 2. Blockers - actionable list grouped by assignee
     if (stuck.length > 0) {
-      text += `BLOCKERS (${stuck.length}):\n`;
+      text += `BLOCKERS (${stuck.length}): in progress >24h with no recent subtask activity.\n`;
       const byAssignee = new Map();
       stuck.forEach((item) => {
         const assignee = (item && item.assignee) || 'Unassigned';
@@ -279,6 +280,7 @@ async function copyDashboardAsText(data, btn) {
     // 6. Action needed summary
     const actions = [];
     if (stuck.length > 0) actions.push(`Unblock ${stuck.length} stuck item${stuck.length > 1 ? 's' : ''}`);
+    if (excludedParents > 0) actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as blockers)`);
     if (unassigned.length > 0) actions.push(`Assign ${unassigned.length} unowned stor${unassigned.length > 1 ? 'ies' : 'y'}`);
     if (pctDone < 30 && remainingDays != null && remainingDays < 5) actions.push('Velocity behind - consider scope cut');
     if (actions.length > 0) {
@@ -306,6 +308,7 @@ async function exportDashboardAsMarkdown(data, btn) {
     const scopeChanges = data.scopeChanges || [];
     const stories = data.stories || [];
     const meta = data.meta || {};
+    const excludedParents = Number(data?.summary?.stuckExcludedParentsWithActiveSubtasks || 0);
     const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
     const pctDone = summary.percentDone || 0;
 
@@ -330,6 +333,7 @@ async function exportDashboardAsMarkdown(data, btn) {
 
     if (stuck.length > 0) {
       markdown += `## Blockers (${stuck.length})\n\n`;
+      markdown += '> Blockers = in progress >24h with no recent subtask activity. Parents with active subtasks are excluded.\n\n';
       markdown += '| Issue | Summary | Assignee | Status | Stuck |\n|---|---|---|---|---|\n';
       stuck.forEach((item) => {
         const key = (item && (item.issueKey || item.key)) || '?';
@@ -337,6 +341,10 @@ async function exportDashboardAsMarkdown(data, btn) {
         markdown += `| ${key} | ${(item && item.summary) || '?'} | ${(item && item.assignee) || 'Unassigned'} | ${(item && item.status) || '?'} | ${hrs} |\n`;
       });
       markdown += '\n';
+    }
+
+    if (excludedParents > 0) {
+      markdown += `> Note: ${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} are flowing via subtasks and are not counted as blockers.\n\n`;
     }
 
     if (scopeChanges.length > 0) {

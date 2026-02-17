@@ -9,7 +9,7 @@ import { persistDoneStoriesOptionalColumnsPreference } from './Reporting-App-Rep
 import { triggerExcelExport } from './Reporting-App-Report-Page-Export-Menu.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
 import { collectFilterParams } from './Reporting-App-Report-Page-Filter-Params.js';
-import { LAST_QUERY_KEY, REPORT_HAS_RUN_PREVIEW_KEY, REPORT_LAST_RUN_KEY, REPORT_LAST_META_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { LAST_QUERY_KEY, REPORT_HAS_RUN_PREVIEW_KEY, REPORT_LAST_RUN_KEY, REPORT_LAST_META_KEY, REPORT_FILTERS_STALE_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 import { updateLoadingMessage, clearLoadingSteps, readResponseJson, hideLoadingIfVisible, setLoadingVisible, setLoadingStage, startTheaterGathering, stopTheaterGathering, resetLoadingBarToZero } from './Reporting-App-Report-Page-Loading-Steps.js';
 import { emitTelemetry } from './Reporting-App-Shared-Telemetry.js';
 import { renderPreview } from './Reporting-App-Report-Page-Render-Preview.js';
@@ -576,6 +576,11 @@ export function initPreviewFlow() {
       try {
         const params = collectFilterParams();
         if (params?.projects && params?.start && params?.end) {
+          try {
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.removeItem(REPORT_FILTERS_STALE_KEY);
+            }
+          } catch (_) {}
           localStorage.setItem(LAST_QUERY_KEY, JSON.stringify({
             projects: params.projects,
             start: params.start,

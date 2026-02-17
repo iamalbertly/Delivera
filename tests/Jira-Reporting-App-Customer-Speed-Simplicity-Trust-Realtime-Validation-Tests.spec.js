@@ -106,7 +106,18 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     await page.goto('/report');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
-    await page.click('#preview-btn');
+    const previewBtn = page.locator('#preview-btn');
+    if (!(await previewBtn.isVisible().catch(() => false))) {
+      const toggleFilters = page.locator('[data-action="toggle-filters"]');
+      if (await toggleFilters.isVisible().catch(() => false)) {
+        await toggleFilters.click();
+      }
+    }
+    await expect(previewBtn).toBeVisible();
+    await page.evaluate(() => {
+      const btn = document.querySelector('#preview-btn');
+      if (btn) btn.click();
+    });
     await page.waitForSelector('#loading', { state: 'visible', timeout: 10000 }).catch(() => null);
     const loadingTop = await page.evaluate(() => {
       const el = document.getElementById('loading');

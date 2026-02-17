@@ -2,7 +2,27 @@
  * Build merged work-risk rows from current sprint data (scope changes, stuck, subtasks, stories).
  * Used by Reporting-App-CurrentSprint-Render-Subtasks.js.
  */
+const WORK_RISK_ROWS_CACHE_KEY = '__workRiskRowsCache';
+
+function resolveCachedRows(data) {
+  if (!data || typeof data !== 'object') return null;
+  const cached = data[WORK_RISK_ROWS_CACHE_KEY];
+  if (!cached || !Array.isArray(cached.rows)) return null;
+  if (cached.version !== (data.meta?.generatedAt || data.meta?.snapshotAt || 'live')) return null;
+  return cached.rows;
+}
+
+function cacheRows(data, rows) {
+  if (!data || typeof data !== 'object' || !Array.isArray(rows)) return;
+  data[WORK_RISK_ROWS_CACHE_KEY] = {
+    version: data.meta?.generatedAt || data.meta?.snapshotAt || 'live',
+    rows,
+  };
+}
+
 export function buildMergedWorkRiskRows(data) {
+  const cachedRows = resolveCachedRows(data);
+  if (cachedRows) return cachedRows;
   const rows = [];
   const storiesByKey = new Map((data.stories || []).map((s) => [s.issueKey || s.key, s]));
   const pushRow = (row) => rows.push(row);
@@ -61,6 +81,9 @@ export function buildMergedWorkRiskRows(data) {
       summary: row.summary || '-',
       issueType: row.issueType || 'Sub-task',
       storyPoints: row.storyPoints ?? null,
+      parentKey: row.parentKey || '',
+      parentSummary: row.parentSummary || '',
+      parentUrl: row.parentUrl || '',
       status: row.status || '-',
       assignee: row.assignee || '-',
       reporter: row.reporter || '-',
@@ -110,6 +133,9 @@ export function buildMergedWorkRiskRows(data) {
     if (existing.hoursInStatus == null && row.hoursInStatus != null) existing.hoursInStatus = row.hoursInStatus;
     if (existing.estimateHours == null && row.estimateHours != null) existing.estimateHours = row.estimateHours;
     if (existing.loggedHours == null && row.loggedHours != null) existing.loggedHours = row.loggedHours;
+    if (!existing.parentKey && row.parentKey) existing.parentKey = row.parentKey;
+    if (!existing.parentSummary && row.parentSummary) existing.parentSummary = row.parentSummary;
+    if ((!existing.parentUrl || existing.parentUrl === '#') && row.parentUrl) existing.parentUrl = row.parentUrl;
     if ((!existing.issueUrl || existing.issueUrl === '#') && row.issueUrl) existing.issueUrl = row.issueUrl;
     const existingTs = existing.updated ? new Date(existing.updated).getTime() : 0;
     const rowTs = row.updated ? new Date(row.updated).getTime() : 0;
@@ -121,5 +147,19 @@ export function buildMergedWorkRiskRows(data) {
     const bt = b.updated ? new Date(b.updated).getTime() : 0;
     return bt - at;
   });
+  cacheRows(data, dedupedRows);
   return dedupedRows;
+}
+
+export function getUnifiedBlockerCount(data) {
+  const rows = buildMergedWorkRiskRows(data);
+  const blockerKeys = new Set();
+  for (const row of rows) {
+    const riskType = String(row?.riskType || '').toLowerCase();
+    if (!riskType.includes('stuck >24h')) continue;
+    const key = String(row?.issueKey || '').trim().toUpperCase();
+    if (!key || key === '-') continue;
+    blockerKeys.add(key);
+  }
+  return blockerKeys.size;
 }

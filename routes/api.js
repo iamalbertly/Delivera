@@ -148,6 +148,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                 storyPointsFieldId: fields.storyPointsFieldId,
                 epicLinkFieldId: fields.epicLinkFieldId,
                 ebmFieldIds: fields.ebmFieldIds || {},
+                storyPointsFieldCandidates: fields.storyPointsFieldCandidates || [],
             },
             options: { completionAnchor: anchor, sprintId },
         });
