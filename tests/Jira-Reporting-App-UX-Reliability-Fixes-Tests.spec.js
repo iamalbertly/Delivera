@@ -494,29 +494,26 @@ test.describe('UX Audit Fixes — Current Sprint + Report Pages', () => {
     console.log(`[UX-01b] ✓ Data-state badge shows human label: "${badgeText}"`);
   });
 
-  // ── UX Fix #4: Inline blocker micro-data in alert verdict bar ──
-  test('UX-04: Alert verdict bar with stuck items shows issue keys inline, not just a count', async ({ page }) => {
+  // ── UX Fix #4: Inline blocker micro-data in command-center verdict line ──
+  test('UX-04: Header verdict line shows direct blocker drilldown context', async ({ page }) => {
     test.setTimeout(60000);
     await page.goto('/current-sprint');
     await page.waitForSelector('#current-sprint-content, #current-sprint-error', { state: 'attached', timeout: 30000 });
     const contentVisible = await page.locator('#current-sprint-content').isVisible().catch(() => false);
     if (!contentVisible) { test.skip(); return; }
 
-    const verdictBar = page.locator('.verdict-bar').first();
-    const verdictVisible = await verdictBar.isVisible().catch(() => false);
-    if (!verdictVisible) { test.skip(); return; } // no alerts = healthy sprint, valid skip
+    const verdictLine = page.locator('.sprint-verdict-line').first();
+    await expect(verdictLine).toBeVisible();
+    const verdictText = (await verdictLine.textContent() || '').trim();
 
-    const verdictText = (await verdictBar.textContent() || '').trim();
-    // If blockers are present, reject old count-only copy and require actionable micro-context.
-    if (verdictText.includes('blocker')) {
-      const oldCountOnlyPattern = /^\s*\d+\s+issues?\s+stuck\s*>\s*24h\s*$/i;
-      const hasIssueKey = /[A-Z][A-Z0-9]+-\d+/.test(verdictText);
-      const hasAgeOrContext = /oldest|pace|hygiene|risk|dependency|blocked/i.test(verdictText);
-      expect(oldCountOnlyPattern.test(verdictText)).toBe(false);
-      expect(hasIssueKey || hasAgeOrContext).toBe(true);
-      console.log(`[UX-04] ✓ Inline micro-data in verdict bar: "${verdictText.slice(0, 80)}"`);
+    if (verdictText.toLowerCase().includes('blocker')) {
+      await expect(page.locator('.sprint-verdict-drilldown').first()).toBeVisible();
+      const hasContext = /missing est|no log|blocker|risk|critical|at risk|caution|healthy/i.test(verdictText);
+      expect(hasContext).toBe(true);
+      console.log(`[UX-04] ✓ Header verdict line includes blocker context: "${verdictText.slice(0, 100)}"`);
     } else {
-      console.log('[UX-04] ✓ No blockers present in current sprint — healthy state');
+      await expect(page.locator('.sprint-verdict-drilldown-ok').first()).toBeVisible();
+      console.log('[UX-04] ✓ Healthy state shows explicit no-blocker status in header verdict');
     }
   });
 

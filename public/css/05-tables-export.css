@@ -258,20 +258,6 @@ body .preview-area {
   font-style: italic;
 }
 
-.section-export {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-  flex-wrap: wrap;
-  gap: 8px;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.export-section-btn {
-  width: auto;
-}
-
 .boards-column-toggle-row {
   margin: 8px 0 4px;
   display: flex;

@@ -47,19 +47,23 @@ test.describe('RED LINE ITEMS KPI Validation', () => {
       console.log(`[TEST] ⚠ API returned status ${response.status()}, may need Jira credentials`);
     }
 
-    // Check that export is enabled after preview
+    // Unified export flow: current active tab -> CSV (active tab)
     await expect(page.locator('#export-excel-btn')).toBeEnabled({ timeout: 10000 });
     await page.click('.tab-btn[data-tab="done-stories"]');
-    await page.waitForSelector('.export-section-btn[data-section="done-stories"]', { state: 'visible', timeout: 5000 });
+    await expect(page.locator('#tab-done-stories')).toHaveClass(/active/);
+    await page.click('#export-dropdown-trigger');
+    await expect(page.locator('#export-dropdown-menu')).toHaveClass(/open/);
 
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
-    await page.click('.export-section-btn[data-section="done-stories"]');
+    await page.evaluate(() => {
+      const item = document.querySelector('.export-dropdown-item[data-export="csv-active-tab"]');
+      if (item) item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     const download = await downloadPromise;
 
     // Save downloaded file
     const path = await download.path();
-    const fs = require('fs');
-    const content = fs.readFileSync(path, 'utf-8');
+    const content = readFileSync(path, 'utf-8');
 
     console.log('[TEST] CSV downloaded, validating content');
     

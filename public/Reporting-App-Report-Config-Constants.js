@@ -26,8 +26,33 @@ export function initCsvColumns() {
     .catch(() => {});
 }
 
-export const DEFAULT_WINDOW_START = '2025-07-01T00:00:00.000Z';
-export const DEFAULT_WINDOW_END = '2025-09-30T23:59:59.999Z';
-export const DEFAULT_WINDOW_START_LOCAL = '2025-07-01T00:00';
-export const DEFAULT_WINDOW_END_LOCAL = '2025-09-30T23:59';
+function toLocalInputValue(date) {
+  const d = new Date(date);
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getFullYear()
+    + '-' + p(d.getMonth() + 1)
+    + '-' + p(d.getDate())
+    + 'T' + p(d.getHours())
+    + ':' + p(d.getMinutes());
+}
+
+function computeDefaultRollingWindow() {
+  const end = new Date();
+  end.setSeconds(0, 0);
+  const start = new Date(end);
+  start.setMonth(start.getMonth() - 3);
+  start.setHours(0, 0, 0, 0);
+  return {
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+    startLocal: toLocalInputValue(start),
+    endLocal: toLocalInputValue(end),
+  };
+}
+
+const rollingWindow = computeDefaultRollingWindow();
+export const DEFAULT_WINDOW_START = rollingWindow.startIso;
+export const DEFAULT_WINDOW_END = rollingWindow.endIso;
+export const DEFAULT_WINDOW_START_LOCAL = rollingWindow.startLocal;
+export const DEFAULT_WINDOW_END_LOCAL = rollingWindow.endLocal;
 export const LOADING_STEP_LIMIT = 6;

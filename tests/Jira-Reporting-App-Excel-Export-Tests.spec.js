@@ -342,9 +342,9 @@ test.describe('Jira Reporting App - Excel Export Tests', () => {
     }
   });
 
-  test('should handle Project & Epic Level tab export', async ({ page }) => {
+  test('should handle Project & Epic Level active-tab CSV export from unified menu', async ({ page }) => {
     test.setTimeout(180000);
-    console.log('[TEST] Testing Project & Epic Level tab export');
+    console.log('[TEST] Testing Project & Epic Level active-tab CSV export');
     
     await runDefaultPreview(page);
     
@@ -357,16 +357,18 @@ test.describe('Jira Reporting App - Excel Export Tests', () => {
     // Navigate to Project & Epic Level tab
     await page.click('.tab-btn[data-tab="project-epic-level"]');
     
-    // Check for export button
-    const exportBtn = page.locator('.export-section-btn[data-section="project-epic-level"]');
-    if (await exportBtn.isVisible()) {
-      const downloadPromise = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
-      await exportBtn.click();
-      const download = await downloadPromise;
-      
-      if (download) {
-        console.log('[TEST] ✓ Project & Epic Level tab export works');
-      }
+    await expect(page.locator('#export-dropdown-trigger')).toBeVisible();
+    await page.click('#export-dropdown-trigger');
+    const csvActive = page.locator('.export-dropdown-item[data-export="csv-active-tab"]');
+    await expect(csvActive).toBeVisible();
+    const downloadPromise = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
+    await page.evaluate(() => {
+      const item = document.querySelector('.export-dropdown-item[data-export="csv-active-tab"]');
+      if (item) item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    const download = await downloadPromise;
+    if (download) {
+      console.log('[TEST] ✓ Project & Epic Level active-tab CSV export works');
     }
   });
 

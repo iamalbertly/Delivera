@@ -129,11 +129,16 @@ async function exportDashboardAsPng(data, btn) {
   const originalText = btn.textContent;
   setButtonStatus(btn, 'Rendering...', null, true, 4000);
   try {
-    const target = document.querySelector('.current-sprint-header-bar')
-      || document.getElementById('current-sprint-content')
-      || document.querySelector('.current-sprint-grid-layout')
-      || document.body;
+    // Prefer header bar (compact, answers key questions) then grid layout, then fallback
+    const headerBar = document.querySelector('.current-sprint-header-bar');
+    const gridLayout = document.querySelector('.current-sprint-grid-layout');
+    const target = headerBar || gridLayout || document.getElementById('current-sprint-content') || document.body;
     if (!target) throw new Error('Snapshot target not found');
+    // Temporarily expand any collapsed sections within the target for a complete snapshot
+    const collapsedDetails = target.querySelectorAll('details:not([open])');
+    collapsedDetails.forEach((d) => d.setAttribute('open', ''));
+    const collapsedRegions = target.querySelectorAll('[aria-hidden="true"]');
+    collapsedRegions.forEach((r) => r.setAttribute('aria-hidden', 'false'));
     const module = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm');
     const html2canvas = module?.default;
     if (typeof html2canvas !== 'function') throw new Error('Snapshot renderer unavailable');
@@ -147,6 +152,9 @@ async function exportDashboardAsPng(data, btn) {
     });
     const sprint = data?.sprint || {};
     const fileName = 'sprint-summary-' + String(sprint.name || 'snapshot').replace(/[^a-zA-Z0-9-_]+/g, '-') + '.png';
+    // Restore collapsed state after render
+    collapsedDetails.forEach((d) => d.removeAttribute('open'));
+    collapsedRegions.forEach((r) => r.setAttribute('aria-hidden', 'true'));
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
     a.download = fileName;
@@ -172,18 +180,82 @@ async function copyDashboardAsText(data, btn) {
   try {
     const sprint = data.sprint || {};
     const summary = data.summary || {};
+    const days = data.daysMeta || {};
     const stuck = data.stuckCandidates || [];
-    let text = `Sprint: ${sprint.name || 'N/A'}\n`;
-    text += `Dates: ${formatDate(sprint.startDate) || 'N/A'} - ${formatDate(sprint.endDate) || 'N/A'}\n\n`;
-    text += `Stories: ${summary.doneStories || 0} of ${summary.totalStories || 0} done\n`;
-    text += `Story Points: ${summary.doneSP || 0} of ${summary.totalSP || 0} (${summary.percentDone || 0}%)\n`;
+    const tracking = data?.subtaskTracking?.summary || {};
+    const scopeChanges = data.scopeChanges || [];
+    const stories = data.stories || [];
+
+    const doneStories = summary.doneStories || 0;
+    const totalStories = summary.totalStories || 0;
+    const pctDone = summary.percentDone || 0;
+    const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
+
+    // Derive verdict inline for copy context
+    let verdict = 'Healthy';
+    if (stuck.length >= 5 || pctDone < 20) verdict = 'Critical';
+    else if (stuck.length >= 3 || pctDone < 40) verdict = 'At Risk';
+    else if (stuck.length >= 1) verdict = 'Caution';
+
+    let text = '';
+    // 1. Status headline
+    text += `${sprint.name || 'Sprint'} - ${verdict.toUpperCase()}\n`;
+    text += `${pctDone}% done | ${doneStories}/${totalStories} stories | ${remainingDays != null ? remainingDays + 'd left' : 'ended'}\n`;
+    text += `${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'}\n`;
+    text += '\n';
+
+    // 2. Blockers - actionable list grouped by assignee
     if (stuck.length > 0) {
-      text += `\nStuck Items (${stuck.length}):\n`;
+      text += `BLOCKERS (${stuck.length}):\n`;
+      const byAssignee = new Map();
       stuck.forEach((item) => {
-        const key = (item && (item.issueKey || item.key)) || 'N/A';
-        text += `  - ${key}: ${(item && item.summary) || 'N/A'} (${(item && item.hoursInStatus) ?? 'N/A'}h)\n`;
+        const assignee = (item && item.assignee) || 'Unassigned';
+        if (!byAssignee.has(assignee)) byAssignee.set(assignee, []);
+        byAssignee.get(assignee).push(item);
       });
+      for (const [assignee, items] of byAssignee) {
+        text += `  ${assignee}:\n`;
+        items.forEach((item) => {
+          const key = (item && (item.issueKey || item.key)) || '?';
+          const hrs = (item && item.hoursInStatus) != null ? Math.round(item.hoursInStatus) + 'h stuck' : '';
+          const status = (item && item.status) || '';
+          text += `    ${key} - ${(item && item.summary) || '?'}`;
+          if (status || hrs) text += ` [${[status, hrs].filter(Boolean).join(', ')}]`;
+          text += '\n';
+        });
+      }
+      text += '\n';
     }
+
+    // 3. Scope changes
+    if (scopeChanges.length > 0) {
+      const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
+      text += `SCOPE: +${scopeChanges.length} items added mid-sprint (+${scopeSP} SP)\n\n`;
+    }
+
+    // 4. Time tracking pulse
+    const estHrs = tracking.totalEstimateHours || 0;
+    const logHrs = tracking.totalLoggedHours || 0;
+    if (estHrs > 0 || logHrs > 0) {
+      text += `TIME: ${logHrs}h logged / ${estHrs}h estimated\n\n`;
+    }
+
+    // 5. Unassigned work
+    const unassigned = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
+    if (unassigned.length > 0) {
+      text += `UNASSIGNED (${unassigned.length}): ${unassigned.map((s) => s.issueKey || s.key || '?').join(', ')}\n\n`;
+    }
+
+    // 6. Action needed summary
+    const actions = [];
+    if (stuck.length > 0) actions.push(`Unblock ${stuck.length} stuck item${stuck.length > 1 ? 's' : ''}`);
+    if (unassigned.length > 0) actions.push(`Assign ${unassigned.length} unowned stor${unassigned.length > 1 ? 'ies' : 'y'}`);
+    if (pctDone < 30 && remainingDays != null && remainingDays < 5) actions.push('Velocity behind - consider scope cut');
+    if (actions.length > 0) {
+      text += `ACTION NEEDED:\n`;
+      actions.forEach((a) => { text += `  -> ${a}\n`; });
+    }
+
     await writeTextToClipboardWithFallback(text);
     setButtonStatus(btn, 'Copied!', originalText);
   } catch (error) {
@@ -197,29 +269,53 @@ async function exportDashboardAsMarkdown(data, btn) {
   try {
     const sprint = data.sprint || {};
     const summary = data.summary || {};
-    let markdown = `# Sprint: ${sprint.name || 'N/A'}\n\n`;
-    markdown += `**Date:** ${formatDate(sprint.startDate) || 'N/A'} -> ${formatDate(sprint.endDate) || 'N/A'}\n`;
-    markdown += `**Date Generated:** ${new Date().toLocaleString()}\n\n`;
-    markdown += '## Overview\n';
-    markdown += `- **Stories:** ${summary.doneStories || 0} of ${summary.totalStories || 0} done\n`;
-    markdown += `- **Story Points:** ${summary.doneSP || 0} of ${summary.totalSP || 0} done (${summary.percentDone || 0}%)\n`;
-    markdown += `- **New Features:** ${summary.newFeaturesSP || 0} SP\n`;
-    markdown += `- **Support & Ops:** ${summary.supportOpsSP || 0} SP\n\n`;
+    const days = data.daysMeta || {};
+    const stuck = data.stuckCandidates || [];
     const tracking = data.subtaskTracking || {};
     const trackingSummary = tracking.summary || {};
-    markdown += '## Sub-task Tracking\n';
-    markdown += `- **Estimated:** ${trackingSummary.totalEstimateHours || 0} hours\n`;
-    markdown += `- **Logged:** ${trackingSummary.totalLoggedHours || 0} hours\n`;
-    markdown += `- **Remaining:** ${trackingSummary.totalRemainingHours || 0} hours\n\n`;
-    const stuck = data.stuckCandidates || [];
+    const scopeChanges = data.scopeChanges || [];
+    const stories = data.stories || [];
+    const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
+    const pctDone = summary.percentDone || 0;
+
+    let markdown = `# ${sprint.name || 'Sprint'}\n\n`;
+    markdown += `> **${pctDone}% done** | ${summary.doneStories || 0}/${summary.totalStories || 0} stories | ${remainingDays != null ? remainingDays + ' days left' : 'ended'}  \n`;
+    markdown += `> ${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'} | Generated ${new Date().toLocaleString()}\n\n`;
+
+    markdown += '## Overview\n';
+    markdown += `| Metric | Value |\n|---|---|\n`;
+    markdown += `| Stories | ${summary.doneStories || 0} of ${summary.totalStories || 0} done |\n`;
+    if (summary.totalSP > 0) markdown += `| Story Points | ${summary.doneSP || 0} / ${summary.totalSP || 0} (${pctDone}%) |\n`;
+    markdown += `| New Features | ${summary.newFeaturesSP || 0} SP |\n`;
+    markdown += `| Support & Ops | ${summary.supportOpsSP || 0} SP |\n`;
+    if (trackingSummary.totalEstimateHours > 0 || trackingSummary.totalLoggedHours > 0) {
+      markdown += `| Time Logged | ${trackingSummary.totalLoggedHours || 0}h / ${trackingSummary.totalEstimateHours || 0}h estimated |\n`;
+    }
+    markdown += '\n';
+
     if (stuck.length > 0) {
-      markdown += '## Stuck Items (>24h)\n';
+      markdown += `## Blockers (${stuck.length})\n\n`;
+      markdown += '| Issue | Summary | Assignee | Status | Stuck |\n|---|---|---|---|---|\n';
       stuck.forEach((item) => {
-        const key = (item && (item.issueKey || item.key)) || 'N/A';
-        markdown += `- ${key}: ${(item && item.summary) || 'N/A'} (${(item && item.hoursInStatus) ?? 'N/A'} hours)\n`;
+        const key = (item && (item.issueKey || item.key)) || '?';
+        const hrs = (item && item.hoursInStatus) != null ? Math.round(item.hoursInStatus) + 'h' : '?';
+        markdown += `| ${key} | ${(item && item.summary) || '?'} | ${(item && item.assignee) || 'Unassigned'} | ${(item && item.status) || '?'} | ${hrs} |\n`;
       });
       markdown += '\n';
     }
+
+    if (scopeChanges.length > 0) {
+      const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
+      markdown += `## Scope Changes\n+${scopeChanges.length} items added mid-sprint (+${scopeSP} SP)\n\n`;
+    }
+
+    const unassigned = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
+    if (unassigned.length > 0) {
+      markdown += `## Unassigned Work (${unassigned.length})\n`;
+      unassigned.forEach((s) => { markdown += `- ${s.issueKey || '?'}: ${s.summary || '?'}\n`; });
+      markdown += '\n';
+    }
+
     markdown += exportRisksInsightsAsMarkdown(data);
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const link = document.createElement('a');

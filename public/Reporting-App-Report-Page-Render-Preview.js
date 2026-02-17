@@ -172,25 +172,6 @@ export function renderPreview() {
       tabBoards.click();
     }
 
-    requestAnimationFrame(() => {
-      const projectEpicLevelBtn = document.querySelector('.export-section-btn[data-section="project-epic-level"]');
-      if (projectEpicLevelBtn && projectEpicLevelBtn.parentElement) {
-        const hasBoards = previewData.boards && previewData.boards.length > 0;
-        const hasMetrics = previewData.metrics && Object.keys(previewData.metrics).length > 0;
-        projectEpicLevelBtn.style.display = (hasBoards || hasMetrics) ? 'inline-block' : 'none';
-      }
-
-      const sprintsBtn = document.querySelector('.export-section-btn[data-section="sprints"]');
-      if (sprintsBtn && sprintsBtn.parentElement) {
-        sprintsBtn.style.display = (previewData.sprintsIncluded && previewData.sprintsIncluded.length > 0) ? 'inline-block' : 'none';
-      }
-
-      const doneStoriesBtn = document.querySelector('.export-section-btn[data-section="done-stories"]');
-      if (doneStoriesBtn && doneStoriesBtn.parentElement) {
-        doneStoriesBtn.style.display = (visibleRows.length > 0 || previewRows.length > 0) ? 'inline-block' : 'none';
-      }
-    });
-
     updateExportFilteredState();
   });
 }

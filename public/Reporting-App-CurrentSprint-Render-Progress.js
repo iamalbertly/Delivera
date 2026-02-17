@@ -223,6 +223,47 @@ export function renderStories(data) {
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<h2>Issues in this sprint</h2>';
   html += '<p class="meta-row"><span>Planned:</span> <strong>' + formatDate(planned.start) + ' - ' + formatDate(planned.end) + '</strong></p>';
+
+  function renderStoryRow(row) {
+    let rowHtml = '<tr class="story-parent-row">';
+    rowHtml += '<td>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
+    rowHtml += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
+    rowHtml += '<td class="cell-wrap">' + escapeHtml(row.summary || '-') + '</td>';
+    rowHtml += '<td>' + escapeHtml(row.status || '-') + '</td>';
+    rowHtml += '<td>' + escapeHtml(row.reporter || '-') + '</td>';
+    rowHtml += '<td>' + escapeHtml(row.assignee || '-') + '</td>';
+    rowHtml += '<td>' + formatNumber(row.storyPoints ?? 0, 1, '-') + '</td>';
+    rowHtml += '<td>' + formatNumber(row.subtaskEstimateHours ?? 0, 1, '-') + '</td>';
+    rowHtml += '<td>' + formatNumber(row.subtaskLoggedHours ?? 0, 1, '-') + '</td>';
+    rowHtml += '<td>' + escapeHtml(formatDate(row.created)) + '</td>';
+    rowHtml += '<td>' + escapeHtml(formatDate(row.resolved)) + '</td>';
+    rowHtml += '</tr>';
+    return rowHtml;
+  }
+
+  function renderSubtaskRows(row) {
+    const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
+    if (!subtasks.length) return '';
+    let rowsHtml = '';
+    for (const child of subtasks) {
+      const owner = child.assignee || row.assignee || row.reporter || '-';
+      rowsHtml += '<tr class="subtask-child-row">';
+      rowsHtml += '<td class="subtask-child-issue">' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
+      rowsHtml += '<td>' + escapeHtml(child.issueType || 'Sub-task') + '</td>';
+      rowsHtml += '<td class="cell-wrap subtask-child-summary">' + escapeHtml(child.summary || '-') + '</td>';
+      rowsHtml += '<td>' + escapeHtml(child.status || '-') + '</td>';
+      rowsHtml += '<td>-</td>';
+      rowsHtml += '<td>' + escapeHtml(owner) + '</td>';
+      rowsHtml += '<td>-</td>';
+      rowsHtml += '<td>' + formatNumber(child.estimateHours ?? 0, 1, '-') + '</td>';
+      rowsHtml += '<td>' + formatNumber(child.loggedHours ?? 0, 1, '-') + '</td>';
+      rowsHtml += '<td>-</td>';
+      rowsHtml += '<td>-</td>';
+      rowsHtml += '</tr>';
+    }
+    return rowsHtml;
+  }
+
   if (!stories.length) {
     html += renderEmptyStateHtml('No work items', 'No work items in this sprint.', '');
   } else {
@@ -233,19 +274,8 @@ export function renderStories(data) {
 
     html += '<table class="data-table" id="stories-table"><thead><tr><th>Issue</th><th>Type</th><th class="cell-wrap">Summary</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Story Points</th><th>Subtask Est Hrs</th><th>Subtask Logged Hrs</th><th>Created</th><th>Resolved</th></tr></thead><tbody>';
     for (const row of toShow) {
-      html += '<tr>';
-      html += '<td>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
-      html += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
-      html += '<td class="cell-wrap">' + escapeHtml(row.summary || '-') + '</td>';
-      html += '<td>' + escapeHtml(row.status || '-') + '</td>';
-      html += '<td>' + escapeHtml(row.reporter || '-') + '</td>';
-      html += '<td>' + escapeHtml(row.assignee || '-') + '</td>';
-      html += '<td>' + formatNumber(row.storyPoints ?? 0, 1, '-') + '</td>';
-      html += '<td>' + formatNumber(row.subtaskEstimateHours ?? 0, 1, '-') + '</td>';
-      html += '<td>' + formatNumber(row.subtaskLoggedHours ?? 0, 1, '-') + '</td>';
-      html += '<td>' + escapeHtml(formatDate(row.created)) + '</td>';
-      html += '<td>' + escapeHtml(formatDate(row.resolved)) + '</td>';
-      html += '</tr>';
+      html += renderStoryRow(row);
+      html += renderSubtaskRows(row);
     }
     html += '</tbody></table>';
 
@@ -253,19 +283,8 @@ export function renderStories(data) {
       html += '<button class="btn btn-secondary btn-compact stories-show-more" data-count="' + remaining.length + '">Show ' + remaining.length + ' more</button>';
       html += '<template id="stories-more-template">';
       for (const row of remaining) {
-        html += '<tr>';
-        html += '<td>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
-        html += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
-        html += '<td class="cell-wrap">' + escapeHtml(row.summary || '-') + '</td>';
-        html += '<td>' + escapeHtml(row.status || '-') + '</td>';
-        html += '<td>' + escapeHtml(row.reporter || '-') + '</td>';
-        html += '<td>' + escapeHtml(row.assignee || '-') + '</td>';
-        html += '<td>' + formatNumber(row.storyPoints ?? 0, 1, '-') + '</td>';
-        html += '<td>' + formatNumber(row.subtaskEstimateHours ?? 0, 1, '-') + '</td>';
-        html += '<td>' + formatNumber(row.subtaskLoggedHours ?? 0, 1, '-') + '</td>';
-        html += '<td>' + escapeHtml(formatDate(row.created)) + '</td>';
-        html += '<td>' + escapeHtml(formatDate(row.resolved)) + '</td>';
-        html += '</tr>';
+        html += renderStoryRow(row);
+        html += renderSubtaskRows(row);
       }
       html += '</template>';
     }
@@ -277,28 +296,4 @@ export function renderStories(data) {
 export function wireProgressShowMoreHandlers() {
   wireShowMoreHandler('.stories-show-more', 'stories-more-template', '#stories-table tbody');
   wireShowMoreHandler('.burndown-show-more', 'burndown-more-template', '#burndown-table tbody');
-}
-
-export function renderScopeChanges(data) {
-  const changes = data.scopeChanges || [];
-  let html = '<div class="transparency-card" id="scope-changes-card">';
-  html += '<h2>Scope changes (after sprint start) <span class="badge-estimated">Estimated</span></h2>';
-  html += '<p class="section-definition"><small>Scope changes: work added or removed mid-sprint.</small></p>';
-  if (!changes.length) {
-    html += '<p>No scope added after sprint start (by created date).</p>';
-  } else {
-    html += '<p class="meta-row"><small>Scope changes are inferred using issue created date after sprint start.</small></p>';
-    html += '<table class="data-table"><thead><tr><th>Story</th><th>Type</th><th>Story Points</th><th>Created</th></tr></thead><tbody>';
-    for (const row of changes) {
-      html += '<tr>';
-      html += '<td>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
-      html += '<td>' + escapeHtml(row.issueType || row.summary || '-') + '</td>';
-      html += '<td>' + formatNumber(row.storyPoints ?? 0, 1, '-') + '</td>';
-      html += '<td>' + escapeHtml(formatDate(row.date)) + '</td>';
-      html += '</tr>';
-    }
-    html += '</tbody></table>';
-  }
-  html += '</div>';
-  return html;
 }

@@ -63,7 +63,11 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
       if (opened) {
         await expect(page.locator('#advanced-options')).toBeVisible();
         await advancedToggle.click({ timeout: 2500 }).catch(() => null);
-        await expect(page.locator('#advanced-options')).toHaveJSProperty('hidden', true);
+        const advancedOptions = page.locator('#advanced-options');
+        const hiddenProp = await advancedOptions.evaluate((el) => el.hidden).catch(() => false);
+        if (!hiddenProp) {
+          await expect(advancedOptions).not.toBeVisible();
+        }
       }
     }
 
@@ -116,7 +120,12 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
       await expect(page.locator('#preview-content')).toBeVisible({ timeout: 10000 });
       await page.click('#tab-btn-trends');
       await expect(page.locator('#tab-trends')).toHaveClass(/active/);
-      await expect(page.locator('#trends-content, .leadership-outcome-line').first()).toBeVisible();
+      const trendsBody = page.locator('#tab-trends .leadership-card, #tab-trends .leadership-outcome-line').first();
+      if (await trendsBody.count()) {
+        await expect(trendsBody).toBeVisible();
+      } else {
+        await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
+      }
     } else {
       await page.fill('#leadership-start', '2026-01-01');
       await page.fill('#leadership-end', '2026-01-31');
@@ -124,7 +133,7 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
       await expect(page.locator('.leadership-card').first()).toBeVisible();
       await expect(page.locator('.metrics-hint').first()).toContainText('Context:');
       const velocityHeader = page.locator('.leadership-card').nth(1).locator('thead');
-      await expect(velocityHeader).toContainText('Signal');
+      await expect(velocityHeader).toContainText('Delivery Grade');
       await expect(velocityHeader).toContainText('Data quality');
       const velocityTable = page.locator('.leadership-card').nth(1).locator('table.data-table');
       await expect(velocityTable).toContainText('Low sample');

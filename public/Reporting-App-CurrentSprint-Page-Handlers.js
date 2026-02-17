@@ -1,5 +1,4 @@
 
-import { buildNotificationMessage } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
 import { loadCurrentSprint } from './Reporting-App-CurrentSprint-Page-Data-Loaders.js';
 import { showContent } from './Reporting-App-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Page.js';
@@ -35,17 +34,7 @@ function bindGlobalClickHandlers() {
         const collapsed = wrap.classList.toggle('card-details-collapsed');
         toggle.setAttribute('aria-expanded', String(!collapsed));
         region.setAttribute('aria-hidden', String(collapsed));
-        toggle.textContent = collapsed ? 'Show details' : 'Hide details';
-      }
-    }
-    const moreBtn = e.target.closest('[data-action="expand-verdict"]');
-    if (moreBtn) {
-      const banner = document.querySelector('.alert-banner');
-      if (banner) {
-        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        const risksTable = document.querySelector('#work-risks-table') || document.querySelector('#stuck-card');
-        if (risksTable) risksTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        toggle.textContent = collapsed ? 'Show capacity details' : 'Hide capacity details';
       }
     }
   });

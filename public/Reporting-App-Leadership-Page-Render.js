@@ -31,14 +31,14 @@ function computePredictabilityAverage(perSprint, inWindow) {
   return sum / values.length;
 }
 
-function gradeFromSignals(onTimePct, predictabilityPct) {
+function gradeFromSignals(onTimePct, predictabilityPct, sprintCount = 0) {
   const metrics = [onTimePct, predictabilityPct].filter(v => v != null && !Number.isNaN(v));
-  if (!metrics.length) return null;
+  if (!metrics.length || sprintCount < 2) return 'Insufficient data';
   const score = metrics.reduce((sum, v) => sum + v, 0) / metrics.length;
   if (score >= 90) return 'Strong';
-  if (score >= 80) return 'Stable';
-  if (score >= 70) return 'Watch';
-  if (score >= 60) return 'At risk';
+  if (score >= 80) return 'Solid';
+  if (score >= 65) return 'Mixed';
+  if (score >= 50) return 'Weak';
   return 'Critical';
 }
 
@@ -149,9 +149,9 @@ export function renderLeadershipPage(data) {
     for (const board of boards) {
       const summary = summaries.get(board.id);
       const onTimePct = summary?.doneStories > 0 ? ((summary.doneBySprintEnd || 0) / summary.doneStories * 100) : null;
-      const grade = gradeFromSignals(onTimePct ?? null, null);
-      if (grade !== 'Strong') allStrong = false;
       const sprintCount = summary?.sprintCount ?? 0;
+      const grade = gradeFromSignals(onTimePct ?? null, null, sprintCount);
+      if (grade !== 'Strong') allStrong = false;
       boardCards.push({ board, summary, onTimePct, grade, sprintCount, hasLimitedHistory: sprintCount < 2 });
     }
     if (allStrong && boards.length > 0) {
@@ -253,7 +253,7 @@ export function renderLeadershipPage(data) {
       ? ((current.avg - previous.avg) / previous.avg) * 100
       : null;
     const predictabilityAvg = computePredictabilityAverage(perSprint, current?.inWindow || []);
-    const grade = gradeFromSignals(current?.onTimePct ?? null, predictabilityAvg ?? null);
+    const grade = gradeFromSignals(current?.onTimePct ?? null, predictabilityAvg ?? null, current?.sprintCount || 0);
     return { months, current, diff, predictabilityAvg, grade };
   });
 
@@ -267,7 +267,7 @@ export function renderLeadershipPage(data) {
     { key: 'avg', label: 'Avg SP/day', title: '' },
     { key: 'diff', label: 'Difference', title: '' },
     { key: 'onTimePct', label: 'On-time %', title: '' },
-    { key: 'grade', label: 'Signal', title: 'Grade: Based on on-time % and predictability. Strong >=90%, Critical <60%. Not for performance review.' },
+    { key: 'grade', label: 'Delivery Grade', title: 'Historical grade from on-time % and predictability. Strong >=90, Solid >=80, Mixed >=65, Weak >=50. Requires at least 2 sprints.' },
     { key: 'quality', label: 'Data quality', title: '' },
   ];
   const velocityRows = velocityWindows.map((row) => {

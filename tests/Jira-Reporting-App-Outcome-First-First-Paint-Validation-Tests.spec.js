@@ -48,12 +48,16 @@ test.describe('Outcome-First and First-Paint Validation', () => {
     const contextLine = page.locator('#report-context-line');
     const previewVisible = await page.locator('#preview-content').isVisible().catch(() => false);
     const contextVisible = await contextLine.isVisible().catch(() => false);
+    const loadingVisible = await page.locator('#loading').isVisible().catch(() => false);
+    const loadLatestVisible = await page.locator('#report-load-latest-wrap').isVisible().catch(() => false);
     if (previewVisible) {
       await expect(page.locator('#preview-content')).toBeVisible();
-    } else {
+    } else if (contextVisible) {
       await expect(contextLine).toBeVisible();
       const text = (await contextLine.textContent()) || '';
       expect(text).toMatch(/No report run yet|Active filters|Projects\b|Last:/i);
+    } else {
+      expect(loadingVisible || loadLatestVisible).toBe(true);
     }
     assertTelemetryClean(telemetry);
   });

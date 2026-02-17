@@ -2,6 +2,7 @@ import { formatDateForDisplay, formatDateTimeLocalForInput, formatDateShort } fr
 import { toUtcIsoFromLocalInput } from './Reporting-App-Report-Utils-Data-Helpers.js';
 import { initQuarterStrip } from './Reporting-App-Shared-Quarter-Range-Helpers.js';
 import { SHARED_DATE_RANGE_KEY, REPORT_HAS_RUN_PREVIEW_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { DEFAULT_WINDOW_END_LOCAL, DEFAULT_WINDOW_START_LOCAL } from './Reporting-App-Report-Config-Constants.js';
 
 let lastQuarterLabel = null;
 
@@ -173,6 +174,10 @@ export function initDateRangeControls(onApply, onValidationChange) {
   const startInput = document.getElementById('start-date');
   const endInput = document.getElementById('end-date');
   const hydratedFromShared = hydrateSharedDateRange(startInput, endInput);
+  if (!hydratedFromShared) {
+    if (startInput) startInput.value = DEFAULT_WINDOW_START_LOCAL;
+    if (endInput) endInput.value = DEFAULT_WINDOW_END_LOCAL;
+  }
 
   const syncSummaryAndValidation = () => {
     updateRangeSummary(null);

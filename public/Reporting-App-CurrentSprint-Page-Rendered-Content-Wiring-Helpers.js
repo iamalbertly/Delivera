@@ -5,7 +5,6 @@ import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Pa
 import { wireDynamicHandlers } from './Reporting-App-CurrentSprint-Page-Handlers.js';
 import { wireHeaderBarHandlers } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { wireHealthDashboardHandlers } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
-import { wireAlertBannerHandlers } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { wireRisksAndInsightsHandlers } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { wireCapacityAllocationHandlers } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { wireSprintCarouselHandlers } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
@@ -42,7 +41,6 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById) {
   wireDynamicHandlers(data);
   wireHeaderBarHandlers();
   wireHealthDashboardHandlers();
-  wireAlertBannerHandlers();
   wireRisksAndInsightsHandlers();
   wireCapacityAllocationHandlers();
   wireCountdownTimerHandlers();

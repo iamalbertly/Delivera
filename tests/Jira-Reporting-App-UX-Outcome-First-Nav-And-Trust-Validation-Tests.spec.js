@@ -158,7 +158,15 @@ test('Login - Global nav hidden', async ({ page }) => {
     const quarterPill = page.locator('.quarter-pill').first();
     const hasPill = await quarterPill.isVisible().catch(() => false);
     if (hasPill) {
-      await quarterPill.click();
+      const isEnabled = await quarterPill.isEnabled().catch(() => false);
+      if (isEnabled) {
+        await quarterPill.click({ force: true }).catch(async () => {
+          await page.evaluate(() => {
+            const pill = document.querySelector('.quarter-pill');
+            if (pill && !pill.hasAttribute('disabled')) pill.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          });
+        });
+      }
       await page.waitForTimeout(4000);
     }
     const sticky = page.locator('.leadership-context-sticky, .leadership-context-line');

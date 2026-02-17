@@ -22,7 +22,6 @@ export function renderHeaderBar(data) {
   const missingEstimates = trackingRows.filter((r) => !r.estimateHours || r.estimateHours === 0).length;
   const missingLoggedItems = trackingRows.filter((r) => !r.loggedHours || r.loggedHours === 0).length;
 
-  const totalSP = summary.totalSP ?? 0;
   const donePercentage = summary.percentDone ?? 0;
   const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
 
@@ -107,10 +106,10 @@ export function renderHeaderBar(data) {
   html += '<span class="metric-label">Remaining</span>';
   html += '<span class="metric-value ' + remainingClass + '">' + remainingLabel + '</span>';
   html += '</div>';
-  html += '<div class="header-metric">';
-  html += '<span class="metric-label">Total SP</span>';
-  html += '<span class="metric-value">' + totalSP + '</span>';
-  html += '</div>';
+  html += '<a href="#work-risks-table" class="header-metric header-metric-link" title="Jump to blocker list">';
+  html += '<span class="metric-label">Blockers</span>';
+  html += '<span class="metric-value">' + stuckCount + '</span>';
+  html += '</a>';
   html += '<div class="header-metric">';
   html += '<span class="metric-label">Progress</span>';
   html += '<span class="metric-value">' + donePercentage + '%</span>';

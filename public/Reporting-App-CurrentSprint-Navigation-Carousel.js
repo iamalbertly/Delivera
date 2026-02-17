@@ -13,6 +13,23 @@ function computeDurationDays(startDate, endDate) {
   return Math.max(1, Math.round((end - start) / (24 * 60 * 60 * 1000)));
 }
 
+function computeCarouselTrendSummary(sprints, currentSprint) {
+  const closed = (sprints || []).filter((s) => String(s?.state || '').toLowerCase() === 'closed');
+  if (closed.length < 2) {
+    return { label: 'First sprint — no trend data', className: 'stable' };
+  }
+  const latest = Number(closed[0]?.completionPercent || 0);
+  const previous = Number(closed[1]?.completionPercent || 0);
+  const delta = latest - previous;
+  const sign = delta > 0 ? '+' : '';
+  const abs = Math.abs(delta);
+  if (abs < 3) return { label: '→ Stable vs last sprint (' + sign + Math.round(delta) + '%)', className: 'stable' };
+  if (delta > 0) return { label: '↑ ' + sign + Math.round(delta) + '% vs last sprint', className: 'up' };
+  const activeIsEarly = String(currentSprint?.state || '').toLowerCase() === 'active' && Number(currentSprint?.completionPercent || 0) <= 5;
+  const suffix = activeIsEarly ? ' · current sprint still early' : '';
+  return { label: '↓ ' + Math.round(delta) + '% vs last sprint' + suffix, className: 'down' };
+}
+
 export function renderSprintCarousel(data) {
   const sprints = data.recentSprints || [];
   const currentSprint = data.sprint || {};
@@ -22,6 +39,7 @@ export function renderSprintCarousel(data) {
   const maxTabs = 8;
   const slice = sprints.slice(0, maxTabs);
   const hasEnoughHistory = slice.length >= 3;
+  const trend = computeCarouselTrendSummary(slice, currentSprint);
 
   let html = '<div class="sprint-carousel-container">';
 
@@ -53,9 +71,12 @@ export function renderSprintCarousel(data) {
     });
     html += '</svg>';
     html += '<span class="carousel-sparkline-label">Last ' + n + ' sprints</span>';
+    html += '<span class="carousel-sparkline-axis"><span>0%</span><span>100%</span></span>';
+    html += '<span class="carousel-trend-summary carousel-trend-summary-' + trend.className + '">' + escapeHtml(trend.label) + '</span>';
     html += '</div>';
   } else {
     html += '<p class="carousel-limited-history"><small>Limited history</small></p>';
+    html += '<p class="carousel-trend-summary carousel-trend-summary-stable"><small>' + escapeHtml(trend.label) + '</small></p>';
   }
 
   html += '<div class="sprint-carousel" role="tablist" aria-label="Sprint navigation">';

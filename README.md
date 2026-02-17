@@ -4,6 +4,20 @@ VodaAgileBoard is the tool for scrum masters and leaders: a Node.js web applicat
 
 This README is the SSOT for usage and validation. Supplemental documents (e.g. `Jira-Reporting-Gap-Analysis-Plan.md`) provide planning context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-02-17)
+
+- Current Sprint issue hierarchy trust fix:
+  - Parent issues now render as primary rows and subtasks render as indented child rows in `Issues in this sprint`.
+  - Subtask rows no longer present story-only fields as required inputs; story points/reporter cells are intentionally `-` while subtask estimate/logged hours remain visible.
+- Leadership grade vocabulary alignment:
+  - Leadership grade thresholds now align with the report delivery-grade model (`Strong`, `Solid`, `Mixed`, `Weak`, `Critical`, `Insufficient data` with minimum sample guard).
+- Unified export menu reliability hardening:
+  - Export dropdown open/close visibility now uses ARIA state as SSOT (`aria-hidden`), removing stale class-state drift.
+- Report defaults and docs alignment:
+  - README now reflects rolling last-3-month query default and unified CSV export from the header menu.
+- Validation status:
+  - `npm run test:all` completed green in fail-fast mode for the impacted run (`45/45` selected orchestration steps).
+
 ## Latest Reliability and UX Updates (2026-02-16)
 
 - Current Sprint summary duplication reduction:
@@ -87,7 +101,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 ## Features
 
 - **Preview-First Workflow**: Preview data before exporting to ensure accuracy
-- **Sidebar Navigation**: Desktop left sidebar and mobile hamburger drawer for fast cross-page navigation
+- **Sidebar Navigation**: Desktop left sidebar and mobile hamburger drawer with two primary destinations (`Performance Report`, `Current Sprint (Squad)`); leadership is accessed from report trends.
 - **Multi-Project Support**: Generate reports for MPSA and MAS projects
 - **Sprint Overlap Filtering**: Automatically filters sprints that overlap with the selected date window
 - **Comprehensive Metrics**: Optional metrics including throughput, predictability, rework ratio, and Epic TTM
@@ -99,7 +113,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 - **Filter Persistence**: Report search inputs (Boards/Sprints/Stories) persist between visits. Report and Leadership share the same date-range storage.
 - **Current Sprint Transparency**: Squad view at `/current-sprint` - sprint header with name/ID, summary strip (work items, SP, % done) with a **stuck prompt** when any issue is in progress >24h (link to follow up), status chips, a **Project** selector synchronized from shared SSOT but enforced to one project in this page, single **sub-task summary** line in the summary card (logged h; missing estimate / no log; stuck >24h count) linking to the full Sub-task time tracking card, daily completion (with SP), burndown with ideal line + axis labels, scope changes (including reporter/assignee and merged risk rows), **Work items in sprint** table with **Type**, **Reporter**, **Assignee**, and merged subtask estimate/logged-hour columns, sub-task time tracking (estimate/logged/remaining plus status age), assignee or reporter notification message generator for missing sub-task time, dependencies/learnings, stuck tasks card (in progress >24h) with status-change hint, snapshot freshness badge (Live vs Snapshot timestamp), previous/next sprint snippet, and sprint tabs (latest to oldest by end date). Export menu now provides **Copy as Text**, **Markdown**, **Copy link**, and **Email**.
 - **Persistent Notification Dock**: A fixed left-side alert dock appears across pages when time-tracking alerts exist. On Report and Leadership it stays compact and points users to **Open Current Sprint**; on Current Sprint it expands to show board/sprint details and missing estimate/log counts. It can be minimized or hidden after review, with a quick toggle to restore it.
-- **Sprint Leadership View**: Normalized trends at `/sprint-leadership` - indexed delivery, predictability, no rankings. Quarter quick-pick shows year and period (e.g. "Q2 2025"); clicking a quarter loads data immediately. Remembers the last selected date range in the browser.
+- **Sprint Leadership View**: Normalized trends in the `Leadership Signals (Trends)` tab on `/report`; legacy `/sprint-leadership` resolves to this destination. Indexed delivery and predictability are presented for trend visibility, not ranking.
 
 ## Prerequisites
 
@@ -149,7 +163,7 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
 1. Open your browser and go to `http://localhost:3000` (or the port in `PORT`).
 2. Log in with the credentials configured in your environment (see Environment Variables).
 3. After login you can open **Report**, **Current Sprint** (squad view), or **Sprint Leadership** from the app; the default redirect is `http://localhost:3000/report`.
-4. Navigation is unified through a left sidebar on desktop and a hamburger drawer on mobile for **High-Level Performance**, **Current Sprint (Squad)**, and **Leadership HUD**.
+4. Navigation is unified through a left sidebar on desktop and a hamburger drawer on mobile for **Performance Report** and **Current Sprint (Squad)**. Leadership signals are opened from the report trends tab.
 
 ### Quickstart for Scrum Masters & Leaders
 
@@ -167,7 +181,7 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
 
 2. **Set Date Window**: 
   - **Quick range (Vodacom quarters):** A scrollable strip of quarter pills (at least 5 quarters up to current) shows fiscal labels (e.g. "FY26 Q2"); clicking a pill sets the range and can auto-run the report. Select a quarter or enter dates manually.
-   - Default is Q2 2025 (July 1 - September 30, 2025)
+   - Default is the rolling last 3 months from today
    - Adjust start and end dates as needed
    - Dates are in UTC
 
@@ -180,9 +194,9 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
 4. **Preview (auto or manual)**: Generates preview data from Jira.
 
 5. **Review Tabs**:
-  - **Project & Epic Level**: Shows discovered boards and all project/epic-level metrics in one consolidated view. Boards table merges delivery volume with time-normalized output (total sprint days, avg sprint length, **Done Stories**, **Registered Work Hours**, **Estimated Work Hours**, stories/SP per sprint day, variance, done-by-end %, epic vs non-epic counts), plus sprint window and latest sprint end. Includes a top-row **All Boards (Comparison)** summary to anchor comparisons. Includes capacity proxies (Active Assignees, Stories/SP per Assignee, Assumed Capacity, Assumed Waste %) with clear assumptions. Epic Time-To-Market shows Epic Name, story IDs as Jira links with hover summaries, **Subtask Spent (Hrs)** for the epic, and includes a **{Board}-AD-HOC** row per board for stories not linked to any epic. Missing epic titles are surfaced with a warning for trust. Throughput remains available by issue type, along with rework ratio and predictability. Includes per-section CSV export button.
-   - **Sprints**: Lists sprints overlapping the date window with completion counts. Shows "Total SP" and "Story Count" columns. Column labels: "Stories Completed (Total)" (all stories currently marked Done) and "Completed Within Sprint End Date" (stories resolved by sprint end date). When time-tracking data exists, shows Est Hrs, Spent Hrs, Remaining Hrs, and Variance Hrs. When subtask tracking exists, adds Subtask Est/Spent/Remaining/Variance columns. Includes per-section CSV export button.
-   - **Done Stories**: Drill-down view of completed stories, grouped by sprint. Shows Epic Key, Epic Title, and Epic Summary columns when Epic Link field is available. Epic Summary is truncated to 100 characters with full text in tooltip. When time tracking exists, shows Est/Spent/Remaining/Variance hours for the story and for its subtasks (when available). Dates render in local-friendly format with raw ISO on hover. Includes per-section CSV export button.
+  - **Project & Epic Level**: Shows discovered boards and all project/epic-level metrics in one consolidated view. Boards table merges delivery volume with time-normalized output (total sprint days, avg sprint length, **Done Stories**, **Registered Work Hours**, **Estimated Work Hours**, stories/SP per sprint day, variance, done-by-end %, epic vs non-epic counts), plus sprint window and latest sprint end. Includes a top-row **All Boards (Comparison)** summary to anchor comparisons. Includes capacity proxies (Active Assignees, Stories/SP per Assignee, Assumed Capacity, Assumed Waste %) with clear assumptions. Epic Time-To-Market shows Epic Name, story IDs as Jira links with hover summaries, **Subtask Spent (Hrs)** for the epic, and includes a **{Board}-AD-HOC** row per board for stories not linked to any epic. Missing epic titles are surfaced with a warning for trust. Throughput remains available by issue type, along with rework ratio and predictability.
+   - **Sprints**: Lists sprints overlapping the date window with completion counts. Shows "Total SP" and "Story Count" columns. Column labels: "Stories Completed (Total)" (all stories currently marked Done) and "Completed Within Sprint End Date" (stories resolved by sprint end date). When time-tracking data exists, shows Est Hrs, Spent Hrs, Remaining Hrs, and Variance Hrs. When subtask tracking exists, adds Subtask Est/Spent/Remaining/Variance columns.
+   - **Done Stories**: Drill-down view of completed stories, grouped by sprint. Shows Epic Key, Epic Title, and Epic Summary columns when Epic Link field is available. Epic Summary is truncated to 100 characters with full text in tooltip. When time tracking exists, shows Est/Spent/Remaining/Variance hours for the story and for its subtasks (when available). Dates render in local-friendly format with raw ISO on hover.
    - **Unusable Sprints**: Lists sprints excluded due to missing dates
 
 6. **Export to Excel**:
@@ -205,7 +219,7 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
    - **Improved Error Messages**: Specific, actionable error messages for network errors, server errors, timeouts, and invalid data
    
 7. **Export CSV** (Secondary Option):
-   - **Per-Section Exports**: Each tab has its own "Export CSV" button for quick single-section exports
+   - **Export CSV (Active Tab)**: Exports the currently selected tab from the unified export menu
    - **Export CSV (Filtered View)**: Exports only currently visible rows (after search/filter)
    - **File Naming**: `{Projects}_{DateRange}_{Section}_{ExportDate}.csv` (includes `_PARTIAL` when preview data is partial)
    - All CSV exports include Epic Key, Epic Title, and Epic Summary columns when Epic Link field is available
@@ -328,7 +342,7 @@ Serves the main report page HTML.
 Serves the Current Sprint Transparency HTML page (squad view).
 
 ### GET /sprint-leadership
-Serves the Sprint Leadership view HTML page.
+Legacy leadership route; resolves to the report trends experience (`/report#trends`).
 
 ### GET /api/boards.json
 Returns a list of boards for the given projects (for the current-sprint board selector).
@@ -451,7 +465,7 @@ This runs the test orchestration script which:
 3. Runs Login Security Deploy Validation tests
 4. Runs E2E user journey tests
 5. Runs UX reliability tests (validates data quality indicators, error handling, UI improvements)
-6. Runs UX critical fixes tests (validates Epic Title/Summary, merged throughput, renamed labels, per-section exports, TTM definition, export loading states, button visibility)
+6. Runs UX critical fixes tests (validates Epic Title/Summary, merged throughput, renamed labels, unified export menu actions, TTM definition, export loading states, button visibility)
 7. Runs Feedback & Date Display tests
 8. Runs Column Titles & Tooltips tests
 9. Runs Validation Plan tests
@@ -496,7 +510,7 @@ npm run test:navigation-consistency
 - **E2E Tests**: User interface interactions, tab navigation, filtering, export
 - **API Tests**: Endpoint validation, error handling, CSV generation
 - **UX Reliability Tests**: Data quality indicators (Unknown issueType display, Epic TTM fallback warnings), cache age display, error recovery
-- **UX Critical Fixes Tests**: Epic Title/Summary display, merged Sprint Throughput data, renamed column labels with tooltips, per-section CSV export buttons and filenames, TTM definition header, export button loading states, button visibility after async renders, Epic Summary truncation edge cases
+- **UX Critical Fixes Tests**: Epic Title/Summary display, merged Sprint Throughput data, renamed column labels with tooltips, unified CSV export actions and filenames, TTM definition header, export button loading states, button visibility after async renders, Epic Summary truncation edge cases
 - **Excel Export Tests**: Excel file generation, multi-tab structure, business-friendly column names, Excel-compatible dates, KPI calculations, manual enrichment columns, Summary and Metadata tabs
 
 **Note**: Some tests may require valid Jira credentials. Tests that require Jira access will gracefully handle authentication failures.

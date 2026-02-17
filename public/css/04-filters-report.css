@@ -1108,10 +1108,11 @@
 }
 
 .leadership-board-card-grade.strong { color: var(--success, #2e7d32); }
-.leadership-board-card-grade.stable { color: #689f38; }
-.leadership-board-card-grade.watch { color: var(--warning, #f57c00); }
-.leadership-board-card-grade.at-risk { color: var(--warning, #e65100); }
+.leadership-board-card-grade.solid { color: #689f38; }
+.leadership-board-card-grade.mixed { color: var(--warning, #f57c00); }
+.leadership-board-card-grade.weak { color: var(--warning, #e65100); }
 .leadership-board-card-grade.critical { color: var(--danger, #c62828); }
+.leadership-board-card-grade.insufficient-data { color: #6b7280; }
 
 .leadership-board-card-name {
   font-weight: 600;

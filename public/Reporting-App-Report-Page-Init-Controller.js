@@ -74,7 +74,7 @@ function initReportPage() {
       if (!hash) {
         const activeBtn = document.querySelector('.tab-btn.active');
         if (!activeBtn) {
-          const defaultBtn = document.getElementById('tab-btn-done-stories') || document.getElementById('tab-btn-project-epic-level');
+          const defaultBtn = document.getElementById('tab-btn-project-epic-level') || document.getElementById('tab-btn-done-stories');
           if (defaultBtn) defaultBtn.click();
         }
       }

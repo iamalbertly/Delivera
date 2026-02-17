@@ -127,17 +127,3 @@ export async function exportCSV(rows, type, columns) {
     }
   }
 }
-
-export async function exportSectionCSV(sectionName, data, button = null) {
-  if (button) button.disabled = true;
-  const meta = getSafeMeta(reportState.previewData);
-  if (!meta) return;
-  const filename = buildCsvFilename(sectionName, meta, '', await getDateRangeLabel(meta.windowStart, meta.windowEnd));
-  const rows = Array.isArray(data) ? data : [];
-  const csv = generateCSVClient(Object.keys(rows[0] || {}), rows);
-  try {
-    downloadCSV(csv, filename, { anchorEl: button, exportId: sectionName });
-  } finally {
-    if (button) button.disabled = false;
-  }
-}

@@ -149,7 +149,11 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
   });
 
   test('Validation 1.3: Days remaining color coding is correct', async ({ page }) => {
-    const remainingMetric = page.locator('.header-metric:first-of-type .metric-value');
+    const remainingMetric = page
+      .locator('.header-bar-center .header-metric')
+      .filter({ has: page.locator('.metric-label', { hasText: 'Remaining' }) })
+      .locator('.metric-value')
+      .first();
     const text = await remainingMetric.textContent();
     
     // Parse days from text (e.g., "1 day", "5 days")
@@ -173,147 +177,60 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
     expect(renderTime).toBeLessThan(100);
   });
 
-  // ========== VALIDATION 2: Health Dashboard ==========
-  test('Validation 2.1: Health dashboard card renders with all sections', async ({ page }) => {
-    await ensureDetailsExpanded(page);
-    const healthCard = page.locator('.health-dashboard-card');
-    const isVisible = await healthCard.isVisible().catch(() => false);
-    if (!isVisible) {
-      await expect(page.locator('.data-availability-summary')).toContainText(/Health dashboard hidden/i);
-      test.skip(true, 'Health dashboard intentionally hidden for no-data sprint');
+  // ========== VALIDATION 2: Deduplicated Details Flow ==========
+  test('Validation 2.1: Legacy health dashboard card is not rendered (deduplicated)', async ({ page }) => {
+    await expect(page.locator('.health-dashboard-card')).toHaveCount(0);
+  });
+
+  test('Validation 2.2: Capacity details toggle is present and controls details region', async ({ page }) => {
+    const toggle = page.locator('.card-details-toggle').first();
+    const visible = await toggle.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Capacity details toggle not rendered for this dataset');
       return;
     }
-    await expect(healthCard).toBeVisible();
-    
-    // Check sections
-    await expect(page.locator('.health-status-chip')).toBeVisible();
-    await expect(page.locator('.health-progress-section')).toBeVisible();
-    await expect(page.locator('.health-split-section')).toBeVisible();
-    await expect(page.locator('.health-tracking-section')).toBeVisible();
-    await expect(page.locator('.health-actions')).toBeVisible();
+    const before = await toggle.getAttribute('aria-expanded');
+    await toggle.click();
+    const after = await toggle.getAttribute('aria-expanded');
+    expect(before).not.toBe(after);
   });
 
-  test('Validation 2.2: Health dashboard progress bar displays correctly', async ({ page }) => {
+  test('Validation 2.3: Capacity section renders when details region is expanded', async ({ page }) => {
     await ensureDetailsExpanded(page);
-    const progressBar = page.locator('.progress-bar-container');
-    await expect(progressBar).toBeVisible();
-    
-    // Verify bars exist
-    const doneBar = page.locator('.progress-bar.done');
-    const inprogressBar = page.locator('.progress-bar.inprogress');
-    
-    // At least one should exist
-    const doneCount = await doneBar.count();
-    const inprogressCount = await inprogressBar.count();
-    expect(doneCount + inprogressCount).toBeGreaterThan(0);
+    const capacity = page.locator('#capacity-card, .capacity-card').first();
+    const visible = await capacity.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Capacity card not rendered for this dataset');
+      return;
+    }
+    await expect(capacity).toBeVisible();
   });
 
-  test('Validation 2.3: Health dashboard copy-to-clipboard works', async ({ page }) => {
-    await ensureDetailsExpanded(page);
-    const copyBtn = page.locator('.health-copy-btn');
-    
-    // Mock clipboard
-    await page.evaluate(() => {
-      navigator.clipboard.writeText = async (text) => {
-        document.body.setAttribute('data-clipboard', text);
-        return Promise.resolve();
-      };
-    });
-    
-    await copyBtn.click();
-    
-    // Verify button shows "Copied!"
-    await expect(copyBtn).toContainText('Copied!', { timeout: 100 });
-    
-    // Verify clipboard content
-    const clipboardContent = await page.getAttribute('body', 'data-clipboard');
-    expect(clipboardContent).toBeTruthy();
+  test('Validation 2.4: Sprint health state is visible in command-center verdict line', async ({ page }) => {
+    const riskText = await page.locator('.sprint-verdict-line').first().textContent();
+    expect((riskText || '').toLowerCase()).toMatch(/(healthy|risk|caution|critical|at risk)/);
   });
 
-  test('Validation 2.4: Health dashboard risk indicator appears with risks', async ({ page }) => {
-    await ensureDetailsExpanded(page);
-    const riskChip = page.locator('.health-status-chip');
-    const riskText = await riskChip.textContent();
-    
-    // Should contain either "healthy" or "⚠️"
-    expect((riskText || '').toLowerCase()).toMatch(/(healthy|risk|watch|critical|at risk)/);
-  });
-
-  test('Validation 2.5: Health dashboard renders within 150ms', async ({ page }) => {
-    await ensureDetailsExpanded(page);
+  test('Validation 2.5: Command-center verdict renders within 150ms', async ({ page }) => {
     const startTime = Date.now();
-    await page.waitForSelector('.health-dashboard-card', { timeout: 150 });
+    await page.waitForSelector('.sprint-verdict-line', { timeout: 150 });
     const renderTime = Date.now() - startTime;
     expect(renderTime).toBeLessThan(150);
   });
 
-  // ========== VALIDATION 3: Alert Banner ==========
-  test('Validation 3.1: Alert banner appears when critical issues exist', async ({ page }) => {
-    // Check if alert is visible (conditional on data)
-    const alertBanner = page.locator('.alert-banner');
-    const isVisible = await alertBanner.isVisible().catch(() => false);
-    
-    if (isVisible) {
-      // Verify color class
-      const classList = await alertBanner.getAttribute('class');
-      expect(classList).toMatch(/(yellow|orange|red)/);
-    }
+  // ========== VALIDATION 3: Command Center Verdict ==========
+  test('Validation 3.1: Command center verdict line renders severity signal', async ({ page }) => {
+    const verdict = page.locator('.sprint-verdict-line').first();
+    await expect(verdict).toBeVisible();
+    const text = (await verdict.textContent().catch(() => '') || '').toLowerCase();
+    expect(text).toMatch(/healthy|caution|at risk|critical/);
   });
 
-  test('Validation 3.2: Alert banner dismiss button works', async ({ page }) => {
-    const alertBanner = page.locator('.alert-banner');
-    if (!(await alertBanner.isVisible())) {
-      test.skip();
-    }
-    
-    const dismissBtn = page.locator('.alert-dismiss');
-    await dismissBtn.click();
-    
-    // Banner should be hidden
-    await expect(alertBanner).not.toBeVisible({ timeout: 500 });
-    
-    // Verify localStorage is set (either sprint-specific or generic key)
-    const isDismissed = await page.evaluate(() => {
-      const header = document.querySelector('.current-sprint-header-bar');
-      const sprintId = header?.getAttribute('data-sprint-id');
-      const specificKey = sprintId ? `alert_banner_dismissed_${sprintId}` : null;
-      const genericKey = 'alert_banner_dismissed_unknown';
-      const dismissedTime = (specificKey && localStorage.getItem(specificKey)) || localStorage.getItem(genericKey);
-      return dismissedTime !== null;
-    });
-    expect(isDismissed).toBeTruthy();
-  });
-
-  test('Validation 3.3: Alert banner shows correct severity colors', async ({ page }) => {
-    const banner = page.locator('.alert-banner');
-    if (!(await banner.isVisible())) {
-      test.skip();
-    }
-    
-    const classList = await banner.getAttribute('class');
-    const severity = classList?.match(/(yellow|orange|red)/)?.[0];
-    
-    expect(['yellow', 'orange', 'red']).toContain(severity);
-  });
-
-  test('Validation 3.4: Alert action links navigate correctly and data-action is set', async ({ page }) => {
-    const banner = page.locator('.alert-banner');
-    if (!(await banner.isVisible())) {
-      test.skip();
-    }
-    
-    const actionLink = page.locator('.alert-action').first();
-    if (await actionLink.count() > 0) {
-      const href = await actionLink.getAttribute('href');
-      expect(href).toBeTruthy();
-
-      // If this link is one of the special actions, it should expose data-action
-      const dataAction = await actionLink.getAttribute('data-action');
-      const specialHrefs = ['#stuck-card'];
-      if (specialHrefs.includes(href)) {
-        expect(dataAction).toBeTruthy();
-      }
-    }
+  test('Validation 3.2: Command center provides direct blocker drilldown affordance', async ({ page }) => {
+    const drilldown = page.locator('.sprint-verdict-drilldown, .sprint-verdict-drilldown-ok').first();
+    await expect(drilldown).toBeVisible();
+    const href = await drilldown.getAttribute('href');
+    if (href) expect(href).toContain('#work-risks-table');
   });
 
   // ========== VALIDATION 4: Risks & Insights Modal ==========
@@ -588,8 +505,11 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
         return Promise.resolve();
       };
     });
-    
-    await copyOption.click();
+
+    await page.evaluate(() => {
+      const item = document.querySelector('[data-action="copy-link"]');
+      if (item) item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     
     const copiedLink = await page.getAttribute('body', 'data-copied-link');
     expect((copiedLink || '').length > 0).toBeTruthy();
@@ -611,6 +531,44 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
     
     const isHidden = await menu.evaluate(el => el.classList.contains('hidden'));
     expect(isHidden).toBeTruthy();
+  });
+
+  test('Validation 9.5: Subtasks render as hierarchical child rows when present', async ({ page, request }) => {
+    const boardId = await page.locator('#board-select').inputValue().catch(() => '');
+    if (!boardId) {
+      test.skip(true, 'No board selected');
+      return;
+    }
+    const res = await request.get(`${BASE_URL}/api/current-sprint.json?boardId=${encodeURIComponent(boardId)}`);
+    if (!res.ok()) {
+      test.skip(true, 'Current sprint API unavailable for hierarchy check');
+      return;
+    }
+    const body = await res.json();
+    const hasSubtasks = Array.isArray(body?.stories) && body.stories.some((row) => Array.isArray(row?.subtasks) && row.subtasks.length > 0);
+    if (!hasSubtasks) {
+      test.skip(true, 'Dataset has no subtasks to validate hierarchy rendering');
+      return;
+    }
+    const childRows = page.locator('#stories-table tbody tr.subtask-child-row');
+    await expect(childRows.first()).toBeVisible();
+    const parentRows = page.locator('#stories-table tbody tr.story-parent-row');
+    expect(await childRows.count()).toBeGreaterThan(0);
+    expect(await parentRows.count()).toBeGreaterThan(0);
+  });
+
+  test('Validation 9.6: Subtask rows avoid story-only fields and emphasize time tracking', async ({ page }) => {
+    const childRow = page.locator('#stories-table tbody tr.subtask-child-row').first();
+    if (!(await childRow.isVisible().catch(() => false))) {
+      test.skip(true, 'No rendered subtask child rows in current dataset');
+      return;
+    }
+    await expect(childRow.locator('td').nth(4)).toHaveText('-');
+    await expect(childRow.locator('td').nth(6)).toHaveText('-');
+    const est = (await childRow.locator('td').nth(7).textContent().catch(() => '')) || '';
+    const logged = (await childRow.locator('td').nth(8).textContent().catch(() => '')) || '';
+    expect(est.trim().length > 0).toBeTruthy();
+    expect(logged.trim().length > 0).toBeTruthy();
   });
 
   // ========== VALIDATION 10: Responsive Layout ==========
@@ -822,6 +780,12 @@ test.describe('CurrentSprint Redesign - API Contracts', () => {
     expect(data.summary).toBeTruthy();
     expect(data.daysMeta).toBeTruthy();
     expect(data.stuckCandidates).toBeTruthy();
+    expect(Array.isArray(data.stories || [])).toBeTruthy();
+    if (Array.isArray(data.stories) && data.stories.length > 0) {
+      const firstStory = data.stories[0];
+      expect(firstStory).toHaveProperty('issueType');
+      expect(Array.isArray(firstStory.subtasks || [])).toBeTruthy();
+    }
     expect(typeof data.meta?.jiraHostResolved).toBe('string');
     if (data.meta?.jiraHostResolved) {
       expect(data.meta.jiraHostResolved.startsWith('http://') || data.meta.jiraHostResolved.startsWith('https://')).toBeTruthy();

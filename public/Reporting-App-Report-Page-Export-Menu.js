@@ -1,7 +1,7 @@
 import { reportDom } from './Reporting-App-Report-Page-Context.js';
 import { getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
-import { exportCSV, exportSectionCSV } from './Reporting-App-Report-Page-Export-CSV.js';
+import { exportCSV } from './Reporting-App-Report-Page-Export-CSV.js';
 import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
 
 function showExportError(message) {
@@ -155,20 +155,20 @@ export function initExportMenu() {
   if (!exportDropdownTrigger || !exportDropdownMenu) return;
 
   function openExportMenu() {
-    exportDropdownMenu.classList.add('open');
+    exportDropdownMenu.setAttribute('aria-hidden', 'false');
     exportDropdownTrigger.setAttribute('aria-expanded', 'true');
     const firstItem = exportDropdownMenu.querySelector('.export-dropdown-item:not([disabled])');
     if (firstItem) firstItem.focus();
   }
 
   function closeExportMenu() {
-    exportDropdownMenu.classList.remove('open');
+    exportDropdownMenu.setAttribute('aria-hidden', 'true');
     exportDropdownTrigger.setAttribute('aria-expanded', 'false');
   }
 
   exportDropdownTrigger.addEventListener('click', (event) => {
     event.stopPropagation();
-    const isOpen = exportDropdownMenu.classList.contains('open');
+    const isOpen = exportDropdownMenu.getAttribute('aria-hidden') === 'false';
     if (isOpen) {
       closeExportMenu();
     } else {
@@ -213,14 +213,6 @@ export function initExportMenu() {
       exportCSV(rows || [], section, Object.keys((rows || [])[0] || {}));
       closeExportMenu();
     }
-  });
-
-  document.addEventListener('click', (event) => {
-    const quickCsvBtn = event.target && event.target.closest ? event.target.closest('.export-section-btn[data-section]') : null;
-    if (!quickCsvBtn || quickCsvBtn.disabled) return;
-    const section = quickCsvBtn.getAttribute('data-section') || 'done-stories';
-    const rows = getRowsForSection(section);
-    exportSectionCSV(section, rows, quickCsvBtn).catch((err) => showExportError(err?.message || err));
   });
 
   updateExportFilteredState();
