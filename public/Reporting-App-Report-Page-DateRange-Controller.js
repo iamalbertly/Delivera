@@ -103,7 +103,7 @@ function updateRangeSummary(quarterLabel) {
   const startStr = Number.isNaN(startDate.getTime()) ? '' : formatDateShort(startDate);
   const endStr = Number.isNaN(endDate.getTime()) ? '' : formatDateShort(endDate);
   const suffix = lastQuarterLabel ? ` (${lastQuarterLabel})` : ' (Custom range)';
-  summaryEl.textContent = startStr && endStr ? `${startStr} – ${endStr}${suffix}` : 'Select a quarter or enter dates.';
+  summaryEl.textContent = startStr && endStr ? `${startStr} - ${endStr}${suffix}` : 'Select a quarter or enter dates.';
 }
 
 export function updateRangeHint() {
@@ -213,14 +213,26 @@ export function initDateRangeControls(onApply, onValidationChange) {
     onQuartersLoaded: () => {
       updateRangeHint();
       updateRangeSummary(lastQuarterLabel);
+      const allPills = Array.from(document.querySelectorAll('.quarter-strip-inner .quarter-pill:not(.quarter-pill-custom)'));
+      if (!allPills.length) return;
+      const startIso = toUtcIsoFromLocalInput(startInput?.value || '');
+      const endIso = toUtcIsoFromLocalInput(endInput?.value || '', true);
+      const normalize = (iso) => (iso || '').slice(0, 10);
+      const matchingPill = allPills.find((pill) => {
+        const pillStart = normalize(pill.getAttribute('data-start') || '');
+        const pillEnd = normalize(pill.getAttribute('data-end') || '');
+        return pillStart && pillEnd && pillStart === normalize(startIso) && pillEnd === normalize(endIso);
+      });
+      allPills.forEach((pill) => {
+        const active = pill === matchingPill;
+        pill.classList.toggle('is-active', active);
+        pill.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      if (matchingPill) return;
       if (hydratedFromShared) return;
-      const hasStart = !!(startInput?.value || '');
-      const hasEnd = !!(endInput?.value || '');
-      if (hasStart && hasEnd) return;
-      const firstQuarterPill = document.querySelector('.quarter-strip-inner .quarter-pill:not(.quarter-pill-custom)');
-      if (firstQuarterPill) {
-        firstQuarterPill.click();
-      }
+      const currentPill = allPills.find((pill) => pill.classList.contains('is-current'));
+      const bestDefault = currentPill || allPills[0];
+      if (bestDefault) bestDefault.click();
     },
     onApply: (data) => {
       updateRangeSummary(data?.data?.label ?? null);

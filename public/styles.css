@@ -3198,6 +3198,7 @@ body .preview-area {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 8px;
+  min-width: 0;
 }
 
 .header-context-chip {
@@ -3211,9 +3212,9 @@ body .preview-area {
   background: var(--card);
   color: var(--muted);
   max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .header-context-chip-active {
@@ -3487,6 +3488,17 @@ body .preview-area {
   position: absolute;
   left: 10px;
   color: #7d8798;
+}
+
+.subtask-parent-context {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-muted);
+  color: #475569;
+  font-size: 0.72rem;
 }
 
 .subtask-child-summary {

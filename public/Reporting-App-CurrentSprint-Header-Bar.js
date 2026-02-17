@@ -10,6 +10,7 @@ import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js'
 import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { renderCountdownTimer } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
+import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 
 export function renderHeaderBar(data) {
   const sprint = data.sprint || {};
@@ -80,6 +81,7 @@ export function renderHeaderBar(data) {
     : (meta.projects || '');
   const contextStart = meta.windowStart ? formatDate(meta.windowStart) : '';
   const contextEnd = meta.windowEnd ? formatDate(meta.windowEnd) : '';
+  const reportRangeLabel = buildReportRangeLabel(meta.windowStart, meta.windowEnd);
   const hasContextWindow = contextStart && contextEnd;
   const contextProjects = (meta.projects || '')
     ? String(meta.projects).split(',').map((p) => String(p).trim()).filter(Boolean).join(', ')
@@ -88,9 +90,9 @@ export function renderHeaderBar(data) {
   html += '<div class="header-context-row">';
   html += '<span class="header-context-chip header-context-chip-active" title="Active filters driving this sprint view">Active: ' + escapeHtml(selectedProject || 'n/a') + (boardName ? ' · ' + escapeHtml(boardName) : '') + '</span>';
   if (hasContextWindow || contextProjects) {
-    html += '<span class="header-context-chip header-context-chip-cache" title="Cached report context for reference only">Report cache context: '
+    html += '<span class="header-context-chip header-context-chip-cache" title="Cached report context for reference only">From report cache: '
       + (contextProjects ? ('Projects ' + escapeHtml(contextProjects)) : 'Projects n/a')
-      + (hasContextWindow ? (' · Query ' + escapeHtml(contextStart + ' - ' + contextEnd)) : '')
+      + (hasContextWindow ? (' · ' + escapeHtml(reportRangeLabel)) : '')
       + '</span>';
   }
   html += '</div>';

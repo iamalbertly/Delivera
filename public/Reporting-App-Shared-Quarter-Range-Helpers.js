@@ -157,7 +157,7 @@ export function initQuarterStrip(containerSelector, startInput, endInput, option
   const container = typeof containerSelector === 'string' ? document.querySelector(containerSelector) : containerSelector;
   if (!container || !startInput || !endInput) return;
 
-  container.innerHTML = '<span class="quarter-strip-loading" aria-live="polite">Loading quarters…</span>';
+  container.innerHTML = '<span class="quarter-strip-loading" aria-live="polite">Loading quarters...</span>';
   container.style.minHeight = '2.5em';
 
   const clearSelection = () => {

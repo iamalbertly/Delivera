@@ -5,6 +5,7 @@
 import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { exportRisksInsightsAsMarkdown } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
+import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
@@ -12,7 +13,7 @@ export function renderExportButton(inline = false) {
   html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary to clipboard" aria-live="polite">Copy summary</button>';
   html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">&#9662;</button>';
   html += '</span>';
-  html += '<div class="export-menu hidden" id="export-menu" role="menu">';
+  html += '<div class="export-menu hidden" id="export-menu" role="menu" aria-hidden="true">';
   html += '<button class="export-option" data-action="copy-text" role="menuitem">Copy as Text</button>';
   html += '<button class="export-option" data-action="export-markdown" role="menuitem">Markdown</button>';
   html += '<button class="export-option" data-action="export-png" role="menuitem">PNG snapshot</button>';
@@ -67,8 +68,6 @@ export function wireExportHandlers(data) {
       event.preventDefault();
       event.stopPropagation();
       copyDashboardAsText(data, btn);
-      menu.classList.remove('hidden');
-      if (menuToggle) menuToggle.setAttribute('aria-expanded', 'true');
     });
   }
   // Menu toggle: expand/collapse the full options menu
@@ -79,6 +78,7 @@ export function wireExportHandlers(data) {
       menu.classList.toggle('hidden');
       const expanded = !menu.classList.contains('hidden');
       menuToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      menu.setAttribute('aria-hidden', expanded ? 'false' : 'true');
     });
   }
   if (!window.__currentSprintExportOutsideClickBound) {
@@ -91,7 +91,18 @@ export function wireExportHandlers(data) {
       if (!activeContainer.contains(event.target) && !activeMenu.classList.contains('hidden')) {
         activeMenu.classList.add('hidden');
         if (activeToggle) activeToggle.setAttribute('aria-expanded', 'false');
+        activeMenu.setAttribute('aria-hidden', 'true');
       }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const activeContainer = document.querySelector('.export-dashboard-container');
+      const activeMenu = activeContainer?.querySelector('#export-menu');
+      const activeToggle = activeContainer?.querySelector('.export-menu-toggle');
+      if (!activeMenu || activeMenu.classList.contains('hidden')) return;
+      activeMenu.classList.add('hidden');
+      activeMenu.setAttribute('aria-hidden', 'true');
+      if (activeToggle) activeToggle.setAttribute('aria-expanded', 'false');
     });
   }
   const options = container.querySelectorAll('.export-option');
@@ -100,6 +111,7 @@ export function wireExportHandlers(data) {
       const action = option.dataset.action;
       menu.classList.add('hidden');
       if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+      menu.setAttribute('aria-hidden', 'true');
       if (action === 'copy-text') {
         copyDashboardAsText(data, btn || menuToggle);
       } else if (action === 'export-markdown') {
@@ -137,8 +149,9 @@ async function exportDashboardAsPng(data, btn) {
     // Temporarily expand any collapsed sections within the target for a complete snapshot
     const collapsedDetails = target.querySelectorAll('details:not([open])');
     collapsedDetails.forEach((d) => d.setAttribute('open', ''));
-    const collapsedRegions = target.querySelectorAll('[aria-hidden="true"]');
-    collapsedRegions.forEach((r) => r.setAttribute('aria-hidden', 'false'));
+    const hiddenRegions = Array.from(target.querySelectorAll('[aria-hidden="true"]'))
+      .map((el) => ({ el, prev: el.getAttribute('aria-hidden') }));
+    hiddenRegions.forEach(({ el }) => el.setAttribute('aria-hidden', 'false'));
     const module = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm');
     const html2canvas = module?.default;
     if (typeof html2canvas !== 'function') throw new Error('Snapshot renderer unavailable');
@@ -154,7 +167,13 @@ async function exportDashboardAsPng(data, btn) {
     const fileName = 'sprint-summary-' + String(sprint.name || 'snapshot').replace(/[^a-zA-Z0-9-_]+/g, '-') + '.png';
     // Restore collapsed state after render
     collapsedDetails.forEach((d) => d.removeAttribute('open'));
-    collapsedRegions.forEach((r) => r.setAttribute('aria-hidden', 'true'));
+    hiddenRegions.forEach(({ el, prev }) => {
+      if (prev == null) {
+        el.removeAttribute('aria-hidden');
+      } else {
+        el.setAttribute('aria-hidden', prev);
+      }
+    });
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
     a.download = fileName;
@@ -185,6 +204,7 @@ async function copyDashboardAsText(data, btn) {
     const tracking = data?.subtaskTracking?.summary || {};
     const scopeChanges = data.scopeChanges || [];
     const stories = data.stories || [];
+    const meta = data.meta || {};
 
     const doneStories = summary.doneStories || 0;
     const totalStories = summary.totalStories || 0;
@@ -203,6 +223,15 @@ async function copyDashboardAsText(data, btn) {
     text += `${pctDone}% done | ${doneStories}/${totalStories} stories | ${remainingDays != null ? remainingDays + 'd left' : 'ended'}\n`;
     text += `${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'}\n`;
     text += `Generated: ${new Date().toLocaleString()}\n`;
+    if (meta.generatedAt || meta.snapshotAt) {
+      const sourceTs = new Date(meta.generatedAt || meta.snapshotAt);
+      if (!Number.isNaN(sourceTs.getTime())) {
+        text += `Data freshness: ${sourceTs.toLocaleString()}\n`;
+      }
+    }
+    if (meta.windowStart || meta.windowEnd) {
+      text += `${buildReportRangeLabel(meta.windowStart, meta.windowEnd)}\n`;
+    }
     text += '\n';
 
     // 2. Blockers - actionable list grouped by assignee
@@ -276,12 +305,17 @@ async function exportDashboardAsMarkdown(data, btn) {
     const trackingSummary = tracking.summary || {};
     const scopeChanges = data.scopeChanges || [];
     const stories = data.stories || [];
+    const meta = data.meta || {};
     const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
     const pctDone = summary.percentDone || 0;
 
     let markdown = `# ${sprint.name || 'Sprint'}\n\n`;
     markdown += `> **${pctDone}% done** | ${summary.doneStories || 0}/${summary.totalStories || 0} stories | ${remainingDays != null ? remainingDays + ' days left' : 'ended'}  \n`;
     markdown += `> ${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'} | Generated ${new Date().toLocaleString()}\n\n`;
+    if (meta.generatedAt || meta.snapshotAt || meta.windowStart || meta.windowEnd) {
+      const freshness = meta.generatedAt || meta.snapshotAt ? formatDate(meta.generatedAt || meta.snapshotAt) : '-';
+      markdown += `> Data freshness: ${freshness} | ${buildReportRangeLabel(meta.windowStart, meta.windowEnd)}\n\n`;
+    }
 
     markdown += '## Overview\n';
     markdown += `| Metric | Value |\n|---|---|\n`;

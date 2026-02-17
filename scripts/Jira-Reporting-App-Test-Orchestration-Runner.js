@@ -173,6 +173,23 @@ function resolveAvailableBaseRef(preferredRef) {
   return null;
 }
 
+function resolveMergeBaseRef(targetRef) {
+  if (!targetRef) return null;
+  try {
+    const result = spawnSync('git', ['merge-base', 'HEAD', targetRef], {
+      cwd: projectRoot,
+      encoding: 'utf8',
+    });
+    if (result.status === 0 && result.stdout) {
+      const sha = result.stdout.trim();
+      if (sha) return sha;
+    }
+  } catch {
+    // fall through
+  }
+  return null;
+}
+
 function saveLastFailedSpecs(specPaths) {
   try {
     const filePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Last-Failed.json');
@@ -207,23 +224,26 @@ async function runAllTests() {
   if (!fullRun) {
     const preferredBaseRef = process.env.TEST_BASE_REF || 'origin/main';
     const baseRef = resolveAvailableBaseRef(preferredBaseRef);
+    const diffRef = resolveMergeBaseRef(baseRef) || baseRef;
     try {
-      const diffArgs = baseRef
-        ? ['diff', '--name-only', `${baseRef}...HEAD`]
+      const diffArgs = diffRef
+        ? ['diff', '--name-only', `${diffRef}...HEAD`]
         : ['status', '--porcelain'];
-      if (!baseRef) {
+      if (!diffRef) {
         console.log('[INFO] No configured base ref found; using working-tree fallback for impacted test selection.');
+      } else if (diffRef !== baseRef) {
+        console.log(`[INFO] Using merge-base ${diffRef.slice(0, 12)} against ${baseRef} for impacted test selection.`);
       }
       const result = spawnSync('git', diffArgs, {
         cwd: projectRoot,
         encoding: 'utf8',
       });
-      if (result.status === 0 && result.stdout && baseRef) {
+      if (result.status === 0 && result.stdout && diffRef) {
         changedFiles = result.stdout
           .split('\n')
           .map((line) => line.trim())
           .filter((line) => line && !line.startsWith('package-lock.json'));
-      } else if (result.status === 0 && result.stdout && !baseRef) {
+      } else if (result.status === 0 && result.stdout && !diffRef) {
         changedFiles = result.stdout
           .split('\n')
           .map((line) => line.trim())

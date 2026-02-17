@@ -76,6 +76,13 @@ function formatDateForContext(iso) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+export function buildReportRangeLabel(startIso, endIso) {
+  const startStr = formatDateForContext(startIso);
+  const endStr = formatDateForContext(endIso);
+  if (!startStr || !endStr) return 'Report range: -';
+  return `Report range: ${startStr}${DATE_RANGE_SEPARATOR}${endStr} (UTC)`;
+}
+
 /**
  * Returns last-run summary from sessionStorage when available (for context bar).
  */
@@ -134,11 +141,9 @@ export function getContextDisplayString() {
   const freshnessInfo = getLastMetaFreshnessInfo();
   const freshness = freshnessInfo.label;
   const proj = ctx ? ctx.projects.replace(/,/g, ', ') : '';
-  const startStr = ctx ? formatDateForContext(ctx.start) : '';
-  const endStr = ctx ? formatDateForContext(ctx.end) : '';
-  const rangeStr = startStr && endStr ? `${startStr}${DATE_RANGE_SEPARATOR}${endStr}` : '';
-  const contextPart = rangeStr
-    ? `Active filters: Projects ${proj}${CONTEXT_SEPARATOR}Query window ${rangeStr}`
+  const rangeLabel = ctx ? buildReportRangeLabel(ctx.start, ctx.end) : '';
+  const contextPart = rangeLabel
+    ? `Active filters: Projects ${proj}${CONTEXT_SEPARATOR}${rangeLabel}`
     : (proj ? `Active filters: Projects ${proj}` : '');
   const freshnessPart = freshness ? `Data freshness: ${freshness}` : '';
   const pieces = [];

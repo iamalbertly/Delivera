@@ -173,10 +173,10 @@ export function renderProjectEpicLevelTab(boards, metrics) {
     html += '<h3>Boards</h3>';
     const tableContextLabel = (() => {
       const m = getSafeMeta(reportState.previewData);
-      const proj = (m?.selectedProjects && m.selectedProjects.length) ? m.selectedProjects.join(', ') : '—';
-      const start = m?.windowStart ? formatDateForDisplay(m.windowStart) : '—';
-      const end = m?.windowEnd ? formatDateForDisplay(m.windowEnd) : '—';
-      return `General Performance – ${escapeHtml(proj)} – ${escapeHtml(start)} to ${escapeHtml(end)}`;
+      const proj = (m?.selectedProjects && m.selectedProjects.length) ? m.selectedProjects.join(', ') : '-';
+      const start = m?.windowStart ? formatDateForDisplay(m.windowStart) : '-';
+      const end = m?.windowEnd ? formatDateForDisplay(m.windowEnd) : '-';
+      return `General Performance - ${escapeHtml(proj)} - ${escapeHtml(start)} to ${escapeHtml(end)}`;
     })();
     html += '<p class="table-context" aria-label="Table context">' + tableContextLabel + '</p>';
     const hasPredictability = !!metrics?.predictability;
@@ -236,13 +236,13 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       const predictPerSprint = metrics.predictability.perSprint || {};
       for (const data of Object.values(predictPerSprint)) {
         if (!data) continue;
-        // UX Fix #6: '??-' → '—' for missing predictability data (intentional absence, not error)
+        // UX Fix: use explicit "-" for missing predictability data (intentional absence, not error).
         const plannedCell = (data.deliveredStories == null || data.deliveredStories === 0 || data.plannedCarryoverPct == null)
-          ? '—'
-          : (data.plannedCarryoverStories ?? '—') + ' (' + formatPercent(data.plannedCarryoverPct) + '%)';
+          ? '-'
+          : (data.plannedCarryoverStories ?? '-') + ' (' + formatPercent(data.plannedCarryoverPct) + '%)';
         const unplannedCell = (data.deliveredStories == null || data.deliveredStories === 0 || data.unplannedSpilloverPct == null)
-          ? '—'
-          : (data.unplannedSpilloverStories ?? '—') + ' (' + formatPercent(data.unplannedSpilloverPct) + '%)';
+          ? '-'
+          : (data.unplannedSpilloverStories ?? '-') + ' (' + formatPercent(data.unplannedSpilloverPct) + '%)';
         html += `<tr>
           <td>${escapeHtml(data.sprintName)}</td>
           <td>${data.committedStories}</td>

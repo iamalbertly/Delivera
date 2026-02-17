@@ -125,8 +125,8 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
     }
     await expect(contextRow).toContainText(/Active:|Active filters:/i);
     const text = (await contextRow.textContent().catch(() => '')) || '';
-    if (/Report cache context:/i.test(text)) {
-      await expect(contextRow).toContainText(/Report cache context:/i);
+    if (/From report cache:/i.test(text)) {
+      await expect(contextRow).toContainText(/From report cache:/i);
     }
   });
 
@@ -522,15 +522,18 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
   test('Validation 9.4: Export menu closes on click outside', async ({ page }) => {
     const btn = page.locator('.export-dashboard-btn');
     await btn.click();
-    
+    const toggle = page.locator('.export-menu-toggle');
+    await toggle.click();
     const menu = page.locator('#export-menu');
     await expect(menu).toBeVisible();
+    await expect(menu).toHaveAttribute('aria-hidden', 'false');
     
     // Click outside menu
     await page.click('body', { position: { x: 0, y: 0 } });
     
     const isHidden = await menu.evaluate(el => el.classList.contains('hidden'));
     expect(isHidden).toBeTruthy();
+    await expect(menu).toHaveAttribute('aria-hidden', 'true');
   });
 
   test('Validation 9.5: Subtasks render as hierarchical child rows when present', async ({ page, request }) => {
@@ -577,6 +580,17 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
     const logged = (await childRow.locator('td').nth(8).textContent().catch(() => '')) || '';
     expect(est.trim().length > 0).toBeTruthy();
     expect(logged.trim().length > 0).toBeTruthy();
+  });
+
+  test('Validation 9.7: Subtask rows include parent issue context for quick traceability', async ({ page }) => {
+    const childRow = page.locator('#stories-table tbody tr.subtask-child-row').first();
+    if (!(await childRow.isVisible().catch(() => false))) {
+      test.skip(true, 'No rendered subtask child rows in current dataset');
+      return;
+    }
+    const parentTag = childRow.locator('.subtask-parent-context');
+    await expect(parentTag).toBeVisible();
+    await expect(parentTag).not.toHaveText('-');
   });
 
   // ========== VALIDATION 10: Responsive Layout ==========

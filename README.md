@@ -17,7 +17,9 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - Export dropdown open/close visibility now uses ARIA state as SSOT (`aria-hidden`), removing stale class-state drift.
   - Clipboard summary now includes explicit generation timestamp for factual sharing context.
 - Report defaults and docs alignment:
-  - README now reflects rolling last-3-month query default and unified CSV export from the header menu.
+  - Default report window is now the latest completed Vodacom quarter (UTC) on both server and client SSOT paths.
+  - Quarter strip initialization now selects the matching pill from active inputs and avoids auto-clicking the oldest quarter.
+  - Canonical wording is now `Report range: <start> - <end> (UTC)` across report preview, leadership context, current-sprint cache chip, and clipboard exports.
 - Orchestration stability:
   - Test runner now resolves an available git base ref (`origin/main`, `origin/master`, `master`, `main`, `HEAD~1`) before diffing, eliminating repeated ambiguous-base warnings on local environments without `origin/main`.
 - Validation status:

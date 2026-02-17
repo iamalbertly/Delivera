@@ -63,7 +63,7 @@ test.describe('Jira Reporting App - E2E User Journey Tests', () => {
       const lower = metaText.toLowerCase();
       expect(lower).toContain('boards');
       const hasProjectScope = lower.includes('projects:') || lower.includes('active filters: projects');
-      const hasWindowScope = lower.includes('window:') || lower.includes('query window');
+      const hasWindowScope = lower.includes('window:') || lower.includes('query window') || lower.includes('report range');
       expect(hasProjectScope).toBeTruthy();
       expect(hasWindowScope).toBeTruthy();
       expect(lower.includes('sprints') || lower.includes('window coverage')).toBeTruthy();

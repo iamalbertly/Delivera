@@ -173,7 +173,7 @@ test('Login - Global nav hidden', async ({ page }) => {
     const stickyVisible = await sticky.first().isVisible().catch(() => false);
     if (stickyVisible) {
       const text = await sticky.first().textContent().catch(() => '') || '';
-      expect(text).toMatch(/Active filters|Query window|Projects|Range|Generated/i);
+      expect(text).toMatch(/Active filters|Report range|Projects|Range|Generated/i);
     }
     assertTelemetryClean(telemetry);
   });

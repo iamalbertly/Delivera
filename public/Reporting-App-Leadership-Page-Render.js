@@ -3,6 +3,7 @@ import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-
 import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
+import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 
 function computeVelocityWindowStats(sprints, windowEnd, months) {
   const end = parseISO(windowEnd);
@@ -53,6 +54,7 @@ export function renderLeadershipPage(data) {
 
   const rangeStart = meta.windowStart ? formatDateShort(meta.windowStart) : '-';
   const rangeEnd = meta.windowEnd ? formatDateShort(meta.windowEnd) : '-';
+  const reportRangeLabel = buildReportRangeLabel(meta.windowStart, meta.windowEnd);
   const rangeTooltip = 'Completion anchored to resolution date. Indexed Delivery = current SP/day vs own baseline (last 6 closed sprints). Use for trend visibility, not performance ranking.';
   const rangeStartAttr = meta.windowStart ? formatDateShort(meta.windowStart) : '';
   const rangeEndAttr = meta.windowEnd ? formatDateShort(meta.windowEnd) : '';
@@ -65,7 +67,7 @@ export function renderLeadershipPage(data) {
   let html = '<div class="leadership-context-sticky">';
   html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
   html += '<p class="metrics-hint leadership-context-line">';
-  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">Active filters: Projects ' + escapeHtml(projectsLabel || '-') + ' | Query window ' + escapeHtml(rangeStart) + ' - ' + escapeHtml(rangeEnd) + '</span>';
+  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">Active filters: Projects ' + escapeHtml(projectsLabel || '-') + ' | ' + escapeHtml(reportRangeLabel) + '</span>';
   html += ' <span class="leadership-trust-hint">For trend visibility, not team ranking.</span>';
   html += '</p>';
 
@@ -171,12 +173,12 @@ export function renderLeadershipPage(data) {
     if (limitedCards.length > 0) {
       if (sufficientCards.length === 0) {
         html += '<div class="leadership-all-limited-empty">';
-        html += '<p>Trend analysis requires 3+ completed sprints. Your boards are building history — check back next sprint.</p>';
+        html += '<p>Trend analysis requires 3+ completed sprints. Your boards are building history - check back next sprint.</p>';
         html += '</div>';
         html += '<div id="leadership-limited-cards" class="leadership-boards-cards leadership-limited-cards">';
       } else {
         html += '<div class="leadership-limited-toggle-wrap">';
-        html += '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-limited-boards" aria-expanded="false">' + limitedCards.length + ' board' + (limitedCards.length !== 1 ? 's' : '') + ' hidden (insufficient data) — Show all</button>';
+        html += '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-limited-boards" aria-expanded="false">' + limitedCards.length + ' board' + (limitedCards.length !== 1 ? 's' : '') + ' hidden (insufficient data) - Show all</button>';
         html += '</div>';
         html += '<div id="leadership-limited-cards" class="leadership-boards-cards leadership-limited-cards" hidden>';
       }

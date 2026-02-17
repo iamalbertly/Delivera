@@ -185,9 +185,13 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
       await page.waitForTimeout(800);
     }
     const exportBtn = page.locator('.export-dashboard-btn');
+    const exportToggle = page.locator('.export-menu-toggle');
     await expect(exportBtn).toBeVisible();
+    await expect(exportToggle).toBeVisible();
     await exportBtn.click();
+    await exportToggle.click();
     await expect(page.locator('#export-menu')).toBeVisible();
+    await expect(page.locator('#export-menu')).toHaveAttribute('aria-hidden', 'false');
     await expect(page.locator('.export-option')).toHaveCount(5);
   });
 

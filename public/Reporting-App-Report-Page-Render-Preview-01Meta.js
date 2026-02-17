@@ -5,6 +5,7 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 import { REPORT_LAST_RUN_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 
 function buildGeneratedLabels(generatedAt) {
   const generatedMs = generatedAt ? new Date(generatedAt).getTime() : Date.now();
@@ -30,12 +31,8 @@ function buildGeneratedLabels(generatedAt) {
  */
 export function buildPreviewMetaAndStatus(params) {
   const { meta, previewRows = [], boardsCount, sprintsCount, rowsCount, unusableCount } = params;
-  const startDate = new Date(meta.windowStart);
-  const endDate = new Date(meta.windowEnd);
   const windowStartLocal = formatDateForDisplay(meta.windowStart);
   const windowEndLocal = formatDateForDisplay(meta.windowEnd);
-  const windowStartUtc = startDate && !Number.isNaN(startDate.getTime()) ? startDate.toUTCString() : '';
-  const windowEndUtc = endDate && !Number.isNaN(endDate.getTime()) ? endDate.toUTCString() : '';
   const fromCache = meta.fromCache === true;
   const partial = meta.partial === true;
   const partialReason = meta.partialReason || '';
@@ -144,7 +141,8 @@ export function buildPreviewMetaAndStatus(params) {
   const outcomeLine = rowsCount + ' done stories | ' + sprintsCount + ' sprints | ' + boardsCount + ' boards in window' + partialSuffix;
   const compactSummaryLine = 'Window coverage: Boards ' + boardsCount + (sprintsCount > 0 ? ' | Sprints ' + sprintsCount : '');
   // UX Fix #1: contextLine = scope info only; freshness is carried by the badge (avoids "9 min ago 9 min ago" duplication)
-  const contextLine = `Active filters: Projects ${escapeHtml(selectedProjectsLabel)} | Query window: ${escapeHtml(windowStartLocal)} - ${escapeHtml(windowEndLocal)}${metaSummaryWhy ? ' | ' + escapeHtml(metaSummaryWhy.replace(/^ \| /, '')) : ''}`;
+  const reportRangeLabel = buildReportRangeLabel(meta.windowStart, meta.windowEnd);
+  const contextLine = `Active filters: Projects ${escapeHtml(selectedProjectsLabel)} | ${escapeHtml(reportRangeLabel)}${metaSummaryWhy ? ' | ' + escapeHtml(metaSummaryWhy.replace(/^ \| /, '')) : ''}`;
   // data-state-badge--stale triggers amber warning colour via CSS (> 30 min = stale signal to user)
   const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
   const previewMetaHTML = `
@@ -153,7 +151,6 @@ export function buildPreviewMetaAndStatus(params) {
       <div class="meta-context-line">${contextLine} ${dataStateBadgeHTML}</div>
     </div>
     <div class="meta-info meta-info-details">
-      <strong>Date Window (UTC):</strong> ${escapeHtml(windowStartUtc)} to ${escapeHtml(windowEndUtc)}<br>
       <strong>Example story:</strong> ${sampleLabel}<br>
       <strong>Details:</strong> ${escapeHtml(detailsLines.join(' | '))}
       ${phaseLogHtml}

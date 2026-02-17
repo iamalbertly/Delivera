@@ -221,6 +221,7 @@ export function renderStories(data) {
   const stories = data.stories || [];
   const planned = data.plannedWindow || {};
   let html = '<div class="transparency-card" id="stories-card">';
+  html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
   html += '<h2>Issues in this sprint</h2>';
   html += '<p class="meta-row"><span>Planned:</span> <strong>' + formatDate(planned.start) + ' - ' + formatDate(planned.end) + '</strong></p>';
   html += '<p class="meta-row"><small>Type guide: Parent issues carry outcome fields (story points, ownership). Sub-tasks are shown as child rows focused on time tracking.</small></p>';
@@ -248,8 +249,9 @@ export function renderStories(data) {
     let rowsHtml = '';
     for (const child of subtasks) {
       const owner = child.assignee || row.assignee || row.reporter || '-';
+      const parentKey = child.parentIssueKey || row.issueKey || row.key || '-';
       rowsHtml += '<tr class="subtask-child-row">';
-      rowsHtml += '<td class="subtask-child-issue">' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
+      rowsHtml += '<td class="subtask-child-issue"><span class="subtask-parent-context" title="Parent issue">' + escapeHtml(parentKey) + '</span>' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
       rowsHtml += '<td>' + escapeHtml(child.issueType || 'Sub-task') + '</td>';
       rowsHtml += '<td class="cell-wrap subtask-child-summary">' + escapeHtml(child.summary || '-') + '</td>';
       rowsHtml += '<td>' + escapeHtml(child.status || '-') + '</td>';

@@ -36,23 +36,40 @@ function toLocalInputValue(date) {
     + ':' + p(d.getMinutes());
 }
 
-function computeDefaultRollingWindow() {
-  const end = new Date();
-  end.setSeconds(0, 0);
-  const start = new Date(end);
-  start.setMonth(start.getMonth() - 3);
-  start.setHours(0, 0, 0, 0);
+function computeDefaultVodacomQuarterWindow() {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  let quarterStart;
+  let quarterEnd;
+  if (m <= 2) {
+    // Q4 Jan-Mar; default to previous completed quarter Q3 Oct-Dec
+    quarterStart = new Date(Date.UTC(y - 1, 9, 1, 0, 0, 0, 0));
+    quarterEnd = new Date(Date.UTC(y - 1, 11, 31, 23, 59, 59, 999));
+  } else if (m <= 5) {
+    // Q1 Apr-Jun; default Q4 Jan-Mar
+    quarterStart = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0));
+    quarterEnd = new Date(Date.UTC(y, 2, 31, 23, 59, 59, 999));
+  } else if (m <= 8) {
+    // Q2 Jul-Sep; default Q1 Apr-Jun
+    quarterStart = new Date(Date.UTC(y, 3, 1, 0, 0, 0, 0));
+    quarterEnd = new Date(Date.UTC(y, 5, 30, 23, 59, 59, 999));
+  } else {
+    // Q3 Oct-Dec; default Q2 Jul-Sep
+    quarterStart = new Date(Date.UTC(y, 6, 1, 0, 0, 0, 0));
+    quarterEnd = new Date(Date.UTC(y, 8, 30, 23, 59, 59, 999));
+  }
   return {
-    startIso: start.toISOString(),
-    endIso: end.toISOString(),
-    startLocal: toLocalInputValue(start),
-    endLocal: toLocalInputValue(end),
+    startIso: quarterStart.toISOString(),
+    endIso: quarterEnd.toISOString(),
+    startLocal: toLocalInputValue(quarterStart),
+    endLocal: toLocalInputValue(quarterEnd),
   };
 }
 
-const rollingWindow = computeDefaultRollingWindow();
-export const DEFAULT_WINDOW_START = rollingWindow.startIso;
-export const DEFAULT_WINDOW_END = rollingWindow.endIso;
-export const DEFAULT_WINDOW_START_LOCAL = rollingWindow.startLocal;
-export const DEFAULT_WINDOW_END_LOCAL = rollingWindow.endLocal;
+const defaultWindow = computeDefaultVodacomQuarterWindow();
+export const DEFAULT_WINDOW_START = defaultWindow.startIso;
+export const DEFAULT_WINDOW_END = defaultWindow.endIso;
+export const DEFAULT_WINDOW_START_LOCAL = defaultWindow.startLocal;
+export const DEFAULT_WINDOW_END_LOCAL = defaultWindow.endLocal;
 export const LOADING_STEP_LIMIT = 6;

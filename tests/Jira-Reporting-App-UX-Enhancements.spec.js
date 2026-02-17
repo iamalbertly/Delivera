@@ -150,4 +150,31 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
       await expect(page.locator('body')).toContainText(/Sprint insights from Jira|sign in/i);
     }
   });
+
+  test('report and leadership views use clean placeholders and delivery-grade vocabulary', async ({ page }) => {
+    await page.goto('/report');
+    if (page.url().includes('login')) {
+      test.skip(true, 'Redirected to login; auth may be required');
+      return;
+    }
+    await page.click('#preview-btn');
+    await expect(page.locator('#loading')).toBeHidden({ timeout: 60000 });
+    const bodyText = (await page.locator('body').textContent().catch(() => '')) || '';
+    expect(bodyText).not.toMatch(/â€”|â€“|ï¿½/);
+
+    const boardsTab = page.locator('#tab-btn-project-epic-level');
+    if (await boardsTab.count()) {
+      await boardsTab.click();
+      const boardsContent = page.locator('#project-epic-level-content');
+      await expect(boardsContent).toBeVisible();
+      await expect(boardsContent).toContainText(/Delivery Grade|Insufficient data|Strong|Solid|Mixed|Weak|Critical/i);
+    }
+
+    const trendsTab = page.locator('#tab-btn-trends');
+    if (await trendsTab.count()) {
+      await trendsTab.click();
+      await expect(page.locator('#tab-trends')).toBeVisible();
+      await expect(page.locator('#tab-trends')).toContainText(/Strong|Solid|Mixed|Weak|Critical|Insufficient data/i);
+    }
+  });
 });

@@ -52,12 +52,12 @@ export function computeBoardRowFromSummary(board, summary, meta, spEnabled, hasP
   const sprintWindow = summary.earliestStart && summary.latestEnd
     ? `${formatDateForDisplay(summary.earliestStart)} to ${formatDateForDisplay(summary.latestEnd)}` : '';
   const latestEnd = summary.latestEnd ? formatDateForDisplay(summary.latestEnd) : '';
-  // UX Fix #6: Replace '??-' placeholder with '—' (em-dash = intentional absence, not a system error).
+  // UX Fix: use explicit "-" placeholder for intentional absence.
   // Also: individual board N/A for Done SP gets a human-readable suffix so users know WHY it's absent.
   const idx = board.indexedDelivery;
   const indexedDeliveryStr = idx != null && idx.index != null
     ? formatNumber(idx.index, 2) + ' (vs own baseline)'
-    : '—';
+    : '-';
   return {
     'Board ID': board.id,
     'Board': board.name,
@@ -69,7 +69,7 @@ export function computeBoardRowFromSummary(board, summary, meta, spEnabled, hasP
     'Done Stories': doneStories,
     'Registered Work Hours': formatNumber(summary.registeredWorkHours ?? 0, 1, '-'),
     'Estimated Work Hours': formatNumber(summary.estimatedWorkHours ?? 0, 1, '-'),
-    // UX Fix #6: Disambiguate N/A vs 0 — 'N/A' means SP tracking not configured (not zero output).
+  // UX Fix: Disambiguate N/A vs 0 - 'N/A' means SP tracking not configured (not zero output).
     // 'N/A (SP not tracked)' prevents leadership from reading N/A as data-error vs intentional gap.
     'Done SP': spEnabled ? doneSP : 'N/A (SP not tracked)',
     'Committed SP': formatNumber(hasPredictability ? summary.committedSP : null, 2),
@@ -156,18 +156,17 @@ export function computeBoardsSummaryRow(boards, boardSummaries, meta, spEnabled,
   }
 
   const avg = (arr) => (arr.length === 0 ? null : arr.reduce((a, b) => a + b, 0) / arr.length);
-  // UX Fix #6: All '??-' placeholders replaced with '—' (em-dash) for intentional-absence signalling.
-  // 'Projects: Multiple' replaces '??-' on the All Boards comparison row — it's accurate AND readable.
-  const sprintWindow = earliestStart && latestEnd ? `${formatDateForDisplay(earliestStart)} to ${formatDateForDisplay(latestEnd)}` : '—';
-  const latestEndStr = latestEnd ? formatDateForDisplay(latestEnd) : '—';
+  // UX Fix: all missing placeholders use "-" for consistent parsing/export readability.
+  const sprintWindow = earliestStart && latestEnd ? `${formatDateForDisplay(earliestStart)} to ${formatDateForDisplay(latestEnd)}` : '-';
+  const latestEndStr = latestEnd ? formatDateForDisplay(latestEnd) : '-';
   const avgOnTime = avg(onTimeArr);
   const avgSpEstimation = avg(spEstimationArr);
   const deliveryGrade = deriveDeliveryGrade(avgOnTime, avgSpEstimation, sumSprints);
 
   return {
-    'Board ID': '—',
+    'Board ID': '-',
     'Board': 'Total',
-    'Type': '—',
+    'Type': '-',
     'Projects': 'Multiple',
     'Sprints': sumSprints,
     'Sprint Days': sumSprintDays,
@@ -186,7 +185,7 @@ export function computeBoardsSummaryRow(boards, boardSummaries, meta, spEnabled,
     'SP / Day': formatNumber(avg(spPerDayArr)),
     'SP / Sprint': formatNumber(avg(spPerSprintArr)),
     'SP Variance': formatNumber(avg(spVarianceArr)),
-    'Indexed Delivery': '—',
+    'Indexed Delivery': '-',
     'On-Time %': formatPercent(avg(onTimeArr)),
     'Planned': sumPlanned,
     'Ad-hoc': sumAdhoc,

@@ -449,7 +449,10 @@ test.describe('UX Audit Fixes — Current Sprint + Report Pages', () => {
     const boardsTab = page.locator('.tab-btn[data-tab="project-epic-level"]').first();
     const boardsTabVisible = await boardsTab.isVisible().catch(() => false);
     if (!boardsTabVisible) { test.skip(); return; }
-    await boardsTab.click();
+    const alreadySelected = (await boardsTab.getAttribute('aria-selected').catch(() => 'false')) === 'true';
+    if (!alreadySelected) {
+      await boardsTab.click({ force: true, timeout: 10000 }).catch(() => null);
+    }
     await page.waitForSelector('#project-epic-level-content', { state: 'visible', timeout: 15000 }).catch(() => {});
 
     const wrap = page.locator('#project-epic-level-content .data-table-scroll-wrap--with-vertical-limit').first();
