@@ -1,7 +1,9 @@
 import { formatDateForDisplay, formatNumber, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { calculateVariance } from './Reporting-App-Report-Page-Sorting.js';
 
-function deriveDeliveryGrade(onTimePct, spEstimationPct, sprintCount) {
+export const DELIVERY_GRADE_TOOLTIP = 'Historical delivery quality grade (on-time + predictability). Strong >=90, Solid >=80, Mixed >=65, Weak >=50. Requires at least 2 sprints.';
+
+export function deriveDeliveryGrade(onTimePct, spEstimationPct, sprintCount) {
   if (!Number.isFinite(onTimePct) || !Number.isFinite(spEstimationPct) || (sprintCount || 0) < 2) {
     return 'Insufficient data';
   }

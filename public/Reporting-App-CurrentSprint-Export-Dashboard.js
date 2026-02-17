@@ -202,6 +202,7 @@ async function copyDashboardAsText(data, btn) {
     text += `${sprint.name || 'Sprint'} - ${verdict.toUpperCase()}\n`;
     text += `${pctDone}% done | ${doneStories}/${totalStories} stories | ${remainingDays != null ? remainingDays + 'd left' : 'ended'}\n`;
     text += `${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'}\n`;
+    text += `Generated: ${new Date().toLocaleString()}\n`;
     text += '\n';
 
     // 2. Blockers - actionable list grouped by assignee

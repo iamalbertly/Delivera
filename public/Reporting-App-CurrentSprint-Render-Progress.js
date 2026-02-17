@@ -223,6 +223,7 @@ export function renderStories(data) {
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<h2>Issues in this sprint</h2>';
   html += '<p class="meta-row"><span>Planned:</span> <strong>' + formatDate(planned.start) + ' - ' + formatDate(planned.end) + '</strong></p>';
+  html += '<p class="meta-row"><small>Type guide: Parent issues carry outcome fields (story points, ownership). Sub-tasks are shown as child rows focused on time tracking.</small></p>';
 
   function renderStoryRow(row) {
     let rowHtml = '<tr class="story-parent-row">';

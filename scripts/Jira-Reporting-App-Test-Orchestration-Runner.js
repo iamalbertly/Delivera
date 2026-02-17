@@ -156,6 +156,23 @@ function loadLastFailedSpecs() {
   }
 }
 
+function resolveAvailableBaseRef(preferredRef) {
+  const candidates = [preferredRef, 'origin/master', 'master', 'main', 'HEAD~1']
+    .filter((v, idx, arr) => v && arr.indexOf(v) === idx);
+  for (const ref of candidates) {
+    try {
+      const verify = spawnSync('git', ['rev-parse', '--verify', '--quiet', ref], {
+        cwd: projectRoot,
+        encoding: 'utf8',
+      });
+      if (verify.status === 0) return ref;
+    } catch {
+      // continue trying next candidate
+    }
+  }
+  return null;
+}
+
 function saveLastFailedSpecs(specPaths) {
   try {
     const filePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Last-Failed.json');
@@ -188,16 +205,30 @@ async function runAllTests() {
   // Determine changed files via git (best-effort).
   let changedFiles = [];
   if (!fullRun) {
-    const baseRef = process.env.TEST_BASE_REF || 'origin/main';
+    const preferredBaseRef = process.env.TEST_BASE_REF || 'origin/main';
+    const baseRef = resolveAvailableBaseRef(preferredBaseRef);
     try {
-      const result = spawnSync('git', ['diff', '--name-only', `${baseRef}...HEAD`], {
+      const diffArgs = baseRef
+        ? ['diff', '--name-only', `${baseRef}...HEAD`]
+        : ['status', '--porcelain'];
+      if (!baseRef) {
+        console.log('[INFO] No configured base ref found; using working-tree fallback for impacted test selection.');
+      }
+      const result = spawnSync('git', diffArgs, {
         cwd: projectRoot,
         encoding: 'utf8',
       });
-      if (result.status === 0 && result.stdout) {
+      if (result.status === 0 && result.stdout && baseRef) {
         changedFiles = result.stdout
           .split('\n')
           .map((line) => line.trim())
+          .filter((line) => line && !line.startsWith('package-lock.json'));
+      } else if (result.status === 0 && result.stdout && !baseRef) {
+        changedFiles = result.stdout
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => line.slice(3).trim())
           .filter((line) => line && !line.startsWith('package-lock.json'));
       } else if (result.status !== 0 && result.stderr) {
         console.log('[WARN] git diff against base ref failed, trying local working-tree fallback.');

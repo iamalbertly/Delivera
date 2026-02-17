@@ -2,6 +2,7 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
+import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
 
 function computeVelocityWindowStats(sprints, windowEnd, months) {
   const end = parseISO(windowEnd);
@@ -32,14 +33,11 @@ function computePredictabilityAverage(perSprint, inWindow) {
 }
 
 function gradeFromSignals(onTimePct, predictabilityPct, sprintCount = 0) {
-  const metrics = [onTimePct, predictabilityPct].filter(v => v != null && !Number.isNaN(v));
-  if (!metrics.length || sprintCount < 2) return 'Insufficient data';
-  const score = metrics.reduce((sum, v) => sum + v, 0) / metrics.length;
-  if (score >= 90) return 'Strong';
-  if (score >= 80) return 'Solid';
-  if (score >= 65) return 'Mixed';
-  if (score >= 50) return 'Weak';
-  return 'Critical';
+  if (onTimePct == null || Number.isNaN(onTimePct)) return 'Insufficient data';
+  const predictability = predictabilityPct == null || Number.isNaN(predictabilityPct)
+    ? onTimePct
+    : predictabilityPct;
+  return deriveDeliveryGrade(onTimePct, predictability, sprintCount);
 }
 
 export function renderLeadershipPage(data) {
@@ -267,7 +265,7 @@ export function renderLeadershipPage(data) {
     { key: 'avg', label: 'Avg SP/day', title: '' },
     { key: 'diff', label: 'Difference', title: '' },
     { key: 'onTimePct', label: 'On-time %', title: '' },
-    { key: 'grade', label: 'Delivery Grade', title: 'Historical grade from on-time % and predictability. Strong >=90, Solid >=80, Mixed >=65, Weak >=50. Requires at least 2 sprints.' },
+    { key: 'grade', label: 'Delivery Grade', title: DELIVERY_GRADE_TOOLTIP },
     { key: 'quality', label: 'Data quality', title: '' },
   ];
   const velocityRows = velocityWindows.map((row) => {

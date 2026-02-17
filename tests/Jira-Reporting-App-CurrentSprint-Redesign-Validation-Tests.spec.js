@@ -550,11 +550,19 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
       test.skip(true, 'Dataset has no subtasks to validate hierarchy rendering');
       return;
     }
+    // Expand all story rows so rendered child-row count is comparable to payload.
+    for (let i = 0; i < 10; i++) {
+      const showMore = page.locator('.stories-show-more');
+      if (!(await showMore.isVisible().catch(() => false))) break;
+      await showMore.click();
+    }
     const childRows = page.locator('#stories-table tbody tr.subtask-child-row');
     await expect(childRows.first()).toBeVisible();
     const parentRows = page.locator('#stories-table tbody tr.story-parent-row');
     expect(await childRows.count()).toBeGreaterThan(0);
     expect(await parentRows.count()).toBeGreaterThan(0);
+    const expectedChildren = body.stories.reduce((sum, row) => sum + ((row?.subtasks || []).length || 0), 0);
+    expect(await childRows.count()).toBe(expectedChildren);
   });
 
   test('Validation 9.6: Subtask rows avoid story-only fields and emphasize time tracking', async ({ page }) => {

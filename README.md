@@ -9,12 +9,17 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 - Current Sprint issue hierarchy trust fix:
   - Parent issues now render as primary rows and subtasks render as indented child rows in `Issues in this sprint`.
   - Subtask rows no longer present story-only fields as required inputs; story points/reporter cells are intentionally `-` while subtask estimate/logged hours remain visible.
+  - Added a compact issue-type guidance line directly above the sprint issues table to reduce interpretation errors during standups.
 - Leadership grade vocabulary alignment:
   - Leadership grade thresholds now align with the report delivery-grade model (`Strong`, `Solid`, `Mixed`, `Weak`, `Critical`, `Insufficient data` with minimum sample guard).
+  - Delivery-grade tooltip text is now shared from one source constant to avoid drift between report and leadership views.
 - Unified export menu reliability hardening:
   - Export dropdown open/close visibility now uses ARIA state as SSOT (`aria-hidden`), removing stale class-state drift.
+  - Clipboard summary now includes explicit generation timestamp for factual sharing context.
 - Report defaults and docs alignment:
   - README now reflects rolling last-3-month query default and unified CSV export from the header menu.
+- Orchestration stability:
+  - Test runner now resolves an available git base ref (`origin/main`, `origin/master`, `master`, `main`, `HEAD~1`) before diffing, eliminating repeated ambiguous-base warnings on local environments without `origin/main`.
 - Validation status:
   - `npm run test:all` completed green in fail-fast mode for the impacted run (`45/45` selected orchestration steps).
 

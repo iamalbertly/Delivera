@@ -4,7 +4,11 @@ import { renderEmptyState, getSafeMeta } from './Reporting-App-Report-Page-Rende
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { computeBoardRowFromSummary, computeBoardsSummaryRow } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
+import {
+  computeBoardRowFromSummary,
+  computeBoardsSummaryRow,
+  DELIVERY_GRADE_TOOLTIP,
+} from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
 import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 
@@ -67,7 +71,7 @@ const BOARD_SUMMARY_TOOLTIPS = {
   'Committed SP': 'Total committed SP.',
   'Delivered SP': 'Total delivered SP.',
   'SP Estimation %': 'Average estimation accuracy.',
-  'Delivery Grade': 'Historical delivery quality grade (on-time + predictability).',
+  'Delivery Grade': DELIVERY_GRADE_TOOLTIP,
   'Stories / Sprint': 'Average stories per sprint.',
   'SP / Story': 'Average SP per story.',
   'Stories / Day': 'Average stories per day.',
