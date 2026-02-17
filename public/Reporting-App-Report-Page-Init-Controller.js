@@ -88,6 +88,12 @@ function initReportPage() {
   // initExportMenu is called later
 
   try { window.__reportPreviewButtonSync = refreshPreviewButtonLabel; } catch (_) { }
+  try {
+    const previewBtnInitial = document.getElementById('preview-btn');
+    if (previewBtnInitial) {
+      previewBtnInitial.style.visibility = 'visible';
+    }
+  } catch (_) {}
   initProjectSelection();
   initDateRangeControls(() => {
     if (!getCurrentSelectionComplexity().isHeavy) scheduleAutoPreview(AUTO_PREVIEW_DELAY_MS);

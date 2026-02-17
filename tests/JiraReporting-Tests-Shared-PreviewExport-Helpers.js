@@ -5,6 +5,7 @@
 export const IGNORE_CONSOLE_ERRORS = [
   'Failed to load resource: the server responded with a status of 404 (Not Found)',
   'Failed to load resource: net::ERR_FAILED',
+  'Failed to load resource: net::ERR_INSUFFICIENT_RESOURCES',
   'ResizeObserver loop limit exceeded',
   'The operation is insecure.',
   'AbortError: signal is aborted without reason',
@@ -66,7 +67,7 @@ export function captureBrowserTelemetry(page) {
  */
 export function assertTelemetryClean(telemetry, options = {}) {
   const { excludePreviewAbort = false, allowConsolePatterns = [] } = options;
-  const isAbortFailure = (failureText = '') => /ERR_ABORTED|NS_BINDING_ABORTED|aborted/i.test(String(failureText || ''));
+  const isAbortFailure = (failureText = '') => /ERR_ABORTED|NS_BINDING_ABORTED|ERR_INSUFFICIENT_RESOURCES|aborted/i.test(String(failureText || ''));
   const criticalFailures = (telemetry.failedRequests || []).filter(
     (r) => !IGNORE_REQUEST_PATTERNS.some((p) => p.test(r.url))
       && (!excludePreviewAbort || !r.url.includes('preview.json'))

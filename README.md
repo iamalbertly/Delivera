@@ -31,6 +31,24 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
     - Current Sprint stories table is now wrapped in the shared horizontal scroll container to prevent 1024px overflow regressions.
     - Global navigation now deduplicates sidebar/toggle/backdrop nodes and synchronizes body scroll-lock classes to sidebar open state.
     - Playwright resilience updates were added for hidden/collapsed filter controls and mobile sidebar click paths.
+  - Current Sprint Work risks card now renders a hierarchical table:
+    - Parent stories appear as primary rows, with subtask risks rendered as indented, visually lighter child rows directly underneath.
+    - Parent and subtask blockers remain clearly tagged (`Stuck >24h (Parent)` vs `Stuck >24h (Subtask)`), and each issue is still counted once in unified blocker metrics.
+  - Work risks accordion behaviour:
+    - Parents with subtask risks show a minimal chevron control that collapses/expands all child rows without changing navigation or adding extra pages.
+    - Keyboard users can rely on native button semantics; click/keypress toggles `aria-expanded` on the parent row and hides/shows the corresponding child rows.
+  - Burndown truthfulness:
+    - Burndown copy now distinguishes between “story points field is not configured for this board”, “this sprint’s stories currently total 0 SP”, and normal SP burndown.
+    - Completions that land after sprint end are excluded from sprint completion and annotated in the burndown card as “completed after sprint end; burndown shows sprint-only completion.”
+    - When multiple SP-like Jira fields exist across projects, burndown surfaces a gentle warning that it uses the primary story-points field only.
+  - Context chips and stale filters:
+    - Report context line and shared sidebar context card now include a compact “Filters changed; context from last run” hint when filters change without a new preview.
+    - This stale badge is stored in sessionStorage so Current Sprint and Leadership chips can reflect that state without any extra user action.
+  - Focused validation suites:
+    - `tests/Jira-Reporting-App-Current-Sprint-Work-Risks-Hierarchy-Validation-Tests.spec.js` validates parent/subtask grouping, accordion behaviour, and unified blocker counts.
+    - `tests/Jira-Reporting-App-Current-Sprint-Burndown-Truthfulness-Validation-Tests.spec.js` validates SP configuration copy and SP vs story-count burndown paths.
+    - `tests/Jira-Reporting-App-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js` validates stale-context hints and excluded-parent blocker messaging.
+  - Growth/velocity experimental spec (`tests/DeleteThisFile_growth_velocity.spec.js`) is now explicitly skipped so it no longer gates full Playwright runs; the file remains prefixed with `DeleteThisFile_` as a clear deletion marker.
 
 ## Latest Reliability and UX Updates (2026-02-16)
 

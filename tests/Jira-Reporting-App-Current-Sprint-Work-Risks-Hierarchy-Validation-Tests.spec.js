@@ -166,6 +166,12 @@ test.describe('Current Sprint - Work risks hierarchy and blockers semantics', ()
     const headerText = (await headerBlockersMetric.textContent().catch(() => '') || '').trim();
     const headerCount = parseInt(headerText.replace(/[^0-9]/g, ''), 10) || 0;
 
+    const showMore = page.locator('.work-risks-show-more').first();
+    const hasShowMore = await showMore.isVisible().catch(() => false);
+    if (hasShowMore) {
+      await showMore.click();
+    }
+
     const blockerRows = table.locator('tbody tr').filter({ hasText: 'Stuck >24h' });
     const blockerRowCount = await blockerRows.count();
     if (blockerRowCount === 0) {
