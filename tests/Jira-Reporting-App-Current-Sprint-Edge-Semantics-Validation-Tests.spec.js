@@ -61,15 +61,15 @@ test.describe('Current Sprint - Edge semantics and context trust', () => {
 
     await page.waitForSelector('#current-sprint-content, #current-sprint-error', { state: 'attached', timeout: 30000 });
 
-    const excludedLine = page.locator('#stuck-card .meta-row').filter({ hasText: 'flowing via subtasks and are not counted as blockers' }).first();
-    const visible = await excludedLine.isVisible().catch(() => false);
+    const excludedMessage = page.locator('#stuck-card').filter({ hasText: /flowing via subtasks|not counted as (blocked|blockers)/i });
+    const visible = await excludedMessage.isVisible().catch(() => false);
     if (!visible) {
       test.skip(true, 'No excluded parent blockers message for dataset');
       return;
     }
 
-    const text = ((await excludedLine.textContent().catch(() => '')) || '').toLowerCase();
-    expect(text).toContain('not counted as blockers');
+    const text = ((await page.locator('#stuck-card').textContent().catch(() => '')) || '').toLowerCase();
+    expect(text).toMatch(/not counted as (blocked|blockers)/);
 
     const telemetryFinal = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetryFinal, { excludePreviewAbort: true });

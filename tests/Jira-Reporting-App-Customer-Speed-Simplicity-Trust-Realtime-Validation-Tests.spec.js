@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,
@@ -71,8 +71,8 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     }
 
     const outcomeLine = page.locator('#preview-meta .meta-outcome-line').first();
-    const contextLine = page.locator('#preview-meta .meta-context-line').first();
-    await expect(outcomeLine).toContainText(/done stories|sprints|boards/i);
+    await expect(outcomeLine).toContainText(/Window coverage|done stories|sprints|boards/i);
+    const contextLine = page.locator('#report-context-line');
     await expect(contextLine).toContainText(/Active filters|Projects\b|Report range|Range:|Generated:|Data freshness/i);
 
     assertTelemetryClean(telemetry);

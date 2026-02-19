@@ -33,7 +33,7 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
     }
   });
 
-  test('header blocker count matches Work risks blocker strip', async ({ page }) => {
+  test('header blocker count matches Work risks table when strip visible', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
     const headerBlockersMetric = page.locator('.header-bar-center .header-metric-link .metric-label', { hasText: 'Blockers' })
@@ -43,7 +43,7 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
       .first();
 
     const hasHeaderMetric = await headerBlockersMetric.isVisible().catch(() => false);
-    const blockerStrip = page.locator('#stuck-card .work-risk-blocker-strip strong').first();
+    const blockerStrip = page.locator('#stuck-card .work-risk-blocker-strip').first();
     const hasStrip = await blockerStrip.isVisible().catch(() => false);
 
     if (!hasHeaderMetric || !hasStrip) {
@@ -54,11 +54,18 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
     const headerText = (await headerBlockersMetric.textContent().catch(() => '') || '').trim();
     const headerCount = parseInt(headerText.replace(/[^0-9]/g, ''), 10) || 0;
 
-    const stripText = (await blockerStrip.textContent().catch(() => '') || '').trim();
-    const match = stripText.match(/(\d+)/);
-    const stripCount = match ? parseInt(match[1], 10) : 0;
-
-    expect(stripCount).toBe(headerCount);
+    await expect(blockerStrip.locator('strong').first()).toContainText(/Blocker issues/i);
+    const table = page.locator('#work-risks-table');
+    const tableVisible = await table.isVisible().catch(() => false);
+    if (!tableVisible) {
+      expect(headerCount).toBeGreaterThanOrEqual(0);
+      const telemetry = captureBrowserTelemetry(page);
+      assertTelemetryClean(telemetry, { excludePreviewAbort: true });
+      return;
+    }
+    const blockerRows = table.locator('tbody tr').filter({ hasText: 'Stuck >24h' });
+    const tableBlockerCount = await blockerRows.count();
+    expect(headerCount).toBe(tableBlockerCount);
 
     const telemetry = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });

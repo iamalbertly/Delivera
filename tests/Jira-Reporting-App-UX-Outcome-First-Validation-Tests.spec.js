@@ -155,10 +155,10 @@ test.describe('UX Outcome-First', () => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
-    await page.waitForSelector('#board-select, .header-board-label', { state: 'visible', timeout: 15000 }).catch(() => null);
+    await page.waitForSelector('#board-select, .header-context-chip', { state: 'visible', timeout: 15000 }).catch(() => null);
     const boardSelect = page.locator('#board-select');
-    const boardLabel = page.locator('.header-board-label');
-    const hasBoard = (await boardSelect.count()) > 0 || (await boardLabel.count()) > 0;
+    const contextChip = page.locator('.header-context-chip.header-context-chip-active');
+    const hasBoard = (await boardSelect.count()) > 0 || (await contextChip.count()) > 0;
     expect(hasBoard).toBeTruthy();
 
     assertTelemetryClean(telemetry);

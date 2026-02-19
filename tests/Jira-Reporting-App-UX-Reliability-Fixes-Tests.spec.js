@@ -471,7 +471,7 @@ test.describe('UX Audit Fixes — Current Sprint + Report Pages', () => {
     const previewVisible = await page.locator('#preview-content').isVisible().catch(() => false);
     if (!previewVisible) { test.skip(); return; }
 
-    const metaBlock = page.locator('.meta-info-summary, .meta-context-line, .meta-outcome-line');
+    const metaBlock = page.locator('.meta-info-summary, .meta-outcome-line');
     const allText = await metaBlock.allTextContents();
     const combined = allText.join(' ');
     expect(combined).not.toContain('[Cached]');

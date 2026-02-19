@@ -50,6 +50,32 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
     - `tests/Jira-Reporting-App-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js` validates stale-context hints and excluded-parent blocker messaging.
   - Growth/velocity experimental spec (`tests/DeleteThisFile_growth_velocity.spec.js`) is now explicitly skipped so it no longer gates full Playwright runs; the file remains prefixed with `DeleteThisFile_` as a clear deletion marker.
 
+## Latest Reliability and UX Updates (2026-02-18)
+
+- Current Sprint trust clarity for developers and scrum masters:
+  - Summary/export now separates **Flow movement** (status transitions in last 24h) from **Logging compliance** (logged vs estimated hours), so “work moved but 0h logged” is explicit and non-contradictory.
+  - Parent stories are excluded from blocker counts when any child subtask moved in the last 24h, including transitions to Done.
+  - Header and work-risk wording now uses one blocker definition: stale status movement, not “no work happened.”
+- Report trust and simplification updates:
+  - Done-story collection now includes both `Story` and `User Story` issue types in preview fetch paths.
+  - Performance overview now includes a merged leadership card strip (grade, on-time, SP estimation, SP/day) to reduce tab-switching friction.
+  - Delivery-grade tooltip rewritten in plain language with clear thresholds and partial-data behavior.
+- Playwright reliability hardening:
+  - Mobile filter/sidebar interactions now use retry-safe test helpers and dataset-aware skip logic to avoid false negatives in fail-fast orchestration.
+
+## Latest Reliability and UX Updates (2026-02-19)
+
+- Current Sprint summary UX simplification and export contract:
+  - `/current-sprint` clipboard **Copy summary** now follows a strict four-line contract: `Period · Board · Health`, `X% complete · Y of Z stories done · time left (date range)`, one plain-language movement vs logging sentence, and a compact risk line (`blockers · not started · unassigned · scope +N`).
+  - Detailed export text is grouped under a clear separator line (`--- More detail below ---`) into sections for **Recent activity & time logging**, **Blockers**, **Not started**, **Scope added mid-sprint**, and **Work breakdown (stories with subtasks)**, reducing wall-of-text fatigue while preserving auditor detail.
+  - Movement/logging copy now handles realistic edge cases (no data yet, all work logged but no recent movement, estimates without logs, logs without estimates) so the story stays factually consistent with `subtaskTracking` and summary hours.
+  - Blockers, not started, unassigned, and scope counts in the summary line are wired directly to the same SSOT collections used in Work risks and sprint stories, so headline and tables always reconcile.
+  - Added `tests/Jira-Reporting-App-Current-Sprint-Summary-UX-Validation-Tests.spec.js` and wired it into `npm run test:all` to assert the four-line contract, presence of the `--- More detail below ---` separator, grouped detail sections, and clean browser telemetry for the summary/export path.
+- Report and Current Sprint direct-to-value UI deduplication:
+  - **Report:** Preview meta shows a single outcome line (Window coverage: Boards N | Sprints N + data-state badge). Range and projects live only in `#report-context-line` to avoid repeated eye-travel and duplicate sentences.
+  - **Current Sprint:** Removed duplicate "Board: X" line from the header; board name stays in the context chip (Active: project | Board name). Work risks card heading shortened to "Work risks"; blocker strip label changed from "Blockers now: N" to "Blocker issues" with a one-line dedupe hint ("Each issue is counted once as a blocker...") above the table. When there are no blockers, the card shows "No blocker issues in this sprint." Product Owner summary block shows "No scope additions" / "Scope stable." when scope or unestimated counts are zero.
+  - Tests updated to assert context from `#report-context-line` and board from `.header-context-chip`, and to validate header blocker count against the work-risks table row count when the strip is visible. Unused `buildActiveFiltersContextLabel` import removed from report preview meta builder.
+
 ## Latest Reliability and UX Updates (2026-02-16)
 
 - Current Sprint summary duplication reduction:
@@ -213,7 +239,7 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
 
 2. **Set Date Window**: 
   - **Quick range (Vodacom quarters):** A scrollable strip of quarter pills (at least 5 quarters up to current) shows fiscal labels (e.g. "FY26 Q2"); clicking a pill sets the range and can auto-run the report. Select a quarter or enter dates manually.
-   - Default is the rolling last 3 months from today
+   - Default is the latest completed Vodacom quarter (UTC)
    - Adjust start and end dates as needed
    - Dates are in UTC
 
@@ -829,6 +855,5 @@ MIT
 ## Support
 
 For issues or questions, please check the troubleshooting section above or review the error messages in the application UI.
-
 
 

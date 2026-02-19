@@ -19,9 +19,13 @@ export function renderHeaderBar(data) {
   const days = data.daysMeta || {};
   const planned = data.plannedWindow || {};
   const meta = data.meta || {};
-  const trackingRows = Array.isArray(data?.subtaskTracking?.rows) ? data.subtaskTracking.rows : [];
+  const trackingRows = Array.isArray(data?.subtaskTracking?.rows)
+    ? data.subtaskTracking.rows
+    : (Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : []);
   const stuckCount = getUnifiedBlockerCount(data);
   const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
+  const subtaskEstimatedHrs = Number(summary.subtaskEstimatedHours || 0);
+  const subtaskLoggedHrs = Number(summary.subtaskLoggedHours || 0);
   const missingEstimates = trackingRows.filter((r) => !r.estimateHours || r.estimateHours === 0).length;
   const missingLoggedItems = trackingRows.filter((r) => !r.loggedHours || r.loggedHours === 0).length;
 
@@ -59,15 +63,15 @@ export function renderHeaderBar(data) {
   if (excludedParents > 0) compactRiskParts.push(excludedParents + ' parent stor' + (excludedParents === 1 ? 'y' : 'ies') + ' flowing via subtasks');
   if (missingEstimates > 0) compactRiskParts.push(missingEstimates + ' missing est');
   if (missingLoggedItems > 0) compactRiskParts.push(missingLoggedItems + ' no log');
-  const compactRiskLine = compactRiskParts.length ? compactRiskParts.join(' · ') : 'No active delivery risks';
+  const compactRiskLine = compactRiskParts.length ? compactRiskParts.join(' | ') : 'No active delivery risks';
   const blockerDrillDown = stuckCount > 0
     ? '<a href="#work-risks-table" class="sprint-verdict-drilldown">' + stuckCount + ' blockers - open list</a>'
     : '<span class="sprint-verdict-drilldown sprint-verdict-drilldown-ok">No blockers</span>';
 
   let html = '<div class="current-sprint-header-bar" data-sprint-id="' + (sprint.id || '') + '">';
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictInfo.color) + '" aria-live="polite">';
-  html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong> · ' + escapeHtml(compactRiskLine);
-  html += ' · ' + blockerDrillDown;
+  html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong> | ' + escapeHtml(compactRiskLine);
+  html += ' | ' + blockerDrillDown;
   html += '</div>';
 
   const boardName = (data.board && data.board.name) ? data.board.name : '';
@@ -83,7 +87,7 @@ export function renderHeaderBar(data) {
   const hasContextWindow = contextStart && contextEnd;
   html += '<div class="header-bar-left">';
   html += '<div class="header-context-row">';
-  html += '<span class="header-context-chip header-context-chip-active" title="Active filters driving this sprint view">Active: ' + escapeHtml(selectedProject || 'n/a') + (boardName ? ' · ' + escapeHtml(boardName) : '') + '</span>';
+  html += '<span class="header-context-chip header-context-chip-active" title="Active filters driving this sprint view">Active: ' + escapeHtml(selectedProject || 'n/a') + (boardName ? ' | ' + escapeHtml(boardName) : '') + '</span>';
   if (hasContextWindow || contextProjects) {
     html += '<span class="header-context-chip header-context-chip-cache" title="Cached report context for reference only">From report cache: '
       + escapeHtml(reportContextLine)
@@ -112,6 +116,10 @@ export function renderHeaderBar(data) {
   html += '<a href="#stories-card" class="header-metric-link" title="Jump to issues in this sprint">';
   html += '<span class="metric-label">Work items</span>';
   html += '<span class="metric-value">' + issuesCount + '</span>';
+  html += '</a>';
+  html += '<a href="#stories-card" class="header-metric-link" title="Subtask logged hours versus estimated hours">';
+  html += '<span class="metric-label">Log/Est</span>';
+  html += '<span class="metric-value">' + subtaskLoggedHrs.toFixed(1) + 'h / ' + subtaskEstimatedHrs.toFixed(1) + 'h</span>';
   html += '</a>';
   html += '</div>';
 
@@ -164,5 +172,3 @@ export function wireHeaderBarHandlers() {
     });
   }
 }
-
-

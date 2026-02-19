@@ -34,16 +34,23 @@ export function renderWorkRisksMerged(data) {
   // Short headline; avoid re-enumerating all risk types already explained below.
   html += '<div class="meta-row"><small id="scope-changes-card">One merged view for sprint risks.</small></div>';
   const blockerRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('stuck >24h'));
+  const blockerInProgress = blockerRows.filter((row) => {
+    const st = String(row.status || '').toLowerCase();
+    return st && st !== 'to do' && st !== 'open' && st !== 'backlog';
+  }).length;
+  const blockerNotStarted = Math.max(0, blockerRows.length - blockerInProgress);
+  const noLogRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('no log yet')).length;
+  const noEstimateRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('missing estimate')).length;
+  const unassignedRows = rows.filter((row) => !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned').length;
   const blockerPreview = blockerRows.slice(0, 6);
   const groupedReasons = blockerRows.reduce((acc, row) => {
     const key = String(row.riskType || 'Risk');
     acc.set(key, (acc.get(key) || 0) + 1);
     return acc;
   }, new Map());
-  html += '<h2>Work risks (Scope + Stuck + Sub-task + Sprint issues)</h2>';
+  html += '<h2>Work risks</h2>';
   if (blockerRows.length > 0) {
     html += '<div class="work-risk-blocker-strip" aria-live="polite">';
-    // Header already exposes the blocker count; keep this line focused on the list.
     html += '<strong>Blocker issues</strong>';
     if (blockerPreview.length > 0) {
       html += '<span class="work-risk-blocker-links">';
@@ -58,13 +65,26 @@ export function renderWorkRisksMerged(data) {
       html += '<div class="work-risk-blocker-reasons">Why: ' + escapeHtml(reasonText) + '</div>';
     }
     html += '</div>';
+  } else {
+    html += '<p class="meta-row"><small>No blocker issues in this sprint.</small></p>';
   }
   // Compact meta: one-line context only, definitions moved to table header tooltips
   const metaParts = [];
   if (scopeChanges.length > 0) metaParts.push('+' + scopeChanges.length + ' scope (' + formatNumber(scopeSP, 1, '0') + ' SP)');
   if (excludedParents > 0) metaParts.push(excludedParents + ' parent' + (excludedParents > 1 ? 's' : '') + ' via subtasks');
   if (metaParts.length > 0) {
-    html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' · ')) + '</small></p>';
+    html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' | ')) + '</small></p>';
+  }
+  html += '<div class="summary-grid">';
+  html += '<div class="summary-block"><span>Developer Proof</span><strong>' + noLogRows + ' no-log rows</strong><span>Estimated work without logged time is tracked as planning, not completion.</span></div>';
+  html += '<div class="summary-block"><span>Scrum Master Split</span><strong>' + blockerInProgress + ' active blockers</strong><span>' + blockerNotStarted + ' items are not started, so coaching target is different.</span></div>';
+  const scopeLabel = scopeChanges.length === 0 ? 'No scope additions' : (scopeChanges.length + ' scope additions');
+  html += '<div class="summary-block"><span>Product Owner Impact</span><strong>' + escapeHtml(scopeLabel) + '</strong><span>' + (scopeUnestimated > 0 ? scopeUnestimated + ' additions have no SP estimate.' : 'Scope stable.') + '</span></div>';
+  html += '<div class="summary-block"><span>Release Train Engineer</span><strong>' + excludedParents + ' parent flows excluded</strong><span>Parent story not counted as blocked when subtasks moved in last 24h.</span></div>';
+  html += '<div class="summary-block"><span>Line Manager</span><strong>' + unassignedRows + ' unassigned risk rows</strong><span>Ownership gaps may hide follow-up accountability.</span></div>';
+  html += '</div>';
+  if (noEstimateRows > 0 || noLogRows > 0) {
+    html += '<p class="meta-row"><small>Interpretation rule: "Missing estimate" = no planning baseline; "No log yet" = baseline exists, actual effort missing.</small></p>';
   }
 
   if (!rows.length) {
@@ -73,8 +93,9 @@ export function renderWorkRisksMerged(data) {
   }
 
   const headers = ['Source', 'Risk', 'Issue', 'Summary', 'Type', 'SP', 'Status', 'Reporter', 'Assignee', 'Est Hrs', 'Logged Hrs', 'Hours in status', 'Updated'];
+  html += '<p class="meta-row"><small>Each issue is counted once as a blocker even when multiple risks apply; counts dedupe by issue key.</small></p>';
   html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table" id="work-risks-table" style="table-layout: auto;">';
-  html += '<thead><tr><th>Source</th><th title="Blocker: in-progress >24h with no subtask movement. Deduped by issue key.">Risk</th><th>Issue</th><th class="cell-wrap">Summary</th><th>Type</th><th>SP</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Est Hrs</th><th>Logged Hrs</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
+  html += '<thead><tr><th>Source</th><th title="Blocker: in-progress >24h with stale status movement. Deduped by issue key.">Risk</th><th>Issue</th><th class="cell-wrap">Summary</th><th>Type</th><th>SP</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Est Hrs</th><th>Logged Hrs</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
   for (const row of toShow) {
     const riskTypeLower = String(row.riskType || '').toLowerCase();
     const isStuck = riskTypeLower.includes('stuck >24h');
@@ -228,3 +249,4 @@ export function wireSubtasksShowMoreHandlers() {
     });
   } catch (_) {}
 }
+

@@ -46,10 +46,10 @@ test.describe('UX Outcome-First Nav And Trust', () => {
     await expect(meta).toBeVisible();
     const outcomeLine = page.locator('.meta-outcome-line');
     await expect(outcomeLine).toBeVisible();
-    await expect(outcomeLine).toContainText(/done stories|sprints|boards/i);
-    const contextLine = page.locator('.meta-context-line').filter({ hasText: /Projects|Window/i }).first();
+    await expect(outcomeLine).toContainText(/Window coverage|done stories|sprints|boards/i);
+    const contextLine = page.locator('#report-context-line');
     await expect(contextLine).toBeVisible();
-    await expect(contextLine).toContainText(/Projects|Window/i);
+    await expect(contextLine).toContainText(/Projects|Window|Active filters|Report range/i);
     const detailsBtn = page.locator('#preview-meta-details-toggle');
     const hasDetailsBtn = await detailsBtn.isVisible().catch(() => false);
     if (hasDetailsBtn) {

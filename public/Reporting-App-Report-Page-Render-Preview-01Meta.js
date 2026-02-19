@@ -5,8 +5,6 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 import { REPORT_LAST_RUN_KEY } from './Reporting-App-Shared-Storage-Keys.js';
-import { buildActiveFiltersContextLabel } from './Reporting-App-Shared-Context-From-Storage.js';
-
 function buildGeneratedLabels(generatedAt) {
   const generatedMs = generatedAt ? new Date(generatedAt).getTime() : Date.now();
   const ageMs = Date.now() - generatedMs;
@@ -67,6 +65,7 @@ export function buildPreviewMetaAndStatus(params) {
   }
   if (!meta.discoveredFields?.storyPointsFieldId) detailsLines.push('Story Points: not configured (SP metrics show N/A)');
   if (!meta.discoveredFields?.epicLinkFieldId) detailsLines.push('Epic Links: not configured (Epic rollups limited)');
+  if (meta.requireResolvedBySprintEnd) detailsLines.push('Done stories rule: resolved by sprint end only (strict mode)');
 
   const partialNotice = partial
     ? '<br><span class="partial-warning">Partial data: this preview hit a time limit. Export shows exactly what you see; try a smaller range for full history.</span>'
@@ -142,15 +141,11 @@ export function buildPreviewMetaAndStatus(params) {
   }
   const outcomeLine = rowsCount + ' done stories | ' + sprintsCount + ' sprints | ' + boardsCount + ' boards in window' + partialSuffix;
   const compactSummaryLine = 'Window coverage: Boards ' + boardsCount + (sprintsCount > 0 ? ' | Sprints ' + sprintsCount : '');
-  // UX Fix #1: contextLine = scope info only; freshness and partial/time-limit reasons live in the badge and status banner.
-  const activeFiltersLine = buildActiveFiltersContextLabel(selectedProjectsLabel, meta.windowStart, meta.windowEnd);
-  const contextLine = escapeHtml(activeFiltersLine);
-  // data-state-badge--stale triggers amber warning colour via CSS (> 30 min = stale signal to user)
+  // Range and projects live in #report-context-line (SSOT); avoid repeating here.
   const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
   const previewMetaHTML = `
     <div class="meta-info-summary meta-summary-line">
-      <div class="meta-outcome-line">${escapeHtml(compactSummaryLine)}</div>
-      <div class="meta-context-line">${contextLine} ${dataStateBadgeHTML}</div>
+      <div class="meta-outcome-line">${escapeHtml(compactSummaryLine)} ${dataStateBadgeHTML}</div>
     </div>
     <div class="meta-info meta-info-details">
       <strong>Range (UTC):</strong> ${escapeHtml(windowStartUtc)} to ${escapeHtml(windowEndUtc)}<br>

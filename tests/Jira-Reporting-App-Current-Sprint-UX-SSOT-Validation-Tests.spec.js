@@ -338,7 +338,7 @@ test.describe('Jira Reporting App - Current Sprint UX and SSOT Validation', () =
     await expect.poll(async () => page.locator('#board-select option[value]:not([value=""])').count(), { timeout: 15000 }).toBeGreaterThan(0);
     await page.selectOption('#board-select', '101');
     await page.selectOption('#board-select', '202');
-    await expect(page.locator('.header-board-label')).toContainText(/Board B/i, { timeout: 20000 });
+    await expect(page.locator('.header-context-chip.header-context-chip-active')).toContainText(/Board B/i, { timeout: 20000 });
     await expect(page.locator('.header-sprint-name')).toContainText(/NEW_SPRINT_B/i, { timeout: 20000 });
     await expect(page.locator('body')).not.toContainText('OLD_SPRINT_A');
 
