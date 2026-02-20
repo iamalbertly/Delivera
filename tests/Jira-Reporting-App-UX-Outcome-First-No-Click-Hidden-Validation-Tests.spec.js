@@ -54,10 +54,10 @@ test.describe('UX Outcome-First No-Click-Hidden', () => {
       test.skip(true, 'Preview not visible within timeout');
       return;
     }
-    const metaSummary = page.locator('#preview-meta .meta-summary-line');
-    await expect(metaSummary).toBeVisible();
-    const text = await metaSummary.textContent().catch(() => '');
-    expect(text).toMatch(/Projects|Window|Boards|Sprints|Stories|Generated/i);
+    const outcomeLine = page.locator('#preview-outcome-line');
+    await expect(outcomeLine).toBeVisible();
+    const text = await outcomeLine.textContent().catch(() => '');
+    expect(text).toMatch(/done stories|sprints|boards/i);
 
     assertTelemetryClean(telemetry);
   });

@@ -199,7 +199,6 @@
     word-break: break-word;
   }
   .header-sprint-name,
-  .header-board-label,
   .header-sprint-dates {
     overflow-wrap: break-word;
     word-break: break-word;

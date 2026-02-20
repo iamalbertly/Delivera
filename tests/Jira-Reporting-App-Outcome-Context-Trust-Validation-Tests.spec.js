@@ -7,6 +7,17 @@ import {
 } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Outcome Context and Report Range Trust Validation', () => {
+  test('Report context line is non-empty before or after preview (placeholder or filters)', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    const contextLine = page.locator('#report-context-line');
+    await expect(contextLine).toBeVisible({ timeout: 10000 });
+    const text = (await contextLine.textContent().catch(() => '') || '').trim();
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).toMatch(/No report run yet|Active filters|Projects|Report range/i);
+    assertTelemetryClean(telemetry);
+  });
+
   test('Report context line uses Active filters + Report range label', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
 

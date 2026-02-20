@@ -238,12 +238,71 @@ export function renderBurndown(data) {
 export function renderStories(data) {
   const stories = data.stories || [];
   const planned = data.plannedWindow || {};
+  const scopeChanges = data.scopeChanges || [];
+  const stuckCandidates = data.stuckCandidates || [];
+  const summary = data.summary || {};
+  const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
   html += '<h2>Issues in this sprint</h2>';
-  // Dates are already shown in the sticky header; keep this line focused on intent to avoid duplicate date scanning.
-  html += '<p class="meta-row"><small>Planned work for the sprint window shown in the header above.</small></p>';
+  // Dates are already shown in the sticky header; this line focuses on evidence semantics.
+  html += '<p class="meta-row"><small>Time evidence uses subtasks: Estimated Hrs = plan, Logged Hrs = actual work entered.</small></p>';
   html += '<p class="meta-row"><small>Type guide: Parent issues carry outcome fields (story points, ownership). Sub-tasks are shown as child rows focused on time tracking.</small></p>';
+
+  // Direct-to-value trust strip: answers common role questions without scrolling.
+  const allSubtasks = stories.flatMap((s) => (Array.isArray(s.subtasks) ? s.subtasks : []));
+  const subtaskEstimatedHrs = allSubtasks.reduce((sum, st) => sum + (Number(st.estimateHours) || 0), 0);
+  const subtaskLoggedHrs = allSubtasks.reduce((sum, st) => sum + (Number(st.loggedHours) || 0), 0);
+  const subtasksNoLog = allSubtasks.filter((st) => (Number(st.estimateHours) > 0) && !(Number(st.loggedHours) > 0)).length;
+  const subtasksNoEstimate = allSubtasks.filter((st) => !(Number(st.estimateHours) > 0) && (Number(st.loggedHours) > 0)).length;
+  const subtasksOverrun = allSubtasks.filter((st) => Number(st.estimateHours) > 0 && Number(st.loggedHours) > Number(st.estimateHours)).length;
+  const subtasksDoneNoLog = allSubtasks.filter((st) => {
+    const done = String(st.status || '').toLowerCase().includes('done');
+    return done && !(Number(st.loggedHours) > 0);
+  }).length;
+  const parentUnassigned = stories.filter((s) => !s.assignee || s.assignee === '-' || String(s.assignee).toLowerCase() === 'unassigned').length;
+  const scopeUnestimated = scopeChanges.filter((row) => row.storyPoints == null || row.storyPoints === '').length;
+  const blockersInProgress = stuckCandidates.filter((s) => {
+    const st = String(s?.status || '').toLowerCase();
+    return st && st !== 'to do' && st !== 'open' && st !== 'backlog';
+  }).length;
+  const blockersNotStarted = Math.max(0, stuckCandidates.length - blockersInProgress);
+  const noSubtasksParents = stories.filter((s) => !Array.isArray(s.subtasks) || s.subtasks.length === 0).length;
+  const recentSubtaskMovement = Number(summary.recentSubtaskMovementCount || 0);
+  const movingParents = Number(summary.parentsWithRecentSubtaskMovement || 0);
+  const hasTimeEvidence = subtaskEstimatedHrs > 0 || subtaskLoggedHrs > 0 || allSubtasks.length > 0;
+  const timeConfidence = !hasTimeEvidence
+    ? 'No subtask time evidence'
+    : (subtaskLoggedHrs === 0 && subtaskEstimatedHrs > 0
+      ? 'Plans entered, no actual logs'
+      : (subtaskLoggedHrs > 0 ? 'Actual logs present' : 'Partial evidence'));
+  html += '<div class="summary-strip role-proof-strip" aria-live="polite">';
+  html += '<div class="summary-headline">';
+  html += '<strong>Role-proof snapshot</strong>';
+  html += '<span>Answers fast: who logged actual work, what is blocked, what needs follow-up.</span>';
+  html += '</div>';
+  html += '<div class="summary-links">';
+  html += '<a href="#work-risks-table">Open risks</a>';
+  html += '<a href="#stories-table">Open issue evidence</a>';
+  html += '</div>';
+  html += '<p class="meta-row"><small>Risks and blockers live in the Work risks card below.</small></p>';
+  html += '<div class="summary-grid">';
+  html += '<div class="summary-block"><span>Flow Evidence</span><strong>' + recentSubtaskMovement + ' subtask updates in last 24h</strong><span>' + movingParents + ' parent stor' + (movingParents === 1 ? 'y is' : 'ies are') + ' actively moving.</span></div>';
+  html += '<div class="summary-block"><span>Time Evidence</span><strong>' + formatNumber(subtaskLoggedHrs, 1, '0') + 'h logged / ' + formatNumber(subtaskEstimatedHrs, 1, '0') + 'h estimated</strong><span>' + escapeHtml(timeConfidence) + '</span></div>';
+  html += '<div class="summary-block"><span>Developer Concern</span><strong>' + subtasksNoLog + ' subtasks estimated but not logged</strong><span>Flow can move while worklogs stay at 0h; this is a logging gap, not flow denial.</span></div>';
+  html += '<div class="summary-block"><span>Scrum Master Focus</span><strong>' + blockersInProgress + ' active blockers</strong><span>' + blockersNotStarted + ' still not started; ' + excludedParents + ' parent flow item' + (excludedParents === 1 ? '' : 's') + ' excluded from blockers.</span></div>';
+  const scopeStrong = scopeChanges.length === 0 ? 'No scope added' : ('+' + scopeChanges.length + ' added mid-sprint');
+  const scopeSpan = scopeUnestimated > 0 ? (scopeUnestimated + ' without story points; review impact.') : 'Scope stable.';
+  html += '<div class="summary-block"><span>Product Owner Scope</span><strong>' + escapeHtml(scopeStrong) + '</strong><span>' + escapeHtml(scopeSpan) + '</span></div>';
+  html += '<div class="summary-block"><span>Engineering Manager</span><strong>' + parentUnassigned + ' unassigned parent items</strong><span>' + noSubtasksParents + ' parent item' + (noSubtasksParents === 1 ? '' : 's') + ' have no subtask trail.</span></div>';
+  html += '</div>';
+  html += '<div class="subtask-chips">';
+  html += '<span class="subtask-chip subtask-chip-warning">Estimated, no log: ' + subtasksNoLog + '</span>';
+  html += '<span class="subtask-chip subtask-chip-info">Logged, no estimate: ' + subtasksNoEstimate + '</span>';
+  html += '<span class="subtask-chip subtask-chip-warning">Overrun: ' + subtasksOverrun + '</span>';
+  html += '<span class="subtask-chip subtask-chip-neutral">Done, no log: ' + subtasksDoneNoLog + '</span>';
+  html += '</div>';
+  html += '</div>';
 
   function renderStoryRow(row) {
     let rowHtml = '<tr class="story-parent-row">';
@@ -269,10 +328,27 @@ export function renderStories(data) {
     for (const child of subtasks) {
       const owner = child.assignee || row.assignee || row.reporter || '-';
       const parentKey = child.parentIssueKey || row.issueKey || row.key || '-';
-      rowsHtml += '<tr class="subtask-child-row">';
+      const est = Number(child.estimateHours || 0);
+      const log = Number(child.loggedHours || 0);
+      const done = String(child.status || '').toLowerCase().includes('done');
+      const rowFlags = [];
+      if (est > 0 && !(log > 0)) rowFlags.push('flag-est-no-log');
+      if (!(est > 0) && log > 0) rowFlags.push('flag-log-no-est');
+      if (est > 0 && log > est) rowFlags.push('flag-overrun');
+      if (done && !(log > 0)) rowFlags.push('flag-done-no-log');
+      const flagBadges = [];
+      if (est > 0 && !(log > 0)) flagBadges.push('Estimated, no log');
+      if (!(est > 0) && log > 0) flagBadges.push('Logged, no estimate');
+      if (est > 0 && log > est) flagBadges.push('Overrun');
+      if (done && !(log > 0)) flagBadges.push('Done, no log');
+      rowsHtml += '<tr class="subtask-child-row ' + rowFlags.join(' ') + '">';
       rowsHtml += '<td class="subtask-child-issue"><span class="subtask-parent-context" title="Parent issue">' + escapeHtml(parentKey) + '</span>' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
       rowsHtml += '<td>' + escapeHtml(child.issueType || 'Sub-task') + '</td>';
-      rowsHtml += '<td class="cell-wrap subtask-child-summary">' + escapeHtml(child.summary || '-') + '</td>';
+      rowsHtml += '<td class="cell-wrap subtask-child-summary">' + escapeHtml(child.summary || '-');
+      if (flagBadges.length > 0) {
+        rowsHtml += '<div class="subtask-row-flags">' + flagBadges.map((f) => '<span class="subtask-row-flag">' + escapeHtml(f) + '</span>').join('') + '</div>';
+      }
+      rowsHtml += '</td>';
       rowsHtml += '<td>' + escapeHtml(child.status || '-') + '</td>';
       rowsHtml += '<td>-</td>';
       rowsHtml += '<td>' + escapeHtml(owner) + '</td>';
@@ -313,6 +389,7 @@ export function renderStories(data) {
       html += '</template>';
     }
   }
+  html += '<p class="meta-row"><small>Edge rules: subtasks with logs but no estimates = unestimated effort; done subtasks with 0 logged = process gap; parent items can be active via subtask movement and are excluded from blocker count.</small></p>';
   html += '</div>';
   return html;
 }

@@ -117,7 +117,7 @@ test.describe('UX Report Flow & Export Experience', () => {
     if (stickyVisible) {
       await expect(sticky).toBeVisible();
     } else {
-      await expect(page.locator('#preview-meta .meta-summary-line')).toBeVisible();
+      await expect(page.locator('#preview-outcome-line')).toBeVisible();
     }
   });
 });

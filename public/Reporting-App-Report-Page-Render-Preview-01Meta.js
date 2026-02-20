@@ -103,7 +103,23 @@ export function buildPreviewMetaAndStatus(params) {
       prevRunHtml = '<span class="preview-previous-run" aria-live="polite"> Previous run: ' + prevStories + ' done stories, ' + prevSprints + ' sprints.</span>';
     }
   } catch (_) {}
-  const outcomeLineHTML = escapeHtml(rowsCount + ' done stories | ' + sprintsCount + ' sprints | ' + boardsCount + ' boards in window' + partialSuffix) + prevRunHtml;
+  // Single outcome line SSOT: one scannable line with outcome + badge + previous run (no duplicate "Window coverage").
+  const generated = buildGeneratedLabels(meta.generatedAt);
+  let dataStateLabel = 'Live';
+  let dataStateKind = 'live';
+  if (reducedScope) {
+    dataStateLabel = 'Closest match';
+    dataStateKind = 'closest';
+  } else if (partial) {
+    dataStateLabel = 'Partial data';
+    dataStateKind = 'partial';
+  } else if (fromCache) {
+    const ageMin = generated.ageMin;
+    dataStateLabel = ageMin < 1 ? 'Just updated' : (ageMin < 60 ? `${ageMin} min ago` : 'Over 1h ago');
+    dataStateKind = ageMin > 30 ? 'stale' : 'cached';
+  }
+  const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
+  const outcomeLineHTML = escapeHtml(rowsCount + ' done stories, ' + sprintsCount + ' sprints, ' + boardsCount + ' boards in window' + partialSuffix) + ' ' + dataStateBadgeHTML + prevRunHtml;
 
   const phaseLog = Array.isArray(meta.phaseLog) ? meta.phaseLog : [];
   const phaseLogHtml = phaseLog.length > 0
@@ -114,23 +130,6 @@ export function buildPreviewMetaAndStatus(params) {
   else if (timedOut) metaSummaryWhy = ' | Time limit reached (partial data)';
   else if (previewMode === 'recent-first') metaSummaryWhy = ' | Recent live; older from cache';
 
-  // UX Fix #1: Human-readable data state — replace [Cached]/[Live] developer-speak with
-  // freshness signals that communicate data reality to business users, not engineers.
-  const generated = buildGeneratedLabels(meta.generatedAt);
-  const ageMin = generated.ageMin;
-  let dataStateLabel = 'Live';
-  let dataStateKind = 'live';
-  if (reducedScope) {
-    dataStateLabel = 'Closest match';
-    dataStateKind = 'closest';
-  } else if (partial) {
-    dataStateLabel = 'Partial data';
-    dataStateKind = 'partial';
-  } else if (fromCache) {
-    // Show actual age instead of opaque "Cached" — users need to know if data is stale
-    dataStateLabel = ageMin < 1 ? 'Just updated' : (ageMin < 60 ? `${ageMin} min ago` : 'Over 1h ago');
-    dataStateKind = ageMin > 30 ? 'stale' : 'cached';
-  }
   if (meta.failedBoardCount && meta.failedBoardCount > 0) {
     const failedBoards = Array.isArray(meta.failedBoards) ? meta.failedBoards : [];
     const boardNames = failedBoards
@@ -139,14 +138,8 @@ export function buildPreviewMetaAndStatus(params) {
     const suffix = boardNames.length ? ` (${boardNames.join(', ')})` : '';
     detailsLines.push(`Skipped boards: ${meta.failedBoardCount}${suffix}`);
   }
-  const outcomeLine = rowsCount + ' done stories | ' + sprintsCount + ' sprints | ' + boardsCount + ' boards in window' + partialSuffix;
-  const compactSummaryLine = 'Window coverage: Boards ' + boardsCount + (sprintsCount > 0 ? ' | Sprints ' + sprintsCount : '');
-  // Range and projects live in #report-context-line (SSOT); avoid repeating here.
-  const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
+  // Preview meta: only expandable details; single outcome line lives in #preview-outcome-line (outcomeLineHTML).
   const previewMetaHTML = `
-    <div class="meta-info-summary meta-summary-line">
-      <div class="meta-outcome-line">${escapeHtml(compactSummaryLine)} ${dataStateBadgeHTML}</div>
-    </div>
     <div class="meta-info meta-info-details">
       <strong>Range (UTC):</strong> ${escapeHtml(windowStartUtc)} to ${escapeHtml(windowEndUtc)}<br>
       <strong>Example story:</strong> ${sampleLabel}<br>

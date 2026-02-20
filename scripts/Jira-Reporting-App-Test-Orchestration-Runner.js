@@ -384,6 +384,7 @@ async function runAllTests() {
 
     const totalToRun = stepsToRun.length;
     const runStartedAt = Date.now();
+    // Steps run in order; first failure stops the run and is visible in this terminal.
     for (let i = 0; i < stepsToRun.length; i++) {
       // Allow external cancel between steps via cancel flag file.
       try {

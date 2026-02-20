@@ -44,9 +44,9 @@ test.describe('UX Outcome-First Nav And Trust', () => {
     }
     const meta = page.locator('#preview-meta');
     await expect(meta).toBeVisible();
-    const outcomeLine = page.locator('.meta-outcome-line');
+    const outcomeLine = page.locator('#preview-outcome-line');
     await expect(outcomeLine).toBeVisible();
-    await expect(outcomeLine).toContainText(/Window coverage|done stories|sprints|boards/i);
+    await expect(outcomeLine).toContainText(/done stories|sprints|boards/i);
     const contextLine = page.locator('#report-context-line');
     await expect(contextLine).toBeVisible();
     await expect(contextLine).toContainText(/Projects|Window|Active filters|Report range/i);

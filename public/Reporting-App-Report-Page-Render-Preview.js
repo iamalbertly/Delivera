@@ -2,7 +2,7 @@ import { reportDom } from './Reporting-App-Report-Page-Context.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
 import { getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
 import { buildPreviewMetaAndStatus } from './Reporting-App-Report-Page-Render-Preview-01Meta.js';
-import { renderSidebarContextCard } from './Reporting-App-Shared-Context-From-Storage.js';
+import { getContextDisplayString, renderSidebarContextCard } from './Reporting-App-Shared-Context-From-Storage.js';
 import { scheduleRender } from './Reporting-App-Report-Page-Loading-Steps.js';
 import { updateDateDisplay } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import {
@@ -23,7 +23,6 @@ export function renderPreview() {
   if (!previewData) return;
 
   const reportContextLine = document.getElementById('report-context-line');
-  if (reportContextLine) reportContextLine.textContent = '';
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
   if (loadLatestWrap) loadLatestWrap.style.display = 'none';
   const meta = getSafeMeta(previewData);
@@ -59,6 +58,7 @@ export function renderPreview() {
   const outcomeLineEl = document.getElementById('preview-outcome-line');
   if (outcomeLineEl) outcomeLineEl.innerHTML = metaBlock.outcomeLineHTML;
   if (previewMeta) previewMeta.innerHTML = metaBlock.previewMetaHTML;
+  if (reportContextLine) reportContextLine.textContent = getContextDisplayString();
   const stickyEl = document.getElementById('preview-summary-sticky');
   if (stickyEl) {
     stickyEl.textContent = metaBlock.stickyText || '';
@@ -156,7 +156,7 @@ export function renderPreview() {
     if (tabDoneStories) tabDoneStories.textContent = 'Outcome list (' + visibleRows.length + ')';
     if (tabUnusable) tabUnusable.textContent = 'Excluded sprints (' + unusableCountForTab + ')';
     const tabTrends = document.getElementById('tab-btn-trends');
-    if (tabTrends) tabTrends.textContent = 'Leadership Signals (Trends)';
+    if (tabTrends) tabTrends.textContent = 'Leadership Signals (Merged Trends)';
     let preferredTab = null;
     try {
       preferredTab = sessionStorage.getItem('report-active-tab');

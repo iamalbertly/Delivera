@@ -56,18 +56,18 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     await runDefaultPreview(page);
     const stickyRow = page.locator('#preview-summary-sticky').first();
     const chipsRow = page.locator('.applied-filters-chips-row').first();
-    const metaSummary = page.locator('#preview-meta .meta-summary-line').first();
+    const outcomeLine = page.locator('#preview-outcome-line').first();
     const hasVisibleSummaryAtStart =
       (await stickyRow.isVisible().catch(() => false))
       || (await chipsRow.isVisible().catch(() => false))
-      || (await metaSummary.isVisible().catch(() => false));
+      || (await outcomeLine.isVisible().catch(() => false));
     expect(hasVisibleSummaryAtStart).toBeTruthy();
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(300);
     const hasVisibleSummaryAfterScroll =
       (await stickyRow.isVisible().catch(() => false))
       || (await chipsRow.isVisible().catch(() => false))
-      || (await metaSummary.isVisible().catch(() => false));
+      || (await outcomeLine.isVisible().catch(() => false));
     expect(hasVisibleSummaryAfterScroll).toBeTruthy();
     assertTelemetryClean(telemetry);
   });
@@ -165,12 +165,12 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
       // UX Fix #1: Sticky suffix uses "Updated X min ago" or "Updated just now" (not "Generated:")
       expect(stickyText).toMatch(/Updated (just now|\d+ min ago)|(just now|\d+ min ago)/i);
     } else {
-      // UX Fix #1: Freshness is in the data-state badge inside .meta-summary-line
-      // Badge shows: "Live", "Just updated", "X min ago", "Partial data", "Closest match"
-      const metaBadge = await page.locator('#preview-meta .data-state-badge').textContent().catch(() => '');
-      const metaSummary = await page.locator('#preview-meta .meta-summary-line').textContent().catch(() => '');
-      const freshnessFound = /just now|\d+ min ago|live|just updated|partial|closest/i.test(metaBadge) ||
-                             /just now|\d+ min ago|live|just updated/i.test(metaSummary);
+      // UX Fix #1: Freshness is in the data-state badge inside #preview-outcome-line
+      const outcomeEl = page.locator('#preview-outcome-line');
+      const outcomeText = await outcomeEl.textContent().catch(() => '');
+      const badgeText = await outcomeEl.locator('.data-state-badge').textContent().catch(() => '');
+      const freshnessFound = /just now|\d+ min ago|live|just updated|partial|closest/i.test(badgeText) ||
+                             /just now|\d+ min ago|live|just updated/i.test(outcomeText);
       expect(freshnessFound).toBe(true);
     }
     assertTelemetryClean(telemetry);

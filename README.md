@@ -75,6 +75,11 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - **Report:** Preview meta shows a single outcome line (Window coverage: Boards N | Sprints N + data-state badge). Range and projects live only in `#report-context-line` to avoid repeated eye-travel and duplicate sentences.
   - **Current Sprint:** Removed duplicate "Board: X" line from the header; board name stays in the context chip (Active: project | Board name). Work risks card heading shortened to "Work risks"; blocker strip label changed from "Blockers now: N" to "Blocker issues" with a one-line dedupe hint ("Each issue is counted once as a blocker...") above the table. When there are no blockers, the card shows "No blocker issues in this sprint." Product Owner summary block shows "No scope additions" / "Scope stable." when scope or unestimated counts are zero.
   - Tests updated to assert context from `#report-context-line` and board from `.header-context-chip`, and to validate header blocker count against the work-risks table row count when the strip is visible. Unused `buildActiveFiltersContextLabel` import removed from report preview meta builder.
+- Report single outcome line and scope copy alignment (2026-02-20):
+  - Report preview now shows a single outcome line in `#preview-outcome-line` (done stories, sprints, boards in window + data-state badge + previous run if any); `#preview-meta` contains only expandable technical details. Context remains SSOT in `#report-context-line` and is set after preview render via `getContextDisplayString()`.
+  - Dead CSS removed or commented: `.meta-context-line` and `.header-board-label` (elements removed for dedupe; board in context chip, outcome in single line).
+  - Current Sprint stories card Product Owner Scope block aligned with Work risks: "No scope added" / "Scope stable." when scope or unestimated counts are zero; one-line hint "Risks and blockers live in the Work risks card below" under the role-proof strip.
+  - Tests updated to assert outcome from `#preview-outcome-line`; report context line non-empty placeholder test added.
 
 ## Latest Reliability and UX Updates (2026-02-16)
 

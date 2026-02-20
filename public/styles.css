@@ -1279,17 +1279,13 @@ body.sidebar-scroll-lock {
 }
 
 .meta-info-summary .meta-summary-line,
-.meta-info-summary .meta-outcome-line,
-.meta-info-summary .meta-context-line {
+.meta-info-summary .meta-outcome-line {
   flex: 1 1 100%;
   min-width: 0;
 }
-.meta-info-summary .meta-context-line {
-  margin-top: 2px;
-}
+/* .meta-context-line removed: single outcome line lives in #preview-outcome-line */
 
 .meta-info-summary .meta-outcome-line,
-.meta-info-summary .meta-context-line,
 .meta-info-details {
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -3160,14 +3156,6 @@ body .preview-area {
   color: var(--muted);
   font-size: 0.9em;
 }
-.sprint-outcome-line {
-  width: 100%;
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--primary-strong, #1a1a1a);
-}
-
 .sprint-verdict-line {
   width: 100%;
   font-size: 0.84rem;
@@ -3254,12 +3242,7 @@ body .preview-area {
   background: var(--bg-accent);
 }
 
-.header-board-label {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-
+/* Legacy; .header-board-label element removed for dedupe (board in context chip) */
 .header-sprint-dates {
   font-size: 0.85rem;
   color: var(--muted);
@@ -3479,6 +3462,25 @@ body .preview-area {
   color: #4b5565;
 }
 
+/* Work risks: visually nest subtask risk rows under their parent */
+.work-risk-subtask-row td {
+  font-weight: 400;
+  background: #fafcff;
+  color: #4b5565;
+}
+
+#work-risks-table .work-risk-subtask-row td[data-label="Issue"] {
+  padding-left: 24px !important;
+  position: relative;
+}
+
+#work-risks-table .work-risk-subtask-row td[data-label="Issue"]::before {
+  content: '\2514';
+  position: absolute;
+  left: 10px;
+  color: #7d8798;
+}
+
 .subtask-child-issue {
   padding-left: 24px !important;
   position: relative;
@@ -3504,6 +3506,58 @@ body .preview-area {
 
 .subtask-child-summary {
   font-size: 0.92em;
+}
+
+.role-proof-strip {
+  margin-top: 10px;
+}
+
+.subtask-row-flags {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subtask-row-flag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background: #e8eef8;
+  color: #23406a;
+}
+
+.subtask-child-row.flag-est-no-log td {
+  background: #fff8e6;
+}
+
+.subtask-child-row.flag-log-no-est td {
+  background: #e8f3ff;
+}
+
+.subtask-child-row.flag-overrun td {
+  background: #ffecec;
+}
+
+.subtask-child-row.flag-done-no-log td {
+  border-left: 3px solid #d97706;
+}
+
+/* Work risks parent toggle button: minimal, unobtrusive chevron */
+.work-risks-toggle {
+  margin-right: 6px;
+  border: none;
+  background: transparent;
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.work-risks-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }
 
 .alert-banner {
@@ -5102,9 +5156,27 @@ body.notification-dock-visible .export-dashboard-container {
 /* M10: 44px touch targets for carousel tabs on mobile */
 @media (max-width: 768px) {
   .current-sprint-header-bar {
-    width: auto;
+    width: 100%;
     max-width: 100%;
-    overflow: hidden;
+    overflow-x: clip;
+  }
+
+  .header-bar-center {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .header-metric,
+  .header-metric-link {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .metric-value {
+    font-size: 1rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .carousel-tab {
@@ -5442,7 +5514,6 @@ body.notification-dock-visible .export-dashboard-container {
     word-break: break-word;
   }
   .header-sprint-name,
-  .header-board-label,
   .header-sprint-dates {
     overflow-wrap: break-word;
     word-break: break-word;

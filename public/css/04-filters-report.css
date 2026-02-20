@@ -749,17 +749,12 @@
 }
 
 .meta-info-summary .meta-summary-line,
-.meta-info-summary .meta-outcome-line,
-.meta-info-summary .meta-context-line {
+.meta-info-summary .meta-outcome-line {
   flex: 1 1 100%;
   min-width: 0;
 }
-.meta-info-summary .meta-context-line {
-  margin-top: 2px;
-}
-
+/* .meta-context-line removed: single outcome in #preview-outcome-line */
 .meta-info-summary .meta-outcome-line,
-.meta-info-summary .meta-context-line,
 .meta-info-details {
   overflow-wrap: anywhere;
   word-break: break-word;
