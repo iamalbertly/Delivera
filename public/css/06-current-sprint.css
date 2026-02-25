@@ -684,6 +684,40 @@
   margin-top: 10px;
 }
 
+.daily-completion-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.daily-timeline-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.daily-timeline-chip:hover {
+  background: var(--bg-accent);
+}
+
+.daily-timeline-chip-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.daily-timeline-chip-label {
+  white-space: nowrap;
+}
+
 .subtask-row-flags {
   margin-top: 6px;
   display: flex;
@@ -2440,6 +2474,11 @@ body.notification-dock-visible .export-dashboard-container {
 @media (max-width: 768px) {
   .sprint-carousel-scroll-hint { display: block; }
   .sprint-carousel-scroll-hint.scrolled { opacity: 0; pointer-events: none; }
+
+  .daily-completion-timeline {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* M10: Minimum 44px touch targets for actionable alert controls on sprint page */

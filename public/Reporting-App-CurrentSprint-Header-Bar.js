@@ -11,7 +11,6 @@ import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboa
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { renderCountdownTimer } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
 import { buildActiveFiltersContextLabel } from './Reporting-App-Shared-Context-From-Storage.js';
-import { getUnifiedBlockerCount } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 export function renderHeaderBar(data) {
   const sprint = data.sprint || {};
@@ -19,16 +18,10 @@ export function renderHeaderBar(data) {
   const days = data.daysMeta || {};
   const planned = data.plannedWindow || {};
   const meta = data.meta || {};
-  const trackingRows = Array.isArray(data?.subtaskTracking?.rows)
-    ? data.subtaskTracking.rows
-    : (Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : []);
-  const stuckCount = getUnifiedBlockerCount(data);
   const scopeCount = Array.isArray(data.scopeChanges) ? data.scopeChanges.length : 0;
   const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
   const subtaskEstimatedHrs = Number(summary.subtaskEstimatedHours || 0);
   const subtaskLoggedHrs = Number(summary.subtaskLoggedHours || 0);
-  const missingEstimates = trackingRows.filter((r) => !r.estimateHours || r.estimateHours === 0).length;
-  const missingLoggedItems = trackingRows.filter((r) => !r.loggedHours || r.loggedHours === 0).length;
 
   const donePercentage = summary.percentDone ?? 0;
   const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
@@ -59,6 +52,9 @@ export function renderHeaderBar(data) {
 
   const issuesCount = (data.stories || []).length;
   const verdictInfo = deriveSprintVerdict(data);
+  const stuckCount = Number(verdictInfo.stuckCount || 0);
+  const missingEstimates = Number(verdictInfo.missingEstimate || 0);
+  const missingLoggedItems = Number(verdictInfo.missingLogged || 0);
   const compactRiskParts = [];
   if (stuckCount > 0) compactRiskParts.push(stuckCount + ' blockers');
   if (excludedParents > 0) compactRiskParts.push(excludedParents + ' parent stor' + (excludedParents === 1 ? 'y' : 'ies') + ' flowing via subtasks');

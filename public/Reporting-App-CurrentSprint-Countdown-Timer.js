@@ -73,7 +73,7 @@ export function renderCountdownTimer(data, options = {}) {
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
   let html = '<div class="countdown-timer-widget' + (compact ? ' countdown-timer-widget-compact' : '') + '" aria-live="polite" aria-label="' + ariaLabel + '">';
-  html += '<span class="countdown-title">Remaining</span>';
+  html += '<span class="countdown-title">Time left</span>';
   html += '<svg class="countdown-ring ' + color + (isUrgent ? ' urgent' : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
   
   // Background ring

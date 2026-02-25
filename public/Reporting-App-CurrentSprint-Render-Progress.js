@@ -241,6 +241,7 @@ export function renderStories(data) {
   const scopeChanges = data.scopeChanges || [];
   const stuckCandidates = data.stuckCandidates || [];
   const summary = data.summary || {};
+  const dailySeries = Array.isArray(data?.dailyCompletions?.stories) ? data.dailyCompletions.stories : [];
   const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
@@ -304,8 +305,34 @@ export function renderStories(data) {
   html += '</div>';
   html += '</div>';
 
+  if (dailySeries.length > 0) {
+    const dayKeysSet = new Set();
+    dailySeries.forEach((row) => {
+      if (!row || !row.date) return;
+      try {
+        const key = new Date(row.date).toISOString().slice(0, 10);
+        if (key) dayKeysSet.add(key);
+      } catch (_) {}
+    });
+    const dayKeys = Array.from(dayKeysSet).sort();
+    if (dayKeys.length > 0) {
+      html += '<div class="daily-completion-timeline" aria-label="Filter issues by completion day">';
+      html += '<button type="button" class="daily-timeline-chip daily-timeline-chip-active" data-day-key="">All days</button>';
+      dayKeys.forEach((key) => {
+        const label = formatDayLabel(key);
+        html += '<button type="button" class="daily-timeline-chip" data-day-key="' + escapeHtml(key) + '"><span class="daily-timeline-chip-label">' + escapeHtml(label) + '</span></button>';
+      });
+      html += '</div>';
+    }
+  }
+
   function renderStoryRow(row) {
-    let rowHtml = '<tr class="story-parent-row">';
+    const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
+    let rowHtml = '<tr class="story-parent-row"';
+    if (completedDayKey) {
+      rowHtml += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
+    }
+    rowHtml += '>';
     rowHtml += '<td>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
     rowHtml += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
     rowHtml += '<td class="cell-wrap">' + escapeHtml(row.summary || '-') + '</td>';
@@ -341,7 +368,13 @@ export function renderStories(data) {
       if (!(est > 0) && log > 0) flagBadges.push('Logged, no estimate');
       if (est > 0 && log > est) flagBadges.push('Overrun');
       if (done && !(log > 0)) flagBadges.push('Done, no log');
-      rowsHtml += '<tr class="subtask-child-row ' + rowFlags.join(' ') + '">';
+      const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
+      const baseClasses = ['subtask-child-row'].concat(rowFlags).filter(Boolean).join(' ');
+      rowsHtml += '<tr class="' + baseClasses + '"';
+      if (completedDayKey) {
+        rowsHtml += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
+      }
+      rowsHtml += '>';
       rowsHtml += '<td class="subtask-child-issue"><span class="subtask-parent-context" title="Parent issue">' + escapeHtml(parentKey) + '</span>' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
       rowsHtml += '<td>' + escapeHtml(child.issueType || 'Sub-task') + '</td>';
       rowsHtml += '<td class="cell-wrap subtask-child-summary">' + escapeHtml(child.summary || '-');
@@ -397,4 +430,41 @@ export function renderStories(data) {
 export function wireProgressShowMoreHandlers() {
   wireShowMoreHandler('.stories-show-more', 'stories-more-template', '#stories-table tbody');
   wireShowMoreHandler('.burndown-show-more', 'burndown-more-template', '#burndown-table tbody');
+}
+
+export function wireDailyCompletionTimelineHandlers() {
+  try {
+    const card = document.getElementById('stories-card');
+    if (!card) return;
+    const timeline = card.querySelector('.daily-completion-timeline');
+    if (!timeline) return;
+    const chips = Array.from(timeline.querySelectorAll('.daily-timeline-chip'));
+    if (!chips.length) return;
+    const tableBody = card.querySelector('#stories-table tbody');
+    if (!tableBody) return;
+    const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+    function applyDayFilter(dayKey) {
+      const keyNorm = (dayKey || '').trim();
+      chips.forEach((chip) => {
+        const chipKey = (chip.getAttribute('data-day-key') || '').trim();
+        chip.classList.toggle('daily-timeline-chip-active', chipKey === keyNorm);
+      });
+      rows.forEach((row) => {
+        const rowKey = (row.getAttribute('data-completed-day') || '').trim();
+        const show = !keyNorm || (rowKey && rowKey === keyNorm);
+        row.style.display = show ? '' : 'none';
+      });
+    }
+
+    timeline.addEventListener('click', (event) => {
+      const chip = event.target.closest('.daily-timeline-chip');
+      if (!chip || !timeline.contains(chip)) return;
+      const dayKey = chip.getAttribute('data-day-key') || '';
+      applyDayFilter(dayKey);
+      try {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_) {}
+    });
+  } catch (_) {}
 }

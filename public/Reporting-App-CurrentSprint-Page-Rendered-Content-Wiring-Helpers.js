@@ -10,7 +10,7 @@ import { wireCapacityAllocationHandlers } from './Reporting-App-CurrentSprint-Ca
 import { wireSprintCarouselHandlers } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
 import { wireCountdownTimerHandlers } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
 import { wireSubtasksShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
-import { wireProgressShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Progress.js';
+import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers } from './Reporting-App-CurrentSprint-Render-Progress.js';
 import { wireExportHandlers } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { wireIssuePreviewHandlers } from './Reporting-App-CurrentSprint-Issue-Preview.js';
 
@@ -47,6 +47,7 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById) {
   wireCountdownTimerHandlers();
   wireSubtasksShowMoreHandlers();
   wireProgressShowMoreHandlers();
+  wireDailyCompletionTimelineHandlers();
   wireSprintCarouselHandlers((sprintId) => onSelectSprintById(sprintId));
   wireExportHandlers(data);
   wireIssuePreviewHandlers();

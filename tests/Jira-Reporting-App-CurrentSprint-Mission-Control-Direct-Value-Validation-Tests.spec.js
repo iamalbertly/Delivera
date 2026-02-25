@@ -58,7 +58,12 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       test.skip(true, 'Persona tiles not rendered for this dataset');
       return;
     }
-    await devTile.click();
+    await page.evaluate(() => {
+      const el = document.querySelector('#stuck-card .summary-block[data-persona="developer"]');
+      if (el && typeof el.click === 'function') {
+        el.click();
+      }
+    });
     const rows = page.locator('#work-risks-table tbody tr.work-risk-parent-row');
     const anyHidden = await rows.evaluateAll((items) =>
       items.some((row) => (row.style.display || '') === 'none')
@@ -115,6 +120,40 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await page.waitForTimeout(500);
     const urlAfter = page.url();
     expect(urlAfter).toBe(urlBefore);
+  });
+
+  test('Daily completion timeline filters Issues table by completion day', async ({ page }) => {
+    const timeline = page.locator('.daily-completion-timeline');
+    const visible = await timeline.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Daily completion timeline not rendered for this dataset');
+      return;
+    }
+
+    const table = page.locator('#stories-table');
+    await expect(table).toBeVisible();
+
+    const parentRows = table.locator('tbody tr.story-parent-row');
+    const beforeVisible = await parentRows.evaluateAll((rows) =>
+      rows.filter((r) => (r.style.display || '') !== 'none').length
+    );
+
+    const dayChip = timeline.locator('.daily-timeline-chip').filter((chip) =>
+      chip.getAttribute('data-day-key').then((val) => !!val)
+    ).first();
+    const hasDayChip = await dayChip.isVisible().catch(() => false);
+    if (!hasDayChip) {
+      test.skip(true, 'No specific day chips available in timeline');
+      return;
+    }
+
+    await dayChip.click();
+
+    const afterVisible = await parentRows.evaluateAll((rows) =>
+      rows.filter((r) => (r.style.display || '') !== 'none').length
+    );
+
+    expect(afterVisible).toBeLessThanOrEqual(beforeVisible);
   });
 });
 

@@ -14,6 +14,9 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 - Current Sprint exports prioritize **Copy summary** as the hero action and surface **Markdown** as a secondary inline export; other exports stay in the dropdown. Link and email actions now write timestamped, human-readable confirmations into an inline export status text block so stakeholders know what was shared and when.
 - Mobile UX Playwright specs were extended to cover the new status strip, quarter review toggle, and current-sprint export behavior (primary/secondary buttons and link-copy feedback), all wired into the existing fail-fast orchestration (`npm run test:all`).
 - Current Sprint **Copy summary** and Markdown exports now use typographic emphasis (bold headings, italics, and structured sections) to keep the four-line contract readable in chat/email while preserving one SSOT for risk, flow, and action items. UX Trust validation specs assert that these exports include emphasis markers and stay telemetry-clean.
+- Current Sprint **mission control header** now centralises sprint verdict, a single remaining-days metric, and compact risk pills that drive the merged Work risks table; the same verdict engine powers health copy in exports and dashboard views so wording cannot drift.
+- The Work risks card, persona tiles, and new **daily completion timeline chips** all reuse one filter event (`currentSprint:applyWorkRiskFilter`) so developers, scrum masters, product owners, and leads can jump straight from header or persona presets into a focused, filtered risks table without extra clicks or scrolling.
+- Issues in this sprint now combine parent/child hierarchy, inline time-tracking flags, and an **inline issue preview drawer**; clicking an issue in either Work risks or Issues opens a side-drawer with key metadata and a Jira link so leaders can inspect details without leaving the mission-control page.
 
 ## Latest Reliability and UX Updates (2026-02-17)
 
