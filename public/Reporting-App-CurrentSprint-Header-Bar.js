@@ -23,6 +23,7 @@ export function renderHeaderBar(data) {
     ? data.subtaskTracking.rows
     : (Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : []);
   const stuckCount = getUnifiedBlockerCount(data);
+  const scopeCount = Array.isArray(data.scopeChanges) ? data.scopeChanges.length : 0;
   const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
   const subtaskEstimatedHrs = Number(summary.subtaskEstimatedHours || 0);
   const subtaskLoggedHrs = Number(summary.subtaskLoggedHours || 0);
@@ -63,6 +64,7 @@ export function renderHeaderBar(data) {
   if (excludedParents > 0) compactRiskParts.push(excludedParents + ' parent stor' + (excludedParents === 1 ? 'y' : 'ies') + ' flowing via subtasks');
   if (missingEstimates > 0) compactRiskParts.push(missingEstimates + ' missing est');
   if (missingLoggedItems > 0) compactRiskParts.push(missingLoggedItems + ' no log');
+  if (scopeCount > 0) compactRiskParts.push(scopeCount + ' scope additions');
   const compactRiskLine = compactRiskParts.length ? compactRiskParts.join(' | ') : 'No active delivery risks';
   const blockerDrillDown = stuckCount > 0
     ? '<a href="#work-risks-table" class="sprint-verdict-drilldown">' + stuckCount + ' blockers - open list</a>'
@@ -70,8 +72,24 @@ export function renderHeaderBar(data) {
 
   let html = '<div class="current-sprint-header-bar" data-sprint-id="' + (sprint.id || '') + '">';
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictInfo.color) + '" aria-live="polite">';
-  html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong> | ' + escapeHtml(compactRiskLine);
-  html += ' | ' + blockerDrillDown;
+  html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong>';
+  html += '<span class="sprint-verdict-explain">';
+  if (compactRiskParts.length) {
+    html += ' · ';
+    if (stuckCount > 0) {
+      html += '<button type="button" class="verdict-pill" data-risk-tags="blocker" aria-label="Filter Work risks to blockers">' + escapeHtml(String(stuckCount)) + ' blockers</button>';
+    }
+    if (missingEstimates > 0) {
+      html += '<button type="button" class="verdict-pill" data-risk-tags="missing-estimate" aria-label="Filter Work risks to missing estimates">' + escapeHtml(String(missingEstimates)) + ' missing est</button>';
+    }
+    if (missingLoggedItems > 0) {
+      html += '<button type="button" class="verdict-pill" data-risk-tags="no-log" aria-label="Filter Work risks to no-log rows">' + escapeHtml(String(missingLoggedItems)) + ' no log</button>';
+    }
+  } else {
+    html += ' · <span class="verdict-pill verdict-pill-muted">No active delivery risks</span>';
+  }
+  html += '</span>';
+  html += ' · ' + blockerDrillDown;
   html += '</div>';
 
   const boardName = (data.board && data.board.name) ? data.board.name : '';
@@ -136,6 +154,13 @@ export function renderHeaderBar(data) {
   html += renderCountdownTimer(data, { compact: true });
   html += '<div class="status-badge ' + statusClass + '" role="status" aria-label="Data status: ' + escapeHtml(statusBadge) + '">' + escapeHtml(statusBadge) + '</div>';
   html += '<small class="header-export-readiness">' + escapeHtml(exportReadiness) + '</small>';
+  html += '<div class="header-role-modes" role="radiogroup" aria-label="Sprint view mode">';
+  html += '<button type="button" class="role-mode-pill" data-role-mode="all" aria-pressed="true">All</button>';
+  html += '<button type="button" class="role-mode-pill" data-role-mode="developer" aria-pressed="false">Dev</button>';
+  html += '<button type="button" class="role-mode-pill" data-role-mode="scrum-master" aria-pressed="false">SM</button>';
+  html += '<button type="button" class="role-mode-pill" data-role-mode="product-owner" aria-pressed="false">PO</button>';
+  html += '<button type="button" class="role-mode-pill" data-role-mode="line-manager" aria-pressed="false">Leads</button>';
+  html += '</div>';
   html += '<div class="header-updated">' + (freshnessLabel ? '<small class="last-updated">' + escapeHtml(freshnessLabel) + '</small>' : '') + '</div>';
   html += '<button class="btn btn-compact header-refresh-btn" title="Refresh sprint data">Refresh</button>';
   html += renderExportButton(true);
@@ -171,4 +196,98 @@ export function wireHeaderBarHandlers() {
       document.dispatchEvent(new Event('refreshSprint'));
     });
   }
+
+  const verdictLine = headerBar.querySelector('.sprint-verdict-line');
+  if (verdictLine) {
+    verdictLine.addEventListener('click', (event) => {
+      const pill = event.target.closest('.verdict-pill');
+      if (!pill) return;
+      const riskTagsAttr = pill.getAttribute('data-risk-tags') || '';
+      const riskTags = riskTagsAttr.split(/\s+/).filter(Boolean);
+      try {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'header-verdict' } }));
+        }
+      } catch (_) {}
+      try {
+        const table = document.getElementById('work-risks-table');
+        if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_) {}
+    });
+  }
+
+  const blockerLink = headerBar.querySelector('.sprint-verdict-drilldown');
+  if (blockerLink) {
+    blockerLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      try {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: ['blocker'], source: 'verdict-drilldown' } }));
+        }
+      } catch (_) {}
+      try {
+        const table = document.getElementById('work-risks-table');
+        if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_) {}
+    });
+  }
+
+  const blockersMetric = headerBar.querySelector('.header-metric-link[title="Jump to blocker list"]');
+  if (blockersMetric) {
+    blockersMetric.addEventListener('click', (event) => {
+      event.preventDefault();
+      try {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: ['blocker'], source: 'header-metric-blockers' } }));
+        }
+      } catch (_) {}
+      try {
+        const table = document.getElementById('work-risks-table');
+        if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_) {}
+    });
+  }
+
+  const roleModeKey = 'current_sprint_role_mode';
+  const roleButtons = Array.from(headerBar.querySelectorAll('.role-mode-pill'));
+  function applyRoleMode(mode) {
+    let active = mode || 'all';
+    if (!['all', 'developer', 'scrum-master', 'product-owner', 'line-manager'].includes(active)) {
+      active = 'all';
+    }
+    roleButtons.forEach((btn) => {
+      const btnMode = btn.getAttribute('data-role-mode');
+      const isActive = btnMode === active;
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      btn.classList.toggle('role-mode-pill-active', isActive);
+    });
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      const presetMap = {
+        all: [],
+        developer: ['no-log'],
+        'scrum-master': ['blocker'],
+        'product-owner': ['scope'],
+        'line-manager': ['unassigned'],
+      };
+      const riskTags = presetMap[active] || [];
+      try {
+        window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'role-mode-' + active } }));
+      } catch (_) {}
+    }
+  }
+  let initialMode = 'all';
+  try {
+    const stored = window.localStorage.getItem(roleModeKey);
+    if (stored) initialMode = stored;
+  } catch (_) {}
+  applyRoleMode(initialMode);
+  roleButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-role-mode') || 'all';
+      try {
+        window.localStorage.setItem(roleModeKey, mode);
+      } catch (_) {}
+      applyRoleMode(mode);
+    });
+  });
 }

@@ -77,7 +77,7 @@ export function renderCurrentSprintPage(data) {
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Burndown</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
-  html += '<div class="sprint-section-links" role="navigation" aria-label="Jump to section">' + jumpLinks.join('<span aria-hidden="true"> | </span>') + '</div>';
+  html += '<div class="sprint-section-links sprint-section-links-sticky" role="navigation" aria-label="Jump to section">' + jumpLinks.join('<span aria-hidden="true"> | </span>') + '</div>';
 
   html += '<div class="current-sprint-grid-layout">';
 

@@ -12,6 +12,7 @@ import { wireCountdownTimerHandlers } from './Reporting-App-CurrentSprint-Countd
 import { wireSubtasksShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
 import { wireProgressShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Progress.js';
 import { wireExportHandlers } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
+import { wireIssuePreviewHandlers } from './Reporting-App-CurrentSprint-Issue-Preview.js';
 
 function collapseMobileDetailsSections() {
   try {
@@ -48,5 +49,6 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById) {
   wireProgressShowMoreHandlers();
   wireSprintCarouselHandlers((sprintId) => onSelectSprintById(sprintId));
   wireExportHandlers(data);
+  wireIssuePreviewHandlers();
   collapseMobileDetailsSections();
 }

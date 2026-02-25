@@ -75,13 +75,13 @@ export function renderWorkRisksMerged(data) {
   if (metaParts.length > 0) {
     html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' | ')) + '</small></p>';
   }
-  html += '<div class="summary-grid">';
-  html += '<div class="summary-block"><span>Developer Proof</span><strong>' + noLogRows + ' no-log rows</strong><span>Estimated work without logged time is tracked as planning, not completion.</span></div>';
-  html += '<div class="summary-block"><span>Scrum Master Split</span><strong>' + blockerInProgress + ' active blockers</strong><span>' + blockerNotStarted + ' items are not started, so coaching target is different.</span></div>';
+  html += '<div class="summary-grid" aria-label="Role-focused Work risks views">';
+  html += '<div class="summary-block" role="button" tabindex="0" data-persona="developer" title="Focus Work risks on logging gaps developers care about."><span>Developer view</span><strong>' + noLogRows + ' no-log rows</strong><span>Estimated work without logged time is tracked as planning, not completion.</span></div>';
+  html += '<div class="summary-block" role="button" tabindex="0" data-persona="scrum-master" title="Focus Work risks on blockers for scrum masters."><span>Scrum master view</span><strong>' + blockerInProgress + ' active blockers</strong><span>' + blockerNotStarted + ' items are not started, so coaching target is different.</span></div>';
   const scopeLabel = scopeChanges.length === 0 ? 'No scope additions' : (scopeChanges.length + ' scope additions');
-  html += '<div class="summary-block"><span>Product Owner Impact</span><strong>' + escapeHtml(scopeLabel) + '</strong><span>' + (scopeUnestimated > 0 ? scopeUnestimated + ' additions have no SP estimate.' : 'Scope stable.') + '</span></div>';
-  html += '<div class="summary-block"><span>Release Train Engineer</span><strong>' + excludedParents + ' parent flows excluded</strong><span>Parent story not counted as blocked when subtasks moved in last 24h.</span></div>';
-  html += '<div class="summary-block"><span>Line Manager</span><strong>' + unassignedRows + ' unassigned risk rows</strong><span>Ownership gaps may hide follow-up accountability.</span></div>';
+  html += '<div class="summary-block" role="button" tabindex="0" data-persona="product-owner" title="Focus Work risks on mid-sprint scope changes."><span>Product owner view</span><strong>' + escapeHtml(scopeLabel) + '</strong><span>' + (scopeUnestimated > 0 ? scopeUnestimated + ' additions have no SP estimate.' : 'Scope stable.') + '</span></div>';
+  html += '<div class="summary-block" role="button" tabindex="0" data-persona="release-train" title="Focus Work risks on parent flows excluded due to subtasks."><span>Release train view</span><strong>' + excludedParents + ' parent flows excluded</strong><span>Parent story not counted as blocked when subtasks moved in last 24h.</span></div>';
+  html += '<div class="summary-block" role="button" tabindex="0" data-persona="line-manager" title="Focus Work risks on unowned risks for line managers."><span>Line manager view</span><strong>' + unassignedRows + ' unassigned risk rows</strong><span>Ownership gaps may hide follow-up accountability.</span></div>';
   html += '</div>';
   if (noEstimateRows > 0 || noLogRows > 0) {
     html += '<p class="meta-row"><small>Interpretation rule: "Missing estimate" = no planning baseline; "No log yet" = baseline exists, actual effort missing.</small></p>';
@@ -108,7 +108,17 @@ export function renderWorkRisksMerged(data) {
     const childRows = parentKey ? (childrenByParentKey.get(parentKey) || []) : [];
     const hasChildren = childRows.length > 0;
     const parentClasses = hasChildren ? 'work-risk-parent-row work-risk-parent-has-children' : 'work-risk-parent-row';
-    html += '<tr class="' + parentClasses + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (hasChildren ? ' aria-expanded="true"' : '') + '>';
+    const hasMissingEstimate = riskTypeLower.includes('missing estimate');
+    const hasNoLog = riskTypeLower.includes('no log yet');
+    const isScopeRow = String(row.source || '').toLowerCase() === 'scope';
+    const isUnassigned = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
+    const riskTags = [];
+    if (isStuck) riskTags.push('blocker');
+    if (hasMissingEstimate) riskTags.push('missing-estimate');
+    if (hasNoLog) riskTags.push('no-log');
+    if (isScopeRow) riskTags.push('scope');
+    if (isUnassigned) riskTags.push('unassigned');
+    html += '<tr class="' + parentClasses + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (hasChildren ? ' aria-expanded="true"' : '') + (riskTags.length ? ' data-risk-tags="' + escapeHtml(riskTags.join(' ')) + '"' : '') + '>';
     let sourceLabel = escapeHtml(row.source || '-');
     if (hasChildren) {
       sourceLabel = '<button type="button" class="work-risks-toggle" aria-label="Toggle subtask risks" aria-expanded="true">▾</button>' + sourceLabel;
@@ -135,7 +145,17 @@ export function renderWorkRisksMerged(data) {
         const childRiskLabel = childIsSubtaskBlocker
           ? (child.riskType || 'Stuck >24h') + ' (Subtask)'
           : (child.riskType || '-');
-        html += '<tr class="work-risk-subtask-row" data-parent-key="' + escapeHtml(parentKey) + '">';
+        const childHasMissingEstimate = childRiskTypeLower.includes('missing estimate');
+        const childHasNoLog = childRiskTypeLower.includes('no log yet');
+        const childIsScopeRow = String(child.source || '').toLowerCase() === 'scope';
+        const childIsUnassigned = !child.assignee || child.assignee === '-' || String(child.assignee).toLowerCase() === 'unassigned';
+        const childRiskTags = [];
+        if (childIsStuck) childRiskTags.push('blocker');
+        if (childHasMissingEstimate) childRiskTags.push('missing-estimate');
+        if (childHasNoLog) childRiskTags.push('no-log');
+        if (childIsScopeRow) childRiskTags.push('scope');
+        if (childIsUnassigned) childRiskTags.push('unassigned');
+        html += '<tr class="work-risk-subtask-row" data-parent-key="' + escapeHtml(parentKey) + '"' + (childRiskTags.length ? ' data-risk-tags="' + escapeHtml(childRiskTags.join(' ')) + '"' : '') + '>';
         html += '<td data-label="' + escapeHtml(headers[0]) + '">' + escapeHtml(child.source || 'Subtask') + '</td>';
         html += '<td data-label="' + escapeHtml(headers[1]) + '">' + escapeHtml(childRiskLabel) + '</td>';
         html += '<td data-label="' + escapeHtml(headers[2]) + '">' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
@@ -170,7 +190,17 @@ export function renderWorkRisksMerged(data) {
       const childRows = parentKey ? (childrenByParentKey.get(parentKey) || []) : [];
       const hasChildren = childRows.length > 0;
       const parentClasses = hasChildren ? 'work-risk-parent-row work-risk-parent-has-children' : 'work-risk-parent-row';
-      html += '<tr class="' + parentClasses + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (hasChildren ? ' aria-expanded="true"' : '') + '>';
+      const hasMissingEstimate = riskTypeLower.includes('missing estimate');
+      const hasNoLog = riskTypeLower.includes('no log yet');
+      const isScopeRow = String(row.source || '').toLowerCase() === 'scope';
+      const isUnassigned = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
+      const riskTags = [];
+      if (isStuck) riskTags.push('blocker');
+      if (hasMissingEstimate) riskTags.push('missing-estimate');
+      if (hasNoLog) riskTags.push('no-log');
+      if (isScopeRow) riskTags.push('scope');
+      if (isUnassigned) riskTags.push('unassigned');
+      html += '<tr class="' + parentClasses + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (hasChildren ? ' aria-expanded="true"' : '') + (riskTags.length ? ' data-risk-tags="' + escapeHtml(riskTags.join(' ')) + '"' : '') + '>';
       let sourceLabel = escapeHtml(row.source || '-');
       if (hasChildren) {
         sourceLabel = '<button type="button" class="work-risks-toggle" aria-label="Toggle subtask risks" aria-expanded="true">▾</button>' + sourceLabel;
@@ -197,7 +227,17 @@ export function renderWorkRisksMerged(data) {
           const childRiskLabel = childIsSubtaskBlocker
             ? (child.riskType || 'Stuck >24h') + ' (Subtask)'
             : (child.riskType || '-');
-          html += '<tr class="work-risk-subtask-row" data-parent-key="' + escapeHtml(parentKey) + '">';
+          const childHasMissingEstimate = childRiskTypeLower.includes('missing estimate');
+          const childHasNoLog = childRiskTypeLower.includes('no log yet');
+          const childIsScopeRow = String(child.source || '').toLowerCase() === 'scope';
+          const childIsUnassigned = !child.assignee || child.assignee === '-' || String(child.assignee).toLowerCase() === 'unassigned';
+          const childRiskTags = [];
+          if (childIsStuck) childRiskTags.push('blocker');
+          if (childHasMissingEstimate) childRiskTags.push('missing-estimate');
+          if (childHasNoLog) childRiskTags.push('no-log');
+          if (childIsScopeRow) childRiskTags.push('scope');
+          if (childIsUnassigned) childRiskTags.push('unassigned');
+          html += '<tr class="work-risk-subtask-row" data-parent-key="' + escapeHtml(parentKey) + '"' + (childRiskTags.length ? ' data-risk-tags="' + escapeHtml(childRiskTags.join(' ')) + '"' : '') + '>';
           html += '<td data-label="Source">' + escapeHtml(child.source || 'Subtask') + '</td>';
           html += '<td data-label="Risk">' + escapeHtml(childRiskLabel) + '</td>';
           html += '<td data-label="Issue">' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
@@ -247,6 +287,66 @@ export function wireSubtasksShowMoreHandlers() {
         }
       });
     });
+    table.addEventListener('click', (event) => {
+      const personaBlock = event.target.closest('.summary-block[data-persona]');
+      if (!personaBlock || !table.contains(personaBlock)) return;
+      const persona = personaBlock.getAttribute('data-persona') || '';
+      const personaMap = {
+        developer: ['no-log'],
+        'scrum-master': ['blocker'],
+        'product-owner': ['scope'],
+        'release-train': ['parent-flow'],
+        'line-manager': ['unassigned'],
+      };
+      const riskTags = personaMap[persona] || [];
+      try {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'persona-' + persona } }));
+        }
+      } catch (_) {}
+      try {
+        table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_) {}
+    });
+    table.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const personaBlock = event.target.closest('.summary-block[data-persona]');
+      if (!personaBlock || !table.contains(personaBlock)) return;
+      event.preventDefault();
+      personaBlock.click();
+    });
+    if (!window.__currentSprintWorkRisksFilterBound) {
+      window.__currentSprintWorkRisksFilterBound = true;
+      window.addEventListener('currentSprint:applyWorkRiskFilter', (event) => {
+        const detail = event && event.detail ? event.detail : {};
+        const activeTags = Array.isArray(detail.riskTags)
+          ? detail.riskTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
+          : [];
+        const allParentRows = table.querySelectorAll('.work-risk-parent-row');
+        const allChildRows = table.querySelectorAll('.work-risk-subtask-row');
+        if (!activeTags.length) {
+          allParentRows.forEach((row) => { row.style.display = ''; });
+          allChildRows.forEach((row) => { row.style.display = ''; });
+          return;
+        }
+        allParentRows.forEach((row) => {
+          const tags = (row.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
+          const matches = activeTags.some((tag) => tags.includes(tag));
+          row.style.display = matches ? '' : 'none';
+        });
+        allChildRows.forEach((row) => {
+          const parentKey = row.getAttribute('data-parent-key') || '';
+          const parentRow = parentKey ? table.querySelector('.work-risk-parent-row[data-parent-key="' + parentKey + '"]') : null;
+          if (parentRow && parentRow.style.display === 'none') {
+            row.style.display = 'none';
+            return;
+          }
+          const tags = (row.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
+          const matches = activeTags.some((tag) => tags.includes(tag));
+          row.style.display = matches ? '' : 'none';
+        });
+      });
+    }
   } catch (_) {}
 }
 

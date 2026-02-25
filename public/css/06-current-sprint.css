@@ -325,6 +325,28 @@
   display: inline;
 }
 
+.verdict-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: #f1f5f9;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.verdict-pill:hover {
+  background: #e2e8f0;
+}
+
+.verdict-pill-muted {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+}
+
 .header-bar-left {
   flex: 0 1 auto;
   min-width: 250px;
@@ -1298,6 +1320,14 @@
   text-decoration: underline;
 }
 
+.sprint-section-links-sticky {
+  position: sticky;
+  top: calc(var(--sticky-summary-top, 72px) + 4px);
+  z-index: 40;
+  background: var(--bg);
+  padding: 6px 0;
+}
+
 .sprint-executive-snapshot {
   margin-bottom: 14px;
   border-left: 4px solid var(--primary);
@@ -2083,6 +2113,28 @@
   user-select: none;
 }
 
+.header-role-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.role-mode-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.role-mode-pill-active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
 /* UX Fix #7: Collapsed "No data" carousel cards — minimal height, muted, no wasted visual space */
 .carousel-tab--no-data {
   opacity: 0.55;
@@ -2462,4 +2514,90 @@ body.notification-dock-visible .export-dashboard-container {
   font-size: 0.68rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+.issue-preview-drawer {
+  position: fixed;
+  right: 0;
+  top: calc(var(--sticky-global-nav-top, 56px));
+  bottom: 0;
+  width: min(360px, 100%);
+  max-width: 100%;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 18px rgba(15, 23, 42, 0.16);
+  transform: translateX(100%);
+  transition: transform 0.2s ease-out;
+  z-index: 120;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.issue-preview-open {
+  transform: translateX(0);
+}
+
+.issue-preview-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.issue-preview-key {
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.issue-preview-key:hover {
+  text-decoration: underline;
+}
+
+.issue-preview-status {
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--card-muted);
+  color: var(--text);
+}
+
+.issue-preview-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+.issue-preview-summary {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.issue-preview-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.issue-preview-meta dt {
+  font-weight: 600;
+}
+
+.issue-preview-meta dd {
+  margin: 0;
+}
+
+.issue-preview-actions {
+  margin-top: 8px;
 }
