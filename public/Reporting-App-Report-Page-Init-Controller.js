@@ -281,10 +281,9 @@ function initReportPage() {
   try {
     activateTabFromHash();
     setTimeout(() => { allowHashTabSync = true; activateTabFromHash(); }, 0);
-    const lastQuery = getValidLastQuery();
     const leadershipContent = document.getElementById('leadership-content');
     const hasTrendsContent = !!(leadershipContent && leadershipContent.children && leadershipContent.children.length > 0);
-    if (window.location && window.location.hash === LEADERSHIP_HASH && lastQuery && !hasTrendsContent) {
+    if (window.location && window.location.hash === LEADERSHIP_HASH && !hasTrendsContent) {
       scheduleAutoPreview(200);
     }
     window.addEventListener('hashchange', activateTabFromHash);

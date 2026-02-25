@@ -1283,8 +1283,7 @@ body.sidebar-scroll-lock {
   flex: 1 1 100%;
   min-width: 0;
 }
-/* .meta-context-line removed: single outcome line lives in #preview-outcome-line */
-
+/* .meta-context-line removed: single outcome in #preview-outcome-line */
 .meta-info-summary .meta-outcome-line,
 .meta-info-details {
   overflow-wrap: anywhere;
@@ -3242,7 +3241,8 @@ body .preview-area {
   background: var(--bg-accent);
 }
 
-/* Legacy; .header-board-label element removed for dedupe (board in context chip) */
+/* Legacy; .header-board-label removed for dedupe (board in context chip) */
+
 .header-sprint-dates {
   font-size: 0.85rem;
   color: var(--muted);

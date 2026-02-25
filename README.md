@@ -4,6 +4,16 @@ VodaAgileBoard is the tool for scrum masters and leaders: a Node.js web applicat
 
 This README is the SSOT for usage and validation. Supplemental documents (e.g. `Jira-Reporting-Gap-Analysis-Plan.md`) provide planning context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-02-25)
+
+- Report preview now includes a unified **status strip** above the tabs (`Results: up to date`, `Results: preview required`, or `Heavy range: manual preview only`) wired to shared filter-stale and complexity logic. The strip also echoes the active projects/date window so screenshots and decisions have one canonical context line.
+- The filters panel is organized into **Who / When / Rules**: projects, quick ranges + custom dates, and advanced options. Applied filters are rendered once and reused across the filters panel, mobile-collapsed bar, and preview header so chips and summaries never drift.
+- Performance overview keeps a **leadership-first layout**: merged board-health cards and a compact signals rail (Rework, Predictability, Epic TTM) appear before the boards table, while Trends is now explicitly labeled **“Trends over time”** and owns the historical story (“how performance changed across sprints”).
+- Outcome list adds a **Quarter review mode** toggle that expands all sprints into one natural scroll (with sticky totals) and raises virtualization thresholds so normal windows avoid nested scroll regions.
+- Excluded sprints now render as a **trust panel**: a banner clarifies that excluded sprints do not affect Performance overview metrics, and reasons are grouped with “Fix in Jira” guidance (missing dates, overlaps, future sprints).
+- Current Sprint exports prioritize **Copy summary** as the hero action and surface **Markdown** as a secondary inline export; other exports stay in the dropdown. Link and email actions now write timestamped, human-readable confirmations into an inline export status text block so stakeholders know what was shared and when.
+- Mobile UX Playwright specs were extended to cover the new status strip, quarter review toggle, and current-sprint export behavior (primary/secondary buttons and link-copy feedback), all wired into the existing fail-fast orchestration (`npm run test:all`).
+
 ## Latest Reliability and UX Updates (2026-02-17)
 
 - Current Sprint issue hierarchy trust fix:

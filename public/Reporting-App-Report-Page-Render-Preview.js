@@ -156,7 +156,7 @@ export function renderPreview() {
     if (tabDoneStories) tabDoneStories.textContent = 'Outcome list (' + visibleRows.length + ')';
     if (tabUnusable) tabUnusable.textContent = 'Excluded sprints (' + unusableCountForTab + ')';
     const tabTrends = document.getElementById('tab-btn-trends');
-    if (tabTrends) tabTrends.textContent = 'Leadership Signals (Merged Trends)';
+    if (tabTrends) tabTrends.textContent = 'Trends over time';
     let preferredTab = null;
     try {
       preferredTab = sessionStorage.getItem('report-active-tab');

@@ -80,6 +80,7 @@ export function getSteps(projectRoot) {
     { name: 'Run Current Sprint Work Risks Hierarchy Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Work-Risks-Hierarchy-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Current Sprint Burndown Truthfulness Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Burndown-Truthfulness-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Current Sprint Edge Semantics Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js'), cwd: projectRoot },
+    { name: 'Run Current Sprint Summary UX Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Summary-UX-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Cross-Page Persistence Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Cross-Page-Persistence-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Linkification and Empty-state UI Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Linkification-EmptyState-UI-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Vodacom Quarters SSOT Sprint Order Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Vodacom-Quarters-SSOT-Sprint-Order-Validation-Tests.spec.js'), cwd: projectRoot },

@@ -17,6 +17,13 @@ export function renderTrendsTab(previewData) {
   const container = document.getElementById('leadership-content');
   if (!container) return;
   renderLeadershipContent(previewData, container);
+  let intro = container.querySelector('.trends-intro');
+  if (!intro) {
+    intro = document.createElement('p');
+    intro.className = 'trends-intro';
+    intro.innerHTML = '<small>This tab explains how your performance has changed across sprints for the selected projects and time window.</small>';
+    container.prepend(intro);
+  }
   try {
     if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
       container.querySelectorAll('details[data-mobile-collapse="true"]').forEach((el) => {
@@ -34,7 +41,12 @@ export function renderTrendsTab(previewData) {
       notice.className = 'trends-partial-notice';
       notice.setAttribute('role', 'status');
       notice.innerHTML = 'Trends are based on partial data. Wait for the full load or use a smaller date range for accurate grades.';
-      container.prepend(notice);
+      const introEl = container.querySelector('.trends-intro');
+      if (introEl && introEl.nextSibling) {
+        container.insertBefore(notice, introEl.nextSibling);
+      } else {
+        container.prepend(notice);
+      }
     }
   }
 }

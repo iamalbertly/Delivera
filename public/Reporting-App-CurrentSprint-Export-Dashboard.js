@@ -11,15 +11,16 @@ export function renderExportButton(inline = false) {
   let html = '<div class="' + containerClass + '">';
   html += '<span class="export-split-group">';
   html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary to clipboard" aria-live="polite">Copy summary</button>';
+  html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
   html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">&#9662;</button>';
   html += '</span>';
   html += '<div class="export-menu hidden" id="export-menu" role="menu" aria-hidden="true">';
   html += '<button class="export-option" data-action="copy-text" role="menuitem">Copy as Text</button>';
-  html += '<button class="export-option" data-action="export-markdown" role="menuitem">Markdown</button>';
   html += '<button class="export-option" data-action="export-png" role="menuitem">PNG snapshot</button>';
   html += '<button class="export-option" data-action="copy-link" role="menuitem">Copy link</button>';
   html += '<button class="export-option" data-action="email" role="menuitem">Email</button>';
   html += '</div>';
+  html += '<div class="export-status-text" aria-live="polite"></div>';
   html += '</div>';
   return html;
 }
@@ -57,6 +58,7 @@ export function wireExportHandlers(data) {
   if (container.dataset.wiredExportHandlers === '1') return;
   container.dataset.wiredExportHandlers = '1';
   const btn = container.querySelector('.export-dashboard-btn');
+  const secondaryBtn = container.querySelector('.export-dashboard-secondary');
   const menuToggle = container.querySelector('.export-menu-toggle');
   const menu = container.querySelector('#export-menu');
   if (!menu) return;
@@ -68,6 +70,13 @@ export function wireExportHandlers(data) {
       event.preventDefault();
       event.stopPropagation();
       copyDashboardAsText(data, btn);
+    });
+  }
+  if (secondaryBtn) {
+    secondaryBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      exportDashboardAsMarkdown(data, secondaryBtn);
     });
   }
   // Menu toggle: expand/collapse the full options menu
@@ -198,10 +207,12 @@ async function copyDashboardAsText(data, btn) {
   setButtonStatus(btn, 'Copying...', null, true);
   try {
     const sprint = data.sprint || {};
+    const board = data.board || {};
     const summary = data.summary || {};
     const days = data.daysMeta || {};
     const stuck = data.stuckCandidates || [];
     const tracking = data?.subtaskTracking?.summary || {};
+    const trackingRows = Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : [];
     const scopeChanges = data.scopeChanges || [];
     const stories = data.stories || [];
     const meta = data.meta || {};
@@ -210,7 +221,9 @@ async function copyDashboardAsText(data, btn) {
     const doneStories = summary.doneStories || 0;
     const totalStories = summary.totalStories || 0;
     const pctDone = summary.percentDone || 0;
-    const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
+    const remainingDays = days.daysRemainingWorking != null
+      ? days.daysRemainingWorking
+      : days.daysRemainingCalendar;
 
     // Use the real verdict from the shared SSOT
     const { deriveSprintVerdict } = await import('./Reporting-App-CurrentSprint-Alert-Banner.js');
@@ -222,10 +235,15 @@ async function copyDashboardAsText(data, btn) {
     stories.forEach((s) => {
       const t = (s.issueType || 'Unknown').toLowerCase().includes('bug') ? 'Bug'
         : (s.issueType || 'Unknown').toLowerCase().includes('task') ? 'Task'
-        : (s.issueType || 'Unknown').toLowerCase().includes('story') ? 'Story' : (s.issueType || 'Other');
+          : (s.issueType || 'Unknown').toLowerCase().includes('story') ? 'Story' : (s.issueType || 'Other');
       byType.set(t, (byType.get(t) || 0) + 1);
     });
-    const typeBreakdown = [...byType.entries()].map(([t, c]) => `${c} ${t}${c > 1 ? 's' : ''}`).join(', ');
+    function pluralizeIssueType(type, count) {
+      if (count === 1) return type;
+      if (String(type).toLowerCase() === 'story') return 'Stories';
+      return `${type}s`;
+    }
+    const typeBreakdown = [...byType.entries()].map(([t, c]) => `${c} ${pluralizeIssueType(t, c)}`).join(', ');
 
     // Separate blocked items (In Progress >24h) from not-started items (To Do)
     const inProgressStuck = stuck.filter((s) => {
@@ -238,28 +256,121 @@ async function copyDashboardAsText(data, btn) {
     });
 
     let text = '';
-    // 1. Status headline
-    text += `${sprint.name || 'Sprint'} - ${verdict.toUpperCase()}\n`;
-    text += `${pctDone}% done | ${doneStories}/${totalStories} stories | ${remainingDays != null ? remainingDays + 'd left' : 'ended'}\n`;
-    text += `${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'}\n`;
-    if (typeBreakdown) text += `Work mix: ${typeBreakdown}\n`;
-    text += '\n';
 
-    // 2. Time tracking - critical signal for scrum masters
+    // 1. Short summary (4-line contract)
+    const boardName = board.name || '';
+    const periodLabel = sprint.name || 'Sprint';
+    const healthLabel = verdict ? `${verdict} sprint health` : 'Sprint health';
+    const topLineParts = [];
+    if (periodLabel) topLineParts.push(periodLabel);
+    if (boardName) topLineParts.push(boardName);
+    topLineParts.push(healthLabel);
+    text += `${topLineParts.join(' · ')}\n`;
+
+    let timeLeftLabel = '';
+    if (remainingDays == null) {
+      timeLeftLabel = 'Sprint ended';
+    } else if (remainingDays <= 0) {
+      timeLeftLabel = 'Sprint ended';
+    } else if (remainingDays < 1) {
+      timeLeftLabel = '<1 day left';
+    } else {
+      timeLeftLabel = `${remainingDays} day${remainingDays === 1 ? '' : 's'} left`;
+    }
+
+    const startLabel = formatDate(sprint.startDate) || '?';
+    const endLabel = formatDate(sprint.endDate) || '?';
+    let dateRangeLabel = '';
+    if (startLabel && endLabel && startLabel !== '?' && endLabel !== '?') {
+      dateRangeLabel = `${startLabel}–${endLabel}`;
+    } else if (startLabel && startLabel !== '?') {
+      dateRangeLabel = `Starts ${startLabel}`;
+    } else if (endLabel && endLabel !== '?') {
+      dateRangeLabel = `Ends ${endLabel}`;
+    }
+
+    if (totalStories === 0 && !dateRangeLabel) {
+      text += 'No active sprint data yet for this board.\n';
+    } else {
+      text += `${pctDone}% complete · ${doneStories} of ${totalStories} stories done · ${timeLeftLabel}${dateRangeLabel ? ` (${dateRangeLabel})` : ''}\n`;
+    }
+
+    // 2. Flow movement and logging - one plain-language line
     const estHrs = tracking.totalEstimateHours || 0;
     const logHrs = tracking.totalLoggedHours || 0;
     const remainHrs = tracking.totalRemainingHours || 0;
-    if (estHrs > 0 || logHrs > 0) {
+    const recentSubtaskMovement = trackingRows.filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24).length;
+    const parentKeysWithRecentMovement = new Set(
+      trackingRows
+        .filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24)
+        .map((r) => r.parentKey)
+        .filter(Boolean)
+    ).size;
+
+    let movementLoggingLine = '';
+    if (trackingRows.length === 0 && estHrs === 0 && logHrs === 0) {
+      movementLoggingLine = 'No recent activity or time logging captured for this sprint yet.';
+    } else if (recentSubtaskMovement > 0 && estHrs > 0 && logHrs === 0) {
+      movementLoggingLine = `Flow is moving (${recentSubtaskMovement} subtasks changed) but 0h of ${estHrs}h estimated is logged.`;
+    } else if (recentSubtaskMovement > 0 && estHrs === 0 && logHrs === 0) {
+      movementLoggingLine = `Recent activity on ${recentSubtaskMovement} subtasks; no estimates or time logs captured yet.`;
+    } else if (recentSubtaskMovement === 0 && estHrs > 0 && logHrs === estHrs && estHrs > 0) {
+      movementLoggingLine = 'Time is fully logged on estimated work, but no issues have moved in the last 24 hours.';
+    } else if (recentSubtaskMovement === 0 && estHrs > 0) {
+      movementLoggingLine = `No issues moved in the last 24 hours; ${logHrs}h of ${estHrs}h estimated is logged.`;
+    } else if (estHrs > 0 || logHrs > 0 || recentSubtaskMovement > 0) {
       const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
-      const timeFlag = logHrs === 0 && estHrs > 0 ? ' !! NO TIME LOGGED' : '';
-      text += `TIME TRACKING: ${logHrs}h logged / ${estHrs}h estimated (${logPct}%)${timeFlag}\n`;
-      if (remainHrs > 0) text += `  Remaining: ${remainHrs}h\n`;
+      movementLoggingLine = `Recent activity on ${recentSubtaskMovement}/${trackingRows.length || 0} subtasks; ${logHrs}h logged of ${estHrs}h estimated (${logPct}%).`;
+    }
+
+    if (movementLoggingLine) {
+      text += `${movementLoggingLine}\n`;
+    } else {
+      text += 'Sprint signals are not yet available (no movement or logging data).\n';
+    }
+
+    // 3. Compact risk / composition line
+    const blockersCount = inProgressStuck.length;
+    const notStartedCount = notStartedStuck.length;
+    const unassigned = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
+    const riskParts = [];
+    riskParts.push(`${blockersCount} blocker${blockersCount === 1 ? '' : 's'}`);
+    if (notStartedCount > 0) riskParts.push(`${notStartedCount} not started`);
+    if (unassigned.length > 0) riskParts.push(`${unassigned.length} key stor${unassigned.length === 1 ? 'y' : 'ies'} unassigned`);
+    if (scopeChanges.length > 0) riskParts.push(`Scope +${scopeChanges.length} mid-sprint`);
+    text += `${riskParts.join(' · ')}\n`;
+    text += '\n';
+
+    // 4. Detailed section beneath separator
+    text += '--- More detail below ---\n\n';
+
+    // Detailed recent activity and logging notes
+    if (trackingRows.length > 0 || estHrs > 0 || logHrs > 0) {
+      text += 'RECENT ACTIVITY & TIME LOGGING\n';
+      if (trackingRows.length > 0) {
+        text += `- Recent subtask activity: ${recentSubtaskMovement}/${trackingRows.length} subtasks moved in the last 24h`;
+        if (parentKeysWithRecentMovement > 0) {
+          text += ` (${parentKeysWithRecentMovement} parent stor${parentKeysWithRecentMovement === 1 ? 'y' : 'ies'} moving)`;
+        }
+        text += '.\n';
+      }
+      if (estHrs > 0 || logHrs > 0) {
+        const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
+        const noLogFlag = logHrs === 0 && estHrs > 0 ? ' No time has been logged against estimated work.' : '';
+        const noEstimatesFlag = estHrs === 0 && logHrs > 0 ? ' Time is logged but estimates are missing.' : '';
+        text += `- Time logging: ${logHrs}h logged / ${estHrs}h estimated (${logPct}%).${noLogFlag}${noEstimatesFlag}\n`;
+        if (remainHrs > 0) text += `- Remaining estimate: ${remainHrs}h.\n`;
+      }
+      if (trackingRows.length > 0 && estHrs === 0 && logHrs === 0) {
+        text += '- Interpretation: movement is happening, but no estimates or worklogs are captured yet.\n';
+      }
       text += '\n';
     }
 
-    // 3. Actively blocked items - the real blockers (In Progress but stuck)
+    // 5. Actively blocked items - the real blockers (In Progress but stuck)
     if (inProgressStuck.length > 0) {
-      text += `BLOCKED (${inProgressStuck.length}): in-progress >24h, no subtask movement\n`;
+      text += `Blockers (${inProgressStuck.length})\n`;
+      text += '  In-progress items stuck >24h with stale status movement:\n';
       const byAssignee = new Map();
       inProgressStuck.forEach((item) => {
         const assignee = (item && item.assignee) || 'Unassigned';
@@ -277,18 +388,24 @@ async function copyDashboardAsText(data, btn) {
       text += '\n';
     }
 
-    // 4. Not started work - separate from blockers
+    // 6. Not started work - separate from blockers
     if (notStartedStuck.length > 0) {
-      text += `NOT STARTED (${notStartedStuck.length}): still in To Do / Open\n`;
-      notStartedStuck.forEach((item) => {
+      text += `Not started (${notStartedStuck.length})\n`;
+      const maxNotStartedExamples = 5;
+      const head = notStartedStuck.slice(0, maxNotStartedExamples);
+      head.forEach((item) => {
         const key = (item && (item.issueKey || item.key)) || '?';
         const owner = (item && item.assignee) || 'Unassigned';
         text += `  ${key} - ${(item && item.summary) || '?'} [${owner}]\n`;
       });
+      if (notStartedStuck.length > maxNotStartedExamples) {
+        const remaining = notStartedStuck.length - maxNotStartedExamples;
+        text += `  +${remaining} more not started…\n`;
+      }
       text += '\n';
     }
 
-    // 5. Scope changes with type breakdown
+    // 7. Scope changes with type breakdown
     if (scopeChanges.length > 0) {
       const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
       const scopeByType = new Map();
@@ -297,13 +414,14 @@ async function copyDashboardAsText(data, btn) {
         scopeByType.set(t, (scopeByType.get(t) || 0) + 1);
       });
       const scopeTypeStr = [...scopeByType.entries()].map(([t, c]) => `${c} ${t}`).join(', ');
-      text += `SCOPE: +${scopeChanges.length} added mid-sprint (${scopeTypeStr})${scopeSP > 0 ? ' +' + scopeSP + ' SP' : ''}\n\n`;
+      text += 'Scope added mid-sprint\n';
+      text += `  +${scopeChanges.length} items added mid-sprint (${scopeTypeStr})${scopeSP > 0 ? ' +' + scopeSP + ' SP' : ''}\n\n`;
     }
 
-    // 6. Per-story subtask summary for scrum master context
+    // 8. Per-story subtask summary for scrum master context
     const storiesWithSubtasks = stories.filter((s) => Array.isArray(s.subtasks) && s.subtasks.length > 0);
     if (storiesWithSubtasks.length > 0) {
-      text += `WORK BREAKDOWN (${storiesWithSubtasks.length} stories with subtasks):\n`;
+      text += `Work breakdown (${storiesWithSubtasks.length} stories with subtasks)\n`;
       storiesWithSubtasks.forEach((s) => {
         const subs = s.subtasks || [];
         const subDone = subs.filter((st) => (st.status || '').toLowerCase().includes('done')).length;
@@ -316,22 +434,23 @@ async function copyDashboardAsText(data, btn) {
       text += '\n';
     }
 
-    // 7. Unassigned work
-    const unassigned = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
+    // 9. Unassigned work (reuse unassigned collection from compact risk line)
     if (unassigned.length > 0) {
-      text += `UNASSIGNED (${unassigned.length}): ${unassigned.map((s) => s.issueKey || s.key || '?').join(', ')}\n\n`;
+      text += `Unassigned (${unassigned.length})\n`;
+      text += `  ${unassigned.map((s) => s.issueKey || s.key || '?').join(', ')}\n\n`;
     }
 
-    // 8. Action needed summary - prioritized
+    // 10. Action needed summary - prioritized
     const actions = [];
-    if (logHrs === 0 && estHrs > 0) actions.push(`Log time - ${estHrs}h estimated but 0h logged`);
+    if (logHrs === 0 && estHrs > 0) actions.push(`Log actual work - ${estHrs}h estimated but 0h captured in timetracking`);
+    if (recentSubtaskMovement > 0 && logHrs === 0) actions.push(`Flow is moving (${recentSubtaskMovement} subtasks changed <24h) but logs are missing`);
     if (inProgressStuck.length > 0) actions.push(`Unblock ${inProgressStuck.length} stuck item${inProgressStuck.length > 1 ? 's' : ''}`);
     if (notStartedStuck.length > 0) actions.push(`Start ${notStartedStuck.length} item${notStartedStuck.length > 1 ? 's' : ''} still in To Do`);
     if (excludedParents > 0) actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as stuck)`);
     if (unassigned.length > 0) actions.push(`Assign ${unassigned.length} unowned stor${unassigned.length > 1 ? 'ies' : 'y'}`);
     if (pctDone < 30 && remainingDays != null && remainingDays < 5) actions.push('Velocity behind - consider scope cut');
     if (actions.length > 0) {
-      text += `ACTION NEEDED:\n`;
+      text += 'ACTION NEEDED:\n';
       actions.forEach((a, i) => { text += `  ${i + 1}. ${a}\n`; });
     }
 
@@ -352,6 +471,7 @@ async function exportDashboardAsMarkdown(data, btn) {
     const stuck = data.stuckCandidates || [];
     const tracking = data.subtaskTracking || {};
     const trackingSummary = tracking.summary || {};
+    const trackingRows = Array.isArray(tracking.subtasks) ? tracking.subtasks : [];
     const scopeChanges = data.scopeChanges || [];
     const stories = data.stories || [];
     const meta = data.meta || {};
@@ -375,6 +495,10 @@ async function exportDashboardAsMarkdown(data, btn) {
     markdown += `| Support & Ops | ${summary.supportOpsSP || 0} SP |\n`;
     if (trackingSummary.totalEstimateHours > 0 || trackingSummary.totalLoggedHours > 0) {
       markdown += `| Time Logged | ${trackingSummary.totalLoggedHours || 0}h / ${trackingSummary.totalEstimateHours || 0}h estimated |\n`;
+    }
+    if (trackingRows.length > 0) {
+      const recentMovement = trackingRows.filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24).length;
+      markdown += `| Subtask movement (24h) | ${recentMovement} / ${trackingRows.length} |\n`;
     }
     markdown += '\n';
 
@@ -433,9 +557,18 @@ async function copyDashboardLink(data, btn) {
     }
     await writeTextToClipboardWithFallback(url);
     setButtonStatus(btn, 'Link copied!', originalText);
+    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
+    if (statusEl) {
+      const ts = new Date().toLocaleString();
+      statusEl.textContent = 'Link copied at ' + ts + ': ' + url;
+    }
   } catch (error) {
     console.error('Copy link error:', error);
     setButtonStatus(btn, 'Copy failed', originalText);
+    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
+    if (statusEl) {
+      statusEl.textContent = 'Copy link failed. Try Copy summary instead.';
+    }
   }
 }
 async function emailDashboard(data, btn) {
@@ -451,13 +584,25 @@ async function emailDashboard(data, btn) {
         sprintName: sprint.name,
       }),
     });
+    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
     if (response.ok) {
       setButtonStatus(btn, 'Sent!', originalText);
+      if (statusEl) {
+        const ts = new Date().toLocaleString();
+        statusEl.textContent = 'Sprint summary emailed to the configured distribution at ' + ts + '.';
+      }
     } else {
       setButtonStatus(btn, 'Send failed', originalText);
+      if (statusEl) {
+        statusEl.textContent = 'Email send failed. Use Copy summary or Markdown export instead.';
+      }
     }
   } catch (error) {
     console.error('Email error:', error);
     setButtonStatus(btn, 'Email unavailable', originalText);
+    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
+    if (statusEl) {
+      statusEl.textContent = 'Email temporarily unavailable. Share via Copy summary or Markdown.';
+    }
   }
 }

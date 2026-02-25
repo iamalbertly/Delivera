@@ -7,6 +7,7 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 import { VirtualScroller } from './Reporting-App-Shared-Virtual-Scroller.js';
 
+const VIRTUALIZATION_ROW_THRESHOLD = 250;
 export function toggleSprint(id) {
   const content = document.getElementById(id);
   if (!content) return;
@@ -31,7 +32,11 @@ export function renderDoneStoriesTab(rows) {
   const jiraHost = getResolvedJiraHostFromMeta(meta);
 
   if (!rows || rows.length === 0) {
-    renderEmptyState(content, 'No done stories', "No done stories in this window.", '', 'Adjust filters');
+    const requireByEnd = document.getElementById('require-resolved-by-sprint-end')?.checked === true;
+    const reason = requireByEnd
+      ? 'No done stories matched this strict rule: resolved by sprint end. Jira may still show done items resolved after sprint end.'
+      : 'No done stories in this window.';
+    renderEmptyState(content, 'No done stories', reason, '', 'Adjust filters');
     if (totalsBar) totalsBar.innerHTML = '';
     return;
   }
@@ -56,7 +61,7 @@ export function renderDoneStoriesTab(rows) {
   const container = content.querySelector('.sprint-groups-container');
 
   // Render Sprint Headers (Not virtualized, usually < 50 sprints)
-  // Inside each sprint, we use Virtual Scroller for the table body if > 50 items
+  // Inside each sprint, we use Virtual Scroller for the table body if > VIRTUALIZATION_ROW_THRESHOLD items
 
   for (const group of sortedSprints) {
     const sprintId = group.sprint.id;
@@ -87,7 +92,7 @@ export function renderDoneStoriesTab(rows) {
         // Initialize Virtual Scroller ONLY when opened and if meaningful size
         if (!target.dataset.scrollerInitialized && group.rows.length > 0) {
           target.dataset.scrollerInitialized = 'true';
-          if (group.rows.length < 50) {
+          if (group.rows.length < VIRTUALIZATION_ROW_THRESHOLD) {
             target.style.height = 'auto';
             target.innerHTML = renderTableHtml(group.rows, meta, jiraHost);
           } else {

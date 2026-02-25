@@ -1,7 +1,7 @@
 import { classifyPreviewComplexity } from './Reporting-App-Report-Page-Preview-Complexity-Config.js';
 import { getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
 import { getValidLastQuery } from './Reporting-App-Shared-Context-From-Storage.js';
-import { PROJECTS_SSOT_KEY, REPORT_LAST_META_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { PROJECTS_SSOT_KEY, REPORT_LAST_META_KEY, REPORT_FILTERS_STALE_KEY, REPORT_HAS_RUN_PREVIEW_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 import { isRangeValid, updateRangeHint } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
 
@@ -136,6 +136,42 @@ export function updateAppliedFiltersSummary() {
   const activeCount = projects.length + (startVal && endVal ? 1 : 0) + options.length;
   const countBadge = document.querySelector('.filters-active-count-badge');
   if (countBadge) countBadge.textContent = activeCount > 0 ? activeCount + ' active' : '';
+
+  const statusStripEl = document.getElementById('preview-status-strip');
+  if (statusStripEl) {
+    let filtersStale = false;
+    let hasRunPreview = false;
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        filtersStale = sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1';
+        hasRunPreview = sessionStorage.getItem(REPORT_HAS_RUN_PREVIEW_KEY) === '1';
+      }
+    } catch (_) {}
+    const complexity = getCurrentSelectionComplexity();
+    const hasProjects = projects.length > 0;
+    const hasRange = !!(startVal && endVal);
+    let statusState = 'idle';
+    let label = '';
+    if (!hasProjects || !hasRange) {
+      label = 'Results: preview required — choose projects and dates.';
+      statusState = 'needs-preview';
+    } else if (complexity.isHeavy) {
+      label = 'Heavy range: manual preview only.';
+      statusState = 'heavy';
+    } else if (!hasRunPreview || filtersStale) {
+      label = 'Results: preview required — filters changed.';
+      statusState = 'needs-preview';
+    } else {
+      label = 'Results: up to date.';
+      statusState = 'fresh';
+    }
+    if (projectLabel !== 'None' && rangeLabel) {
+      label += ' · ' + projectLabel + CONTEXT_SEPARATOR + rangeLabel;
+    }
+    statusStripEl.textContent = label;
+    statusStripEl.setAttribute('data-state', statusState);
+  }
+
   refreshPreviewButtonLabel();
 
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');

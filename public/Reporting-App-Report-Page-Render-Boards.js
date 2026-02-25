@@ -3,10 +3,11 @@ import { buildBoardSummaries } from './Reporting-App-Shared-Boards-Summary-Build
 import { renderEmptyState, getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDateForDisplay, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
+import { formatDateForDisplay, formatPercent, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import {
   computeBoardRowFromSummary,
   computeBoardsSummaryRow,
+  deriveDeliveryGrade,
   DELIVERY_GRADE_TOOLTIP,
 } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
 import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
@@ -91,6 +92,118 @@ const BOARD_SUMMARY_TOOLTIPS = {
   'Latest End': 'Latest end date.',
 };
 
+function buildSignalsRailHtml(metrics, meta) {
+  if (!metrics) return '';
+  const items = [];
+
+  if (metrics.rework) {
+    const r = metrics.rework;
+    const label = r.spAvailable
+      ? `Rework ${formatPercent(r.reworkRatio)}`
+      : 'Rework (SP unavailable)';
+    items.push({
+      id: 'rework-signals-tile',
+      href: '#rework-section',
+      title: 'Rework',
+      label,
+    });
+  }
+
+  if (metrics.predictability) {
+    const modeLabel = metrics.predictability.mode ? String(metrics.predictability.mode) : '';
+    items.push({
+      id: 'predictability-signals-tile',
+      href: '#predictability-section',
+      title: 'Predictability',
+      label: modeLabel ? `Mode: ${escapeHtml(modeLabel)}` : 'Predictability',
+    });
+  }
+
+  const epicTTMRows = Array.isArray(metrics.epicTTM) ? metrics.epicTTM : [];
+  const epicHygiene = meta?.epicHygiene;
+  if (metrics.epicTTM || epicTTMRows.length === 0) {
+    let label = 'Epic TTM';
+    if (epicHygiene && epicHygiene.ok === false) {
+      label = 'Epic TTM hidden (hygiene)';
+    } else if (epicTTMRows.length === 0) {
+      label = 'Epic TTM (no data)';
+    }
+    items.push({
+      id: 'epic-ttm-signals-tile',
+      href: '#epic-ttm-section',
+      title: 'Epic TTM',
+      label,
+    });
+  }
+
+  if (!items.length) return '';
+
+  let html = '<section class="performance-signals-rail" aria-label="Key performance signals">';
+  html += '<div class="performance-signals-rail-inner">';
+  items.forEach((item) => {
+    html += '<a'
+      + ' id="' + escapeHtml(item.id) + '"'
+      + ' class="signals-rail-tile"'
+      + ' href="' + escapeHtml(item.href) + '">';
+    html += '<span class="signals-rail-title">' + escapeHtml(item.title) + '</span>';
+    html += '<span class="signals-rail-label">' + escapeHtml(item.label) + '</span>';
+    html += '</a>';
+  });
+  html += '</div>';
+  html += '</section>';
+  return html;
+}
+
+function buildMergedLeadershipSignalsHtml(boards, boardSummaries, hasPredictability) {
+  if (!Array.isArray(boards) || boards.length === 0) return '';
+  const cards = boards.map((board) => {
+    const summary = boardSummaries.get(board.id) || {};
+    const doneStories = Number(summary.doneStories || 0);
+    const doneByEnd = Number(summary.doneBySprintEnd || 0);
+    const committedSP = Number(summary.committedSP || 0);
+    const deliveredSP = Number(summary.deliveredSP || 0);
+    const sprintCount = Number(summary.sprintCount || 0);
+    const onTimePct = doneStories > 0 ? (doneByEnd / doneStories) * 100 : null;
+    const spEstPct = hasPredictability && committedSP > 0 ? (deliveredSP / committedSP) * 100 : null;
+    const grade = deriveDeliveryGrade(onTimePct, spEstPct, sprintCount);
+    const gradeClass = String(grade || 'insufficient-data').toLowerCase().replace(/\s+/g, '-').replace(/[()]/g, '');
+    return {
+      boardName: board.name || 'Board',
+      grade,
+      gradeClass,
+      onTimePct,
+      spEstPct,
+      doneStories,
+      sprintCount,
+      spPerDay: (summary.totalSprintDays > 0) ? (Number(summary.doneSP || 0) / Number(summary.totalSprintDays || 1)) : null,
+    };
+  });
+
+  const atRiskCount = cards.filter((c) => /weak|critical|insufficient/i.test(c.grade)).length;
+  const strongCount = cards.filter((c) => /^strong$/i.test(c.grade)).length;
+  let html = '<section class="leadership-merged-section" id="merged-leadership-signals">';
+  html += '<h3>Board health snapshot</h3>';
+  html += '<p class="metrics-hint"><small>Leadership signals for this window: delivery grade, on-time reliability, and velocity context by board.</small></p>';
+  html += '<p class="leadership-outcome-line" aria-live="polite">' + cards.length + ' boards | ' + strongCount + ' strong | ' + atRiskCount + ' need attention.</p>';
+  html += '<div class="leadership-boards-cards" role="region" aria-label="Merged leadership board cards">';
+  cards.forEach((card) => {
+    const onTime = Number.isFinite(card.onTimePct) ? formatNumber(card.onTimePct, 0, '-') + '%' : '-';
+    const spEst = Number.isFinite(card.spEstPct) ? formatNumber(card.spEstPct, 0, '-') + '%' : '-';
+    const spDay = Number.isFinite(card.spPerDay) ? formatNumber(card.spPerDay, 2, '-') : '-';
+    html += '<article class="leadership-board-card">';
+    html += '<div class="leadership-board-card-grade ' + escapeHtml(card.gradeClass) + '">' + escapeHtml(card.grade) + '</div>';
+    html += '<div class="leadership-board-card-name">' + escapeHtml(card.boardName) + '</div>';
+    html += '<div class="leadership-board-card-metric">On-time: ' + escapeHtml(onTime) + '</div>';
+    html += '<div class="leadership-board-card-metric">SP Estimation: ' + escapeHtml(spEst) + '</div>';
+    html += '<div class="leadership-board-card-metric">SP/day: ' + escapeHtml(spDay) + '</div>';
+    html += '<div class="leadership-board-card-metric">Done stories: ' + card.doneStories + ' | Sprints: ' + card.sprintCount + '</div>';
+    html += '</article>';
+  });
+  html += '</div>';
+  html += '</section>';
+  return html;
+}
+
 function applyBoardsColumnVisibility() {
   const table = document.getElementById('boards-table');
   const toggle = document.getElementById('boards-columns-toggle');
@@ -170,6 +283,15 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       html += renderEmptyStateHtml('No boards in this range', 'No boards were discovered for the selected projects in the date window.', 'Try a different date range or project selection.');
     }
   } else {
+    const hasPredictability = !!metrics?.predictability;
+    if (metrics) {
+      const leadershipCardsHtml = buildMergedLeadershipSignalsHtml(boards, boardSummaries, hasPredictability);
+      if (leadershipCardsHtml) {
+        html += leadershipCardsHtml;
+        html += buildSignalsRailHtml(metrics, meta);
+      }
+    }
+
     html += '<h3>Boards</h3>';
     const tableContextLabel = (() => {
       const m = getSafeMeta(reportState.previewData);
@@ -179,7 +301,6 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       return `General Performance - ${escapeHtml(proj)} - ${escapeHtml(start)} to ${escapeHtml(end)}`;
     })();
     html += '<p class="table-context" aria-label="Table context">' + tableContextLabel + '</p>';
-    const hasPredictability = !!metrics?.predictability;
     html += '<p class="metrics-hint"><small>Time-normalized metrics (Stories / Day, SP / Day, Indexed Delivery) are shown. Indexed Delivery = current SP/day vs own baseline (last 6 closed sprints). Do not use to rank teams.</small></p>';
     // Build table using shared renderer for consistent behavior
     const columns = BOARD_TABLE_COLUMN_ORDER.map(k => ({ key: k, label: k, title: BOARD_TABLE_HEADER_TOOLTIPS[k] || '' }));
@@ -218,7 +339,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
     html += '<hr style="margin: 30px 0;">';
 
     if (metrics.rework) {
-      html += '<h3>Rework Ratio</h3>';
+      html += '<h3 id="rework-section">Rework Ratio</h3>';
       const r = metrics.rework;
       if (r.spAvailable) {
         html += `<p>Rework: ${formatPercent(r.reworkRatio)} (Bug SP: ${r.bugSP}, Story SP: ${r.storySP})</p>`;
@@ -228,7 +349,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
     }
 
     if (metrics.predictability) {
-      html += '<h3>Predictability</h3>';
+      html += '<h3 id="predictability-section">Predictability</h3>';
       html += `<p>Mode: ${escapeHtml(metrics.predictability.mode)}</p>`;
       html += '<p class="metrics-hint"><small>Detection: Planned carryover = created before sprint start and delivered. Unplanned spillover = added mid-sprint and delivered. Do not use unplanned spillover as a failure metric.</small></p>';
       html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit">';
@@ -274,6 +395,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
           reason: 'No epics with usable timing data in this window.'
         });
       } else {
+        html += '<h3 id="epic-ttm-section" class="visually-hidden">Epic time-to-market</h3>';
         html += buildEpicTtmSectionHtml(epicTTMRows, meta, reportState.previewRows, {
           includeCompletionAnchor: true,
           wrapperClass: 'data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit',
