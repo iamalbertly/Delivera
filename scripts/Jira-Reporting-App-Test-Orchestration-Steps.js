@@ -9,7 +9,7 @@
 
 const PLAYWRIGHT_CMD = 'playwright';
 const PLAYWRIGHT_BASE_ARGS = ['test'];
-const PLAYWRIGHT_COMMON_FLAGS = ['--reporter=list', '--headed', '--max-failures=1', '--workers=1'];
+const PLAYWRIGHT_COMMON_FLAGS = ['--reporter=list', '--max-failures=1'];
 
 function pwArgs(specPath, extra = []) {
   return [PLAYWRIGHT_CMD, ...PLAYWRIGHT_BASE_ARGS, specPath, ...extra, ...PLAYWRIGHT_COMMON_FLAGS];
@@ -81,6 +81,8 @@ export function getSteps(projectRoot) {
     { name: 'Run Current Sprint Burndown Truthfulness Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Burndown-Truthfulness-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Current Sprint Edge Semantics Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Current Sprint Summary UX Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Summary-UX-Validation-Tests.spec.js'), cwd: projectRoot },
+    { name: 'Run Current Sprint Clipboard & Markdown Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Clipboard-Markdown-Validation-Tests.spec.js'), cwd: projectRoot },
+    { name: 'Run Current Sprint Export Last Action Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Current-Sprint-Export-Last-Action-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Cross-Page Persistence Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Cross-Page-Persistence-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Linkification and Empty-state UI Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Linkification-EmptyState-UI-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Vodacom Quarters SSOT Sprint Order Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Vodacom-Quarters-SSOT-Sprint-Order-Validation-Tests.spec.js'), cwd: projectRoot },

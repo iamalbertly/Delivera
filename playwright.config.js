@@ -12,7 +12,7 @@ export default defineConfig({
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    headless: false, // Show browser for visibility
+    headless: true, // Run in background for speed; use --headed when debugging
     actionTimeout: 30000, // 30 seconds for actions
   },
 

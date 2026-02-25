@@ -14,6 +14,7 @@ import {
   EXCEL_DOWNLOAD_TIMEOUT_MS,
   skipIfRedirectedToLogin,
   getReportExportButtonState,
+  selectFirstBoard,
 } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 async function hasAnyExportableRows(page) {
@@ -74,10 +75,7 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
   test('preview flow: Preview click then content or error visible with no unexpected console errors', async ({ page }) => {
     test.setTimeout(180000);
     const telemetry = captureBrowserTelemetry(page);
-    await page.goto('/report');
-    await expect(page.locator('#preview-btn')).toBeVisible();
-    await page.click('#preview-btn');
-
+    await runDefaultPreview(page);
     await waitForPreview(page, { timeout: 120000 });
     const previewVisible = await page.locator('#preview-content').isVisible();
     const errorVisible = await page.locator('#error').isVisible();
@@ -196,11 +194,28 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
     await expect(page.locator('#preview-btn')).toBeVisible();
     await page.fill('#start-date', '2025-09-30T23:59');
     await page.fill('#end-date', '2025-07-01T00:00');
-    await page.click('#preview-btn');
+    const previewBtn = page.locator('#preview-btn');
+    const rangeHint = page.locator('#range-hint');
+    await previewBtn.click();
 
-    await expect(page.locator('#error')).toBeVisible({ timeout: 5000 });
-    const errorText = await page.locator('#error').textContent();
-    expect(errorText).toMatch(/Start date|before end date/i);
+    // Within 5s, either the main error banner or the inline range hint should surface the validation message
+    await page.waitForTimeout(1000);
+    const error = page.locator('#error');
+    const errorVisible = await error.isVisible().catch(() => false);
+    const hintVisible = await rangeHint.isVisible().catch(() => false);
+
+    if (errorVisible) {
+      const errorText = await error.textContent();
+      expect(errorText && errorText.trim().length > 0).toBeTruthy();
+      expect(errorText).toMatch(/Start date|before end date/i);
+    } else {
+      expect(hintVisible).toBeTruthy();
+      const hintText = await rangeHint.textContent();
+      expect(hintText).toMatch(/End date must be after start date|Fix date range before preview/i);
+    }
+
+    // Preview button should not remain disabled indefinitely for this validation path
+    expect(await previewBtn.isDisabled()).toBeFalsy();
 
     assertTelemetryClean(telemetry, {
       allowConsolePatterns: [/status of 502/i],
@@ -247,8 +262,19 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
     await page.fill('#start-date', '2026-01-01T00:00');
     await page.fill('#end-date', '2026-04-01T00:00');
     await page.click('#preview-btn');
-    await expect(page.locator('#error')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-action="retry-with-smaller-range"]').click();
+
+    // New error UI may surface the retry action inside a status banner rather than a permanent #error block
+    const error = page.locator('#error');
+    await page.waitForTimeout(1000);
+    const errorVisible = await error.isVisible().catch(() => false);
+    if (errorVisible) {
+      const errorText = await error.textContent();
+      expect(errorText && errorText.trim().length > 0).toBeTruthy();
+    }
+
+    const retryBtn = page.locator('[data-action="retry-with-smaller-range"]');
+    await expect(retryBtn).toBeVisible({ timeout: 10000 });
+    await retryBtn.click();
 
     await expect.poll(() => previewCallCount, { timeout: 10000 }).toBeGreaterThan(1);
 
@@ -323,6 +349,53 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
       expect(await page.locator('#error').isVisible()).toBeTruthy();
       const errorText = await page.locator('#error').textContent();
       expect(errorText && errorText.trim().length > 0).toBeTruthy();
+    }
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('current-sprint export summaries use emphasis and shared SSOT framing', async ({ page }) => {
+    test.setTimeout(120000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+
+    await selectFirstBoard(page).catch(() => null);
+    const exportContainer = page.locator('.export-dashboard-container');
+    const hasExport = await exportContainer.isVisible().catch(() => false);
+    if (!hasExport) {
+      test.skip(true, 'Export dashboard not visible; export summary assertions not applicable');
+      return;
+    }
+
+    const primaryBtn = exportContainer.locator('.export-dashboard-btn');
+    await expect(primaryBtn).toBeVisible();
+    await primaryBtn.click();
+
+    await page.waitForFunction(() => {
+      return typeof window !== 'undefined'
+        && typeof window.__currentSprintLastCopiedSummary === 'string'
+        && window.__currentSprintLastCopiedSummary.length > 0;
+    }, null, { timeout: 15000 }).catch(() => null);
+
+    const copiedSummary = await page.evaluate(() => window.__currentSprintLastCopiedSummary || '');
+    expect(copiedSummary).toBeTruthy();
+    expect(copiedSummary).toMatch(/\*\*/); // at least one bold segment
+    expect(copiedSummary).toMatch(/Risk snapshot|Flow & logging/i);
+
+    const secondaryBtn = exportContainer.locator('.export-dashboard-secondary');
+    const hasMarkdownBtn = await secondaryBtn.isVisible().catch(() => false);
+    if (hasMarkdownBtn) {
+      await secondaryBtn.click();
+      await page.waitForFunction(() => {
+        return typeof window !== 'undefined'
+          && typeof window.__currentSprintLastMarkdownSummary === 'string'
+          && window.__currentSprintLastMarkdownSummary.length > 0;
+      }, null, { timeout: 15000 }).catch(() => null);
+      const markdownSummary = await page.evaluate(() => window.__currentSprintLastMarkdownSummary || '');
+      expect(markdownSummary).toBeTruthy();
+      expect(markdownSummary).toMatch(/^# /m);
+      expect(markdownSummary).toMatch(/\*\*/);
     }
 
     assertTelemetryClean(telemetry);

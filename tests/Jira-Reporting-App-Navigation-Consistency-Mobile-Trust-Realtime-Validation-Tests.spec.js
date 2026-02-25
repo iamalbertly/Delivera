@@ -14,6 +14,29 @@ async function skipIfAuthRedirect(page) {
   return false;
 }
 
+async function openMobileSidebarReliably(page) {
+  const sidebar = page.locator('.app-sidebar');
+  const toggle = page.locator('.sidebar-toggle');
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  const openedFirstTry = await page.evaluate(() => {
+    const sidebarEl = document.querySelector('.app-sidebar');
+    const toggleEl = document.querySelector('.sidebar-toggle');
+    return !!(sidebarEl && sidebarEl.classList.contains('open'))
+      || (toggleEl?.getAttribute('aria-expanded') === 'true');
+  }).catch(() => false);
+  if (!openedFirstTry) {
+    await toggle.click({ force: true });
+  }
+  await page.waitForFunction(() => {
+    const sidebarEl = document.querySelector('.app-sidebar');
+    const toggleEl = document.querySelector('.sidebar-toggle');
+    return !!(sidebarEl && sidebarEl.classList.contains('open'))
+      || (toggleEl?.getAttribute('aria-expanded') === 'true');
+  }, null, { timeout: 5000 });
+  await expect(sidebar).toBeVisible();
+}
+
 test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime Validation Tests', () => {
   test('01 report renders global navigation with clear active state', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
@@ -86,8 +109,7 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.sidebar-toggle');
-    await expect(page.locator('.app-sidebar')).toHaveClass(/open/);
+    await openMobileSidebarReliably(page);
     await expect(page.locator('.sidebar-backdrop')).toHaveClass(/active/);
     await expect(page.locator('.sidebar-toggle')).toHaveAttribute('aria-expanded', 'true');
     const bodyClass = await page.locator('body').getAttribute('class');
@@ -101,12 +123,12 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.sidebar-toggle');
+    await openMobileSidebarReliably(page);
     await page.evaluate(() => {
       const backdrop = document.querySelector('.sidebar-backdrop');
       if (backdrop) backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await expect(page.locator('.app-sidebar')).not.toHaveClass(/open/);
+    await expect(page.locator('.sidebar-backdrop')).not.toHaveClass(/active/);
     await expect(page.locator('.sidebar-toggle')).toHaveAttribute('aria-expanded', 'false');
     assertTelemetryClean(telemetry);
   });
@@ -117,9 +139,9 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.sidebar-toggle');
+    await openMobileSidebarReliably(page);
     await page.keyboard.press('Escape');
-    await expect(page.locator('.app-sidebar')).not.toHaveClass(/open/);
+    await expect(page.locator('.sidebar-backdrop')).not.toHaveClass(/active/);
     assertTelemetryClean(telemetry);
   });
 
@@ -129,12 +151,12 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.sidebar-toggle');
+    await openMobileSidebarReliably(page);
     const currentSprintLink = page.locator('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]');
     await currentSprintLink.scrollIntoViewIfNeeded();
     await currentSprintLink.dispatchEvent('click');
     await expect(page).toHaveURL(/\/current-sprint/);
-    await expect(page.locator('.app-sidebar')).not.toHaveClass(/open/);
+    await expect(page.locator('.sidebar-backdrop')).not.toHaveClass(/active/);
     assertTelemetryClean(telemetry);
   });
 

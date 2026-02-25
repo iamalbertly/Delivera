@@ -1,5 +1,6 @@
 
 import { reportState } from './Reporting-App-Report-Page-State.js';
+import { getCurrentSelectionComplexity } from './Reporting-App-Report-Page-Filters-Summary-Helpers.js';
 import { reportDom } from './Reporting-App-Report-Page-Context.js';
 import { getSafeMeta, renderEmptyState } from './Reporting-App-Report-Page-Render-Helpers.js';
 import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
@@ -57,7 +58,20 @@ export function renderDoneStoriesTab(rows) {
     return new Date(b.sprint.startDate || 0).getTime() - new Date(a.sprint.startDate || 0).getTime();
   });
 
-  content.innerHTML = `<div class="sprint-groups-container"></div>`;
+  const doneStoriesTab = document.getElementById('tab-done-stories');
+  const isQuarterReview = !!(doneStoriesTab && doneStoriesTab.classList.contains('quarter-review-mode'));
+  let prefixHtml = '';
+  if (isQuarterReview) {
+    prefixHtml += '<div class="quarter-review-hint" id="quarter-review-hint"><strong>Quarter review mode:</strong> Reviewing all done stories in this window, sprint by sprint.</div>';
+    try {
+      const complexity = getCurrentSelectionComplexity();
+      if (complexity?.isHeavy) {
+        prefixHtml += '<p class="quarter-review-heavy-hint">Large range; narrow dates for a faster review.</p>';
+      }
+    } catch (_) {}
+  }
+
+  content.innerHTML = `${prefixHtml}<div class="sprint-groups-container"></div>`;
   const container = content.querySelector('.sprint-groups-container');
 
   // Render Sprint Headers (Not virtualized, usually < 50 sprints)

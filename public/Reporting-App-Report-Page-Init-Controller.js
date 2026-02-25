@@ -7,7 +7,14 @@ import { initPreviewFlow, clearPreviewOnFilterChange } from './Reporting-App-Rep
 import { initSearchClearButtons } from './Reporting-App-Report-Page-Search-Clear.js';
 import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
 import { getValidLastQuery, getContextDisplayString } from './Reporting-App-Shared-Context-From-Storage.js';
-import { REPORT_FILTERS_COLLAPSED_KEY, SHARED_DATE_RANGE_KEY, LAST_QUERY_KEY, PROJECTS_SSOT_KEY, REPORT_FILTERS_STALE_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import {
+  REPORT_FILTERS_COLLAPSED_KEY,
+  SHARED_DATE_RANGE_KEY,
+  LAST_QUERY_KEY,
+  PROJECTS_SSOT_KEY,
+  REPORT_FILTERS_STALE_KEY,
+  REPORT_FILTERS_STALE_REASON_KEY,
+} from './Reporting-App-Shared-Storage-Keys.js';
 import { DEFAULT_WINDOW_START_LOCAL, DEFAULT_WINDOW_END_LOCAL } from './Reporting-App-Report-Config-Constants.js';
 import { AUTO_PREVIEW_DELAY_MS } from './Reporting-App-Shared-AutoPreview-Config.js';
 import { applyDoneStoriesOptionalColumnsPreference } from './Reporting-App-Report-Page-DoneStories-Column-Preference.js';
@@ -163,6 +170,7 @@ function initReportPage() {
       try {
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
+          sessionStorage.setItem(REPORT_FILTERS_STALE_REASON_KEY, 'storage-event');
         }
         const reportContextLine = document.getElementById('report-context-line');
         if (reportContextLine) {
@@ -202,6 +210,7 @@ function initReportPage() {
     try {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
+        sessionStorage.setItem(REPORT_FILTERS_STALE_REASON_KEY, 'local-change');
       }
     } catch (_) {}
     updateAppliedFiltersSummary();
@@ -273,6 +282,7 @@ function initReportPage() {
     try {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem(REPORT_FILTERS_STALE_KEY);
+        sessionStorage.removeItem(REPORT_FILTERS_STALE_REASON_KEY);
       }
     } catch (_) {}
     if (typeof prevRefresh === 'function') prevRefresh();

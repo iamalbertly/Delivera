@@ -21,7 +21,7 @@ export function renderTrendsTab(previewData) {
   if (!intro) {
     intro = document.createElement('p');
     intro.className = 'trends-intro';
-    intro.innerHTML = '<small>This tab explains how your performance has changed across sprints for the selected projects and time window.</small>';
+    intro.innerHTML = '<small>Use Trends to answer leadership questions about change over time:</small><ul><li><small>Are delivery and predictability improving or slipping across sprints?</small></li><li><small>Which squads changed the most in throughput or rework in this window?</small></li><li><small>Where did risk or late scope spike compared with previous sprints?</small></li></ul>';
     container.prepend(intro);
   }
   try {

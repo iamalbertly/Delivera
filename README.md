@@ -13,6 +13,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 - Excluded sprints now render as a **trust panel**: a banner clarifies that excluded sprints do not affect Performance overview metrics, and reasons are grouped with “Fix in Jira” guidance (missing dates, overlaps, future sprints).
 - Current Sprint exports prioritize **Copy summary** as the hero action and surface **Markdown** as a secondary inline export; other exports stay in the dropdown. Link and email actions now write timestamped, human-readable confirmations into an inline export status text block so stakeholders know what was shared and when.
 - Mobile UX Playwright specs were extended to cover the new status strip, quarter review toggle, and current-sprint export behavior (primary/secondary buttons and link-copy feedback), all wired into the existing fail-fast orchestration (`npm run test:all`).
+- Current Sprint **Copy summary** and Markdown exports now use typographic emphasis (bold headings, italics, and structured sections) to keep the four-line contract readable in chat/email while preserving one SSOT for risk, flow, and action items. UX Trust validation specs assert that these exports include emphasis markers and stay telemetry-clean.
 
 ## Latest Reliability and UX Updates (2026-02-17)
 
@@ -128,7 +129,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 - Orchestration update:
   - Added the new direct-value sprint validation spec into `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`.
 - Validation status:
-  - `npm run test:all` passed end-to-end (`45/45` selected steps, fail-fast mode, headed, workers=1).
+  - `npm run test:all` passed end-to-end (`45/45` selected steps, fail-fast mode, headless, parallel workers).
 
 - Refactored duplicated page bootstrap behaviors into shared SSOT helpers:
   - `public/Reporting-App-Shared-Page-Identity-Scroll-Helpers.js`
@@ -297,6 +298,41 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
    - **File Naming**: `{Projects}_{DateRange}_{Section}_{ExportDate}.csv` (includes `_PARTIAL` when preview data is partial)
    - All CSV exports include Epic Key, Epic Title, and Epic Summary columns when Epic Link field is available
    - Stories exports include time-tracking and EBM-supporting fields when available (e.g., subtask count, story estimate/spent/remaining/variance hours, subtask estimate/spent/remaining/variance hours, status category, priority, labels, components, fix versions, and EBM fields such as team, product area, customer segments, value, impact, satisfaction, sentiment, severity, source, work category, goals, theme, roadmap, focus areas, delivery status/progress)
+
+### Copy & Export Contracts
+
+- **Current Sprint clipboard summary (Copy summary)**:
+  - Follows a strict four-line contract optimised for Slack/Teams and plain text:
+    - Line 1: `**<Sprint name> · <Board> · <Verdict>**`
+    - Line 2: `**<X% complete>** · <Y of Z stories done> · <time left / ended (date range)>`
+    - Line 3: `**Flow & logging:** <one plain-language movement/logging sentence>`
+    - Line 4: `**Risk snapshot:** <blockers> · <not started> · <unassigned> · scope +N`
+  - Below the summary, a `--- More detail below ---` separator introduces grouped detail sections for:
+    - Recent activity & time logging
+    - Blockers (in-progress items stuck >24h)
+    - Not started work
+    - Scope added mid-sprint
+    - Work breakdown (stories with subtasks) and unassigned work
+    - Prioritised **ACTION NEEDED** list
+  - The text stays fully readable if Markdown is stripped; tests also validate the plain-text version by removing `*` and `_`.
+- **Current Sprint Markdown export (Markdown button)**:
+  - Produces a stakeholder-ready report with:
+    - `# <Sprint name>` heading
+    - `> **X% done** | Y/Z stories | <time left/ended>` summary blockquote
+    - `## Summary` bullets aligned with the four clipboard summary lines
+    - `## Flow & Logging`, `## Blockers`, `## Not started`, `## Scope changes`, `## Work breakdown`, `## Actions`
+  - Risks & Insights are appended as a `# Risks & Insights` section with Blockers/Dependencies, Learnings, and Assumptions & Risks lists.
+- **Last export action line (`.export-status-text`)**:
+  - Current Sprint export controls maintain a single inline status line under the export buttons:
+    - Format: `Last action: <Action> · <local time> · <compact detail>`
+    - Updated after each export interaction (`Copy summary`, `Markdown`, `Copy link`, `Email`) so users always know what they just did without scanning logs.
+  - Examples:
+    - `Last action: Copy summary · 10:32:14 · Summary copied to clipboard`
+    - `Last action: Copy link · 10:33:02 · https://.../current-sprint?boardId=...`
+- **Emphasis rules (exports and status text)**:
+  - **Bold** is reserved for primary metrics and labels (headlines, key percentages, section titles).
+  - *Italic* is reserved for nuance and warnings (e.g. caveats, gentle hints).
+  - No underlines or emojis are used in exported text; colour and layout are handled by the destination tool.
 
 ## Recent UX & Reliability fixes (2026-02-09)
 - **Hidden-section accountability chips (2026-02-15):** Data-availability summaries now include a compact source badge per hidden section (`Config`, `Window`, `Data`, `Workflow`) so users can immediately see whether missing output is a filter choice, data gap, or workflow requirement.
@@ -606,7 +642,7 @@ npm run test:navigation-consistency
 
 ### Test Orchestration & Playwright
 
-- The test orchestration script (`npm run test:all`) runs `npm install`, then (when the server is up) calls `POST /api/test/clear-cache` so no test reads stale in-memory cache. The clear-cache endpoint is available only when `NODE_ENV=test` or `ALLOW_TEST_CACHE_CLEAR=1`. The ordered list of steps is in `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`. It runs a sequence of Playwright specs (API integration, Server Errors and Export Validation, Login Security Deploy, E2E user journey, UX Reliability, UX Critical Fixes, UX Customer Simplicity Trust Full, Feedback, Column Tooltips, Validation Plan, Excel Export, Refactor SSOT, Boards Summary Filters Export, Current Sprint and Leadership View, UX Trust Validation, Current Sprint UX and SSOT Validation, Linkification and Empty-state UI Validation, Server Feedback Endpoint, Growth Velocity, and others) with `--headed`, `--max-failures=1`, and `--workers=1` (fail-fast on first failure). Steps include CSS Build And Mobile Responsive (viewport containment, headers, nav/filters). Spec files in `tests/` follow the naming convention `Jira-Reporting-App-*-Validation-Tests.spec.js` (or similar); obsolete files may be prefixed with `DeleteThisFile_`.
+- The test orchestration script (`npm run test:all`) runs `npm install`, then (when the server is up) calls `POST /api/test/clear-cache` so no test reads stale in-memory cache. The clear-cache endpoint is available only when `NODE_ENV=test` or `ALLOW_TEST_CACHE_CLEAR=1`. The ordered list of steps is in `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`. It runs a sequence of Playwright specs (API integration, Server Errors and Export Validation, Login Security Deploy, E2E user journey, UX Reliability, UX Critical Fixes, UX Customer Simplicity Trust Full, Feedback, Column Tooltips, Validation Plan, Excel Export, Refactor SSOT, Boards Summary Filters Export, Current Sprint and Leadership View, UX Trust Validation, Current Sprint UX and SSOT Validation, Linkification and Empty-state UI Validation, Server Feedback Endpoint, Growth Velocity, and others) with `--max-failures=1` (headless, parallel workers; fail-fast on first failure). Steps include CSS Build And Mobile Responsive (viewport containment, headers, nav/filters). Spec files in `tests/` follow the naming convention `Jira-Reporting-App-*-Validation-Tests.spec.js` (or similar); obsolete files may be prefixed with `DeleteThisFile_`.
 - Specs in `tests/` use `captureBrowserTelemetry(page)` (console errors, page errors, failed requests) and UI assertions so a step fails if the UI is wrong or the browser reports errors.
 - **Issue key linkification:** Report Done Stories and Epic TTM use Jira links for issue keys; Current Sprint (Stories, Scope changes, Items stuck, Sub-task tracking) uses shared `renderIssueKeyLink(issueKey, issueUrl)` from `Reporting-App-Shared-Dom-Escape-Helpers.js`. Backend sends `issueKey` and `issueUrl`; optional `meta.jiraHost` in current-sprint response allows client fallback when URL is missing.
 - **Empty-state SSOT:** `Reporting-App-Shared-Empty-State-Helpers.js` exports `renderEmptyStateHtml(title, message, hint)`; Report, Current Sprint, and Leadership use it for consistent "no data" messaging.

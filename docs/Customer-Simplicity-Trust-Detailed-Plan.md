@@ -57,7 +57,7 @@ This plan defines **13 validation to-dos** for hardening the report first-paint,
 - **Build:** Run `npm run build:css` so `public/styles.css` includes report context line and Load latest styles. `npm start` runs `prestart` (build:css) automatically.
 - **Deploy:** Start the app with `npm start` (or your usual deploy). Base URL for Playwright is `process.env.BASE_URL || 'http://localhost:3000'`; the Playwright config starts the web server if `SKIP_WEBSERVER !== 'true'`.
 - **Validation:** Run the new recovery spec:  
-  `npx playwright test tests/Jira-Reporting-App-Customer-Simplicity-Trust-Recovery-Validation-Tests.spec.js --reporter=list --headed --max-failures=1 --workers=1`  
+  `npx playwright test tests/Jira-Reporting-App-Customer-Simplicity-Trust-Recovery-Validation-Tests.spec.js --reporter=list --max-failures=1`  
   Then run the full orchestration if desired: `npm run test:all`.
 
 ### How tests detect failures (UI + logcat) and fail fast

@@ -46,6 +46,7 @@
   - `Jira-Reporting-App-Current-Sprint-Work-Risks-Hierarchy-Validation-Tests.spec.js` – validates hierarchical Work risks rendering (parent vs subtask rows tied by `data-parent-key`), accordion behaviour on `.work-risks-toggle`, and that the header “Blockers” metric matches the number of unique `Stuck >24h` issues in the table.
   - `Jira-Reporting-App-Current-Sprint-Burndown-Truthfulness-Validation-Tests.spec.js` – validates SP-configuration copy on the Current Sprint burndown card (field not configured vs 0 SP in this sprint vs SP burndown) and that SP burndown paths do not show story-count fallback text.
   - `Jira-Reporting-App-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js` – validates stale context hints on the report page and the excluded-parent blockers messaging on the Work risks card.
+  - `Jira-Reporting-App-Current-Sprint-Summary-UX-Validation-Tests.spec.js` – validates the exported Current Sprint summary text contract: four-line short summary (period/board/health, progress with date range, movement vs logging, compact risk line), presence of the `--- More detail below ---` separator, and grouped detail sections for recent activity, blockers, not started work, scope added, and work breakdown, all with clean telemetry.
 - **Scripts**
   - `scripts/Jira-Reporting-App-Test-Orchestration-Runner.js` – sequential runner for Playwright API + E2E suites; imports steps from `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`; before test steps, calls `POST /api/test/clear-cache` (when NODE_ENV=test) so no test reads stale cache
   - `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js` – SSOT list of fail-fast Playwright steps for `npm run test:all`; now includes focused Current Sprint validation steps for:
@@ -54,6 +55,7 @@
     - Work risks hierarchy and accordion behaviour
     - Burndown truthfulness (SP vs story count)
     - Edge semantics including stale context hints and excluded-parent messaging
+    - Summary UX contract and export text structure
 - **File naming:** New files must use at least 6 scope segments where possible (e.g. `Project-App-Module-Feature-Subcomponent-Responsibility`); Responsibility may be prefixed with `01`, `02` for execution order (e.g. `Reporting-App-Report-Page-Render-Preview-01Meta.js`, `Reporting-App-CurrentSprint-Page-02Handlers.js`). Before creating a new file, verify no identically scoped file exists to prevent duplication. New lib modules: 5-segment convention (e.g. `Jira-Reporting-App-Sprint-Transparency-CurrentSprint.js`). Do not rename existing files en masse; apply naming when touching files for other changes.
 
 ### Public API Surface – `/preview.json`
@@ -109,8 +111,9 @@
 - **Persistence SSOT**
   - **Projects:** `PROJECTS_SSOT_KEY` (Shared-Storage-Keys). Report, Leadership, and Current Sprint read/write this only (or via one wrapper). Single source of truth for selected projects.
   - **Date range:** `SHARED_DATE_RANGE_KEY`. Report and Leadership use it; Current Sprint does not.
-  - **Report-only:** `REPORT_HAS_RUN_PREVIEW_KEY`, `REPORT_LAST_RUN_KEY`, `REPORT_FILTERS_COLLAPSED_KEY`, `REPORT_ADVANCED_OPTIONS_OPEN_KEY` in Shared-Storage-Keys; used only by Report modules (Preview-Flow, Render-Preview, Init-Controller, DateRange-Controller, Selections-Manager).
+  - **Report-only:** `REPORT_HAS_RUN_PREVIEW_KEY`, `REPORT_LAST_RUN_KEY`, `REPORT_FILTERS_COLLAPSED_KEY`, `REPORT_ADVANCED_OPTIONS_OPEN_KEY`, `REPORT_FILTERS_STALE_KEY`, `REPORT_FILTERS_STALE_REASON_KEY` in Shared-Storage-Keys; used only by Report modules (Preview-Flow, Render-Preview, Init-Controller, DateRange-Controller, Selections-Manager).
   - **Current Sprint:** `CURRENT_SPRINT_BOARD_KEY`, `CURRENT_SPRINT_SPRINT_KEY` in Shared-Storage-Keys; used only by CurrentSprint-Page-Storage (and 02Handlers). No parallel persistence; do not add report keys to Current Sprint or vice versa.
+  - **Stale filters reason:** `REPORT_FILTERS_STALE_REASON_KEY` distinguishes local filter edits (`local-change`) from cross-tab storage events (`storage-event`) so the status strip can show “filters changed in another tab” when appropriate.
 - **Sprint order contract**
   Sprints displayed for filtering (Report Sprints tab, Current Sprint tabs) are ordered **left-to-right from current/latest backwards by sprint end date**. First tab/row = latest end date; each subsequent = same or earlier. Report uses `sortSprintsLatestFirst(sprints)`; Current Sprint uses `resolveRecentSprints` (lib/currentSprint.js) which sorts by `endDate` descending. Automated tests assert this order.
 - **Data alignment**  

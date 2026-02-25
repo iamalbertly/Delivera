@@ -1,7 +1,13 @@
 import { classifyPreviewComplexity } from './Reporting-App-Report-Page-Preview-Complexity-Config.js';
 import { getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
 import { getValidLastQuery } from './Reporting-App-Shared-Context-From-Storage.js';
-import { PROJECTS_SSOT_KEY, REPORT_LAST_META_KEY, REPORT_FILTERS_STALE_KEY, REPORT_HAS_RUN_PREVIEW_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import {
+  PROJECTS_SSOT_KEY,
+  REPORT_LAST_META_KEY,
+  REPORT_FILTERS_STALE_KEY,
+  REPORT_HAS_RUN_PREVIEW_KEY,
+  REPORT_FILTERS_STALE_REASON_KEY,
+} from './Reporting-App-Shared-Storage-Keys.js';
 import { isRangeValid, updateRangeHint } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
 
@@ -139,37 +145,15 @@ export function updateAppliedFiltersSummary() {
 
   const statusStripEl = document.getElementById('preview-status-strip');
   if (statusStripEl) {
-    let filtersStale = false;
-    let hasRunPreview = false;
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        filtersStale = sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1';
-        hasRunPreview = sessionStorage.getItem(REPORT_HAS_RUN_PREVIEW_KEY) === '1';
-      }
-    } catch (_) {}
-    const complexity = getCurrentSelectionComplexity();
-    const hasProjects = projects.length > 0;
-    const hasRange = !!(startVal && endVal);
-    let statusState = 'idle';
-    let label = '';
-    if (!hasProjects || !hasRange) {
-      label = 'Results: preview required — choose projects and dates.';
-      statusState = 'needs-preview';
-    } else if (complexity.isHeavy) {
-      label = 'Heavy range: manual preview only.';
-      statusState = 'heavy';
-    } else if (!hasRunPreview || filtersStale) {
-      label = 'Results: preview required — filters changed.';
-      statusState = 'needs-preview';
-    } else {
-      label = 'Results: up to date.';
-      statusState = 'fresh';
-    }
-    if (projectLabel !== 'None' && rangeLabel) {
-      label += ' · ' + projectLabel + CONTEXT_SEPARATOR + rangeLabel;
-    }
-    statusStripEl.textContent = label;
-    statusStripEl.setAttribute('data-state', statusState);
+    const state = getStatusStripSemantics({
+      projects,
+      startVal,
+      endVal,
+      projectLabel,
+      rangeLabel,
+    });
+    statusStripEl.textContent = state.label;
+    statusStripEl.setAttribute('data-state', state.state);
   }
 
   refreshPreviewButtonLabel();
@@ -181,6 +165,56 @@ export function updateAppliedFiltersSummary() {
   if (reportContextLine && projects.length === 0) {
     reportContextLine.textContent = 'Select at least one project to see results.';
   }
+}
+
+export function getStatusStripSemantics(input) {
+  const projects = Array.isArray(input?.projects) ? input.projects : getSelectedProjects();
+  const startVal = input?.startVal ?? (document.getElementById('start-date')?.value || '');
+  const endVal = input?.endVal ?? (document.getElementById('end-date')?.value || '');
+  const projectLabel = input?.projectLabel ?? (projects.length ? projects.join(', ') : 'None');
+  const rangeLabel = input?.rangeLabel ?? (startVal && endVal ? startVal.slice(0, 10) + ' - ' + endVal.slice(0, 10) : '');
+
+  let filtersStale = false;
+  let hasRunPreview = false;
+  let staleReason = '';
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      filtersStale = sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1';
+      hasRunPreview = sessionStorage.getItem(REPORT_HAS_RUN_PREVIEW_KEY) === '1';
+      staleReason = sessionStorage.getItem(REPORT_FILTERS_STALE_REASON_KEY) || '';
+    }
+  } catch (_) {}
+
+  const complexity = getCurrentSelectionComplexity();
+  const hasProjects = projects.length > 0;
+  const hasRange = !!(startVal && endVal);
+
+  let state = 'idle';
+  let label = '';
+
+  if (!hasProjects || !hasRange) {
+    state = 'needs-preview';
+    label = 'PREVIEW REQUIRED – choose projects and dates.';
+  } else if (complexity.isHeavy) {
+    state = 'heavy';
+    label = 'HEAVY RANGE – manual preview only.';
+  } else if (!hasRunPreview || filtersStale) {
+    state = 'needs-preview';
+    if (staleReason === 'storage-event') {
+      label = 'PREVIEW REQUIRED – filters changed in another tab.';
+    } else {
+      label = 'PREVIEW REQUIRED – filters changed.';
+    }
+  } else {
+    state = 'fresh';
+    label = 'UP TO DATE – preview matches current filters.';
+  }
+
+  if (projectLabel !== 'None' && rangeLabel) {
+    label += ' · ' + projectLabel + CONTEXT_SEPARATOR + rangeLabel;
+  }
+
+  return { state, label, context: { projects, startVal, endVal, projectLabel, rangeLabel, filtersStale, hasRunPreview } };
 }
 
 export function hydrateFromLastQuery() {

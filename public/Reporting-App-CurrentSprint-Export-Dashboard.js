@@ -6,6 +6,593 @@ import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js'
 import { exportRisksInsightsAsMarkdown } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
 import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+
+const SUMMARY_SECTION_KEYS = [
+  'summary',
+  'flowLogging',
+  'blockers',
+  'notStarted',
+  'scope',
+  'workBreakdown',
+  'actions',
+];
+
+function createEmptySummaryModel() {
+  const sections = {};
+  SUMMARY_SECTION_KEYS.forEach((key) => {
+    sections[key] = [];
+  });
+  return {
+    sections,
+    meta: {
+      mode: 'markdownEnhanced',
+    },
+  };
+}
+
+/**
+ * Build a structured sprint summary model that can be rendered to
+ * clipboard text or Markdown without duplicating logic.
+ *
+ * Sections: summary, flowLogging, blockers, notStarted, scope, workBreakdown, actions.
+ * Each section contains ordered lines:
+ * { text, isBold, isItalic, isHeading, isSeparator }.
+ *
+ * The builder keeps text readable when Markdown is stripped so
+ * non-Markdown clients still get an intelligible narrative.
+ */
+export async function buildSprintSummaryModel(data, options = {}) {
+  const mode = options.mode || 'markdownEnhanced';
+  const model = createEmptySummaryModel();
+  model.meta.mode = mode;
+
+  const sprint = data.sprint || {};
+  const board = data.board || {};
+  const summary = data.summary || {};
+  const days = data.daysMeta || {};
+  const stuck = data.stuckCandidates || [];
+  const trackingSummary = data?.subtaskTracking?.summary || {};
+  const trackingRows = Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : [];
+  const scopeChanges = data.scopeChanges || [];
+  const stories = data.stories || [];
+  const meta = data.meta || {};
+  const excludedParents = Number(summary?.stuckExcludedParentsWithActiveSubtasks || 0);
+
+  const doneStories = summary.doneStories || 0;
+  const totalStories = summary.totalStories || 0;
+  const pctDone = summary.percentDone || 0;
+  const remainingDays = days.daysRemainingWorking != null
+    ? days.daysRemainingWorking
+    : days.daysRemainingCalendar;
+
+  const boardName = board.name || '';
+  const sprintName = sprint.name || 'Sprint';
+
+  const { deriveSprintVerdict } = await import('./Reporting-App-CurrentSprint-Alert-Banner.js');
+  const verdictInfo = deriveSprintVerdict(data);
+  const verdict = verdictInfo.verdict;
+
+  const healthLabel = verdict ? `${verdict} sprint health` : 'Sprint health';
+  const topLineParts = [];
+  if (sprintName) topLineParts.push(sprintName);
+  if (boardName) topLineParts.push(boardName);
+  topLineParts.push(healthLabel);
+
+  let timeLeftLabel = '';
+  if (remainingDays == null || remainingDays <= 0) {
+    timeLeftLabel = 'Sprint ended';
+  } else if (remainingDays < 1) {
+    timeLeftLabel = '<1 day left';
+  } else {
+    timeLeftLabel = `${remainingDays} day${remainingDays === 1 ? '' : 's'} left`;
+  }
+
+  const startLabel = formatDate(sprint.startDate) || '?';
+  const endLabel = formatDate(sprint.endDate) || '?';
+  let dateRangeLabel = '';
+  if (startLabel && endLabel && startLabel !== '?' && endLabel !== '?') {
+    dateRangeLabel = `${startLabel}–${endLabel}`;
+  } else if (startLabel && startLabel !== '?') {
+    dateRangeLabel = `Starts ${startLabel}`;
+  } else if (endLabel && endLabel !== '?') {
+    dateRangeLabel = `Ends ${endLabel}`;
+  }
+
+  const estHrs = trackingSummary.totalEstimateHours || 0;
+  const logHrs = trackingSummary.totalLoggedHours || 0;
+  const remainHrs = trackingSummary.totalRemainingHours || 0;
+  const recentSubtaskMovement = trackingRows.filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24).length;
+  const parentKeysWithRecentMovement = new Set(
+    trackingRows
+      .filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24)
+      .map((r) => r.parentKey)
+      .filter(Boolean),
+  ).size;
+
+  let movementLoggingLine = '';
+  if (trackingRows.length === 0 && estHrs === 0 && logHrs === 0) {
+    movementLoggingLine = 'No recent activity or time logging captured for this sprint yet.';
+  } else if (recentSubtaskMovement > 0 && estHrs > 0 && logHrs === 0) {
+    movementLoggingLine = `Flow is moving (${recentSubtaskMovement} subtasks changed) but 0h of ${estHrs}h estimated is logged.`;
+  } else if (recentSubtaskMovement > 0 && estHrs === 0 && logHrs === 0) {
+    movementLoggingLine = `Recent activity on ${recentSubtaskMovement} subtasks; no estimates or time logs captured yet.`;
+  } else if (recentSubtaskMovement === 0 && estHrs > 0 && logHrs === estHrs && estHrs > 0) {
+    movementLoggingLine = 'Time is fully logged on estimated work, but no issues have moved in the last 24 hours.';
+  } else if (recentSubtaskMovement === 0 && estHrs > 0) {
+    movementLoggingLine = `No issues moved in the last 24 hours; ${logHrs}h of ${estHrs}h estimated is logged.`;
+  } else if (estHrs > 0 || logHrs > 0 || recentSubtaskMovement > 0) {
+    const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
+    movementLoggingLine = `Recent activity on ${recentSubtaskMovement}/${trackingRows.length || 0} subtasks; ${logHrs}h logged of ${estHrs}h estimated (${logPct}%).`;
+  } else {
+    movementLoggingLine = 'Sprint signals are not yet available (no movement or logging data).';
+  }
+
+  const inProgressStuck = stuck.filter((s) => {
+    const st = (s && s.status || '').toLowerCase();
+    return st !== 'to do' && st !== 'open' && st !== 'backlog';
+  });
+  const notStartedStuck = stuck.filter((s) => {
+    const st = (s && s.status || '').toLowerCase();
+    return st === 'to do' || st === 'open' || st === 'backlog';
+  });
+
+  const blockersCount = inProgressStuck.length;
+  const notStartedCount = notStartedStuck.length;
+  const unassignedStories = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
+
+  const riskParts = [];
+  riskParts.push(`${blockersCount} blocker${blockersCount === 1 ? '' : 's'}`);
+  if (notStartedCount > 0) riskParts.push(`${notStartedCount} not started`);
+  if (unassignedStories.length > 0) {
+    riskParts.push(`${unassignedStories.length} key stor${unassignedStories.length === 1 ? 'y' : 'ies'} unassigned`);
+  }
+  if (scopeChanges.length > 0) riskParts.push(`Scope +${scopeChanges.length} mid-sprint`);
+  const riskSnapshotText = riskParts.join(' · ') || 'No major risks detected.';
+
+  const summarySection = model.sections.summary;
+  if (totalStories === 0 && !dateRangeLabel) {
+    summarySection.push({
+      text: topLineParts.join(' · '),
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    summarySection.push({
+      text: 'No active sprint data yet for this board.',
+      isHeading: false,
+      isBold: false,
+      isItalic: false,
+      isSeparator: false,
+    });
+  } else {
+    summarySection.push({
+      text: topLineParts.join(' · '),
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    summarySection.push({
+      text: `${pctDone}% complete · ${doneStories} of ${totalStories} stories done · ${timeLeftLabel}${dateRangeLabel ? ` (${dateRangeLabel})` : ''}`,
+      isHeading: false,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+  }
+
+  summarySection.push({
+    text: `Flow & logging: ${movementLoggingLine}`,
+    isHeading: false,
+    isBold: false,
+    isItalic: false,
+    isSeparator: false,
+  });
+
+  summarySection.push({
+    text: `Risk snapshot: ${riskSnapshotText}`,
+    isHeading: false,
+    isBold: false,
+    isItalic: false,
+    isSeparator: false,
+  });
+
+  summarySection.push({
+    text: '--- More detail below ---',
+    isHeading: false,
+    isBold: false,
+    isItalic: false,
+    isSeparator: true,
+  });
+
+  const flowSection = model.sections.flowLogging;
+  if (trackingRows.length > 0 || estHrs > 0 || logHrs > 0) {
+    flowSection.push({
+      text: 'RECENT ACTIVITY & TIME LOGGING',
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    if (trackingRows.length > 0) {
+      let lineText = `Recent subtask activity: ${recentSubtaskMovement}/${trackingRows.length} subtasks moved in the last 24h`;
+      if (parentKeysWithRecentMovement > 0) {
+        lineText += ` (${parentKeysWithRecentMovement} parent stor${parentKeysWithRecentMovement === 1 ? 'y' : 'ies'} moving)`;
+      }
+      flowSection.push({
+        text: `- ${lineText}.`,
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+    }
+    if (estHrs > 0 || logHrs > 0) {
+      const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
+      const noLogFlag = logHrs === 0 && estHrs > 0 ? ' No time has been logged against estimated work.' : '';
+      const noEstimatesFlag = estHrs === 0 && logHrs > 0 ? ' Time is logged but estimates are missing.' : '';
+      flowSection.push({
+        text: `- Time logging: ${logHrs}h logged / ${estHrs}h estimated (${logPct}%).${noLogFlag}${noEstimatesFlag}`,
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+      if (remainHrs > 0) {
+        flowSection.push({
+          text: `- Remaining estimate: ${remainHrs}h.`,
+          isHeading: false,
+          isBold: false,
+          isItalic: false,
+          isSeparator: false,
+        });
+      }
+    }
+    if (trackingRows.length > 0 && estHrs === 0 && logHrs === 0) {
+      flowSection.push({
+        text: '- Interpretation: movement is happening, but no estimates or worklogs are captured yet.',
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+    }
+  }
+
+  const blockersSection = model.sections.blockers;
+  if (inProgressStuck.length > 0) {
+    blockersSection.push({
+      text: `Blockers (${inProgressStuck.length})`,
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    blockersSection.push({
+      text: 'In-progress items stuck >24h with stale status movement:',
+      isHeading: false,
+      isBold: false,
+      isItalic: false,
+      isSeparator: false,
+    });
+    const byAssignee = new Map();
+    inProgressStuck.forEach((item) => {
+      const assignee = (item && item.assignee) || 'Unassigned';
+      if (!byAssignee.has(assignee)) byAssignee.set(assignee, []);
+      byAssignee.get(assignee).push(item);
+    });
+    for (const [assignee, items] of byAssignee) {
+      blockersSection.push({
+        text: `${assignee}:`,
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+      items.forEach((item) => {
+        const key = (item && (item.issueKey || item.key)) || '?';
+        const hrs = (item && item.hoursInStatus) != null ? `${Math.round(item.hoursInStatus)}h` : '';
+        blockersSection.push({
+          text: `- ${key} - ${(item && item.summary) || '?'}${hrs ? ` [${hrs}]` : ''}`,
+          isHeading: false,
+          isBold: false,
+          isItalic: false,
+          isSeparator: false,
+        });
+      });
+    }
+  }
+
+  const notStartedSection = model.sections.notStarted;
+  if (notStartedStuck.length > 0) {
+    notStartedSection.push({
+      text: `Not started (${notStartedStuck.length})`,
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    const maxNotStartedExamples = 5;
+    const head = notStartedStuck.slice(0, maxNotStartedExamples);
+    head.forEach((item) => {
+      const key = (item && (item.issueKey || item.key)) || '?';
+      const owner = (item && item.assignee) || 'Unassigned';
+      notStartedSection.push({
+        text: `- ${key} - ${(item && item.summary) || '?'} [${owner}]`,
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+    });
+    if (notStartedStuck.length > maxNotStartedExamples) {
+      const remaining = notStartedStuck.length - maxNotStartedExamples;
+      notStartedSection.push({
+        text: `- +${remaining} more not started…`,
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+    }
+  }
+
+  const scopeSection = model.sections.scope;
+  if (scopeChanges.length > 0) {
+    const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
+    const scopeByType = new Map();
+    scopeChanges.forEach((r) => {
+      const t = r.classification || 'other';
+      scopeByType.set(t, (scopeByType.get(t) || 0) + 1);
+    });
+    const scopeTypeStr = [...scopeByType.entries()].map(([t, c]) => `${c} ${t}`).join(', ');
+    scopeSection.push({
+      text: 'Scope added mid-sprint',
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    scopeSection.push({
+      text: `+${scopeChanges.length} items added mid-sprint (${scopeTypeStr})${scopeSP > 0 ? ` +${scopeSP} SP` : ''}`,
+      isHeading: false,
+      isBold: false,
+      isItalic: false,
+      isSeparator: false,
+    });
+  }
+
+  const workSection = model.sections.workBreakdown;
+  const storiesWithSubtasks = stories.filter((s) => Array.isArray(s.subtasks) && s.subtasks.length > 0);
+  if (storiesWithSubtasks.length > 0) {
+    workSection.push({
+      text: `Work breakdown (${storiesWithSubtasks.length} stories with subtasks)`,
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    storiesWithSubtasks.forEach((s) => {
+      const subs = s.subtasks || [];
+      const subDone = subs.filter((st) => (st.status || '').toLowerCase().includes('done')).length;
+      const subEst = subs.reduce((sum, st) => sum + (st.estimateHours || 0), 0);
+      const subLog = subs.reduce((sum, st) => sum + (st.loggedHours || 0), 0);
+      let line = `${s.issueKey} (${s.assignee || 'Unassigned'}): ${subDone}/${subs.length} subtasks done`;
+      if (subEst > 0 || subLog > 0) line += ` | ${subLog}h/${subEst}h`;
+      workSection.push({
+        text: line,
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+    });
+  }
+
+  const actionsSection = model.sections.actions;
+  const actions = [];
+  if (logHrs === 0 && estHrs > 0) actions.push(`Log actual work - ${estHrs}h estimated but 0h captured in timetracking.`);
+  if (recentSubtaskMovement > 0 && logHrs === 0) actions.push(`Flow is moving (${recentSubtaskMovement} subtasks changed <24h) but logs are missing.`);
+  if (inProgressStuck.length > 0) actions.push(`Unblock ${inProgressStuck.length} stuck item${inProgressStuck.length > 1 ? 's' : ''}.`);
+  if (notStartedStuck.length > 0) actions.push(`Start ${notStartedStuck.length} item${notStartedStuck.length > 1 ? 's' : ''} still in To Do.`);
+  if (excludedParents > 0) {
+    actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as stuck).`);
+  }
+  if (unassignedStories.length > 0) {
+    actions.push(`Assign ${unassignedStories.length} unowned stor${unassignedStories.length > 1 ? 'ies' : 'y'}.`);
+  }
+  if (pctDone < 30 && remainingDays != null && remainingDays < 5) {
+    actions.push('Velocity behind - consider scope cut.');
+  }
+  if (actions.length > 0) {
+    actionsSection.push({
+      text: 'ACTION NEEDED:',
+      isHeading: true,
+      isBold: true,
+      isItalic: false,
+      isSeparator: false,
+    });
+    actions.forEach((a, idx) => {
+      actionsSection.push({
+        text: `${idx + 1}. ${a}`,
+        isHeading: false,
+        isBold: false,
+        isItalic: false,
+        isSeparator: false,
+      });
+    });
+  }
+
+  model.meta = {
+    ...model.meta,
+    sprintName,
+    boardName,
+    verdict,
+    dateRangeLabel,
+    doneStories,
+    totalStories,
+    pctDone,
+    remainingDays,
+    meta,
+  };
+
+  return model;
+}
+
+function renderSummaryModelToClipboard(model, options = {}) {
+  const mode = options.mode || model.meta.mode || 'markdownEnhanced';
+  const linesOut = [];
+
+  const summary = model.sections.summary || [];
+  summary.forEach((line, index) => {
+    if (line.isSeparator) {
+      linesOut.push(line.text);
+      return;
+    }
+    let rendered = line.text;
+    if (mode === 'markdownEnhanced') {
+      if (index === 0) {
+        rendered = `**${line.text}**`;
+      } else if (index === 1) {
+        const parts = line.text.split(' · ');
+        const first = parts.shift() || '';
+        const rest = parts.join(' · ');
+        rendered = `**${first}**${rest ? ` · ${rest}` : ''}`;
+      } else if (index === 2 || index === 3) {
+        const colonIdx = line.text.indexOf(':');
+        if (colonIdx !== -1) {
+          const label = line.text.slice(0, colonIdx);
+          const body = line.text.slice(colonIdx + 1).trimStart();
+          rendered = `**${label}:** ${body}`;
+        }
+      }
+    }
+    linesOut.push(rendered);
+  });
+
+  linesOut.push('');
+
+  const order = ['flowLogging', 'blockers', 'notStarted', 'scope', 'workBreakdown', 'actions'];
+  order.forEach((sectionKey, idx) => {
+    const section = model.sections[sectionKey] || [];
+    if (!section.length) return;
+    if (idx === 0) {
+      linesOut.push('--- More detail below ---');
+      linesOut.push('');
+    } else {
+      linesOut.push('---');
+      linesOut.push('');
+    }
+    section.forEach((line) => {
+      if (line.isSeparator) {
+        linesOut.push(line.text);
+        return;
+      }
+      let rendered = line.text;
+      if (mode === 'markdownEnhanced' && line.isHeading) {
+        rendered = `**${line.text}**`;
+      }
+      linesOut.push(rendered);
+    });
+    linesOut.push('');
+  });
+
+  return linesOut.join('\n').trimEnd();
+}
+
+function renderSummaryModelToMarkdown(model, data) {
+  const {
+    sprintName,
+    pctDone,
+    doneStories,
+    totalStories,
+    remainingDays,
+    meta,
+    dateRangeLabel,
+  } = model.meta;
+  const metaObj = meta || {};
+  const lines = [];
+
+  const headingName = sprintName || 'Sprint';
+  lines.push(`# ${headingName}`);
+  lines.push('');
+
+  const remainingLabel = remainingDays != null && remainingDays > 0 ? `${remainingDays} days left` : 'ended';
+  lines.push(`> *${pctDone}% done* | ${doneStories}/${totalStories} stories | ${remainingLabel}  `);
+  if (dateRangeLabel) {
+    lines.push(`> ${dateRangeLabel} | Generated ${new Date().toLocaleString()}`);
+  } else {
+    lines.push(`> Generated ${new Date().toLocaleString()}`);
+  }
+
+  if (metaObj.generatedAt || metaObj.snapshotAt || metaObj.windowStart || metaObj.windowEnd) {
+    const freshness = metaObj.generatedAt || metaObj.snapshotAt ? formatDate(metaObj.generatedAt || metaObj.snapshotAt) : '-';
+    lines.push(`> Data freshness: ${freshness} | ${buildReportRangeLabel(metaObj.windowStart, metaObj.windowEnd)}`);
+  }
+
+  lines.push('');
+
+  lines.push('## Summary');
+  const summaryLines = model.sections.summary || [];
+  summaryLines.slice(0, 4).forEach((line, index) => {
+    if (index === 0) {
+      lines.push(`- **${line.text}**`);
+    } else if (index === 1) {
+      const parts = line.text.split(' · ');
+      const first = parts.shift() || '';
+      const rest = parts.join(' · ');
+      lines.push(`- **${first}**${rest ? ` · ${rest}` : ''}`);
+    } else {
+      lines.push(`- ${line.text}`);
+    }
+  });
+
+  lines.push('');
+
+  const sectionToMarkdown = (title, key) => {
+    const section = model.sections[key] || [];
+    if (!section.length) return;
+    lines.push(`## ${title}`);
+    lines.push('');
+    section.forEach((line) => {
+      if (line.isHeading) {
+        lines.push(`- **${line.text}**`);
+      } else {
+        lines.push(`- ${line.text}`);
+      }
+    });
+    lines.push('');
+  };
+
+  sectionToMarkdown('Flow & Logging', 'flowLogging');
+  sectionToMarkdown('Blockers', 'blockers');
+  sectionToMarkdown('Not started', 'notStarted');
+  sectionToMarkdown('Scope changes', 'scope');
+  sectionToMarkdown('Work breakdown', 'workBreakdown');
+  sectionToMarkdown('Actions', 'actions');
+
+  return `${lines.join('\n').trim()}\n\n${exportRisksInsightsAsMarkdown(data || {})}`;
+}
+
+function setLastExportStatus(actionLabel, detail) {
+  const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
+  if (!statusEl) return;
+  const ts = new Date().toLocaleTimeString();
+  const compactDetail = detail ? String(detail).trim() : '';
+  const labelHtml = `<span class="export-status-label">Last action:</span> <em>${actionLabel}</em>`;
+  const metaHtml = `${ts}${compactDetail ? ` · ${compactDetail}` : ''}`;
+  statusEl.innerHTML = `${labelHtml} · <span class="export-status-meta">${metaHtml}</span>`;
+  statusEl.setAttribute('data-last-action', actionLabel);
+  statusEl.setAttribute('data-last-timestamp', ts);
+  statusEl.setAttribute('data-last-detail', compactDetail);
+}
+
+try {
+  if (typeof window !== 'undefined') {
+    window.__setCurrentSprintLastExportStatus = setLastExportStatus;
+  }
+} catch (_) {}
 export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
@@ -206,256 +793,11 @@ async function copyDashboardAsText(data, btn) {
   const originalText = btn?.textContent || '';
   setButtonStatus(btn, 'Copying...', null, true);
   try {
-    const sprint = data.sprint || {};
-    const board = data.board || {};
-    const summary = data.summary || {};
-    const days = data.daysMeta || {};
-    const stuck = data.stuckCandidates || [];
-    const tracking = data?.subtaskTracking?.summary || {};
-    const trackingRows = Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : [];
-    const scopeChanges = data.scopeChanges || [];
-    const stories = data.stories || [];
-    const meta = data.meta || {};
-    const excludedParents = Number(data?.summary?.stuckExcludedParentsWithActiveSubtasks || 0);
-
-    const doneStories = summary.doneStories || 0;
-    const totalStories = summary.totalStories || 0;
-    const pctDone = summary.percentDone || 0;
-    const remainingDays = days.daysRemainingWorking != null
-      ? days.daysRemainingWorking
-      : days.daysRemainingCalendar;
-
-    // Use the real verdict from the shared SSOT
-    const { deriveSprintVerdict } = await import('./Reporting-App-CurrentSprint-Alert-Banner.js');
-    const verdictInfo = deriveSprintVerdict(data);
-    const verdict = verdictInfo.verdict;
-
-    // Categorize stories by issue type for the summary
-    const byType = new Map();
-    stories.forEach((s) => {
-      const t = (s.issueType || 'Unknown').toLowerCase().includes('bug') ? 'Bug'
-        : (s.issueType || 'Unknown').toLowerCase().includes('task') ? 'Task'
-          : (s.issueType || 'Unknown').toLowerCase().includes('story') ? 'Story' : (s.issueType || 'Other');
-      byType.set(t, (byType.get(t) || 0) + 1);
-    });
-    function pluralizeIssueType(type, count) {
-      if (count === 1) return type;
-      if (String(type).toLowerCase() === 'story') return 'Stories';
-      return `${type}s`;
-    }
-    const typeBreakdown = [...byType.entries()].map(([t, c]) => `${c} ${pluralizeIssueType(t, c)}`).join(', ');
-
-    // Separate blocked items (In Progress >24h) from not-started items (To Do)
-    const inProgressStuck = stuck.filter((s) => {
-      const st = (s && s.status || '').toLowerCase();
-      return st !== 'to do' && st !== 'open' && st !== 'backlog';
-    });
-    const notStartedStuck = stuck.filter((s) => {
-      const st = (s && s.status || '').toLowerCase();
-      return st === 'to do' || st === 'open' || st === 'backlog';
-    });
-
-    let text = '';
-
-    // 1. Short summary (4-line contract)
-    const boardName = board.name || '';
-    const periodLabel = sprint.name || 'Sprint';
-    const healthLabel = verdict ? `${verdict} sprint health` : 'Sprint health';
-    const topLineParts = [];
-    if (periodLabel) topLineParts.push(periodLabel);
-    if (boardName) topLineParts.push(boardName);
-    topLineParts.push(healthLabel);
-    text += `${topLineParts.join(' · ')}\n`;
-
-    let timeLeftLabel = '';
-    if (remainingDays == null) {
-      timeLeftLabel = 'Sprint ended';
-    } else if (remainingDays <= 0) {
-      timeLeftLabel = 'Sprint ended';
-    } else if (remainingDays < 1) {
-      timeLeftLabel = '<1 day left';
-    } else {
-      timeLeftLabel = `${remainingDays} day${remainingDays === 1 ? '' : 's'} left`;
-    }
-
-    const startLabel = formatDate(sprint.startDate) || '?';
-    const endLabel = formatDate(sprint.endDate) || '?';
-    let dateRangeLabel = '';
-    if (startLabel && endLabel && startLabel !== '?' && endLabel !== '?') {
-      dateRangeLabel = `${startLabel}–${endLabel}`;
-    } else if (startLabel && startLabel !== '?') {
-      dateRangeLabel = `Starts ${startLabel}`;
-    } else if (endLabel && endLabel !== '?') {
-      dateRangeLabel = `Ends ${endLabel}`;
-    }
-
-    if (totalStories === 0 && !dateRangeLabel) {
-      text += 'No active sprint data yet for this board.\n';
-    } else {
-      text += `${pctDone}% complete · ${doneStories} of ${totalStories} stories done · ${timeLeftLabel}${dateRangeLabel ? ` (${dateRangeLabel})` : ''}\n`;
-    }
-
-    // 2. Flow movement and logging - one plain-language line
-    const estHrs = tracking.totalEstimateHours || 0;
-    const logHrs = tracking.totalLoggedHours || 0;
-    const remainHrs = tracking.totalRemainingHours || 0;
-    const recentSubtaskMovement = trackingRows.filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24).length;
-    const parentKeysWithRecentMovement = new Set(
-      trackingRows
-        .filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24)
-        .map((r) => r.parentKey)
-        .filter(Boolean)
-    ).size;
-
-    let movementLoggingLine = '';
-    if (trackingRows.length === 0 && estHrs === 0 && logHrs === 0) {
-      movementLoggingLine = 'No recent activity or time logging captured for this sprint yet.';
-    } else if (recentSubtaskMovement > 0 && estHrs > 0 && logHrs === 0) {
-      movementLoggingLine = `Flow is moving (${recentSubtaskMovement} subtasks changed) but 0h of ${estHrs}h estimated is logged.`;
-    } else if (recentSubtaskMovement > 0 && estHrs === 0 && logHrs === 0) {
-      movementLoggingLine = `Recent activity on ${recentSubtaskMovement} subtasks; no estimates or time logs captured yet.`;
-    } else if (recentSubtaskMovement === 0 && estHrs > 0 && logHrs === estHrs && estHrs > 0) {
-      movementLoggingLine = 'Time is fully logged on estimated work, but no issues have moved in the last 24 hours.';
-    } else if (recentSubtaskMovement === 0 && estHrs > 0) {
-      movementLoggingLine = `No issues moved in the last 24 hours; ${logHrs}h of ${estHrs}h estimated is logged.`;
-    } else if (estHrs > 0 || logHrs > 0 || recentSubtaskMovement > 0) {
-      const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
-      movementLoggingLine = `Recent activity on ${recentSubtaskMovement}/${trackingRows.length || 0} subtasks; ${logHrs}h logged of ${estHrs}h estimated (${logPct}%).`;
-    }
-
-    if (movementLoggingLine) {
-      text += `${movementLoggingLine}\n`;
-    } else {
-      text += 'Sprint signals are not yet available (no movement or logging data).\n';
-    }
-
-    // 3. Compact risk / composition line
-    const blockersCount = inProgressStuck.length;
-    const notStartedCount = notStartedStuck.length;
-    const unassigned = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
-    const riskParts = [];
-    riskParts.push(`${blockersCount} blocker${blockersCount === 1 ? '' : 's'}`);
-    if (notStartedCount > 0) riskParts.push(`${notStartedCount} not started`);
-    if (unassigned.length > 0) riskParts.push(`${unassigned.length} key stor${unassigned.length === 1 ? 'y' : 'ies'} unassigned`);
-    if (scopeChanges.length > 0) riskParts.push(`Scope +${scopeChanges.length} mid-sprint`);
-    text += `${riskParts.join(' · ')}\n`;
-    text += '\n';
-
-    // 4. Detailed section beneath separator
-    text += '--- More detail below ---\n\n';
-
-    // Detailed recent activity and logging notes
-    if (trackingRows.length > 0 || estHrs > 0 || logHrs > 0) {
-      text += 'RECENT ACTIVITY & TIME LOGGING\n';
-      if (trackingRows.length > 0) {
-        text += `- Recent subtask activity: ${recentSubtaskMovement}/${trackingRows.length} subtasks moved in the last 24h`;
-        if (parentKeysWithRecentMovement > 0) {
-          text += ` (${parentKeysWithRecentMovement} parent stor${parentKeysWithRecentMovement === 1 ? 'y' : 'ies'} moving)`;
-        }
-        text += '.\n';
-      }
-      if (estHrs > 0 || logHrs > 0) {
-        const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
-        const noLogFlag = logHrs === 0 && estHrs > 0 ? ' No time has been logged against estimated work.' : '';
-        const noEstimatesFlag = estHrs === 0 && logHrs > 0 ? ' Time is logged but estimates are missing.' : '';
-        text += `- Time logging: ${logHrs}h logged / ${estHrs}h estimated (${logPct}%).${noLogFlag}${noEstimatesFlag}\n`;
-        if (remainHrs > 0) text += `- Remaining estimate: ${remainHrs}h.\n`;
-      }
-      if (trackingRows.length > 0 && estHrs === 0 && logHrs === 0) {
-        text += '- Interpretation: movement is happening, but no estimates or worklogs are captured yet.\n';
-      }
-      text += '\n';
-    }
-
-    // 5. Actively blocked items - the real blockers (In Progress but stuck)
-    if (inProgressStuck.length > 0) {
-      text += `Blockers (${inProgressStuck.length})\n`;
-      text += '  In-progress items stuck >24h with stale status movement:\n';
-      const byAssignee = new Map();
-      inProgressStuck.forEach((item) => {
-        const assignee = (item && item.assignee) || 'Unassigned';
-        if (!byAssignee.has(assignee)) byAssignee.set(assignee, []);
-        byAssignee.get(assignee).push(item);
-      });
-      for (const [assignee, items] of byAssignee) {
-        text += `  ${assignee}:\n`;
-        items.forEach((item) => {
-          const key = (item && (item.issueKey || item.key)) || '?';
-          const hrs = (item && item.hoursInStatus) != null ? Math.round(item.hoursInStatus) + 'h' : '';
-          text += `    ${key} - ${(item && item.summary) || '?'} [${hrs}]\n`;
-        });
-      }
-      text += '\n';
-    }
-
-    // 6. Not started work - separate from blockers
-    if (notStartedStuck.length > 0) {
-      text += `Not started (${notStartedStuck.length})\n`;
-      const maxNotStartedExamples = 5;
-      const head = notStartedStuck.slice(0, maxNotStartedExamples);
-      head.forEach((item) => {
-        const key = (item && (item.issueKey || item.key)) || '?';
-        const owner = (item && item.assignee) || 'Unassigned';
-        text += `  ${key} - ${(item && item.summary) || '?'} [${owner}]\n`;
-      });
-      if (notStartedStuck.length > maxNotStartedExamples) {
-        const remaining = notStartedStuck.length - maxNotStartedExamples;
-        text += `  +${remaining} more not started…\n`;
-      }
-      text += '\n';
-    }
-
-    // 7. Scope changes with type breakdown
-    if (scopeChanges.length > 0) {
-      const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
-      const scopeByType = new Map();
-      scopeChanges.forEach((r) => {
-        const t = r.classification || 'other';
-        scopeByType.set(t, (scopeByType.get(t) || 0) + 1);
-      });
-      const scopeTypeStr = [...scopeByType.entries()].map(([t, c]) => `${c} ${t}`).join(', ');
-      text += 'Scope added mid-sprint\n';
-      text += `  +${scopeChanges.length} items added mid-sprint (${scopeTypeStr})${scopeSP > 0 ? ' +' + scopeSP + ' SP' : ''}\n\n`;
-    }
-
-    // 8. Per-story subtask summary for scrum master context
-    const storiesWithSubtasks = stories.filter((s) => Array.isArray(s.subtasks) && s.subtasks.length > 0);
-    if (storiesWithSubtasks.length > 0) {
-      text += `Work breakdown (${storiesWithSubtasks.length} stories with subtasks)\n`;
-      storiesWithSubtasks.forEach((s) => {
-        const subs = s.subtasks || [];
-        const subDone = subs.filter((st) => (st.status || '').toLowerCase().includes('done')).length;
-        const subEst = subs.reduce((sum, st) => sum + (st.estimateHours || 0), 0);
-        const subLog = subs.reduce((sum, st) => sum + (st.loggedHours || 0), 0);
-        text += `  ${s.issueKey} (${s.assignee || 'Unassigned'}): ${subDone}/${subs.length} subtasks done`;
-        if (subEst > 0 || subLog > 0) text += ` | ${subLog}h/${subEst}h`;
-        text += '\n';
-      });
-      text += '\n';
-    }
-
-    // 9. Unassigned work (reuse unassigned collection from compact risk line)
-    if (unassigned.length > 0) {
-      text += `Unassigned (${unassigned.length})\n`;
-      text += `  ${unassigned.map((s) => s.issueKey || s.key || '?').join(', ')}\n\n`;
-    }
-
-    // 10. Action needed summary - prioritized
-    const actions = [];
-    if (logHrs === 0 && estHrs > 0) actions.push(`Log actual work - ${estHrs}h estimated but 0h captured in timetracking`);
-    if (recentSubtaskMovement > 0 && logHrs === 0) actions.push(`Flow is moving (${recentSubtaskMovement} subtasks changed <24h) but logs are missing`);
-    if (inProgressStuck.length > 0) actions.push(`Unblock ${inProgressStuck.length} stuck item${inProgressStuck.length > 1 ? 's' : ''}`);
-    if (notStartedStuck.length > 0) actions.push(`Start ${notStartedStuck.length} item${notStartedStuck.length > 1 ? 's' : ''} still in To Do`);
-    if (excludedParents > 0) actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as stuck)`);
-    if (unassigned.length > 0) actions.push(`Assign ${unassigned.length} unowned stor${unassigned.length > 1 ? 'ies' : 'y'}`);
-    if (pctDone < 30 && remainingDays != null && remainingDays < 5) actions.push('Velocity behind - consider scope cut');
-    if (actions.length > 0) {
-      text += 'ACTION NEEDED:\n';
-      actions.forEach((a, i) => { text += `  ${i + 1}. ${a}\n`; });
-    }
-
+    const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
+    const text = renderSummaryModelToClipboard(model, { mode: 'markdownEnhanced' });
     await writeTextToClipboardWithFallback(text);
     setButtonStatus(btn, 'Copied!', originalText);
+    setLastExportStatus('Copy summary', 'Summary copied to clipboard');
   } catch (error) {
     console.error('Copy text error:', error);
     setButtonStatus(btn, 'Copy failed', originalText);
@@ -465,79 +807,16 @@ async function exportDashboardAsMarkdown(data, btn) {
   const originalText = btn?.textContent || '';
   setButtonStatus(btn, 'Generating...', null, true);
   try {
-    const sprint = data.sprint || {};
-    const summary = data.summary || {};
-    const days = data.daysMeta || {};
-    const stuck = data.stuckCandidates || [];
-    const tracking = data.subtaskTracking || {};
-    const trackingSummary = tracking.summary || {};
-    const trackingRows = Array.isArray(tracking.subtasks) ? tracking.subtasks : [];
-    const scopeChanges = data.scopeChanges || [];
-    const stories = data.stories || [];
-    const meta = data.meta || {};
-    const excludedParents = Number(data?.summary?.stuckExcludedParentsWithActiveSubtasks || 0);
-    const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
-    const pctDone = summary.percentDone || 0;
-
-    let markdown = `# ${sprint.name || 'Sprint'}\n\n`;
-    markdown += `> **${pctDone}% done** | ${summary.doneStories || 0}/${summary.totalStories || 0} stories | ${remainingDays != null ? remainingDays + ' days left' : 'ended'}  \n`;
-    markdown += `> ${formatDate(sprint.startDate) || '?'} -> ${formatDate(sprint.endDate) || '?'} | Generated ${new Date().toLocaleString()}\n\n`;
-    if (meta.generatedAt || meta.snapshotAt || meta.windowStart || meta.windowEnd) {
-      const freshness = meta.generatedAt || meta.snapshotAt ? formatDate(meta.generatedAt || meta.snapshotAt) : '-';
-      markdown += `> Data freshness: ${freshness} | ${buildReportRangeLabel(meta.windowStart, meta.windowEnd)}\n\n`;
-    }
-
-    markdown += '## Overview\n';
-    markdown += `| Metric | Value |\n|---|---|\n`;
-    markdown += `| Stories | ${summary.doneStories || 0} of ${summary.totalStories || 0} done |\n`;
-    if (summary.totalSP > 0) markdown += `| Story Points | ${summary.doneSP || 0} / ${summary.totalSP || 0} (${pctDone}%) |\n`;
-    markdown += `| New Features | ${summary.newFeaturesSP || 0} SP |\n`;
-    markdown += `| Support & Ops | ${summary.supportOpsSP || 0} SP |\n`;
-    if (trackingSummary.totalEstimateHours > 0 || trackingSummary.totalLoggedHours > 0) {
-      markdown += `| Time Logged | ${trackingSummary.totalLoggedHours || 0}h / ${trackingSummary.totalEstimateHours || 0}h estimated |\n`;
-    }
-    if (trackingRows.length > 0) {
-      const recentMovement = trackingRows.filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24).length;
-      markdown += `| Subtask movement (24h) | ${recentMovement} / ${trackingRows.length} |\n`;
-    }
-    markdown += '\n';
-
-    if (stuck.length > 0) {
-      markdown += `## Blockers (${stuck.length})\n\n`;
-      markdown += '> Blockers = in progress >24h with no recent subtask activity. Parents with active subtasks are excluded.\n\n';
-      markdown += '| Issue | Summary | Assignee | Status | Stuck |\n|---|---|---|---|---|\n';
-      stuck.forEach((item) => {
-        const key = (item && (item.issueKey || item.key)) || '?';
-        const hrs = (item && item.hoursInStatus) != null ? Math.round(item.hoursInStatus) + 'h' : '?';
-        markdown += `| ${key} | ${(item && item.summary) || '?'} | ${(item && item.assignee) || 'Unassigned'} | ${(item && item.status) || '?'} | ${hrs} |\n`;
-      });
-      markdown += '\n';
-    }
-
-    if (excludedParents > 0) {
-      markdown += `> Note: ${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} are flowing via subtasks and are not counted as blockers.\n\n`;
-    }
-
-    if (scopeChanges.length > 0) {
-      const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
-      markdown += `## Scope Changes\n+${scopeChanges.length} items added mid-sprint (+${scopeSP} SP)\n\n`;
-    }
-
-    const unassigned = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
-    if (unassigned.length > 0) {
-      markdown += `## Unassigned Work (${unassigned.length})\n`;
-      unassigned.forEach((s) => { markdown += `- ${s.issueKey || '?'}: ${s.summary || '?'}\n`; });
-      markdown += '\n';
-    }
-
-    markdown += exportRisksInsightsAsMarkdown(data);
+    const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
+    const markdown = renderSummaryModelToMarkdown(model, data);
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `sprint-${sprint.name || 'export'}.md`;
+    link.download = `sprint-${model.meta.sprintName || 'export'}.md`;
     link.click();
     URL.revokeObjectURL(link.href);
     setButtonStatus(btn, 'Exported!', originalText);
+    setLastExportStatus('Markdown', `File sprint-${model.meta.sprintName || 'export'}.md`);
   } catch (error) {
     console.error('Markdown export error:', error);
     setButtonStatus(btn, 'Export failed', originalText);
@@ -557,18 +836,11 @@ async function copyDashboardLink(data, btn) {
     }
     await writeTextToClipboardWithFallback(url);
     setButtonStatus(btn, 'Link copied!', originalText);
-    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
-    if (statusEl) {
-      const ts = new Date().toLocaleString();
-      statusEl.textContent = 'Link copied at ' + ts + ': ' + url;
-    }
+    setLastExportStatus('Copy link', url);
   } catch (error) {
     console.error('Copy link error:', error);
     setButtonStatus(btn, 'Copy failed', originalText);
-    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
-    if (statusEl) {
-      statusEl.textContent = 'Copy link failed. Try Copy summary instead.';
-    }
+    setLastExportStatus('Copy link failed', 'Try Copy summary instead.');
   }
 }
 async function emailDashboard(data, btn) {
@@ -584,25 +856,16 @@ async function emailDashboard(data, btn) {
         sprintName: sprint.name,
       }),
     });
-    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
     if (response.ok) {
       setButtonStatus(btn, 'Sent!', originalText);
-      if (statusEl) {
-        const ts = new Date().toLocaleString();
-        statusEl.textContent = 'Sprint summary emailed to the configured distribution at ' + ts + '.';
-      }
+      setLastExportStatus('Email', 'Sent to configured distribution');
     } else {
       setButtonStatus(btn, 'Send failed', originalText);
-      if (statusEl) {
-        statusEl.textContent = 'Email send failed. Use Copy summary or Markdown export instead.';
-      }
+      setLastExportStatus('Email failed', 'Use Copy summary or Markdown export instead.');
     }
   } catch (error) {
     console.error('Email error:', error);
     setButtonStatus(btn, 'Email unavailable', originalText);
-    const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
-    if (statusEl) {
-      statusEl.textContent = 'Email temporarily unavailable. Share via Copy summary or Markdown.';
-    }
+    setLastExportStatus('Email unavailable', 'Share via Copy summary or Markdown.');
   }
 }

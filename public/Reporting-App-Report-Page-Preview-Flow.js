@@ -218,6 +218,32 @@ export function initPreviewFlow() {
         persistDoneStoriesOptionalColumnsPreference(show);
       }
     }
+
+    if (target.getAttribute && target.getAttribute('data-action') === 'toggle-done-stories-quarter-review') {
+      const tab = document.getElementById('tab-done-stories');
+      const content = document.getElementById('done-stories-content');
+      if (!tab || !content) return;
+      const enable = !tab.classList.contains('quarter-review-mode');
+      tab.classList.toggle('quarter-review-mode', enable);
+      target.setAttribute('aria-pressed', String(enable));
+      target.textContent = enable ? 'Exit quarter review' : 'Quarter review mode';
+      const sprintGroups = content.querySelectorAll('.sprint-group');
+      sprintGroups.forEach((group) => {
+        const header = group.querySelector('.sprint-header');
+        const body = group.querySelector('.sprint-content');
+        if (!header || !body) return;
+        const icon = header.querySelector('.toggle-icon');
+        if (enable) {
+          body.style.display = 'block';
+          body.style.height = 'auto';
+          if (icon) icon.textContent = 'v';
+        } else {
+          body.style.display = 'none';
+          body.style.height = '500px';
+          if (icon) icon.textContent = '>';
+        }
+      });
+    }
   });
 
   previewBtn.addEventListener('click', async () => {

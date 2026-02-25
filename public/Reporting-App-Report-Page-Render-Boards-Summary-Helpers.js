@@ -1,7 +1,7 @@
 import { formatDateForDisplay, formatNumber, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { calculateVariance } from './Reporting-App-Report-Page-Sorting.js';
 
-export const DELIVERY_GRADE_TOOLTIP = 'Historical delivery quality grade. Uses on-time % and predictability when available; falls back to on-time alone. Strong >=90, Solid >=80, Mixed >=65, Weak >=50.';
+export const DELIVERY_GRADE_TOOLTIP = 'Simple health grade from completed-sprint outcomes: average of On-time % and SP Estimation % (when available). Strong 90+; Solid 80-89; Mixed 65-79; Weak 50-64; Critical <50. If only one metric exists, grade is marked partial.';
 
 export function deriveDeliveryGrade(onTimePct, spEstimationPct, sprintCount) {
   // Collect all finite metrics to compute an empirical average from whatever data is available.
