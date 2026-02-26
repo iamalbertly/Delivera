@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- SIZE-EXEMPT: Single report page structure; feedback panel extracted to JS-injected component. -->
 <html lang="en">
 
@@ -15,7 +15,7 @@
       <div class="header-row">
         <div>
           <h1>General Performance - High-Level Performance</h1>
-          <p id="report-subtitle" class="subtitle">Preview updates automatically when filters change; use Preview report for heavy ranges.</p>
+          <p id="report-subtitle" class="subtitle">Choose filters. Preview. Decide fast.</p>
         </div>
       </div>
       <div id="feedback-panel" class="feedback-panel" style="display: none;"></div>
@@ -32,10 +32,10 @@
           <button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Show filters</button>
         </div>
         <div class="filters-panel-body" id="filters-panel-body">
-          <h2>Filters — Who, When, Rules</h2>
-          <p class="filters-tip"><small>Who: Choose squads. When: Choose time window. Rules: Tune metrics &amp; strictness.</small></p>
+          <h2>Filters</h2>
+          <p class="filters-tip"><small>Who | When | Rules</small></p>
           <div class="filter-group filter-group-who">
-            <h3>Who: Projects</h3>
+            <h3>Who</h3>
             <div class="project-tools">
               <div class="search-input-wrap">
                 <input type="text" id="project-search" placeholder="Filter projects..." aria-label="Filter projects">
@@ -113,8 +113,8 @@
           </div>
 
           <div class="filter-group filter-group-when">
-            <h3>When: Date window</h3>
-            <p class="quarter-strip-label"><small>When: Choose time window. Use a quarter for fast defaults or Custom dates for precision.</small></p>
+            <h3>When</h3>
+            <p class="quarter-strip-label"><small>Choose a quarter or custom range.</small></p>
             <div class="quick-range-strip" role="group" aria-label="Date range">
               <div class="quarter-strip-inner" style="overflow-x: auto; display: flex; gap: 6px; flex-wrap: nowrap;">
               </div>
@@ -130,9 +130,8 @@
           </div>
 
           <div class="filter-group filter-group-rules">
-            <h3>Rules: Options</h3>
-            <p class="options-note"><small><strong>Note:</strong> Story Points, Epic TTM, and Bugs/Rework are always
-                included in reports.</small></p>
+            <h3>Rules</h3>
+            <p class="options-note"><small>Extra report rules and strictness.</small></p>
             <button type="button" id="advanced-options-toggle" class="btn btn-secondary btn-compact"
               aria-expanded="false" aria-controls="advanced-options">+ Advanced</button>
             <div id="advanced-options" class="advanced-options" hidden>
@@ -190,8 +189,8 @@
               <div id="loading-progress-fill" class="loading-progress-fill" style="width: 0%;"></div>
             </div>
             <p id="loading-message" class="loading-stage-label">Connecting to Jira…</p>
-            <p id="loading-step-cue" class="loading-step-cue" aria-live="polite"></p>
-            <p class="loading-hint" aria-live="polite">Usually ready in under 30s for one quarter.</p>
+            <p id="loading-step-cue" class="loading-step-cue" aria-live="polite" hidden></p>
+            <p class="loading-hint" aria-live="polite" hidden>Usually ready in under 30s for one quarter.</p>
           </div>
           <div class="skeleton-preview" aria-hidden="true">
             <div class="skeleton-row skeleton-chips"></div>
@@ -241,17 +240,17 @@
           <!-- Tabs: Performance first; order: Performance overview | Leadership Signals | Sprint history | Outcome list | Excluded sprints -->
           <div class="tabs" role="tablist">
             <button id="tab-btn-project-epic-level" class="tab-btn active" data-tab="project-epic-level" role="tab"
-              aria-selected="true" aria-controls="tab-project-epic-level" tabindex="0">Performance overview</button>
+              aria-selected="true" aria-controls="tab-project-epic-level" tabindex="0">Overview</button>
             <button id="tab-btn-trends" class="tab-btn" data-tab="trends" role="tab" aria-selected="false"
-              aria-controls="tab-trends" tabindex="-1">Trends over time</button>
+              aria-controls="tab-trends" tabindex="-1">Trends</button>
             <button id="tab-btn-sprints" class="tab-btn" data-tab="sprints" role="tab" aria-selected="false"
-              aria-controls="tab-sprints" tabindex="-1">Sprint history</button>
+              aria-controls="tab-sprints" tabindex="-1">Sprints</button>
             <button id="tab-btn-done-stories" class="tab-btn" data-tab="done-stories" role="tab"
-              aria-selected="false" aria-controls="tab-done-stories" tabindex="-1">Outcome list</button>
+              aria-selected="false" aria-controls="tab-done-stories" tabindex="-1">Outcomes</button>
             <button id="tab-btn-unusable-sprints" class="tab-btn" data-tab="unusable-sprints" role="tab"
-              aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">Excluded sprints</button>
+              aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">Excluded</button>
           </div>
-          <p class="tab-hint" id="tab-outcome-hint"><small>Performance overview opens first for decision speed and now includes merged leadership cards; use the Trends tab to see how performance has changed over time, and Export for stakeholder updates.</small></p>
+          <p class="tab-hint" id="tab-outcome-hint"><small>Performance overview opens first. Use Trends for change over time and Export for stakeholder updates.</small></p>
 
           <!-- Tab Content -->
           <div class="tab-content">
@@ -328,4 +327,5 @@
 </body>
 
 </html>
+
 

@@ -272,6 +272,8 @@ export function renderStories(data) {
   const recentSubtaskMovement = Number(summary.recentSubtaskMovementCount || 0);
   const movingParents = Number(summary.parentsWithRecentSubtaskMovement || 0);
   const hasTimeEvidence = subtaskEstimatedHrs > 0 || subtaskLoggedHrs > 0 || allSubtasks.length > 0;
+  const blockerKeys = new Set((stuckCandidates || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
+  const scopeKeys = new Set((scopeChanges || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
   const timeConfidence = !hasTimeEvidence
     ? 'No subtask time evidence'
     : (subtaskLoggedHrs === 0 && subtaskEstimatedHrs > 0
@@ -279,30 +281,26 @@ export function renderStories(data) {
       : (subtaskLoggedHrs > 0 ? 'Actual logs present' : 'Partial evidence'));
   html += '<div class="summary-strip role-proof-strip" aria-live="polite">';
   html += '<div class="summary-headline">';
-  html += '<strong>Role-proof snapshot</strong>';
-  html += '<span>Answers fast: who logged actual work, what is blocked, what needs follow-up.</span>';
+  html += '<strong>Evidence snapshot</strong>';
+  html += '<span>Flow and time evidence only. Risks stay in the Work risks card.</span>';
   html += '</div>';
   html += '<div class="summary-links">';
   html += '<a href="#work-risks-table">Open risks</a>';
   html += '<a href="#stories-table">Open issue evidence</a>';
   html += '</div>';
-  html += '<p class="meta-row"><small>Risks and blockers live in the Work risks card below.</small></p>';
-  html += '<div class="summary-grid">';
-  html += '<div class="summary-block"><span>Flow Evidence</span><strong>' + recentSubtaskMovement + ' subtask updates in last 24h</strong><span>' + movingParents + ' parent stor' + (movingParents === 1 ? 'y is' : 'ies are') + ' actively moving.</span></div>';
-  html += '<div class="summary-block"><span>Time Evidence</span><strong>' + formatNumber(subtaskLoggedHrs, 1, '0') + 'h logged / ' + formatNumber(subtaskEstimatedHrs, 1, '0') + 'h estimated</strong><span>' + escapeHtml(timeConfidence) + '</span></div>';
-  html += '<div class="summary-block"><span>Developer Concern</span><strong>' + subtasksNoLog + ' subtasks estimated but not logged</strong><span>Flow can move while worklogs stay at 0h; this is a logging gap, not flow denial.</span></div>';
-  html += '<div class="summary-block"><span>Scrum Master Focus</span><strong>' + blockersInProgress + ' active blockers</strong><span>' + blockersNotStarted + ' still not started; ' + excludedParents + ' parent flow item' + (excludedParents === 1 ? '' : 's') + ' excluded from blockers.</span></div>';
-  const scopeStrong = scopeChanges.length === 0 ? 'No scope added' : ('+' + scopeChanges.length + ' added mid-sprint');
-  const scopeSpan = scopeUnestimated > 0 ? (scopeUnestimated + ' without story points; review impact.') : 'Scope stable.';
-  html += '<div class="summary-block"><span>Product Owner Scope</span><strong>' + escapeHtml(scopeStrong) + '</strong><span>' + escapeHtml(scopeSpan) + '</span></div>';
-  html += '<div class="summary-block"><span>Engineering Manager</span><strong>' + parentUnassigned + ' unassigned parent items</strong><span>' + noSubtasksParents + ' parent item' + (noSubtasksParents === 1 ? '' : 's') + ' have no subtask trail.</span></div>';
-  html += '</div>';
+  html += '<p class="meta-row"><small>'
+    + recentSubtaskMovement + ' subtask updates in last 24h (' + movingParents + ' active parent stor' + (movingParents === 1 ? 'y' : 'ies') + ')'
+    + ' | ' + formatNumber(subtaskLoggedHrs, 1, '0') + 'h logged / ' + formatNumber(subtaskEstimatedHrs, 1, '0') + 'h estimated'
+    + ' | ' + escapeHtml(timeConfidence)
+    + '</small></p>';
   html += '<div class="subtask-chips">';
-  html += '<span class="subtask-chip subtask-chip-warning">Estimated, no log: ' + subtasksNoLog + '</span>';
+  html += '<a href="#work-risks-table" class="subtask-chip subtask-chip-warning" title="Filter Work risks to no-log rows">Estimated, no log: ' + subtasksNoLog + '</a>';
   html += '<span class="subtask-chip subtask-chip-info">Logged, no estimate: ' + subtasksNoEstimate + '</span>';
   html += '<span class="subtask-chip subtask-chip-warning">Overrun: ' + subtasksOverrun + '</span>';
   html += '<span class="subtask-chip subtask-chip-neutral">Done, no log: ' + subtasksDoneNoLog + '</span>';
+  html += '<span class="subtask-chip subtask-chip-neutral">Scope +' + scopeChanges.length + ' | Unassigned parents ' + parentUnassigned + '</span>';
   html += '</div>';
+  html += '<p class="meta-row"><small>' + blockersInProgress + ' active blockers, ' + blockersNotStarted + ' not started, ' + excludedParents + ' parent flow item' + (excludedParents === 1 ? '' : 's') + ' excluded via recent subtask movement.</small></p>';
   html += '</div>';
 
   if (dailySeries.length > 0) {
@@ -327,15 +325,36 @@ export function renderStories(data) {
   }
 
   function renderStoryRow(row) {
+    const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
+    const parentKey = String(row.issueKey || row.key || '').toUpperCase();
     const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
-    let rowHtml = '<tr class="story-parent-row"';
+    const rowTags = [];
+    const rowKey = String(row.issueKey || row.key || '').toUpperCase();
+    const rowAssigneeMissing = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
+    if (blockerKeys.has(rowKey)) rowTags.push('blocker');
+    if (scopeKeys.has(rowKey)) rowTags.push('scope');
+    if (rowAssigneeMissing) rowTags.push('unassigned');
+    let rowHtml = '<tr class="story-parent-row" data-parent-key="' + escapeHtml(parentKey) + '"' + (subtasks.length ? ' data-has-children="true" aria-expanded="false"' : '') + '';
     if (completedDayKey) {
       rowHtml += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
     }
+    if (rowTags.length) {
+      rowHtml += ' data-risk-tags="' + escapeHtml(rowTags.join(' ')) + '"';
+    }
     rowHtml += '>';
-    rowHtml += '<td>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
+    rowHtml += '<td>';
+    if (subtasks.length) {
+      rowHtml += '<button type="button" class="story-row-toggle" aria-label="Expand subtasks" aria-expanded="false" title="Show subtasks">></button>';
+    } else {
+      rowHtml += '<span class="story-row-toggle story-row-toggle-placeholder" aria-hidden="true"></span>';
+    }
+    rowHtml += renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
     rowHtml += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
-    rowHtml += '<td class="cell-wrap">' + escapeHtml(row.summary || '-') + '</td>';
+    rowHtml += '<td class="cell-wrap">' + escapeHtml(row.summary || '-');
+    if (subtasks.length) {
+      rowHtml += '<div class="story-subtask-summary"><span class="story-subtask-count">' + subtasks.length + ' subtask' + (subtasks.length === 1 ? '' : 's') + '</span></div>';
+    }
+    rowHtml += '</td>';
     rowHtml += '<td>' + escapeHtml(row.status || '-') + '</td>';
     rowHtml += '<td>' + escapeHtml(row.reporter || '-') + '</td>';
     rowHtml += '<td>' + escapeHtml(row.assignee || '-') + '</td>';
@@ -352,6 +371,7 @@ export function renderStories(data) {
     const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
     if (!subtasks.length) return '';
     let rowsHtml = '';
+    const parentRowKey = String(row.issueKey || row.key || '').toUpperCase();
     for (const child of subtasks) {
       const owner = child.assignee || row.assignee || row.reporter || '-';
       const parentKey = child.parentIssueKey || row.issueKey || row.key || '-';
@@ -370,9 +390,18 @@ export function renderStories(data) {
       if (done && !(log > 0)) flagBadges.push('Done, no log');
       const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
       const baseClasses = ['subtask-child-row'].concat(rowFlags).filter(Boolean).join(' ');
-      rowsHtml += '<tr class="' + baseClasses + '"';
+      const childTags = [];
+      if (blockerKeys.has(String(parentKey).toUpperCase()) || blockerKeys.has(String(child.issueKey || '').toUpperCase())) childTags.push('blocker');
+      if (scopeKeys.has(String(parentKey).toUpperCase())) childTags.push('scope');
+      if (est > 0 && !(log > 0)) childTags.push('no-log');
+      if (!(est > 0) && log > 0) childTags.push('missing-estimate');
+      if (!owner || owner === '-' || String(owner).toLowerCase() === 'unassigned') childTags.push('unassigned');
+      rowsHtml += '<tr class="' + baseClasses + '" data-parent-key="' + escapeHtml(parentRowKey) + '" hidden';
       if (completedDayKey) {
         rowsHtml += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
+      }
+      if (childTags.length) {
+        rowsHtml += ' data-risk-tags="' + escapeHtml(Array.from(new Set(childTags)).join(' ')) + '"';
       }
       rowsHtml += '>';
       rowsHtml += '<td class="subtask-child-issue"><span class="subtask-parent-context" title="Parent issue">' + escapeHtml(parentKey) + '</span>' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
@@ -403,8 +432,20 @@ export function renderStories(data) {
     const toShow = stories.slice(0, initialLimit);
     const remaining = stories.slice(initialLimit);
 
-    html += '<div class="data-table-scroll-wrap">';
-    html += '<table class="data-table" id="stories-table"><thead><tr><th>Issue</th><th>Type</th><th class="cell-wrap">Summary</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Story Points</th><th>Subtask Est Hrs</th><th>Subtask Logged Hrs</th><th>Created</th><th>Resolved</th></tr></thead><tbody>';
+    html += '<div class="data-table-scroll-wrap stories-table-scroll-wrap">';
+    html += '<table class="data-table" id="stories-table"><thead><tr>'
+      + '<th title="Issue key and expand subtasks">Issue</th>'
+      + '<th>Type</th>'
+      + '<th class="cell-wrap">Summary</th>'
+      + '<th>Status</th>'
+      + '<th>Reporter</th>'
+      + '<th>Assignee</th>'
+      + '<th title="Parent story points">Story Points</th>'
+      + '<th title="Sum of subtask estimated hours">Est Hrs</th>'
+      + '<th title="Sum of subtask logged hours">Logged Hrs</th>'
+      + '<th>Created</th>'
+      + '<th>Resolved</th>'
+      + '</tr></thead><tbody>';
     for (const row of toShow) {
       html += renderStoryRow(row);
       html += renderSubtaskRows(row);
@@ -437,12 +478,58 @@ export function wireDailyCompletionTimelineHandlers() {
     const card = document.getElementById('stories-card');
     if (!card) return;
     const timeline = card.querySelector('.daily-completion-timeline');
-    if (!timeline) return;
-    const chips = Array.from(timeline.querySelectorAll('.daily-timeline-chip'));
-    if (!chips.length) return;
+    const chips = timeline ? Array.from(timeline.querySelectorAll('.daily-timeline-chip')) : [];
     const tableBody = card.querySelector('#stories-table tbody');
     if (!tableBody) return;
-    const rows = Array.from(tableBody.querySelectorAll('tr'));
+    function getRows() {
+      return Array.from(tableBody.querySelectorAll('tr'));
+    }
+    const expandedStateKey = 'current_sprint_expanded_story_rows';
+    let expandedParents = new Set();
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(expandedStateKey) || '[]');
+      if (Array.isArray(parsed)) expandedParents = new Set(parsed.map((v) => String(v || '').toUpperCase()).filter(Boolean));
+    } catch (_) {}
+
+    function persistExpandedState() {
+      try {
+        window.localStorage.setItem(expandedStateKey, JSON.stringify(Array.from(expandedParents)));
+      } catch (_) {}
+    }
+
+    function getStoryRows() {
+      return Array.from(tableBody.querySelectorAll('tr.story-parent-row'));
+    }
+
+    function syncParentChildren(parentRow) {
+      if (!parentRow) return;
+      const parentKey = String(parentRow.getAttribute('data-parent-key') || '').toUpperCase();
+      if (!parentKey) return;
+      const expanded = parentRow.getAttribute('aria-expanded') === 'true';
+      const toggle = parentRow.querySelector('.story-row-toggle');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        toggle.textContent = expanded ? 'v' : '>';
+        toggle.setAttribute('aria-label', expanded ? 'Collapse subtasks' : 'Expand subtasks');
+        toggle.title = expanded ? 'Hide subtasks' : 'Show subtasks';
+      }
+      const childRows = tableBody.querySelectorAll('tr.subtask-child-row[data-parent-key="' + parentKey + '"]');
+      childRows.forEach((row) => {
+        if (expanded) row.removeAttribute('hidden');
+        else row.setAttribute('hidden', 'hidden');
+      });
+      parentRow.classList.toggle('story-parent-row-expanded', expanded);
+    }
+
+    function initializeStoryHierarchy() {
+      getStoryRows().forEach((parentRow) => {
+        const parentKey = String(parentRow.getAttribute('data-parent-key') || '').toUpperCase();
+        if (!parentRow.hasAttribute('data-has-children')) return;
+        const shouldExpand = expandedParents.has(parentKey);
+        parentRow.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
+        syncParentChildren(parentRow);
+      });
+    }
 
     function applyDayFilter(dayKey) {
       const keyNorm = (dayKey || '').trim();
@@ -450,21 +537,97 @@ export function wireDailyCompletionTimelineHandlers() {
         const chipKey = (chip.getAttribute('data-day-key') || '').trim();
         chip.classList.toggle('daily-timeline-chip-active', chipKey === keyNorm);
       });
-      rows.forEach((row) => {
+      getRows().forEach((row) => {
         const rowKey = (row.getAttribute('data-completed-day') || '').trim();
         const show = !keyNorm || (rowKey && rowKey === keyNorm);
         row.style.display = show ? '' : 'none';
       });
+      initializeStoryHierarchy();
+      try {
+        window.dispatchEvent(new CustomEvent('currentSprint:storiesDayFilterChanged', { detail: { dayKey: keyNorm } }));
+      } catch (_) {}
     }
 
-    timeline.addEventListener('click', (event) => {
-      const chip = event.target.closest('.daily-timeline-chip');
-      if (!chip || !timeline.contains(chip)) return;
-      const dayKey = chip.getAttribute('data-day-key') || '';
-      applyDayFilter(dayKey);
-      try {
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (_) {}
+    if (timeline && chips.length) {
+      timeline.addEventListener('click', (event) => {
+        const chip = event.target.closest('.daily-timeline-chip');
+        if (!chip || !timeline.contains(chip)) return;
+        const dayKey = chip.getAttribute('data-day-key') || '';
+        applyDayFilter(dayKey);
+        try {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (_) {}
+      });
+    }
+
+    card.addEventListener('click', (event) => {
+      const toggle = event.target.closest('.story-row-toggle');
+      if (!toggle || !card.contains(toggle) || toggle.classList.contains('story-row-toggle-placeholder')) return;
+      const parentRow = toggle.closest('tr.story-parent-row');
+      if (!parentRow) return;
+      const parentKey = String(parentRow.getAttribute('data-parent-key') || '').toUpperCase();
+      const next = parentRow.getAttribute('aria-expanded') !== 'true';
+      parentRow.setAttribute('aria-expanded', next ? 'true' : 'false');
+      if (next) expandedParents.add(parentKey);
+      else expandedParents.delete(parentKey);
+      persistExpandedState();
+      syncParentChildren(parentRow);
     });
+
+    card.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const toggle = event.target.closest('.story-row-toggle');
+      if (!toggle || !card.contains(toggle)) return;
+      event.preventDefault();
+      toggle.click();
+    });
+
+    try {
+      window.addEventListener('currentSprint:focusStoriesEvidence', () => {
+        const strip = card.querySelector('.role-proof-strip');
+        if (!strip) return;
+        strip.classList.add('row-attention-pulse');
+        window.setTimeout(() => strip.classList.remove('row-attention-pulse'), 1200);
+      });
+    } catch (_) {}
+
+    if (!window.__currentSprintStoriesRiskFilterBound) {
+      window.__currentSprintStoriesRiskFilterBound = true;
+      window.addEventListener('currentSprint:applyWorkRiskFilter', (event) => {
+        const detail = event && event.detail ? event.detail : {};
+        const activeTags = Array.isArray(detail.riskTags)
+          ? detail.riskTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
+          : [];
+        getRows().forEach((row) => {
+          if (!activeTags.length) {
+            row.removeAttribute('data-role-filter-hidden');
+            row.style.opacity = '';
+            return;
+          }
+          const tags = (row.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
+          const matches = activeTags.some((tag) => tags.includes(tag));
+          const isParent = row.classList.contains('story-parent-row');
+          if (isParent) {
+            row.toggleAttribute('data-role-filter-hidden', !matches);
+          } else {
+            row.toggleAttribute('data-role-filter-hidden', !matches);
+          }
+          row.style.opacity = matches ? '' : '0.35';
+        });
+        initializeStoryHierarchy();
+      });
+    }
+    const storiesShowMore = card.querySelector('.stories-show-more');
+    if (storiesShowMore) {
+      storiesShowMore.addEventListener('click', () => {
+        window.setTimeout(() => {
+          initializeStoryHierarchy();
+          const activeChip = chips.find((chip) => chip.classList.contains('daily-timeline-chip-active'));
+          if (activeChip) applyDayFilter(activeChip.getAttribute('data-day-key') || '');
+        }, 0);
+      });
+    }
+    initializeStoryHierarchy();
   } catch (_) {}
 }
+

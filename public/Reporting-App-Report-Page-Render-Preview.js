@@ -17,6 +17,52 @@ import {
 } from './Reporting-App-Report-Page-Render-Registry.js';
 import { applyDoneStoriesOptionalColumnsPreference } from './Reporting-App-Report-Page-DoneStories-Column-Preference.js';
 
+function wirePreviewContextActions() {
+  if (typeof document === 'undefined' || document.body?.dataset.previewContextActionsBound === '1') return;
+  document.body.dataset.previewContextActionsBound = '1';
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-preview-context-action]');
+    if (!trigger) return;
+    const action = trigger.getAttribute('data-preview-context-action') || '';
+    const filtersPanel = document.getElementById('filters-panel');
+    const filtersToggle = document.querySelector('[data-action="toggle-filters"]');
+    const openFiltersPanel = () => {
+      if (filtersPanel?.classList.contains('collapsed') && filtersToggle) {
+        filtersToggle.click();
+      }
+    };
+    if (action === 'open-projects') {
+      event.preventDefault();
+      openFiltersPanel();
+      document.getElementById('project-search')?.focus();
+      return;
+    }
+    if (action === 'open-range') {
+      event.preventDefault();
+      openFiltersPanel();
+      document.getElementById('start-date')?.focus();
+      return;
+    }
+    if (action === 'focus-config') {
+      event.preventDefault();
+      openFiltersPanel();
+      const advanced = document.getElementById('advanced-options-toggle');
+      if (advanced && advanced.getAttribute('aria-expanded') !== 'true') advanced.click();
+      advanced?.focus();
+      return;
+    }
+    const tabMap = {
+      'open-boards': 'tab-btn-project-epic-level',
+      'open-sprints': 'tab-btn-sprints',
+      'open-done-stories': 'tab-btn-done-stories',
+    };
+    if (tabMap[action]) {
+      event.preventDefault();
+      document.getElementById(tabMap[action])?.click();
+    }
+  });
+}
+
 export function renderPreview() {
   const { previewData, previewRows, visibleRows, visibleBoardRows, visibleSprintRows } = reportState;
   const { errorEl, previewContent, previewMeta, exportExcelBtn, exportDropdownTrigger } = reportDom;
@@ -54,18 +100,28 @@ export function renderPreview() {
 
   const metaBlock = buildPreviewMetaAndStatus({ meta, previewRows, boardsCount, sprintsCount, rowsCount, unusableCount });
   const reportSubtitleEl = document.getElementById('report-subtitle');
-  if (reportSubtitleEl) reportSubtitleEl.textContent = 'Preview updates automatically when filters change; use Preview report for heavy ranges.';
+  if (reportSubtitleEl) {
+    reportSubtitleEl.textContent = rowsCount > 0
+      ? 'See results fast. Change filters when needed.'
+      : 'Preview updates with filters. Use Preview for heavy ranges.';
+    reportSubtitleEl.style.display = rowsCount > 0 ? 'none' : '';
+  }
   const outcomeLineEl = document.getElementById('preview-outcome-line');
   if (outcomeLineEl) outcomeLineEl.innerHTML = metaBlock.outcomeLineHTML;
   if (previewMeta) previewMeta.innerHTML = metaBlock.previewMetaHTML;
-  if (reportContextLine) reportContextLine.textContent = getContextDisplayString();
+  if (reportContextLine) {
+    reportContextLine.textContent = getContextDisplayString();
+    reportContextLine.removeAttribute('aria-hidden');
+    reportContextLine.style.display = '';
+  }
   const stickyEl = document.getElementById('preview-summary-sticky');
   if (stickyEl) {
-    stickyEl.textContent = metaBlock.stickyText || '';
-    stickyEl.setAttribute('aria-hidden', 'false');
+    stickyEl.textContent = '';
+    stickyEl.setAttribute('aria-hidden', 'true');
     // M4: Add body class so mobile CSS can hide duplicate applied-filters-summary
     document.body.classList.add('preview-active');
   }
+  wirePreviewContextActions();
   const statusEl = document.getElementById('preview-status');
   if (statusEl) {
     statusEl.innerHTML = metaBlock.statusHTML;
@@ -85,16 +141,15 @@ export function renderPreview() {
     if (meta.partial) modeDetails.push('partial payload');
     const modeSuffix = modeDetails.length ? (' Data mode: ' + modeDetails.join(', ') + '.') : '';
     if (!hasRows) {
-      exportHint.innerHTML = `
-        <small>Generate a report with data to enable Share / Export.${modeSuffix}</small>
-      `;
+      exportHint.innerHTML = '<small>Generate a report with data to enable export.</small>';
     } else if (partial) {
-      exportHint.innerHTML = `
-        <small>Preview may be incomplete. You can export what's shown or try a smaller date range for full data.${modeSuffix}</small>
-      `;
+      exportHint.innerHTML = '<small>Export matches the partial preview shown.</small>';
+    } else if (meta.reducedScope) {
+      exportHint.innerHTML = '<small>Export matches the closest available scope shown.</small>';
     } else {
-      exportHint.innerHTML = modeSuffix ? (`<small>${modeSuffix.trim()}</small>`) : '';
+      exportHint.innerHTML = '';
     }
+    exportHint.title = modeSuffix ? modeSuffix.replace(/^ Data mode:\s*/, '').trim() : '';
   }
 
   const partialExportTitle = 'Export contains only loaded (partial) data.';
@@ -151,27 +206,27 @@ export function renderPreview() {
     const tabSprints = document.getElementById('tab-btn-sprints');
     const tabDoneStories = document.getElementById('tab-btn-done-stories');
     const tabUnusable = document.getElementById('tab-btn-unusable-sprints');
-    if (tabBoards) tabBoards.textContent = 'Performance overview (' + boardsCountForTab + ')';
-    if (tabSprints) tabSprints.textContent = 'Sprint history (' + sprintsCountForTab + ')';
-    if (tabDoneStories) tabDoneStories.textContent = 'Outcome list (' + visibleRows.length + ')';
-    if (tabUnusable) tabUnusable.textContent = 'Excluded sprints (' + unusableCountForTab + ')';
+    if (tabBoards) tabBoards.textContent = 'Overview (' + boardsCountForTab + ')';
+    if (tabSprints) tabSprints.textContent = 'Sprints (' + sprintsCountForTab + ')';
+    if (tabDoneStories) tabDoneStories.textContent = 'Outcomes (' + visibleRows.length + ')';
+    if (tabUnusable) tabUnusable.textContent = 'Excluded (' + unusableCountForTab + ')';
     const tabTrends = document.getElementById('tab-btn-trends');
-    if (tabTrends) tabTrends.textContent = 'Trends over time';
-    let preferredTab = null;
-    try {
-      preferredTab = sessionStorage.getItem('report-active-tab');
-    } catch (_) {}
-    const preferredBtn = preferredTab ? document.querySelector('.tab-btn[data-tab="' + preferredTab + '"]') : null;
+    if (tabTrends) tabTrends.textContent = 'Trends';
     const hash = window.location && window.location.hash ? window.location.hash : '';
     if (hash === '#trends') {
       const trendsBtn = document.getElementById('tab-btn-trends');
       if (trendsBtn && !trendsBtn.classList.contains('active')) trendsBtn.click();
-    } else if (preferredBtn && !preferredBtn.classList.contains('active')) {
-      preferredBtn.click();
     } else if (tabBoards && !tabBoards.classList.contains('active')) {
       tabBoards.click();
     }
 
     updateExportFilteredState();
   });
+
+  const statusStripEl = document.getElementById('preview-status-strip');
+  if (statusStripEl) {
+    statusStripEl.textContent = '';
+    statusStripEl.setAttribute('data-state', '');
+    statusStripEl.style.display = 'none';
+  }
 }

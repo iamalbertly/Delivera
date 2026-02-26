@@ -39,7 +39,7 @@
       <div class="current-sprint-header">
         <div>
           <h1><span id="current-sprint-title">Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
-          <p class="subtitle" id="current-sprint-subtitle">Squad view - sprint health, risks, and scope changes explained in one place.</p>
+          <p class="subtitle" id="current-sprint-subtitle">See sprint risks and act fast.</p>
         </div>
         <div class="board-select-wrap">
           <label for="current-sprint-projects">Project</label>
@@ -66,10 +66,10 @@
       </div>
     </header>
 
-    <main id="main-content">
+    <main id="main-content" data-current-sprint-state="welcome">
       <!-- M9: Sprint loading context — shows board + sprint name above spinner while loading -->
       <div id="sprint-loading-context" class="sprint-loading-context" aria-live="polite"></div>
-      <div id="current-sprint-loading">Pick a project, then a board — sprint view loads automatically.</div>
+      <div id="current-sprint-loading">Pick a project and board. Sprint view loads.</div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>
       <div id="current-sprint-content"></div>
     </main>

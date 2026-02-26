@@ -145,21 +145,17 @@ test.describe('Current Sprint - Work risks hierarchy and blockers semantics', ()
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 
-  test('Blocker header metric matches unique Stuck >24h issues in Work risks table', async ({ page }) => {
+  test('Blocker verdict pill matches unique Stuck >24h issues in Work risks table', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
-    const headerBlockersMetric = page.locator('.header-bar-center .header-metric-link .metric-label', { hasText: 'Blockers' })
-      .first()
-      .locator('..')
-      .locator('.metric-value')
-      .first();
+    const headerBlockersMetric = page.locator('.sprint-verdict-line .verdict-pill[data-risk-tags="blocker"]').first();
 
     const hasHeaderMetric = await headerBlockersMetric.isVisible().catch(() => false);
     const table = page.locator('#work-risks-table');
     const hasTable = await table.isVisible().catch(() => false);
 
     if (!hasHeaderMetric || !hasTable) {
-      test.skip(true, 'Blocker header metric or Work risks table not visible for dataset');
+      test.skip(true, 'Blocker verdict pill or Work risks table not visible for dataset');
       return;
     }
 
@@ -195,4 +191,3 @@ test.describe('Current Sprint - Work risks hierarchy and blockers semantics', ()
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 });
-

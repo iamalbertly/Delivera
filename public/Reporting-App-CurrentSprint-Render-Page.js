@@ -69,14 +69,12 @@ export function renderCurrentSprintPage(data) {
     return html;
   }
 
-  html += renderSprintCarousel(data);
-
   const jumpLinks = [];
   const hasRisks = riskCount > 0 || stuckCount > 0 || (data.stuckCandidates || []).length > 0;
   if (hasRisks) jumpLinks.push('<a href="#stuck-card">Risks</a>');
+  if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Burndown</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
-  if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
   html += '<div class="sprint-section-links sprint-section-links-sticky" role="navigation" aria-label="Jump to section">' + jumpLinks.join('<span aria-hidden="true"> | </span>') + '</div>';
 
   html += '<div class="current-sprint-grid-layout">';
@@ -87,6 +85,12 @@ export function renderCurrentSprintPage(data) {
     if (hasBurndownData) html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
     html += '</div>';
   }
+
+  html += '<div class="sprint-cards-column full-width">';
+  if (hasStories) html += renderStories(data);
+  html += '</div>';
+
+  html += renderSprintCarousel(data);
 
   html += '<div class="sprint-cards-row secondary-row">';
   html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
@@ -101,16 +105,12 @@ export function renderCurrentSprintPage(data) {
     html += '<div class="card-column capacity-column">' + renderCapacityAllocation(data) + '</div>';
     html += '</div>';
   }
-
-  html += '<div class="sprint-cards-column full-width">';
   if (hasDailyCompletions) {
     html += '<details class="mobile-secondary-details" data-mobile-collapse="true" open>';
     html += '<summary>Daily completion trend</summary>';
     html += renderDailyCompletion(data);
     html += '</details>';
   }
-  if (hasStories) html += renderStories(data);
-  html += '</div>';
 
   html += '</div>';
 

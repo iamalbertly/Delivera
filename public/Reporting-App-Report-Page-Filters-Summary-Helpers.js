@@ -1,6 +1,6 @@
 import { classifyPreviewComplexity } from './Reporting-App-Report-Page-Preview-Complexity-Config.js';
 import { getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
-import { getValidLastQuery } from './Reporting-App-Shared-Context-From-Storage.js';
+import { getValidLastQuery, buildCompactReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 import {
   PROJECTS_SSOT_KEY,
   REPORT_LAST_META_KEY,
@@ -117,24 +117,33 @@ export function updateAppliedFiltersSummary() {
 
   const projectLabel = projects.length ? projects.join(', ') : 'None';
   const rangeLabel = startVal && endVal ? startVal.slice(0, 10) + ' - ' + endVal.slice(0, 10) : '';
+  const compactRangeLabel = startVal && endVal ? buildCompactReportRangeLabel(startVal, endVal) : '';
   const summaryText = (projectLabel !== 'None' && rangeLabel)
     ? 'Applied: ' + projectLabel + CONTEXT_SEPARATOR + rangeLabel + (options.length ? CONTEXT_SEPARATOR + options.join(', ') : '')
     : 'Select projects and dates, then preview.';
 
-  if (summaryEl) summaryEl.textContent = summaryText;
+  if (summaryEl) {
+    const primaryProject = projects.length === 0 ? 'No project' : projects[0] + (projects.length > 1 ? ' +' + (projects.length - 1) : '');
+    const shortSummary = (projects.length > 0 && compactRangeLabel)
+      ? 'Filters: ' + primaryProject + CONTEXT_SEPARATOR + compactRangeLabel + (options.length ? CONTEXT_SEPARATOR + '+' + options.length + ' advanced' : '')
+      : summaryText;
+    summaryEl.textContent = shortSummary;
+    summaryEl.title = summaryText;
+  }
   if (chipsEl) {
     const primaryProject = projects.length === 0 ? 'No project' : projects[0] + (projects.length > 1 ? ' +' + (projects.length - 1) : '');
     const chips = [];
     if (projects.length > 0) chips.push('Projects: ' + primaryProject);
-    if (rangeLabel) chips.push('Range: ' + rangeLabel);
+    if (compactRangeLabel) chips.push('Range: ' + compactRangeLabel);
     if (options.length > 0) chips.push('+Advanced (' + options.length + ')');
     chipsEl.textContent = chips.length ? chips.join(' | ') : 'No filters selected';
+    chipsEl.title = summaryText;
   }
 
   if (summaryEl && typeof window !== 'undefined' && window.innerWidth <= 768 && projects.length > 1) {
     const mobileLabel = projects[0] + ' +' + (projects.length - 1) + ' more';
     const mobileSummary = (mobileLabel !== 'None' && rangeLabel)
-      ? 'Applied: ' + mobileLabel + CONTEXT_SEPARATOR + rangeLabel
+      ? 'Filters: ' + mobileLabel + CONTEXT_SEPARATOR + (compactRangeLabel || rangeLabel)
       : summaryText;
     summaryEl.textContent = mobileSummary;
   }
@@ -152,8 +161,11 @@ export function updateAppliedFiltersSummary() {
       projectLabel,
       rangeLabel,
     });
-    statusStripEl.textContent = state.label;
+    statusStripEl.textContent = state.state === 'fresh'
+      ? 'UP TO DATE'
+      : (state.state === 'heavy' ? 'HEAVY RANGE' : 'PREVIEW REQUIRED');
     statusStripEl.setAttribute('data-state', state.state);
+    statusStripEl.title = state.label;
   }
 
   refreshPreviewButtonLabel();
@@ -210,10 +222,6 @@ export function getStatusStripSemantics(input) {
     label = 'UP TO DATE – preview matches current filters.';
   }
 
-  if (projectLabel !== 'None' && rangeLabel) {
-    label += ' · ' + projectLabel + CONTEXT_SEPARATOR + rangeLabel;
-  }
-
   return { state, label, context: { projects, startVal, endVal, projectLabel, rangeLabel, filtersStale, hasRunPreview } };
 }
 
@@ -249,3 +257,4 @@ export function hydrateFromLastQuery() {
     });
   }
 }
+

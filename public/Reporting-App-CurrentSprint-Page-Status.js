@@ -1,39 +1,26 @@
-import { currentSprintDom } from './Reporting-App-CurrentSprint-Page-Context.js';
 import { getProjectsParam } from './Reporting-App-CurrentSprint-Page-Storage.js';
-import { showErrorView, clearErrorView, showContentView } from './Reporting-App-Shared-Status-View-Helpers.js';
-import { startRotatingMessages, stopRotatingMessages } from './Reporting-App-Shared-Loading-Theater.js';
+import { PAGE_STATE, setPageState, getCurrentState } from './Reporting-App-CurrentSprint-Page-State.js';
 
-const LOADING_SPINNER_HTML = '<div class="current-sprint-loading-spinner" aria-hidden="true"></div><p class="current-sprint-loading-msg" aria-live="polite"></p>';
-const CURRENT_SPRINT_LOADING_MESSAGES = ['Loading board…', 'Loading sprint…', 'Building view…'];
+export { getCurrentState };
+
+export function showWelcome(message) {
+  setPageState(PAGE_STATE.WELCOME, message != null ? { message } : {});
+}
 
 export function showLoading(msg) {
-  stopRotatingMessages();
-  const { loadingEl, errorEl, contentEl } = currentSprintDom;
   const text = msg || ('Loading sprint data for project ' + getProjectsParam() + '...');
-  if (loadingEl) {
-    loadingEl.innerHTML = LOADING_SPINNER_HTML;
-    const msgEl = loadingEl.querySelector('.current-sprint-loading-msg');
-    if (msgEl) {
-      msgEl.textContent = text;
-      startRotatingMessages(msgEl, CURRENT_SPRINT_LOADING_MESSAGES, 1200);
-    }
-    loadingEl.classList.add('current-sprint-loading-with-spinner');
-    loadingEl.style.display = 'block';
-  }
-  if (errorEl) errorEl.style.display = 'none';
-  if (contentEl) contentEl.style.display = 'none';
+  setPageState(PAGE_STATE.LOADING, { message: text });
 }
 
 export function showError(msg) {
-  stopRotatingMessages();
-  showErrorView(currentSprintDom, msg);
+  const opts = typeof msg === 'object' && msg !== null ? msg : { message: String(msg || 'An error occurred.') };
+  setPageState(PAGE_STATE.ERROR, opts);
 }
 
 export function clearError() {
-  clearErrorView(currentSprintDom);
+  setPageState(PAGE_STATE.WELCOME, {});
 }
 
 export function showContent(html) {
-  stopRotatingMessages();
-  showContentView(currentSprintDom, html);
+  setPageState(PAGE_STATE.CONTENT, { html });
 }

@@ -80,17 +80,21 @@ export function getFallbackContext() {
   }
 }
 
-function formatDateForContext(iso) {
+export function formatDateForContext(iso) {
   const d = parseDate(iso);
   if (!d) return '';
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function buildReportRangeLabel(startIso, endIso) {
+export function buildCompactReportRangeLabel(startIso, endIso) {
   const startStr = formatDateForContext(startIso);
   const endStr = formatDateForContext(endIso);
-  if (!startStr || !endStr) return 'Report range: -';
-  return `Report range: ${startStr}${DATE_RANGE_SEPARATOR}${endStr} (UTC)`;
+  if (!startStr || !endStr) return '-';
+  return `${startStr}${DATE_RANGE_SEPARATOR}${endStr} (UTC)`;
+}
+
+export function buildReportRangeLabel(startIso, endIso) {
+  return `Report range: ${buildCompactReportRangeLabel(startIso, endIso)}`;
 }
 
 export function buildActiveFiltersContextLabel(projectsCsv, startIso, endIso) {
@@ -189,14 +193,10 @@ export function getContextCardHtml() {
   const isStale = freshnessInfo.isStale;
   const freshnessClass = isStale ? 'context-freshness-stale' : 'context-freshness-ok';
   const freshnessText = isStale ? 'Data may be stale (>30 min)' : (freshnessInfo.label ? 'Data freshness: OK' : 'Generate a report');
-  const rangeStr = ctx && ctx.start && ctx.end
-    ? `${new Date(ctx.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}${DATE_RANGE_SEPARATOR}${new Date(ctx.end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-    : '';
+  const rangeStr = ctx && ctx.start && ctx.end ? buildCompactReportRangeLabel(ctx.start, ctx.end).replace(' (UTC)', '') : '';
   let html = '<div class="context-card"><h3 class="context-card-title">Context</h3>';
-  html += '<p class="context-card-line">' + escapeHtml(projectsLabel) + '</p>';
-  html += '<p class="context-card-line">' + escapeHtml(lastLabel) + '</p>';
-  if (rangeStr) html += '<p class="context-card-line context-card-range">' + escapeHtml(rangeStr) + '</p>';
-  html += '<p class="context-card-line ' + freshnessClass + '" title="' + escapeHtml(freshnessText) + '">' + escapeHtml(freshnessText) + '</p>';
+  html += '<p class="context-card-line">' + escapeHtml(projectsLabel) + (rangeStr ? ' · ' + escapeHtml(rangeStr) : '') + '</p>';
+  html += '<p class="context-card-line ' + freshnessClass + '" title="' + escapeHtml(freshnessText) + '">' + escapeHtml(lastLabel) + '</p>';
   if (filtersStale) {
     html += '<p class="context-card-line context-card-stale-hint">Filters changed; context from last run</p>';
   }

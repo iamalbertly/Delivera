@@ -30,6 +30,15 @@ function createEmptySummaryModel() {
   };
 }
 
+function escapeHtmlText(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Build a structured sprint summary model that can be rendered to
  * clipboard text or Markdown without duplicating logic.
@@ -447,7 +456,7 @@ function renderSummaryModelToClipboard(model, options = {}) {
   const summary = model.sections.summary || [];
   summary.forEach((line, index) => {
     if (line.isSeparator) {
-      linesOut.push(line.text);
+      // Avoid duplicate "More detail below" lines in clipboard output.
       return;
     }
     let rendered = line.text;
@@ -474,14 +483,16 @@ function renderSummaryModelToClipboard(model, options = {}) {
   linesOut.push('');
 
   const order = ['flowLogging', 'blockers', 'notStarted', 'scope', 'workBreakdown', 'actions'];
+  let emittedDetailsIntro = false;
   order.forEach((sectionKey, idx) => {
     const section = model.sections[sectionKey] || [];
     if (!section.length) return;
-    if (idx === 0) {
-      linesOut.push('--- More detail below ---');
+    if (!emittedDetailsIntro) {
+      linesOut.push(mode === 'markdownEnhanced' ? '--- More detail below ---' : 'More detail below');
       linesOut.push('');
+      emittedDetailsIntro = true;
     } else {
-      linesOut.push('---');
+      linesOut.push(mode === 'markdownEnhanced' ? '---' : '');
       linesOut.push('');
     }
     section.forEach((line) => {
@@ -499,6 +510,57 @@ function renderSummaryModelToClipboard(model, options = {}) {
   });
 
   return linesOut.join('\n').trimEnd();
+}
+
+function renderSummaryModelToClipboardHtml(model) {
+  const sectionTitleMap = {
+    flowLogging: 'Recent Activity & Time Logging',
+    blockers: 'Blockers',
+    notStarted: 'Not started',
+    scope: 'Scope added mid-sprint',
+    workBreakdown: 'Work breakdown',
+    actions: 'Action needed',
+  };
+  let html = '<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.4;color:#142334;max-width:760px">';
+  const summary = model.sections.summary || [];
+  const summaryLines = summary.filter((line) => !line.isSeparator);
+  if (summaryLines[0]) html += '<div style="font-size:16px;font-weight:700;margin:0 0 6px">' + escapeHtmlText(summaryLines[0].text) + '</div>';
+  if (summaryLines[1]) html += '<div style="margin:0 0 6px"><strong>' + escapeHtmlText(summaryLines[1].text) + '</strong></div>';
+  summaryLines.slice(2).forEach((line) => {
+    const colonIdx = line.text.indexOf(':');
+    if (colonIdx > 0) {
+      html += '<div style="margin:0 0 4px"><strong>' + escapeHtmlText(line.text.slice(0, colonIdx + 1)) + '</strong> ' + escapeHtmlText(line.text.slice(colonIdx + 1).trimStart()) + '</div>';
+    } else {
+      html += '<div style="margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
+    }
+  });
+
+  const order = ['flowLogging', 'blockers', 'notStarted', 'scope', 'workBreakdown', 'actions'];
+  let hasAnySection = false;
+  order.forEach((sectionKey) => {
+    const section = model.sections[sectionKey] || [];
+    if (!section.length) return;
+    hasAnySection = true;
+    html += '<hr style="border:none;border-top:1px solid #cfdae8;margin:10px 0">';
+    html += '<div style="font-weight:700;margin:0 0 6px;text-decoration:underline">' + escapeHtmlText(sectionTitleMap[sectionKey] || sectionKey) + '</div>';
+    html += '<div>';
+    section.forEach((line) => {
+      if (line.isSeparator) return;
+      if (line.isHeading) {
+        html += '<div style="font-weight:700;margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
+      } else if (/^\d+\.\s/.test(line.text)) {
+        html += '<div style="margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
+      } else {
+        html += '<div style="margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
+      }
+    });
+    html += '</div>';
+  });
+  if (!hasAnySection) {
+    html += '<div style="margin-top:8px;color:#5a6b7f">No additional details.</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 function renderSummaryModelToMarkdown(model, data) {
@@ -597,12 +659,15 @@ export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
   html += '<span class="export-split-group">';
-  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary to clipboard" aria-live="polite">Copy summary</button>';
-  html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
+  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Share sprint state (copies summary)" aria-live="polite">' + (inline ? 'Share state' : 'Copy summary') + '</button>';
+  if (!inline) {
+    html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
+  }
   html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">&#9662;</button>';
   html += '</span>';
   html += '<div class="export-menu hidden" id="export-menu" role="menu" aria-hidden="true">';
   html += '<button class="export-option" data-action="copy-text" role="menuitem">Copy as Text</button>';
+  html += '<button class="export-option" data-action="export-markdown" role="menuitem">Markdown</button>';
   html += '<button class="export-option" data-action="export-png" role="menuitem">PNG snapshot</button>';
   html += '<button class="export-option" data-action="copy-link" role="menuitem">Copy link</button>';
   html += '<button class="export-option" data-action="email" role="menuitem">Email</button>';
@@ -638,6 +703,22 @@ async function writeTextToClipboardWithFallback(text) {
   const ok = document.execCommand('copy');
   document.body.removeChild(ta);
   if (!ok) throw new Error('Clipboard copy unavailable');
+}
+
+async function writeRichClipboardWithFallback(html, text) {
+  const plain = String(text || '').trim();
+  const rich = String(html || '').trim();
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.write === 'function' && typeof ClipboardItem !== 'undefined' && rich) {
+      const item = new ClipboardItem({
+        'text/plain': new Blob([plain], { type: 'text/plain' }),
+        'text/html': new Blob([rich], { type: 'text/html' }),
+      });
+      await navigator.clipboard.write([item]);
+      return;
+    }
+  } catch (_) {}
+  await writeTextToClipboardWithFallback(plain);
 }
 export function wireExportHandlers(data) {
   const container = document.querySelector('.export-dashboard-container');
@@ -794,10 +875,11 @@ async function copyDashboardAsText(data, btn) {
   setButtonStatus(btn, 'Copying...', null, true);
   try {
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
-    const text = renderSummaryModelToClipboard(model, { mode: 'markdownEnhanced' });
-    await writeTextToClipboardWithFallback(text);
+    const text = renderSummaryModelToClipboard(model, { mode: 'plain' });
+    const html = renderSummaryModelToClipboardHtml(model);
+    await writeRichClipboardWithFallback(html, text);
     setButtonStatus(btn, 'Copied!', originalText);
-    setLastExportStatus('Copy summary', 'Summary copied to clipboard');
+    setLastExportStatus('Share state', 'Rich text copied (HTML + plain text fallback)');
   } catch (error) {
     console.error('Copy text error:', error);
     setButtonStatus(btn, 'Copy failed', originalText);

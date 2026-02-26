@@ -119,7 +119,8 @@ export function renderLeadershipPage(data) {
     }
   }
   if (outcomeLine) {
-    html += '<p class="leadership-outcome-line" aria-live="polite">' + escapeHtml(outcomeLine) + '</p>';
+    const compactOutcomeLine = outcomeLine.split('|').slice(0, 3).join(' | ').trim();
+    html += '<p class="leadership-outcome-line" aria-live="polite">' + escapeHtml(compactOutcomeLine) + '</p>';
   }
   html += '</div>';
 
@@ -159,6 +160,25 @@ export function renderLeadershipPage(data) {
     }
     const sufficientCards = boardCards.filter(c => !c.hasLimitedHistory);
     const limitedCards = boardCards.filter(c => c.hasLimitedHistory);
+    const topRiskBoards = [...boardCards]
+      .filter((c) => c.grade !== 'Strong')
+      .sort((a, b) => {
+        const aScore = (a.onTimePct == null ? -1 : a.onTimePct);
+        const bScore = (b.onTimePct == null ? -1 : b.onTimePct);
+        return aScore - bScore;
+      })
+      .slice(0, 5);
+    if (topRiskBoards.length > 0) {
+      html += '<div class="leadership-risk-list" aria-label="Top risk boards">';
+      html += '<h3>Top 5 risk boards</h3><ul>';
+      topRiskBoards.forEach((card) => {
+        const reason = card.onTimePct == null
+          ? 'Limited delivery evidence'
+          : ('On-time ' + card.onTimePct.toFixed(0) + '%');
+        html += '<li><strong>' + escapeHtml(card.board.name) + '</strong> · ' + escapeHtml(card.grade || 'Attention') + ' · ' + escapeHtml(reason) + '</li>';
+      });
+      html += '</ul></div>';
+    }
     html += '<div id="leadership-boards-cards" class="leadership-boards-cards" role="region" aria-label="Boards overview">';
     for (const card of sufficientCards) {
       const onTimeStr = card.onTimePct != null ? card.onTimePct.toFixed(0) + '%' : '-';

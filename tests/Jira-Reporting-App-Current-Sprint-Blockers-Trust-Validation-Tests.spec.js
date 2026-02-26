@@ -33,25 +33,21 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
     }
   });
 
-  test('header blocker count matches Work risks table when strip visible', async ({ page }) => {
+  test('header blocker verdict pill count matches Work risks table when visible', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
-    const headerBlockersMetric = page.locator('.header-bar-center .header-metric-link .metric-label', { hasText: 'Blockers' })
-      .first()
-      .locator('..')
-      .locator('.metric-value')
-      .first();
+    const headerBlockerPill = page.locator('.sprint-verdict-line .verdict-pill[data-risk-tags="blocker"]').first();
 
-    const hasHeaderMetric = await headerBlockersMetric.isVisible().catch(() => false);
+    const hasHeaderMetric = await headerBlockerPill.isVisible().catch(() => false);
     const blockerStrip = page.locator('#stuck-card .work-risk-blocker-strip').first();
     const hasStrip = await blockerStrip.isVisible().catch(() => false);
 
     if (!hasHeaderMetric || !hasStrip) {
-      test.skip(true, 'Blocker header metric or Work risks blocker strip not visible for dataset');
+      test.skip(true, 'Blocker verdict pill or Work risks blocker strip not visible for dataset');
       return;
     }
 
-    const headerText = (await headerBlockersMetric.textContent().catch(() => '') || '').trim();
+    const headerText = (await headerBlockerPill.textContent().catch(() => '') || '').trim();
     const headerCount = parseInt(headerText.replace(/[^0-9]/g, ''), 10) || 0;
 
     await expect(blockerStrip.locator('strong').first()).toContainText(/Blocker issues/i);
@@ -63,9 +59,20 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
       assertTelemetryClean(telemetry, { excludePreviewAbort: true });
       return;
     }
+    const showMore = page.locator('.work-risks-show-more').first();
+    if (await showMore.isVisible().catch(() => false)) {
+      await showMore.click();
+    }
     const blockerRows = table.locator('tbody tr').filter({ hasText: 'Stuck >24h' });
-    const tableBlockerCount = await blockerRows.count();
-    expect(headerCount).toBe(tableBlockerCount);
+    const blockerRowCount = await blockerRows.count();
+    const uniqueKeys = new Set();
+    for (let i = 0; i < blockerRowCount; i++) {
+      const row = blockerRows.nth(i);
+      const issueCellText = (await row.locator('td').nth(2).textContent().catch(() => '') || '').trim();
+      const keyMatch = issueCellText.match(/[A-Z]+-\d+/i);
+      if (keyMatch) uniqueKeys.add(keyMatch[0].toUpperCase());
+    }
+    expect(headerCount).toBe(uniqueKeys.size);
 
     const telemetry = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
@@ -126,4 +133,3 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 });
-

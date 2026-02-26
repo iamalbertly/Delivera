@@ -182,8 +182,6 @@ function buildMergedLeadershipSignalsHtml(boards, boardSummaries, hasPredictabil
   const atRiskCount = cards.filter((c) => /weak|critical|insufficient/i.test(c.grade)).length;
   const strongCount = cards.filter((c) => /^strong$/i.test(c.grade)).length;
   let html = '<section class="leadership-merged-section" id="merged-leadership-signals">';
-  html += '<h3>Board health snapshot</h3>';
-  html += '<p class="metrics-hint"><small>Leadership signals for this window: delivery grade, on-time reliability, and velocity context by board.</small></p>';
   html += '<p class="leadership-outcome-line" aria-live="polite">' + cards.length + ' boards | ' + strongCount + ' strong | ' + atRiskCount + ' need attention.</p>';
   html += '<div class="leadership-boards-cards" role="region" aria-label="Merged leadership board cards">';
   cards.forEach((card) => {

@@ -46,9 +46,9 @@ export function renderHealthDashboard(data) {
   const inProgressPercent = totalSP > 0 ? Math.round(((totalSP - doneSP) / totalSP) * 100) : 0;
 
   let html = '<div class="transparency-card health-dashboard-card" id="health-dashboard-card">';
-  html += '<h2>Sprint Health Dashboard</h2>';
+  html += '<h2>Sprint health: Why?</h2>';
   html += '<div class="health-snapshot-row">';
-  html += '<strong>Snapshot:</strong> ' + doneStories + '/' + totalStories + ' done · ' + totalSP + ' SP · ' + (remainingDays == null ? '-' : remainingDays + 'd left');
+  html += '<strong>Header is the sprint summary.</strong> This card explains the verdict and evidence only.';
   html += '</div>';
 
   const breakdownReasons = [];
@@ -88,7 +88,7 @@ export function renderHealthDashboard(data) {
   }
   html += '</div>';
   html += '<div class="progress-summary">';
-  html += '<span>' + doneStories + ' of ' + totalStories + ' stories complete</span>';
+  html += '<span>' + percentDone + '% complete (detailed snapshot is in the header)</span>';
   html += '</div>';
   html += '</div>';
 
@@ -154,7 +154,7 @@ export function renderHealthDashboard(data) {
   // Action buttons (snapshot already visible above; Details = optional expand, Copy = clipboard)
   html += '<div class="health-actions">';
   html += '<button class="btn btn-compact health-detail-btn" data-action="expand-details" title="Show more detailed metrics">More details</button>';
-  html += '<button class="btn btn-compact health-copy-btn" data-action="copy-metrics" title="Copy summary and blockers for stakeholders">Quick snapshot</button>';
+  html += '<button class="btn btn-compact health-copy-btn" data-action="copy-metrics" title="Copy why-this-status evidence for stakeholders">Copy why + evidence</button>';
   html += '</div>';
 
   html += '</div>';

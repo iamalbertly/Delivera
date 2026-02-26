@@ -25,6 +25,44 @@ async function loadSprintPage(page) {
 }
 
 test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
+  test('Single-flow page: main has in-page state (welcome|loading|content|error), no reload on board change', async ({ page }) => {
+    await page.goto(SPRINT_PAGE);
+    await page.waitForLoadState('domcontentloaded');
+    const main = page.locator('#main-content');
+    await page.waitForFunction(
+      () => document.getElementById('main-content')?.getAttribute('data-current-sprint-state') != null,
+      { timeout: 5000 }
+    ).catch(() => null);
+    const state = await main.getAttribute('data-current-sprint-state');
+    expect(state).toBeTruthy();
+    expect(['welcome', 'loading', 'content', 'error']).toContain(state);
+
+    await page.waitForSelector('#current-sprint-content, #current-sprint-error, #current-sprint-loading', { timeout: 20000, state: 'attached' });
+    const urlBefore = page.url();
+    const boardSelect = page.locator('#board-select');
+    const optionCount = await boardSelect.locator('option').count();
+    if (optionCount >= 2) {
+      const firstVal = await boardSelect.inputValue();
+      const otherOption = boardSelect.locator('option').filter({ hasNotText: '- Select board -' }).filter({ hasNotText: "Couldn't load boards" }).nth(1);
+      const otherVal = await otherOption.getAttribute('value');
+      if (otherVal && otherVal !== firstVal) {
+        await boardSelect.selectOption(otherVal);
+        await page.waitForFunction(
+          (s) => {
+            const main = document.getElementById('main-content');
+            const current = main?.getAttribute('data-current-sprint-state');
+            return current === 'content' || current === 'error' || current === 'welcome';
+          },
+          undefined,
+          { timeout: 25000 }
+        ).catch(() => null);
+        await page.waitForTimeout(500);
+        const urlAfter = page.url();
+        expect(urlAfter).toBe(urlBefore);
+      }
+    }
+  });
+
   test.beforeEach(async ({ page }, testInfo) => {
     const state = await loadSprintPage(page);
     if (state?.hasError) {

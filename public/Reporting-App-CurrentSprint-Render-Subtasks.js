@@ -4,6 +4,29 @@ import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Hel
 import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
 import { buildMergedWorkRiskRows } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
+function riskPriorityWeight(row) {
+  const risk = String(row?.riskType || '').toLowerCase();
+  const status = String(row?.status || '').toLowerCase();
+  const source = String(row?.source || '').toLowerCase();
+  const hours = Number(row?.hoursInStatus || 0);
+  const updatedTs = new Date(row?.updated || 0).getTime();
+  let score = 0;
+  if (risk.includes('stuck >24h')) score += 1000;
+  if (risk.includes('missing estimate')) score += 350;
+  if (risk.includes('no log yet')) score += 300;
+  if (risk.includes('added mid-sprint')) score += 200;
+  if (!row?.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned') score += 220;
+  if (source === 'flow') score += 80;
+  if (status.includes('in progress')) score += 60;
+  if (status.includes('done')) score -= 40;
+  score += Math.min(120, Math.round(hours));
+  if (Number.isFinite(updatedTs) && updatedTs > 0) {
+    const ageHours = Math.max(0, (Date.now() - updatedTs) / (1000 * 60 * 60));
+    score += Math.min(80, Math.round(ageHours));
+  }
+  return score;
+}
+
 export function renderWorkRisksMerged(data) {
   const rows = buildMergedWorkRiskRows(data);
   const scopeChanges = data.scopeChanges || [];
@@ -25,6 +48,14 @@ export function renderWorkRisksMerged(data) {
       topLevelRows.push(row);
     }
   }
+  topLevelRows.sort((a, b) => {
+    const diff = riskPriorityWeight(b) - riskPriorityWeight(a);
+    if (diff !== 0) return diff;
+    const aHours = Number(a?.hoursInStatus || 0);
+    const bHours = Number(b?.hoursInStatus || 0);
+    if (aHours !== bHours) return bHours - aHours;
+    return String(a?.issueKey || '').localeCompare(String(b?.issueKey || ''));
+  });
 
   const initialLimit = resolveResponsiveRowLimit(20, 8);
   const toShow = topLevelRows.slice(0, initialLimit);
@@ -75,13 +106,14 @@ export function renderWorkRisksMerged(data) {
   if (metaParts.length > 0) {
     html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' | ')) + '</small></p>';
   }
-  html += '<div class="summary-grid" aria-label="Role-focused Work risks views">';
-  html += '<div class="summary-block" role="button" tabindex="0" data-persona="developer" title="Focus Work risks on logging gaps developers care about."><span>Developer view</span><strong>' + noLogRows + ' no-log rows</strong><span>Estimated work without logged time is tracked as planning, not completion.</span></div>';
-  html += '<div class="summary-block" role="button" tabindex="0" data-persona="scrum-master" title="Focus Work risks on blockers for scrum masters."><span>Scrum master view</span><strong>' + blockerInProgress + ' active blockers</strong><span>' + blockerNotStarted + ' items are not started, so coaching target is different.</span></div>';
-  const scopeLabel = scopeChanges.length === 0 ? 'No scope additions' : (scopeChanges.length + ' scope additions');
-  html += '<div class="summary-block" role="button" tabindex="0" data-persona="product-owner" title="Focus Work risks on mid-sprint scope changes."><span>Product owner view</span><strong>' + escapeHtml(scopeLabel) + '</strong><span>' + (scopeUnestimated > 0 ? scopeUnestimated + ' additions have no SP estimate.' : 'Scope stable.') + '</span></div>';
-  html += '<div class="summary-block" role="button" tabindex="0" data-persona="release-train" title="Focus Work risks on parent flows excluded due to subtasks."><span>Release train view</span><strong>' + excludedParents + ' parent flows excluded</strong><span>Parent story not counted as blocked when subtasks moved in last 24h.</span></div>';
-  html += '<div class="summary-block" role="button" tabindex="0" data-persona="line-manager" title="Focus Work risks on unowned risks for line managers."><span>Line manager view</span><strong>' + unassignedRows + ' unassigned risk rows</strong><span>Ownership gaps may hide follow-up accountability.</span></div>';
+  html += '<div class="work-risks-role-filters" aria-label="Role filter presets for Work risks">';
+  html += '<span class="work-risks-role-filters-label">Filter by role:</span>';
+  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="developer" title="Focus on no-log rows">Dev (' + noLogRows + ')</button>';
+  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="scrum-master" title="Focus on blockers">SM (' + blockerInProgress + ')</button>';
+  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="product-owner" title="Focus on scope changes">PO (' + scopeChanges.length + ')</button>';
+  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="release-train" title="Focus on parent flows excluded via subtasks">RT (' + excludedParents + ')</button>';
+  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="line-manager" title="Focus on unassigned rows">Leads (' + unassignedRows + ')</button>';
+  html += '<span class="work-risks-role-filters-label">Use header role mode for the app-wide preset.</span>';
   html += '</div>';
   if (noEstimateRows > 0 || noLogRows > 0) {
     html += '<p class="meta-row"><small>Interpretation rule: "Missing estimate" = no planning baseline; "No log yet" = baseline exists, actual effort missing.</small></p>';
@@ -95,7 +127,21 @@ export function renderWorkRisksMerged(data) {
   const headers = ['Source', 'Risk', 'Issue', 'Summary', 'Type', 'SP', 'Status', 'Reporter', 'Assignee', 'Est Hrs', 'Logged Hrs', 'Hours in status', 'Updated'];
   html += '<p class="meta-row"><small>Each issue is counted once as a blocker even when multiple risks apply; counts dedupe by issue key.</small></p>';
   html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table" id="work-risks-table" style="table-layout: auto;">';
-  html += '<thead><tr><th>Source</th><th title="Blocker: in-progress >24h with stale status movement. Deduped by issue key.">Risk</th><th>Issue</th><th class="cell-wrap">Summary</th><th>Type</th><th>SP</th><th>Status</th><th>Reporter</th><th>Assignee</th><th>Est Hrs</th><th>Logged Hrs</th><th>Hours in status</th><th>Updated</th></tr></thead><tbody>';
+  html += '<thead><tr>'
+    + '<th data-sort-key="source" tabindex="0" role="button" aria-label="Sort by source">Source</th>'
+    + '<th data-sort-key="risk" tabindex="0" role="button" aria-label="Sort by risk" title="Blocker: in-progress >24h with stale status movement. Deduped by issue key.">Risk</th>'
+    + '<th data-sort-key="issue" tabindex="0" role="button" aria-label="Sort by issue">Issue</th>'
+    + '<th data-sort-key="summary" class="cell-wrap" tabindex="0" role="button" aria-label="Sort by summary">Summary</th>'
+    + '<th data-sort-key="type" tabindex="0" role="button" aria-label="Sort by type">Type</th>'
+    + '<th data-sort-key="sp" tabindex="0" role="button" aria-label="Sort by story points">SP</th>'
+    + '<th data-sort-key="status" tabindex="0" role="button" aria-label="Sort by status">Status</th>'
+    + '<th data-sort-key="reporter" tabindex="0" role="button" aria-label="Sort by reporter">Reporter</th>'
+    + '<th data-sort-key="assignee" tabindex="0" role="button" aria-label="Sort by assignee">Assignee</th>'
+    + '<th data-sort-key="est" tabindex="0" role="button" aria-label="Sort by estimated hours">Est Hrs</th>'
+    + '<th data-sort-key="logged" tabindex="0" role="button" aria-label="Sort by logged hours">Logged Hrs</th>'
+    + '<th data-sort-key="hours" tabindex="0" role="button" aria-label="Sort by hours in status">Hours in status</th>'
+    + '<th data-sort-key="updated" tabindex="0" role="button" aria-label="Sort by updated time">Updated</th>'
+    + '</tr></thead><tbody>';
   for (const row of toShow) {
     const riskTypeLower = String(row.riskType || '').toLowerCase();
     const isStuck = riskTypeLower.includes('stuck >24h');
@@ -114,6 +160,7 @@ export function renderWorkRisksMerged(data) {
     const isUnassigned = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
     const riskTags = [];
     if (isStuck) riskTags.push('blocker');
+    if (isParentBlocker) riskTags.push('parent-flow');
     if (hasMissingEstimate) riskTags.push('missing-estimate');
     if (hasNoLog) riskTags.push('no-log');
     if (isScopeRow) riskTags.push('scope');
@@ -151,6 +198,7 @@ export function renderWorkRisksMerged(data) {
         const childIsUnassigned = !child.assignee || child.assignee === '-' || String(child.assignee).toLowerCase() === 'unassigned';
         const childRiskTags = [];
         if (childIsStuck) childRiskTags.push('blocker');
+        if (childIsSubtaskBlocker) childRiskTags.push('subtask-flow');
         if (childHasMissingEstimate) childRiskTags.push('missing-estimate');
         if (childHasNoLog) childRiskTags.push('no-log');
         if (childIsScopeRow) childRiskTags.push('scope');
@@ -196,6 +244,7 @@ export function renderWorkRisksMerged(data) {
       const isUnassigned = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
       const riskTags = [];
       if (isStuck) riskTags.push('blocker');
+      if (isParentBlocker) riskTags.push('parent-flow');
       if (hasMissingEstimate) riskTags.push('missing-estimate');
       if (hasNoLog) riskTags.push('no-log');
       if (isScopeRow) riskTags.push('scope');
@@ -233,6 +282,7 @@ export function renderWorkRisksMerged(data) {
           const childIsUnassigned = !child.assignee || child.assignee === '-' || String(child.assignee).toLowerCase() === 'unassigned';
           const childRiskTags = [];
           if (childIsStuck) childRiskTags.push('blocker');
+          if (childIsSubtaskBlocker) childRiskTags.push('subtask-flow');
           if (childHasMissingEstimate) childRiskTags.push('missing-estimate');
           if (childHasNoLog) childRiskTags.push('no-log');
           if (childIsScopeRow) childRiskTags.push('scope');
@@ -265,9 +315,107 @@ export function renderWorkRisksMerged(data) {
 export function wireSubtasksShowMoreHandlers() {
   wireShowMoreHandler('.work-risks-show-more', 'work-risks-more-template', '#work-risks-table tbody');
   try {
+    const card = document.getElementById('stuck-card');
     const table = document.getElementById('work-risks-table');
     if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const sortState = { key: '', dir: '' };
+
+    function parseSortValue(parentRow, key) {
+      if (!parentRow) return '';
+      const cellMap = {
+        source: 0, risk: 1, issue: 2, summary: 3, type: 4, sp: 5, status: 6, reporter: 7, assignee: 8, est: 9, logged: 10, hours: 11, updated: 12,
+      };
+      const idx = cellMap[key];
+      const cell = Number.isInteger(idx) ? parentRow.cells[idx] : null;
+      const raw = (cell?.innerText || cell?.textContent || '').trim();
+      if (['sp', 'est', 'logged', 'hours'].includes(key)) {
+        const n = Number(String(raw).replace(/[^\d.-]/g, ''));
+        return Number.isFinite(n) ? n : Number.NEGATIVE_INFINITY;
+      }
+      if (key === 'updated') {
+        const t = new Date(raw).getTime();
+        return Number.isFinite(t) ? t : 0;
+      }
+      return raw.toLowerCase();
+    }
+
+    function ensureDefaultOrder() {
+      const parentRows = Array.from(table.querySelectorAll('.work-risk-parent-row'));
+      let maxOrder = parentRows.reduce((max, row) => {
+        const cur = Number(row.dataset.defaultOrder || 0);
+        return Number.isFinite(cur) ? Math.max(max, cur) : max;
+      }, 0);
+      parentRows.forEach((row) => {
+        if (!row.dataset.defaultOrder) {
+          maxOrder += 1;
+          row.dataset.defaultOrder = String(maxOrder);
+        }
+      });
+    }
+
+    function rowGroupForParent(parentRow) {
+      const nodes = [parentRow];
+      let next = parentRow.nextElementSibling;
+      while (next && next.classList.contains('work-risk-subtask-row')) {
+        if ((next.getAttribute('data-parent-key') || '') !== (parentRow.getAttribute('data-parent-key') || '')) break;
+        nodes.push(next);
+        next = next.nextElementSibling;
+      }
+      return nodes;
+    }
+
+    function applyRiskTableSort(key, dir) {
+      if (!tbody) return;
+      ensureDefaultOrder();
+      const parentRows = Array.from(tbody.querySelectorAll('.work-risk-parent-row'));
+      const groups = parentRows.map((parentRow) => ({
+        parentRow,
+        nodes: rowGroupForParent(parentRow),
+      }));
+      groups.sort((a, b) => {
+        if (!key || !dir) {
+          return Number(a.parentRow.dataset.defaultOrder || 0) - Number(b.parentRow.dataset.defaultOrder || 0);
+        }
+        const av = parseSortValue(a.parentRow, key);
+        const bv = parseSortValue(b.parentRow, key);
+        let cmp = 0;
+        if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+        else cmp = String(av).localeCompare(String(bv));
+        if (cmp === 0) {
+          cmp = Number(a.parentRow.dataset.defaultOrder || 0) - Number(b.parentRow.dataset.defaultOrder || 0);
+        }
+        return dir === 'asc' ? cmp : -cmp;
+      });
+      const frag = document.createDocumentFragment();
+      groups.forEach((group) => group.nodes.forEach((node) => frag.appendChild(node)));
+      tbody.appendChild(frag);
+      const headers = Array.from(table.querySelectorAll('thead th[data-sort-key]'));
+      headers.forEach((th) => {
+        const isActive = th.getAttribute('data-sort-key') === key && !!dir;
+        th.classList.toggle('is-sorted', isActive);
+        th.setAttribute('aria-sort', !isActive ? 'none' : (dir === 'asc' ? 'ascending' : 'descending'));
+        th.dataset.sortDir = isActive ? dir : '';
+      });
+      sortState.key = key || '';
+      sortState.dir = dir || '';
+    }
+
+    function cycleSortForHeader(th) {
+      const key = th.getAttribute('data-sort-key') || '';
+      if (!key) return;
+      let nextDir = 'desc';
+      if (sortState.key === key && sortState.dir === 'desc') nextDir = 'asc';
+      else if (sortState.key === key && sortState.dir === 'asc') nextDir = '';
+      applyRiskTableSort(nextDir ? key : '', nextDir);
+    }
+
     table.addEventListener('click', (event) => {
+      const sortableHeader = event.target.closest('thead th[data-sort-key]');
+      if (sortableHeader && table.contains(sortableHeader)) {
+        cycleSortForHeader(sortableHeader);
+        return;
+      }
       const toggle = event.target.closest('.work-risks-toggle');
       if (!toggle || !table.contains(toggle)) return;
       const parentRow = toggle.closest('.work-risk-parent-row');
@@ -287,9 +435,16 @@ export function wireSubtasksShowMoreHandlers() {
         }
       });
     });
-    table.addEventListener('click', (event) => {
-      const personaBlock = event.target.closest('.summary-block[data-persona]');
-      if (!personaBlock || !table.contains(personaBlock)) return;
+    table.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const sortableHeader = event.target.closest('thead th[data-sort-key]');
+      if (!sortableHeader || !table.contains(sortableHeader)) return;
+      event.preventDefault();
+      cycleSortForHeader(sortableHeader);
+    });
+    const personaClickHandler = (event) => {
+      const personaBlock = event.target.closest('[data-persona]');
+      if (!personaBlock || !(card || table).contains(personaBlock)) return;
       const persona = personaBlock.getAttribute('data-persona') || '';
       const personaMap = {
         developer: ['no-log'],
@@ -307,11 +462,12 @@ export function wireSubtasksShowMoreHandlers() {
       try {
         table.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (_) {}
-    });
-    table.addEventListener('keydown', (event) => {
+    };
+    (card || table).addEventListener('click', personaClickHandler);
+    (card || table).addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
-      const personaBlock = event.target.closest('.summary-block[data-persona]');
-      if (!personaBlock || !table.contains(personaBlock)) return;
+      const personaBlock = event.target.closest('[data-persona]');
+      if (!personaBlock || !(card || table).contains(personaBlock)) return;
       event.preventDefault();
       personaBlock.click();
     });
@@ -347,6 +503,15 @@ export function wireSubtasksShowMoreHandlers() {
         });
       });
     }
+    const showMoreBtn = document.querySelector('.work-risks-show-more');
+    if (showMoreBtn) {
+      showMoreBtn.addEventListener('click', () => {
+        window.setTimeout(() => {
+          if (sortState.key && sortState.dir) applyRiskTableSort(sortState.key, sortState.dir);
+          else applyRiskTableSort('', '');
+        }, 0);
+      });
+    }
+    applyRiskTableSort('', '');
   } catch (_) {}
 }
-

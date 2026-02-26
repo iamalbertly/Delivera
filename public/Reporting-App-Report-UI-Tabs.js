@@ -11,6 +11,13 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
   if (tabsContainer) {
     tabsContainer.setAttribute('role', 'tablist');
   }
+  const TAB_HELP_TEXT = {
+    'project-epic-level': 'Overview: board-level health and signals.',
+    trends: 'Trends: how delivery changes over time.',
+    sprints: 'Sprints: compare sprint outcomes and timing.',
+    'done-stories': 'Outcomes: inspect completed work items.',
+    'unusable-sprints': 'Excluded: review hidden/invalid sprints.',
+  };
 
   function closeMoreMenu() {
     if (!moreButton || !moreMenu) return;
@@ -62,6 +69,13 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
       }
     } catch (_) {}
     try { sessionStorage.setItem(REPORT_ACTIVE_TAB_KEY, tabName); } catch (_) {}
+    const helper = document.getElementById('tab-outcome-hint');
+    if (helper) helper.innerHTML = '<small>' + (TAB_HELP_TEXT[tabName] || 'Use tabs to switch views.') + '</small>';
+    const activeTabChip = document.querySelector('[data-preview-active-tab-chip]');
+    if (activeTabChip) activeTabChip.textContent = 'Tab: ' + ((btn.textContent || tabName).replace(/\s*\(\d+\)\s*$/, ''));
+    try {
+      window.dispatchEvent(new CustomEvent('report:active-tab-changed', { detail: { tabName } }));
+    } catch (_) {}
     if (updateExportFilteredState) updateExportFilteredState();
     if (onTabActivate && typeof onTabActivate === 'function') onTabActivate(tabName);
   }
@@ -184,11 +198,7 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
       activateTab(hashTab, { skipFocus: true });
       return;
     }
-    const savedTab = sessionStorage.getItem(REPORT_ACTIVE_TAB_KEY);
-    const savedButton = savedTab ? tabButtons.find((b) => b.dataset.tab === savedTab) : null;
-    if (savedButton) {
-      activateTab(savedButton, { skipFocus: true });
-    } else if (activeTab) {
+    if (activeTab) {
       activateTab(activeTab, { skipFocus: true });
     }
   } catch (_) {}

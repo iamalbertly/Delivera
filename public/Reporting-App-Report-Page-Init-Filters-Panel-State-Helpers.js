@@ -20,6 +20,7 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
   const collapsedBar = document.getElementById('filters-panel-collapsed-bar');
   const collapsedSummary = document.getElementById('filters-collapsed-summary');
   const appliedSummary = document.getElementById('applied-filters-summary');
+  const appliedChips = document.getElementById('applied-filters-chips');
 
   function setFiltersPanelCollapsed(collapsed) {
     if (!panel || !panelBody || !collapsedBar) return;
@@ -32,8 +33,9 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
     collapsedBar.style.display = collapsed ? 'flex' : 'none';
     collapsedBar.setAttribute('aria-hidden', collapsed ? 'false' : 'true');
     if (collapsed && collapsedSummary && appliedSummary) {
-      const base = appliedSummary.textContent || 'Applied filters';
-      collapsedSummary.textContent = base + ' (' + getActiveFiltersCount() + ' active)';
+      const chipsText = (appliedChips?.textContent || '').trim();
+      const base = chipsText || appliedSummary.textContent || 'Applied filters';
+      collapsedSummary.textContent = base;
     }
   }
 

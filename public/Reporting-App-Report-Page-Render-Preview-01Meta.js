@@ -5,6 +5,16 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 import { REPORT_LAST_RUN_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { buildCompactReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+
+function summarizeProjectsList(projects) {
+  const list = Array.isArray(projects)
+    ? projects.map((p) => String(p || '').trim()).filter(Boolean)
+    : [];
+  if (list.length === 0) return { label: 'None', full: 'None' };
+  if (list.length <= 2) return { label: list.join(', '), full: list.join(', ') };
+  return { label: `${list[0]}, ${list[1]} +${list.length - 2}`, full: list.join(', ') };
+}
 function buildGeneratedLabels(generatedAt) {
   const generatedMs = generatedAt ? new Date(generatedAt).getTime() : Date.now();
   const ageMs = Date.now() - generatedMs;
@@ -25,7 +35,7 @@ function buildGeneratedLabels(generatedAt) {
 
 /**
  * @param {{ meta: object, previewRows?: array, boardsCount: number, sprintsCount: number, rowsCount: number, unusableCount: number }} params
- * @returns {{ reportSubtitleText: string, appliedFiltersText: string, outcomeLineHTML: string, previewMetaHTML: string, stickyText: string, statusHTML: string, statusDisplay: string }}
+ * @returns {{ reportSubtitleText: string, appliedFiltersText: string, outcomeLineHTML: string, previewMetaHTML: string, stickyText: string, statusHTML: string, statusDisplay: string, statusStripText: string }}
  */
 export function buildPreviewMetaAndStatus(params) {
   const { meta, previewRows = [], boardsCount, sprintsCount, rowsCount, unusableCount } = params;
@@ -72,6 +82,8 @@ export function buildPreviewMetaAndStatus(params) {
     : '';
 
   const selectedProjectsLabel = meta.selectedProjects?.length > 0 ? meta.selectedProjects.join(', ') : 'None';
+  const projectSummary = summarizeProjectsList(meta.selectedProjects);
+  const compactRangeLabel = buildCompactReportRangeLabel(meta.windowStart, meta.windowEnd);
   const sampleRow = previewRows && previewRows.length > 0 ? previewRows[0] : null;
   let sampleLabel = 'None';
   if (sampleRow) {
@@ -119,7 +131,31 @@ export function buildPreviewMetaAndStatus(params) {
     dataStateKind = ageMin > 30 ? 'stale' : 'cached';
   }
   const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
-  const outcomeLineHTML = escapeHtml(rowsCount + ' done stories, ' + sprintsCount + ' sprints, ' + boardsCount + ' boards in window' + partialSuffix) + ' ' + dataStateBadgeHTML + prevRunHtml;
+  const configGapChips = [];
+  if (!meta.discoveredFields?.storyPointsFieldId) {
+    configGapChips.push('<button type="button" class="preview-context-chip preview-context-chip-warning" data-preview-context-action="focus-config" title="Story Points field not configured. Metrics that depend on story points show limited data." aria-label="Story Points not configured. Open advanced options">SP: not configured</button>');
+  }
+  if (!meta.discoveredFields?.epicLinkFieldId) {
+    configGapChips.push('<button type="button" class="preview-context-chip preview-context-chip-warning" data-preview-context-action="focus-config" title="Epic Link field not configured. Epic rollups are limited." aria-label="Epic Link not configured. Open advanced options">Epic: not configured</button>');
+  }
+  const storiesLabel = rowsCount + ' stor' + (rowsCount === 1 ? 'y' : 'ies');
+  const sprintsLabel = sprintsCount + ' sprint' + (sprintsCount === 1 ? '' : 's');
+  const boardsLabel = boardsCount + ' board' + (boardsCount === 1 ? '' : 's');
+  const exportLabel = rowsCount > 0 ? 'Export ready' : 'No exportable rows';
+  const outcomeLineHTML =
+    '<div class="preview-context-bar" role="group" aria-label="Report preview context and outcome">' +
+      '<span class="preview-context-chip preview-context-chip-title">General Performance</span>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range filters">Range: ' + escapeHtml(compactRangeLabel) + '</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-done-stories" aria-label="Open outcome list tab">' + escapeHtml(storiesLabel + partialSuffix) + '</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-sprints" aria-label="Open sprint history tab">' + escapeHtml(sprintsLabel) + '</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-boards" aria-label="Open performance overview tab">' + escapeHtml(boardsLabel) + '</button>' +
+      '<span class="preview-context-chip preview-context-chip-muted" data-preview-active-tab-chip>Tab: Overview</span>' +
+      '<span class="preview-context-chip">' + dataStateBadgeHTML + '</span>' +
+      '<span class="preview-context-chip' + (rowsCount > 0 ? ' preview-context-chip-ok' : ' preview-context-chip-muted') + '">' + escapeHtml(exportLabel) + '</span>' +
+      configGapChips.join('') +
+      (prevRunHtml ? '<span class="preview-context-inline-note">' + prevRunHtml + '</span>' : '') +
+    '</div>';
 
   const phaseLog = Array.isArray(meta.phaseLog) ? meta.phaseLog : [];
   const phaseLogHtml = phaseLog.length > 0
@@ -149,7 +185,12 @@ export function buildPreviewMetaAndStatus(params) {
     </div>
   `;
 
-  const stickyText = `Preview: ${selectedProjectsLabel} | ${windowStartLocal} to ${windowEndLocal}${generated.stickySuffix}`;
+  const stickyText = `Preview: ${selectedProjectsLabel} | ${compactRangeLabel}${generated.stickySuffix}`;
+  let statusStripText = '';
+  if (partial) statusStripText = 'PARTIAL DATA';
+  else if (reducedScope) statusStripText = 'CLOSEST MATCH';
+  else if (previewMode !== 'normal') statusStripText = 'FAST MODE';
+  else statusStripText = 'UP TO DATE';
   let statusHTML = '';
   let statusDisplay = 'none';
   if (rowsCount > 0 && (partial || previewMode !== 'normal' || reducedScope)) {
@@ -174,7 +215,7 @@ export function buildPreviewMetaAndStatus(params) {
     `;
     statusDisplay = 'block';
   }
-  return { reportSubtitleText, appliedFiltersText, outcomeLineHTML, previewMetaHTML, stickyText, statusHTML, statusDisplay };
+  return { reportSubtitleText, appliedFiltersText, outcomeLineHTML, previewMetaHTML, stickyText, statusHTML, statusDisplay, statusStripText };
 }
 
 

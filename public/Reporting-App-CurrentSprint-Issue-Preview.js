@@ -29,8 +29,17 @@ function buildPreviewHtml(targetRow) {
   const reporter = reporterCell ? (reporterCell.textContent || '').trim() : '';
   const logged = hoursCell ? (hoursCell.textContent || '').trim() : '';
   const updated = updatedCell ? (updatedCell.textContent || '').trim() : '';
+  const riskTags = (targetRow.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+  const riskReasons = [];
+  if (riskTags.includes('blocker')) riskReasons.push('Blocked or stalled flow');
+  if (riskTags.includes('no-log')) riskReasons.push('Estimated work has no time logged');
+  if (riskTags.includes('missing-estimate')) riskReasons.push('Logged work has no estimate baseline');
+  if (riskTags.includes('scope')) riskReasons.push('Mid-sprint scope change');
+  if (riskTags.includes('unassigned')) riskReasons.push('No clear owner assigned');
+  const riskWhy = riskReasons.length ? riskReasons.join(' · ') : '';
 
   let html = '<div class="issue-preview-inner">';
+  html += '<p class="issue-preview-breadcrumb">Work risks > ' + escapeHtml(key || 'Issue') + '</p>';
   html += '<div class="issue-preview-header">';
   if (key) {
     if (url) {
@@ -46,6 +55,9 @@ function buildPreviewHtml(targetRow) {
   html += '</div>';
   if (summary) {
     html += '<p class="issue-preview-summary">' + escapeHtml(summary) + '</p>';
+  }
+  if (riskWhy) {
+    html += '<p class="issue-preview-risk-why"><strong>Why this is risky:</strong> ' + escapeHtml(riskWhy) + '</p>';
   }
   html += '<dl class="issue-preview-meta">';
   if (assignee) {
@@ -64,6 +76,8 @@ function buildPreviewHtml(targetRow) {
   if (url) {
     html += '<div class="issue-preview-actions">';
     html += '<a class="btn btn-secondary btn-compact" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Open in Jira</a>';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-issue-preview-action="copy-link" data-url="' + escapeHtml(url) + '">Copy link</button>';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-issue-preview-action="copy-nudge" data-url="' + escapeHtml(url) + '" data-key="' + escapeHtml(key) + '" data-summary="' + escapeHtml(summary) + '" data-status="' + escapeHtml(status) + '">Copy nudge</button>';
     html += '</div>';
   }
   html += '</div>';
@@ -89,6 +103,30 @@ export function wireIssuePreviewHandlers() {
     event.preventDefault();
     closePreview();
   });
+  container.addEventListener('click', async (event) => {
+    const actionBtn = event.target.closest('[data-issue-preview-action]');
+    if (!actionBtn) return;
+    event.preventDefault();
+    const action = actionBtn.getAttribute('data-issue-preview-action') || '';
+    const url = actionBtn.getAttribute('data-url') || '';
+    const key = actionBtn.getAttribute('data-key') || '';
+    const summary = actionBtn.getAttribute('data-summary') || '';
+    const status = actionBtn.getAttribute('data-status') || '';
+    let text = '';
+    if (action === 'copy-link') {
+      text = url;
+    } else if (action === 'copy-nudge') {
+      text = key ? `[Nudge] ${key}: ${summary || 'Please review'} (${status || 'status unknown'}) ${url}` : url;
+    } else {
+      return;
+    }
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      const original = actionBtn.textContent;
+      actionBtn.textContent = 'Copied';
+      window.setTimeout(() => { actionBtn.textContent = original; }, 1200);
+    } catch (_) {}
+  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -112,4 +150,3 @@ export function wireIssuePreviewHandlers() {
     container.classList.add('issue-preview-open');
   });
 }
-

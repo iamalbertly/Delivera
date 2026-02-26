@@ -10,6 +10,7 @@ export function renderCountdownTimer(data, options = {}) {
   const days = data.daysMeta || {};
   const sprint = data.sprint || {};
   const compact = options.compact !== false;
+  const inlineHeader = options.inlineHeader === true;
 
   const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
   const sprintEndDate = sprint.endDate;
@@ -67,13 +68,15 @@ export function renderCountdownTimer(data, options = {}) {
   const progressPercent = Math.min(100, Math.max(0, (remainingDays / maxDays) * 100));
 
   // SVG for circular progress
-  const radius = compact ? 24 : 45;
-  const size = compact ? 64 : 120;
+  const radius = inlineHeader ? 10 : (compact ? 24 : 45);
+  const size = inlineHeader ? 24 : (compact ? 64 : 120);
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
-  let html = '<div class="countdown-timer-widget' + (compact ? ' countdown-timer-widget-compact' : '') + '" aria-live="polite" aria-label="' + ariaLabel + '">';
-  html += '<span class="countdown-title">Time left</span>';
+  let html = '<div class="countdown-timer-widget' + (compact ? ' countdown-timer-widget-compact' : '') + (inlineHeader ? ' countdown-timer-widget-inline' : '') + '" aria-live="polite" aria-label="' + ariaLabel + '">';
+  if (!inlineHeader) {
+    html += '<span class="countdown-title">Time left</span>';
+  }
   html += '<svg class="countdown-ring ' + color + (isUrgent ? ' urgent' : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
   
   // Background ring
@@ -87,7 +90,7 @@ export function renderCountdownTimer(data, options = {}) {
   html += '<div class="countdown-label' + (isUrgent ? ' blinking' : '') + '">' + label + '</div>';
   
   // Additional detail on hover
-  if (sprintEndDate) {
+  if (sprintEndDate && !inlineHeader) {
     const endDateStr = new Date(sprintEndDate).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

@@ -17,6 +17,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 - Current Sprint **mission control header** now centralises sprint verdict, a single remaining-days metric, and compact risk pills that drive the merged Work risks table; the same verdict engine powers health copy in exports and dashboard views so wording cannot drift.
 - The Work risks card, persona tiles, and new **daily completion timeline chips** all reuse one filter event (`currentSprint:applyWorkRiskFilter`) so developers, scrum masters, product owners, and leads can jump straight from header or persona presets into a focused, filtered risks table without extra clicks or scrolling.
 - Issues in this sprint now combine parent/child hierarchy, inline time-tracking flags, and an **inline issue preview drawer**; clicking an issue in either Work risks or Issues opens a side-drawer with key metadata and a Jira link so leaders can inspect details without leaving the mission-control page.
+- **Current Sprint single-flow page**: One route (`/current-sprint`) with four in-page states—welcome (no board/sprint), loading, content (data loaded), error (API/user error). Changing board or sprint only re-renders the main content area; header, nav, and sidebar persist and the page does not reload.
 
 ## Latest Reliability and UX Updates (2026-02-17)
 

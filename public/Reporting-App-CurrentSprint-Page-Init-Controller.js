@@ -1,5 +1,5 @@
 import { currentSprintDom, currentSprintKeys } from './Reporting-App-CurrentSprint-Page-Context.js';
-import { showLoading, showError } from './Reporting-App-CurrentSprint-Page-Status.js';
+import { showLoading, showError, clearError } from './Reporting-App-CurrentSprint-Page-Status.js';
 import { loadBoards, loadCurrentSprint } from './Reporting-App-CurrentSprint-Page-Data-Loaders.js';
 import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, describeCurrentSprintProjectMode, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Reporting-App-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
@@ -254,12 +254,18 @@ function init() {
   if (contentEl) contentEl.addEventListener('click', initHandlers.onSprintTabClick);
   if (errorEl) {
     errorEl.addEventListener('click', (event) => {
-      const btn = event.target?.closest?.('[data-action="retry-last-intent"]');
-      if (!btn) return;
-      try {
-        retryLastIntent();
-      } catch (err) {
-        showError(err.message || 'Failed to retry last action.');
+      const target = event.target?.closest?.('[data-action]');
+      if (!target) return;
+      if (target.getAttribute('data-action') === 'dismiss-error') {
+        clearError();
+        return;
+      }
+      if (target.getAttribute('data-action') === 'retry-last-intent') {
+        try {
+          retryLastIntent();
+        } catch (err) {
+          showError(err.message || 'Failed to retry last action.');
+        }
       }
     });
   }
