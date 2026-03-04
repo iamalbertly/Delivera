@@ -156,7 +156,7 @@ function buildSignalsRailHtml(metrics, meta) {
 
 function buildMergedLeadershipSignalsHtml(boards, boardSummaries, hasPredictability) {
   if (!Array.isArray(boards) || boards.length === 0) return '';
-  const cards = boards.map((board) => {
+  const rows = boards.map((board) => {
     const summary = boardSummaries.get(board.id) || {};
     const doneStories = Number(summary.doneStories || 0);
     const doneByEnd = Number(summary.doneBySprintEnd || 0);
@@ -167,10 +167,14 @@ function buildMergedLeadershipSignalsHtml(boards, boardSummaries, hasPredictabil
     const spEstPct = hasPredictability && committedSP > 0 ? (deliveredSP / committedSP) * 100 : null;
     const grade = deriveDeliveryGrade(onTimePct, spEstPct, sprintCount);
     const gradeClass = String(grade || 'insufficient-data').toLowerCase().replace(/\s+/g, '-').replace(/[()]/g, '');
+    const isPartial = /\(partial\)/i.test(grade);
+    const severityLabel = isPartial ? grade.replace(/\s*\(partial\)/i, '') : grade;
     return {
       boardName: board.name || 'Board',
       grade,
-      gradeClass,
+      severityLabel,
+      gradeClass: isPartial ? gradeClass.replace('-partial-', '') : gradeClass,
+      isPartial,
       onTimePct,
       spEstPct,
       doneStories,
@@ -179,26 +183,83 @@ function buildMergedLeadershipSignalsHtml(boards, boardSummaries, hasPredictabil
     };
   });
 
-  const atRiskCount = cards.filter((c) => /weak|critical|insufficient/i.test(c.grade)).length;
-  const strongCount = cards.filter((c) => /^strong$/i.test(c.grade)).length;
+  const atRiskCount = rows.filter((c) => /weak|critical|insufficient/i.test(c.grade)).length;
+  const strongCount = rows.filter((c) => /^strong/i.test(c.grade)).length;
+
+  // Compact inbox-style: one line per board, severity pill + metrics inline, expandable detail
   let html = '<section class="leadership-merged-section" id="merged-leadership-signals">';
-  html += '<p class="leadership-outcome-line" aria-live="polite">' + cards.length + ' boards | ' + strongCount + ' strong | ' + atRiskCount + ' need attention.</p>';
-  html += '<div class="leadership-boards-cards" role="region" aria-label="Merged leadership board cards">';
-  cards.forEach((card) => {
-    const onTime = Number.isFinite(card.onTimePct) ? formatNumber(card.onTimePct, 0, '-') + '%' : '-';
-    const spEst = Number.isFinite(card.spEstPct) ? formatNumber(card.spEstPct, 0, '-') + '%' : '-';
-    const spDay = Number.isFinite(card.spPerDay) ? formatNumber(card.spPerDay, 2, '-') : '-';
-    html += '<article class="leadership-board-card">';
-    html += '<div class="leadership-board-card-grade ' + escapeHtml(card.gradeClass) + '">' + escapeHtml(card.grade) + '</div>';
-    html += '<div class="leadership-board-card-name">' + escapeHtml(card.boardName) + '</div>';
-    html += '<div class="leadership-board-card-metric">On-time: ' + escapeHtml(onTime) + '</div>';
-    html += '<div class="leadership-board-card-metric">SP Estimation: ' + escapeHtml(spEst) + '</div>';
-    html += '<div class="leadership-board-card-metric">SP/day: ' + escapeHtml(spDay) + '</div>';
-    html += '<div class="leadership-board-card-metric">Done stories: ' + card.doneStories + ' | Sprints: ' + card.sprintCount + '</div>';
-    html += '</article>';
+  html += '<p class="leadership-outcome-line" aria-live="polite">'
+    + rows.length + ' board' + (rows.length !== 1 ? 's' : '') + ' · '
+    + strongCount + ' strong · '
+    + atRiskCount + ' need attention'
+    + '</p>';
+  html += '<ul class="board-inbox-list" role="list" aria-label="Board health summary">';
+  rows.forEach((row) => {
+    const onTime = Number.isFinite(row.onTimePct) ? formatNumber(row.onTimePct, 0, '-') + '%' : '—';
+    const spEst = Number.isFinite(row.spEstPct) ? formatNumber(row.spEstPct, 0, '-') + '%' : '—';
+    const spDay = Number.isFinite(row.spPerDay) ? formatNumber(row.spPerDay, 2, '-') : '—';
+    const detailId = 'board-inbox-detail-' + escapeHtml(String(row.boardName).replace(/\W+/g, '-').toLowerCase());
+    html += '<li class="board-inbox-row">';
+    // Severity pill (colour-coded grade)
+    html += '<span class="board-severity-pill ' + escapeHtml(row.gradeClass) + '" title="Delivery grade: ' + escapeHtml(row.grade) + '">' + escapeHtml(row.severityLabel) + '</span>';
+    // Data-mode pill (partial indicator, neutral)
+    if (row.isPartial) html += '<span class="board-data-mode-pill" title="Grade computed from partial data (one metric available)">Partial data</span>';
+    // Board name
+    html += '<span class="board-inbox-name">' + escapeHtml(row.boardName) + '</span>';
+    // Key metrics inline
+    html += '<span class="board-inbox-metrics">'
+      + '<span title="On-time delivery %">On-time: <strong>' + onTime + '</strong></span>'
+      + (Number.isFinite(row.spEstPct) ? '<span title="SP estimation accuracy">SP est: <strong>' + spEst + '</strong></span>' : '')
+      + '<span title="Story points per day">SP/day: <strong>' + spDay + '</strong></span>'
+      + '<span title="Done stories · sprints">' + row.doneStories + ' stor' + (row.doneStories !== 1 ? 'ies' : 'y') + ' · ' + row.sprintCount + ' sprint' + (row.sprintCount !== 1 ? 's' : '') + '</span>'
+      + '</span>';
+    // Expandable detail toggle
+    html += '<button type="button" class="board-inbox-expand-btn" aria-expanded="false" aria-controls="' + detailId + '">▸</button>';
+    html += '<div class="board-inbox-detail" id="' + detailId + '" hidden>'
+      + '<span>On-time: ' + onTime + '</span>'
+      + (Number.isFinite(row.spEstPct) ? '<span>SP estimation: ' + spEst + '</span>' : '')
+      + '<span>SP/day: ' + spDay + '</span>'
+      + '<span>' + row.doneStories + ' done · ' + row.sprintCount + ' sprints</span>'
+      + '</div>';
+    html += '</li>';
   });
-  html += '</div>';
+  html += '</ul>';
   html += '</section>';
+  return html;
+}
+
+function buildOutcomeDigestStripHtml(boards, boardSummaries, previewRows, meta) {
+  if (!Array.isArray(boards) || boards.length === 0) return '';
+  const rows = Array.isArray(previewRows) ? previewRows : [];
+  const partial = meta?.partial === true;
+  const epicCounts = new Map();
+  rows.forEach((row) => {
+    const epic = String(row.epicName || row.epicKey || '').trim();
+    if (!epic) return;
+    epicCounts.set(epic, (epicCounts.get(epic) || 0) + 1);
+  });
+  const topEpicEntry = Array.from(epicCounts.entries()).sort((a, b) => b[1] - a[1])[0] || null;
+  const highRiskBoard = boards
+    .map((board) => {
+      const summary = boardSummaries.get(board.id) || {};
+      const doneStories = Number(summary.doneStories || 0);
+      const onTimePct = doneStories > 0 ? (Number(summary.doneBySprintEnd || 0) / doneStories) * 100 : -1;
+      return { name: board.name || 'Board', onTimePct };
+    })
+    .sort((a, b) => a.onTimePct - b.onTimePct)[0];
+
+  const topEpicLabel = topEpicEntry ? `${topEpicEntry[0]} (${topEpicEntry[1]})` : 'No epic data';
+  const doneStoriesTotal = rows.length;
+  const riskBoardLabel = highRiskBoard && highRiskBoard.onTimePct >= 0
+    ? `${highRiskBoard.name} (${formatNumber(highRiskBoard.onTimePct, 0, '0')}% on-time)`
+    : (highRiskBoard?.name || 'No risk data');
+
+  let html = '<div class="outcome-digest-strip" role="status" aria-live="polite">';
+  html += '<span class="outcome-digest-title">' + (partial ? 'Partial outcomes:' : 'Outcome digest:') + '</span>';
+  html += '<span>Top epic <strong>' + escapeHtml(topEpicLabel) + '</strong></span>';
+  html += '<span>Total done stories <strong>' + doneStoriesTotal + '</strong></span>';
+  html += '<span>High-risk board <strong>' + escapeHtml(riskBoardLabel) + '</strong></span>';
+  html += '</div>';
   return html;
 }
 
@@ -265,21 +326,26 @@ export function renderProjectEpicLevelTab(boards, metrics) {
   }
 
   if (!boards || boards.length === 0) {
-    if (!metrics) {
-      renderEmptyState(
-        content,
-        'No boards in this range',
-        'No boards were discovered for the selected projects in the date window.',
-        'Try a different date range or project selection.'
-      );
-      return;
-    }
-    html += '<h3>Boards</h3>';
-    if (reportState.previewData?.boards?.length > 0) {
-      html += renderEmptyStateHtml('No boards match filters', 'No boards match the current filters. Adjust search or project filters.', '');
-    } else {
-      html += renderEmptyStateHtml('No boards in this range', 'No boards were discovered for the selected projects in the date window.', 'Try a different date range or project selection.');
-    }
+    const selectedProjects = Array.isArray(meta?.selectedProjects) && meta.selectedProjects.length
+      ? meta.selectedProjects.join(', ')
+      : (meta?.projects || '-');
+    const windowStartLabel = meta?.windowStart ? formatDateForDisplay(meta.windowStart) : '-';
+    const windowEndLabel = meta?.windowEnd ? formatDateForDisplay(meta.windowEnd) : '-';
+    const noBoardsTitle = 'No boards found';
+    const noBoardsMessage = 'No boards found for ' + windowStartLabel + ' - ' + windowEndLabel + ' (' + selectedProjects + ').';
+    html += '<div class="empty-state empty-state-full-viewport report-empty-zero-boards">';
+    html += '<div class="empty-state-hero-icon" aria-hidden="true">📭</div>';
+    html += '<p><strong>' + escapeHtml(noBoardsTitle) + '</strong></p>';
+    html += '<p>' + escapeHtml(noBoardsMessage) + '</p>';
+    html += '<p><button type="button" class="btn btn-primary btn-compact" data-action="try-last-quarter">Try last quarter</button></p>';
+    html += '</div>';
+    html += renderEmptyStateHtml(
+      metrics ? 'No boards match filters' : 'No boards in this range',
+      metrics
+        ? 'No boards match the current filters. Adjust search or project filters.'
+        : 'No boards were discovered for the selected projects in the date window.',
+      'Try a different date range or project selection.'
+    );
   } else {
     const hasPredictability = !!metrics?.predictability;
     if (metrics) {
@@ -289,6 +355,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
         html += buildSignalsRailHtml(metrics, meta);
       }
     }
+    html += buildOutcomeDigestStripHtml(boards, boardSummaries, reportState.previewRows, meta);
 
     html += '<h3>Boards</h3>';
     const tableContextLabel = (() => {
@@ -296,7 +363,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       const proj = (m?.selectedProjects && m.selectedProjects.length) ? m.selectedProjects.join(', ') : '-';
       const start = m?.windowStart ? formatDateForDisplay(m.windowStart) : '-';
       const end = m?.windowEnd ? formatDateForDisplay(m.windowEnd) : '-';
-      return `General Performance - ${escapeHtml(proj)} - ${escapeHtml(start)} to ${escapeHtml(end)}`;
+      return `Performance - History - ${escapeHtml(proj)} - ${escapeHtml(start)} to ${escapeHtml(end)}`;
     })();
     html += '<p class="table-context" aria-label="Table context">' + tableContextLabel + '</p>';
     html += '<p class="metrics-hint"><small>Time-normalized metrics (Stories / Day, SP / Day, Indexed Delivery) are shown. Indexed Delivery = current SP/day vs own baseline (last 6 closed sprints). Do not use to rank teams.</small></p>';
@@ -410,6 +477,51 @@ export function renderProjectEpicLevelTab(boards, metrics) {
   }
 
   content.innerHTML = html;
+  // Data availability "+N more" toggle
+  content.querySelectorAll('.data-availability-more-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const panelId = btn.getAttribute('aria-controls');
+      const panel = panelId ? document.getElementById(panelId) : null;
+      if (!panel) return;
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      panel.hidden = expanded;
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      btn.textContent = expanded ? '+' + (btn.dataset.overflowCount || '?') + ' more' : 'Show less';
+    });
+  });
+
+  // Board inbox expand/collapse
+  content.querySelectorAll('.board-inbox-expand-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const detailEl = btn.getAttribute('aria-controls') ? document.getElementById(btn.getAttribute('aria-controls')) : null;
+      if (!detailEl) return;
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      detailEl.hidden = expanded;
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      btn.textContent = expanded ? '▸' : '▾';
+    });
+  });
+  const tryLastQuarterBtn = content.querySelector('[data-action="try-last-quarter"]');
+  if (tryLastQuarterBtn) {
+    tryLastQuarterBtn.addEventListener('click', () => {
+      try {
+        const startInput = document.getElementById('start-date');
+        const endInput = document.getElementById('end-date');
+        const previewBtn = document.getElementById('preview-btn');
+        if (!startInput || !endInput || !previewBtn) return;
+        const currentStart = startInput.value ? new Date(startInput.value + 'T00:00:00.000Z') : new Date();
+        const quarterStartMonth = Math.floor((currentStart.getUTCMonth() / 3)) * 3;
+        const currentQuarterStart = new Date(Date.UTC(currentStart.getUTCFullYear(), quarterStartMonth, 1));
+        const previousQuarterStart = new Date(Date.UTC(currentQuarterStart.getUTCFullYear(), currentQuarterStart.getUTCMonth() - 3, 1));
+        const previousQuarterEnd = new Date(Date.UTC(currentQuarterStart.getUTCFullYear(), currentQuarterStart.getUTCMonth(), 0));
+        startInput.value = previousQuarterStart.toISOString().slice(0, 10) + 'T00:00';
+        endInput.value = previousQuarterEnd.toISOString().slice(0, 10) + 'T23:59';
+        if (previewBtn.disabled) previewBtn.disabled = false;
+        previewBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      } catch (_) {}
+    });
+  }
   applyBoardsColumnVisibility();
   // Add hover titles for truncated headers/cells for better discoverability (dynamic import)
   try { import('./Reporting-App-Shared-Dom-Escape-Helpers.js').then(({ addTitleForTruncatedCells }) => addTitleForTruncatedCells('#project-epic-level-content table.data-table th, #project-epic-level-content table.data-table td')).catch(() => {}); } catch (e) {}

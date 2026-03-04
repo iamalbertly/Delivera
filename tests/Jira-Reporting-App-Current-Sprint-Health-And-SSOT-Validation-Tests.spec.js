@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { captureBrowserTelemetry, assertTelemetryClean, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Current Sprint Health & SSOT UX Validation', () => {
@@ -71,6 +71,20 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
 
     await expect(page.locator('#current-sprint-projects')).toHaveValue('MPSA');
     await expect(page.locator('#board-select')).toBeVisible();
+  });
+
+  test('sidebar footer shows logging alerts chip or healthy state', async ({ page }) => {
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+    await page.waitForTimeout(500);
+    const footerChip = page.locator('#sidebar-data-pulse .sidebar-alert-footer-chip');
+    const visible = await footerChip.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Sidebar alert footer chip not rendered yet for current data state');
+      return;
+    }
+    const text = (await footerChip.textContent().catch(() => '')) || '';
+    expect(text).toMatch(/Logging alerts:\s*\d+/i);
   });
 
   test('sprint header bar stays visible when scrolling', async ({ page }) => {

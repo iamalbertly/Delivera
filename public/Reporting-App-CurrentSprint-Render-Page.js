@@ -6,6 +6,59 @@ import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { renderCapacityAllocation } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
+import { isOutcomeStoryLike, hasOwnershipSignals, parseIssueLabels } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
+
+function buildSprintReadinessHtml(data) {
+  const sprintState = String(data?.sprint?.state || '').toLowerCase();
+  const stories = Array.isArray(data?.stories) ? data.stories : [];
+  const totalStories = stories.length;
+  const isMaintenanceSprint = stories.some((s) => {
+    const labels = parseIssueLabels(s?.labels);
+    return labels.some((l) => String(l || '').toLowerCase() === 'maintenance-sprint');
+  });
+  const outcomeStories = stories.filter((s) => isOutcomeStoryLike({ labels: s?.labels, epicKey: s?.epicKey }));
+  const outcomeCount = outcomeStories.length;
+  const parentUnassigned = outcomeStories.filter((s) => !hasOwnershipSignals({
+    assignee: s?.assignee,
+    reporter: s?.reporter,
+    subtaskAssignees: Array.isArray(s?.subtasks) ? s.subtasks.map((st) => st?.assignee) : [],
+  })).length;
+
+  if (isMaintenanceSprint) {
+    return '<div class="sprint-readiness-strip sprint-readiness-neutral" role="status" aria-live="polite">' +
+      '<span class="sprint-readiness-label">Maintenance sprint - outcome readiness not enforced. Ownership risks still apply.</span>' +
+      '<a href="#stuck-card" class="sprint-readiness-link">Review work risks</a>' +
+      '</div>';
+  }
+
+  let state = 'ready';
+  let message = 'Sprint ready: outcome stories present and owners assigned.';
+  if (totalStories === 0) {
+    state = 'not-ready';
+    message = sprintState === 'active'
+      ? 'Sprint not ready: no issues in this sprint. Add outcome stories in Jira or select a different sprint.'
+      : 'Sprint backlog empty. Add outcome stories before starting this sprint.';
+  } else if (outcomeCount === 0) {
+    state = 'not-ready';
+    message = 'Sprint not ready: no outcome stories with story points. Align backlog with business outcomes before starting.';
+  } else {
+    const unownedRatio = outcomeCount > 0 ? (parentUnassigned / outcomeCount) : 0;
+    if (unownedRatio >= 0.5) {
+      state = 'not-ready';
+      message = 'Sprint not ready: most outcome stories have no clear owner. Assign owners before starting.';
+    } else if (unownedRatio > 0) {
+      state = 'at-risk';
+      message = 'Sprint at risk: some outcome stories are unowned. Assign owners to reduce risk.';
+    }
+  }
+
+  const labelClass = 'sprint-readiness-' + state;
+  const safeMessage = message;
+  return '<div class="sprint-readiness-strip ' + labelClass + '" role="status" aria-live="polite">' +
+    '<span class="sprint-readiness-label">' + safeMessage + '</span>' +
+    '<a href="' + (state === 'ready' ? '#stories-card' : '#stuck-card') + '" class="sprint-readiness-link">' + (state === 'ready' ? 'Review work items' : 'Review ownership risks') + '</a>' +
+    '</div>';
+}
 
 export function renderCurrentSprintPage(data) {
   if (!data.sprint) {
@@ -14,7 +67,7 @@ export function renderCurrentSprintPage(data) {
       '<div class="transparency-card">' +
       renderEmptyStateHtml(
         'No active sprint',
-        'There is no active sprint on this board right now.',
+        'No active sprint - choose previous sprint or align backlog before starting.',
         'Try the previous sprint tab in the carousel above or select a different board.'
       ) +
       '</div>'
@@ -52,6 +105,7 @@ export function renderCurrentSprintPage(data) {
   if (!hasCapacityData) availabilityGaps.push({ source: 'Workflow', label: 'Capacity hidden', reason: 'No work items in this sprint.' });
 
   html += renderHeaderBar(data);
+  html += buildSprintReadinessHtml(data);
 
   const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData && !hasCapacityData;
   if (allSectionsHidden) {

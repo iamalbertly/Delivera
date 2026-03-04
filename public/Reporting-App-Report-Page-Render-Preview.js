@@ -21,6 +21,20 @@ function wirePreviewContextActions() {
   if (typeof document === 'undefined' || document.body?.dataset.previewContextActionsBound === '1') return;
   document.body.dataset.previewContextActionsBound = '1';
   document.addEventListener('click', (event) => {
+    // Details toggle for collapsed meta panel
+    const detailsToggle = event.target.closest('.preview-context-details-toggle');
+    if (detailsToggle) {
+      event.preventDefault();
+      const panelId = detailsToggle.getAttribute('aria-controls');
+      const panel = panelId ? document.getElementById(panelId) : null;
+      if (panel) {
+        const expanded = detailsToggle.getAttribute('aria-expanded') === 'true';
+        panel.hidden = expanded;
+        detailsToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        detailsToggle.textContent = expanded ? 'Details' : 'Details ✕';
+      }
+      return;
+    }
     const trigger = event.target.closest('[data-preview-context-action]');
     if (!trigger) return;
     const action = trigger.getAttribute('data-preview-context-action') || '';
@@ -55,10 +69,33 @@ function wirePreviewContextActions() {
       'open-boards': 'tab-btn-project-epic-level',
       'open-sprints': 'tab-btn-sprints',
       'open-done-stories': 'tab-btn-done-stories',
+      'open-owned-blockers': 'tab-btn-done-stories',
+      'open-unowned-outcomes': 'tab-btn-done-stories',
     };
     if (tabMap[action]) {
       event.preventDefault();
       document.getElementById(tabMap[action])?.click();
+      if (action === 'open-owned-blockers' || action === 'open-unowned-outcomes') {
+        const riskTags = action === 'open-owned-blockers' ? ['blocker'] : ['unassigned'];
+        window.setTimeout(() => {
+          try {
+            window.dispatchEvent(new CustomEvent('report:applyOutcomeRiskFilter', {
+              detail: { riskTags, source: action },
+            }));
+          } catch (_) {}
+        }, 80);
+      }
+      if (action === 'open-done-stories') {
+        try {
+          if (window.location.pathname.endsWith('/report')) {
+            history.replaceState(null, '', '/report#tab-done-stories');
+          }
+        } catch (_) {}
+        window.setTimeout(() => {
+          const firstSprintHeader = document.querySelector('#done-stories-content .sprint-header');
+          firstSprintHeader?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }, 80);
+      }
     }
   });
 }
@@ -70,6 +107,8 @@ export function renderPreview() {
 
   const reportContextLine = document.getElementById('report-context-line');
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
+  const oneClickWrap = document.getElementById('report-one-click-cta-wrap');
+  const previewBtn = document.getElementById('preview-btn');
   if (loadLatestWrap) loadLatestWrap.style.display = 'none';
   const meta = getSafeMeta(previewData);
   if (!meta) {
@@ -110,9 +149,18 @@ export function renderPreview() {
   if (outcomeLineEl) outcomeLineEl.innerHTML = metaBlock.outcomeLineHTML;
   if (previewMeta) previewMeta.innerHTML = metaBlock.previewMetaHTML;
   if (reportContextLine) {
-    reportContextLine.textContent = getContextDisplayString();
+    const strictEnabled = meta.requireResolvedBySprintEnd === true;
+    const contextBase = getContextDisplayString();
+    reportContextLine.textContent = strictEnabled ? `${contextBase} | Strict rules: On` : contextBase;
     reportContextLine.removeAttribute('aria-hidden');
     reportContextLine.style.display = '';
+  }
+  if (oneClickWrap) oneClickWrap.style.display = rowsCount > 0 ? 'none' : '';
+  if (previewBtn && rowsCount > 0) {
+    previewBtn.classList.remove('btn-primary');
+    previewBtn.classList.add('btn-secondary');
+    previewBtn.textContent = 'Refresh preview';
+    previewBtn.title = 'Refresh report results for current filters.';
   }
   const stickyEl = document.getElementById('preview-summary-sticky');
   if (stickyEl) {
@@ -206,16 +254,37 @@ export function renderPreview() {
     const tabSprints = document.getElementById('tab-btn-sprints');
     const tabDoneStories = document.getElementById('tab-btn-done-stories');
     const tabUnusable = document.getElementById('tab-btn-unusable-sprints');
-    if (tabBoards) tabBoards.textContent = 'Overview (' + boardsCountForTab + ')';
-    if (tabSprints) tabSprints.textContent = 'Sprints (' + sprintsCountForTab + ')';
-    if (tabDoneStories) tabDoneStories.textContent = 'Outcomes (' + visibleRows.length + ')';
-    if (tabUnusable) tabUnusable.textContent = 'Excluded (' + unusableCountForTab + ')';
+    // Update tab label text while preserving subtitle spans
+    const compactTabs = !!(window.matchMedia && window.matchMedia('(max-width: 1024px)').matches);
+    function setTabLabel(btn, text, compactText) {
+      if (!btn) return;
+      const finalText = compactTabs && compactText ? compactText : text;
+      const labelEl = btn.querySelector('.tab-btn-label');
+      if (labelEl) labelEl.textContent = finalText;
+      else btn.textContent = finalText;
+    }
+    setTabLabel(tabBoards, 'Overview (' + boardsCountForTab + ')', '📊 ' + boardsCountForTab);
+    setTabLabel(tabSprints, 'Sprints (' + sprintsCountForTab + ')', '📅 ' + sprintsCountForTab);
+    if (tabDoneStories) {
+      const totalDoneStories = Array.isArray(reportState.previewRows) ? reportState.previewRows.length : rowsCount;
+      const baseLabel = totalDoneStories === 0 ? 'Outcomes (0)' : ('Outcomes (Total: ' + totalDoneStories + ')');
+      setTabLabel(tabDoneStories, baseLabel, '✅ ' + totalDoneStories);
+      tabDoneStories.title = totalDoneStories === 0
+        ? 'No done stories in this window; check dates or Jira hygiene.'
+        : (meta.partial ? 'Partial preview: count reflects loaded outcomes only.' : 'Total done stories in the selected window.');
+    }
+    setTabLabel(tabUnusable, 'Excluded (' + unusableCountForTab + ')', '⛔ ' + unusableCountForTab);
     const tabTrends = document.getElementById('tab-btn-trends');
-    if (tabTrends) tabTrends.textContent = 'Trends';
+    setTabLabel(tabTrends, 'Leadership HUD →', '👥');
     const hash = window.location && window.location.hash ? window.location.hash : '';
     if (hash === '#trends') {
       const trendsBtn = document.getElementById('tab-btn-trends');
       if (trendsBtn && !trendsBtn.classList.contains('active')) trendsBtn.click();
+    } else if (hash === '#tab-done-stories') {
+      tabDoneStories?.click();
+      window.setTimeout(() => {
+        document.querySelector('#done-stories-content .sprint-header')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      }, 80);
     } else if (tabBoards && !tabBoards.classList.contains('active')) {
       tabBoards.click();
     }

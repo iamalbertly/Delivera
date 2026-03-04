@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
@@ -17,6 +17,20 @@ async function skipIfNoActiveSprint(page, testCtx) {
   return false;
 }
 
+async function ensureSprintDataLoaded(page) {
+  const hasHeader = await page.locator('.current-sprint-header-bar').first().isVisible().catch(() => false);
+  if (hasHeader) return;
+  const boardSelect = page.locator('#board-select');
+  if (!(await boardSelect.isVisible().catch(() => false))) return;
+  const options = boardSelect.locator('option[value]:not([value=""])');
+  const count = await options.count().catch(() => 0);
+  if (!count) return;
+  const val = (await boardSelect.inputValue().catch(() => '')) || (await options.first().getAttribute('value').catch(() => ''));
+  if (!val) return;
+  await boardSelect.selectOption(val).catch(() => null);
+  await page.waitForSelector('.current-sprint-header-bar, #current-sprint-error', { timeout: 30000 }).catch(() => null);
+}
+
 test.describe('Current Sprint - Work risks hierarchy and blockers semantics', () => {
   test.beforeEach(async ({ page }, testInfo) => {
     const telemetry = captureBrowserTelemetry(page);
@@ -26,6 +40,7 @@ test.describe('Current Sprint - Work risks hierarchy and blockers semantics', ()
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await page.waitForSelector('#current-sprint-content, #current-sprint-error', { state: 'attached', timeout: 30000 });
+    await ensureSprintDataLoaded(page);
     const errorVisible = await page.locator('#current-sprint-error').isVisible().catch(() => false);
     if (errorVisible) {
       const txt = (await page.locator('#current-sprint-error').textContent().catch(() => '')) || '';
@@ -145,6 +160,37 @@ test.describe('Current Sprint - Work risks hierarchy and blockers semantics', ()
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 
+  test('Work risks column headers sort parent groups without breaking hierarchy', async ({ page }) => {
+    if (await skipIfNoActiveSprint(page, test)) return;
+    const table = page.locator('#work-risks-table');
+    const visible = await table.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Work risks table hidden for dataset');
+      return;
+    }
+    const hoursHeader = table.locator('thead th[data-sort-key="hours"]');
+    const hasHeader = await hoursHeader.isVisible().catch(() => false);
+    if (!hasHeader) {
+      test.skip(true, 'Sortable hours column header not available');
+      return;
+    }
+    const firstParentBefore = await table.locator('tbody tr.work-risk-parent-row').first().locator('td').nth(2).textContent().catch(() => '');
+    await hoursHeader.click();
+    await expect(hoursHeader).toHaveAttribute('aria-sort', 'descending');
+    const firstParentAfter = await table.locator('tbody tr.work-risk-parent-row').first().locator('td').nth(2).textContent().catch(() => '');
+    expect((firstParentAfter || '').trim().length).toBeGreaterThan(0);
+    const firstParentKey = ((firstParentAfter || '').match(/[A-Z]+-\d+/i) || [])[0];
+    if (firstParentKey) {
+      const childForTopParent = table.locator(`tbody tr.work-risk-subtask-row[data-parent-key="${firstParentKey.toUpperCase()}"]`);
+      const childCount = await childForTopParent.count();
+      if (childCount > 0) {
+        const firstChildVisible = await childForTopParent.first().isVisible().catch(() => false);
+        expect(firstChildVisible).toBeTruthy();
+      }
+    }
+    expect((firstParentBefore || '').trim().length).toBeGreaterThan(0);
+  });
+
   test('Blocker verdict pill matches unique Stuck >24h issues in Work risks table', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
@@ -168,7 +214,7 @@ test.describe('Current Sprint - Work risks hierarchy and blockers semantics', ()
       await showMore.click();
     }
 
-    const blockerRows = table.locator('tbody tr').filter({ hasText: 'Stuck >24h' });
+    const blockerRows = table.locator('tbody tr[data-risk-tags*="blocker"]:not([data-risk-tags*="unassigned"])').filter({ hasText: 'Stuck >24h' });
     const blockerRowCount = await blockerRows.count();
     if (blockerRowCount === 0) {
       test.skip(true, 'No Stuck >24h rows in Work risks table for dataset');

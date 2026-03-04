@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
@@ -50,7 +50,7 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
     const headerText = (await headerBlockerPill.textContent().catch(() => '') || '').trim();
     const headerCount = parseInt(headerText.replace(/[^0-9]/g, ''), 10) || 0;
 
-    await expect(blockerStrip.locator('strong').first()).toContainText(/Blocker issues/i);
+    await expect(blockerStrip.locator('strong').first()).toContainText(/Blockers \(owned\)/i);
     const table = page.locator('#work-risks-table');
     const tableVisible = await table.isVisible().catch(() => false);
     if (!tableVisible) {
@@ -63,7 +63,7 @@ test.describe('Current Sprint - Blockers Trust Validation', () => {
     if (await showMore.isVisible().catch(() => false)) {
       await showMore.click();
     }
-    const blockerRows = table.locator('tbody tr').filter({ hasText: 'Stuck >24h' });
+    const blockerRows = table.locator('tbody tr[data-risk-tags*="blocker"]:not([data-risk-tags*="unassigned"])').filter({ hasText: 'Stuck >24h' });
     const blockerRowCount = await blockerRows.count();
     const uniqueKeys = new Set();
     for (let i = 0; i < blockerRowCount; i++) {

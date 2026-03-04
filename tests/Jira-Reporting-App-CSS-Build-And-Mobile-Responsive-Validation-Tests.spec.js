@@ -4,7 +4,7 @@
  * nav and filters present. Uses captureBrowserTelemetry and assertTelemetryClean per step.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import path from 'path';
 import { existsSync, statSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';

@@ -6,6 +6,7 @@ import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-H
 import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 import { REPORT_LAST_RUN_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 import { buildCompactReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+import { deriveOutcomeRiskFromPreviewRows } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
 
 function summarizeProjectsList(projects) {
   const list = Array.isArray(projects)
@@ -104,7 +105,6 @@ export function buildPreviewMetaAndStatus(params) {
   if (meta.includePredictability) opts.push('Include Predictability');
   const appliedFiltersText = `Applied: ${selectedProjectsLabel} | ${windowStartLocal} - ${windowEndLocal}${opts.length ? ' | ' + opts.join(', ') : ''}`;
 
-  const partialSuffix = partial ? ' (partial)' : '';
   let prevRunHtml = '';
   try {
     const lastRun = sessionStorage.getItem(REPORT_LAST_RUN_KEY);
@@ -131,31 +131,62 @@ export function buildPreviewMetaAndStatus(params) {
     dataStateKind = ageMin > 30 ? 'stale' : 'cached';
   }
   const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
-  const configGapChips = [];
+  // configGapChips built later inside the tiered chip strip (neutral style, not orange warning)
+  const riskCounts = deriveOutcomeRiskFromPreviewRows(previewRows);
+  const blockersOwned = Number(riskCounts.blockersOwned || 0);
+  const unownedOutcomes = Number(riskCounts.unownedOutcomes || 0);
+  const exportLabel = rowsCount > 0 ? 'Export ready' : 'No data yet';
+
+  // Tier 1 – health sentence: one scannable outcome truth
+  let healthSentence;
+  let zeroOutcomeHint = '';
+  if (rowsCount === 0) {
+    healthSentence = 'No outcome stories in this window (maintenance-only work)';
+    zeroOutcomeHint = '<p class="preview-context-zero-hint">Define outcome labels or epic links in Jira to see outcome metrics here.</p>';
+  } else {
+    const riskParts = [];
+    if (blockersOwned > 0) riskParts.push(`${blockersOwned} blocker${blockersOwned > 1 ? 's' : ''}`);
+    if (unownedOutcomes > 0) riskParts.push(`${unownedOutcomes} unowned`);
+    healthSentence = (partial ? 'Partial: ' : '')
+      + `${rowsCount} stor${rowsCount === 1 ? 'y' : 'ies'} · ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} · ${boardsCount} board${boardsCount === 1 ? '' : 's'}`
+      + (riskParts.length ? ' · ' + riskParts.join(' · ') : '');
+  }
+  const healthRisk = blockersOwned > 0 || unownedOutcomes > 0;
+  const healthChipExtra = healthRisk ? ' preview-context-chip-health--risk' : '';
+  const strictBadge = meta.requireResolvedBySprintEnd
+    ? '<span class="preview-context-chip preview-context-chip-muted preview-context-chip-strict" title="Require resolved by sprint end is enabled">Strict</span>'
+    : '';
+
+  // Config gaps – neutral outlined info chips (not screaming orange)
+  const configGapChipsNew = [];
   if (!meta.discoveredFields?.storyPointsFieldId) {
-    configGapChips.push('<button type="button" class="preview-context-chip preview-context-chip-warning" data-preview-context-action="focus-config" title="Story Points field not configured. Metrics that depend on story points show limited data." aria-label="Story Points not configured. Open advanced options">SP: not configured</button>');
+    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Story Points field not configured — SP metrics show limited data." aria-label="SP metrics limited. Open advanced options">SP limited</button>');
   }
   if (!meta.discoveredFields?.epicLinkFieldId) {
-    configGapChips.push('<button type="button" class="preview-context-chip preview-context-chip-warning" data-preview-context-action="focus-config" title="Epic Link field not configured. Epic rollups are limited." aria-label="Epic Link not configured. Open advanced options">Epic: not configured</button>');
+    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Epic Link field not configured — Epic rollups are limited." aria-label="Epic rollups limited. Open advanced options">Epic limited</button>');
   }
-  const storiesLabel = rowsCount + ' stor' + (rowsCount === 1 ? 'y' : 'ies');
-  const sprintsLabel = sprintsCount + ' sprint' + (sprintsCount === 1 ? '' : 's');
-  const boardsLabel = boardsCount + ' board' + (boardsCount === 1 ? '' : 's');
-  const exportLabel = rowsCount > 0 ? 'Export ready' : 'No exportable rows';
+
+  // Build tiered chip strip: T2 scope → T1 health hero → T3 right-side data/export
   const outcomeLineHTML =
     '<div class="preview-context-bar" role="group" aria-label="Report preview context and outcome">' +
-      '<span class="preview-context-chip preview-context-chip-title">General Performance</span>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '</button>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range filters">Range: ' + escapeHtml(compactRangeLabel) + '</button>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-done-stories" aria-label="Open outcome list tab">' + escapeHtml(storiesLabel + partialSuffix) + '</button>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-sprints" aria-label="Open sprint history tab">' + escapeHtml(sprintsLabel) + '</button>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link" data-preview-context-action="open-boards" aria-label="Open performance overview tab">' + escapeHtml(boardsLabel) + '</button>' +
-      '<span class="preview-context-chip preview-context-chip-muted" data-preview-active-tab-chip>Tab: Overview</span>' +
-      '<span class="preview-context-chip">' + dataStateBadgeHTML + '</span>' +
+      // Identity – flat, low-ink label
+      '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Performance · History</span>' +
+      // T2: Scope (muted interactive)
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>' +
+      // T1: Health hero chip – outcome truth in one sentence
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
+      strictBadge +
+      // T3: Data state + export (right-side badges)
+      '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>' +
       '<span class="preview-context-chip' + (rowsCount > 0 ? ' preview-context-chip-ok' : ' preview-context-chip-muted') + '">' + escapeHtml(exportLabel) + '</span>' +
-      configGapChips.join('') +
+      // Config gap chips (neutral, demoted – not orange, not primary)
+      configGapChipsNew.join('') +
       (prevRunHtml ? '<span class="preview-context-inline-note">' + prevRunHtml + '</span>' : '') +
-    '</div>';
+      // Details toggle – collapses the raw meta block
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="Show range, timing and data mode details">Details</button>' +
+    '</div>' +
+    zeroOutcomeHint;
 
   const phaseLog = Array.isArray(meta.phaseLog) ? meta.phaseLog : [];
   const phaseLogHtml = phaseLog.length > 0
@@ -174,9 +205,9 @@ export function buildPreviewMetaAndStatus(params) {
     const suffix = boardNames.length ? ` (${boardNames.join(', ')})` : '';
     detailsLines.push(`Skipped boards: ${meta.failedBoardCount}${suffix}`);
   }
-  // Preview meta: only expandable details; single outcome line lives in #preview-outcome-line (outcomeLineHTML).
+  // Preview meta: collapsed by default; revealed by "Details" toggle in chip strip.
   const previewMetaHTML = `
-    <div class="meta-info meta-info-details">
+    <div class="meta-info meta-info-details" id="preview-meta-details" hidden>
       <strong>Range (UTC):</strong> ${escapeHtml(windowStartUtc)} to ${escapeHtml(windowEndUtc)}<br>
       <strong>Example story:</strong> ${sampleLabel}<br>
       <strong>Details:</strong> ${escapeHtml(detailsLines.join(' | '))}

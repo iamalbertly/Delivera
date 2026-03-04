@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- SIZE-EXEMPT: Single report page structure; feedback panel extracted to JS-injected component. -->
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VodaAgileBoard - High-Level Performance</title>
+  <title>VodaAgileBoard - Performance - History (General Performance)</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -14,7 +14,7 @@
     <header>
       <div class="header-row">
         <div>
-          <h1>General Performance - High-Level Performance</h1>
+          <h1>Performance - History (General Performance)</h1>
           <p id="report-subtitle" class="subtitle">Choose filters. Preview. Decide fast.</p>
         </div>
       </div>
@@ -179,6 +179,27 @@
       <!-- Preview Area -->
       <main id="main-content" class="preview-area">
         <p id="report-context-line" class="report-context-line" aria-live="polite"></p>
+        <section id="report-outcome-intake" class="report-outcome-intake" aria-label="Paste outcome story to create Jira epic">
+          <div class="report-outcome-intake-inner">
+            <div class="report-outcome-intake-header">
+              <p class="report-outcome-intake-title">Start by pasting your outcome story</p>
+              <p class="report-outcome-intake-hint">Paste a narrative (Goal / As a / I want / So that / Acceptance criteria) to create a Jira epic in one step.</p>
+            </div>
+            <textarea id="report-outcome-text" class="report-outcome-text" rows="3"
+              placeholder="Goal: … As a … I want … So that … Acceptance criteria: …"
+              aria-label="Outcome story narrative"></textarea>
+            <div class="report-outcome-intake-actions">
+              <span id="report-outcome-intake-status" class="report-outcome-intake-status" aria-live="polite"></span>
+              <button type="button" id="report-outcome-intake-create" class="btn btn-compact report-outcome-intake-create-btn" disabled>
+                Create Jira Epic from this narrative
+              </button>
+            </div>
+          </div>
+          <div class="report-outcome-intake-secondary" id="report-one-click-cta-wrap" aria-live="polite">
+            <button type="button" id="report-one-click-cta" class="link-style report-one-click-link">See last quarter's delivery in 1 click</button>
+            <small id="report-one-click-cta-hint" class="report-one-click-hint"></small>
+          </div>
+        </section>
         <span id="report-load-latest-wrap" class="report-load-latest-wrap" style="display: none;"><button type="button" class="link-style" data-action="load-latest-preview" id="report-load-latest-btn" aria-label="Run preview to load latest data">Load latest</button></span>
         <div id="loading" class="loading loading-skeleton" style="display: none;" aria-live="polite" aria-busy="true">
           <!-- M3: Filter context bar — confirms which filters are loading -->
@@ -216,11 +237,10 @@
             <div id="preview-meta"></div>
             <div class="preview-header-export-wrap">              <button type="button" id="export-excel-btn" class="btn btn-secondary btn-compact"
                 data-action="trigger-export-excel" title="Share or export this report." disabled
-                aria-label="Share or export report" style="display: none;">Share / Export</button>
+                aria-label="Share or export report">Share / Export</button>
               <button id="export-dropdown-trigger" class="btn btn-secondary btn-compact export-dropdown-trigger"
                 aria-haspopup="true" aria-expanded="false" aria-controls="export-dropdown-menu"
-                aria-label="More export options" title="More export options: filtered view and CSV" disabled
-                style="display: none;">&#9662;</button>
+                aria-label="More export options" title="More export options: filtered view and CSV" disabled>&#9662;</button>
               <div id="export-dropdown-menu" class="export-dropdown-menu" role="menu" aria-hidden="true"
                 aria-label="Export options">
                 <button type="button" class="export-dropdown-item" data-export="excel-full" role="menuitem">Export Excel (all data)</button>
@@ -237,26 +257,46 @@
           </div>
           <div id="preview-summary-sticky" class="preview-summary-sticky" aria-hidden="true"></div>
           <div id="preview-status-strip" class="preview-status-strip" aria-live="polite"></div>
-          <!-- Tabs: Performance first; order: Performance overview | Leadership Signals | Sprint history | Outcome list | Excluded sprints -->
+          <!-- Tabs: Overview → Leadership → Sprints → Outcomes → Excluded -->
           <div class="tabs" role="tablist">
             <button id="tab-btn-project-epic-level" class="tab-btn active" data-tab="project-epic-level" role="tab"
-              aria-selected="true" aria-controls="tab-project-epic-level" tabindex="0">Overview</button>
+              aria-selected="true" aria-controls="tab-project-epic-level" tabindex="0">
+              <span class="tab-btn-label">Overview</span>
+              <span class="tab-btn-subtitle">SMs &amp; Leads</span>
+            </button>
             <button id="tab-btn-trends" class="tab-btn" data-tab="trends" role="tab" aria-selected="false"
-              aria-controls="tab-trends" tabindex="-1">Trends</button>
+              aria-controls="tab-trends" tabindex="-1">
+              <span class="tab-btn-label">Leadership Signals</span>
+              <span class="tab-btn-subtitle">Stakeholders</span>
+            </button>
             <button id="tab-btn-sprints" class="tab-btn" data-tab="sprints" role="tab" aria-selected="false"
-              aria-controls="tab-sprints" tabindex="-1">Sprints</button>
+              aria-controls="tab-sprints" tabindex="-1">
+              <span class="tab-btn-label">Sprints</span>
+              <span class="tab-btn-subtitle">Detail drill-down</span>
+            </button>
             <button id="tab-btn-done-stories" class="tab-btn" data-tab="done-stories" role="tab"
-              aria-selected="false" aria-controls="tab-done-stories" tabindex="-1">Outcomes</button>
+              aria-selected="false" aria-controls="tab-done-stories" tabindex="-1">
+              <span class="tab-btn-label">Outcomes</span>
+              <span class="tab-btn-subtitle">POs &amp; Delivery</span>
+            </button>
             <button id="tab-btn-unusable-sprints" class="tab-btn" data-tab="unusable-sprints" role="tab"
-              aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">Excluded</button>
+              aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">
+              <span class="tab-btn-label">Excluded</span>
+              <span class="tab-btn-subtitle">Data gaps</span>
+            </button>
+          </div>          <div class="report-unified-tab-search">
+            <div class="search-input-wrap">
+              <input type="text" id="report-tab-search" placeholder="Search boards..." aria-label="Search active tab">
+              <button type="button" class="search-clear-btn" data-target="report-tab-search" aria-label="Clear tab search" title="Clear">Clear</button>
+            </div>
           </div>
-          <p class="tab-hint" id="tab-outcome-hint"><small>Performance overview opens first. Use Trends for change over time and Export for stakeholder updates.</small></p>
+          <p class="tab-hint" id="tab-outcome-hint"><small>Overview shows sprint health at a glance · Leadership shows quarter trends · Outcomes shows actual stories shipped.</small></p>
 
           <!-- Tab Content -->
           <div class="tab-content">
             <div id="tab-project-epic-level" class="tab-pane" role="tabpanel"
               aria-labelledby="tab-btn-project-epic-level">
-              <div class="boards-controls done-stories-controls">
+              <div class="boards-controls done-stories-controls report-tab-search-legacy">
                 <div class="search-input-wrap">
                   <input type="text" id="boards-search-box" placeholder="Search boards by name or ID..."
                     aria-label="Search boards by name or ID">
@@ -269,7 +309,7 @@
             </div>
 
             <div id="tab-sprints" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-sprints">
-              <div class="sprints-controls done-stories-controls">
+              <div class="sprints-controls done-stories-controls report-tab-search-legacy">
                 <div class="search-input-wrap">
                   <input type="text" id="sprints-search-box" placeholder="Search sprints by name..."
                     aria-label="Search sprints by name">
@@ -282,13 +322,14 @@
             </div>
 
             <div id="tab-done-stories" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-done-stories">
-              <div class="done-stories-controls">
+              <div class="done-stories-controls report-tab-search-legacy">
                 <div class="search-input-wrap">
                   <input type="text" id="search-box" placeholder="Search by key or summary..."
                     aria-label="Search done stories">
                   <button type="button" class="search-clear-btn" data-target="search-box"
                     aria-label="Clear done stories search" title="Clear">Clear</button>
                 </div>
+                <div id="done-stories-visibility-summary" class="done-stories-visibility-summary" aria-live="polite"></div>
                 <div class="project-pills" id="project-pills"></div>
                 <button type="button" class="btn btn-secondary btn-compact" id="done-stories-columns-toggle"
                   data-action="toggle-done-stories-optional-columns" aria-expanded="false"
@@ -296,6 +337,8 @@
               <button type="button" class="btn btn-secondary btn-compact" id="done-stories-quarter-review-toggle"
                   data-action="toggle-done-stories-quarter-review" aria-pressed="false"
                   title="Expand all sprints into a single scrollable list">Quarter review mode</button>
+              <button type="button" class="btn btn-secondary btn-compact" id="done-stories-export-only-btn"
+                  data-action="export-done-stories-focused" title="Export focused CSV for Outcomes only">Export Outcomes CSV</button>
               </div>
               <div id="done-stories-content"></div>
               <div id="done-stories-totals" class="totals-bar"></div>
@@ -316,9 +359,6 @@
   </div>
 
   <div id="loading-status-chip" class="loading-status-chip" aria-live="polite" style="display: none;"></div>
-  <div id="feedback-corner" class="feedback-corner">
-    <button type="button" id="feedback-toggle" class="feedback-corner-btn" aria-label="Feedback and help">Help</button>
-  </div>
   <div id="tooltip-popover" class="tooltip-popover" role="tooltip" aria-hidden="true"></div>
   <script type="module" src="Reporting-App-Report-Page-Feedback-Panel-Inject.js"></script>
   <script type="module" src="Reporting-App-Shared-Global-Nav.js"></script>
@@ -327,5 +367,10 @@
 </body>
 
 </html>
+
+
+
+
+
 
 

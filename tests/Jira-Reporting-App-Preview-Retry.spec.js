@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { clickReportPreviewFromCurrentState } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test('preview retry button triggers a new preview after a failure', async ({ page }) => {

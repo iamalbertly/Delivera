@@ -4,7 +4,7 @@
  * Uses captureBrowserTelemetry and UI assertions at every step; fails on UI mismatch or console/network errors.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { runDefaultPreview, waitForPreview, captureBrowserTelemetry } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Jira Reporting App - Vodacom Quarters SSOT Sprint Order Validation', () => {

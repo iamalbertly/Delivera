@@ -219,6 +219,27 @@ function loadAndRenderSprint({
   return loadCurrentSprintWithGuard(boardId, sprintId)
     .then((data) => {
       if (!data) return null;
+      try {
+        const urlHasSprintId = new URLSearchParams(window.location.search).has('sprintId');
+        const selectedState = String(data?.sprint?.state || '').toLowerCase();
+        const activeAlternative = Array.isArray(data?.recentSprints)
+          ? data.recentSprints.find((s) => String(s?.state || '').toLowerCase() === 'active' && String(s?.id || '') !== String(data?.sprint?.id || ''))
+          : null;
+        if (!urlHasSprintId && sprintId && selectedState !== 'active' && activeAlternative?.id) {
+          const hint = document.getElementById('current-sprint-single-project-hint');
+          if (hint) hint.textContent = 'Switched to active sprint: ' + (activeAlternative.name || activeAlternative.id) + ' (saved sprint was closed).';
+          currentSprintId = String(activeAlternative.id);
+          persistSelection(currentBoardId, currentSprintId);
+          return loadAndRenderSprint({
+            boardId,
+            sprintId: currentSprintId,
+            loadingText: 'Loading active sprint...',
+            retryFactory,
+            errorTitle,
+            errorPrimaryLabel,
+          });
+        }
+      } catch (_) {}
       currentSprintId = data?.sprint?.id || sprintId || null;
       persistSelection(currentBoardId, currentSprintId);
       showRenderedContent(data);
@@ -238,6 +259,27 @@ function loadAndRenderSprint({
 }
 
 const initHandlers = { refreshBoards, onBoardChange, updateProjectHint, onProjectsChange, onSprintTabClick, handleRefreshSprint, selectSprintById };
+
+function safeInitBoot() {
+  try {
+    init();
+    initSharedPageIdentityObserver({
+      titleSelector: 'header h1, .header-sprint-name',
+      headerSelector: 'header .header-row',
+      fallbackHeaderSelector: 'header',
+      contextText: 'Sprint',
+    });
+    initSharedTableScrollIndicators();
+  } catch (error) {
+    // Surface a clear, user-facing error instead of leaving the page stuck in a welcome state.
+    try {
+      // eslint-disable-next-line no-console
+      console.error('Current Sprint init failed', error);
+    } catch (_) {}
+    const message = (error && error.message) ? error.message : 'Unexpected error during Current Sprint setup.';
+    showError('Could not initialise Current Sprint view: ' + message);
+  }
+}
 
 function init() {
   const { boardSelect, contentEl, projectsSelect, errorEl } = currentSprintDom;
@@ -283,23 +325,7 @@ function init() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    init();
-    initSharedPageIdentityObserver({
-      titleSelector: 'header h1, .header-sprint-name',
-      headerSelector: 'header .header-row',
-      fallbackHeaderSelector: 'header',
-      contextText: 'Sprint',
-    });
-    initSharedTableScrollIndicators();
-  });
+  document.addEventListener('DOMContentLoaded', safeInitBoot);
 } else {
-  init();
-  initSharedPageIdentityObserver({
-    titleSelector: 'header h1, .header-sprint-name',
-    headerSelector: 'header .header-row',
-    fallbackHeaderSelector: 'header',
-    contextText: 'Sprint',
-  });
-  initSharedTableScrollIndicators();
+  safeInitBoot();
 }

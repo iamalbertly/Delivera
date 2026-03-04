@@ -2,7 +2,7 @@
  * SIZE-EXEMPT: Cohesive E2E spec for Excel export (file naming, tabs, columns, dates, KPI); splitting would duplicate runDefaultPreview and export flow.
  * Excel Export Validation Tests - file naming, multi-tab structure, business-friendly columns, Excel dates, KPI calculations
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { runDefaultPreview, captureBrowserTelemetry, IGNORE_REQUEST_PATTERNS, EXCEL_DOWNLOAD_TIMEOUT_MS } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 const EXPORT_TIMEOUT_MS = EXCEL_DOWNLOAD_TIMEOUT_MS;

@@ -1,5 +1,5 @@
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { clickReportPreviewFromCurrentState, ensureReportFiltersVisible, getReportExportButtonState } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Growth & Velocity Plan Validation', () => {

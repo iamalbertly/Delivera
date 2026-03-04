@@ -12,8 +12,23 @@ const REFRESH_INTERVAL_MS = 60 * 1000; // 1 minute
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
 let lastFetchTime = 0;
 
+function getReportCacheContextLabel() {
+  try {
+    const rawProjects = localStorage.getItem('vodaAgileBoard_selectedProjects') || '';
+    const projects = rawProjects.split(',').map((p) => String(p || '').trim()).filter(Boolean);
+    const reportMetaRaw = sessionStorage.getItem('vodaAgileBoard_reportLastMeta');
+    const reportMeta = reportMetaRaw ? JSON.parse(reportMetaRaw) : null;
+    const range = reportMeta?.windowStart && reportMeta?.windowEnd
+      ? `${String(reportMeta.windowStart).slice(0, 10)} to ${String(reportMeta.windowEnd).slice(0, 10)}`
+      : '';
+    return [projects.length ? projects.join('+') : '', range].filter(Boolean).join(' | ');
+  } catch (_) {
+    return '';
+  }
+}
+
 function formatNumber(num, decimals = 0) {
-  if (num === null || num === undefined) return '--';
+  if (num === null || num === undefined || Number.isNaN(Number(num))) return 'No data';
   return num.toFixed(decimals);
 }
 
@@ -88,12 +103,41 @@ function renderHud(data) {
 
   // Update Context
   const contextEl = document.getElementById('project-context');
-  if (contextEl && projectContext) contextEl.textContent = projectContext;
+  if (contextEl) {
+    const generatedAt = data?.generatedAt ? new Date(data.generatedAt) : null;
+    const ageDays = generatedAt ? Math.floor((Date.now() - generatedAt.getTime()) / (1000 * 60 * 60 * 24)) : null;
+    let contextText = projectContext || 'All Projects';
+    if (ageDays != null && ageDays > 30) contextText += ` · Data older than 30 days`;
+    const reportCacheContext = getReportCacheContextLabel();
+    if (data?.windowLabel) contextText += ` | ${data.windowLabel}`;
+    else if (reportCacheContext) contextText += ` | ${reportCacheContext}`;
+    contextEl.textContent = contextText;
+  }
+
+  const noMetricData = [velocity?.avg, risk?.score, quality?.reworkPct, predictability?.avg]
+    .every((value) => value == null || Number.isNaN(Number(value)));
+  if (noMetricData) {
+    grid.innerHTML = `
+      <div class="hud-card" style="grid-column:1/-1;border-left:4px solid var(--hud-warning);">
+        <div class="metric-label">No report data yet</div>
+        <div class="metric-value" style="font-size:1.25rem">Run Performance Report for this window</div>
+        <div class="metric-trend"><a href="/report#trends" style="color:var(--hud-accent);text-decoration:underline;">Open Report Trends</a></div>
+      </div>
+    `;
+    return;
+  }
+
+  const riskNarrative = [
+    `<span class="trend-neutral">Delivery risk (blockers): ${formatNumber(risk?.deliveryRisk, 0)}%</span>`,
+    `<span class="trend-neutral">Data quality risk (ownership/logging): ${formatNumber(risk?.dataQualityRisk, 0)}%</span>`,
+    `<span class="trend-neutral">${formatNumber(risk?.blockersOwned, 0)} blockers (owned) · ${formatNumber(risk?.unownedOutcomes, 0)} unowned outcomes</span>`,
+    '<span class="trend-neutral"><a href=\"/report\" style=\"color:var(--hud-accent)\">Open Performance - History</a> · <a href=\"/current-sprint\" style=\"color:var(--hud-accent)\">Open Performance - Current Sprint</a></span>',
+  ].join('<br>');
 
   grid.innerHTML = [
     renderCard('Velocity (Last 3)', formatNumber(velocity.avg, 0), 'SP', getTrendHtml(velocity.trend)),
-    renderCard('Risk Index', formatNumber(risk.score, 0), '%', '<span class="trend-neutral">Current active risk</span>', risk.score > 20 ? 'trend-down' : ''),
-    renderCard('Rework Ratio', formatNumber(quality.reworkPct, 1), '%', getTrendHtml(quality.trend)), // Lower is better logic needed?
+    renderCard('Risk Index', formatNumber(risk.score, 0), '%', riskNarrative, risk.score > 20 ? 'trend-down' : ''),
+    renderCard('Rework Ratio', formatNumber(quality.reworkPct, 1), '%', getTrendHtml(quality.trend)),
     renderCard('Predictability', formatNumber(predictability.avg, 0), '%', getTrendHtml(predictability.trend))
   ].join('');
 }

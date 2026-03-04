@@ -82,7 +82,17 @@ export function getPreferredSprintId() {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get('sprintId');
     if (fromUrl) return fromUrl.trim();
-    return localStorage.getItem(currentSprintKeys.sprintKey);
+    const saved = localStorage.getItem(currentSprintKeys.sprintKey);
+    const selectedAtRaw = localStorage.getItem(currentSprintKeys.sprintTsKey);
+    if (!saved) return null;
+    const selectedAt = selectedAtRaw ? Number(selectedAtRaw) : 0;
+    const maxAgeMs = 12 * 60 * 60 * 1000;
+    if (!Number.isFinite(selectedAt) || selectedAt <= 0 || (Date.now() - selectedAt) > maxAgeMs) {
+      localStorage.removeItem(currentSprintKeys.sprintKey);
+      localStorage.removeItem(currentSprintKeys.sprintTsKey);
+      return null;
+    }
+    return saved;
   } catch (_) {
     return null;
   }
@@ -91,8 +101,13 @@ export function getPreferredSprintId() {
 export function persistSelection(boardId, sprintId) {
   try {
     if (boardId) localStorage.setItem(currentSprintKeys.boardKey, boardId);
-    if (sprintId) localStorage.setItem(currentSprintKeys.sprintKey, sprintId);
-    else localStorage.removeItem(currentSprintKeys.sprintKey);
+    if (sprintId) {
+      localStorage.setItem(currentSprintKeys.sprintKey, sprintId);
+      localStorage.setItem(currentSprintKeys.sprintTsKey, String(Date.now()));
+    } else {
+      localStorage.removeItem(currentSprintKeys.sprintKey);
+      localStorage.removeItem(currentSprintKeys.sprintTsKey);
+    }
   } catch (_) {}
   try {
     const url = new URL(window.location.href);

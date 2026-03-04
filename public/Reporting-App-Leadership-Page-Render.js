@@ -143,6 +143,11 @@ export function renderLeadershipPage(data) {
       'Open Report',
       { href: '/report' }
     );
+    html += '<section class="leadership-onboarding-empty" role="note">';
+    html += '<h3>Your first report</h3>';
+    html += '<p>Connect Jira projects in one step to unlock leadership trends.</p>';
+    html += '<p><a class="btn btn-primary btn-compact" href="/report">Open report filters</a></p>';
+    html += '</section>';
   } else {
     const summaries = data.boardSummaries || new Map();
     let allStrong = boards.length > 0;

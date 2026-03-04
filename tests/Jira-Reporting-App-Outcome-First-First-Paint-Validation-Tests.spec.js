@@ -6,7 +6,7 @@
  * Run by orchestration (Jira-Reporting-App-Test-Orchestration-Steps.js). Fail fast: retries 0.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,

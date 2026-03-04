@@ -4,7 +4,7 @@
  * telemetry and realtime UI assertions; fails on UI mismatch or console/request errors.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { captureBrowserTelemetry } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Jira Reporting App - Current Sprint UX and SSOT Validation', () => {
@@ -347,6 +347,58 @@ test.describe('Jira Reporting App - Current Sprint UX and SSOT Validation', () =
     expect(telemetry.pageErrors).toEqual([]);
     const nonAbortFailures = telemetry.failedRequests.filter(r => r.failure !== 'net::ERR_ABORTED');
     expect(nonAbortFailures).toEqual([]);
+  });
+
+  test('current-sprint: stale saved sprint selection is ignored after TTL and active sprint is loaded', async ({ page }) => {
+    let currentSprintRequestUrl = '';
+    await page.addInitScript(() => {
+      localStorage.setItem('vodaAgileBoard_lastBoardId', '101');
+      localStorage.setItem('vodaAgileBoard_lastSprintId', '999');
+      localStorage.setItem('vodaAgileBoard_lastSprintSelectedAt', String(Date.now() - (13 * 60 * 60 * 1000)));
+    });
+    await page.route('**/api/boards.json*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          boards: [{ id: 101, name: 'TTL Board', projectKey: 'MPSA' }],
+        }),
+      })
+    );
+    await page.route('**/api/current-sprint.json*', (route) => {
+      currentSprintRequestUrl = route.request().url();
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          board: { id: 101, name: 'TTL Board', projectKeys: ['MPSA'] },
+          sprint: { id: 501, name: 'ACTIVE_SPRINT', state: 'active', startDate: '2026-02-01', endDate: '2026-02-28' },
+          summary: { totalStories: 1, doneStories: 1, totalSP: 3, doneSP: 3, percentDone: 100, totalSprintDays: 10 },
+          stories: [{ key: 'TTL-1', issueKey: 'TTL-1', summary: 'Story', status: 'Done', assignee: 'User', reporter: 'Lead', storyPoints: 3 }],
+          dailyCompletions: { stories: [{ date: '2026-02-20', count: 1, spCompleted: 3, nps: 0 }] },
+          remainingWorkByDay: [{ date: '2026-02-20', remainingSP: 0 }],
+          idealBurndown: [{ date: '2026-02-20', remainingSP: 0 }],
+          plannedWindow: { start: '2026-02-01', end: '2026-02-28' },
+          subtaskTracking: { rows: [], summary: {} },
+          scopeChanges: [],
+          stuckCandidates: [],
+          recentSprints: [{ id: 501, name: 'ACTIVE_SPRINT', state: 'active', startDate: '2026-02-01', endDate: '2026-02-28' }],
+          daysMeta: { daysRemainingWorking: 3, daysRemainingCalendar: 3 },
+          notes: { dependencies: [], learnings: [], updatedAt: null },
+          assumptions: [],
+          meta: { projects: 'MPSA', generatedAt: new Date().toISOString(), fromSnapshot: false, activeSprintCount: 1 },
+        }),
+      });
+    });
+
+    await page.goto('/current-sprint');
+    if (page.url().includes('login') || page.url().endsWith('/')) {
+      test.skip(true, 'Redirected to login; auth may be required');
+      return;
+    }
+    await expect(page.locator('.header-sprint-name')).toContainText(/ACTIVE_SPRINT/i, { timeout: 15000 });
+    expect(currentSprintRequestUrl).toContain('boardId=101');
+    expect(currentSprintRequestUrl).not.toContain('sprintId=999');
   });
 
   test('leadership: empty preview shows single message when no sprint data in range', async ({ page }) => {

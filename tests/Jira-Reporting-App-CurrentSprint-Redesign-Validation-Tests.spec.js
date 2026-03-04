@@ -23,7 +23,7 @@
  * Tests validate: functionality, performance, accessibility, responsiveness, error handling
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 // Base configuration
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';

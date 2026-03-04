@@ -65,6 +65,27 @@ function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
   }
 }
 
+function updateSidebarAlertFooter(summary, pageContext = 'report') {
+  const el = document.getElementById('sidebar-data-pulse');
+  if (!el) return;
+  const total = summary && summary.total != null ? Number(summary.total) : 0;
+  const healthy = total <= 0;
+  const label = healthy ? 'Logging alerts: 0 · Healthy' : `Logging alerts: ${total}`;
+  el.innerHTML = `<button type="button" class="sidebar-alert-footer-chip${healthy ? ' is-healthy' : ''}" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Work risks">${label}</button>`;
+  const btn = el.querySelector('[data-sidebar-alert-jump]');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    try {
+      if (pageContext === 'current-sprint') {
+        const target = document.getElementById('stuck-card') || document.getElementById('work-risks-table') || document.getElementById('stories-card');
+        target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.location.href = '/current-sprint#stuck-card';
+      }
+    } catch (_) {}
+  });
+}
+
 export function renderNotificationDock(options = {}) {
   const {
     summary,
@@ -106,6 +127,8 @@ export function renderNotificationDock(options = {}) {
       sprintNavLink.removeAttribute('title');
     }
   }
+
+  updateSidebarAlertFooter(resolvedSummary || { total: 0 }, pageContext);
 
   if (total <= 0) return;
 }

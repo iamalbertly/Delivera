@@ -2,7 +2,73 @@
  * Build merged work-risk rows from current sprint data (scope changes, stuck, subtasks, stories).
  * Used by Reporting-App-CurrentSprint-Render-Subtasks.js.
  */
+import {
+  normalizePerson,
+  normalizeIssueKey,
+  isFlowStatus,
+  hasOwnershipSignals,
+  isOwnedBlockerCandidate,
+} from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
+
 const WORK_RISK_ROWS_CACHE_KEY = '__workRiskRowsCache';
+
+function buildOwnershipContext(data) {
+  const byIssue = new Map();
+  const subtaskRows = (data?.subtaskTracking?.subtasks || data?.subtaskTracking?.rows || []);
+
+  for (const row of (data?.stories || [])) {
+    const issueKey = normalizeIssueKey(row.issueKey || row.key);
+    if (!issueKey) continue;
+    byIssue.set(issueKey, {
+      assignee: normalizePerson(row.assignee),
+      reporter: normalizePerson(row.reporter),
+      subtaskAssignees: [],
+    });
+  }
+
+  for (const st of subtaskRows) {
+    const parentKey = normalizeIssueKey(st.parentKey || st.parentIssueKey || st.issueKey);
+    if (!parentKey) continue;
+    if (!byIssue.has(parentKey)) {
+      byIssue.set(parentKey, {
+        assignee: '',
+        reporter: '',
+        subtaskAssignees: [],
+      });
+    }
+    const assignee = normalizePerson(st.assignee);
+    if (!assignee) continue;
+    const entry = byIssue.get(parentKey);
+    if (!entry.subtaskAssignees.includes(assignee)) entry.subtaskAssignees.push(assignee);
+  }
+
+  return byIssue;
+}
+
+function resolveOwnerForRow(row, ownershipByIssue) {
+  const issueKey = normalizeIssueKey(row?.issueKey || row?.key);
+  const directAssignee = normalizePerson(row?.assignee);
+  const directReporter = normalizePerson(row?.reporter);
+  const fromStory = issueKey ? ownershipByIssue.get(issueKey) : null;
+  const subtaskOwners = fromStory?.subtaskAssignees || [];
+
+  if (directAssignee) return { owner: directAssignee, ownerSource: 'assignee' };
+  if (subtaskOwners.length) return { owner: subtaskOwners[0], ownerSource: 'subtask-assignee' };
+  if (directReporter) return { owner: directReporter, ownerSource: 'reporter' };
+  if (fromStory?.assignee) return { owner: fromStory.assignee, ownerSource: 'assignee' };
+  if (fromStory?.reporter) return { owner: fromStory.reporter, ownerSource: 'reporter' };
+  return { owner: '', ownerSource: '' };
+}
+
+function isOwnedBlockerRow(row) {
+  return isOwnedBlockerCandidate({
+    riskTags: ['blocker'],
+    status: row?.status,
+    owner: row?.owner,
+    hoursInStatus: row?.hoursInStatus,
+    minAgeHours: 24,
+  });
+}
 
 function resolveCachedRows(data) {
   if (!data || typeof data !== 'object') return null;
@@ -95,12 +161,14 @@ export function buildMergedWorkRiskRows(data) {
   }
 
   for (const row of (data.stories || [])) {
-    const missingAssignee = !row.assignee || row.assignee === '-';
-    const missingReporter = !row.reporter || row.reporter === '-';
-    if (!missingAssignee && !missingReporter) continue;
+    const assignee = normalizePerson(row.assignee);
+    const reporter = normalizePerson(row.reporter);
+    const isUnowned = !assignee && !reporter;
+    const missingReporter = !reporter;
+    if (!missingReporter) continue;
     pushRow({
       source: 'Sprint',
-      riskType: missingAssignee ? 'Unassigned Issue' : 'Missing Reporter',
+      riskType: isUnowned ? 'Unassigned Issue' : 'Missing Reporter',
       issueKey: row.issueKey || row.key || '',
       issueUrl: row.issueUrl || '',
       summary: row.summary || '-',
@@ -142,6 +210,33 @@ export function buildMergedWorkRiskRows(data) {
     if (rowTs > existingTs) existing.updated = row.updated;
   }
   const dedupedRows = Array.from(deduped.values());
+  const ownershipByIssue = buildOwnershipContext(data);
+  const unresolvedByIssue = new Map();
+  for (const story of (data?.stories || [])) {
+    const storyKey = normalizeIssueKey(story.issueKey || story.key);
+    if (!storyKey) continue;
+    const ownerInfo = resolveOwnerForRow(story, ownershipByIssue);
+    const unowned = !hasOwnershipSignals({ assignee: ownerInfo.owner });
+    unresolvedByIssue.set(storyKey, unowned);
+  }
+  for (const row of dedupedRows) {
+    const { owner, ownerSource } = resolveOwnerForRow(row, ownershipByIssue);
+    row.owner = owner || '';
+    row.ownerSource = ownerSource || '';
+    row.isUnownedOutcome = unresolvedByIssue.get(normalizeIssueKey(row.issueKey || row.key)) === true;
+    row.isOwnedBlocker = isOwnedBlockerRow({ ...row, owner });
+    const baseRiskTags = [];
+    const riskTypeLower = String(row.riskType || '').toLowerCase();
+    const sourceLower = String(row.source || '').toLowerCase();
+    if (row.isOwnedBlocker) baseRiskTags.push('blocker');
+    if (riskTypeLower.includes('stuck >24h') && sourceLower === 'flow' && isFlowStatus(row.status)) baseRiskTags.push('parent-flow');
+    if (riskTypeLower.includes('stuck >24h') && sourceLower === 'subtask' && isFlowStatus(row.status)) baseRiskTags.push('subtask-flow');
+    if (riskTypeLower.includes('missing estimate')) baseRiskTags.push('missing-estimate');
+    if (riskTypeLower.includes('no log yet')) baseRiskTags.push('no-log');
+    if (sourceLower === 'scope') baseRiskTags.push('scope');
+    if (row.isUnownedOutcome) baseRiskTags.push('unassigned');
+    row.riskTags = Array.from(new Set(baseRiskTags));
+  }
   dedupedRows.sort((a, b) => {
     const at = a.updated ? new Date(a.updated).getTime() : 0;
     const bt = b.updated ? new Date(b.updated).getTime() : 0;
@@ -155,11 +250,29 @@ export function getUnifiedBlockerCount(data) {
   const rows = buildMergedWorkRiskRows(data);
   const blockerKeys = new Set();
   for (const row of rows) {
-    const riskType = String(row?.riskType || '').toLowerCase();
-    if (!riskType.includes('stuck >24h')) continue;
+    if (!row?.isOwnedBlocker) continue;
     const key = String(row?.issueKey || '').trim().toUpperCase();
     if (!key || key === '-') continue;
     blockerKeys.add(key);
   }
   return blockerKeys.size;
+}
+
+export function getUnifiedUnownedOutcomeCount(data) {
+  const rows = buildMergedWorkRiskRows(data);
+  const keys = new Set();
+  for (const row of rows) {
+    if (!row?.isUnownedOutcome) continue;
+    const key = normalizeIssueKey(row?.issueKey || row?.key);
+    if (!key) continue;
+    keys.add(key);
+  }
+  return keys.size;
+}
+
+export function getUnifiedRiskCounts(data) {
+  return {
+    blockersOwned: getUnifiedBlockerCount(data),
+    unownedOutcomes: getUnifiedUnownedOutcomeCount(data),
+  };
 }

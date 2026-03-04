@@ -26,7 +26,7 @@ export function renderCountdownTimer(data, options = {}) {
     ariaLabel = 'Sprint end date unknown';
   } else if (remainingDays <= 0) {
     color = 'gray';
-    label = '✓';
+    label = 'Done';
     ariaLabel = 'Sprint has ended';
   } else if (remainingDays < 0.5) {
     // Less than 12 hours
@@ -59,6 +59,13 @@ export function renderCountdownTimer(data, options = {}) {
     ariaLabel = 'Sprint ends in ' + Math.floor(remainingDays) + ' days';
   }
 
+  if (inlineHeader) {
+    const summary = data.summary || {};
+    const donePct = Number(summary.percentDone || 0);
+    const compactLabel = label === '?' ? '?' : (label === 'Done' ? 'Ended' : label + ' left');
+    return '<div class="countdown-inline-chip" aria-live="polite" aria-label="' + ariaLabel + '">' + compactLabel + ' · ' + donePct + '% done</div>';
+  }
+
   // Calculate percentage for progress ring - derive max from actual sprint dates
   let maxDays = 14;
   if (sprint.startDate && sprint.endDate) {
@@ -73,7 +80,10 @@ export function renderCountdownTimer(data, options = {}) {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
-  let html = '<div class="countdown-timer-widget' + (compact ? ' countdown-timer-widget-compact' : '') + (inlineHeader ? ' countdown-timer-widget-inline' : '') + '" aria-live="polite" aria-label="' + ariaLabel + '">';
+  let html = '<div class="countdown-timer-widget' + (compact ? ' countdown-timer-widget-compact' : '') + (inlineHeader ? ' countdown-timer-widget-inline' : '') + '"'
+    + (compact ? ' data-countdown-compact="true"' : '')
+    + (inlineHeader ? ' data-countdown-inline="true"' : '')
+    + ' aria-live="polite" aria-label="' + ariaLabel + '">';
   if (!inlineHeader) {
     html += '<span class="countdown-title">Time left</span>';
   }
@@ -147,3 +157,4 @@ export function updateCountdownTimer(data) {
     }
   }
 }
+

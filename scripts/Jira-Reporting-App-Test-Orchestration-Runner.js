@@ -99,14 +99,28 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
   return new Promise((resolve, reject) => {
     const startedAt = Date.now();
     let args = step.args || [];
+    const timestamp = () => new Date().toISOString();
+    let heartbeat = null;
     if (process.env.TEST_LAST_FAILED === '1' || process.env.TEST_LAST_FAILED === 'true') {
       const isPlaywright = step.command === 'npx' && args.some(a => a === 'playwright');
       if (isPlaywright && !args.includes('--last-failed')) {
         args = [...args, '--last-failed', '--pass-with-no-tests'];
       }
     }
+    {
+      const isPlaywright = step.command === 'npx' && args.some((a) => a === 'playwright');
+      if (isPlaywright && !args.includes('--max-failures=1') && !args.includes('--max-failures')) {
+        args = [...args, '--max-failures=1'];
+      }
+      if (isPlaywright && !args.some((a) => a === '--workers=1' || String(a).startsWith('--workers='))) {
+        args = [...args, '--workers=1'];
+      }
+      if (isPlaywright && !args.some((a) => String(a).startsWith('--reporter=')) && !args.includes('--reporter')) {
+        args = [...args, '--reporter=list'];
+      }
+    }
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`Step ${stepIndex + 1}/${totalSteps}: ${step.name}`);
+    console.log(`[${timestamp()}] Step ${stepIndex + 1}/${totalSteps}: ${step.name}`);
     console.log(`${'='.repeat(60)}`);
     console.log(`Command: ${step.command} ${args.join(' ')}`);
     console.log(`Working Directory: ${step.cwd}`);
@@ -119,23 +133,30 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
       env: { ...process.env, ...envOverrides },
     });
 
+    heartbeat = setInterval(() => {
+      const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+      console.log(`[${timestamp()}] RUNNING Step ${stepIndex + 1}/${totalSteps} (${step.name}) - ${elapsedSec}s elapsed`);
+    }, 60000);
+
     proc.on('close', (code) => {
+      if (heartbeat) clearInterval(heartbeat);
       if (code !== 0) {
         const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1);
         console.error(`\n${'='.repeat(60)}`);
-        console.error(`FAILED: Step ${stepIndex + 1} (${step.name}) exited with code ${code} after ${elapsedSec}s`);
+        console.error(`[${timestamp()}] FAILED: Step ${stepIndex + 1} (${step.name}) exited with code ${code} after ${elapsedSec}s`);
         console.error(`${'='.repeat(60)}\n`);
         reject(new Error(`Step ${step.name} failed with exit code ${code}`));
       } else {
         const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1);
-        console.log(`\nOK Step ${stepIndex + 1} (${step.name}) completed successfully in ${elapsedSec}s\n`);
+        console.log(`\n[${timestamp()}] OK Step ${stepIndex + 1} (${step.name}) completed successfully in ${elapsedSec}s\n`);
         resolve();
       }
     });
 
     proc.on('error', (error) => {
+      if (heartbeat) clearInterval(heartbeat);
       console.error(`\n${'='.repeat(60)}`);
-      console.error(`ERROR: Failed to start step ${stepIndex + 1} (${step.name})`);
+      console.error(`[${timestamp()}] ERROR: Failed to start step ${stepIndex + 1} (${step.name})`);
       console.error(`Error: ${error.message}`);
       console.error(`${'='.repeat(60)}\n`);
       reject(error);
@@ -274,6 +295,8 @@ async function runAllTests() {
   const smokeSpecPaths = [
     'tests/Jira-Reporting-App-API-Integration-Tests.spec.js',
     'tests/Jira-Reporting-App-E2E-User-Journey-Tests.spec.js',
+    'tests/Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js',
+    'tests/Jira-Reporting-App-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js',
     'tests/Jira-Reporting-App-UX-Customer-Simplicity-Trust-Full-Validation-Tests.spec.js',
   ];
 

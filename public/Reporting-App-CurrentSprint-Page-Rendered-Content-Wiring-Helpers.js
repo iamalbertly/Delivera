@@ -24,6 +24,20 @@ function collapseMobileDetailsSections() {
   } catch (_) {}
 }
 
+function applyInitialHashFocus() {
+  try {
+    const hash = window.location && window.location.hash ? window.location.hash : '';
+    if (!hash || !hash.startsWith('#')) return;
+    const target = document.querySelector(hash);
+    if (!target) return;
+    window.setTimeout(() => {
+      const stickyOffset = 120;
+      const top = window.scrollY + target.getBoundingClientRect().top - stickyOffset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }, 60);
+  } catch (_) {}
+}
+
 function wireSectionLinks() {
   const nav = document.querySelector('.sprint-section-links');
   if (!nav || nav.dataset.wiredSectionLinks === '1') return;
@@ -91,4 +105,5 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById) {
   wireIssuePreviewHandlers();
   wireSectionLinks();
   collapseMobileDetailsSections();
+  applyInitialHashFocus();
 }

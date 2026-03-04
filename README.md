@@ -4,6 +4,75 @@ VodaAgileBoard is the tool for scrum masters and leaders: a Node.js web applicat
 
 This README is the SSOT for usage and validation. Supplemental documents (e.g. `Jira-Reporting-Gap-Analysis-Plan.md`) provide planning context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-03-04)
+
+- Current Sprint data-integrity and friction fixes:
+  - Saved sprint selection now expires after 12 hours (`vodaAgileBoard_lastSprintSelectedAt`) to prevent stale closed sprint lock-in.
+  - If a saved sprint is closed and an active sprint exists, Current Sprint auto-switches to the active sprint (unless URL explicitly pins a sprint).
+  - Header freshness now uses generated timestamps and consistent live/snapshot wording.
+  - Header now shows multi-active sprint indicator (`Active: N sprints · Viewing ...`) and inline `vs last sprint` summary.
+- Current Sprint mobile readability fix:
+  - Issues-in-sprint now renders a mobile card list (`#stories-mobile-card-list`) with expandable details/subtasks instead of forcing horizontal table scanning.
+  - Existing day-filter and risk-filter behavior now applies to both desktop table rows and mobile story cards.
+- Report no-data recovery:
+  - Boards tab zero-data state now shows a full-viewport recovery panel with one-tap `Try last quarter`.
+- Leadership recurrence continuity:
+  - Leadership filter persistence now has a 30-day TTL and auto-drops stale filters.
+  - Leadership no-data state now includes a first-run onboarding CTA back to report filters.
+- Navigation reliability:
+  - Sidebar toggle/backdrop state synchronization was hardened across re-renders (`aria-expanded`, backdrop active/hidden, body scroll lock).
+- Focused validation updates:
+  - Added/updated focused checks for stale sprint selection TTL, current sprint mobile story cards, report no-boards recovery CTA, and navigation mobile stability.
+  - New focused runner command: `npm run test:mobile-cards-and-recovery`.
+
+- Outcome narrative intake is now stricter on `/report`:
+  - If pasted text contains a Jira key, create is blocked with a direct reuse message.
+  - If no key exists, intake stays one-CTA (`Create Jira Epic from this narrative`).
+  - Duplicate outcomes are checked server-side (hash + similarity) before creation; inline decision offers `Use existing` or `Create anyway`.
+  - Multi-project context now prompts for the target project key before creation.
+- Risk semantics were tightened and reused:
+  - Leadership summary now uses the same owned blocker/unowned outcome semantics as Current Sprint (`getUnifiedRiskCounts`).
+  - Report context bar now exposes one-tap chips for `Blockers (owned)` and `Unowned outcomes`, opening Outcomes with matching filter intent.
+- Current Sprint direct-action improvements:
+  - Added a sprint readiness strip using outcome ownership semantics (`Ready`, `At risk`, `Not ready`, plus maintenance neutral mode).
+  - Added a paste-to-jump affordance (`/browse/KEY` or `KEY`) that scrolls and pulses matching rows.
+  - Outcome badge rendering is now consistent in Current Sprint stories and Report outcomes.
+- Navigation vocabulary is aligned to:
+  - `Performance - History` (`/report`)
+  - `Performance - Current Sprint` (`/current-sprint`)
+  - `Performance - Leadership HUD` (leadership surface)
+- New focused validation spec added and wired into orchestration:
+  - `tests/Jira-Reporting-App-Outcome-Intake-And-Readiness-Validation-Tests.spec.js`
+  - Run standalone: `npm run test:outcome-intake-readiness`
+  - Full suite: `npm run test:all`
+
+## Latest Reliability and UX Updates (2026-02-26)
+
+- Outcome-first + mission-control friction reduction pass (incremental, existing paths only):
+  - Report `Outcomes` tab badge now uses **total done stories** (`Outcomes (Total: N)`) while the tab itself shows **visible vs total** (`Showing X of N stories`) so search/pill/strict filters no longer create a trust-breaking false zero.
+  - Report preview outcome line now uses a human sentence (`X done stories across Y sprints · Z boards`) and deep-links to Outcomes with auto-scroll into the first sprint section.
+  - Report Overview now includes a compact **Outcome digest** strip (top epic, total done stories, high-risk board) above the boards table.
+  - Done Stories now auto-enables **quarter review mode** for quarter-length windows, adds a sticky review summary bar + sprint jump chips, and exposes a focused **Outcomes CSV** CTA in the existing tab controls.
+  - Current Sprint command-center header now includes a **Reset** action inside Active view, clearer focused-action text (`Focused on: ...`), and a historical snapshot banner with disabled live-remediation actions.
+  - Issue preview drawer adds **Back to table** and **Next risk** controls; opening the drawer now dims the underlying table and highlights the source row for better causality.
+  - Sidebar footer can now surface a single **Logging alerts: N** chip (or healthy state) and jump directly to Current Sprint Work risks, reducing split attention across nav + floating controls.
+  - Leadership HUD placeholders no longer rely on raw `--`; empty states now direct users to **Open Report Trends**.
+- Test and orchestration hardening (same date):
+  - Added `tests/Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js` for report outcomes truthfulness and current-sprint header/table/API coherence checks.
+  - Added/updated E2E journey assertions for truthful Outcomes tab labeling and a cross-page “exec in a hurry” path (Report → Current Sprint → Take action → Copy summary).
+  - `scripts/Jira-Reporting-App-Test-Orchestration-Runner.js` now also enforces serial Playwright workers (`--workers=1`) when absent and emits a periodic heartbeat while long steps run, improving realtime visibility when a step stalls.
+  - Added focused npm scripts: `npm run test:data-integrity-coherence` and `npm run test:exec-journey`.
+- Current Sprint direct-to-value pass (incremental, no new screens):
+  - Header **Take action** is now an action (not only a jump): it applies the highest-value available risk focus (blockers first, with safe fallbacks) and moves the user directly to the first actionable Work risks row.
+  - Header now shows **Active view** state so role/day/risk filters are visible in one place instead of hidden across cards.
+  - Work risks table now supports **sortable columns** (tri-state) while preserving parent/subtask grouping and default priority ordering.
+  - Issues table now defaults to **collapsed subtask rows under each story** with inline child counts, reducing scroll depth and cognitive drag while preserving full detail on demand.
+  - Story hierarchy expand/collapse, day filter, and risk filter interactions are re-applied after **Show more** to avoid losing user context.
+  - Countdown widget header markup now exposes explicit compact/inline data attributes for test stability and cross-layout reliability.
+  - Focused Playwright validation specs were updated for the new direct-value header action, compact countdown selector contract, sortable Work risks headers, and collapsed Issues hierarchy.
+- Test orchestration reliability:
+  - The Node orchestration runner now enforces fail-fast Playwright flags (`--max-failures=1`, `--reporter=list`) when absent and logs step timestamps for clearer realtime failure diagnosis.
+
 ## Latest Reliability and UX Updates (2026-02-25)
 
 - Report preview now includes a unified **status strip** above the tabs (`Results: up to date`, `Results: preview required`, or `Heavy range: manual preview only`) wired to shared filter-stale and complexity logic. The strip also echoes the active projects/date window so screenshots and decisions have one canonical context line.
@@ -910,5 +979,3 @@ MIT
 ## Support
 
 For issues or questions, please check the troubleshooting section above or review the error messages in the application UI.
-
-

@@ -3,16 +3,18 @@
  * Legacy verdict/alert banner rendering was removed in favor of a single
  * header command center summary.
  */
-import { getUnifiedBlockerCount } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 function getRiskCounts(data) {
   const summary = data?.summary || {};
+  const riskCounts = getUnifiedRiskCounts(data);
   return {
-    stuckCount: Number(getUnifiedBlockerCount(data) || 0),
+    stuckCount: Number(riskCounts.blockersOwned || 0),
     missingEstimate: Number(summary.subtaskMissingEstimate || 0),
     missingLogged: Number(summary.subtaskMissingLogged || 0),
     totalStories: Number(summary.totalStories || (data?.stories || []).length || 0),
     doneStories: Number(summary.doneStories || 0),
+    unassignedParents: Number(riskCounts.unownedOutcomes || 0),
   };
 }
 
@@ -30,6 +32,7 @@ export function deriveSprintVerdict(data) {
     (counts.stuckCount * 3)
     + (counts.missingEstimate * 2)
     + counts.missingLogged
+    + counts.unassignedParents
     + (donePct < 45 && counts.totalStories > 0 ? 3 : 0);
 
   let verdict = 'Healthy';
@@ -46,9 +49,10 @@ export function deriveSprintVerdict(data) {
   }
 
   let detail = donePct + '% done';
-  if (counts.stuckCount > 0) detail += ' · ' + counts.stuckCount + ' blockers';
-  if (counts.missingEstimate > 0) detail += ' · ' + counts.missingEstimate + ' missing estimates';
-  if (counts.missingLogged > 0) detail += ' · ' + counts.missingLogged + ' no log';
+  if (counts.stuckCount > 0) detail += ' Â· ' + counts.stuckCount + ' blockers';
+  if (counts.missingEstimate > 0) detail += ' Â· ' + counts.missingEstimate + ' missing estimates';
+  if (counts.missingLogged > 0) detail += ' Â· ' + counts.missingLogged + ' no log';
+  if (counts.unassignedParents > 0) detail += ' Â· ' + counts.unassignedParents + ' unowned outcomes';
 
   return {
     verdict,
@@ -57,5 +61,6 @@ export function deriveSprintVerdict(data) {
     stuckCount: counts.stuckCount,
     missingEstimate: counts.missingEstimate,
     missingLogged: counts.missingLogged,
+    unassignedParents: counts.unassignedParents,
   };
 }

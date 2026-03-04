@@ -6,6 +6,18 @@
   overflow-x: hidden;
 }
 
+.leadership-onboarding-empty {
+  margin-top: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--card-muted);
+  padding: 12px;
+}
+
+.leadership-onboarding-empty h3 {
+  margin: 0 0 4px;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .current-sprint-header-bar {

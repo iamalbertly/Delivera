@@ -32,6 +32,10 @@
     "test:navigation-consistency": "playwright test tests/Jira-Reporting-App-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js --max-failures=1 --reporter=list",
     "test:ssot-host-table": "playwright test tests/Jira-Reporting-App-API-Integration-Tests.spec.js tests/Jira-Reporting-App-UX-Reliability-Fixes-Tests.spec.js --grep \"SSOT\" --max-failures=1 --reporter=list",
     "test:current-sprint-export": "playwright test tests/Jira-Reporting-App-Current-Sprint-Clipboard-Markdown-Validation-Tests.spec.js tests/Jira-Reporting-App-Current-Sprint-Export-Last-Action-Validation-Tests.spec.js --max-failures=1 --reporter=list"
+    ,"test:data-integrity-coherence": "playwright test tests/Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js --max-failures=1 --workers=1 --reporter=list"
+    ,"test:exec-journey": "playwright test tests/Jira-Reporting-App-E2E-User-Journey-Tests.spec.js --grep \"journey|preview|tabs\" --max-failures=1 --workers=1 --reporter=list"
+    ,"test:outcome-intake-readiness": "playwright test tests/Jira-Reporting-App-Outcome-Intake-And-Readiness-Validation-Tests.spec.js --max-failures=1 --reporter=list"
+    ,"test:mobile-cards-and-recovery": "playwright test tests/Jira-Reporting-App-Mobile-Responsive-UX-Validation-Tests.spec.js tests/Jira-Reporting-App-Current-Sprint-UX-SSOT-Validation-Tests.spec.js --grep \"stories render as cards|try-last-quarter recovery|stale saved sprint selection\" --max-failures=1 --workers=1 --reporter=list"
   },
   "keywords": [
     "voda-agile-board",

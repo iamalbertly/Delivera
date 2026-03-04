@@ -4,7 +4,7 @@
  * wait until data loads or error is shown; assert completion (preview or non-empty error).
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { waitForPreview, captureBrowserTelemetry, assertTelemetryClean } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 const Q4_START = '2025-10-01T00:00';

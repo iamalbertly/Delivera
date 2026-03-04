@@ -1,5 +1,5 @@
 export function initSearchClearButtons() {
-  const targets = ['boards-search-box', 'sprints-search-box', 'search-box', 'project-search'];
+  const targets = ['report-tab-search', 'boards-search-box', 'sprints-search-box', 'search-box', 'project-search'];
   targets.forEach((id) => {
     const input = document.getElementById(id);
     const btn = document.querySelector(`.search-clear-btn[data-target="${id}"]`);

@@ -1,8 +1,8 @@
-﻿/**
+/**
  * SIZE-EXEMPT: Cohesive E2E spec for UX critical fixes (Epic/Summary, throughput/columns, export/TTM, loading states);
  * splitting would duplicate runDefaultPreview setup and reduce clarity.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=2025-09-30T23:59:59.999Z';

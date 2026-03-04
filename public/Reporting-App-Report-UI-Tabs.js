@@ -3,10 +3,14 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
   const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
   const tabPanes = Array.from(document.querySelectorAll('.tab-pane'));
   const tabsContainer = document.querySelector('.tabs');
-  const secondaryTabs = new Set(['unusable-sprints', 'done-stories']);
+  const secondaryTabs = new Set();
   const moreItems = [];
   let moreButton = null;
   let moreMenu = null;
+  tabButtons.slice(3).forEach((btn) => {
+    const tabName = btn?.dataset?.tab;
+    if (tabName) secondaryTabs.add(tabName);
+  });
 
   if (tabsContainer) {
     tabsContainer.setAttribute('role', 'tablist');
@@ -140,7 +144,7 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
   function applyResponsiveTabPriority() {
     ensureMoreMenu();
     const mobile = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.matchMedia('(max-width: 860px)').matches
+      ? window.matchMedia('(max-width: 1024px)').matches
       : false;
     tabButtons.forEach((btn) => {
       const tabName = btn.dataset.tab || '';

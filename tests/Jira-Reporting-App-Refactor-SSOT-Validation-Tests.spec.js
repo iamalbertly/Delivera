@@ -4,7 +4,7 @@
  * CSV/Excel column consistency, and no console errors during preview/export flow.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { runDefaultPreview, waitForPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 const BOARD_COLUMN_ORDER = [

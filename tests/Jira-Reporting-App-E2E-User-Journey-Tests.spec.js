@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=2025-09-30T23:59:59.999Z';
@@ -31,6 +31,7 @@ test.describe('Jira Reporting App - E2E User Journey Tests', () => {
     await expect(page.locator('#project-mpsa')).toBeChecked();
     await expect(page.locator('#project-mas')).toBeChecked();
     await expect(page.locator('#preview-btn')).toBeVisible();
+    await expect(page.locator('#report-one-click-cta')).toBeVisible();
     await expect(page.locator('#export-excel-btn')).toBeHidden();
   });
 
@@ -91,6 +92,9 @@ test.describe('Jira Reporting App - E2E User Journey Tests', () => {
       // Click Done Stories tab
       await page.click('.tab-btn[data-tab="done-stories"]');
       await expect(page.locator('#tab-done-stories')).toHaveClass(/active/);
+      const doneTabText = (await page.locator('#tab-btn-done-stories').textContent().catch(() => '')) || '';
+      expect(doneTabText).toMatch(/Outcomes \((Total: )?\d+\)/i);
+      await expect(page.locator('#done-stories-visibility-summary')).toBeVisible();
     }
   });
 
@@ -146,6 +150,63 @@ test.describe('Jira Reporting App - E2E User Journey Tests', () => {
     
     // Verify date display is visible (content may vary)
     await expect(dateDisplay).toBeVisible();
+  });
+
+  test('exec in a hurry journey reconciles report outcomes and current sprint action path', async ({ page }) => {
+    test.setTimeout(300000);
+    await runDefaultPreview(page);
+    const previewVisible = await page.locator('#preview-content').isVisible().catch(() => false);
+    if (!previewVisible) {
+      test.skip(true, 'Report preview unavailable');
+      return;
+    }
+    const outcomesTabText = ((await page.locator('#tab-btn-done-stories').textContent().catch(() => '')) || '').trim();
+    expect(outcomesTabText).toMatch(/Outcomes \((Total: )?\d+\)/i);
+    await page.click('#tab-btn-done-stories').catch(() => null);
+    const visibleSummary = ((await page.locator('#done-stories-visibility-summary').textContent().catch(() => '')) || '').trim();
+    expect(visibleSummary).toMatch(/Showing \d+ of \d+ stor/i);
+
+    await page.goto('/current-sprint');
+    await page.waitForSelector('#current-sprint-content, #current-sprint-error', { timeout: 30000 }).catch(() => null);
+    let hasHeader = await page.locator('.current-sprint-header-bar').isVisible().catch(() => false);
+    if (!hasHeader) {
+      const boardSelect = page.locator('#board-select');
+      if (await boardSelect.isVisible().catch(() => false)) {
+        const option = boardSelect.locator('option[value]:not([value=""])').first();
+        const val = await option.getAttribute('value').catch(() => '');
+        if (val) await boardSelect.selectOption(val).catch(() => null);
+      }
+      await page.waitForTimeout(1000);
+      hasHeader = await page.locator('.current-sprint-header-bar').isVisible().catch(() => false);
+    }
+    if (!hasHeader) {
+      test.skip(true, 'No current sprint available for selected dataset');
+      return;
+    }
+
+    await page.evaluate(() => {
+      window.__copiedSummary = '';
+      const clip = {
+        writeText: async (text) => { window.__copiedSummary = String(text || ''); },
+      };
+      try { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: clip }); } catch (_) { navigator.clipboard = clip; }
+    });
+
+    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="take-action"]');
+    if (await takeAction.isEnabled().catch(() => false)) {
+      await takeAction.click({ force: true }).catch(() => null);
+      await page.waitForTimeout(300);
+    }
+    const copySummary = page.locator('.current-sprint-header-bar .export-dashboard-btn.export-default-action');
+    await expect(copySummary).toBeVisible();
+    await copySummary.click({ force: true }).catch(() => null);
+    await page.waitForTimeout(300);
+    const copied = await page.evaluate(() => window.__copiedSummary || '').catch(() => '');
+    if (!copied) {
+      test.skip(true, 'Clipboard interception unavailable in this environment');
+      return;
+    }
+    expect(copied).toMatch(/sprint|health|blocker|risk/i);
   });
 
   test('should show predictability mode options when predictability is enabled', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const SPRINT_PAGE = `${BASE_URL}/current-sprint`;
@@ -7,6 +7,20 @@ async function loadSprintPage(page) {
   await page.goto(SPRINT_PAGE);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForSelector('#current-sprint-content, #current-sprint-error', { timeout: 30000, state: 'attached' });
+  const ensureHeader = async () => {
+    const hasHeader = await page.locator('.current-sprint-header-bar').first().isVisible().catch(() => false);
+    if (hasHeader) return;
+    const boardSelect = page.locator('#board-select');
+    if (!(await boardSelect.isVisible().catch(() => false))) return;
+    const options = boardSelect.locator('option[value]:not([value=""])');
+    const count = await options.count().catch(() => 0);
+    if (!count) return;
+    const val = (await boardSelect.inputValue().catch(() => '')) || (await options.first().getAttribute('value').catch(() => ''));
+    if (!val) return;
+    await boardSelect.selectOption(val).catch(() => null);
+    await page.waitForSelector('.current-sprint-header-bar, #current-sprint-error', { timeout: 30000 }).catch(() => null);
+  };
+  await ensureHeader();
   const content = page.locator('#current-sprint-content');
   if (await content.isVisible().catch(() => false)) {
     return { hasError: false };
@@ -43,7 +57,13 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     const optionCount = await boardSelect.locator('option').count();
     if (optionCount >= 2) {
       const firstVal = await boardSelect.inputValue();
-      const otherOption = boardSelect.locator('option').filter({ hasNotText: '- Select board -' }).filter({ hasNotText: "Couldn't load boards" }).nth(1);
+      const validOptions = boardSelect.locator('option[value]:not([value=""])');
+      const validCount = await validOptions.count().catch(() => 0);
+      if (validCount < 2) {
+        test.skip(true, 'Only one selectable board available in dataset');
+        return;
+      }
+      const otherOption = validOptions.nth(1);
       const otherVal = await otherOption.getAttribute('value');
       if (otherVal && otherVal !== firstVal) {
         await boardSelect.selectOption(otherVal);
@@ -90,14 +110,14 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('Persona tiles act as role presets for Work risks', async ({ page }) => {
-    const devTile = page.locator('#stuck-card .summary-block[data-persona="developer"]').first();
+    const devTile = page.locator('#stuck-card .work-risks-role-pill[data-persona="developer"]').first();
     const isVisible = await devTile.isVisible().catch(() => false);
     if (!isVisible) {
       test.skip(true, 'Persona tiles not rendered for this dataset');
       return;
     }
     await page.evaluate(() => {
-      const el = document.querySelector('#stuck-card .summary-block[data-persona="developer"]');
+      const el = document.querySelector('#stuck-card .work-risks-role-pill[data-persona="developer"]');
       if (el && typeof el.click === 'function') {
         el.click();
       }
@@ -107,6 +127,19 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       items.some((row) => (row.style.display || '') === 'none')
     );
     expect(anyHidden).toBeTruthy();
+  });
+
+  test('Header take-action focuses Work risks and updates active view summary', async ({ page }) => {
+    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="take-action"]');
+    const visible = await takeAction.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Take action button not rendered');
+      return;
+    }
+    await takeAction.click();
+    await expect(page.locator('[data-header-active-filter-value]')).not.toHaveText(/All work/i);
+    const workRisks = page.locator('#work-risks-table');
+    await expect(workRisks).toBeVisible();
   });
 
   test('Role-mode pills remember selection and drive filters', async ({ page }) => {
@@ -124,6 +157,24 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(devPillAfter).toHaveAttribute('aria-pressed', 'true');
   });
 
+  test('historical sprint selection shows snapshot banner when previous sprint exists', async ({ page }) => {
+    const tabs = page.locator('.carousel-tab');
+    const count = await tabs.count().catch(() => 0);
+    if (count < 2) {
+      test.skip(true, 'No previous sprint tabs available');
+      return;
+    }
+    await tabs.nth(1).click().catch(() => null);
+    await page.waitForTimeout(800);
+    const banner = page.locator('.current-sprint-history-banner');
+    const bannerVisible = await banner.isVisible().catch(() => false);
+    if (!bannerVisible) {
+      test.skip(true, 'Selected sprint may still be active in this dataset');
+      return;
+    }
+    await expect(banner).toContainText(/historical sprint snapshot|Some actions disabled/i);
+  });
+
   test('Issue preview drawer opens from Work risks and includes Jira link', async ({ page }) => {
     const firstRowLink = page.locator('#work-risks-table tbody tr.work-risk-parent-row a[href*="/browse/"]').first();
     const exists = await firstRowLink.isVisible().catch(() => false);
@@ -137,6 +188,8 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     const jiraLink = drawer.locator('a.issue-preview-key');
     const href = await jiraLink.getAttribute('href');
     expect(href || '').toContain('/browse/');
+    await expect(drawer.locator('[data-issue-preview-action="back-to-table"]')).toBeVisible();
+    await expect(drawer.locator('[data-issue-preview-action="next-risk"]')).toBeVisible();
   });
 
   test('Sticky section links stay visible while scrolling content', async ({ page }) => {
@@ -193,5 +246,25 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
 
     expect(afterVisible).toBeLessThanOrEqual(beforeVisible);
   });
-});
 
+  test('Issues table subtasks are collapsed by default and expandable per story', async ({ page }) => {
+    const firstParent = page.locator('#stories-table tbody tr.story-parent-row[data-has-children="true"]').first();
+    const visible = await firstParent.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'No expandable story rows in current dataset');
+      return;
+    }
+    const parentKey = (await firstParent.getAttribute('data-parent-key')) || '';
+    const childRows = page.locator(`#stories-table tbody tr.subtask-child-row[data-parent-key="${parentKey}"]`);
+    const childCount = await childRows.count();
+    if (!childCount) {
+      test.skip(true, 'No subtask child rows for selected parent');
+      return;
+    }
+    await expect(firstParent).toHaveAttribute('aria-expanded', 'false');
+    await expect(childRows.first()).not.toBeVisible();
+    await firstParent.locator('.story-row-toggle').click();
+    await expect(firstParent).toHaveAttribute('aria-expanded', 'true');
+    await expect(childRows.first()).toBeVisible();
+  });
+});

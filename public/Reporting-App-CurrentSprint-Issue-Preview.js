@@ -7,12 +7,15 @@ function ensurePreviewContainer() {
   container.id = 'current-sprint-issue-preview';
   container.className = 'issue-preview-drawer';
   container.setAttribute('aria-live', 'polite');
+  container.setAttribute('tabindex', '-1');
   document.body.appendChild(container);
   return container;
 }
 
-function buildPreviewHtml(targetRow) {
+function buildPreviewHtml(targetRow, options = {}) {
   if (!targetRow) return '';
+  const index = Number(options.index || 0);
+  const total = Number(options.total || 0);
   const link = targetRow.querySelector('a[href*="/browse/"]');
   const key = link ? (link.textContent || '').trim() : (targetRow.getAttribute('data-issue-key') || '');
   const url = link ? link.href : '';
@@ -35,43 +38,30 @@ function buildPreviewHtml(targetRow) {
   if (riskTags.includes('no-log')) riskReasons.push('Estimated work has no time logged');
   if (riskTags.includes('missing-estimate')) riskReasons.push('Logged work has no estimate baseline');
   if (riskTags.includes('scope')) riskReasons.push('Mid-sprint scope change');
-  if (riskTags.includes('unassigned')) riskReasons.push('No clear owner assigned');
-  const riskWhy = riskReasons.length ? riskReasons.join(' · ') : '';
+  if (riskTags.includes('unassigned')) riskReasons.push('No ownership signal (assignee, subtask owner, or reporter)');
+  const riskWhy = riskReasons.length ? riskReasons.join(' | ') : '';
 
   let html = '<div class="issue-preview-inner">';
-  html += '<p class="issue-preview-breadcrumb">Work risks > ' + escapeHtml(key || 'Issue') + '</p>';
+  html += '<p class="issue-preview-breadcrumb">Work risks > ' + escapeHtml(key || 'Issue') + (total > 0 ? (' | ' + (index + 1) + ' of ' + total) : '') + '</p>';
   html += '<div class="issue-preview-header">';
   if (key) {
-    if (url) {
-      html += '<a class="issue-preview-key" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(key) + '</a>';
-    } else {
-      html += '<span class="issue-preview-key">' + escapeHtml(key) + '</span>';
-    }
+    if (url) html += '<a class="issue-preview-key" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(key) + '</a>';
+    else html += '<span class="issue-preview-key">' + escapeHtml(key) + '</span>';
   }
-  if (status) {
-    html += '<span class="issue-preview-status">' + escapeHtml(status) + '</span>';
-  }
-  html += '<button type="button" class="issue-preview-close" aria-label="Close issue details">✕</button>';
+  if (status) html += '<span class="issue-preview-status">' + escapeHtml(status) + '</span>';
+  html += '<button type="button" class="issue-preview-close" aria-label="Close issue details">x</button>';
   html += '</div>';
-  if (summary) {
-    html += '<p class="issue-preview-summary">' + escapeHtml(summary) + '</p>';
-  }
-  if (riskWhy) {
-    html += '<p class="issue-preview-risk-why"><strong>Why this is risky:</strong> ' + escapeHtml(riskWhy) + '</p>';
-  }
+  if (summary) html += '<p class="issue-preview-summary">' + escapeHtml(summary) + '</p>';
+  if (riskWhy) html += '<p class="issue-preview-risk-why"><strong>Why this is risky:</strong> ' + escapeHtml(riskWhy) + '</p>';
+  html += '<div class="issue-preview-inline-actions">';
+  html += '<button type="button" class="issue-preview-back-link" data-issue-preview-action="back-to-table">Back to table</button>';
+  html += '<button type="button" class="issue-preview-next-link" data-issue-preview-action="next-risk">Next risk</button>';
+  html += '</div>';
   html += '<dl class="issue-preview-meta">';
-  if (assignee) {
-    html += '<div><dt>Assignee</dt><dd>' + escapeHtml(assignee) + '</dd></div>';
-  }
-  if (reporter) {
-    html += '<div><dt>Reporter</dt><dd>' + escapeHtml(reporter) + '</dd></div>';
-  }
-  if (logged) {
-    html += '<div><dt>Logged</dt><dd>' + escapeHtml(logged) + '</dd></div>';
-  }
-  if (updated) {
-    html += '<div><dt>Updated</dt><dd>' + escapeHtml(updated) + '</dd></div>';
-  }
+  if (assignee) html += '<div><dt>Assignee</dt><dd>' + escapeHtml(assignee) + '</dd></div>';
+  if (reporter) html += '<div><dt>Reporter</dt><dd>' + escapeHtml(reporter) + '</dd></div>';
+  if (logged) html += '<div><dt>Logged</dt><dd>' + escapeHtml(logged) + '</dd></div>';
+  if (updated) html += '<div><dt>Updated</dt><dd>' + escapeHtml(updated) + '</dd></div>';
   html += '</dl>';
   if (url) {
     html += '<div class="issue-preview-actions">';
@@ -91,10 +81,47 @@ export function wireIssuePreviewHandlers() {
   content.dataset.wiredIssuePreview = '1';
 
   const container = ensurePreviewContainer();
+  let activeRow = null;
+  let activeRiskIndex = -1;
+
+  function getVisibleRiskRows() {
+    const rows = Array.from(document.querySelectorAll('#work-risks-table tbody .work-risk-parent-row'));
+    return rows.filter((row) => {
+      const style = window.getComputedStyle(row);
+      return style.display !== 'none' && !row.hasAttribute('hidden');
+    });
+  }
+
+  function syncSourceRowState(row) {
+    document.querySelectorAll('.issue-preview-source-row').forEach((el) => el.classList.remove('issue-preview-source-row'));
+    if (row) {
+      row.classList.add('issue-preview-source-row');
+      document.body.classList.add('issue-preview-has-open');
+    } else {
+      document.body.classList.remove('issue-preview-has-open');
+    }
+  }
+
+  function openPreviewForRow(tableRow) {
+    if (!tableRow) return;
+    const visibleRiskRows = getVisibleRiskRows();
+    activeRiskIndex = visibleRiskRows.indexOf(tableRow);
+    if (activeRiskIndex < 0) activeRiskIndex = 0;
+    activeRow = tableRow;
+    const html = buildPreviewHtml(tableRow, { index: activeRiskIndex, total: visibleRiskRows.length });
+    if (!html) return;
+    container.innerHTML = html;
+    container.classList.add('issue-preview-open');
+    syncSourceRowState(tableRow);
+    container.focus();
+  }
 
   function closePreview() {
     container.classList.remove('issue-preview-open');
     container.innerHTML = '';
+    activeRow = null;
+    activeRiskIndex = -1;
+    syncSourceRowState(null);
   }
 
   container.addEventListener('click', (event) => {
@@ -103,11 +130,28 @@ export function wireIssuePreviewHandlers() {
     event.preventDefault();
     closePreview();
   });
+
   container.addEventListener('click', async (event) => {
     const actionBtn = event.target.closest('[data-issue-preview-action]');
     if (!actionBtn) return;
     event.preventDefault();
     const action = actionBtn.getAttribute('data-issue-preview-action') || '';
+
+    if (action === 'back-to-table') {
+      activeRow?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      closePreview();
+      return;
+    }
+
+    if (action === 'next-risk') {
+      const rows = getVisibleRiskRows();
+      if (!rows.length) return;
+      const nextIndex = activeRiskIndex >= 0 ? ((activeRiskIndex + 1) % rows.length) : 0;
+      rows[nextIndex]?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      openPreviewForRow(rows[nextIndex]);
+      return;
+    }
+
     const url = actionBtn.getAttribute('data-url') || '';
     const key = actionBtn.getAttribute('data-key') || '';
     const summary = actionBtn.getAttribute('data-summary') || '';
@@ -116,7 +160,9 @@ export function wireIssuePreviewHandlers() {
     if (action === 'copy-link') {
       text = url;
     } else if (action === 'copy-nudge') {
-      text = key ? `[Nudge] ${key}: ${summary || 'Please review'} (${status || 'status unknown'}) ${url}` : url;
+      text = key
+        ? `[System nudge] ${key}: ${summary || 'Please review'} (${status || 'status unknown'}). Please update Jira status/time today to keep team visibility accurate. ${url}`
+        : url;
     } else {
       return;
     }
@@ -129,24 +175,22 @@ export function wireIssuePreviewHandlers() {
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      closePreview();
-    }
+    if (event.key === 'Escape') closePreview();
   });
 
   content.addEventListener('click', (event) => {
     const tableRow = event.target.closest('#work-risks-table tbody tr, #stories-table tbody tr');
     if (!tableRow) return;
     const issueLink = event.target.closest('a[href*="/browse/"]');
-    if (issueLink && (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1)) {
-      return;
-    }
-    if (issueLink) {
-      event.preventDefault();
-    }
-    const html = buildPreviewHtml(tableRow);
-    if (!html) return;
-    container.innerHTML = html;
-    container.classList.add('issue-preview-open');
+    if (issueLink && (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1)) return;
+    if (issueLink) event.preventDefault();
+    openPreviewForRow(tableRow);
   });
+
+  try {
+    window.addEventListener('currentSprint:openIssuePreviewForRow', (event) => {
+      const row = event?.detail?.row;
+      if (row && row.nodeType === 1) openPreviewForRow(row);
+    });
+  } catch (_) {}
 }

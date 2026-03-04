@@ -8,14 +8,52 @@ import { renderDoneStoriesTab } from './Reporting-App-Report-Page-Render-DoneSto
 import { updateExportFilteredState } from './Reporting-App-Report-Page-Export-Menu.js';
 
 const REPORT_SEARCH_STORAGE_KEY = 'vodaAgileBoard_reportSearch_v1';
+const REPORT_ACTIVE_TAB_SEARCH_KEY = 'vodaAgileBoard_reportSearch_active_v1';
+const TAB_SEARCH_CONFIG = {
+  'project-epic-level': { field: 'boards', placeholder: 'Search boards...' },
+  sprints: { field: 'sprints', placeholder: 'Search sprints...' },
+  'done-stories': { field: 'stories', placeholder: 'Search stories...' },
+};
+
+function getActiveTabName() {
+  const btn = document.querySelector('.tab-btn.active');
+  return btn?.dataset?.tab || 'project-epic-level';
+}
+
+function getUnifiedSearchInput() {
+  return document.getElementById('report-tab-search');
+}
+
+function setLegacySearchValues(values) {
+  const boardsSearch = document.getElementById('boards-search-box');
+  const sprintsSearch = document.getElementById('sprints-search-box');
+  const storiesSearch = document.getElementById('search-box');
+  if (boardsSearch) boardsSearch.value = values.boards || '';
+  if (sprintsSearch) sprintsSearch.value = values.sprints || '';
+  if (storiesSearch) storiesSearch.value = values.stories || '';
+}
+
+function syncUnifiedSearchUi(searchState) {
+  const input = getUnifiedSearchInput();
+  if (!input) return;
+  const activeTab = getActiveTabName();
+  const cfg = TAB_SEARCH_CONFIG[activeTab] || TAB_SEARCH_CONFIG['project-epic-level'];
+  input.placeholder = cfg.placeholder;
+  input.value = String(searchState[cfg.field] || '');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function readCurrentSearchState() {
+  return {
+    boards: document.getElementById('boards-search-box')?.value || '',
+    sprints: document.getElementById('sprints-search-box')?.value || '',
+    stories: document.getElementById('search-box')?.value || '',
+  };
+}
 
 function persistSearchState() {
   try {
-    const payload = {
-      boards: document.getElementById('boards-search-box')?.value || '',
-      sprints: document.getElementById('sprints-search-box')?.value || '',
-      stories: document.getElementById('search-box')?.value || '',
-    };
+    const payload = readCurrentSearchState();
     localStorage.setItem(REPORT_SEARCH_STORAGE_KEY, JSON.stringify(payload));
   } catch (_) {}
 }
@@ -25,12 +63,12 @@ function hydrateSearchState() {
     const raw = localStorage.getItem(REPORT_SEARCH_STORAGE_KEY);
     if (!raw) return;
     const saved = JSON.parse(raw);
-    const boardsSearch = document.getElementById('boards-search-box');
-    const sprintsSearch = document.getElementById('sprints-search-box');
-    const storiesSearch = document.getElementById('search-box');
-    if (boardsSearch && typeof saved?.boards === 'string') boardsSearch.value = saved.boards;
-    if (sprintsSearch && typeof saved?.sprints === 'string') sprintsSearch.value = saved.sprints;
-    if (storiesSearch && typeof saved?.stories === 'string') storiesSearch.value = saved.stories;
+    setLegacySearchValues({
+      boards: typeof saved?.boards === 'string' ? saved.boards : '',
+      sprints: typeof saved?.sprints === 'string' ? saved.sprints : '',
+      stories: typeof saved?.stories === 'string' ? saved.stories : '',
+    });
+    syncUnifiedSearchUi(readCurrentSearchState());
   } catch (_) {}
 }
 
@@ -144,6 +182,7 @@ export function populateProjectsPills() {
 
 export function initFilters() {
   hydrateSearchState();
+  const unifiedSearch = getUnifiedSearchInput();
   const searchBox = document.getElementById('search-box');
   if (searchBox) searchBox.addEventListener('input', () => {
     applyFilters();
@@ -159,8 +198,36 @@ export function initFilters() {
     applySprintsFilters();
     persistSearchState();
   });
+  if (unifiedSearch) {
+    unifiedSearch.addEventListener('input', () => {
+      const tab = getActiveTabName();
+      const cfg = TAB_SEARCH_CONFIG[tab] || TAB_SEARCH_CONFIG['project-epic-level'];
+      const value = unifiedSearch.value || '';
+      const state = readCurrentSearchState();
+      state[cfg.field] = value;
+      setLegacySearchValues(state);
+      if (cfg.field === 'boards') applyBoardsFilters();
+      if (cfg.field === 'sprints') applySprintsFilters();
+      if (cfg.field === 'stories') applyFilters();
+      persistSearchState();
+    });
+    window.addEventListener('report:active-tab-changed', () => {
+      const activeTab = getActiveTabName();
+      const cfg = TAB_SEARCH_CONFIG[activeTab] || TAB_SEARCH_CONFIG['project-epic-level'];
+      const state = readCurrentSearchState();
+      state[cfg.field] = '';
+      setLegacySearchValues(state);
+      persistSearchState();
+      syncUnifiedSearchUi(state);
+      if (cfg.field === 'boards') applyBoardsFilters();
+      if (cfg.field === 'sprints') applySprintsFilters();
+      if (cfg.field === 'stories') applyFilters();
+      try { localStorage.setItem(REPORT_ACTIVE_TAB_SEARCH_KEY, activeTab); } catch (_) {}
+    });
+  }
 
   if (searchBox?.value) applyFilters();
   if (boardsSearchBox?.value) applyBoardsFilters();
   if (sprintsSearchBox?.value) applySprintsFilters();
+  syncUnifiedSearchUi(readCurrentSearchState());
 }

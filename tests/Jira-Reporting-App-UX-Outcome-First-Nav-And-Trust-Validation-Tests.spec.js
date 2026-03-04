@@ -6,7 +6,7 @@
  * Uses captureBrowserTelemetry and assertTelemetryClean; fails on UI or logcat issues.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,

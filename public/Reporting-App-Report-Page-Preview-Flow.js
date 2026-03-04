@@ -9,7 +9,7 @@ import { persistDoneStoriesOptionalColumnsPreference } from './Reporting-App-Rep
 import { triggerExcelExport } from './Reporting-App-Report-Page-Export-Menu.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
 import { collectFilterParams } from './Reporting-App-Report-Page-Filter-Params.js';
-import { LAST_QUERY_KEY, REPORT_HAS_RUN_PREVIEW_KEY, REPORT_LAST_RUN_KEY, REPORT_LAST_META_KEY, REPORT_FILTERS_STALE_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { LAST_QUERY_KEY, REPORT_HAS_RUN_PREVIEW_KEY, REPORT_LAST_RUN_KEY, REPORT_LAST_META_KEY, REPORT_FILTERS_STALE_KEY, REPORT_LAST_PREVIEW_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 import { updateLoadingMessage, clearLoadingSteps, readResponseJson, hideLoadingIfVisible, setLoadingVisible, setLoadingStage, startTheaterGathering, stopTheaterGathering, resetLoadingBarToZero } from './Reporting-App-Report-Page-Loading-Steps.js';
 import { emitTelemetry } from './Reporting-App-Shared-Telemetry.js';
 import { renderPreview } from './Reporting-App-Report-Page-Render-Preview.js';
@@ -75,6 +75,34 @@ function showReportError(shortText, detailsText) {
   errorEl.appendChild(details);
 }
 
+export function restoreLastPreviewFromStorage() {
+  try {
+    const raw = localStorage.getItem(REPORT_LAST_PREVIEW_KEY);
+    if (!raw) return false;
+    const payload = JSON.parse(raw);
+    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.rows)) return false;
+    if (!payload.meta || typeof payload.meta !== 'object') payload.meta = {};
+    payload.meta.fromCache = true;
+    payload.meta.restoredFromLastSuccess = true;
+    reportState.previewData = payload;
+    reportState.previewRows = payload.rows || [];
+    reportState.visibleRows = [...reportState.previewRows];
+    reportState.visibleBoardRows = [...(payload.boards || [])];
+    reportState.visibleSprintRows = sortSprintsLatestFirst(payload.sprintsIncluded || []);
+    reportState.previewHasRows = reportState.previewRows.length > 0;
+    renderPreview();
+    if (reportDom.previewContent) reportDom.previewContent.style.display = 'block';
+    const statusEl = document.getElementById('preview-status');
+    if (statusEl) {
+      statusEl.innerHTML = '<div class="status-banner warning">Results may be stale - refresh?<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
+      statusEl.style.display = 'block';
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 /**
  * When filters change while preview is visible, clear preview and show message so user does not mistake stale data for new selection.
  */
@@ -119,6 +147,20 @@ export function cancelPreviewRequest() {
 export function initPreviewFlow() {
   const { previewBtn, exportDropdownTrigger, exportExcelBtn, loadingEl, errorEl, previewContent } = reportDom;
   if (!previewBtn) return;
+  const oneClickCta = document.getElementById('report-one-click-cta');
+  const oneClickHint = document.getElementById('report-one-click-cta-hint');
+  if (oneClickCta && oneClickCta.dataset.bound !== '1') {
+    oneClickCta.dataset.bound = '1';
+    oneClickCta.addEventListener('click', () => {
+      const checkedProjects = Array.from(document.querySelectorAll('.project-checkbox:checked')).length;
+      if (checkedProjects === 0) {
+        if (oneClickHint) oneClickHint.textContent = 'Pick at least one squad';
+        return;
+      }
+      if (oneClickHint) oneClickHint.textContent = '';
+      previewBtn.click();
+    });
+  }
 
   const queueRetryPreview = () => {
     const tryClick = () => {
@@ -243,6 +285,18 @@ export function initPreviewFlow() {
           if (icon) icon.textContent = '>';
         }
       });
+    }
+
+    if (target.getAttribute && target.getAttribute('data-action') === 'export-done-stories-focused') {
+      const doneStoriesTabBtn = document.getElementById('tab-btn-done-stories');
+      doneStoriesTabBtn?.click();
+      const exportTrigger = document.getElementById('export-dropdown-trigger');
+      if (exportTrigger && !exportTrigger.disabled) {
+        exportTrigger.click();
+        window.setTimeout(() => {
+          document.querySelector('.export-dropdown-item[data-export="csv-active-tab"]')?.click();
+        }, 0);
+      }
     }
   });
 
@@ -480,6 +534,9 @@ export function initPreviewFlow() {
       reportState.visibleBoardRows = [...boards];
       reportState.visibleSprintRows = sortSprintsLatestFirst(sprintsIncluded);
       reportState.previewHasRows = reportState.previewRows.length > 0;
+      try {
+        localStorage.setItem(REPORT_LAST_PREVIEW_KEY, JSON.stringify(payload));
+      } catch (_) {}
 
       try {
         renderPreview();

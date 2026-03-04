@@ -29,35 +29,46 @@ export function renderEmptyStateHtml(title, message, hint = '', ctaLabel = '', o
 }
 
 /**
- * Compact, reusable data-availability summary used to explain hidden sections
- * without forcing users to inspect empty cards.
- * @param {{ title?: string, items?: Array<{label?: string, reason?: string}> }} options
+ * Compact inline data-availability strip: explains why sections are hidden without hijacking the page.
+ * Shows first 2 items visible; remaining items are collapsed behind a "+N more" toggle.
+ * @param {{ title?: string, items?: Array<{label?: string, reason?: string, source?: string}> }} options
  * @returns {string}
  */
 export function renderDataAvailabilitySummaryHtml(options = {}) {
-  const title = options.title || 'Data availability summary';
   const items = Array.isArray(options.items) ? options.items.filter(Boolean) : [];
   if (!items.length) return '';
 
-  const chips = items
-    .map((item) => {
-      const label = String(item.label || '').trim();
-      if (!label) return '';
-      const reason = String(item.reason || '').trim();
-      const source = String(item.source || '').trim();
-      const sourceTag = source ? `<span class="data-availability-source">${escapeHtml(source)}</span>` : '';
-      const titleAttr = reason ? ` title="${escapeHtml(reason)}"` : '';
-      const reasonSuffix = reason ? `: ${escapeHtml(reason)}` : '';
-      return `<li><span class="data-availability-chip"${titleAttr}>${sourceTag}${escapeHtml(label)}</span>${reasonSuffix}</li>`;
-    })
-    .filter(Boolean)
-    .join('');
-  if (!chips) return '';
+  const MAX_VISIBLE = 2;
+  const visibleItems = items.slice(0, MAX_VISIBLE);
+  const overflowItems = items.slice(MAX_VISIBLE);
+  const overflowCount = overflowItems.length;
+
+  function buildChip(item) {
+    const label = String(item.label || '').trim();
+    if (!label) return '';
+    const reason = String(item.reason || '').trim();
+    const reasonText = reason ? ` — ${escapeHtml(reason)}` : '';
+    const titleAttr = reason ? ` title="${escapeHtml(reason)}"` : '';
+    return `<span class="data-availability-chip"${titleAttr}>${escapeHtml(label)}</span>${reasonText}`;
+  }
+
+  const visibleChips = visibleItems.map(buildChip).filter(Boolean);
+  if (!visibleChips.length) return '';
+
+  const overflowId = 'da-overflow-' + Math.random().toString(36).slice(2, 7);
+  let overflowHtml = '';
+  if (overflowCount > 0) {
+    const overflowChips = overflowItems.map(buildChip).filter(Boolean).join(' · ');
+    overflowHtml = ` <button type="button" class="data-availability-more-btn" aria-expanded="false" aria-controls="${overflowId}" data-overflow-count="${overflowCount}">+${overflowCount} more</button>`
+      + `<span class="data-availability-overflow" id="${overflowId}" hidden> · ${overflowChips}</span>`;
+  }
 
   return (
-    '<div class="data-availability-summary" role="status" aria-live="polite">' +
-    `<strong>${escapeHtml(title)}</strong>` +
-    '<ul>' + chips + '</ul>' +
-    '</div>'
+    '<div class="data-availability-inline" role="status" aria-live="polite">'
+    + '<span class="data-availability-label">Data availability:</span> '
+    + visibleChips.join(' · ')
+    + overflowHtml
+    + ' <a href="#" class="data-availability-why" tabindex="0" title="Data is hidden when there are no epics with usable timing, or hygiene thresholds are not met">[Why?]</a>'
+    + '</div>'
   );
 }

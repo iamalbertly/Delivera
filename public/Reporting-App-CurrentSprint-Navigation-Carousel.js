@@ -31,10 +31,17 @@ function computeCarouselTrendSummary(sprints, currentSprint) {
 }
 
 export function renderSprintCarousel(data) {
-  const sprints = data.recentSprints || [];
   const currentSprint = data.sprint || {};
+  const sprints = [...(data.recentSprints || [])].sort((a, b) => {
+    const aCurrent = a?.id === currentSprint?.id ? 1 : 0;
+    const bCurrent = b?.id === currentSprint?.id ? 1 : 0;
+    if (aCurrent !== bCurrent) return bCurrent - aCurrent;
+    return 0;
+  });
 
-  if (sprints.length === 0) return '';
+  if (sprints.length === 0) {
+    return '<div class="sprint-carousel-container"><div class="carousel-limited-history"><small>No past sprints yet</small></div></div>';
+  }
 
   const maxTabs = 8;
   const slice = sprints.slice(0, maxTabs);
@@ -118,6 +125,9 @@ export function renderSprintCarousel(data) {
   });
 
   html += '</div>';
+  if (slice.length <= 1) {
+    html += '<div class="carousel-limited-history"><small>No past sprints yet</small></div>';
+  }
   html += '<div class="carousel-scroll-hint sprint-carousel-scroll-hint" aria-hidden="true"><- swipe for older sprints -></div>';
   html += '<div class="carousel-legend">';
   html += '<span class="legend-item"><span class="legend-dot green"></span>100%</span>';

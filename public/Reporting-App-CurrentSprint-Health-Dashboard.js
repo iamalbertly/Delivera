@@ -36,6 +36,7 @@ export function renderHealthDashboard(data) {
   const stuckCount = (data.stuckCandidates || []).length;
   // Shared risk verdict logic (SSOT with verdict bar + alert banner).
   const verdict = deriveSprintVerdict(data);
+  const unassignedParents = Number(verdict.unassignedParents || 0);
   const riskColor = verdict.color || 'green';
   const riskMessage = verdict.verdict === 'Healthy'
     ? 'All systems healthy'
@@ -46,9 +47,9 @@ export function renderHealthDashboard(data) {
   const inProgressPercent = totalSP > 0 ? Math.round(((totalSP - doneSP) / totalSP) * 100) : 0;
 
   let html = '<div class="transparency-card health-dashboard-card" id="health-dashboard-card">';
-  html += '<h2>Sprint health: Why?</h2>';
+  html += '<h2>Sprint health - Why this verdict</h2>';
   html += '<div class="health-snapshot-row">';
-  html += '<strong>Header is the sprint summary.</strong> This card explains the verdict and evidence only.';
+  html += '<strong>Evidence summary.</strong> Use the chips below to see what moved the verdict.';
   html += '</div>';
 
   const breakdownReasons = [];
@@ -60,12 +61,13 @@ export function renderHealthDashboard(data) {
   if (scopeCount > 0) breakdownReasons.push('Scope grew: ' + scopeCount + ' item(s) added mid-sprint.');
   if (missingEstimates > 0) breakdownReasons.push(missingEstimates + ' sub-task(s) missing estimates.');
   if (missingLoggedItems > 0) breakdownReasons.push(missingLoggedItems + ' sub-task(s) with no time logged.');
+  if (unassignedParents > 0) breakdownReasons.push(unassignedParents + ' unowned outcome item(s) with no clear owner signal.');
   const breakdownText = breakdownReasons.length ? breakdownReasons.join(' ') : 'No risks.';
-  const formulaText = 'Health = 2+ risks → red, 1 risk → yellow, 0 → green.';
+  const formulaText = 'Health score rule is available in the tooltip. This card keeps the evidence list short and clickable.';
 
   html += '<div class="health-status-row">';
   html += '<div class="health-status-chip ' + riskColor + '" title="' + escapeHtml(breakdownText) + '" id="health-status-chip">' + riskMessage + '</div>';
-  html += '<button type="button" class="btn btn-compact health-breakdown-toggle" aria-expanded="false" aria-controls="health-breakdown-detail" data-action="toggle-health-breakdown">Why?</button>';
+  html += '<button type="button" class="btn btn-compact health-breakdown-toggle" aria-expanded="false" aria-controls="health-breakdown-detail" data-action="toggle-health-breakdown" title="How health is calculated and which signals triggered this verdict">? How health is calculated</button>';
   html += '</div>';
   html += '<div id="health-breakdown-detail" class="health-breakdown-detail" hidden>';
   html += '<p class="health-breakdown-reasons">' + escapeHtml(breakdownText) + '</p>';
@@ -232,5 +234,6 @@ export function wireHealthDashboardHandlers() {
     });
   }
 }
+
 
 

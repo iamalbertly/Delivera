@@ -4,6 +4,8 @@ import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers
 import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
 import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
+import { buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { hasOutcomeLabel, isOutcomeStoryLike } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -240,6 +242,8 @@ export function renderStories(data) {
   const planned = data.plannedWindow || {};
   const scopeChanges = data.scopeChanges || [];
   const stuckCandidates = data.stuckCandidates || [];
+  const mergedRiskRows = buildMergedWorkRiskRows(data);
+  const unifiedRiskCounts = getUnifiedRiskCounts(data);
   const summary = data.summary || {};
   const dailySeries = Array.isArray(data?.dailyCompletions?.stories) ? data.dailyCompletions.stories : [];
   const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
@@ -261,18 +265,27 @@ export function renderStories(data) {
     const done = String(st.status || '').toLowerCase().includes('done');
     return done && !(Number(st.loggedHours) > 0);
   }).length;
-  const parentUnassigned = stories.filter((s) => !s.assignee || s.assignee === '-' || String(s.assignee).toLowerCase() === 'unassigned').length;
+  const parentUnassigned = Number(unifiedRiskCounts.unownedOutcomes || 0);
   const scopeUnestimated = scopeChanges.filter((row) => row.storyPoints == null || row.storyPoints === '').length;
-  const blockersInProgress = stuckCandidates.filter((s) => {
-    const st = String(s?.status || '').toLowerCase();
-    return st && st !== 'to do' && st !== 'open' && st !== 'backlog';
-  }).length;
-  const blockersNotStarted = Math.max(0, stuckCandidates.length - blockersInProgress);
+  const blockerKeys = new Set(
+    mergedRiskRows
+      .filter((row) => row.isOwnedBlocker)
+      .map((row) => String(row?.issueKey || row?.key || '').toUpperCase())
+      .filter(Boolean)
+  );
+  const blockersInProgress = blockerKeys.size;
+  const blockersNotStarted = Math.max(0, Number(stuckCandidates.length || 0) - blockersInProgress);
   const noSubtasksParents = stories.filter((s) => !Array.isArray(s.subtasks) || s.subtasks.length === 0).length;
+  const subtaskCoveragePct = stories.length > 0 ? Math.round(((stories.length - noSubtasksParents) / stories.length) * 100) : 0;
   const recentSubtaskMovement = Number(summary.recentSubtaskMovementCount || 0);
   const movingParents = Number(summary.parentsWithRecentSubtaskMovement || 0);
   const hasTimeEvidence = subtaskEstimatedHrs > 0 || subtaskLoggedHrs > 0 || allSubtasks.length > 0;
-  const blockerKeys = new Set((stuckCandidates || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
+  const unownedOutcomeKeys = new Set(
+    mergedRiskRows
+      .filter((row) => row.isUnownedOutcome)
+      .map((row) => String(row?.issueKey || row?.key || '').toUpperCase())
+      .filter(Boolean)
+  );
   const scopeKeys = new Set((scopeChanges || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
   const timeConfidence = !hasTimeEvidence
     ? 'No subtask time evidence'
@@ -298,9 +311,12 @@ export function renderStories(data) {
   html += '<span class="subtask-chip subtask-chip-info">Logged, no estimate: ' + subtasksNoEstimate + '</span>';
   html += '<span class="subtask-chip subtask-chip-warning">Overrun: ' + subtasksOverrun + '</span>';
   html += '<span class="subtask-chip subtask-chip-neutral">Done, no log: ' + subtasksDoneNoLog + '</span>';
-  html += '<span class="subtask-chip subtask-chip-neutral">Scope +' + scopeChanges.length + ' | Unassigned parents ' + parentUnassigned + '</span>';
+  html += '<span class="subtask-chip subtask-chip-neutral">Scope +' + scopeChanges.length + ' | Unowned outcomes ' + parentUnassigned + '</span>';
   html += '</div>';
   html += '<p class="meta-row"><small>' + blockersInProgress + ' active blockers, ' + blockersNotStarted + ' not started, ' + excludedParents + ' parent flow item' + (excludedParents === 1 ? '' : 's') + ' excluded via recent subtask movement.</small></p>';
+  if (stories.length > 0 && subtaskCoveragePct < 60) {
+    html += '<p class="meta-row"><small>Only ' + subtaskCoveragePct + '% of stories use subtasks; time-based metrics are partial.</small></p>';
+  }
   html += '</div>';
 
   if (dailySeries.length > 0) {
@@ -330,10 +346,11 @@ export function renderStories(data) {
     const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
     const rowTags = [];
     const rowKey = String(row.issueKey || row.key || '').toUpperCase();
-    const rowAssigneeMissing = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
     if (blockerKeys.has(rowKey)) rowTags.push('blocker');
     if (scopeKeys.has(rowKey)) rowTags.push('scope');
-    if (rowAssigneeMissing) rowTags.push('unassigned');
+    if (unownedOutcomeKeys.has(rowKey)) rowTags.push('unassigned');
+    const outcomeLabels = Array.isArray(row.labels) ? row.labels : [];
+    const isOutcome = isOutcomeStoryLike({ labels: outcomeLabels, epicKey: row.epicKey }) || hasOutcomeLabel(outcomeLabels);
     let rowHtml = '<tr class="story-parent-row" data-parent-key="' + escapeHtml(parentKey) + '"' + (subtasks.length ? ' data-has-children="true" aria-expanded="false"' : '') + '';
     if (completedDayKey) {
       rowHtml += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
@@ -351,6 +368,9 @@ export function renderStories(data) {
     rowHtml += renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
     rowHtml += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
     rowHtml += '<td class="cell-wrap">' + escapeHtml(row.summary || '-');
+    if (isOutcome) {
+      rowHtml += '<span class="story-row-flag">Outcome</span>';
+    }
     if (subtasks.length) {
       rowHtml += '<div class="story-subtask-summary"><span class="story-subtask-count">' + subtasks.length + ' subtask' + (subtasks.length === 1 ? '' : 's') + '</span></div>';
     }
@@ -395,7 +415,7 @@ export function renderStories(data) {
       if (scopeKeys.has(String(parentKey).toUpperCase())) childTags.push('scope');
       if (est > 0 && !(log > 0)) childTags.push('no-log');
       if (!(est > 0) && log > 0) childTags.push('missing-estimate');
-      if (!owner || owner === '-' || String(owner).toLowerCase() === 'unassigned') childTags.push('unassigned');
+      if (unownedOutcomeKeys.has(String(parentKey).toUpperCase())) childTags.push('unassigned');
       rowsHtml += '<tr class="' + baseClasses + '" data-parent-key="' + escapeHtml(parentRowKey) + '" hidden';
       if (completedDayKey) {
         rowsHtml += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
@@ -422,6 +442,61 @@ export function renderStories(data) {
       rowsHtml += '</tr>';
     }
     return rowsHtml;
+  }
+
+  function renderStoryMobileCard(row) {
+    const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
+    const parentKey = String(row.issueKey || row.key || '').toUpperCase();
+    const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
+    const rowTags = [];
+    const rowKey = String(row.issueKey || row.key || '').toUpperCase();
+    if (blockerKeys.has(rowKey)) rowTags.push('blocker');
+    if (scopeKeys.has(rowKey)) rowTags.push('scope');
+    if (unownedOutcomeKeys.has(rowKey)) rowTags.push('unassigned');
+    const outcomeLabels = Array.isArray(row.labels) ? row.labels : [];
+    const isOutcome = isOutcomeStoryLike({ labels: outcomeLabels, epicKey: row.epicKey }) || hasOutcomeLabel(outcomeLabels);
+    const status = String(row.status || '-');
+    const assignee = String(row.assignee || '-');
+    const sp = formatNumber(row.storyPoints ?? 0, 1, '-');
+    const est = formatNumber(row.subtaskEstimateHours ?? 0, 1, '-');
+    const log = formatNumber(row.subtaskLoggedHours ?? 0, 1, '-');
+    let htmlCard = '<article class="story-mobile-card" data-parent-key="' + escapeHtml(parentKey) + '"';
+    if (completedDayKey) {
+      htmlCard += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
+    }
+    if (rowTags.length) {
+      htmlCard += ' data-risk-tags="' + escapeHtml(rowTags.join(' ')) + '"';
+    }
+    htmlCard += '>';
+    htmlCard += '<button type="button" class="story-mobile-main" aria-expanded="false">';
+    htmlCard += '<div class="story-mobile-head">';
+    htmlCard += '<span class="story-mobile-key">' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</span>';
+    htmlCard += '<span class="story-mobile-status">' + escapeHtml(status) + '</span>';
+    htmlCard += '</div>';
+    htmlCard += '<p class="story-mobile-summary">' + escapeHtml(row.summary || '-') + (isOutcome ? '<span class="story-row-flag">Outcome</span>' : '') + '</p>';
+    htmlCard += '<div class="story-mobile-meta"><span>' + escapeHtml(assignee) + '</span><span>SP ' + sp + '</span><span>Log/Est ' + log + 'h/' + est + 'h</span></div>';
+    htmlCard += '</button>';
+    htmlCard += '<div class="story-mobile-expand" hidden>';
+    htmlCard += '<div class="story-mobile-detail-grid">';
+    htmlCard += '<span><strong>Type:</strong> ' + escapeHtml(row.issueType || '-') + '</span>';
+    htmlCard += '<span><strong>Reporter:</strong> ' + escapeHtml(row.reporter || '-') + '</span>';
+    htmlCard += '<span><strong>Created:</strong> ' + escapeHtml(formatDate(row.created)) + '</span>';
+    htmlCard += '<span><strong>Resolved:</strong> ' + escapeHtml(formatDate(row.resolved)) + '</span>';
+    htmlCard += '</div>';
+    if (subtasks.length) {
+      htmlCard += '<ul class="story-mobile-subtasks">';
+      for (const child of subtasks) {
+        htmlCard += '<li>';
+        htmlCard += '<span class="story-mobile-subtask-key">' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</span>';
+        htmlCard += '<span class="story-mobile-subtask-status">' + escapeHtml(child.status || '-') + '</span>';
+        htmlCard += '<span class="story-mobile-subtask-hours">' + formatNumber(child.loggedHours ?? 0, 1, '-') + 'h / ' + formatNumber(child.estimateHours ?? 0, 1, '-') + 'h</span>';
+        htmlCard += '</li>';
+      }
+      htmlCard += '</ul>';
+    }
+    htmlCard += '</div>';
+    htmlCard += '</article>';
+    return htmlCard;
   }
 
   if (!stories.length) {
@@ -452,6 +527,11 @@ export function renderStories(data) {
     }
     html += '</tbody></table>';
     html += '</div>';
+    html += '<div class="stories-mobile-card-list" id="stories-mobile-card-list">';
+    for (const row of toShow) {
+      html += renderStoryMobileCard(row);
+    }
+    html += '</div>';
 
     if (remaining.length > 0) {
       html += '<button class="btn btn-secondary btn-compact stories-show-more" data-count="' + remaining.length + '">Show ' + remaining.length + ' more</button>';
@@ -459,6 +539,11 @@ export function renderStories(data) {
       for (const row of remaining) {
         html += renderStoryRow(row);
         html += renderSubtaskRows(row);
+      }
+      html += '</template>';
+      html += '<template id="stories-mobile-more-template">';
+      for (const row of remaining) {
+        html += renderStoryMobileCard(row);
       }
       html += '</template>';
     }
@@ -469,7 +554,25 @@ export function renderStories(data) {
 }
 
 export function wireProgressShowMoreHandlers() {
-  wireShowMoreHandler('.stories-show-more', 'stories-more-template', '#stories-table tbody');
+  const storiesBtn = document.querySelector('.stories-show-more');
+  if (storiesBtn && storiesBtn.dataset.wiredShowMore !== '1') {
+    storiesBtn.dataset.wiredShowMore = '1';
+    storiesBtn.addEventListener('click', () => {
+      const tableTemplate = document.getElementById('stories-more-template');
+      const mobileTemplate = document.getElementById('stories-mobile-more-template');
+      const tbody = document.querySelector('#stories-table tbody');
+      const mobileList = document.getElementById('stories-mobile-card-list');
+      if (tableTemplate && tbody) {
+        const frag = tableTemplate.content.cloneNode(true);
+        tbody.appendChild(frag);
+      }
+      if (mobileTemplate && mobileList) {
+        const frag = mobileTemplate.content.cloneNode(true);
+        mobileList.appendChild(frag);
+      }
+      storiesBtn.remove();
+    });
+  }
   wireShowMoreHandler('.burndown-show-more', 'burndown-more-template', '#burndown-table tbody');
 }
 
@@ -480,11 +583,17 @@ export function wireDailyCompletionTimelineHandlers() {
     const timeline = card.querySelector('.daily-completion-timeline');
     const chips = timeline ? Array.from(timeline.querySelectorAll('.daily-timeline-chip')) : [];
     const tableBody = card.querySelector('#stories-table tbody');
-    if (!tableBody) return;
+    const mobileCardsList = card.querySelector('#stories-mobile-card-list');
+    if (!tableBody && !mobileCardsList) return;
     function getRows() {
-      return Array.from(tableBody.querySelectorAll('tr'));
+      return tableBody ? Array.from(tableBody.querySelectorAll('tr')) : [];
+    }
+    function getMobileCards() {
+      return mobileCardsList ? Array.from(mobileCardsList.querySelectorAll('.story-mobile-card')) : [];
     }
     const expandedStateKey = 'current_sprint_expanded_story_rows';
+    const dayFilterStateKey = 'current_sprint_stories_day_filter';
+    const storyFilterState = { activeRiskTags: [] };
     let expandedParents = new Set();
     try {
       const parsed = JSON.parse(window.localStorage.getItem(expandedStateKey) || '[]');
@@ -513,11 +622,13 @@ export function wireDailyCompletionTimelineHandlers() {
         toggle.setAttribute('aria-label', expanded ? 'Collapse subtasks' : 'Expand subtasks');
         toggle.title = expanded ? 'Hide subtasks' : 'Show subtasks';
       }
-      const childRows = tableBody.querySelectorAll('tr.subtask-child-row[data-parent-key="' + parentKey + '"]');
-      childRows.forEach((row) => {
-        if (expanded) row.removeAttribute('hidden');
-        else row.setAttribute('hidden', 'hidden');
-      });
+      if (tableBody) {
+        const childRows = tableBody.querySelectorAll('tr.subtask-child-row[data-parent-key="' + parentKey + '"]');
+        childRows.forEach((row) => {
+          if (expanded) row.removeAttribute('hidden');
+          else row.setAttribute('hidden', 'hidden');
+        });
+      }
       parentRow.classList.toggle('story-parent-row-expanded', expanded);
     }
 
@@ -528,6 +639,18 @@ export function wireDailyCompletionTimelineHandlers() {
         const shouldExpand = expandedParents.has(parentKey);
         parentRow.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
         syncParentChildren(parentRow);
+      });
+    }
+
+    function initializeMobileCards() {
+      getMobileCards().forEach((cardEl) => {
+        const parentKey = String(cardEl.getAttribute('data-parent-key') || '').toUpperCase();
+        const mainBtn = cardEl.querySelector('.story-mobile-main');
+        const expandEl = cardEl.querySelector('.story-mobile-expand');
+        const shouldExpand = expandedParents.has(parentKey);
+        if (mainBtn) mainBtn.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
+        if (expandEl) expandEl.hidden = !shouldExpand;
+        cardEl.classList.toggle('story-mobile-card-expanded', shouldExpand);
       });
     }
 
@@ -542,7 +665,16 @@ export function wireDailyCompletionTimelineHandlers() {
         const show = !keyNorm || (rowKey && rowKey === keyNorm);
         row.style.display = show ? '' : 'none';
       });
+      getMobileCards().forEach((cardEl) => {
+        const rowKey = (cardEl.getAttribute('data-completed-day') || '').trim();
+        const show = !keyNorm || (rowKey && rowKey === keyNorm);
+        cardEl.style.display = show ? '' : 'none';
+      });
       initializeStoryHierarchy();
+      initializeMobileCards();
+      try {
+        window.localStorage.setItem(dayFilterStateKey, keyNorm);
+      } catch (_) {}
       try {
         window.dispatchEvent(new CustomEvent('currentSprint:storiesDayFilterChanged', { detail: { dayKey: keyNorm } }));
       } catch (_) {}
@@ -572,6 +704,28 @@ export function wireDailyCompletionTimelineHandlers() {
       else expandedParents.delete(parentKey);
       persistExpandedState();
       syncParentChildren(parentRow);
+      initializeMobileCards();
+    });
+
+    card.addEventListener('click', (event) => {
+      const mobileBtn = event.target.closest('.story-mobile-main');
+      if (!mobileBtn || !card.contains(mobileBtn)) return;
+      const cardEl = mobileBtn.closest('.story-mobile-card');
+      if (!cardEl) return;
+      const parentKey = String(cardEl.getAttribute('data-parent-key') || '').toUpperCase();
+      const next = mobileBtn.getAttribute('aria-expanded') !== 'true';
+      mobileBtn.setAttribute('aria-expanded', next ? 'true' : 'false');
+      const expandEl = cardEl.querySelector('.story-mobile-expand');
+      if (expandEl) expandEl.hidden = !next;
+      cardEl.classList.toggle('story-mobile-card-expanded', next);
+      if (next) expandedParents.add(parentKey);
+      else expandedParents.delete(parentKey);
+      persistExpandedState();
+      const parentRow = tableBody ? tableBody.querySelector('tr.story-parent-row[data-parent-key="' + parentKey + '"]') : null;
+      if (parentRow) {
+        parentRow.setAttribute('aria-expanded', next ? 'true' : 'false');
+        syncParentChildren(parentRow);
+      }
     });
 
     card.addEventListener('keydown', (event) => {
@@ -598,6 +752,7 @@ export function wireDailyCompletionTimelineHandlers() {
         const activeTags = Array.isArray(detail.riskTags)
           ? detail.riskTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
           : [];
+        storyFilterState.activeRiskTags = activeTags;
         getRows().forEach((row) => {
           if (!activeTags.length) {
             row.removeAttribute('data-role-filter-hidden');
@@ -614,7 +769,19 @@ export function wireDailyCompletionTimelineHandlers() {
           }
           row.style.opacity = matches ? '' : '0.35';
         });
+        getMobileCards().forEach((cardEl) => {
+          if (!activeTags.length) {
+            cardEl.removeAttribute('data-role-filter-hidden');
+            cardEl.style.opacity = '';
+            return;
+          }
+          const tags = (cardEl.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
+          const matches = activeTags.some((tag) => tags.includes(tag));
+          cardEl.toggleAttribute('data-role-filter-hidden', !matches);
+          cardEl.style.opacity = matches ? '' : '0.35';
+        });
         initializeStoryHierarchy();
+        initializeMobileCards();
       });
     }
     const storiesShowMore = card.querySelector('.stories-show-more');
@@ -622,12 +789,27 @@ export function wireDailyCompletionTimelineHandlers() {
       storiesShowMore.addEventListener('click', () => {
         window.setTimeout(() => {
           initializeStoryHierarchy();
+          try {
+            window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: storyFilterState.activeRiskTags, source: 'stories-show-more' } }));
+          } catch (_) {}
           const activeChip = chips.find((chip) => chip.classList.contains('daily-timeline-chip-active'));
           if (activeChip) applyDayFilter(activeChip.getAttribute('data-day-key') || '');
+          else {
+            try {
+              const storedDay = window.localStorage.getItem(dayFilterStateKey) || '';
+              if (storedDay) applyDayFilter(storedDay);
+            } catch (_) {}
+          }
         }, 0);
       });
     }
+    try {
+      const storedDay = window.localStorage.getItem(dayFilterStateKey) || '';
+      if (storedDay && chips.some((chip) => (chip.getAttribute('data-day-key') || '') === storedDay)) {
+        applyDayFilter(storedDay);
+      }
+    } catch (_) {}
     initializeStoryHierarchy();
+    initializeMobileCards();
   } catch (_) {}
 }
-

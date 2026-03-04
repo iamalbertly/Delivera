@@ -1,7 +1,9 @@
 import { renderSidebarContextCard } from './Reporting-App-Shared-Context-From-Storage.js';
+import { readNotificationSummary } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
 
 const PAGE_REPORT = 'report';
 const PAGE_SPRINT = 'current-sprint';
+const PAGE_LEADERSHIP = 'leadership';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
@@ -9,15 +11,21 @@ const LEADERSHIP_HASH = '#trends';
 const NAV_ITEMS = [
   {
     key: PAGE_REPORT,
-    label: 'Performance Report',
+    label: 'Performance - History (Report)',
     href: '/report',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
   },
   {
     key: PAGE_SPRINT,
-    label: 'Current Sprint (Squad)',
+    label: 'Performance - Current Sprint (Squad)',
     href: '/current-sprint',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM7 3h2v4H7zm8 0h2v4h-2z"/></svg>',
+  },
+  {
+    key: PAGE_LEADERSHIP,
+    label: 'Leadership HUD',
+    href: '/report#trends',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7 4a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7-8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
   },
 ];
 
@@ -33,7 +41,7 @@ function getCurrentPage() {
   if ((path === '/report' || path.endsWith('/report')) && hash === LEADERSHIP_HASH) return PAGE_REPORT;
   if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
   if (path === '/current-sprint' || path.endsWith('/current-sprint')) return PAGE_SPRINT;
-  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_REPORT;
+  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_LEADERSHIP;
   return PAGE_REPORT;
 }
 
@@ -61,8 +69,9 @@ function buildSidebarHTML() {
 }
 
 function updateToggleState(toggle, isExpanded) {
-  if (!toggle) return;
-  toggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+  const value = isExpanded ? 'true' : 'false';
+  if (toggle) toggle.setAttribute('aria-expanded', value);
+  document.querySelectorAll('.sidebar-toggle').forEach((node) => node.setAttribute('aria-expanded', value));
 }
 
 function syncBodySidebarState(sidebar) {
@@ -76,16 +85,25 @@ function syncBodySidebarState(sidebar) {
   document.body.classList.remove('sidebar-scroll-lock');
 }
 
+function setBackdropActive(isActive) {
+  document.querySelectorAll('.sidebar-backdrop').forEach((node) => {
+    node.classList.toggle('active', !!isActive);
+    node.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+  });
+}
+
 function closeSidebar(sidebar, toggle, backdrop) {
   sidebar?.classList.remove('open');
-  backdrop?.classList.remove('active');
+  if (backdrop) backdrop.classList.remove('active');
+  setBackdropActive(false);
   syncBodySidebarState(sidebar);
   updateToggleState(toggle, false);
 }
 
 function openSidebar(sidebar, toggle, backdrop) {
   sidebar?.classList.add('open');
-  backdrop?.classList.add('active');
+  if (backdrop) backdrop.classList.add('active');
+  setBackdropActive(true);
   syncBodySidebarState(sidebar);
   updateToggleState(toggle, true);
 }
@@ -128,8 +146,66 @@ function navigateTo(itemKey, itemHref) {
     dispatchHashSync();
     return;
   }
+  if (itemKey === PAGE_LEADERSHIP && isReportPath && hash !== LEADERSHIP_HASH) {
+    history.replaceState(null, '', '/report#trends');
+    dispatchHashSync();
+    return;
+  }
 
   window.location.href = itemHref;
+}
+
+function buildBottomNavHTML() {
+  const current = getCurrentPage();
+  const items = getNavItems(current);
+  let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
+  for (const item of items) {
+    const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');
+    const shortLabel = item.key === PAGE_SPRINT ? 'Sprint' : (item.key === PAGE_LEADERSHIP ? 'Leaders' : 'Reports');
+    html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">';
+    html += '<span class="mobile-bottom-nav-icon" aria-hidden="true">' + item.icon + '</span>';
+    html += '<span class="mobile-bottom-nav-label">' + shortLabel + '</span>';
+    html += '<span class="mobile-bottom-nav-badge" data-mobile-badge="' + item.key + '" hidden></span>';
+    html += '</a>';
+  }
+  html += '</nav>';
+  return html;
+}
+
+function ensureBottomNav() {
+  const current = getCurrentPage();
+  if (current === PAGE_LOGIN) {
+    document.querySelector('.mobile-bottom-nav-wrap')?.remove();
+    return;
+  }
+  let wrap = document.querySelector('.mobile-bottom-nav-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'mobile-bottom-nav-wrap';
+    document.body.appendChild(wrap);
+  }
+  wrap.innerHTML = buildBottomNavHTML();
+  wrap.onclick = (event) => {
+    const link = event.target.closest('a[data-nav-key]');
+    if (!link) return;
+    event.preventDefault();
+    navigateTo(link.getAttribute('data-nav-key') || '', link.getAttribute('href') || '/report');
+  };
+}
+
+function updateBottomNavBadge(itemKey, text, title) {
+  const el = document.querySelector('[data-mobile-badge="' + itemKey + '"]');
+  if (!el) return;
+  const label = String(text || '').trim();
+  if (!label) {
+    el.hidden = true;
+    el.textContent = '';
+    el.removeAttribute('title');
+    return;
+  }
+  el.hidden = false;
+  el.textContent = label;
+  if (title) el.setAttribute('title', title);
 }
 
 function initSidebarController() {
@@ -203,6 +279,7 @@ function ensureGlobalNav() {
       document.querySelector('.app-sidebar')?.remove();
       document.querySelector('.sidebar-toggle')?.remove();
       document.querySelector('.sidebar-backdrop')?.remove();
+      document.querySelector('.mobile-bottom-nav-wrap')?.remove();
       document.body.classList.remove('sidebar-open');
       document.body.classList.remove('sidebar-scroll-lock');
       return;
@@ -228,6 +305,7 @@ function ensureGlobalNav() {
       document.body.insertBefore(sidebar, document.body.firstChild);
     }
     sidebar.innerHTML = buildSidebarHTML();
+    delete sidebar.dataset.sidebarBound;
     renderSidebarContextCard();
 
     const toggles = Array.from(document.querySelectorAll('.sidebar-toggle'));
@@ -257,6 +335,7 @@ function ensureGlobalNav() {
     }
 
     initSidebarController();
+    ensureBottomNav();
     updateToggleState(toggle, sidebar.classList.contains('open'));
     initDataPulseListener();
     window.dispatchEvent(new CustomEvent('app:nav-rendered', { detail: { current } }));
@@ -266,8 +345,38 @@ function ensureGlobalNav() {
 function updateDataPulse(label, state) {
   const el = document.getElementById('sidebar-data-pulse');
   if (!el) return;
+  if (el.querySelector('[data-sidebar-alert-jump]')) return;
   const dotClass = state === 'live' ? 'pulse-live' : (state === 'stale' ? 'pulse-stale' : 'pulse-idle');
   el.innerHTML = '<span class="pulse-dot ' + dotClass + '" aria-hidden="true"></span> ' + (label || '');
+  updateBottomNavBadge(PAGE_REPORT, state === 'stale' ? '!' : '', state === 'stale' ? 'Report data may be stale' : '');
+}
+
+function updateSidebarAlertFooterFromStore() {
+  try {
+    const el = document.getElementById('sidebar-data-pulse');
+    if (!el) return;
+    const summary = readNotificationSummary();
+    if (!summary || typeof summary.total === 'undefined') return;
+    const total = Number(summary.total || 0);
+    updateBottomNavBadge(PAGE_SPRINT, total > 0 ? String(total) : '', total > 0 ? (total + ' sprint blockers') : '');
+    el.innerHTML = '<button type="button" class="sidebar-alert-footer-chip' + (total <= 0 ? ' is-healthy' : '') + '" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Work risks">Logging alerts: ' + total + (total <= 0 ? ' · Healthy' : '') + '</button>';
+    const btn = el.querySelector('[data-sidebar-alert-jump]');
+    btn?.addEventListener('click', () => {
+      const path = window.location.pathname || '';
+      if (path.endsWith('/current-sprint') || path === '/current-sprint') {
+        (document.getElementById('stuck-card') || document.getElementById('work-risks-table'))?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      window.location.href = '/current-sprint#stuck-card';
+    }, { once: true });
+  } catch (_) {}
+}
+
+function updateLeadershipBadgeFromPageState() {
+  try {
+    const hasCritical = document.querySelector('.board-severity-pill.critical, .leadership-board-card-grade.critical');
+    updateBottomNavBadge(PAGE_LEADERSHIP, hasCritical ? '!' : '', hasCritical ? 'Leadership attention required' : '');
+  } catch (_) {}
 }
 
 let dataPulseBound = false;
@@ -281,6 +390,14 @@ function initDataPulseListener() {
     } catch (_) {}
   });
   updateDataPulse('No data loaded', 'idle');
+  updateSidebarAlertFooterFromStore();
+  window.addEventListener('storage', (event) => {
+    if (event.key && event.key !== 'appNotificationsV1') return;
+    updateSidebarAlertFooterFromStore();
+  });
+  window.addEventListener('app:notification-summary-updated', () => updateSidebarAlertFooterFromStore());
+  window.addEventListener('app:nav-rendered', () => updateLeadershipBadgeFromPageState());
+  window.addEventListener('report-preview-shown', () => updateLeadershipBadgeFromPageState());
 }
 
 if (typeof document !== 'undefined') {
@@ -292,3 +409,4 @@ if (typeof document !== 'undefined') {
   window.addEventListener('hashchange', ensureGlobalNav);
   window.addEventListener('popstate', ensureGlobalNav);
 }
+

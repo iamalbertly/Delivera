@@ -13,6 +13,7 @@ import { DEFAULT_WINDOW_START, DEFAULT_WINDOW_END } from '../lib/Jira-Reporting-
 import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resolveJiraHostFromEnv } from '../lib/server-utils.js';
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
+import { getUnifiedRiskCounts } from '../public/Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -25,6 +26,52 @@ const FEEDBACK_FILE = join(FEEDBACK_DIR, 'JiraReporting-Feedback-UserInput-Submi
 
 const router = express.Router();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
+
+function normalizeNarrativeText(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function extractFirstNarrativeIssueKey(text) {
+    const match = String(text || '').match(/\b([A-Z][A-Z0-9]+-\d+)\b/i);
+    if (!match) return '';
+    const key = String(match[1] || '').toUpperCase();
+    if (key === 'AD-HOC' || key.endsWith('-AD-HOC')) return '';
+    return key;
+}
+
+function buildNarrativeHash(text) {
+    const input = normalizeNarrativeText(text).slice(0, 200).toLowerCase();
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i += 1) {
+        hash ^= input.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return Math.abs(hash >>> 0).toString(16).slice(0, 8);
+}
+
+function tokenizeForSimilarity(value) {
+    return new Set(
+        String(value || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .map((w) => w.trim())
+            .filter((w) => w.length >= 3)
+    );
+}
+
+function jaccardSimilarity(a, b) {
+    const as = tokenizeForSimilarity(a);
+    const bs = tokenizeForSimilarity(b);
+    if (!as.size && !bs.size) return 1;
+    if (!as.size || !bs.size) return 0;
+    let intersection = 0;
+    as.forEach((token) => {
+        if (bs.has(token)) intersection += 1;
+    });
+    const union = new Set([...as, ...bs]).size || 1;
+    return intersection / union;
+}
 
 router.get('/api/csv-columns', requireAuth, (req, res) => {
     res.json({ columns: CSV_COLUMNS });
@@ -191,17 +238,25 @@ router.post('/api/current-sprint-notes', requireAuth, async (req, res) => {
 
 router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
     try {
-        const projects = ['MPSA', 'MAS'];
+        const projectsParam = req.query.projects;
+        const projects = projectsParam != null
+            ? Array.from(new Set(String(projectsParam).split(',').map((p) => p.trim()).filter(Boolean)))
+            : ['MPSA', 'MAS'];
+        if (!projects.length) {
+            return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+        }
         const cacheKey = CACHE_KEYS.leadershipHudSummary(projects);
         const cached = await cache.get(cacheKey, { namespace: 'leadership' });
         const cachedSummary = cached?.value || cached;
         if (cachedSummary) return res.json(cachedSummary);
 
         const agileClient = createAgileClient();
+        const version3Client = createVersion3Client();
+        const fields = await discoverFieldsWithCache(version3Client);
 
         const boards = await discoverBoardsWithCache(projects, agileClient);
         const activeBoards = boards.slice(0, 5);
-        const sprintPromises = activeBoards.map(b => fetchSprintsForBoard(b.id, agileClient));
+        const sprintPromises = activeBoards.map((b) => fetchSprintsForBoard(b.id, agileClient));
         const allSprintsRaw = await Promise.all(sprintPromises);
 
         const relevantSprints = allSprintsRaw.flat()
@@ -209,9 +264,59 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
             .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
             .slice(0, 20);
 
+        const boardPayloadsSettled = await Promise.allSettled(
+            activeBoards.map((board) => buildCurrentSprintPayload({
+                board: { id: board.id, name: board.name, location: board.location },
+                projectKeys: board.location?.projectKey ? [board.location.projectKey] : projects,
+                agileClient,
+                fields: {
+                    storyPointsFieldId: fields.storyPointsFieldId,
+                    epicLinkFieldId: fields.epicLinkFieldId,
+                    ebmFieldIds: fields.ebmFieldIds || {},
+                    storyPointsFieldCandidates: fields.storyPointsFieldCandidates || [],
+                },
+                options: {},
+            }))
+        );
+
+        let blockersOwned = 0;
+        let unownedOutcomes = 0;
+        let missingLogged = 0;
+        let missingEstimate = 0;
+        let totalStories = 0;
+        let doneStories = 0;
+
+        for (const settled of boardPayloadsSettled) {
+            if (settled.status !== 'fulfilled' || !settled.value) continue;
+            const payload = settled.value;
+            const storyList = payload?.stories || [];
+            totalStories += storyList.length;
+            doneStories += storyList.filter((s) => String(s?.status || '').toLowerCase().includes('done')).length;
+            const riskCounts = getUnifiedRiskCounts(payload);
+            blockersOwned += Number(riskCounts.blockersOwned || 0);
+            unownedOutcomes += Number(riskCounts.unownedOutcomes || 0);
+            missingLogged += Number(payload?.summary?.subtaskMissingLogged || 0);
+            missingEstimate += Number(payload?.summary?.subtaskMissingEstimate || 0);
+        }
+
+        const completionPct = totalStories > 0 ? Math.round((doneStories / totalStories) * 100) : 0;
+        const riskScoreRaw = (blockersOwned * 4) + (unownedOutcomes * 2) + (missingLogged * 0.5) + (missingEstimate * 0.5) + (completionPct < 45 ? 6 : 0);
+        const riskScore = Math.max(0, Math.min(100, Math.round(riskScoreRaw)));
+        const deliveryRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, blockersOwned / 10) * 100)));
+        const dataQualityRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, (unownedOutcomes + missingLogged + missingEstimate) / 30) * 100)));
+
         const summary = {
             velocity: { avg: 45, trend: 12 },
-            risk: { score: 18, trend: -5 },
+            risk: {
+                score: riskScore,
+                trend: 0,
+                blockersOwned,
+                unownedOutcomes,
+                missingLogged,
+                missingEstimate,
+                deliveryRisk,
+                dataQualityRisk,
+            },
             quality: { reworkPct: 8.5, trend: 2 },
             predictability: { avg: 82, trend: 4 },
             projectContext: projects.join(', '),
@@ -222,6 +327,151 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
     } catch (err) {
         logger.error('Leadership HUD Error', err);
         res.status(500).json({ error: 'HUD computation failed' });
+    }
+});
+
+router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
+    try {
+        const rawNarrative = (req.body && typeof req.body.narrative === 'string') ? req.body.narrative.trim() : '';
+        const rawProjectKey = (req.body && typeof req.body.projectKey === 'string') ? req.body.projectKey.trim() : '';
+        const selectedProjects = Array.isArray(req.body?.selectedProjects)
+            ? req.body.selectedProjects.map((p) => String(p || '').trim().toUpperCase()).filter(Boolean)
+            : [];
+        const createAnyway = req.body?.createAnyway === true;
+        if (!rawNarrative) {
+            return res.status(400).json({ error: 'Narrative text is required', code: 'MISSING_NARRATIVE' });
+        }
+        let projectKey = rawProjectKey ? rawProjectKey.toUpperCase() : '';
+        if (!projectKey && selectedProjects.length === 1) {
+            projectKey = selectedProjects[0];
+        }
+        if (!projectKey) {
+            return res.status(400).json({ error: 'Primary project key is required to create an outcome story', code: 'MISSING_PROJECT_KEY' });
+        }
+        const embeddedIssueKey = extractFirstNarrativeIssueKey(rawNarrative);
+        if (embeddedIssueKey) {
+            const host = resolvedJiraHost();
+            const url = host ? `${host.replace(/\/+$/, '')}/browse/${embeddedIssueKey}` : '';
+            return res.status(409).json({
+                code: 'NARRATIVE_HAS_EXISTING_KEY',
+                message: `This already has a Jira issue: ${embeddedIssueKey}. Use it.`,
+                existing: { key: embeddedIssueKey, url },
+            });
+        }
+        const lines = rawNarrative.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        const summaryBase = lines.length > 0 ? lines[0] : 'Outcome from narrative';
+        const summary = summaryBase.length > 180 ? summaryBase.slice(0, 177) + '...' : summaryBase;
+        const labels = Array.isArray(req.body?.labels)
+            ? req.body.labels.map((l) => String(l || '').trim()).filter(Boolean)
+            : [];
+        if (!labels.includes('OutcomeStory')) labels.push('OutcomeStory');
+        if (!labels.some((l) => /^Squad_/i.test(l))) labels.push(`Squad_${projectKey}`);
+        const narrativeHash = buildNarrativeHash(rawNarrative);
+        const hashLabel = `OutcomeHash_${narrativeHash}`;
+        if (!labels.includes(hashLabel)) labels.push(hashLabel);
+
+        const version3Client = createVersion3Client();
+        const host = resolvedJiraHost();
+        const asPlainText = (description) => {
+            if (!description) return '';
+            if (typeof description === 'string') return description;
+            try {
+                return JSON.stringify(description);
+            } catch (_) {
+                return '';
+            }
+        };
+
+        const candidates = [];
+        try {
+            const byHash = await version3Client.issueSearch.searchForIssuesUsingJqlPost({
+                jql: `project = ${projectKey} AND labels = "${hashLabel}" ORDER BY created DESC`,
+                maxResults: 5,
+                fields: ['summary', 'labels', 'description'],
+            });
+            if (Array.isArray(byHash?.issues)) candidates.push(...byHash.issues);
+        } catch (error) {
+            logger.warn('Outcome intake dedupe hash lookup failed', { projectKey, error: error?.message });
+        }
+        if (!candidates.length) {
+            try {
+                const byOutcomeStory = await version3Client.issueSearch.searchForIssuesUsingJqlPost({
+                    jql: `project = ${projectKey} AND labels = OutcomeStory ORDER BY created DESC`,
+                    maxResults: 30,
+                    fields: ['summary', 'labels', 'description'],
+                });
+                if (Array.isArray(byOutcomeStory?.issues)) candidates.push(...byOutcomeStory.issues);
+            } catch (error) {
+                logger.warn('Outcome intake dedupe label lookup failed', { projectKey, error: error?.message });
+            }
+        }
+
+        const narrativeFragment = normalizeNarrativeText(rawNarrative).slice(0, 200);
+        const match = candidates
+            .map((issue) => {
+                const issueSummary = String(issue?.fields?.summary || '');
+                const issueText = `${issueSummary} ${asPlainText(issue?.fields?.description).slice(0, 400)}`;
+                const hasHash = Array.isArray(issue?.fields?.labels) && issue.fields.labels.includes(hashLabel);
+                const similarity = hasHash
+                    ? 1
+                    : Math.max(
+                        jaccardSimilarity(summaryBase, issueSummary),
+                        jaccardSimilarity(narrativeFragment, issueText)
+                    );
+                return {
+                    key: issue?.key || '',
+                    summary: issueSummary,
+                    similarity,
+                };
+            })
+            .filter((item) => item.key)
+            .sort((a, b) => b.similarity - a.similarity)[0] || null;
+
+        if (match && match.similarity >= 0.8 && !createAnyway) {
+            const existingUrl = host ? `${host.replace(/\/+$/, '')}/browse/${match.key}` : '';
+            return res.status(409).json({
+                code: 'POSSIBLE_DUPLICATE_OUTCOME',
+                message: `Looks like ${match.key} already exists - use existing or create anyway.`,
+                duplicate: {
+                    key: match.key,
+                    summary: match.summary,
+                    similarity: Number(match.similarity.toFixed(2)),
+                    url: existingUrl,
+                },
+            });
+        }
+
+        const issueTypeName = (req.body && typeof req.body.issueTypeName === 'string' && req.body.issueTypeName.trim())
+            ? req.body.issueTypeName.trim()
+            : 'Epic';
+
+        const createPayload = {
+            fields: {
+                summary,
+                description: rawNarrative,
+                project: { key: projectKey },
+                issuetype: { name: issueTypeName },
+                labels,
+            },
+        };
+
+        const created = await version3Client.issues.createIssue(createPayload);
+        const key = (created && (created.key || created.id)) || null;
+        const url = (host && key) ? `${host.replace(/\/+$/, '')}/browse/${key}` : '';
+
+        logger.info('Outcome issue created from narrative', { projectKey, key, labels, hashLabel });
+        return res.json({
+            ok: true,
+            key,
+            url,
+            dedupe: match && match.similarity >= 0.8 ? { bypassed: true, key: match.key } : null,
+        });
+    } catch (error) {
+        logger.error('Error creating outcome issue from narrative', { error: error.message });
+        return res.status(500).json({
+            error: 'Failed to create Jira issue from narrative',
+            message: error && error.message ? error.message : 'Unexpected error while creating issue',
+        });
     }
 });
 

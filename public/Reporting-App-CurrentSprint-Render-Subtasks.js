@@ -64,7 +64,7 @@ export function renderWorkRisksMerged(data) {
   let html = '<div class="transparency-card" id="stuck-card">';
   // Short headline; avoid re-enumerating all risk types already explained below.
   html += '<div class="meta-row"><small id="scope-changes-card">One merged view for sprint risks.</small></div>';
-  const blockerRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('stuck >24h'));
+  const blockerRows = rows.filter((row) => row.isOwnedBlocker);
   const blockerInProgress = blockerRows.filter((row) => {
     const st = String(row.status || '').toLowerCase();
     return st && st !== 'to do' && st !== 'open' && st !== 'backlog';
@@ -72,7 +72,7 @@ export function renderWorkRisksMerged(data) {
   const blockerNotStarted = Math.max(0, blockerRows.length - blockerInProgress);
   const noLogRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('no log yet')).length;
   const noEstimateRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('missing estimate')).length;
-  const unassignedRows = rows.filter((row) => !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned').length;
+  const unassignedRows = rows.filter((row) => row.isUnownedOutcome).length;
   const blockerPreview = blockerRows.slice(0, 6);
   const groupedReasons = blockerRows.reduce((acc, row) => {
     const key = String(row.riskType || 'Risk');
@@ -82,7 +82,7 @@ export function renderWorkRisksMerged(data) {
   html += '<h2>Work risks</h2>';
   if (blockerRows.length > 0) {
     html += '<div class="work-risk-blocker-strip" aria-live="polite">';
-    html += '<strong>Blocker issues</strong>';
+    html += '<strong>Blockers (owned)</strong>';
     if (blockerPreview.length > 0) {
       html += '<span class="work-risk-blocker-links">';
       blockerPreview.forEach((row) => { html += renderIssueKeyLink(row.issueKey || '-', row.issueUrl) + ' '; });
@@ -97,7 +97,7 @@ export function renderWorkRisksMerged(data) {
     }
     html += '</div>';
   } else {
-    html += '<p class="meta-row"><small>No blocker issues in this sprint.</small></p>';
+    html += '<p class="meta-row"><small>No owned blockers in this sprint.</small></p>';
   }
   // Compact meta: one-line context only, definitions moved to table header tooltips
   const metaParts = [];
@@ -129,7 +129,7 @@ export function renderWorkRisksMerged(data) {
   html += '<div class="data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit"><table class="data-table" id="work-risks-table" style="table-layout: auto;">';
   html += '<thead><tr>'
     + '<th data-sort-key="source" tabindex="0" role="button" aria-label="Sort by source">Source</th>'
-    + '<th data-sort-key="risk" tabindex="0" role="button" aria-label="Sort by risk" title="Blocker: in-progress >24h with stale status movement. Deduped by issue key.">Risk</th>'
+    + '<th data-sort-key="risk" tabindex="0" role="button" aria-label="Sort by risk" title="Blocker: owned in-progress item with no movement >24h. Unowned outcomes are tracked separately.">Risk</th>'
     + '<th data-sort-key="issue" tabindex="0" role="button" aria-label="Sort by issue">Issue</th>'
     + '<th data-sort-key="summary" class="cell-wrap" tabindex="0" role="button" aria-label="Sort by summary">Summary</th>'
     + '<th data-sort-key="type" tabindex="0" role="button" aria-label="Sort by type">Type</th>'
@@ -154,21 +154,11 @@ export function renderWorkRisksMerged(data) {
     const childRows = parentKey ? (childrenByParentKey.get(parentKey) || []) : [];
     const hasChildren = childRows.length > 0;
     const parentClasses = hasChildren ? 'work-risk-parent-row work-risk-parent-has-children' : 'work-risk-parent-row';
-    const hasMissingEstimate = riskTypeLower.includes('missing estimate');
-    const hasNoLog = riskTypeLower.includes('no log yet');
-    const isScopeRow = String(row.source || '').toLowerCase() === 'scope';
-    const isUnassigned = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
-    const riskTags = [];
-    if (isStuck) riskTags.push('blocker');
-    if (isParentBlocker) riskTags.push('parent-flow');
-    if (hasMissingEstimate) riskTags.push('missing-estimate');
-    if (hasNoLog) riskTags.push('no-log');
-    if (isScopeRow) riskTags.push('scope');
-    if (isUnassigned) riskTags.push('unassigned');
+    const riskTags = Array.isArray(row.riskTags) ? row.riskTags : [];
     html += '<tr class="' + parentClasses + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (hasChildren ? ' aria-expanded="true"' : '') + (riskTags.length ? ' data-risk-tags="' + escapeHtml(riskTags.join(' ')) + '"' : '') + '>';
     let sourceLabel = escapeHtml(row.source || '-');
     if (hasChildren) {
-      sourceLabel = '<button type="button" class="work-risks-toggle" aria-label="Toggle subtask risks" aria-expanded="true">▾</button>' + sourceLabel;
+      sourceLabel = '<button type="button" class="work-risks-toggle" aria-label="Toggle subtask risks" aria-expanded="true">v</button>' + sourceLabel;
     }
     html += '<td data-label="' + escapeHtml(headers[0]) + '">' + sourceLabel + '</td>';
     html += '<td data-label="' + escapeHtml(headers[1]) + '">' + escapeHtml(riskLabel) + '</td>';
@@ -192,17 +182,7 @@ export function renderWorkRisksMerged(data) {
         const childRiskLabel = childIsSubtaskBlocker
           ? (child.riskType || 'Stuck >24h') + ' (Subtask)'
           : (child.riskType || '-');
-        const childHasMissingEstimate = childRiskTypeLower.includes('missing estimate');
-        const childHasNoLog = childRiskTypeLower.includes('no log yet');
-        const childIsScopeRow = String(child.source || '').toLowerCase() === 'scope';
-        const childIsUnassigned = !child.assignee || child.assignee === '-' || String(child.assignee).toLowerCase() === 'unassigned';
-        const childRiskTags = [];
-        if (childIsStuck) childRiskTags.push('blocker');
-        if (childIsSubtaskBlocker) childRiskTags.push('subtask-flow');
-        if (childHasMissingEstimate) childRiskTags.push('missing-estimate');
-        if (childHasNoLog) childRiskTags.push('no-log');
-        if (childIsScopeRow) childRiskTags.push('scope');
-        if (childIsUnassigned) childRiskTags.push('unassigned');
+        const childRiskTags = Array.isArray(child.riskTags) ? child.riskTags : [];
         html += '<tr class="work-risk-subtask-row" data-parent-key="' + escapeHtml(parentKey) + '"' + (childRiskTags.length ? ' data-risk-tags="' + escapeHtml(childRiskTags.join(' ')) + '"' : '') + '>';
         html += '<td data-label="' + escapeHtml(headers[0]) + '">' + escapeHtml(child.source || 'Subtask') + '</td>';
         html += '<td data-label="' + escapeHtml(headers[1]) + '">' + escapeHtml(childRiskLabel) + '</td>';
@@ -238,21 +218,11 @@ export function renderWorkRisksMerged(data) {
       const childRows = parentKey ? (childrenByParentKey.get(parentKey) || []) : [];
       const hasChildren = childRows.length > 0;
       const parentClasses = hasChildren ? 'work-risk-parent-row work-risk-parent-has-children' : 'work-risk-parent-row';
-      const hasMissingEstimate = riskTypeLower.includes('missing estimate');
-      const hasNoLog = riskTypeLower.includes('no log yet');
-      const isScopeRow = String(row.source || '').toLowerCase() === 'scope';
-      const isUnassigned = !row.assignee || row.assignee === '-' || String(row.assignee).toLowerCase() === 'unassigned';
-      const riskTags = [];
-      if (isStuck) riskTags.push('blocker');
-      if (isParentBlocker) riskTags.push('parent-flow');
-      if (hasMissingEstimate) riskTags.push('missing-estimate');
-      if (hasNoLog) riskTags.push('no-log');
-      if (isScopeRow) riskTags.push('scope');
-      if (isUnassigned) riskTags.push('unassigned');
+      const riskTags = Array.isArray(row.riskTags) ? row.riskTags : [];
       html += '<tr class="' + parentClasses + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (hasChildren ? ' aria-expanded="true"' : '') + (riskTags.length ? ' data-risk-tags="' + escapeHtml(riskTags.join(' ')) + '"' : '') + '>';
       let sourceLabel = escapeHtml(row.source || '-');
       if (hasChildren) {
-        sourceLabel = '<button type="button" class="work-risks-toggle" aria-label="Toggle subtask risks" aria-expanded="true">▾</button>' + sourceLabel;
+        sourceLabel = '<button type="button" class="work-risks-toggle" aria-label="Toggle subtask risks" aria-expanded="true">v</button>' + sourceLabel;
       }
       html += '<td data-label="Source">' + sourceLabel + '</td>';
       html += '<td data-label="Risk">' + escapeHtml(riskLabel) + '</td>';
@@ -276,17 +246,7 @@ export function renderWorkRisksMerged(data) {
           const childRiskLabel = childIsSubtaskBlocker
             ? (child.riskType || 'Stuck >24h') + ' (Subtask)'
             : (child.riskType || '-');
-          const childHasMissingEstimate = childRiskTypeLower.includes('missing estimate');
-          const childHasNoLog = childRiskTypeLower.includes('no log yet');
-          const childIsScopeRow = String(child.source || '').toLowerCase() === 'scope';
-          const childIsUnassigned = !child.assignee || child.assignee === '-' || String(child.assignee).toLowerCase() === 'unassigned';
-          const childRiskTags = [];
-          if (childIsStuck) childRiskTags.push('blocker');
-          if (childIsSubtaskBlocker) childRiskTags.push('subtask-flow');
-          if (childHasMissingEstimate) childRiskTags.push('missing-estimate');
-          if (childHasNoLog) childRiskTags.push('no-log');
-          if (childIsScopeRow) childRiskTags.push('scope');
-          if (childIsUnassigned) childRiskTags.push('unassigned');
+          const childRiskTags = Array.isArray(child.riskTags) ? child.riskTags : [];
           html += '<tr class="work-risk-subtask-row" data-parent-key="' + escapeHtml(parentKey) + '"' + (childRiskTags.length ? ' data-risk-tags="' + escapeHtml(childRiskTags.join(' ')) + '"' : '') + '>';
           html += '<td data-label="Source">' + escapeHtml(child.source || 'Subtask') + '</td>';
           html += '<td data-label="Risk">' + escapeHtml(childRiskLabel) + '</td>';
@@ -320,6 +280,8 @@ export function wireSubtasksShowMoreHandlers() {
     if (!table) return;
     const tbody = table.querySelector('tbody');
     const sortState = { key: '', dir: '' };
+    const filterState = { activeTags: [] };
+    const sortStorageKey = 'current_sprint_work_risks_sort';
 
     function parseSortValue(parentRow, key) {
       if (!parentRow) return '';
@@ -399,6 +361,11 @@ export function wireSubtasksShowMoreHandlers() {
       });
       sortState.key = key || '';
       sortState.dir = dir || '';
+      try {
+        const payload = (!sortState.key || !sortState.dir) ? '' : JSON.stringify({ key: sortState.key, dir: sortState.dir });
+        if (payload) window.localStorage.setItem(sortStorageKey, payload);
+        else window.localStorage.removeItem(sortStorageKey);
+      } catch (_) {}
     }
 
     function cycleSortForHeader(th) {
@@ -408,6 +375,52 @@ export function wireSubtasksShowMoreHandlers() {
       if (sortState.key === key && sortState.dir === 'desc') nextDir = 'asc';
       else if (sortState.key === key && sortState.dir === 'asc') nextDir = '';
       applyRiskTableSort(nextDir ? key : '', nextDir);
+    }
+
+    function renderFilterBanner(activeTags, source) {
+      if (!card) return;
+      let banner = card.querySelector('.work-risks-filter-banner');
+      if (!activeTags.length) {
+        banner?.remove();
+        return;
+      }
+      const visibleParents = Array.from(table.querySelectorAll('.work-risk-parent-row')).filter((row) => row.style.display !== 'none').length;
+      if (visibleParents > 0) {
+        banner?.remove();
+        return;
+      }
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'work-risks-filter-banner';
+        banner.setAttribute('role', 'status');
+        const title = card.querySelector('h2');
+        if (title && title.nextSibling) card.insertBefore(banner, title.nextSibling);
+        else card.prepend(banner);
+      }
+      const sourceLabel = String(source || '').startsWith('role-mode-')
+        ? (String(source).replace('role-mode-', '').replace('scrum-master', 'SM').replace('product-owner', 'PO').replace('line-manager', 'Leads').replace('developer', 'Dev'))
+        : 'current view';
+      banner.innerHTML = 'No risks for ' + escapeHtml(sourceLabel) + ' view · <button type=\"button\" class=\"link-style\" data-work-risks-reset>Switch to All work</button>';
+      banner.querySelector('[data-work-risks-reset]')?.addEventListener('click', () => {
+        try {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: [], source: 'work-risks-banner-reset' } }));
+        } catch (_) {}
+      }, { once: true });
+    }
+
+    function renderNoMatchPresetBanner(mode) {
+      if (!card) return;
+      let banner = card.querySelector('.work-risks-filter-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'work-risks-filter-banner';
+        banner.setAttribute('role', 'status');
+        const title = card.querySelector('h2');
+        if (title && title.nextSibling) card.insertBefore(banner, title.nextSibling);
+        else card.prepend(banner);
+      }
+      const label = String(mode || '').replace('scrum-master', 'SM').replace('product-owner', 'PO').replace('line-manager', 'Leads').replace('developer', 'Dev');
+      banner.textContent = 'No matching risks for ' + label + ' preset. Showing All work.';
     }
 
     table.addEventListener('click', (event) => {
@@ -425,6 +438,7 @@ export function wireSubtasksShowMoreHandlers() {
       const next = !expanded;
       parentRow.setAttribute('aria-expanded', next ? 'true' : 'false');
       toggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+      toggle.textContent = next ? 'v' : '>';
       if (!parentKey) return;
       const childRows = table.querySelectorAll('.work-risk-subtask-row[data-parent-key="' + parentKey + '"]');
       childRows.forEach((row) => {
@@ -478,11 +492,13 @@ export function wireSubtasksShowMoreHandlers() {
         const activeTags = Array.isArray(detail.riskTags)
           ? detail.riskTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
           : [];
+        filterState.activeTags = activeTags;
         const allParentRows = table.querySelectorAll('.work-risk-parent-row');
         const allChildRows = table.querySelectorAll('.work-risk-subtask-row');
         if (!activeTags.length) {
           allParentRows.forEach((row) => { row.style.display = ''; });
           allChildRows.forEach((row) => { row.style.display = ''; });
+          renderFilterBanner([], detail.source || '');
           return;
         }
         allParentRows.forEach((row) => {
@@ -501,17 +517,36 @@ export function wireSubtasksShowMoreHandlers() {
           const matches = activeTags.some((tag) => tags.includes(tag));
           row.style.display = matches ? '' : 'none';
         });
+        renderFilterBanner(activeTags, detail.source || '');
+      });
+    }
+    if (!window.__currentSprintRoleModeNoMatchBound) {
+      window.__currentSprintRoleModeNoMatchBound = true;
+      window.addEventListener('currentSprint:roleModeNoMatch', (event) => {
+        const mode = event?.detail?.mode || '';
+        renderNoMatchPresetBanner(mode);
       });
     }
     const showMoreBtn = document.querySelector('.work-risks-show-more');
     if (showMoreBtn) {
       showMoreBtn.addEventListener('click', () => {
         window.setTimeout(() => {
+          if (typeof window !== 'undefined' && window.dispatchEvent) {
+            try {
+              window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: filterState.activeTags, source: 'work-risks-show-more' } }));
+            } catch (_) {}
+          }
           if (sortState.key && sortState.dir) applyRiskTableSort(sortState.key, sortState.dir);
           else applyRiskTableSort('', '');
         }, 0);
       });
     }
-    applyRiskTableSort('', '');
+    let initialSort = null;
+    try {
+      initialSort = JSON.parse(window.localStorage.getItem(sortStorageKey) || 'null');
+    } catch (_) {}
+    if (initialSort && initialSort.key && initialSort.dir) applyRiskTableSort(String(initialSort.key), String(initialSort.dir));
+    else applyRiskTableSort('', '');
   } catch (_) {}
 }
+

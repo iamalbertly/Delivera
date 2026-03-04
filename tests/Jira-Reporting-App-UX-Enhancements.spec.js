@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 test.describe('Jira Reporting App - UX Enhancements', () => {
   test('report filters: search, select all/none, advanced options, export hint', async ({ page }) => {

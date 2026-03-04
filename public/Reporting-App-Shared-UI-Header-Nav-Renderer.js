@@ -59,7 +59,7 @@ export function ensureSharedHeader() {
     const textSpan = document.createElement('span');
     textSpan.className = 'shared-context-bar-text';
     textSpan.textContent = isCurrentSprint
-      ? `Report context cache: ${contextText} (for reference; active sprint filters are the selectors above)`
+      ? `Report cache: ${contextText}`
       : contextText;
     contextBar.appendChild(textSpan);
     if (state) {
@@ -117,23 +117,7 @@ export function ensureSharedHeader() {
       attachStaleHint(bar, info);
     };
 
-    let feedbackToggle = document.getElementById('feedback-toggle');
-    if (!feedbackToggle) {
-      let corner = document.getElementById('feedback-corner');
-      if (!corner) {
-        corner = document.createElement('div');
-        corner.id = 'feedback-corner';
-        corner.className = 'feedback-corner';
-        document.body.appendChild(corner);
-      }
-      feedbackToggle = document.createElement('button');
-      feedbackToggle.type = 'button';
-      feedbackToggle.id = 'feedback-toggle';
-      feedbackToggle.className = 'feedback-corner-btn';
-      feedbackToggle.textContent = 'Help';
-      feedbackToggle.setAttribute('aria-label', 'Feedback and help');
-      corner.appendChild(feedbackToggle);
-    }
+    document.getElementById('feedback-corner')?.remove();
     initFeedbackPanel();
 
     // Mark header as unified for styling hooks

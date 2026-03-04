@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 test.describe('Jira Reporting App - Current Sprint and Leadership View Tests', () => {
   test('should load current-sprint page and show board selector', async ({ page }) => {

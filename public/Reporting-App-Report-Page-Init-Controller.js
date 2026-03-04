@@ -3,7 +3,7 @@ import { initFeedbackPanel } from './Reporting-App-Report-UI-Feedback.js';
 import { initTabs } from './Reporting-App-Report-UI-Tabs.js';
 import { initProjectSelection, getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
 import { initDateRangeControls } from './Reporting-App-Report-Page-DateRange-Controller.js';
-import { initPreviewFlow, clearPreviewOnFilterChange } from './Reporting-App-Report-Page-Preview-Flow.js';
+import { initPreviewFlow, clearPreviewOnFilterChange, restoreLastPreviewFromStorage } from './Reporting-App-Report-Page-Preview-Flow.js';
 import { initSearchClearButtons } from './Reporting-App-Report-Page-Search-Clear.js';
 import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
 import { getValidLastQuery, getContextDisplayString } from './Reporting-App-Shared-Context-From-Storage.js';
@@ -24,10 +24,12 @@ import { initExportMenu as initReportExportMenu } from './Reporting-App-Report-P
 import { getCurrentSelectionComplexity, shouldAutoPreviewOnInit, refreshPreviewButtonLabel, updateAppliedFiltersSummary, hydrateFromLastQuery } from './Reporting-App-Report-Page-Filters-Summary-Helpers.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
 import { initReportFiltersPanelState } from './Reporting-App-Report-Page-Init-Filters-Panel-State-Helpers.js';
+import { isJiraIssueKey } from './Reporting-App-Report-Utils-Jira-Helpers.js';
 
 const LEADERSHIP_HASH = '#trends';
 
 function initReportPage() {
+  try { document.body.classList.add('report-page'); } catch (_) {}
   let autoPreviewTimer = null;
   let autoPreviewInProgress = false;
   let allowHashTabSync = false;
@@ -134,9 +136,198 @@ function initReportPage() {
   }
   initReportExportMenu();
   initPreviewFlow();
+  restoreLastPreviewFromStorage();
   initSearchClearButtons();
   renderNotificationDock({ pageContext: 'report', collapsedByDefault: true });
   applyDoneStoriesOptionalColumnsPreference();
+
+  function initOutcomeIntake() {
+    const wrap = document.getElementById('report-outcome-intake');
+    const textarea = document.getElementById('report-outcome-text');
+    const statusEl = document.getElementById('report-outcome-intake-status');
+    const createBtn = document.getElementById('report-outcome-intake-create');
+    if (!wrap || !textarea || !createBtn) return;
+
+    function findFirstJiraKey(text) {
+      if (!text || typeof text !== 'string') return '';
+      const tokens = text.split(/[\s,;()\[\]{}<>]+/);
+      for (const raw of tokens) {
+        const t = (raw || '').trim();
+        if (!t) continue;
+        if (isJiraIssueKey(t)) return t.toUpperCase();
+      }
+      return '';
+    }
+
+    function setCreateButtonState(disabled, label) {
+      createBtn.disabled = !!disabled;
+      if (typeof label === 'string' && label) {
+        createBtn.textContent = label;
+      } else {
+        createBtn.textContent = 'Create Jira Epic from this narrative';
+      }
+    }
+
+    function setStatusText(message) {
+      if (!statusEl) return;
+      statusEl.textContent = message || '';
+    }
+
+    function updateUi() {
+      const value = textarea.value || '';
+      const trimmed = value.trim();
+      if (!trimmed) {
+        setStatusText('');
+        setCreateButtonState(true);
+        return;
+      }
+      const key = findFirstJiraKey(trimmed);
+      if (key) {
+        setStatusText('This already has a Jira issue: ' + key + ' - use it.');
+        setCreateButtonState(true);
+      } else {
+        setStatusText('No Jira key detected. Create Jira Epic from this narrative.');
+        setCreateButtonState(false);
+      }
+    }
+
+    textarea.addEventListener('input', () => {
+      updateUi();
+    });
+    textarea.addEventListener('change', () => {
+      updateUi();
+    });
+
+    createBtn.addEventListener('click', async () => {
+      const narrative = (textarea.value || '').trim();
+      if (!narrative) {
+        updateUi();
+        return;
+      }
+
+      const projects = getSelectedProjects();
+      let primaryProject = Array.isArray(projects) && projects.length ? String(projects[0] || '').trim() : '';
+      if (Array.isArray(projects) && projects.length > 1) {
+        const chosenRaw = window.prompt(
+          'Multiple projects are active. Enter the project key for this epic: ' + projects.join(', '),
+          String(projects[0] || '')
+        );
+        const chosen = String(chosenRaw || '').trim().toUpperCase();
+        if (!chosen) {
+          setStatusText('Choose a project key to create the epic when multiple projects are active.');
+          setCreateButtonState(false);
+          return;
+        }
+        if (!projects.map((p) => String(p || '').toUpperCase()).includes(chosen)) {
+          setStatusText('Project key not in active context. Choose one of: ' + projects.join(', '));
+          setCreateButtonState(false);
+          return;
+        }
+        primaryProject = chosen;
+      }
+
+      setCreateButtonState(true, 'Creating...');
+      setStatusText('');
+
+      const createRequest = async (createAnyway = false) => fetch('/api/outcome-from-narrative', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          narrative,
+          projectKey: primaryProject || null,
+          selectedProjects: projects,
+          createAnyway: !!createAnyway,
+        }),
+      });
+
+      try {
+        const res = await createRequest(false);
+        if (res.status === 409) {
+          let conflict = null;
+          try { conflict = await res.json(); } catch (_) {}
+          if (conflict?.code === 'NARRATIVE_HAS_EXISTING_KEY') {
+            setStatusText(conflict.message || 'This narrative already references a Jira issue. Use it.');
+            setCreateButtonState(true);
+            return;
+          }
+          if (conflict?.code === 'POSSIBLE_DUPLICATE_OUTCOME' && conflict?.duplicate?.key && statusEl) {
+            const dup = conflict.duplicate;
+            const linkHtml = dup.url
+              ? '<a href="' + String(dup.url).replace(/"/g, '&quot;') + '" target="_blank" rel="noopener">' + dup.key + '</a>'
+              : dup.key;
+            statusEl.innerHTML = 'Looks like ' + linkHtml + ' already exists - <button type="button" class="link-style" data-outcome-action="use-existing">Use existing</button> / <button type="button" class="link-style" data-outcome-action="create-anyway">Create anyway</button>';
+            statusEl.querySelector('[data-outcome-action="use-existing"]')?.addEventListener('click', () => {
+              setStatusText('Using existing Jira issue ' + dup.key + '.');
+              setCreateButtonState(false);
+            }, { once: true });
+            statusEl.querySelector('[data-outcome-action="create-anyway"]')?.addEventListener('click', async () => {
+              setCreateButtonState(true, 'Creating...');
+              try {
+                const forcedRes = await createRequest(true);
+                if (!forcedRes.ok) throw new Error('Create anyway failed');
+                const forcedJson = await forcedRes.json().catch(() => ({}));
+                const forcedKey = (forcedJson && (forcedJson.key || forcedJson.issueKey)) || '';
+                const forcedUrl = (forcedJson && (forcedJson.url || forcedJson.issueUrl)) || '';
+                if (forcedKey && forcedUrl && statusEl) {
+                  statusEl.innerHTML = 'Created Jira epic <a href="' + forcedUrl.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener">' + forcedKey + '</a>.';
+                } else if (forcedKey) {
+                  setStatusText('Created Jira epic ' + forcedKey + '.');
+                } else {
+                  setStatusText('Created Jira epic from narrative.');
+                }
+                textarea.value = '';
+              } catch (error) {
+                setStatusText('Failed to create Jira epic: ' + (error && error.message ? error.message : 'Network error'));
+              } finally {
+                setCreateButtonState(false);
+                updateUi();
+              }
+            }, { once: true });
+            setCreateButtonState(false);
+            return;
+          }
+        }
+
+        if (!res.ok) {
+          let msg = 'Could not create Jira epic from this narrative.';
+          try {
+            const json = await res.json();
+            if (json && json.message) msg = String(json.message);
+          } catch (_) {}
+          setStatusText(msg);
+          setCreateButtonState(false);
+          return;
+        }
+
+        let key = '';
+        let url = '';
+        try {
+          const json = await res.json();
+          key = (json && (json.key || json.issueKey)) || '';
+          url = (json && (json.url || json.issueUrl)) || '';
+        } catch (_) {}
+
+        if (key && statusEl) {
+          if (url) {
+            statusEl.innerHTML = 'Created Jira epic <a href="' + url.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener">' + key + '</a>. Update details in Jira if needed.';
+          } else {
+            setStatusText('Created Jira epic ' + key + '. Update details in Jira if needed.');
+          }
+          textarea.value = '';
+        } else {
+          setStatusText('Created Jira epic from narrative.');
+        }
+        setCreateButtonState(false);
+      } catch (error) {
+        setStatusText('Failed to create Jira epic: ' + (error && error.message ? error.message : 'Network error'));
+        setCreateButtonState(false);
+      }
+
+      updateUi();
+    });
+
+    updateUi();
+  }
 
   function syncFromSharedStorage(event) {
     try {
@@ -267,8 +458,10 @@ function initReportPage() {
     const active = document.activeElement && document.activeElement.tagName;
     if (ev.key === '/' && active !== 'INPUT' && active !== 'TEXTAREA') {
       ev.preventDefault();
-      const boardsSearch = document.getElementById('boards-search-box') || document.getElementById('search-box');
-      if (boardsSearch) boardsSearch.focus();
+      const search = document.getElementById('report-tab-search')
+        || document.getElementById('boards-search-box')
+        || document.getElementById('search-box');
+      if (search) search.focus();
     }
   });
 
@@ -299,6 +492,8 @@ function initReportPage() {
     window.addEventListener('hashchange', activateTabFromHash);
     window.addEventListener('app:navigate', activateTabFromHash);
   } catch (_) { }
+
+  initOutcomeIntake();
 }
 
 // M2: Scroll-aware page identity — inject compact page name into sticky header when H1 scrolls away (X.com pattern)
@@ -323,4 +518,3 @@ if (document.readyState === 'loading') {
   });
   initSharedTableScrollIndicators();
 }
-

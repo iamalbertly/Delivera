@@ -8,6 +8,23 @@ import { getValidLastQuery, getFallbackContext } from './Reporting-App-Shared-Co
 import { showLoadingView, showErrorView, clearErrorView, showContentView } from './Reporting-App-Shared-Status-View-Helpers.js';
 import { startRotatingMessages, stopRotatingMessages } from './Reporting-App-Shared-Loading-Theater.js';
 
+const LEADERSHIP_FILTERS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function parseLeadershipFilters(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (parsed.payload && typeof parsed.savedAt === 'number') {
+      if ((Date.now() - parsed.savedAt) > LEADERSHIP_FILTERS_TTL_MS) return null;
+      return parsed.payload;
+    }
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
 function setDefaultDates() {
   const { startInput, endInput } = leadershipDom;
   if (!startInput || !endInput) return;
@@ -46,7 +63,11 @@ function loadSavedFilters() {
     }
     const raw = localStorage.getItem(storageKey);
     if (!raw) return Boolean(ssotProjects);
-    const saved = JSON.parse(raw);
+    const saved = parseLeadershipFilters(raw);
+    if (!saved) {
+      localStorage.removeItem(storageKey);
+      return Boolean(ssotProjects);
+    }
     if (saved?.projects && projectsSelect) {
       projectsSelect.value = saved.projects;
     }
@@ -73,7 +94,10 @@ function saveFilters() {
       start: startInput?.value || '',
       end: endInput?.value || '',
     };
-    localStorage.setItem(storageKey, JSON.stringify(payload));
+      localStorage.setItem(storageKey, JSON.stringify({
+        savedAt: Date.now(),
+        payload,
+      }));
     if (payload.start && payload.end) {
       localStorage.setItem(SHARED_DATE_RANGE_KEY, JSON.stringify({
         start: payload.start + 'T00:00:00.000Z',
@@ -83,7 +107,7 @@ function saveFilters() {
   } catch (_) {}
 }
 
-const LEADERSHIP_LOADING_MESSAGES = ['Fetching quarter data…', 'Computing trends…', 'Preparing view…'];
+const LEADERSHIP_LOADING_MESSAGES = ['Fetching quarter data...', 'Computing trends...', 'Preparing view...'];
 
 function showLoading(msg) {
   stopRotatingMessages();

@@ -4,7 +4,7 @@
  * is visible, non-empty, and includes retry actions; validates logcat-style (console/network).
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   IGNORE_CONSOLE_ERRORS,

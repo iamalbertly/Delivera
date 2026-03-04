@@ -22,6 +22,9 @@ export function updateNotificationStore(data) {
   const summary = buildNotificationSummary(data);
   if (summary) {
     writeNotificationSummary(summary);
+    try {
+      window.dispatchEvent(new CustomEvent('app:notification-summary-updated', { detail: summary }));
+    } catch (_) {}
   }
   return summary;
 }

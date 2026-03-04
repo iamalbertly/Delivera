@@ -6,6 +6,7 @@ import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js'
 import { exportRisksInsightsAsMarkdown } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
 import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 const SUMMARY_SECTION_KEYS = [
   'summary',
@@ -145,15 +146,16 @@ export async function buildSprintSummaryModel(data, options = {}) {
     return st === 'to do' || st === 'open' || st === 'backlog';
   });
 
-  const blockersCount = inProgressStuck.length;
+  const unifiedRiskCounts = getUnifiedRiskCounts(data);
+  const blockersCount = Number(unifiedRiskCounts.blockersOwned || inProgressStuck.length || 0);
   const notStartedCount = notStartedStuck.length;
-  const unassignedStories = stories.filter((s) => !s.assignee || s.assignee === 'Unassigned');
+  const unassignedStories = Array.from({ length: Number(unifiedRiskCounts.unownedOutcomes || 0) });
 
   const riskParts = [];
   riskParts.push(`${blockersCount} blocker${blockersCount === 1 ? '' : 's'}`);
   if (notStartedCount > 0) riskParts.push(`${notStartedCount} not started`);
   if (unassignedStories.length > 0) {
-    riskParts.push(`${unassignedStories.length} key stor${unassignedStories.length === 1 ? 'y' : 'ies'} unassigned`);
+    riskParts.push(`${unassignedStories.length} key stor${unassignedStories.length === 1 ? 'y' : 'ies'} unowned`);
   }
   if (scopeChanges.length > 0) riskParts.push(`Scope +${scopeChanges.length} mid-sprint`);
   const riskSnapshotText = riskParts.join(' · ') || 'No major risks detected.';
@@ -401,15 +403,15 @@ export async function buildSprintSummaryModel(data, options = {}) {
 
   const actionsSection = model.sections.actions;
   const actions = [];
-  if (logHrs === 0 && estHrs > 0) actions.push(`Log actual work - ${estHrs}h estimated but 0h captured in timetracking.`);
-  if (recentSubtaskMovement > 0 && logHrs === 0) actions.push(`Flow is moving (${recentSubtaskMovement} subtasks changed <24h) but logs are missing.`);
+  if (logHrs === 0 && estHrs > 0) actions.push(`Log actual work - ${estHrs}h estimated but 0h captured in timetracking (use a standard Jira nudge template instead of ad-hoc reminders).`);
+  if (recentSubtaskMovement > 0 && logHrs === 0) actions.push(`Flow is moving (${recentSubtaskMovement} subtasks changed <24h) but logs are missing; send one shared Jira update nudge.`);
   if (inProgressStuck.length > 0) actions.push(`Unblock ${inProgressStuck.length} stuck item${inProgressStuck.length > 1 ? 's' : ''}.`);
   if (notStartedStuck.length > 0) actions.push(`Start ${notStartedStuck.length} item${notStartedStuck.length > 1 ? 's' : ''} still in To Do.`);
   if (excludedParents > 0) {
     actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as stuck).`);
   }
   if (unassignedStories.length > 0) {
-    actions.push(`Assign ${unassignedStories.length} unowned stor${unassignedStories.length > 1 ? 'ies' : 'y'}.`);
+    actions.push(`Resolve ownership signal for ${unassignedStories.length} unowned outcome${unassignedStories.length > 1 ? 's' : ''} (assignee, active subtask owner, or reporter).`);
   }
   if (pctDone < 30 && remainingDays != null && remainingDays < 5) {
     actions.push('Velocity behind - consider scope cut.');
@@ -641,7 +643,16 @@ function setLastExportStatus(actionLabel, detail) {
   const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
   if (!statusEl) return;
   const ts = new Date().toLocaleTimeString();
-  const compactDetail = detail ? String(detail).trim() : '';
+  let compactDetail = detail ? String(detail).trim() : '';
+  try {
+    const snapshotBadge = document.querySelector('.current-sprint-header-bar .status-badge.status-snapshot');
+    const updatedText = (document.querySelector('.current-sprint-header-bar .last-updated')?.textContent || '').trim();
+    if (snapshotBadge) {
+      compactDetail = compactDetail
+        ? `${compactDetail} | Snapshot${updatedText ? ` (${updatedText})` : ''}`
+        : `Snapshot${updatedText ? ` (${updatedText})` : ''}`;
+    }
+  } catch (_) {}
   const labelHtml = `<span class="export-status-label">Last action:</span> <em>${actionLabel}</em>`;
   const metaHtml = `${ts}${compactDetail ? ` · ${compactDetail}` : ''}`;
   statusEl.innerHTML = `${labelHtml} · <span class="export-status-meta">${metaHtml}</span>`;
@@ -659,7 +670,7 @@ export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
   html += '<span class="export-split-group">';
-  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Share sprint state (copies summary)" aria-live="polite">' + (inline ? 'Share state' : 'Copy summary') + '</button>';
+  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary" aria-live="polite">Copy summary</button>';
   if (!inline) {
     html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
   }

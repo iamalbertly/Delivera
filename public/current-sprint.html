@@ -3,34 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Current Sprint Transparency - VodaAgileBoard</title>
+  <title>Performance - Current Sprint - VodaAgileBoard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .current-sprint-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-    .current-sprint-header h1 { color: var(--primary); font-size: 1.5rem; margin-bottom: 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
-    .current-sprint-header h1 .sprint-name { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
-    .board-select-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .board-select-wrap label { font-weight: 500; color: var(--muted); }
-    .board-select-wrap select { padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border); min-width: 220px; }
-    .transparency-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow); }
-    .transparency-card h2 { color: var(--primary); font-size: 1.15rem; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-    .meta-row { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 8px; }
-    .meta-row span { color: var(--muted); font-size: 0.9em; }
+    /* Compact, de-cluttered header layout specific to Current Sprint */
+    .current-sprint-header {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .current-sprint-header h1 {
+      color: var(--primary);
+      font-size: 1.35rem;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: baseline;
+    }
+    .current-sprint-header h1 .sprint-name {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .current-sprint-header .subtitle {
+      margin-top: 4px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .board-select-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 6px 10px;
+    }
+    .board-select-wrap label {
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .board-select-wrap select,
+    .board-select-wrap input[type="text"] {
+      padding: 6px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      min-width: 190px;
+      font-size: 0.9rem;
+    }
+    #current-sprint-single-project-hint {
+      display: block;
+      margin-top: 2px;
+      max-width: 360px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .transparency-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-soft, 0 4px 10px rgba(15, 23, 42, 0.04));
+    }
+    .transparency-card h2 {
+      color: var(--primary);
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+    .meta-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .meta-row span { color: var(--muted); font-size: 0.85em; }
     .meta-row strong { color: var(--text); }
     .flag-warn { color: var(--warning); font-weight: 500; }
-    .assumptions-list { list-style: none; }
-    .assumptions-list li { padding: 4px 0; color: var(--muted); font-size: 0.9em; }
-    .assumptions-list li::before { content: "* "; color: var(--primary); }
-    .histogram-bar-wrap { margin-bottom: 8px; }
+    .assumptions-list { list-style: none; padding-left: 0; margin: 0; }
+    .assumptions-list li { padding: 3px 0; color: var(--muted); font-size: 0.9em; }
+    .assumptions-list li::before { content: "• "; color: var(--primary); }
+    .histogram-bar-wrap { margin-bottom: 6px; }
     .histogram-bar-wrap label { display: inline-block; min-width: 100px; font-size: 0.85em; color: var(--muted); }
-    .histogram-bar { height: 20px; background: var(--primary); border-radius: 4px; min-width: 4px; display: inline-block; vertical-align: middle; }
-    #current-sprint-loading, #current-sprint-error { padding: 20px; text-align: center; color: var(--muted); }
-    #current-sprint-loading.current-sprint-loading-with-spinner { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-    .current-sprint-loading-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: current-sprint-spin 0.8s linear infinite; }
-    .current-sprint-loading-msg { margin: 0; font-size: 0.95rem; }
+    .histogram-bar { height: 14px; background: var(--primary); border-radius: 4px; min-width: 4px; display: inline-block; vertical-align: middle; }
+    #current-sprint-loading,
+    #current-sprint-error {
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+    #current-sprint-loading.current-sprint-loading-with-spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .current-sprint-loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: current-sprint-spin 0.8s linear infinite;
+    }
+    .current-sprint-loading-msg {
+      margin: 0;
+      font-size: 0.9rem;
+    }
     @keyframes current-sprint-spin { to { transform: rotate(360deg); } }
     #current-sprint-error { color: var(--danger); }
     #current-sprint-content { display: none; }
+    @media (min-width: 960px) {
+      .current-sprint-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .board-select-wrap {
+        max-width: 520px;
+        justify-content: flex-end;
+      }
+    }
   </style>
 </head>
 <body>
@@ -38,7 +136,7 @@
     <header>
       <div class="current-sprint-header">
         <div>
-          <h1><span id="current-sprint-title">Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
+          <h1><span id="current-sprint-title">Performance - Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
           <p class="subtitle" id="current-sprint-subtitle">See sprint risks and act fast.</p>
         </div>
         <div class="board-select-wrap">
@@ -61,6 +159,8 @@
           <select id="board-select" aria-label="Select board">
             <option value="">Loading boards...</option>
           </select>
+          <label for="issue-jump-input">Jump to issue</label>
+          <input id="issue-jump-input" type="text" class="input-compact" placeholder="Paste /browse/KEY or KEY" aria-label="Paste Jira link or key to jump">
           <span id="current-sprint-single-project-hint" class="selection-status" aria-live="polite">Current Sprint runs in single-project mode for accuracy.</span>
         </div>
       </div>

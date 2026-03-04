@@ -6,6 +6,7 @@ import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Pa
 let isGlobalHoverBound = false;
 let isGlobalClickBound = false;
 let isCardToggleBound = false;
+let isIssueJumpBound = false;
 
 function bindGlobalPrefetchHover() {
   if (isGlobalHoverBound) return;
@@ -55,10 +56,58 @@ function bindCardToggles() {
   });
 }
 
+function parseJiraIssueKey(input) {
+  const text = String(input || '').trim();
+  if (!text) return '';
+  const browseMatch = text.match(/\/browse\/([A-Z][A-Z0-9]+-\d+)/i);
+  if (browseMatch && browseMatch[1]) return String(browseMatch[1]).toUpperCase();
+  const keyMatch = text.match(/\b([A-Z][A-Z0-9]+-\d+)\b/i);
+  return keyMatch && keyMatch[1] ? String(keyMatch[1]).toUpperCase() : '';
+}
+
+function bindIssueJump() {
+  if (isIssueJumpBound) return;
+  isIssueJumpBound = true;
+  const input = document.getElementById('issue-jump-input');
+  const status = document.getElementById('current-sprint-single-project-hint');
+  if (!input) return;
+
+  const focusRow = (row) => {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('row-attention-pulse');
+    window.setTimeout(() => row.classList.remove('row-attention-pulse'), 1400);
+  };
+
+  const runJump = () => {
+    const key = parseJiraIssueKey(input.value);
+    if (!key) {
+      if (status) status.textContent = 'Paste a Jira /browse/KEY link or a KEY to jump.';
+      return;
+    }
+    const row = document.querySelector('.story-parent-row[data-parent-key="' + key + '"]')
+      || document.querySelector('.work-risk-parent-row[data-parent-key="' + key + '"]')
+      || Array.from(document.querySelectorAll('#stories-table tbody tr, #work-risks-table tbody tr'))
+        .find((tr) => String(tr.textContent || '').toUpperCase().includes(key));
+    if (row) {
+      focusRow(row);
+      if (status) status.textContent = 'Jumped to ' + key + '.';
+      return;
+    }
+    if (status) status.textContent = 'Issue ' + key + ' not found in this sprint view. Verify board or sprint.';
+  };
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    runJump();
+  });
+}
+
 export function wireDynamicHandlers(data) {
   bindGlobalPrefetchHover();
   bindGlobalClickHandlers();
   bindCardToggles();
+  bindIssueJump();
 
   const saveBtn = document.getElementById('notes-save');
   // Clean event listener replacement
