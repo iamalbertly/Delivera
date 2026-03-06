@@ -86,7 +86,7 @@ async function handleExcelExport(full = true) {
     await requestExcelDownload(workbookData, meta);
   } finally {
     if (exportExcelBtn) {
-      exportExcelBtn.textContent = prevLabel || 'Share / Export';
+      exportExcelBtn.textContent = prevLabel || 'Export';
       const hasRows = Array.isArray(reportState.previewRows) && reportState.previewRows.length > 0;
       exportExcelBtn.disabled = !hasRows;
     }
@@ -211,6 +211,12 @@ export function initExportMenu() {
       const section = getActiveTabSectionName();
       const rows = getRowsForSection(section);
       exportCSV(rows || [], section, Object.keys((rows || [])[0] || {}));
+      closeExportMenu();
+      return;
+    }
+    if (mode === 'csv-outcomes-only') {
+      const rows = reportState.visibleRows || reportState.previewRows || [];
+      exportCSV(rows, 'done-stories', Object.keys((rows || [])[0] || {}));
       closeExportMenu();
     }
   });

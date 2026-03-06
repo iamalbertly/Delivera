@@ -40,15 +40,19 @@ function getTrendHtml(trend) {
   return `<span class="trend-${direction}">${arrow} ${Math.abs(trend)}% vs last 3</span>`;
 }
 
-function renderCard(label, value, unit, trendHtml, colorClass = '') {
+function renderCard(label, value, unit, trendHtml, colorClass = '', href = '') {
+  const wrap = href
+    ? `<a href="${href}" class="hud-card-link" style="text-decoration:none;color:inherit;display:block;">`
+    : '';
+  const wrapEnd = href ? '</a>' : '';
   return `
-    <div class="hud-card">
+    ${wrap}<div class="hud-card">
       <div>
         <div class="metric-label">${label}</div>
         <div class="metric-value ${colorClass}">${value}<span class="metric-unit">${unit}</span></div>
         <div class="metric-trend">${trendHtml}</div>
       </div>
-    </div>
+    </div>${wrapEnd}
   `;
 }
 
@@ -119,8 +123,8 @@ function renderHud(data) {
   if (noMetricData) {
     grid.innerHTML = `
       <div class="hud-card" style="grid-column:1/-1;border-left:4px solid var(--hud-warning);">
-        <div class="metric-label">No report data yet</div>
-        <div class="metric-value" style="font-size:1.25rem">Run Performance Report for this window</div>
+        <div class="metric-label">No data yet</div>
+        <div class="metric-value" style="font-size:1.25rem">Open Report, choose quarter, run Preview. Then open Leadership Signals.</div>
         <div class="metric-trend"><a href="/report#trends" style="color:var(--hud-accent);text-decoration:underline;">Open Report Trends</a></div>
       </div>
     `;
@@ -135,10 +139,10 @@ function renderHud(data) {
   ].join('<br>');
 
   grid.innerHTML = [
-    renderCard('Velocity (Last 3)', formatNumber(velocity.avg, 0), 'SP', getTrendHtml(velocity.trend)),
-    renderCard('Risk Index', formatNumber(risk.score, 0), '%', riskNarrative, risk.score > 20 ? 'trend-down' : ''),
-    renderCard('Rework Ratio', formatNumber(quality.reworkPct, 1), '%', getTrendHtml(quality.trend)),
-    renderCard('Predictability', formatNumber(predictability.avg, 0), '%', getTrendHtml(predictability.trend))
+    renderCard('Velocity (Last 3)', formatNumber(velocity.avg, 0), 'SP', getTrendHtml(velocity.trend), '', '/report#trends'),
+    renderCard('Risk Index', formatNumber(risk.score, 0), '%', riskNarrative, risk.score > 20 ? 'trend-down' : '', '/current-sprint'),
+    renderCard('Rework Ratio', formatNumber(quality.reworkPct, 1), '%', getTrendHtml(quality.trend), '', '/report#trends'),
+    renderCard('Predictability', formatNumber(predictability.avg, 0), '%', getTrendHtml(predictability.trend), '', '/report')
   ].join('');
 }
 

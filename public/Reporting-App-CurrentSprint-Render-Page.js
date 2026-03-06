@@ -129,9 +129,20 @@ export function renderCurrentSprintPage(data) {
   if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Burndown</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
-  html += '<div class="sprint-section-links sprint-section-links-sticky" role="navigation" aria-label="Jump to section">' + jumpLinks.join('<span aria-hidden="true"> | </span>') + '</div>';
+  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-dropdown" role="navigation" aria-label="Jump to section">' +
+    '<button type="button" class="btn btn-secondary btn-compact sprint-section-dropdown-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="sprint-section-dropdown-menu">Sections</button>' +
+    '<div id="sprint-section-dropdown-menu" class="sprint-section-dropdown-menu" role="menu" aria-hidden="true" hidden>' +
+    jumpLinks.join('') +
+    '</div></div>';
 
   html += '<div class="current-sprint-grid-layout">';
+
+  /* Direct-to-value: stories card first so primary content is immediately after header */
+  html += '<div class="sprint-cards-column full-width">';
+  if (hasStories) html += renderStories(data);
+  html += '</div>';
+
+  html += sectionLinksHtml;
 
   if (hasRisks || hasBurndownData) {
     html += '<div class="sprint-cards-row risks-row">';
@@ -139,10 +150,6 @@ export function renderCurrentSprintPage(data) {
     if (hasBurndownData) html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
     html += '</div>';
   }
-
-  html += '<div class="sprint-cards-column full-width">';
-  if (hasStories) html += renderStories(data);
-  html += '</div>';
 
   html += renderSprintCarousel(data);
 

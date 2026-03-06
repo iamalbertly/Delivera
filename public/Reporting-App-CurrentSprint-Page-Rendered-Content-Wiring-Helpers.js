@@ -42,6 +42,23 @@ function wireSectionLinks() {
   const nav = document.querySelector('.sprint-section-links');
   if (!nav || nav.dataset.wiredSectionLinks === '1') return;
   nav.dataset.wiredSectionLinks = '1';
+  const trigger = nav.querySelector('.sprint-section-dropdown-trigger');
+  const menu = document.getElementById('sprint-section-dropdown-menu');
+  if (trigger && menu) {
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = menu.getAttribute('aria-hidden') !== 'true';
+      menu.hidden = open;
+      menu.setAttribute('aria-hidden', open ? 'true' : 'false');
+      trigger.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+    document.addEventListener('click', () => {
+      menu.hidden = true;
+      menu.setAttribute('aria-hidden', 'true');
+      trigger.setAttribute('aria-expanded', 'false');
+    });
+    menu.addEventListener('click', (e) => e.stopPropagation());
+  }
   const links = Array.from(nav.querySelectorAll('a[href^="#"]'));
   if (!links.length) return;
   links.forEach((link) => {
@@ -49,31 +66,19 @@ function wireSectionLinks() {
       const href = link.getAttribute('href') || '';
       if (!href.startsWith('#')) return;
       const target = document.querySelector(href);
-      if (!target) return;
-      event.preventDefault();
-      const stickyOffset = 120;
-      const top = window.scrollY + target.getBoundingClientRect().top - stickyOffset;
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-      links.forEach((a) => a.classList.toggle('is-active', a === link));
+      if (target) {
+        event.preventDefault();
+        const stickyOffset = 120;
+        const top = window.scrollY + target.getBoundingClientRect().top - stickyOffset;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (menu) {
+        menu.hidden = true;
+        menu.setAttribute('aria-hidden', 'true');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      }
     });
   });
-  try {
-    const sections = links
-      .map((link) => ({ link, target: document.querySelector(link.getAttribute('href') || '') }))
-      .filter((x) => x.target);
-    if (sections.length <= 1) {
-      nav.setAttribute('hidden', 'hidden');
-      return;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries
-        .filter((e) => e.isIntersecting)
-        .sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top))[0];
-      if (!visible) return;
-      sections.forEach(({ link, target }) => link.classList.toggle('is-active', target === visible.target));
-    }, { rootMargin: '-110px 0px -60% 0px', threshold: [0, 0.1, 0.5] });
-    sections.forEach(({ target }) => observer.observe(target));
-  } catch (_) {}
 }
 
 export function appendCurrentSprintLoginLink(errorEl) {

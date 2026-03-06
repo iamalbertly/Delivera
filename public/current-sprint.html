@@ -6,16 +6,17 @@
   <title>Performance - Current Sprint - VodaAgileBoard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* Compact, de-cluttered header layout specific to Current Sprint */
+    /* Compact page header: single row with board select; header bar is the main strip */
     .current-sprint-header {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
     }
     .current-sprint-header h1 {
       color: var(--primary);
-      font-size: 1.35rem;
+      font-size: 1.1rem;
       margin: 0;
       display: flex;
       flex-wrap: wrap;
@@ -25,13 +26,10 @@
     .current-sprint-header h1 .sprint-name {
       color: var(--accent);
       font-weight: 700;
-      font-size: 1.05rem;
+      font-size: 1rem;
     }
     .current-sprint-header .subtitle {
-      margin-top: 4px;
-      margin-bottom: 0;
-      color: var(--muted);
-      font-size: 0.9rem;
+      display: none;
     }
     .board-select-wrap {
       display: flex;

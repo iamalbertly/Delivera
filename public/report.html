@@ -237,15 +237,17 @@
             <div id="preview-meta"></div>
             <div class="preview-header-export-wrap">              <button type="button" id="export-excel-btn" class="btn btn-secondary btn-compact"
                 data-action="trigger-export-excel" title="Share or export this report." disabled
-                aria-label="Share or export report">Share / Export</button>
+                aria-label="Share or export report">Export</button>
               <button id="export-dropdown-trigger" class="btn btn-secondary btn-compact export-dropdown-trigger"
                 aria-haspopup="true" aria-expanded="false" aria-controls="export-dropdown-menu"
                 aria-label="More export options" title="More export options: filtered view and CSV" disabled>&#9662;</button>
               <div id="export-dropdown-menu" class="export-dropdown-menu" role="menu" aria-hidden="true"
                 aria-label="Export options">
-                <button type="button" class="export-dropdown-item" data-export="excel-full" role="menuitem">Export Excel (all data)</button>
+                <button type="button" class="export-dropdown-item" data-export="excel-full" role="menuitem">Full report (Excel)</button>
+                <button type="button" class="export-dropdown-item" data-export="csv-outcomes-only" role="menuitem"
+                  title="Export done stories only">Outcomes only (CSV)</button>
                 <button type="button" class="export-dropdown-item" data-export="csv-active-tab" role="menuitem"
-                  title="Export only the currently selected tab.">Export CSV (active tab)</button>
+                  title="Export only the currently selected tab.">Current tab (CSV)</button>
                 <button type="button" class="export-dropdown-item" data-export="csv-filtered" role="menuitem"
                   title="Exports only rows visible after applying search and filters in this tab.">Export CSV
                   (filtered)</button>
@@ -323,7 +325,7 @@
 
             <div id="tab-done-stories" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-done-stories">
               <div class="done-stories-controls report-tab-search-legacy">
-                <div class="search-input-wrap">
+                <div class="search-input-wrap search-unified-only" aria-hidden="true" style="display: none;">
                   <input type="text" id="search-box" placeholder="Search by key or summary..."
                     aria-label="Search done stories">
                   <button type="button" class="search-clear-btn" data-target="search-box"
@@ -338,7 +340,7 @@
                   data-action="toggle-done-stories-quarter-review" aria-pressed="false"
                   title="Expand all sprints into a single scrollable list">Quarter review mode</button>
               <button type="button" class="btn btn-secondary btn-compact" id="done-stories-export-only-btn"
-                  data-action="export-done-stories-focused" title="Export focused CSV for Outcomes only">Export Outcomes CSV</button>
+                  data-action="export-done-stories-focused" title="Export focused CSV for Outcomes only" style="display: none;" aria-hidden="true">Export Outcomes CSV</button>
               </div>
               <div id="done-stories-content"></div>
               <div id="done-stories-totals" class="totals-bar"></div>

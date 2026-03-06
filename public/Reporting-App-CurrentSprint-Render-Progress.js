@@ -319,6 +319,31 @@ export function renderStories(data) {
   }
   html += '</div>';
 
+  const hasAnyRisk = blockersInProgress > 0 || scopeChanges.length > 0 || parentUnassigned > 0 || subtasksNoLog > 0 || subtasksNoEstimate > 0;
+  html += '<div class="stories-risk-summary-bar" aria-label="Risk filter shortcuts">';
+  if (hasAnyRisk) {
+    html += '<span class="stories-risk-bar-label">Risks:</span>';
+    if (blockersInProgress > 0) {
+      html += '<button type="button" class="stories-risk-chip stories-risk-chip-blocker" data-risk-tags="blocker" title="Filter to blocker issues">' + blockersInProgress + ' blocker' + (blockersInProgress !== 1 ? 's' : '') + '</button>';
+    }
+    if (scopeChanges.length > 0) {
+      html += '<button type="button" class="stories-risk-chip stories-risk-chip-scope" data-risk-tags="scope" title="Filter to scope changes">' + scopeChanges.length + ' scope</button>';
+    }
+    if (parentUnassigned > 0) {
+      html += '<button type="button" class="stories-risk-chip stories-risk-chip-unassigned" data-risk-tags="unassigned" title="Filter to unowned outcomes">' + parentUnassigned + ' unowned</button>';
+    }
+    if (subtasksNoLog > 0) {
+      html += '<button type="button" class="stories-risk-chip stories-risk-chip-no-log" data-risk-tags="no-log" title="Filter to no-log rows">' + subtasksNoLog + ' no log</button>';
+    }
+    if (subtasksNoEstimate > 0) {
+      html += '<button type="button" class="stories-risk-chip stories-risk-chip-missing-estimate" data-risk-tags="missing-estimate" title="Filter to missing estimate">' + subtasksNoEstimate + ' missing est</button>';
+    }
+    html += '<button type="button" class="stories-risk-chip stories-risk-chip-clear" data-risk-tags="" title="Show all rows">All</button>';
+  } else {
+    html += '<span class="stories-risk-bar-empty">No risks</span>';
+  }
+  html += '</div>';
+
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();
     dailySeries.forEach((row) => {
@@ -383,6 +408,16 @@ export function renderStories(data) {
     rowHtml += '<td>' + formatNumber(row.subtaskLoggedHours ?? 0, 1, '-') + '</td>';
     rowHtml += '<td>' + escapeHtml(formatDate(row.created)) + '</td>';
     rowHtml += '<td>' + escapeHtml(formatDate(row.resolved)) + '</td>';
+    rowHtml += '<td class="story-risks-cell">';
+    if (rowTags.length) {
+      rowTags.forEach((tag) => {
+        const label = tag === 'blocker' ? 'Blocker' : (tag === 'scope' ? 'Scope' : (tag === 'unassigned' ? 'Unowned' : tag));
+        rowHtml += '<span class="story-risk-pill story-risk-pill-' + escapeHtml(tag) + '">' + escapeHtml(label) + '</span>';
+      });
+    } else {
+      rowHtml += '<span class="story-risk-pill-empty" aria-hidden="true">-</span>';
+    }
+    rowHtml += '</td>';
     rowHtml += '</tr>';
     return rowHtml;
   }
@@ -439,6 +474,7 @@ export function renderStories(data) {
       rowsHtml += '<td>' + formatNumber(child.loggedHours ?? 0, 1, '-') + '</td>';
       rowsHtml += '<td>-</td>';
       rowsHtml += '<td>-</td>';
+      rowsHtml += '<td class="story-risks-cell">-</td>';
       rowsHtml += '</tr>';
     }
     return rowsHtml;
@@ -520,6 +556,7 @@ export function renderStories(data) {
       + '<th title="Sum of subtask logged hours">Logged Hrs</th>'
       + '<th>Created</th>'
       + '<th>Resolved</th>'
+      + '<th title="Risk tags for this story">Risks</th>'
       + '</tr></thead><tbody>';
     for (const row of toShow) {
       html += renderStoryRow(row);
@@ -691,6 +728,18 @@ export function wireDailyCompletionTimelineHandlers() {
         } catch (_) {}
       });
     }
+
+    card.addEventListener('click', (event) => {
+      const riskChip = event.target.closest('.stories-risk-chip');
+      if (riskChip && card.contains(riskChip)) {
+        event.preventDefault();
+        const tagsAttr = (riskChip.getAttribute('data-risk-tags') || '').trim();
+        const riskTags = tagsAttr ? tagsAttr.split(/\s+/).filter(Boolean) : [];
+        try {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'stories-risk-bar' } }));
+        } catch (_) {}
+      }
+    });
 
     card.addEventListener('click', (event) => {
       const toggle = event.target.closest('.story-row-toggle');

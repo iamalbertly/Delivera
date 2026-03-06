@@ -54,6 +54,7 @@ export function getSteps(projectRoot) {
       cwd: projectRoot
     },
     { name: 'Run Realtime Logcat-Equivalent Responsive Validation Tests', command: 'npx', args: pwArgs('tests/Project-Jira-Reporting-UX-Responsiveness-Customer-Simplicity-Trust-Logcat-Realtime-Validation-Tests.spec.js'), cwd: projectRoot },
+    { name: 'Run Direct-To-Value UX Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Direct-To-Value-UX-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Customer Speed Simplicity Trust Realtime Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run CSS Build And Mobile Responsive Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-CSS-Build-And-Mobile-Responsive-Validation-Tests.spec.js'), cwd: projectRoot },
     { name: 'Run Outcome-First First-Paint Validation Tests', command: 'npx', args: pwArgs('tests/Jira-Reporting-App-Outcome-First-First-Paint-Validation-Tests.spec.js'), cwd: projectRoot },

@@ -3815,21 +3815,22 @@ body .preview-area {
 
 /* ========== NEW REDESIGN COMPONENTS ========== */
 
-/* Header Bar (sticky, compact metadata) */
+/* Header Bar (sticky, compact metadata) - Direct-to-value: single thin strip ~40-48px */
 .current-sprint-header-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px 12px;
-  padding: 10px 12px;
+  gap: 6px 10px;
+  padding: 6px 12px;
+  min-height: 40px;
   background: linear-gradient(135deg, var(--card) 0%, var(--card-muted) 100%);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  margin-bottom: 14px;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
   position: sticky;
   top: 0;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(15, 76, 129, 0.06);
+  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.04);
   flex-wrap: wrap;
   width: 100%;
   max-width: 100%;
@@ -3888,9 +3889,10 @@ body .preview-area {
   font-size: 0.9em;
 }
 .sprint-verdict-line {
-  width: 100%;
-  font-size: 0.84rem;
-  margin-bottom: 8px;
+  width: auto;
+  font-size: 0.8rem;
+  margin-bottom: 0;
+  margin-right: 8px;
   color: #334155;
   display: inline-flex;
   align-items: center;
@@ -3931,8 +3933,12 @@ body .preview-area {
 
 .header-bar-left {
   flex: 0 1 auto;
-  min-width: 250px;
+  min-width: 200px;
   overflow-wrap: break-word;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .header-context-row,
@@ -4043,6 +4049,38 @@ body .preview-area {
 
 .sprint-readiness-neutral {
   border-color: rgba(59, 130, 246, 0.45);
+}
+
+.sprint-section-links-dropdown {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.sprint-section-dropdown-trigger {
+  font-size: 0.82rem;
+}
+.sprint-section-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  padding: 6px 0;
+  min-width: 140px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft, 0 4px 12px rgba(0,0,0,0.08));
+  z-index: 40;
+}
+.sprint-section-dropdown-menu a {
+  display: block;
+  padding: 6px 12px;
+  color: var(--primary);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.sprint-section-dropdown-menu a:hover {
+  background: var(--card-muted);
 }
 
 .sprint-readiness-link {
@@ -6072,6 +6110,59 @@ body .preview-area {
   font-size: 0.74rem;
 }
 
+.stories-risk-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.stories-risk-bar-label {
+  color: var(--muted);
+  font-weight: 600;
+  margin-right: 4px;
+}
+.stories-risk-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.stories-risk-chip:hover {
+  background: #e2e8f0;
+}
+.stories-risk-chip-blocker { border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.08); }
+.stories-risk-chip-scope { border-color: rgba(234, 179, 8, 0.5); background: rgba(234, 179, 8, 0.08); }
+.stories-risk-chip-unassigned { border-color: rgba(148, 163, 184, 0.6); background: rgba(148, 163, 184, 0.08); }
+.stories-risk-chip-no-log,
+.stories-risk-chip-missing-estimate { border-color: rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.06); }
+.stories-risk-chip-clear { border-style: dashed; }
+.stories-risk-bar-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+.story-risks-cell {
+  white-space: nowrap;
+  min-width: 90px;
+}
+.story-risk-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  margin-right: 4px;
+  margin-bottom: 2px;
+}
+.story-risk-pill-blocker { background: rgba(239, 68, 68, 0.15); color: #b91c1c; }
+.story-risk-pill-scope { background: rgba(234, 179, 8, 0.2); color: #854d0e; }
+.story-risk-pill-unassigned { background: rgba(148, 163, 184, 0.2); color: #475569; }
+.story-risk-pill-empty { color: var(--muted); }
+
 #stories-table {
   table-layout: fixed;
   min-width: 1280px;
@@ -6107,7 +6198,8 @@ body .preview-area {
 #stories-table th:nth-child(8),
 #stories-table th:nth-child(9),
 #stories-table th:nth-child(10),
-#stories-table th:nth-child(11) {
+#stories-table th:nth-child(11),
+#stories-table th:nth-child(12) {
   white-space: nowrap;
   min-width: 110px;
 }

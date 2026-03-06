@@ -172,8 +172,14 @@ export function renderPreview() {
   wirePreviewContextActions();
   const statusEl = document.getElementById('preview-status');
   if (statusEl) {
-    statusEl.innerHTML = metaBlock.statusHTML;
-    statusEl.style.display = metaBlock.statusDisplay;
+    statusEl.innerHTML = '';
+    statusEl.style.display = 'none';
+  }
+  const statusStripEl = document.getElementById('preview-status-strip');
+  if (statusStripEl) {
+    statusStripEl.textContent = partial ? 'Results: partial data' : (meta.reducedScope ? 'Results: closest match' : 'Results: up to date');
+    statusStripEl.setAttribute('data-state', partial ? 'partial' : (meta.reducedScope ? 'closest' : 'fresh'));
+    statusStripEl.style.display = '';
   }
 
   const hasRows = rowsCount > 0;
@@ -292,10 +298,10 @@ export function renderPreview() {
     updateExportFilteredState();
   });
 
-  const statusStripEl = document.getElementById('preview-status-strip');
-  if (statusStripEl) {
-    statusStripEl.textContent = '';
-    statusStripEl.setAttribute('data-state', '');
-    statusStripEl.style.display = 'none';
+  const statusStripElAfter = document.getElementById('preview-status-strip');
+  if (statusStripElAfter && !statusStripElAfter.textContent) {
+    statusStripElAfter.textContent = 'Results: up to date';
+    statusStripElAfter.setAttribute('data-state', 'fresh');
+    statusStripElAfter.style.display = '';
   }
 }

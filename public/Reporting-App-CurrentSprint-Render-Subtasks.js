@@ -106,15 +106,7 @@ export function renderWorkRisksMerged(data) {
   if (metaParts.length > 0) {
     html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' | ')) + '</small></p>';
   }
-  html += '<div class="work-risks-role-filters" aria-label="Role filter presets for Work risks">';
-  html += '<span class="work-risks-role-filters-label">Filter by role:</span>';
-  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="developer" title="Focus on no-log rows">Dev (' + noLogRows + ')</button>';
-  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="scrum-master" title="Focus on blockers">SM (' + blockerInProgress + ')</button>';
-  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="product-owner" title="Focus on scope changes">PO (' + scopeChanges.length + ')</button>';
-  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="release-train" title="Focus on parent flows excluded via subtasks">RT (' + excludedParents + ')</button>';
-  html += '<button type="button" class="role-mode-pill work-risks-role-pill" data-persona="line-manager" title="Focus on unassigned rows">Leads (' + unassignedRows + ')</button>';
-  html += '<span class="work-risks-role-filters-label">Use header role mode for the app-wide preset.</span>';
-  html += '</div>';
+  html += '<p class="meta-row"><small>Use header <strong>View as</strong> to filter Work risks and Issues together.</small></p>';
   if (noEstimateRows > 0 || noLogRows > 0) {
     html += '<p class="meta-row"><small>Interpretation rule: "Missing estimate" = no planning baseline; "No log yet" = baseline exists, actual effort missing.</small></p>';
   }

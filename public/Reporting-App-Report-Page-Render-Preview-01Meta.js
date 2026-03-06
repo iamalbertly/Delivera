@@ -176,6 +176,7 @@ export function buildPreviewMetaAndStatus(params) {
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>' +
       // T1: Health hero chip – outcome truth in one sentence
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-outcomes-shortcut" data-preview-context-action="open-done-stories" title="Jump to Outcomes tab" aria-label="Open Outcomes tab">Outcomes</button>' +
       strictBadge +
       // T3: Data state + export (right-side badges)
       '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>' +

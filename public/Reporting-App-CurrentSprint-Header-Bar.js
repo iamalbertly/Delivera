@@ -78,6 +78,7 @@ export function renderHeaderBar(data) {
     : (remainingDays <= 0 ? 'Ended' : (remainingDays < 1 ? 'Ends today' : ('Ends in ' + Math.floor(remainingDays) + 'd')));
 
   let html = '<div class="current-sprint-header-bar" data-sprint-id="' + (sprint.id || '') + '">';
+  html += '<div class="header-bar-left">';
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictInfo.color) + '" aria-live="polite">';
   html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong>';
   html += '<span class="sprint-verdict-explain">';
@@ -102,7 +103,6 @@ export function renderHeaderBar(data) {
   }
   html += '</span>';
   html += '</div>';
-
   const boardName = (data.board && data.board.name) ? data.board.name : '';
   const selectedProject = (data.board && Array.isArray(data.board.projectKeys) && data.board.projectKeys.length > 0)
     ? data.board.projectKeys[0]
@@ -115,7 +115,6 @@ export function renderHeaderBar(data) {
   const reportContextLine = buildActiveFiltersContextLabel(contextProjects || '', meta.windowStart, meta.windowEnd);
   const hasContextWindow = contextStart && contextEnd;
   const sprintDatesLabel = (formatDate(planned.start || sprint.startDate) + ' - ' + formatDate(planned.end || sprint.endDate)).replace(/^-\s-\s-$/, 'No active sprint window');
-  html += '<div class="header-bar-left">';
   html += '<div class="header-inline-summary">';
   html += '<span class="header-context-chip header-context-chip-active" title="Active filters driving this sprint view">Active: ' + escapeHtml(selectedProject || 'n/a') + (boardName ? ' | ' + escapeHtml(boardName) : '') + '</span>';
   const sprintNameLabel = sprint.name || (sprint.id ? ('Sprint ' + sprint.id) : 'No active sprint');
