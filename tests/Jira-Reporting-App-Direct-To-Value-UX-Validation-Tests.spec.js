@@ -91,6 +91,9 @@ test.describe('Jira Reporting App - Direct-To-Value UX Validation', () => {
     const duplicateRoleFilter = page.locator('.work-risks-role-filters');
     const count = await duplicateRoleFilter.count();
     expect(count).toBe(0);
+    // Stuck card is now an explainer-only surface; it should not host a risks data table.
+    const stuckTables = await page.locator('#stuck-card table, #work-risks-table').count();
+    expect(stuckTables).toBe(0);
     const stuckCard = page.locator('#stuck-card');
     if (await stuckCard.isVisible().catch(() => false)) {
       const useHeaderHint = page.getByText(/Use header|View as.*filter.*Work risks/i).first();

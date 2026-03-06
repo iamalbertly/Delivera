@@ -77,10 +77,10 @@ function updateSidebarAlertFooter(summary, pageContext = 'report') {
   btn.addEventListener('click', () => {
     try {
       if (pageContext === 'current-sprint') {
-        const target = document.getElementById('stuck-card') || document.getElementById('work-risks-table') || document.getElementById('stories-card');
+        const target = document.getElementById('stories-card') || document.getElementById('stuck-card');
         target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } else {
-        window.location.href = '/current-sprint#stuck-card';
+        window.location.href = '/current-sprint#stories-card';
       }
     } catch (_) {}
   });

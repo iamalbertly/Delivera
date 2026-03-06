@@ -3,7 +3,6 @@ import { formatDate, formatDayLabel, formatNumber } from './Reporting-App-Shared
 import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
 import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
-import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 import { hasOutcomeLabel, isOutcomeStoryLike } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
 
@@ -81,25 +80,6 @@ function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   );
 }
 
-export function renderDailyCompletion(data) {
-  const daily = data.dailyCompletions || { stories: [], subtasks: [] };
-  let html = '<div class="transparency-card" id="daily-completion-card">';
-  html += '<h2>Daily completion</h2>';
-  if (!daily.stories || daily.stories.length === 0) {
-    html += '<p>No work item completions by day in this sprint yet.</p>';
-  } else {
-    const dailyColumns = [
-      { key: 'date', label: 'Date', title: '', renderer: (r) => formatDayLabel(r.date) },
-      { key: 'count', label: 'Items', title: '' },
-      { key: 'spCompleted', label: 'SP completed', title: '', renderer: (r) => formatNumber(r.spCompleted ?? 0, 1, '-') },
-      { key: 'nps', label: 'NPS', title: '', renderer: (r) => (r.nps == null ? '-' : formatNumber(r.nps, 1, '-')) },
-    ];
-    html += buildDataTableHtml(dailyColumns, daily.stories);
-  }
-  html += '</div>';
-  return html;
-}
-
 function burndownHealth(remaining, ideal, total) {
   if (!remaining.length || !ideal.length || total <= 0) return { label: '', class: '' };
   const actualLast = remaining[remaining.length - 1].remainingSP || 0;
@@ -125,7 +105,7 @@ export function renderBurndown(data) {
   const hasMultiSpFields = Array.isArray(summary.storyPointsFieldCandidates) && summary.storyPointsFieldCandidates.length > 1;
 
   if (!remaining.length) {
-    return '<div class="transparency-card" id="burndown-card"><h2>Burndown</h2><p class="meta-row"><small>Burndown will appear when story points and resolutions are available.</small></p></div>';
+    return '<div class="transparency-card" id="burndown-card"><h2>Flow over time</h2><p class="meta-row"><small>Burndown will appear when story points and resolutions are available.</small></p></div>';
   }
 
   const seriesTotalSP = remaining[0].remainingSP || 0;
@@ -155,7 +135,8 @@ export function renderBurndown(data) {
       return { date: row.date, remainingSP: target };
     });
     let html = '<div class="transparency-card" id="burndown-card">';
-    html += '<h2>Burndown</h2>';
+    html += '<h2>Flow over time</h2>';
+    html += '<p class="meta-row"><small>Burndown by story count with daily completion trend.</small></p>';
     const statusMessage = summaryTotalAllSP === 0
       ? 'Burndown by story count (story points field is not configured for this board).'
       : 'Burndown by story count (this sprint\u2019s stories currently total 0 SP).';
@@ -170,7 +151,7 @@ export function renderBurndown(data) {
     const message = summaryTotalAllSP === 0
       ? 'No story points or story completion history available yet.'
       : 'No story points completed in this sprint yet. Story-point field exists but this sprint currently totals 0 SP.';
-    return '<div class="transparency-card" id="burndown-card"><h2>Burndown</h2><p class="burndown-status-card">' + escapeHtml(message) + '</p></div>';
+    return '<div class="transparency-card" id="burndown-card"><h2>Flow over time</h2><p class="burndown-status-card">' + escapeHtml(message) + '</p></div>';
   }
 
   const sprintJustStarted = remaining.length <= 2 && doneSP === 0;
@@ -178,7 +159,8 @@ export function renderBurndown(data) {
   const burstDelivery = remaining.length >= 2 && doneSP > 0 && lastRemaining === 0 && (remaining[remaining.length - 2].remainingSP || 0) > 0;
 
   let html = '<div class="transparency-card" id="burndown-card">';
-  html += '<h2>Burndown</h2>';
+  html += '<h2>Flow over time</h2>';
+  html += '<p class="meta-row"><small>Burndown of remaining SP plus completion flow.</small></p>';
 
   if (sprintJustStarted) {
     html += '<p class="burndown-status-card burndown-status-info">Sprint just started. Burndown will update as work is completed.</p>';
@@ -295,11 +277,11 @@ export function renderStories(data) {
   html += '<div class="summary-strip role-proof-strip" aria-live="polite">';
   html += '<div class="summary-headline">';
   html += '<strong>Evidence snapshot</strong>';
-  html += '<span>Flow and time evidence only. Risks stay in the Work risks card.</span>';
+  html += '<span>Stories, subtasks, and risk flags in one place.</span>';
   html += '</div>';
   html += '<div class="summary-links">';
-  html += '<a href="#work-risks-table">Open risks</a>';
-  html += '<a href="#stories-table">Open issue evidence</a>';
+  html += '<a href="#stories-table">Table view</a>';
+  html += '<a href="#burndown-card">Flow over time</a>';
   html += '</div>';
   html += '<p class="meta-row"><small>'
     + recentSubtaskMovement + ' subtask updates in last 24h (' + movingParents + ' active parent stor' + (movingParents === 1 ? 'y' : 'ies') + ')'
@@ -307,7 +289,7 @@ export function renderStories(data) {
     + ' | ' + escapeHtml(timeConfidence)
     + '</small></p>';
   html += '<div class="subtask-chips">';
-  html += '<a href="#work-risks-table" class="subtask-chip subtask-chip-warning" title="Filter Work risks to no-log rows">Estimated, no log: ' + subtasksNoLog + '</a>';
+  html += '<button type="button" class="subtask-chip subtask-chip-warning" data-risk-tags="no-log" title="Filter issues to Estimated, no log">Estimated, no log: ' + subtasksNoLog + '</button>';
   html += '<span class="subtask-chip subtask-chip-info">Logged, no estimate: ' + subtasksNoEstimate + '</span>';
   html += '<span class="subtask-chip subtask-chip-warning">Overrun: ' + subtasksOverrun + '</span>';
   html += '<span class="subtask-chip subtask-chip-neutral">Done, no log: ' + subtasksDoneNoLog + '</span>';
@@ -356,7 +338,7 @@ export function renderStories(data) {
     const dayKeys = Array.from(dayKeysSet).sort();
     if (dayKeys.length > 0) {
       html += '<div class="daily-completion-timeline" aria-label="Filter issues by completion day">';
-      html += '<button type="button" class="daily-timeline-chip daily-timeline-chip-active" data-day-key="">All days</button>';
+      html += '<button type="button" class="daily-timeline-chip daily-timeline-chip-active" data-day-key="">All</button>';
       dayKeys.forEach((key) => {
         const label = formatDayLabel(key);
         html += '<button type="button" class="daily-timeline-chip" data-day-key="' + escapeHtml(key) + '"><span class="daily-timeline-chip-label">' + escapeHtml(label) + '</span></button>';
@@ -730,7 +712,7 @@ export function wireDailyCompletionTimelineHandlers() {
     }
 
     card.addEventListener('click', (event) => {
-      const riskChip = event.target.closest('.stories-risk-chip');
+      const riskChip = event.target.closest('.stories-risk-chip, .subtask-chip[data-risk-tags]');
       if (riskChip && card.contains(riskChip)) {
         event.preventDefault();
         const tagsAttr = (riskChip.getAttribute('data-risk-tags') || '').trim();

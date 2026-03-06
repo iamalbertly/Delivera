@@ -359,15 +359,15 @@ function updateSidebarAlertFooterFromStore() {
     if (!summary || typeof summary.total === 'undefined') return;
     const total = Number(summary.total || 0);
     updateBottomNavBadge(PAGE_SPRINT, total > 0 ? String(total) : '', total > 0 ? (total + ' sprint blockers') : '');
-    el.innerHTML = '<button type="button" class="sidebar-alert-footer-chip' + (total <= 0 ? ' is-healthy' : '') + '" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Work risks">Logging alerts: ' + total + (total <= 0 ? ' · Healthy' : '') + '</button>';
+    el.innerHTML = '<button type="button" class="sidebar-alert-footer-chip' + (total <= 0 ? ' is-healthy' : '') + '" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Issues in this sprint">Logging alerts: ' + total + (total <= 0 ? ' · Healthy' : '') + '</button>';
     const btn = el.querySelector('[data-sidebar-alert-jump]');
     btn?.addEventListener('click', () => {
       const path = window.location.pathname || '';
       if (path.endsWith('/current-sprint') || path === '/current-sprint') {
-        (document.getElementById('stuck-card') || document.getElementById('work-risks-table'))?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        (document.getElementById('stories-card') || document.getElementById('stuck-card'))?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
         return;
       }
-      window.location.href = '/current-sprint#stuck-card';
+      window.location.href = '/current-sprint#stories-card';
     }, { once: true });
   } catch (_) {}
 }

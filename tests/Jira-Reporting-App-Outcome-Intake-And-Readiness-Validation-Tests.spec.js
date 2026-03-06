@@ -57,7 +57,7 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     expect(callCount).toBe(2);
   });
 
-  test('current sprint shows readiness strip and supports paste Jira jump', async ({ page }) => {
+  test('current sprint shows readiness verdict in header and supports paste Jira jump', async ({ page }) => {
     await page.route('**/api/boards.json**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -173,13 +173,13 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     });
     await page.locator('#board-select option[value="101"]').waitFor({ state: 'attached' });
     await page.selectOption('#board-select', '101');
-    const readiness = page.locator('.sprint-readiness-strip');
-    const readinessVisible = await readiness.isVisible().catch(() => false);
-    if (!readinessVisible) {
-      test.skip(true, 'Current sprint content did not load in this environment');
+    const verdictLine = page.locator('.current-sprint-header-bar .sprint-verdict-line');
+    const verdictVisible = await verdictLine.isVisible().catch(() => false);
+    if (!verdictVisible) {
+      test.skip(true, 'Current sprint header verdict line not rendered in this environment');
       return;
     }
-    await expect(readiness).toContainText(/at risk|not ready|ready/i);
+    await expect(verdictLine).toContainText(/at risk|not ready|ready|maintenance sprint/i);
 
     await page.locator('#issue-jump-input').fill('https://jira.example.com/browse/MPSA-2');
     await page.locator('#issue-jump-input').press('Enter');

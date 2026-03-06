@@ -9,7 +9,6 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
-import { buildActiveFiltersContextLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 import { readNotificationSummary } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
 import { renderCountdownTimer } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
 import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
@@ -76,59 +75,62 @@ export function renderHeaderBar(data) {
   const remainingChipLabel = remainingDays == null
     ? 'Ends ?'
     : (remainingDays <= 0 ? 'Ended' : (remainingDays < 1 ? 'Ends today' : ('Ends in ' + Math.floor(remainingDays) + 'd')));
+  const verdictRiskChips = [];
+  if (stuckCount > 0) {
+    verdictRiskChips.push({
+      tags: ['blocker'],
+      label: String(stuckCount) + ' blockers',
+      aria: 'Filter issues to owned blockers',
+    });
+  }
+  if (missingEstimates > 0) {
+    verdictRiskChips.push({
+      tags: ['missing-estimate'],
+      label: String(missingEstimates) + ' missing est',
+      aria: 'Filter issues to missing estimates',
+    });
+  }
+  if (missingLoggedItems > 0) {
+    verdictRiskChips.push({
+      tags: ['no-log'],
+      label: String(missingLoggedItems) + ' no log',
+      aria: 'Filter issues to estimated, no log',
+    });
+  }
+  if (unassignedParents > 0) {
+    verdictRiskChips.push({
+      tags: ['unassigned'],
+      label: String(unassignedParents) + ' unowned',
+      aria: 'Filter issues to unowned outcomes',
+    });
+  }
 
   let html = '<div class="current-sprint-header-bar" data-sprint-id="' + (sprint.id || '') + '">';
   html += '<div class="header-bar-left">';
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictInfo.color) + '" aria-live="polite">';
   html += '<strong>' + escapeHtml(verdictInfo.verdict) + '</strong>';
-  html += '<span class="sprint-verdict-explain">';
-  if (compactRiskParts.length) {
-    html += ' · ';
-    html += '<span class="verdict-pill verdict-pill-muted" title="Sprint end timing">' + escapeHtml(remainingChipLabel) + '</span>';
-    if (stuckCount > 0) {
-      html += '<button type="button" class="verdict-pill" data-risk-tags="blocker" aria-label="Filter Work risks to blockers">' + escapeHtml(String(stuckCount)) + ' blockers</button>';
-    }
-    if (missingEstimates > 0) {
-      html += '<button type="button" class="verdict-pill" data-risk-tags="missing-estimate" aria-label="Filter Work risks to missing estimates">' + escapeHtml(String(missingEstimates)) + ' missing est</button>';
-    }
-    if (missingLoggedItems > 0) {
-      html += '<button type="button" class="verdict-pill" data-risk-tags="no-log" aria-label="Filter Work risks to no-log rows">' + escapeHtml(String(missingLoggedItems)) + ' no log</button>';
-    }
-    if (unassignedParents > 0) {
-      html += '<button type="button" class="verdict-pill" data-risk-tags="unassigned" aria-label="Filter Work risks to unowned outcomes">' + escapeHtml(String(unassignedParents)) + ' unowned outcomes</button>';
-    }
+  html += '<span class="verdict-pill verdict-pill-muted" title="Sprint end timing">' + escapeHtml(remainingChipLabel) + '</span>';
+  const maxRiskChips = verdictRiskChips.slice(0, 3);
+  if (maxRiskChips.length) {
+    maxRiskChips.forEach((chip) => {
+      const tagsAttr = chip.tags.join(' ');
+      html += '<button type="button" class="verdict-pill" data-risk-tags="' + escapeHtml(tagsAttr) + '" aria-label="' + escapeHtml(chip.aria) + '">' + escapeHtml(chip.label) + '</button>';
+    });
   } else {
-    html += ' · <span class="verdict-pill verdict-pill-muted">' + escapeHtml(remainingChipLabel) + '</span>';
-    html += '<span class="verdict-pill verdict-pill-muted">No active delivery risks</span>';
+    html += '<span class="verdict-pill verdict-pill-muted">No risks</span>';
   }
-  html += '</span>';
   html += '</div>';
   const boardName = (data.board && data.board.name) ? data.board.name : '';
   const selectedProject = (data.board && Array.isArray(data.board.projectKeys) && data.board.projectKeys.length > 0)
     ? data.board.projectKeys[0]
     : (meta.projects || '');
-  const contextProjects = (meta.projects || '')
-    ? String(meta.projects).split(',').map((p) => String(p).trim()).filter(Boolean).join(', ')
-    : '';
-  const contextStart = meta.windowStart ? formatDate(meta.windowStart) : '';
-  const contextEnd = meta.windowEnd ? formatDate(meta.windowEnd) : '';
-  const reportContextLine = buildActiveFiltersContextLabel(contextProjects || '', meta.windowStart, meta.windowEnd);
-  const hasContextWindow = contextStart && contextEnd;
   const sprintDatesLabel = (formatDate(planned.start || sprint.startDate) + ' - ' + formatDate(planned.end || sprint.endDate)).replace(/^-\s-\s-$/, 'No active sprint window');
   html += '<div class="header-inline-summary">';
-  html += '<span class="header-context-chip header-context-chip-active" title="Active filters driving this sprint view">Active: ' + escapeHtml(selectedProject || 'n/a') + (boardName ? ' | ' + escapeHtml(boardName) : '') + '</span>';
+  html += '<span class="header-context-chip header-context-chip-active" title="Active board and project for this sprint view">' + escapeHtml(selectedProject || 'n/a') + (boardName ? ' · ' + escapeHtml(boardName) : '') + '</span>';
   const sprintNameLabel = sprint.name || (sprint.id ? ('Sprint ' + sprint.id) : 'No active sprint');
   const sprintNameCompact = sprintNameLabel.length > 40 ? (sprintNameLabel.slice(0, 40).trimEnd() + '...') : sprintNameLabel;
   html += '<span class="header-sprint-name" title="' + escapeHtml(sprintNameLabel) + '">' + escapeHtml(sprintNameCompact) + '</span>';
   html += '<span class="header-sprint-dates">' + escapeHtml(sprintDatesLabel) + '</span>';
-  if (activeSprintCount > 1) {
-    html += '<span class="header-context-chip header-context-chip-active" title="Multiple active sprints exist on this board. Use sprint tabs to switch.">Active: ' + activeSprintCount + ' sprints · Viewing ' + escapeHtml(sprintNameLabel) + '</span>';
-  }
-  if (hasContextWindow || contextProjects) {
-    html += '<span class="header-context-chip header-context-chip-cache" title="Cached report context for reference only">From report cache: '
-      + escapeHtml(reportContextLine)
-      + '</span>';
-  }
   html += '</div>';
   html += '</div>';
 
@@ -176,9 +178,13 @@ export function renderHeaderBar(data) {
   html += '<button type="button" class="role-mode-pill" data-role-mode="product-owner" aria-pressed="false">PO</button>';
   html += '<button type="button" class="role-mode-pill" data-role-mode="line-manager" aria-pressed="false">Leads</button>';
   html += '</div>';
-  html += '<small class="header-role-mode-hint" title="Role mode applies one preset across Work risks and Issues evidence">Filters Work risks + Issues together.</small>';
-  html += '<div class="header-active-filter-state" aria-live="polite"><span class="header-active-filter-state-label">Active view:</span> <span data-header-active-filter-value>All work</span><button type="button" class="header-active-filter-reset" data-header-action="reset-filters" aria-label="Reset to all work" title="Reset to All work">Reset</button></div>';
-  html += '<div class="header-updated">' + (freshnessLabel ? '<small class="last-updated">' + escapeHtml(freshnessLabel) + '</small>' : '') + '</div>';
+  html += '<small class="header-role-mode-hint" title="Role mode applies one preset across issues and risks">One view preset for Issues + risks.</small>';
+  html += '<div class="header-active-filter-state" aria-live="polite"><span class="header-active-filter-state-label">View:</span> <span data-header-active-filter-value>All</span><button type="button" class="header-active-filter-reset" data-header-action="reset-filters" aria-label="Reset to all work" title="Reset filters to All">Reset</button></div>';
+  if (freshnessLabel || !hasExportableRows) {
+    const freshnessText = freshnessLabel || (statusBadge === 'Live' ? 'Live data' : 'Snapshot');
+    const exportText = hasExportableRows ? '' : ' · No export';
+    html += '<div class="header-export-readiness">' + escapeHtml(freshnessText + exportText) + '</div>';
+  }
   html += '</div>';
   html += '<div class="header-actions-row">';
   const takeActionLabel = compactRiskParts.length ? 'Take action' : 'Review Work risks anyway';
@@ -235,29 +241,23 @@ export function wireHeaderBarHandlers() {
     const tags = Array.isArray(uiState.riskTags) ? uiState.riskTags : [];
     const day = uiState.dayKey || '';
 
-    let label = 'All work';
-    if (role === 'developer') {
-      label = tags.length
-        ? 'Dev: your logging and estimate gaps'
-        : 'Dev: your sprint work';
-    } else if (role === 'scrum-master') {
-      label = tags.length
-        ? 'SM: owned blockers that need action'
-        : 'SM: overall sprint risks';
-    } else if (role === 'product-owner') {
-      label = tags.length
-        ? 'PO: scope changes and outcome risks'
-        : 'PO: outcome-focused view';
-    } else if (role === 'line-manager') {
-      label = tags.length
-        ? 'Leads: unowned outcomes and ownership gaps'
-        : 'Leads: flow and ownership overview';
-    } else if (tags.length) {
-      label = 'Focused view: ' + tags.join(', ');
+    let roleLabel = 'All';
+    if (role === 'developer') roleLabel = 'Dev';
+    else if (role === 'scrum-master') roleLabel = 'SM';
+    else if (role === 'product-owner') roleLabel = 'PO';
+    else if (role === 'line-manager') roleLabel = 'Leads';
+
+    let focusLabel = '';
+    if (tags.length) {
+      focusLabel = tags.join(', ');
     }
 
+    let label = roleLabel;
+    if (focusLabel) {
+      label += ' · ' + focusLabel;
+    }
     if (day) {
-      label += ' · Day ' + day;
+      label += ' · ' + day;
     }
 
     activeStateValueEl.textContent = label;
@@ -265,44 +265,17 @@ export function wireHeaderBarHandlers() {
     window.setTimeout(() => headerBar.classList.remove('header-active-filter-state-highlight'), 900);
   }
 
-  function getVisibleParentRiskRows() {
-    const table = document.getElementById('work-risks-table');
-    return table
-      ? Array.from(table.querySelectorAll('tbody .work-risk-parent-row')).filter((row) => {
-          const style = window.getComputedStyle(row);
-          return style.display !== 'none' && !row.hasAttribute('hidden');
-        })
-      : [];
-  }
-
-  function focusFirstVisibleRiskRow() {
-    const table = document.getElementById('work-risks-table');
-    const firstVisibleRow = getVisibleParentRiskRows()[0] || null;
-    (firstVisibleRow || table || document.getElementById('stuck-card'))?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-    firstVisibleRow?.classList?.add('row-attention-pulse');
-    window.setTimeout(() => firstVisibleRow?.classList?.remove('row-attention-pulse'), 1600);
-    return firstVisibleRow;
-  }
-
   function applyHeaderRiskAction(preferredTags, source) {
     const candidates = Array.isArray(preferredTags) ? preferredTags : [];
     const tagsByPriority = [candidates, ['no-log'], ['missing-estimate'], ['scope'], []];
-    const table = document.getElementById('work-risks-table');
-    const parentRows = table ? Array.from(table.querySelectorAll('tbody .work-risk-parent-row')) : [];
     let selected = [];
     for (const option of tagsByPriority) {
       if (!option.length) {
         selected = [];
         break;
       }
-      const hasAny = parentRows.some((row) => {
-        const tags = (row.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
-        return option.some((tag) => tags.includes(String(tag).toLowerCase()));
-      });
-      if (hasAny) {
-        selected = option;
-        break;
-      }
+      selected = option;
+      break;
     }
     setRiskTagsState(selected);
     try {
@@ -310,16 +283,10 @@ export function wireHeaderBarHandlers() {
         detail: { riskTags: selected, source: source || 'header-action' }
       }));
     } catch (_) {}
-    const firstRow = focusFirstVisibleRiskRow();
-    window.setTimeout(() => {
-      const visibleRows = getVisibleParentRiskRows();
-      const focusLabel = selected.length
-        ? ('Focused on: ' + (selected[0] === 'blocker' ? 'Blockers >24h' : selected[0]) + ' (1 of ' + Math.max(visibleRows.length, 1) + ')')
-        : (visibleRows.length ? ('Focused on: Top risk (1 of ' + visibleRows.length + ')') : 'All work');
-      if (activeStateValueEl) activeStateValueEl.textContent = visibleRows.length ? focusLabel : 'No active risks · All work';
-      if (firstRow && typeof firstRow.click === 'function') firstRow.click();
-      if (!firstRow) document.getElementById('stuck-card')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-    }, 40);
+    try {
+      const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
+      stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    } catch (_) {}
   }
 
   if (headerBar.dataset.headerActionDelegationWired !== '1') {
@@ -428,8 +395,8 @@ export function wireHeaderBarHandlers() {
         }
       } catch (_) {}
       try {
-        const table = document.getElementById('work-risks-table');
-        if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
+        if (stories) stories.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (_) {}
     });
   }
@@ -448,44 +415,25 @@ export function wireHeaderBarHandlers() {
       btn.classList.toggle('role-mode-pill-active', isActive);
     });
     uiState.roleMode = active;
-    if (typeof window !== 'undefined' && window.dispatchEvent) {
-      const presetMap = {
-        all: [],
-        developer: ['no-log'],
-        'scrum-master': ['blocker'],
-        'product-owner': ['scope'],
-        'line-manager': ['unassigned'],
-      };
-      const riskTags = presetMap[active] || [];
-      if (active !== 'all' && riskTags.length) {
-        const table = document.getElementById('work-risks-table');
-        const parentRows = table ? Array.from(table.querySelectorAll('.work-risk-parent-row')) : [];
-        const hasMatches = parentRows.some((row) => {
-          const tags = (row.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
-          return riskTags.some((tag) => tags.includes(String(tag).toLowerCase()));
-        });
-        if (!hasMatches && parentRows.length > 0) {
-          uiState.roleMode = 'all';
-          roleButtons.forEach((btn) => {
-            const isAll = (btn.getAttribute('data-role-mode') || '') === 'all';
-            btn.setAttribute('aria-pressed', isAll ? 'true' : 'false');
-            btn.classList.toggle('role-mode-pill-active', isAll);
-          });
-          setRiskTagsState([]);
-          renderActiveState();
-          try {
-            window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: [], source: 'role-mode-no-match-' + active } }));
-            window.dispatchEvent(new CustomEvent('currentSprint:roleModeNoMatch', { detail: { mode: active } }));
-          } catch (_) {}
-          return;
-        }
-      }
-      setRiskTagsState(riskTags);
-      try {
+    const presetMap = {
+      all: [],
+      developer: ['no-log'],
+      'scrum-master': ['blocker'],
+      'product-owner': ['scope'],
+      'line-manager': ['unassigned'],
+    };
+    const riskTags = presetMap[active] || [];
+    setRiskTagsState(riskTags);
+    try {
+      if (typeof window !== 'undefined' && window.dispatchEvent) {
         window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'role-mode-' + active } }));
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
     renderActiveState();
+    try {
+      const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
+      stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    } catch (_) {}
   }
   let initialMode = 'all';
   try {

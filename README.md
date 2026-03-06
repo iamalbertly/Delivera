@@ -4,6 +4,19 @@ VodaAgileBoard is the tool for scrum masters and leaders: a Node.js web applicat
 
 This README is the SSOT for usage and validation. Supplemental documents (e.g. `Jira-Reporting-Gap-Analysis-Plan.md`) provide planning context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-03-06)
+
+- Current Sprint direct-to-value consolidation:
+  - Work risks table is now an explainer-only card beneath `Issues in this sprint`, with all actionable filtering and risk counts owned by the stories card and header risk chips.
+  - Burndown and Daily completion views are merged into a single `Flow over time` card that reuses the existing datasets and adapts between SP-based and story-count burndown copy.
+  - The Current Sprint header bar stays as a thin three-band strip that surfaces verdict, countdown, compact metrics, and role presets without adding new rows or duplicate readiness strips.
+- Cross-surface logging and navigation alignment:
+  - Sidebar logging alerts and the notification dock now deep-link directly to `Issues in this sprint` (`#stories-card`) with `Work risks` as supporting context instead of a competing table.
+  - Global navigation and header role presets all reuse the same `currentSprint:applyWorkRiskFilter` event so blockers, scope, unowned outcomes, and log-debt slices stay in sync across chips, shortcuts, and header actions.
+- Test and console-guard hardening:
+  - Playwright global console guard now reuses the shared ignore list and treats expected retry scenarios (e.g., transient 500 responses in mocked board loads) as non-fatal while still failing on unexpected console errors.
+  - Current Sprint UX SSOT validation tests were updated for the merged `Flow over time` card, Work risks explainer, leadership empty-preview behavior, and dataset-aware board preselection checks.
+
 ## Latest Reliability and UX Updates (2026-03-04)
 
 - Current Sprint data-integrity and friction fixes:

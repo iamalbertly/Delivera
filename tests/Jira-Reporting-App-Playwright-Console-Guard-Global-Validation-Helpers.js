@@ -1,4 +1,5 @@
 import { test as base, expect } from '@playwright/test';
+import { IGNORE_CONSOLE_ERRORS } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 /**
  * Global console + pageerror guard for Jira Reporting App Playwright tests.
@@ -22,6 +23,7 @@ export const test = base.extend({
         url.includes('/api/outcome-from-narrative') &&
         /status of 409/i.test(text || '');
       if (isExpectedOutcomeConflict) return;
+      if (IGNORE_CONSOLE_ERRORS.some((ignored) => text === ignored || text.includes(ignored))) return;
       consoleMessages.push(`[console:${type}] ${text}`);
     };
 

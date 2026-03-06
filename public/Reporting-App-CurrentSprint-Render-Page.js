@@ -1,64 +1,11 @@
 import { updateHeader } from './Reporting-App-CurrentSprint-Render-Overview.js';
-import { renderDailyCompletion, renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Render-Progress.js';
+import { renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Render-Progress.js';
 import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
 import { renderCapacityAllocation } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
-import { isOutcomeStoryLike, hasOwnershipSignals, parseIssueLabels } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
-
-function buildSprintReadinessHtml(data) {
-  const sprintState = String(data?.sprint?.state || '').toLowerCase();
-  const stories = Array.isArray(data?.stories) ? data.stories : [];
-  const totalStories = stories.length;
-  const isMaintenanceSprint = stories.some((s) => {
-    const labels = parseIssueLabels(s?.labels);
-    return labels.some((l) => String(l || '').toLowerCase() === 'maintenance-sprint');
-  });
-  const outcomeStories = stories.filter((s) => isOutcomeStoryLike({ labels: s?.labels, epicKey: s?.epicKey }));
-  const outcomeCount = outcomeStories.length;
-  const parentUnassigned = outcomeStories.filter((s) => !hasOwnershipSignals({
-    assignee: s?.assignee,
-    reporter: s?.reporter,
-    subtaskAssignees: Array.isArray(s?.subtasks) ? s.subtasks.map((st) => st?.assignee) : [],
-  })).length;
-
-  if (isMaintenanceSprint) {
-    return '<div class="sprint-readiness-strip sprint-readiness-neutral" role="status" aria-live="polite">' +
-      '<span class="sprint-readiness-label">Maintenance sprint - outcome readiness not enforced. Ownership risks still apply.</span>' +
-      '<a href="#stuck-card" class="sprint-readiness-link">Review work risks</a>' +
-      '</div>';
-  }
-
-  let state = 'ready';
-  let message = 'Sprint ready: outcome stories present and owners assigned.';
-  if (totalStories === 0) {
-    state = 'not-ready';
-    message = sprintState === 'active'
-      ? 'Sprint not ready: no issues in this sprint. Add outcome stories in Jira or select a different sprint.'
-      : 'Sprint backlog empty. Add outcome stories before starting this sprint.';
-  } else if (outcomeCount === 0) {
-    state = 'not-ready';
-    message = 'Sprint not ready: no outcome stories with story points. Align backlog with business outcomes before starting.';
-  } else {
-    const unownedRatio = outcomeCount > 0 ? (parentUnassigned / outcomeCount) : 0;
-    if (unownedRatio >= 0.5) {
-      state = 'not-ready';
-      message = 'Sprint not ready: most outcome stories have no clear owner. Assign owners before starting.';
-    } else if (unownedRatio > 0) {
-      state = 'at-risk';
-      message = 'Sprint at risk: some outcome stories are unowned. Assign owners to reduce risk.';
-    }
-  }
-
-  const labelClass = 'sprint-readiness-' + state;
-  const safeMessage = message;
-  return '<div class="sprint-readiness-strip ' + labelClass + '" role="status" aria-live="polite">' +
-    '<span class="sprint-readiness-label">' + safeMessage + '</span>' +
-    '<a href="' + (state === 'ready' ? '#stories-card' : '#stuck-card') + '" class="sprint-readiness-link">' + (state === 'ready' ? 'Review work items' : 'Review ownership risks') + '</a>' +
-    '</div>';
-}
 
 export function renderCurrentSprintPage(data) {
   if (!data.sprint) {
@@ -105,7 +52,6 @@ export function renderCurrentSprintPage(data) {
   if (!hasCapacityData) availabilityGaps.push({ source: 'Workflow', label: 'Capacity hidden', reason: 'No work items in this sprint.' });
 
   html += renderHeaderBar(data);
-  html += buildSprintReadinessHtml(data);
 
   const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData && !hasCapacityData;
   if (allSectionsHidden) {
@@ -127,7 +73,7 @@ export function renderCurrentSprintPage(data) {
   const hasRisks = riskCount > 0 || stuckCount > 0 || (data.stuckCandidates || []).length > 0;
   if (hasRisks) jumpLinks.push('<a href="#stuck-card">Risks</a>');
   if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
-  if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Burndown</a>');
+  if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-dropdown" role="navigation" aria-label="Jump to section">' +
     '<button type="button" class="btn btn-secondary btn-compact sprint-section-dropdown-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="sprint-section-dropdown-menu">Sections</button>' +
@@ -166,13 +112,6 @@ export function renderCurrentSprintPage(data) {
     html += '<div class="card-column capacity-column">' + renderCapacityAllocation(data) + '</div>';
     html += '</div>';
   }
-  if (hasDailyCompletions) {
-    html += '<details class="mobile-secondary-details" data-mobile-collapse="true" open>';
-    html += '<summary>Daily completion trend</summary>';
-    html += renderDailyCompletion(data);
-    html += '</details>';
-  }
-
   html += '</div>';
 
   try {

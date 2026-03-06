@@ -41,17 +41,17 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
 
   function applyStoredFiltersCollapsed() {
     if (!panel || !panelBody || !collapsedBar) return;
-    const isMobile = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
-    if (isMobile) {
-      setFiltersPanelCollapsed(true);
-      return;
-    }
     const previewContent = document.getElementById('preview-content');
     const isPreviewVisible = previewContent && previewContent.style.display !== 'none';
+    let shouldCollapse = false;
     try {
       const stored = sessionStorage.getItem(collapsedStorageKey);
-      if (stored === '1' && isPreviewVisible) setFiltersPanelCollapsed(true);
+      if (stored === '1' && isPreviewVisible) {
+        shouldCollapse = true;
+      }
     } catch (_) {}
+    if (!shouldCollapse) return;
+    setFiltersPanelCollapsed(true);
   }
 
   document.addEventListener('click', (ev) => {

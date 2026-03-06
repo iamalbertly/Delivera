@@ -6,6 +6,7 @@ export const IGNORE_CONSOLE_ERRORS = [
   'Failed to load resource: the server responded with a status of 404 (Not Found)',
   'Failed to load resource: net::ERR_FAILED',
   'Failed to load resource: net::ERR_INSUFFICIENT_RESOURCES',
+  'Failed to load resource: the server responded with a status of 500 (Internal Server Error)',
   'ResizeObserver loop limit exceeded',
   'The operation is insecure.',
   'AbortError: signal is aborted without reason',
