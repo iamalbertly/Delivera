@@ -675,29 +675,26 @@ This runs the test orchestration script which:
 
 ### Run Specific Test Suites
 ```bash
-# E2E tests only
-npm run test:e2e
+# Fast smoke slice (cross-journey health check)
+npm run test:smoke
 
-# API tests only
-npm run test:api
+# Current Sprint mission-control journey (header, risks, exports, hierarchy)
+npm run test:journey:current-sprint
 
-# Validation plan tests (UI + telemetry)
-npm run test:validation
+# Leadership HUD and boards journey (trends + boards summary/export)
+npm run test:journey:leadership
 
-# Current Sprint and Leadership view E2E tests
-npm run test:current-sprint-leadership
+# Outcome intake and outcome-first readiness journeys
+npm run test:journey:outcome-intake
 
-# UX Trust Validation (report, current-sprint, leadership + console/UI assertions)
-npm run test:ux-trust
+# Global UX, navigation, trust, and mobile-responsiveness journeys
+npm run test:journey:ux-core
 
-# Current Sprint UX and SSOT Validation (board pre-select, burndown, empty states, leadership empty preview)
-npm run test:current-sprint-ux-ssot
+# API contracts, data integrity, and export/SSOT journeys
+npm run test:journey:data-integrity
 
-# Focused cache reliability and preview metadata checks
-npm run test:cache-reliability
-
-# Navigation consistency + realtime mobile trust checks (13 fail-fast assertions)
-npm run test:navigation-consistency
+# Full E2E journeys (includes deploy smoke and loading-meta robustness)
+npm run test:e2e:full
 ```
 
 ### Test Coverage and Caching Behavior

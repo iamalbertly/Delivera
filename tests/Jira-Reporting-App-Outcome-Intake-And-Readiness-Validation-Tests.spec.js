@@ -6,8 +6,10 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    const textarea = page.locator('#report-outcome-text');
-    const createBtn = page.locator('#report-outcome-intake-create');
+    await page.locator('[data-open-outcome-modal]').first().click();
+    await expect(page.locator('#global-outcome-modal')).toBeVisible();
+    const textarea = page.locator('#global-outcome-modal #report-outcome-text');
+    const createBtn = page.locator('#global-outcome-modal #report-outcome-intake-create');
     const status = page.locator('#report-outcome-intake-status');
 
     await textarea.fill('Please continue work on SD-5022 and update the acceptance criteria.');
@@ -49,9 +51,10 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('#project-mas').uncheck().catch(() => {});
-
-    await page.locator('#report-outcome-text').fill('New sites performance narrative without a Jira key.');
-    await page.locator('#report-outcome-intake-create').click();
+    await page.locator('[data-open-outcome-modal]').first().click();
+    await expect(page.locator('#global-outcome-modal')).toBeVisible();
+    await page.locator('#global-outcome-modal #report-outcome-text').fill('New sites performance narrative without a Jira key.');
+    await page.locator('#global-outcome-modal #report-outcome-intake-create').click();
     await expect(page.locator('#report-outcome-intake-status')).toContainText(/already exists|Use existing|Create anyway/i);
     await page.locator('[data-outcome-action="create-anyway"]').click();
     expect(callCount).toBe(2);

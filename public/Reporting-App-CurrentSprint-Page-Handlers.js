@@ -4,7 +4,6 @@ import { showContent } from './Reporting-App-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Page.js';
 
 let isGlobalHoverBound = false;
-let isGlobalClickBound = false;
 let isCardToggleBound = false;
 let isIssueJumpBound = false;
 
@@ -21,24 +20,6 @@ function bindGlobalPrefetchHover() {
       // In next phase: fetch(`/api/sprint-details/${sprintId}`).catch(()=>{});
     }
   }, { passive: true });
-}
-
-function bindGlobalClickHandlers() {
-  if (isGlobalClickBound) return;
-  isGlobalClickBound = true;
-  document.addEventListener('click', (e) => {
-    const toggle = e.target.closest('.card-details-toggle');
-    if (toggle) {
-      const wrap = toggle.closest('.card-details-toggle-wrap');
-      const region = document.getElementById('card-details-region');
-      if (wrap && region) {
-        const collapsed = wrap.classList.toggle('card-details-collapsed');
-        toggle.setAttribute('aria-expanded', String(!collapsed));
-        region.setAttribute('aria-hidden', String(collapsed));
-        toggle.textContent = collapsed ? 'Show capacity details' : 'Hide capacity details';
-      }
-    }
-  });
 }
 
 function bindCardToggles() {
@@ -105,7 +86,6 @@ function bindIssueJump() {
 
 export function wireDynamicHandlers(data) {
   bindGlobalPrefetchHover();
-  bindGlobalClickHandlers();
   bindCardToggles();
   bindIssueJump();
 

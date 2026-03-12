@@ -1,5 +1,6 @@
 import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
 import { initLeadershipDefaults, initLeadershipFilters, tryAutoRunPreviewOnce, renderLeadershipLoading } from './Reporting-App-Leadership-Page-Data-Loader.js';
+import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
 
 function csvEscape(val) {
   const s = String(val == null ? '' : val).trim();
@@ -39,12 +40,24 @@ function exportLeadershipBoardsCsv() {
 
 function initLeadershipPage() {
   renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
+  initGlobalOutcomeModal({
+    getSelectedProjects: () => {
+      const projectsSelect = document.getElementById('leadership-projects');
+      return String(projectsSelect?.value || '').split(',').map((value) => value.trim()).filter(Boolean);
+    },
+  });
   initLeadershipDefaults();
   initLeadershipFilters();
   tryAutoRunPreviewOnce();
   renderLeadershipLoading();
 
   document.addEventListener('click', (ev) => {
+    const contextActionEl = ev.target && ev.target.closest ? ev.target.closest('[data-context-action]') : null;
+    if (contextActionEl && contextActionEl.getAttribute('data-context-action') === 'refresh-context') {
+      const previewBtn = document.getElementById('leadership-preview');
+      previewBtn?.click?.();
+      return;
+    }
     if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-boards-csv') {
       exportLeadershipBoardsCsv();
     }

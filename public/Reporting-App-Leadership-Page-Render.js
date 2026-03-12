@@ -1,9 +1,17 @@
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
+import { renderEmptyStateHtml, renderNoBoardsForRangeEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { buildActiveFiltersContextLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
+
+export function getLeadershipTrendVisibilityHint() {
+  return 'For trend visibility, not team ranking.';
+}
+
+export function getLeadershipIndexedDeliveryHint(windowSize = 6) {
+  return `Indexed Delivery = current SP/day vs own baseline (last ${windowSize} closed sprints).`;
+}
 
 function computeVelocityWindowStats(sprints, windowEnd, months) {
   const end = parseISO(windowEnd);
@@ -54,7 +62,9 @@ export function renderLeadershipPage(data) {
 
   const rangeStart = meta.windowStart ? formatDateShort(meta.windowStart) : '-';
   const rangeEnd = meta.windowEnd ? formatDateShort(meta.windowEnd) : '-';
-  const rangeTooltip = 'Completion anchored to resolution date. Indexed Delivery = current SP/day vs own baseline (last 6 closed sprints). Use for trend visibility, not performance ranking.';
+  const indexedDeliveryHint = getLeadershipIndexedDeliveryHint(6);
+  const trendVisibilityHint = getLeadershipTrendVisibilityHint();
+  const rangeTooltip = 'Completion anchored to resolution date. ' + indexedDeliveryHint + ' ' + trendVisibilityHint.replace('ranking.', 'performance ranking.');
   const rangeStartAttr = meta.windowStart ? formatDateShort(meta.windowStart) : '';
   const rangeEndAttr = meta.windowEnd ? formatDateShort(meta.windowEnd) : '';
   const projectsAttr = (meta.projects || '').replace(/,/g, '-').replace(/\s+/g, '') || '';
@@ -63,12 +73,20 @@ export function renderLeadershipPage(data) {
     .map((p) => String(p || '').trim())
     .filter(Boolean)
     .join(', ');
+  const contextSegments = renderContextSegments(getContextPieces({
+    projects: projectsLabel || '-',
+    rangeStart: meta.windowStart,
+    rangeEnd: meta.windowEnd,
+  }), {
+    className: 'header-context-strip leadership-context-strip',
+    segmentClass: 'header-context-segment',
+  });
   let html = '<div class="leadership-context-sticky">';
   html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
+  html += contextSegments;
   html += '<p class="metrics-hint leadership-context-line">';
-  const activeFiltersLine = buildActiveFiltersContextLabel(projectsLabel || '-', meta.windowStart, meta.windowEnd);
-  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">' + escapeHtml(activeFiltersLine) + '</span>';
-  html += ' <span class="leadership-trust-hint">For trend visibility, not team ranking.</span>';
+  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">' + escapeHtml(indexedDeliveryHint) + '</span>';
+  html += ' <span class="leadership-trust-hint">' + escapeHtml(trendVisibilityHint) + '</span>';
   html += '</p>';
 
   let outcomeLine = '';
@@ -129,20 +147,14 @@ export function renderLeadershipPage(data) {
   html += '<h2>Boards - normalized delivery</h2>';
   html += '<p class="leadership-delivery-hint"><small>Delivery % adjusted for scope changes. Use this for within-board trends, not ranking teams.</small></p>';
   html += '<div class="leadership-view-actions">';
+  html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create an outcome from this board trend." data-outcome-projects="' + escapeHtml(projectsLabel.replace(/\s+/g, '')) + '">Create outcome from this board trend</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact active" data-leadership-view="cards" aria-pressed="true">Cards</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact" data-leadership-view="table" aria-pressed="false">Table</button>';
   html += '<div class="leadership-export-wrap"><button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-boards-csv" title="Export boards table to CSV">Export CSV</button></div>';
   html += '</div>';
   html += '</div>';
   if (boards.length === 0) {
-    const hint = 'Change projects above or open Report to check project configuration.';
-    html += renderEmptyStateHtml(
-      'No boards in this project set',
-      'No boards were returned for the selected projects and date range.',
-      hint,
-      'Open Report',
-      { href: '/report' }
-    );
+    html += projectsLabel ? renderNoBoardsForRangeEmptyState() : renderNoProjectsSelectedEmptyState();
     html += '<section class="leadership-onboarding-empty" role="note">';
     html += '<h3>Your first report</h3>';
     html += '<p>Connect Jira projects in one step to unlock leadership trends.</p>';

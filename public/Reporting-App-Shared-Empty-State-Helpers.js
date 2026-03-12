@@ -28,6 +28,43 @@ export function renderEmptyStateHtml(title, message, hint = '', ctaLabel = '', o
   );
 }
 
+export function renderNoActiveSprintEmptyState() {
+  return renderEmptyStateHtml(
+    'No active sprint',
+    'No active sprint for this board.',
+    'Pick a recent sprint or start work in Jira.',
+    'Pick a board',
+  );
+}
+
+export function renderNoIssuesForContextEmptyState() {
+  return renderEmptyStateHtml(
+    'No issues for this context',
+    'No issues were returned for the current sprint context.',
+    'Add stories in Jira or pick a different board.',
+    'Pick a board',
+  );
+}
+
+export function renderNoBoardsForRangeEmptyState() {
+  return renderEmptyStateHtml(
+    'No boards for this project/range',
+    'No boards were returned for the selected project set and date range.',
+    'Open filters and widen the range or change projects.',
+    'Open filters',
+  );
+}
+
+export function renderNoProjectsSelectedEmptyState() {
+  return renderEmptyStateHtml(
+    'No projects selected',
+    'Open Report, choose projects, and run a preview.',
+    'This page will adopt that context automatically.',
+    'Open report',
+    { href: '/report' },
+  );
+}
+
 /**
  * Compact inline data-availability strip: explains why sections are hidden without hijacking the page.
  * Shows first 2 items visible; remaining items are collapsed behind a "+N more" toggle.

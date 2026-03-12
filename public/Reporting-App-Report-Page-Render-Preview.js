@@ -109,7 +109,8 @@ export function renderPreview() {
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
   const oneClickWrap = document.getElementById('report-one-click-cta-wrap');
   const previewBtn = document.getElementById('preview-btn');
-  if (loadLatestWrap) loadLatestWrap.style.display = 'none';
+  if (typeof window.__reportSyncHeaderLoadLatestVisibility === 'function') window.__reportSyncHeaderLoadLatestVisibility(false);
+  else if (loadLatestWrap) loadLatestWrap.style.display = 'none';
   const meta = getSafeMeta(previewData);
   if (!meta) {
     const stickyElNoMeta = document.getElementById('preview-summary-sticky');

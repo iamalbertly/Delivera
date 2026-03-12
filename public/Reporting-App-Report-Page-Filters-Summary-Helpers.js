@@ -123,11 +123,7 @@ export function updateAppliedFiltersSummary() {
     : 'Select projects and dates, then preview.';
 
   if (summaryEl) {
-    const primaryProject = projects.length === 0 ? 'No project' : projects[0] + (projects.length > 1 ? ' +' + (projects.length - 1) : '');
-    const shortSummary = (projects.length > 0 && compactRangeLabel)
-      ? 'Filters: ' + primaryProject + CONTEXT_SEPARATOR + compactRangeLabel + (options.length ? CONTEXT_SEPARATOR + '+' + options.length + ' advanced' : '')
-      : summaryText;
-    summaryEl.textContent = shortSummary;
+    summaryEl.textContent = 'Active filters are summarized in the Context card above.';
     summaryEl.title = summaryText;
   }
   if (chipsEl) {
@@ -138,14 +134,6 @@ export function updateAppliedFiltersSummary() {
     if (options.length > 0) chips.push('+Advanced (' + options.length + ')');
     chipsEl.textContent = chips.length ? chips.join(' | ') : 'No filters selected';
     chipsEl.title = summaryText;
-  }
-
-  if (summaryEl && typeof window !== 'undefined' && window.innerWidth <= 768 && projects.length > 1) {
-    const mobileLabel = projects[0] + ' +' + (projects.length - 1) + ' more';
-    const mobileSummary = (mobileLabel !== 'None' && rangeLabel)
-      ? 'Filters: ' + mobileLabel + CONTEXT_SEPARATOR + (compactRangeLabel || rangeLabel)
-      : summaryText;
-    summaryEl.textContent = mobileSummary;
   }
 
   const activeCount = projects.length + (startVal && endVal ? 1 : 0) + options.length;
@@ -172,7 +160,10 @@ export function updateAppliedFiltersSummary() {
 
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
   const previewBtn = document.getElementById('preview-btn');
-  if (loadLatestWrap && previewBtn && previewBtn.disabled) loadLatestWrap.style.display = 'none';
+  if (previewBtn && previewBtn.disabled) {
+    if (typeof window.__reportSyncHeaderLoadLatestVisibility === 'function') window.__reportSyncHeaderLoadLatestVisibility(false);
+    else if (loadLatestWrap) loadLatestWrap.style.display = 'none';
+  }
   const reportContextLine = document.getElementById('report-context-line');
   if (reportContextLine && projects.length === 0) {
     reportContextLine.textContent = 'Select at least one project to see results.';

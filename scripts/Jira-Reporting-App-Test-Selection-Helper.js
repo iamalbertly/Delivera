@@ -14,18 +14,28 @@
 import { basename } from 'path';
 
 /**
- * Extract the spec path (tests/....spec.js) from a step definition.
- * Assumes each Playwright step has a single spec file argument.
+ * Extract the first spec path (tests/....spec.js) from a step definition.
+ * Kept for backward compatibility; prefer getSpecPathsFromStep for new logic.
  *
  * @param {{ args?: string[] }} step
  * @returns {string | null}
  */
 export function getSpecPathFromStep(step) {
+  const specs = getSpecPathsFromStep(step);
+  return specs.length > 0 ? specs[0] : null;
+}
+
+/**
+ * Extract all spec paths (tests/....spec.js) from a step definition.
+ *
+ * @param {{ args?: string[] }} step
+ * @returns {string[]}
+ */
+export function getSpecPathsFromStep(step) {
   if (!step || !Array.isArray(step.args)) return null;
-  const specArg = step.args.find(
+  return step.args.filter(
     (arg) => typeof arg === 'string' && arg.startsWith('tests/') && arg.endsWith('.spec.js'),
   );
-  return specArg || null;
 }
 
 /**
@@ -39,13 +49,15 @@ export function buildSpecIndex(steps) {
   const allSpecPaths = [];
 
   steps.forEach((step, index) => {
-    const specPath = getSpecPathFromStep(step);
-    if (!specPath) return;
-    if (!specToStepIndexes.has(specPath)) {
-      specToStepIndexes.set(specPath, []);
-      allSpecPaths.push(specPath);
-    }
-    specToStepIndexes.get(specPath).push(index);
+    const specPaths = getSpecPathsFromStep(step);
+    if (!specPaths || specPaths.length === 0) return;
+    specPaths.forEach((specPath) => {
+      if (!specToStepIndexes.has(specPath)) {
+        specToStepIndexes.set(specPath, []);
+        allSpecPaths.push(specPath);
+      }
+      specToStepIndexes.get(specPath).push(index);
+    });
   });
 
   return { specToStepIndexes, allSpecPaths };

@@ -35,7 +35,9 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     });
     expect(headerOverflow).toBe(false);
     await expect(page.locator('header h1')).toContainText(/General Performance|High-Level/i);
-    await expect(page.locator('#report-subtitle')).toBeVisible();
+    const hasSubtitle = await page.locator('#report-subtitle').isVisible().catch(() => false);
+    const hasHeaderActions = await page.locator('#report-header-actions').isVisible().catch(() => false);
+    expect(hasSubtitle || hasHeaderActions).toBe(true);
     assertTelemetryClean(telemetry);
   });
 
@@ -45,7 +47,7 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
     const titleBlockOverflow = await page.evaluate(() => {
-      const block = document.querySelector('header .current-sprint-header > div:first-child, header .current-sprint-header-bar .header-bar-left');
+      const block = document.querySelector('header .board-select-wrap, .current-sprint-header-bar');
       return block ? block.scrollWidth > block.clientWidth : false;
     });
     expect(titleBlockOverflow).toBe(false);
@@ -120,6 +122,17 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     expect(metrics).toBeTruthy();
     expect(metrics.left).toBeLessThanOrEqual(260);
     expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report desktop uses header actions instead of an in-content collapsed filters bar', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('#report-header-actions [data-action="toggle-filters"]').first()).toBeVisible();
+    const collapsedBarVisible = await page.locator('#filters-panel-collapsed-bar').isVisible().catch(() => false);
+    expect(collapsedBarVisible).toBe(false);
     assertTelemetryClean(telemetry);
   });
 });

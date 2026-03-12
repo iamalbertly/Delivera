@@ -1,4 +1,5 @@
 import { currentSprintDom } from './Reporting-App-CurrentSprint-Page-Context.js';
+import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
 
 export function updateHeader(sprint) {
   const { titleEl, nameEl, subtitleEl } = currentSprintDom;
@@ -8,15 +9,15 @@ export function updateHeader(sprint) {
   if (!sprint) {
     document.body.classList.remove('current-sprint-has-live-content');
     pageHeader?.classList.remove('current-sprint-header-compact');
-    titleEl.textContent = 'Current Sprint';
+    titleEl.textContent = SPRINT_COPY.pageTitle;
     nameEl.textContent = '';
-    if (subtitleEl) subtitleEl.textContent = 'Squad view - planned vs observed work, daily completion, scope changes';
+    if (subtitleEl) subtitleEl.textContent = SPRINT_COPY.pageSubtitleEmpty;
     return;
   }
 
   document.body.classList.add('current-sprint-has-live-content');
   pageHeader?.classList.add('current-sprint-header-compact');
-  titleEl.textContent = 'Current Sprint';
+  titleEl.textContent = SPRINT_COPY.pageTitle;
   nameEl.textContent = sprint.name ? '- ' + sprint.name : (sprint.id ? '- ' + sprint.id : '');
-  if (subtitleEl) subtitleEl.textContent = 'Sprint transparency snapshot (' + (sprint.state || 'unknown') + ')';
+  if (subtitleEl) subtitleEl.textContent = SPRINT_COPY.pageSubtitleLoaded;
 }

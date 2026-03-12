@@ -10,11 +10,10 @@ import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRis
 
 const SUMMARY_SECTION_KEYS = [
   'summary',
-  'flowLogging',
+  'health',
   'blockers',
-  'notStarted',
   'scope',
-  'workBreakdown',
+  'flowLogging',
   'actions',
 ];
 
@@ -40,11 +39,73 @@ function escapeHtmlText(value) {
     .replace(/'/g, '&#39;');
 }
 
+const SUMMARY_SEPARATOR = ' \u00b7 ';
+const DATE_RANGE_RENDER_SEPARATOR = '\u2013';
+const SECTION_TITLES = {
+  health: 'Health',
+  blockers: 'Work risks',
+  scope: 'Scope',
+  flowLogging: 'Capacity',
+  actions: 'Actions',
+};
+
+function pushSummaryLine(section, text, options = {}) {
+  if (!text) return;
+  section.push({
+    text,
+    isHeading: !!options.isHeading,
+    isBold: !!options.isBold,
+    isItalic: false,
+    isSeparator: false,
+  });
+}
+
+function buildDateRangeLabel(startIso, endIso) {
+  const startLabel = formatDate(startIso) || '';
+  const endLabel = formatDate(endIso) || '';
+  if (startLabel && endLabel) return `${startLabel}${DATE_RANGE_RENDER_SEPARATOR}${endLabel}`;
+  if (startLabel) return `Starts ${startLabel}`;
+  if (endLabel) return `Ends ${endLabel}`;
+  return '';
+}
+
+function getTimeLeftLabel(remainingDays) {
+  if (remainingDays == null || remainingDays <= 0) return 'ended';
+  if (remainingDays < 1) return 'ends in <1d';
+  return `ends in ${remainingDays}d`;
+}
+
+function normalizeBulletText(text) {
+  return String(text || '')
+    .replace(/^\s*[-*]\s*/, '')
+    .replace(/^\s*\d+\.\s*/, '')
+    .trim();
+}
+
+function renderClipboardLine(line, index, mode) {
+  if (!line || !line.text) return '';
+  if (mode !== 'markdownEnhanced') return line.text;
+  if (index === 0 || (index === 1 && line.isBold)) return `**${line.text}**`;
+  if (line.isHeading) return `**${line.text}**`;
+  return line.text;
+}
+
+function renderSectionToMarkdown(lines, title, section) {
+  if (!Array.isArray(section) || !section.length) return;
+  lines.push(`## ${title}`);
+  lines.push('');
+  section.forEach((line) => {
+    if (!line?.text) return;
+    lines.push(`- ${normalizeBulletText(line.text)}`);
+  });
+  lines.push('');
+}
+
 /**
  * Build a structured sprint summary model that can be rendered to
  * clipboard text or Markdown without duplicating logic.
  *
- * Sections: summary, flowLogging, blockers, notStarted, scope, workBreakdown, actions.
+ * Sections: summary, flowLogging, blockers, scope, actions.
  * Each section contains ordered lines:
  * { text, isBold, isItalic, isHeading, isSeparator }.
  *
@@ -56,384 +117,164 @@ export async function buildSprintSummaryModel(data, options = {}) {
   const model = createEmptySummaryModel();
   model.meta.mode = mode;
 
-  const sprint = data.sprint || {};
-  const board = data.board || {};
-  const summary = data.summary || {};
-  const days = data.daysMeta || {};
-  const stuck = data.stuckCandidates || [];
+  const sprint = data?.sprint || {};
+  const board = data?.board || {};
+  const summary = data?.summary || {};
+  const days = data?.daysMeta || {};
+  const stuck = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates : [];
   const trackingSummary = data?.subtaskTracking?.summary || {};
   const trackingRows = Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : [];
-  const scopeChanges = data.scopeChanges || [];
-  const stories = data.stories || [];
-  const meta = data.meta || {};
-  const excludedParents = Number(summary?.stuckExcludedParentsWithActiveSubtasks || 0);
+  const scopeChanges = Array.isArray(data?.scopeChanges) ? data.scopeChanges : [];
+  const meta = data?.meta || {};
 
-  const doneStories = summary.doneStories || 0;
-  const totalStories = summary.totalStories || 0;
-  const pctDone = summary.percentDone || 0;
+  const doneStories = Number(summary.doneStories || 0);
+  const totalStories = Number(summary.totalStories || 0);
+  const pctDone = Number(summary.percentDone || 0);
   const remainingDays = days.daysRemainingWorking != null
-    ? days.daysRemainingWorking
-    : days.daysRemainingCalendar;
+    ? Number(days.daysRemainingWorking)
+    : (days.daysRemainingCalendar != null ? Number(days.daysRemainingCalendar) : null);
 
-  const boardName = board.name || '';
   const sprintName = sprint.name || 'Sprint';
-
-  const { deriveSprintVerdict } = await import('./Reporting-App-CurrentSprint-Alert-Banner.js');
-  const verdictInfo = deriveSprintVerdict(data);
-  const verdict = verdictInfo.verdict;
-
-  const healthLabel = verdict ? `${verdict} sprint health` : 'Sprint health';
-  const topLineParts = [];
-  if (sprintName) topLineParts.push(sprintName);
-  if (boardName) topLineParts.push(boardName);
-  topLineParts.push(healthLabel);
-
-  let timeLeftLabel = '';
-  if (remainingDays == null || remainingDays <= 0) {
-    timeLeftLabel = 'Sprint ended';
-  } else if (remainingDays < 1) {
-    timeLeftLabel = '<1 day left';
-  } else {
-    timeLeftLabel = `${remainingDays} day${remainingDays === 1 ? '' : 's'} left`;
-  }
-
-  const startLabel = formatDate(sprint.startDate) || '?';
-  const endLabel = formatDate(sprint.endDate) || '?';
-  let dateRangeLabel = '';
-  if (startLabel && endLabel && startLabel !== '?' && endLabel !== '?') {
-    dateRangeLabel = `${startLabel}–${endLabel}`;
-  } else if (startLabel && startLabel !== '?') {
-    dateRangeLabel = `Starts ${startLabel}`;
-  } else if (endLabel && endLabel !== '?') {
-    dateRangeLabel = `Ends ${endLabel}`;
-  }
-
-  const estHrs = trackingSummary.totalEstimateHours || 0;
-  const logHrs = trackingSummary.totalLoggedHours || 0;
-  const remainHrs = trackingSummary.totalRemainingHours || 0;
-  const recentSubtaskMovement = trackingRows.filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24).length;
+  const boardName = board.name || 'Board';
+  const dateRangeLabel = buildDateRangeLabel(sprint.startDate, sprint.endDate);
+  const estHrs = Number(trackingSummary.totalEstimateHours || 0);
+  const logHrs = Number(trackingSummary.totalLoggedHours || 0);
+  const remainHrs = Number(trackingSummary.totalRemainingHours || 0);
+  const recentSubtaskMovement = trackingRows.filter((row) => Number(row?.hoursInStatus) >= 0 && Number(row?.hoursInStatus) < 24).length;
   const parentKeysWithRecentMovement = new Set(
     trackingRows
-      .filter((r) => Number(r?.hoursInStatus) >= 0 && Number(r?.hoursInStatus) < 24)
-      .map((r) => r.parentKey)
+      .filter((row) => Number(row?.hoursInStatus) >= 0 && Number(row?.hoursInStatus) < 24)
+      .map((row) => row?.parentKey)
       .filter(Boolean),
   ).size;
 
-  let movementLoggingLine = '';
-  if (trackingRows.length === 0 && estHrs === 0 && logHrs === 0) {
-    movementLoggingLine = 'No recent activity or time logging captured for this sprint yet.';
-  } else if (recentSubtaskMovement > 0 && estHrs > 0 && logHrs === 0) {
-    movementLoggingLine = `Flow is moving (${recentSubtaskMovement} subtasks changed) but 0h of ${estHrs}h estimated is logged.`;
-  } else if (recentSubtaskMovement > 0 && estHrs === 0 && logHrs === 0) {
-    movementLoggingLine = `Recent activity on ${recentSubtaskMovement} subtasks; no estimates or time logs captured yet.`;
-  } else if (recentSubtaskMovement === 0 && estHrs > 0 && logHrs === estHrs && estHrs > 0) {
-    movementLoggingLine = 'Time is fully logged on estimated work, but no issues have moved in the last 24 hours.';
-  } else if (recentSubtaskMovement === 0 && estHrs > 0) {
-    movementLoggingLine = `No issues moved in the last 24 hours; ${logHrs}h of ${estHrs}h estimated is logged.`;
-  } else if (estHrs > 0 || logHrs > 0 || recentSubtaskMovement > 0) {
-    const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
-    movementLoggingLine = `Recent activity on ${recentSubtaskMovement}/${trackingRows.length || 0} subtasks; ${logHrs}h logged of ${estHrs}h estimated (${logPct}%).`;
-  } else {
-    movementLoggingLine = 'Sprint signals are not yet available (no movement or logging data).';
-  }
-
-  const inProgressStuck = stuck.filter((s) => {
-    const st = (s && s.status || '').toLowerCase();
-    return st !== 'to do' && st !== 'open' && st !== 'backlog';
-  });
-  const notStartedStuck = stuck.filter((s) => {
-    const st = (s && s.status || '').toLowerCase();
-    return st === 'to do' || st === 'open' || st === 'backlog';
-  });
-
+  const { deriveSprintVerdict } = await import('./Reporting-App-CurrentSprint-Alert-Banner.js');
+  const verdictInfo = deriveSprintVerdict(data);
   const unifiedRiskCounts = getUnifiedRiskCounts(data);
-  const blockersCount = Number(unifiedRiskCounts.blockersOwned || inProgressStuck.length || 0);
-  const notStartedCount = notStartedStuck.length;
-  const unassignedStories = Array.from({ length: Number(unifiedRiskCounts.unownedOutcomes || 0) });
+  const blockersCount = Number(unifiedRiskCounts.blockersOwned || 0);
+  const unownedOutcomes = Number(unifiedRiskCounts.unownedOutcomes || 0);
+  const missingEstimate = Number(summary.subtaskMissingEstimate || 0);
+  const missingLogged = Number(summary.subtaskMissingLogged || 0);
+  const closedSprintCount = Number(board.closedSprintCount || meta.closedSprintCount || meta.closedSprintTotal || 0);
+  const limitedHistory = closedSprintCount > 0 && closedSprintCount < 3;
+  const justStarting = totalStories <= 1 || (pctDone === 0 && recentSubtaskMovement === 0 && logHrs === 0);
 
-  const riskParts = [];
-  riskParts.push(`${blockersCount} blocker${blockersCount === 1 ? '' : 's'}`);
-  if (notStartedCount > 0) riskParts.push(`${notStartedCount} not started`);
-  if (unassignedStories.length > 0) {
-    riskParts.push(`${unassignedStories.length} key stor${unassignedStories.length === 1 ? 'y' : 'ies'} unowned`);
-  }
-  if (scopeChanges.length > 0) riskParts.push(`Scope +${scopeChanges.length} mid-sprint`);
-  const riskSnapshotText = riskParts.join(' · ') || 'No major risks detected.';
+  const isHistorical = String(sprint.state || '').toLowerCase() !== 'active' || Boolean(meta.fromSnapshot);
+  const verdict = limitedHistory
+    ? 'Limited history / low-confidence signals'
+    : (justStarting ? 'Sprint just starting / evidence not formed yet' : (verdictInfo.verdict || 'Sprint'));
+  const hasTrackableSignals = totalStories > 0 || trackingRows.length > 0 || estHrs > 0 || logHrs > 0 || scopeChanges.length > 0 || stuck.length > 0;
 
-  const summarySection = model.sections.summary;
-  if (totalStories === 0 && !dateRangeLabel) {
-    summarySection.push({
-      text: topLineParts.join(' · '),
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
-    summarySection.push({
-      text: 'No active sprint data yet for this board.',
-      isHeading: false,
-      isBold: false,
-      isItalic: false,
-      isSeparator: false,
-    });
+  const headerParts = ['Current Sprint', boardName, sprintName];
+  if (dateRangeLabel) headerParts.push(dateRangeLabel);
+  headerParts.push(isHistorical ? `${verdict} - historical snapshot` : verdict);
+  const headerLine = headerParts.filter(Boolean).join(' - ');
+
+  pushSummaryLine(model.sections.summary, headerLine, { isHeading: true, isBold: true });
+
+  if (!hasTrackableSignals) {
+    pushSummaryLine(model.sections.health, 'No trackable work yet - add stories in Jira for this sprint to see health metrics.');
+  } else if (isHistorical) {
+    pushSummaryLine(
+      model.sections.health,
+      `Historical snapshot - read only${dateRangeLabel ? ` (${dateRangeLabel})` : ''}. ${pctDone}% done, ${doneStories}/${totalStories} stories.`,
+    );
+  } else if (justStarting) {
+    pushSummaryLine(
+      model.sections.health,
+      `Sprint just started - no risks yet, next check-in ${remainingDays != null && remainingDays > 0 ? `in ${remainingDays}d` : 'soon'}.`,
+      { isBold: true },
+    );
   } else {
-    summarySection.push({
-      text: topLineParts.join(' · '),
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
-    summarySection.push({
-      text: `${pctDone}% complete · ${doneStories} of ${totalStories} stories done · ${timeLeftLabel}${dateRangeLabel ? ` (${dateRangeLabel})` : ''}`,
-      isHeading: false,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
+    pushSummaryLine(
+      model.sections.health,
+      `${verdict}${SUMMARY_SEPARATOR}${pctDone}% done${SUMMARY_SEPARATOR}${doneStories}/${totalStories} stories${SUMMARY_SEPARATOR}${getTimeLeftLabel(remainingDays)}`,
+      { isBold: true },
+    );
   }
 
-  summarySection.push({
-    text: `Flow & logging: ${movementLoggingLine}`,
-    isHeading: false,
-    isBold: false,
-    isItalic: false,
-    isSeparator: false,
-  });
-
-  summarySection.push({
-    text: `Risk snapshot: ${riskSnapshotText}`,
-    isHeading: false,
-    isBold: false,
-    isItalic: false,
-    isSeparator: false,
-  });
-
-  summarySection.push({
-    text: '--- More detail below ---',
-    isHeading: false,
-    isBold: false,
-    isItalic: false,
-    isSeparator: true,
-  });
-
-  const flowSection = model.sections.flowLogging;
-  if (trackingRows.length > 0 || estHrs > 0 || logHrs > 0) {
-    flowSection.push({
-      text: 'RECENT ACTIVITY & TIME LOGGING',
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
+  if (justStarting || !hasTrackableSignals) {
+    if (trackingRows.length === 0 && estHrs === 0 && logHrs === 0 && !hasTrackableSignals) {
+      pushSummaryLine(model.sections.flowLogging, 'No time-tracking or capacity signals yet.');
+    }
+  } else if (trackingRows.length === 0 && estHrs === 0 && logHrs === 0) {
+    pushSummaryLine(model.sections.flowLogging, 'No recent movement or logging captured yet.');
+  } else {
+    const flowBits = [];
     if (trackingRows.length > 0) {
-      let lineText = `Recent subtask activity: ${recentSubtaskMovement}/${trackingRows.length} subtasks moved in the last 24h`;
+      flowBits.push(`${recentSubtaskMovement}/${trackingRows.length} subtasks moved in the last 24h`);
       if (parentKeysWithRecentMovement > 0) {
-        lineText += ` (${parentKeysWithRecentMovement} parent stor${parentKeysWithRecentMovement === 1 ? 'y' : 'ies'} moving)`;
+        flowBits.push(`${parentKeysWithRecentMovement} parent stories moving`);
       }
-      flowSection.push({
-        text: `- ${lineText}.`,
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
     }
     if (estHrs > 0 || logHrs > 0) {
       const logPct = estHrs > 0 ? Math.round((logHrs / estHrs) * 100) : 0;
-      const noLogFlag = logHrs === 0 && estHrs > 0 ? ' No time has been logged against estimated work.' : '';
-      const noEstimatesFlag = estHrs === 0 && logHrs > 0 ? ' Time is logged but estimates are missing.' : '';
-      flowSection.push({
-        text: `- Time logging: ${logHrs}h logged / ${estHrs}h estimated (${logPct}%).${noLogFlag}${noEstimatesFlag}`,
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
-      if (remainHrs > 0) {
-        flowSection.push({
-          text: `- Remaining estimate: ${remainHrs}h.`,
-          isHeading: false,
-          isBold: false,
-          isItalic: false,
-          isSeparator: false,
-        });
-      }
+      let loggingLine = `${logHrs}h logged / ${estHrs}h estimated`;
+      if (estHrs > 0) loggingLine += ` (${logPct}%)`;
+      flowBits.push(loggingLine);
     }
-    if (trackingRows.length > 0 && estHrs === 0 && logHrs === 0) {
-      flowSection.push({
-        text: '- Interpretation: movement is happening, but no estimates or worklogs are captured yet.',
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
+    if (flowBits.length) {
+      pushSummaryLine(model.sections.flowLogging, flowBits.join(SUMMARY_SEPARATOR));
+    }
+    if (logHrs === 0 && estHrs > 0) {
+      pushSummaryLine(model.sections.flowLogging, 'Estimated work exists, but time logging has not started.');
+    } else if (trackingRows.length > 0 && estHrs === 0 && logHrs === 0) {
+      pushSummaryLine(model.sections.flowLogging, 'Movement is visible, but estimates and logs are still missing.');
+    } else if (remainHrs > 0) {
+      pushSummaryLine(model.sections.flowLogging, `${remainHrs}h remaining estimate is still open.`);
     }
   }
 
-  const blockersSection = model.sections.blockers;
+  const inProgressStuck = stuck.filter((item) => {
+    const status = String(item?.status || '').toLowerCase();
+    return status && status !== 'to do' && status !== 'open' && status !== 'backlog';
+  });
+  const notStartedStuck = stuck.filter((item) => {
+    const status = String(item?.status || '').toLowerCase();
+    return status === 'to do' || status === 'open' || status === 'backlog';
+  });
+
   if (inProgressStuck.length > 0) {
-    blockersSection.push({
-      text: `Blockers (${inProgressStuck.length})`,
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
+    inProgressStuck.slice(0, 5).forEach((item) => {
+      const key = item?.issueKey || item?.key || '?';
+      const summaryText = item?.summary || 'Stale in progress work';
+      const ageText = item?.hoursInStatus != null ? ` (${Math.round(Number(item.hoursInStatus))}h stale)` : '';
+      const ownerText = item?.assignee ? ` [${item.assignee}]` : ' [Unassigned]';
+      pushSummaryLine(model.sections.blockers, `${key}: ${summaryText}${ageText}${ownerText}`);
     });
-    blockersSection.push({
-      text: 'In-progress items stuck >24h with stale status movement:',
-      isHeading: false,
-      isBold: false,
-      isItalic: false,
-      isSeparator: false,
-    });
-    const byAssignee = new Map();
-    inProgressStuck.forEach((item) => {
-      const assignee = (item && item.assignee) || 'Unassigned';
-      if (!byAssignee.has(assignee)) byAssignee.set(assignee, []);
-      byAssignee.get(assignee).push(item);
-    });
-    for (const [assignee, items] of byAssignee) {
-      blockersSection.push({
-        text: `${assignee}:`,
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
-      items.forEach((item) => {
-        const key = (item && (item.issueKey || item.key)) || '?';
-        const hrs = (item && item.hoursInStatus) != null ? `${Math.round(item.hoursInStatus)}h` : '';
-        blockersSection.push({
-          text: `- ${key} - ${(item && item.summary) || '?'}${hrs ? ` [${hrs}]` : ''}`,
-          isHeading: false,
-          isBold: false,
-          isItalic: false,
-          isSeparator: false,
-        });
-      });
+    if (inProgressStuck.length > 5) {
+      pushSummaryLine(model.sections.blockers, `+${inProgressStuck.length - 5} more stale in-progress items`);
     }
+  } else if (notStartedStuck.length > 0) {
+    pushSummaryLine(model.sections.blockers, `${notStartedStuck.length} items are still waiting in To Do.`);
   }
 
-  const notStartedSection = model.sections.notStarted;
-  if (notStartedStuck.length > 0) {
-    notStartedSection.push({
-      text: `Not started (${notStartedStuck.length})`,
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
-    const maxNotStartedExamples = 5;
-    const head = notStartedStuck.slice(0, maxNotStartedExamples);
-    head.forEach((item) => {
-      const key = (item && (item.issueKey || item.key)) || '?';
-      const owner = (item && item.assignee) || 'Unassigned';
-      notStartedSection.push({
-        text: `- ${key} - ${(item && item.summary) || '?'} [${owner}]`,
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
-    });
-    if (notStartedStuck.length > maxNotStartedExamples) {
-      const remaining = notStartedStuck.length - maxNotStartedExamples;
-      notStartedSection.push({
-        text: `- +${remaining} more not started…`,
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
-    }
-  }
-
-  const scopeSection = model.sections.scope;
   if (scopeChanges.length > 0) {
-    const scopeSP = scopeChanges.reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
+    const scopeSP = scopeChanges.reduce((sum, row) => sum + (Number(row?.storyPoints) || 0), 0);
     const scopeByType = new Map();
-    scopeChanges.forEach((r) => {
-      const t = r.classification || 'other';
-      scopeByType.set(t, (scopeByType.get(t) || 0) + 1);
+    scopeChanges.forEach((row) => {
+      const kind = row?.classification || 'other';
+      scopeByType.set(kind, (scopeByType.get(kind) || 0) + 1);
     });
-    const scopeTypeStr = [...scopeByType.entries()].map(([t, c]) => `${c} ${t}`).join(', ');
-    scopeSection.push({
-      text: 'Scope added mid-sprint',
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
-    scopeSection.push({
-      text: `+${scopeChanges.length} items added mid-sprint (${scopeTypeStr})${scopeSP > 0 ? ` +${scopeSP} SP` : ''}`,
-      isHeading: false,
-      isBold: false,
-      isItalic: false,
-      isSeparator: false,
-    });
+    const scopeMix = [...scopeByType.entries()].map(([kind, count]) => `${count} ${kind}`).join(', ');
+    pushSummaryLine(
+      model.sections.scope,
+      `+${scopeChanges.length} items landed mid-sprint${scopeSP > 0 ? ` (+${scopeSP} SP)` : ''}${scopeMix ? `: ${scopeMix}` : ''}`,
+    );
   }
 
-  const workSection = model.sections.workBreakdown;
-  const storiesWithSubtasks = stories.filter((s) => Array.isArray(s.subtasks) && s.subtasks.length > 0);
-  if (storiesWithSubtasks.length > 0) {
-    workSection.push({
-      text: `Work breakdown (${storiesWithSubtasks.length} stories with subtasks)`,
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
-    storiesWithSubtasks.forEach((s) => {
-      const subs = s.subtasks || [];
-      const subDone = subs.filter((st) => (st.status || '').toLowerCase().includes('done')).length;
-      const subEst = subs.reduce((sum, st) => sum + (st.estimateHours || 0), 0);
-      const subLog = subs.reduce((sum, st) => sum + (st.loggedHours || 0), 0);
-      let line = `${s.issueKey} (${s.assignee || 'Unassigned'}): ${subDone}/${subs.length} subtasks done`;
-      if (subEst > 0 || subLog > 0) line += ` | ${subLog}h/${subEst}h`;
-      workSection.push({
-        text: line,
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
-    });
-  }
-
-  const actionsSection = model.sections.actions;
   const actions = [];
-  if (logHrs === 0 && estHrs > 0) actions.push(`Log actual work - ${estHrs}h estimated but 0h captured in timetracking (use a standard Jira nudge template instead of ad-hoc reminders).`);
-  if (recentSubtaskMovement > 0 && logHrs === 0) actions.push(`Flow is moving (${recentSubtaskMovement} subtasks changed <24h) but logs are missing; send one shared Jira update nudge.`);
-  if (inProgressStuck.length > 0) actions.push(`Unblock ${inProgressStuck.length} stuck item${inProgressStuck.length > 1 ? 's' : ''}.`);
-  if (notStartedStuck.length > 0) actions.push(`Start ${notStartedStuck.length} item${notStartedStuck.length > 1 ? 's' : ''} still in To Do.`);
-  if (excludedParents > 0) {
-    actions.push(`${excludedParents} parent stor${excludedParents === 1 ? 'y' : 'ies'} flowing via subtasks (not counted as stuck).`);
+  if (!isHistorical) {
+    if (logHrs === 0 && estHrs > 0) actions.push(`Start time logging against ${estHrs}h of estimated work.`);
+    if (recentSubtaskMovement > 0 && logHrs === 0) actions.push('Send one shared logging nudge while work is actively moving.');
+    if (Math.max(blockersCount, inProgressStuck.length) > 0) actions.push(`Unblock ${Math.max(blockersCount, inProgressStuck.length)} active blocker${Math.max(blockersCount, inProgressStuck.length) === 1 ? '' : 's'}.`);
+    if (notStartedStuck.length > 0) actions.push(`Pull ${notStartedStuck.length} waiting item${notStartedStuck.length === 1 ? '' : 's'} into active work or cut them.`);
+    if (unownedOutcomes > 0) actions.push(`Assign ownership for ${unownedOutcomes} unowned outcome${unownedOutcomes === 1 ? '' : 's'}.`);
+    if (missingEstimate > 0) actions.push(`Add estimates for ${missingEstimate} work item${missingEstimate === 1 ? '' : 's'} missing a baseline.`);
+    if (missingLogged > 0 && !justStarting) actions.push(`Review ${missingLogged} item${missingLogged === 1 ? '' : 's'} with no logged effort yet.`);
+    if (pctDone < 30 && remainingDays != null && remainingDays < 5) actions.push('Re-cut scope now if the remaining plan no longer fits the sprint window.');
   }
-  if (unassignedStories.length > 0) {
-    actions.push(`Resolve ownership signal for ${unassignedStories.length} unowned outcome${unassignedStories.length > 1 ? 's' : ''} (assignee, active subtask owner, or reporter).`);
-  }
-  if (pctDone < 30 && remainingDays != null && remainingDays < 5) {
-    actions.push('Velocity behind - consider scope cut.');
-  }
-  if (actions.length > 0) {
-    actionsSection.push({
-      text: 'ACTION NEEDED:',
-      isHeading: true,
-      isBold: true,
-      isItalic: false,
-      isSeparator: false,
-    });
-    actions.forEach((a, idx) => {
-      actionsSection.push({
-        text: `${idx + 1}. ${a}`,
-        isHeading: false,
-        isBold: false,
-        isItalic: false,
-        isSeparator: false,
-      });
-    });
-  }
+  actions.slice(0, 4).forEach((actionText) => pushSummaryLine(model.sections.actions, actionText));
 
   model.meta = {
     ...model.meta,
@@ -446,6 +287,10 @@ export async function buildSprintSummaryModel(data, options = {}) {
     pctDone,
     remainingDays,
     meta,
+    headerLine,
+    limitedHistory,
+    justStarting,
+    isHistorical,
   };
 
   return model;
@@ -454,111 +299,51 @@ export async function buildSprintSummaryModel(data, options = {}) {
 function renderSummaryModelToClipboard(model, options = {}) {
   const mode = options.mode || model.meta.mode || 'markdownEnhanced';
   const linesOut = [];
-
   const summary = model.sections.summary || [];
-  summary.forEach((line, index) => {
-    if (line.isSeparator) {
-      // Avoid duplicate "More detail below" lines in clipboard output.
-      return;
-    }
-    let rendered = line.text;
-    if (mode === 'markdownEnhanced') {
-      if (index === 0) {
-        rendered = `**${line.text}**`;
-      } else if (index === 1) {
-        const parts = line.text.split(' · ');
-        const first = parts.shift() || '';
-        const rest = parts.join(' · ');
-        rendered = `**${first}**${rest ? ` · ${rest}` : ''}`;
-      } else if (index === 2 || index === 3) {
-        const colonIdx = line.text.indexOf(':');
-        if (colonIdx !== -1) {
-          const label = line.text.slice(0, colonIdx);
-          const body = line.text.slice(colonIdx + 1).trimStart();
-          rendered = `**${label}:** ${body}`;
-        }
-      }
-    }
-    linesOut.push(rendered);
+
+  summary.slice(0, 1).forEach((line, index) => {
+    const rendered = renderClipboardLine(line, index, mode);
+    if (rendered) linesOut.push(rendered);
   });
 
-  linesOut.push('');
-
-  const order = ['flowLogging', 'blockers', 'notStarted', 'scope', 'workBreakdown', 'actions'];
-  let emittedDetailsIntro = false;
-  order.forEach((sectionKey, idx) => {
-    const section = model.sections[sectionKey] || [];
-    if (!section.length) return;
-    if (!emittedDetailsIntro) {
-      linesOut.push(mode === 'markdownEnhanced' ? '--- More detail below ---' : 'More detail below');
-      linesOut.push('');
-      emittedDetailsIntro = true;
-    } else {
-      linesOut.push(mode === 'markdownEnhanced' ? '---' : '');
-      linesOut.push('');
-    }
-    section.forEach((line) => {
-      if (line.isSeparator) {
-        linesOut.push(line.text);
-        return;
-      }
-      let rendered = line.text;
-      if (mode === 'markdownEnhanced' && line.isHeading) {
-        rendered = `**${line.text}**`;
-      }
-      linesOut.push(rendered);
-    });
-    linesOut.push('');
-  });
-
-  return linesOut.join('\n').trimEnd();
-}
-
-function renderSummaryModelToClipboardHtml(model) {
-  const sectionTitleMap = {
-    flowLogging: 'Recent Activity & Time Logging',
-    blockers: 'Blockers',
-    notStarted: 'Not started',
-    scope: 'Scope added mid-sprint',
-    workBreakdown: 'Work breakdown',
-    actions: 'Action needed',
-  };
-  let html = '<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.4;color:#142334;max-width:760px">';
-  const summary = model.sections.summary || [];
-  const summaryLines = summary.filter((line) => !line.isSeparator);
-  if (summaryLines[0]) html += '<div style="font-size:16px;font-weight:700;margin:0 0 6px">' + escapeHtmlText(summaryLines[0].text) + '</div>';
-  if (summaryLines[1]) html += '<div style="margin:0 0 6px"><strong>' + escapeHtmlText(summaryLines[1].text) + '</strong></div>';
-  summaryLines.slice(2).forEach((line) => {
-    const colonIdx = line.text.indexOf(':');
-    if (colonIdx > 0) {
-      html += '<div style="margin:0 0 4px"><strong>' + escapeHtmlText(line.text.slice(0, colonIdx + 1)) + '</strong> ' + escapeHtmlText(line.text.slice(colonIdx + 1).trimStart()) + '</div>';
-    } else {
-      html += '<div style="margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
-    }
-  });
-
-  const order = ['flowLogging', 'blockers', 'notStarted', 'scope', 'workBreakdown', 'actions'];
-  let hasAnySection = false;
+  const order = ['health', 'blockers', 'scope', 'flowLogging', 'actions'];
   order.forEach((sectionKey) => {
     const section = model.sections[sectionKey] || [];
     if (!section.length) return;
-    hasAnySection = true;
-    html += '<hr style="border:none;border-top:1px solid #cfdae8;margin:10px 0">';
-    html += '<div style="font-weight:700;margin:0 0 6px;text-decoration:underline">' + escapeHtmlText(sectionTitleMap[sectionKey] || sectionKey) + '</div>';
-    html += '<div>';
+    linesOut.push('');
+    linesOut.push(mode === 'markdownEnhanced' ? `**${SECTION_TITLES[sectionKey]}**` : SECTION_TITLES[sectionKey]);
     section.forEach((line) => {
-      if (line.isSeparator) return;
-      if (line.isHeading) {
-        html += '<div style="font-weight:700;margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
-      } else if (/^\d+\.\s/.test(line.text)) {
-        html += '<div style="margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
-      } else {
-        html += '<div style="margin:0 0 4px">' + escapeHtmlText(line.text) + '</div>';
-      }
+      if (!line?.text) return;
+      linesOut.push(`- ${normalizeBulletText(line.text)}`);
     });
-    html += '</div>';
   });
-  if (!hasAnySection) {
+
+  return linesOut.join('\n').trim();
+}
+
+function renderSummaryModelToClipboardHtml(model) {
+  let html = '<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.4;color:#142334;max-width:760px">';
+  const summary = model.sections.summary || [];
+  if (summary[0]?.text) {
+    html += '<div style="font-size:16px;font-weight:700;margin:0 0 6px">' + escapeHtmlText(summary[0].text) + '</div>';
+  }
+
+  const order = ['health', 'blockers', 'scope', 'flowLogging', 'actions'];
+  let hasSections = false;
+  order.forEach((sectionKey) => {
+    const section = model.sections[sectionKey] || [];
+    if (!section.length) return;
+    hasSections = true;
+    html += '<div style="margin:10px 0 0">';
+    html += '<div style="font-weight:700;margin:0 0 4px">' + escapeHtmlText(SECTION_TITLES[sectionKey]) + '</div>';
+    html += '<ul style="margin:0;padding-left:18px">';
+    section.forEach((line) => {
+      if (!line?.text) return;
+      html += '<li style="margin:0 0 4px">' + escapeHtmlText(normalizeBulletText(line.text)) + '</li>';
+    });
+    html += '</ul></div>';
+  });
+  if (!hasSections) {
     html += '<div style="margin-top:8px;color:#5a6b7f">No additional details.</div>';
   }
   html += '</div>';
@@ -566,75 +351,24 @@ function renderSummaryModelToClipboardHtml(model) {
 }
 
 function renderSummaryModelToMarkdown(model, data) {
-  const {
-    sprintName,
-    pctDone,
-    doneStories,
-    totalStories,
-    remainingDays,
-    meta,
-    dateRangeLabel,
-  } = model.meta;
-  const metaObj = meta || {};
+  const { meta = {}, headerLine } = model.meta || {};
   const lines = [];
 
-  const headingName = sprintName || 'Sprint';
-  lines.push(`# ${headingName}`);
+  lines.push(`# ${model.meta?.sprintName || 'Sprint'}`);
   lines.push('');
+  if (headerLine) lines.push(`> **${headerLine}**`);
 
-  const remainingLabel = remainingDays != null && remainingDays > 0 ? `${remainingDays} days left` : 'ended';
-  lines.push(`> *${pctDone}% done* | ${doneStories}/${totalStories} stories | ${remainingLabel}  `);
-  if (dateRangeLabel) {
-    lines.push(`> ${dateRangeLabel} | Generated ${new Date().toLocaleString()}`);
-  } else {
-    lines.push(`> Generated ${new Date().toLocaleString()}`);
-  }
-
-  if (metaObj.generatedAt || metaObj.snapshotAt || metaObj.windowStart || metaObj.windowEnd) {
-    const freshness = metaObj.generatedAt || metaObj.snapshotAt ? formatDate(metaObj.generatedAt || metaObj.snapshotAt) : '-';
-    lines.push(`> Data freshness: ${freshness} | ${buildReportRangeLabel(metaObj.windowStart, metaObj.windowEnd)}`);
+  if (meta.generatedAt || meta.snapshotAt || meta.windowStart || meta.windowEnd) {
+    const freshness = meta.generatedAt || meta.snapshotAt ? formatDate(meta.generatedAt || meta.snapshotAt) : '-';
+    lines.push(`> Data freshness: ${freshness}${meta.windowStart && meta.windowEnd ? ` | ${buildReportRangeLabel(meta.windowStart, meta.windowEnd)}` : ''}`);
   }
 
   lines.push('');
-
-  lines.push('## Summary');
-  const summaryLines = model.sections.summary || [];
-  summaryLines.slice(0, 4).forEach((line, index) => {
-    if (index === 0) {
-      lines.push(`- **${line.text}**`);
-    } else if (index === 1) {
-      const parts = line.text.split(' · ');
-      const first = parts.shift() || '';
-      const rest = parts.join(' · ');
-      lines.push(`- **${first}**${rest ? ` · ${rest}` : ''}`);
-    } else {
-      lines.push(`- ${line.text}`);
-    }
-  });
-
-  lines.push('');
-
-  const sectionToMarkdown = (title, key) => {
-    const section = model.sections[key] || [];
-    if (!section.length) return;
-    lines.push(`## ${title}`);
-    lines.push('');
-    section.forEach((line) => {
-      if (line.isHeading) {
-        lines.push(`- **${line.text}**`);
-      } else {
-        lines.push(`- ${line.text}`);
-      }
-    });
-    lines.push('');
-  };
-
-  sectionToMarkdown('Flow & Logging', 'flowLogging');
-  sectionToMarkdown('Blockers', 'blockers');
-  sectionToMarkdown('Not started', 'notStarted');
-  sectionToMarkdown('Scope changes', 'scope');
-  sectionToMarkdown('Work breakdown', 'workBreakdown');
-  sectionToMarkdown('Actions', 'actions');
+  renderSectionToMarkdown(lines, 'Health', model.sections.health);
+  renderSectionToMarkdown(lines, 'Work risks', model.sections.blockers);
+  renderSectionToMarkdown(lines, 'Scope', model.sections.scope);
+  renderSectionToMarkdown(lines, 'Capacity', model.sections.flowLogging);
+  renderSectionToMarkdown(lines, 'Actions', model.sections.actions);
 
   return `${lines.join('\n').trim()}\n\n${exportRisksInsightsAsMarkdown(data || {})}`;
 }
@@ -643,6 +377,7 @@ function setLastExportStatus(actionLabel, detail) {
   const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
   if (!statusEl) return;
   const ts = new Date().toLocaleTimeString();
+  const labelHtml = escapeHtmlText(actionLabel || 'Export');
   let compactDetail = detail ? String(detail).trim() : '';
   try {
     const snapshotBadge = document.querySelector('.current-sprint-header-bar .status-badge.status-snapshot');
@@ -653,8 +388,12 @@ function setLastExportStatus(actionLabel, detail) {
         : `Snapshot${updatedText ? ` (${updatedText})` : ''}`;
     }
   } catch (_) {}
-  const labelHtml = `<span class="export-status-label">Last action:</span> <em>${actionLabel}</em>`;
-  const metaHtml = `${ts}${compactDetail ? ` · ${compactDetail}` : ''}`;
+  const metaHtml = `${ts}${compactDetail ? ` ${SUMMARY_SEPARATOR}${compactDetail}` : ''}`;
+  statusEl.innerHTML = `${labelHtml} ${SUMMARY_SEPARATOR}<span class="export-status-meta">${escapeHtmlText(metaHtml)}</span>`;
+  statusEl.setAttribute('data-last-action', actionLabel);
+  statusEl.setAttribute('data-last-timestamp', ts);
+  statusEl.setAttribute('data-last-detail', compactDetail);
+  return;
   statusEl.innerHTML = `${labelHtml} · <span class="export-status-meta">${metaHtml}</span>`;
   statusEl.setAttribute('data-last-action', actionLabel);
   statusEl.setAttribute('data-last-timestamp', ts);
@@ -678,6 +417,7 @@ export function renderExportButton(inline = false) {
   html += '</span>';
   html += '<div class="export-menu hidden" id="export-menu" role="menu" aria-hidden="true">';
   html += '<button class="export-option" data-action="copy-text" role="menuitem">Copy as Text</button>';
+  html += '<button class="export-option" data-action="copy-standup" role="menuitem">Copy stand-up script</button>';
   html += '<button class="export-option" data-action="export-markdown" role="menuitem">Markdown</button>';
   html += '<button class="export-option" data-action="export-png" role="menuitem">PNG snapshot</button>';
   html += '<button class="export-option" data-action="copy-link" role="menuitem">Copy link</button>';
@@ -802,6 +542,8 @@ export function wireExportHandlers(data) {
       menu.setAttribute('aria-hidden', 'true');
       if (action === 'copy-text') {
         copyDashboardAsText(data, btn || menuToggle);
+      } else if (action === 'copy-standup') {
+        copyDashboardAsStandup(data, btn || menuToggle);
       } else if (action === 'export-markdown') {
         exportDashboardAsMarkdown(data, btn || menuToggle);
       } else if (action === 'export-png') {
@@ -893,6 +635,47 @@ async function copyDashboardAsText(data, btn) {
     setLastExportStatus('Share state', 'Rich text copied (HTML + plain text fallback)');
   } catch (error) {
     console.error('Copy text error:', error);
+    setButtonStatus(btn, 'Copy failed', originalText);
+  }
+}
+function renderSummaryModelToStandupScript(model) {
+  const meta = model?.meta || {};
+  const risks = [];
+  const actions = [];
+
+  (model.sections.blockers || []).forEach((line) => {
+    if (line?.text) risks.push(normalizeBulletText(line.text));
+  });
+  (model.sections.scope || []).forEach((line) => {
+    if (line?.text) risks.push(normalizeBulletText(line.text));
+  });
+  (model.sections.actions || []).forEach((line) => {
+    if (line?.text) actions.push(normalizeBulletText(line.text));
+  });
+
+  const script = [
+    meta.isHistorical ? 'Historical snapshot - read only.' : `${meta.verdict || 'Sprint'} sprint health.`,
+    meta.justStarting
+      ? `Sprint just started, ${meta.doneStories || 0}/${meta.totalStories || 0} stories in play.`
+      : `${meta.pctDone || 0}% done, ${meta.doneStories || 0}/${meta.totalStories || 0} stories.`,
+    risks.slice(0, 2).join(' '),
+    meta.isHistorical ? '' : actions.slice(0, 2).join(' '),
+  ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+
+  return script.slice(0, 480).trim();
+}
+
+async function copyDashboardAsStandup(data, btn) {
+  const originalText = btn?.textContent || '';
+  setButtonStatus(btn, 'Copying...', null, true);
+  try {
+    const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
+    const text = renderSummaryModelToStandupScript(model);
+    await writeTextToClipboardWithFallback(text);
+    setButtonStatus(btn, 'Copied!', originalText);
+    setLastExportStatus('Stand-up script', text);
+  } catch (error) {
+    console.error('Copy stand-up script error:', error);
     setButtonStatus(btn, 'Copy failed', originalText);
   }
 }

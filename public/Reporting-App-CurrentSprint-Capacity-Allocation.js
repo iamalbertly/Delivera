@@ -1,168 +1,126 @@
 /**
- * Team Capacity Allocation Component
- * Shows team capacity (% allocated) vs. assigned story points
- * Flags overallocation per team member
- * Rationale: Customer - Prevents sprint overload surprises. Simplicity - Visual bar vs. manual calculation. Trust - Transparent about capacity.
+ * Capacity summary helper
+ * Consolidates sprint ownership and workload signals for the sticky header.
  */
 
-import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Reporting-App-Report-Utils-Jira-Helpers.js';
+export function buildCapacitySummary(data) {
+  const issues = Array.isArray(data?.stories) ? data.stories : [];
+  const daysMeta = data?.daysMeta || {};
 
-export function renderCapacityAllocation(data) {
-  const issues = data.stories || [];
-  const summary = data.summary || {};
-  const daysMeta = data.daysMeta || {};
-  const jiraHost = getResolvedJiraHostFromMeta(data?.meta);
+  if (!issues.length) {
+    return {
+      state: 'neutral',
+      label: 'No work items yet',
+      detail: 'Capacity appears once sprint issues are added.',
+      overloadedCount: 0,
+      assigneeCount: 0,
+      unassignedCount: 0,
+      unassignedPercent: 0,
+      hasAssigneeCoverage: false,
+    };
+  }
 
-  // Build assignee map
-  const assigneeMap = {};
-  issues.forEach(issue => {
-    const assignee = issue.assignee || 'Unassigned';
-    if (!assigneeMap[assignee]) {
-      assigneeMap[assignee] = { name: assignee, sp: 0, count: 0 };
-    }
-    assigneeMap[assignee].sp += issue.storyPoints || 0;
-    assigneeMap[assignee].count += 1;
+  const assigneeMap = new Map();
+  issues.forEach((issue) => {
+    const assignee = String(issue?.assignee || '').trim() || 'Unassigned';
+    const entry = assigneeMap.get(assignee) || { name: assignee, sp: 0, count: 0 };
+    entry.sp += Number(issue?.storyPoints || 0);
+    entry.count += 1;
+    assigneeMap.set(assignee, entry);
   });
 
-  // Detect if SP tracking is active for this board
-  const hasSP = issues.some(i => (i.storyPoints || 0) > 0);
-
-  // Calculate team velocity (simplified: assume ~10 SP per person per 2-week sprint)
-  const sprintDurationDays = daysMeta.daysInSprintWorking || 10;
-  const avgVelocityPerDay = 2; // Configurable: typically 1-3 SP per person per day
-  const expectedCapacitySP = sprintDurationDays * avgVelocityPerDay;
-  // Story-count fallback: assume ~1 story per person per day as rough capacity
-  const expectedCapacityStories = sprintDurationDays;
-
-  // Build sorted list - use SP-based allocation when available, story count otherwise
-  const assignees = Object.values(assigneeMap)
-    .sort((a, b) => (hasSP ? b.sp - a.sp : b.count - a.count))
-    .map(a => {
-      const allocPercent = hasSP
-        ? Math.round((a.sp / expectedCapacitySP) * 100)
-        : Math.round((a.count / expectedCapacityStories) * 100);
-      return {
-        ...a,
-        allocPercent,
-        isOverallocated: hasSP ? a.sp > expectedCapacitySP : a.count > expectedCapacityStories,
-      };
-    });
-
-  // Overall stats
-  const totalSP = summary.totalSP || 0;
-  const unassignedCount = issues.filter(i => !i.assignee).length;
+  const assignees = Array.from(assigneeMap.values());
+  const hasSP = issues.some((issue) => Number(issue?.storyPoints || 0) > 0);
+  const sprintDurationDays = Math.max(1, Number(daysMeta.daysInSprintWorking || 10));
+  const expectedCapacity = hasSP ? sprintDurationDays * 2 : sprintDurationDays;
+  const assignedOwners = assignees.filter((entry) => entry.name !== 'Unassigned');
+  const assigneeCount = assignedOwners.length;
+  const unassignedCount = assigneeMap.get('Unassigned')?.count || 0;
   const unassignedPercent = issues.length > 0 ? Math.round((unassignedCount / issues.length) * 100) : 0;
-  const assignedCount = issues.length - unassignedCount;
-  const overallocatedCount = assignees.filter(a => a.isOverallocated).length;
-  const capacityUnit = hasSP ? 'SP' : 'stories';
+  const overloadedCount = assignedOwners.filter((entry) => {
+    const load = hasSP ? Number(entry.sp || 0) : Number(entry.count || 0);
+    return load > expectedCapacity;
+  }).length;
+  const singleOwner = assigneeCount === 1;
 
-  // Determine overall capacity health
-  let capacityHealth = 'healthy';
-  let capacityColor = 'green';
-  let capacityMessage = '✓ Team capacity is well-balanced';
-
-  if (overallocatedCount > assignees.length / 2) {
-    capacityHealth = 'critical';
-    capacityColor = 'red';
-    capacityMessage = '⚠️ Multiple team members overallocated';
-  } else if (overallocatedCount > 0) {
-    capacityHealth = 'warning';
-    capacityColor = 'orange';
-    capacityMessage = '⚠️ Some team members overallocated';
+  if (assigneeCount === 0) {
+    return {
+      state: 'warning',
+      label: 'No owned work yet',
+      detail: `${unassignedCount} issue${unassignedCount === 1 ? '' : 's'} still need an owner.`,
+      overloadedCount,
+      assigneeCount,
+      unassignedCount,
+      unassignedPercent,
+      hasAssigneeCoverage: false,
+    };
   }
 
-  if (unassignedPercent > 20) {
-    capacityHealth = 'uncertain';
-    capacityColor = 'yellow';
-    capacityMessage = '⚠️ ' + unassignedPercent + '% of issues unassigned (capacity estimate may be low confidence)';
+  if (singleOwner) {
+    const owner = assignedOwners[0];
+    const load = hasSP ? Number(owner.sp || 0) : Number(owner.count || 0);
+    const isOverloaded = load > expectedCapacity;
+    return {
+      state: isOverloaded ? 'warning' : 'neutral',
+      label: 'Single-owner sprint',
+      detail: isOverloaded
+        ? `${owner.name} carries most work; rebalancing is limited.`
+        : `${owner.name} owns the sprint load; rebalancing options are limited.`,
+      overloadedCount: isOverloaded ? 1 : 0,
+      assigneeCount,
+      unassignedCount,
+      unassignedPercent,
+      hasAssigneeCoverage: true,
+    };
   }
 
-  let html = '<div class="transparency-card capacity-allocation-card" id="capacity-card">';
-  html += '<h2>Team Capacity Allocation</h2>';
-
-  // Overall health
-  html += '<div class="capacity-health ' + capacityColor + '">' + capacityMessage + '</div>';
-
-  // Per-person allocation
-  html += '<div class="capacity-allocations">';
-
-  assignees.forEach(assignee => {
-    const barPercent = Math.min(assignee.allocPercent, 150); // Cap visual bar at 150%
-    const barColor = assignee.isOverallocated ? 'overallocated' : 'normal';
-    const overallocFlag = assignee.isOverallocated ? ' (⚠️ ' + assignee.allocPercent + '% allocated)' : '';
-
-    html += '<div class="allocation-item">';
-    html += '<div class="allocation-header">';
-    html += '<span class="allocation-name">' + escapeHtml(assignee.name) + '</span>';
-    html += '<span class="allocation-stats">' + (hasSP ? assignee.sp + ' SP, ' : '') + assignee.count + ' issue' + (assignee.count !== 1 ? 's' : '') + '</span>';
-    html += '</div>';
-    html += '<div class="allocation-bar-container">';
-    html += '<div class="allocation-bar ' + barColor + '" style="width: ' + barPercent + '%;" title="' + assignee.allocPercent + '% capacity" role="progressbar" aria-valuenow="' + assignee.allocPercent + '" aria-valuemin="0" aria-valuemax="100"></div>';
-    html += '</div>';
-    html += '<div class="allocation-percent">' + assignee.allocPercent + '%' + overallocFlag + '</div>';
-
-    // Show issues for this assignee (collapsible)
-    if (assignee.count > 0) {
-      html += '<button class="allocation-expand-btn" data-assignee="' + escapeHtml(assignee.name) + '" aria-expanded="false">';
-      html += 'Show ' + assignee.count + ' issue' + (assignee.count !== 1 ? 's' : '');
-      html += '</button>';
-      html += '<div class="allocation-issues hidden">';
-      const assigneeIssues = issues.filter(i => (i.assignee || 'Unassigned') === assignee.name);
-      assigneeIssues.forEach(issue => {
-        html += '<div class="allocation-issue">';
-        const key = issue.key || '';
-        const url = issue.issueUrl || buildJiraIssueUrl(jiraHost, key);
-        html += '<span class="issue-key">' + renderIssueKeyLink(key, url) + '</span>';
-        html += '<span class="issue-summary">' + escapeHtml(issue.summary || '-') + '</span>';
-        html += hasSP ? '<span class="issue-sp">' + (issue.storyPoints || '?') + ' SP</span>' : '';
-        html += '</div>';
-      });
-      html += '</div>';
-    }
-
-    html += '</div>';
-  });
-
-  html += '</div>';
-
-  // Rebalancing suggestions
-  if (overallocatedCount > 0) {
-    html += '<div class="capacity-actions">';
-    html += '<h3>Suggestions</h3>';
-    html += '<ul>';
-    assignees.filter(a => a.isOverallocated).forEach(assignee => {
-      const excess = hasSP ? Math.ceil((assignee.sp - expectedCapacitySP) / 2) + ' SP' : Math.ceil((assignee.count - expectedCapacityStories) / 2) + ' stories';
-      html += '<li>Move ' + excess + ' away from ' + escapeHtml(assignee.name) + '</li>';
-    });
-    html += '</ul>';
-    html += '</div>';
+  if (unassignedPercent >= 40) {
+    return {
+      state: 'warning',
+      label: 'Capacity confidence is low',
+      detail: `${unassignedPercent}% of issues are still unassigned.`,
+      overloadedCount,
+      assigneeCount,
+      unassignedCount,
+      unassignedPercent,
+      hasAssigneeCoverage: true,
+    };
   }
 
-  html += '</div>';
-  return html;
-}
+  if (overloadedCount > Math.max(1, Math.floor(assigneeCount / 2))) {
+    return {
+      state: 'critical',
+      label: 'Capacity is overloaded',
+      detail: `${overloadedCount} of ${assigneeCount} owners are carrying too much work.`,
+      overloadedCount,
+      assigneeCount,
+      unassignedCount,
+      unassignedPercent,
+      hasAssigneeCoverage: true,
+    };
+  }
 
-/**
- * Wire capacity allocation handlers
- */
-export function wireCapacityAllocationHandlers() {
-  const card = document.querySelector('.capacity-allocation-card');
-  if (!card) return;
+  if (overloadedCount > 0) {
+    return {
+      state: 'warning',
+      label: 'Capacity needs rebalancing',
+      detail: `${overloadedCount} owner${overloadedCount === 1 ? '' : 's'} appear overloaded.`,
+      overloadedCount,
+      assigneeCount,
+      unassignedCount,
+      unassignedPercent,
+      hasAssigneeCoverage: true,
+    };
+  }
 
-  // Expand/collapse issues per assignee
-  const expandBtns = card.querySelectorAll('.allocation-expand-btn');
-  expandBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const issuesDiv = btn.nextElementSibling;
-      if (issuesDiv?.classList.contains('allocation-issues')) {
-        issuesDiv.classList.toggle('hidden');
-        btn.setAttribute('aria-expanded', issuesDiv.classList.contains('hidden') ? 'false' : 'true');
-        btn.textContent = issuesDiv.classList.contains('hidden')
-          ? btn.textContent.replace('Hide', 'Show')
-          : btn.textContent.replace('Show', 'Hide');
-      }
-    });
-  });
+  return {
+    state: 'healthy',
+    label: 'Capacity looks balanced',
+    detail: `${assigneeCount} owner${assigneeCount === 1 ? '' : 's'} are carrying the sprint load.`,
+    overloadedCount,
+    assigneeCount,
+    unassignedCount,
+    unassignedPercent,
+    hasAssigneeCoverage: true,
+  };
 }

@@ -18,6 +18,18 @@
   margin: 0 0 4px;
 }
 
+.leadership-context-strip {
+  margin-bottom: 8px;
+}
+
+.leadership-context-sticky {
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .current-sprint-header-bar {

@@ -1,0 +1,20 @@
+export const SPRINT_COPY = {
+  pageTitle: 'Current Sprint',
+  pageSubtitleEmpty: 'Squad view - planned vs observed work, daily completion, scope changes',
+  pageSubtitleLoaded: 'Sprint mission control - health, ownership, and next action',
+  statusLive: 'Live',
+  statusSnapshot: 'Snapshot',
+  exportReady: 'Export ready',
+  exportEmpty: 'No exportable rows',
+  justStarted: 'Sprint has just started - no risks yet',
+  historical: 'Historical snapshot - actions limited',
+  lowConfidence: 'Low confidence',
+  lowConfidenceHint: 'Limited history - treat trend as an early signal.',
+  noRisks: 'No risks',
+  loggingHealthy: 'Logging hygiene healthy',
+  loggingNudges: (count) => `${count} logging nudges ready`,
+  takeAction: 'Take action',
+  reviewRisks: 'Review Work risks anyway',
+  historicalAction: 'View historical risks',
+};
+

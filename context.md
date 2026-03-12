@@ -163,7 +163,7 @@
 
 ### Test & Helper Consolidation
 
-- **Playwright test strategy:** Specs in `tests/` (`.spec.js`) are discovered by Playwright (`testDir: './tests'`). Many specs use `captureBrowserTelemetry(page)` from `JiraReporting-Tests-Shared-PreviewExport-Helpers.js` to capture console errors, page errors, and failed requests; assertions on `telemetry.consoleErrors`, `telemetry.pageErrors`, `telemetry.failedRequests` fail the step when the UI or console/network is wrong. The orchestration runner (`scripts/Jira-Reporting-App-Test-Orchestration-Runner.js`) runs these specs in sequence; add new spec paths to the `steps` array to include them in `npm run test:all`.
+- **Playwright test strategy:** Specs in `tests/` (`.spec.js`) are discovered by Playwright (`testDir: './tests'`). Many specs use `captureBrowserTelemetry(page)` from `JiraReporting-Tests-Shared-PreviewExport-Helpers.js` to capture console errors, page errors, and failed requests; assertions on `telemetry.consoleErrors`, `telemetry.pageErrors`, `telemetry.failedRequests` fail the step when the UI or console/network is wrong. The orchestration runner (`scripts/Jira-Reporting-App-Test-Orchestration-Runner.js`) now runs a small number of **journey buckets** (see below) instead of dozens of one-spec steps, and it still terminates on first error (`--max-failures=1`) with all output visible in the same terminal.
 - **Shared test helpers (`tests/JiraReporting-Tests-Shared-PreviewExport-Helpers.js`)**
   - `runDefaultPreview(page, overrides?)` – navigates to `/report`, sets default Q2 MPSA+MAS window, applies overrides, clicks Preview, then waits for result.
   - `waitForPreview(page)` – waits for preview content or error and loading overlay to disappear.
@@ -172,6 +172,39 @@
   - Imported by E2E User Journey, Excel Export, UX Critical/Reliability, Column Tooltip, Refactor SSOT, E2E Loading Meta, RED-LINE, UX Trust, UX SoC Duplication Refactor, Current Sprint UX/SSOT, Linkification/Empty-state validation specs.
 - **API integration tests (`Jira-Reporting-App-API-Integration-Tests.spec.js`)**
   - Centralised: `DEFAULT_Q2_QUERY`, `DEFAULT_PREVIEW_URL`, contract test for `GET /api/csv-columns` vs `lib/csv.js` CSV_COLUMNS.
+
+#### Playwright journey buckets (SSOT)
+
+We group specs into a small set of journey buckets so humans and automation have **one obvious command per intent** and so the orchestration steps can stay thin:
+
+- **`journey.current-sprint` – Current Sprint mission control**
+  - Specs: `Jira-Reporting-App-Current-Sprint-UX-SSOT-Validation-Tests.spec.js`, `Jira-Reporting-App-CurrentSprint-Redesign-Validation-Tests.spec.js`, `Jira-Reporting-App-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Health-And-SSOT-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Blockers-Snapshot-Direct-Value-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Blockers-Trust-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Blockers-EdgeCases-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Work-Risks-Hierarchy-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Burndown-Truthfulness-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Summary-UX-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Clipboard-Markdown-Validation-Tests.spec.js`, `Jira-Reporting-App-Current-Sprint-Export-Last-Action-Validation-Tests.spec.js`.
+  - Primary page: `/current-sprint` (header, verdict, risks, stories hierarchy, exports).
+
+- **`journey.leadership` – Leadership HUD & boards**
+  - Specs: `Jira-Reporting-App-Current-Sprint-Leadership-View-Tests.spec.js`, `Jira-Reporting-App-Leadership-Trends-Usage-Validation-Tests.spec.js`, `Jira-Reporting-App-Boards-Summary-Filters-Export-Validation-Tests.spec.js`.
+  - Primary pages: `/sprint-leadership` and report trends; covers trends rail, boards summary, and leadership exports.
+
+- **`journey.outcome-intake` – Outcome intake & outcome-first readiness**
+  - Specs: `Jira-Reporting-App-Outcome-Intake-And-Readiness-Validation-Tests.spec.js`, `Jira-Reporting-App-Outcome-Context-Trust-Validation-Tests.spec.js`, `Jira-Reporting-App-Outcome-First-Validation-Tests.spec.js`, `Jira-Reporting-App-Outcome-First-No-Click-Hidden-Validation-Tests.spec.js`, `Jira-Reporting-App-Outcome-First-Nav-And-Trust-Validation-Tests.spec.js`, `Jira-Reporting-App-Outcome-First-First-Paint-Validation-Tests.spec.js`.
+  - Primary pages: `/report`, `/current-sprint`, `/sprint-leadership` where outcome readiness and first-paint context are surfaced.
+
+- **`journey.ux-core` – Global UX, navigation, trust, responsiveness**
+  - Specs: `Jira-Reporting-App-UX-Trust-And-Export-Validation-Tests.spec.js`, `Jira-Reporting-App-UX-Customer-Simplicity-Trust-Full-Validation-Tests.spec.js`, `Jira-Reporting-App-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js`, `Jira-Reporting-App-Customer-Simplicity-Trust-Recovery-Validation-Tests.spec.js`, `Jira-Reporting-App-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js`, `Jira-Reporting-App-Mobile-Responsive-UX-Validation-Tests.spec.js`, `Project-Jira-Reporting-UX-Responsiveness-Customer-Simplicity-Trust-Logcat-Realtime-Validation-Tests.spec.js`, `Jira-Reporting-App-UX-Login-Trust-Validation-Tests.spec.js`, `Jira-Reporting-App-UX-Report-Flow-And-Exports-Validation-Tests.spec.js`, `Jira-Reporting-App-UX-Enhancements.spec.js`, `Jira-Reporting-App-Direct-To-Value-UX-Validation-Tests.spec.js`, `Jira-Reporting-App-CSS-Build-And-Mobile-Responsive-Validation-Tests.spec.js`, `Jira-Reporting-App-Feedback-UX-Tests.spec.js`, `Jira-Reporting-App-UX-Reliability-Fixes-Tests.spec.js`, `Jira-Reporting-App-UX-Critical-Fixes-Tests.spec.js`, `Jira-Reporting-App-Linkification-EmptyState-UI-Validation-Tests.spec.js`, `Jira-Reporting-App-Cross-Page-Persistence-Validation-Tests.spec.js`, `Jira-Reporting-App-Preview-Timeout-Error-UI-Validation-Tests.spec.js`, `Jira-Reporting-App-Preview-Retry.spec.js`.
+  - Primary pages: `/login`, `/report`, `/current-sprint`, `/sprint-leadership` and global nav + responsiveness.
+
+- **`journey.data-integrity` – API contracts, data integrity, exports, SSOT**
+  - Specs: `Jira-Reporting-App-API-Integration-Tests.spec.js`, `Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js`, `Jira-Reporting-App-Refactor-SSOT-Validation-Tests.spec.js`, `Jira-Reporting-App-Four-Projects-Q4-Data-Validation-Tests.spec.js`, `Jira-Reporting-App-Vodacom-Quarters-SSOT-Sprint-Order-Validation-Tests.spec.js`, `Jira-Reporting-App-General-Performance-Quarters-UI-Validation-Tests.spec.js`, `Jira-Reporting-App-Report-GrowthVelocity-Validation-Tests.spec.js`, `Jira-Reporting-App-DateWindow-Ordering.spec.js`, `Jira-Reporting-App-Throughput-Merge.spec.js`, `Jira-Reporting-App-CSV-Export-Fallback.spec.js`, `Jira-Reporting-App-Excel-Export-Tests.spec.js`, `Jira-Reporting-App-Column-Tooltip-Tests.spec.js`, `Jira-Reporting-App-Server-Feedback-Endpoint-Validation-Tests.spec.js`, `Jira-Reporting-App-Validation-Plan-Tests.spec.js`, `Jira-Reporting-App-Server-Errors-And-Export-Validation-Tests.spec.js`, `Jira-Reporting-App-EpicKeyLinks.spec.js`.
+  - Primary surfaces: `/api` contracts plus report/leadership current-sprint SSOT for boards, quarters, growth velocity, exports.
+
+- **`journey.e2e` – Full E2E journeys & deploy smoke**
+  - Specs: `Jira-Reporting-App-Login-Security-Deploy-Validation-Tests.spec.js`, `Jira-Reporting-App-Deploy-Smoke-Validation-Tests.spec.js`, `Jira-Reporting-App-E2E-User-Journey-Tests.spec.js`, `Jira-Reporting-App-E2E-Loading-Meta-Robustness-Tests.spec.js`.
+  - Primary focus: full user journeys across login → report → current-sprint → leadership with deploy-safe smoke guarantees.
+
+Journey membership is implemented in `scripts/Jira-Reporting-Tests-Journey-Buckets-Map-SSOT.js` (SSOT) and used by:
+
+- `scripts/Jira-Reporting-Tests-Journey-Runner-SSOT.js` – `node` CLI behind `npm run test:journey:*`.
+- `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js` – orchestration steps now run one journey at a time instead of one spec per step.
 
 ### SIZE-EXEMPT Notes
 

@@ -21,6 +21,24 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
   const collapsedSummary = document.getElementById('filters-collapsed-summary');
   const appliedSummary = document.getElementById('applied-filters-summary');
   const appliedChips = document.getElementById('applied-filters-chips');
+  const toggleSelectors = '[data-action="toggle-filters"]';
+  const isDesktopDrawer = () => {
+    try {
+      return document.body?.classList?.contains('report-page')
+        && typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(min-width: 1025px)').matches;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  function updateToggleLabels(collapsed) {
+    document.querySelectorAll(toggleSelectors).forEach((button) => {
+      button.textContent = collapsed ? 'Filters' : 'Hide filters';
+      button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+  }
 
   function setFiltersPanelCollapsed(collapsed) {
     if (!panel || !panelBody || !collapsedBar) return;
@@ -29,9 +47,12 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
       else sessionStorage.removeItem(collapsedStorageKey);
     } catch (_) {}
     panel.classList.toggle('collapsed', collapsed);
+    panel.classList.toggle('expanded', !collapsed && isDesktopDrawer());
     panelBody.style.display = collapsed ? 'none' : '';
-    collapsedBar.style.display = collapsed ? 'flex' : 'none';
-    collapsedBar.setAttribute('aria-hidden', collapsed ? 'false' : 'true');
+    const showCollapsedBar = collapsed && !isDesktopDrawer();
+    collapsedBar.style.display = showCollapsedBar ? 'flex' : 'none';
+    collapsedBar.setAttribute('aria-hidden', showCollapsedBar ? 'false' : 'true');
+    updateToggleLabels(collapsed);
     if (collapsed && collapsedSummary && appliedSummary) {
       const chipsText = (appliedChips?.textContent || '').trim();
       const base = chipsText || appliedSummary.textContent || 'Applied filters';
@@ -41,6 +62,10 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
 
   function applyStoredFiltersCollapsed() {
     if (!panel || !panelBody || !collapsedBar) return;
+    if (isDesktopDrawer()) {
+      setFiltersPanelCollapsed(true);
+      return;
+    }
     const previewContent = document.getElementById('preview-content');
     const isPreviewVisible = previewContent && previewContent.style.display !== 'none';
     let shouldCollapse = false;
@@ -58,7 +83,16 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
     const toggle = ev.target.closest && ev.target.closest('[data-action="toggle-filters"]');
     if (!toggle || !panel) return;
     ev.preventDefault();
-    setFiltersPanelCollapsed(false);
+    setFiltersPanelCollapsed(!panel.classList.contains('collapsed'));
+  });
+
+  document.addEventListener('click', (ev) => {
+    if (!isDesktopDrawer() || panel?.classList.contains('collapsed')) return;
+    const insidePanel = ev.target.closest && ev.target.closest('#filters-panel');
+    const toggle = ev.target.closest && ev.target.closest(toggleSelectors);
+    if (!insidePanel && !toggle) {
+      setFiltersPanelCollapsed(true);
+    }
   });
 
   window.addEventListener('report-preview-shown', () => {
@@ -76,6 +110,7 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
   });
 
   setTimeout(applyStoredFiltersCollapsed, 0);
+  updateToggleLabels(!panel || panel.classList.contains('collapsed'));
   return {
     refreshCollapsedSummary() {
       if (panel?.classList.contains('collapsed')) setFiltersPanelCollapsed(true);

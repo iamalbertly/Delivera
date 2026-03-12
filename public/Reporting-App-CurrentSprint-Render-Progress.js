@@ -238,17 +238,7 @@ export function renderStories(data) {
 
   // Direct-to-value trust strip: answers common role questions without scrolling.
   const allSubtasks = stories.flatMap((s) => (Array.isArray(s.subtasks) ? s.subtasks : []));
-  const subtaskEstimatedHrs = allSubtasks.reduce((sum, st) => sum + (Number(st.estimateHours) || 0), 0);
-  const subtaskLoggedHrs = allSubtasks.reduce((sum, st) => sum + (Number(st.loggedHours) || 0), 0);
-  const subtasksNoLog = allSubtasks.filter((st) => (Number(st.estimateHours) > 0) && !(Number(st.loggedHours) > 0)).length;
-  const subtasksNoEstimate = allSubtasks.filter((st) => !(Number(st.estimateHours) > 0) && (Number(st.loggedHours) > 0)).length;
-  const subtasksOverrun = allSubtasks.filter((st) => Number(st.estimateHours) > 0 && Number(st.loggedHours) > Number(st.estimateHours)).length;
-  const subtasksDoneNoLog = allSubtasks.filter((st) => {
-    const done = String(st.status || '').toLowerCase().includes('done');
-    return done && !(Number(st.loggedHours) > 0);
-  }).length;
   const parentUnassigned = Number(unifiedRiskCounts.unownedOutcomes || 0);
-  const scopeUnestimated = scopeChanges.filter((row) => row.storyPoints == null || row.storyPoints === '').length;
   const blockerKeys = new Set(
     mergedRiskRows
       .filter((row) => row.isOwnedBlocker)
@@ -256,12 +246,6 @@ export function renderStories(data) {
       .filter(Boolean)
   );
   const blockersInProgress = blockerKeys.size;
-  const blockersNotStarted = Math.max(0, Number(stuckCandidates.length || 0) - blockersInProgress);
-  const noSubtasksParents = stories.filter((s) => !Array.isArray(s.subtasks) || s.subtasks.length === 0).length;
-  const subtaskCoveragePct = stories.length > 0 ? Math.round(((stories.length - noSubtasksParents) / stories.length) * 100) : 0;
-  const recentSubtaskMovement = Number(summary.recentSubtaskMovementCount || 0);
-  const movingParents = Number(summary.parentsWithRecentSubtaskMovement || 0);
-  const hasTimeEvidence = subtaskEstimatedHrs > 0 || subtaskLoggedHrs > 0 || allSubtasks.length > 0;
   const unownedOutcomeKeys = new Set(
     mergedRiskRows
       .filter((row) => row.isUnownedOutcome)
@@ -269,62 +253,6 @@ export function renderStories(data) {
       .filter(Boolean)
   );
   const scopeKeys = new Set((scopeChanges || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
-  const timeConfidence = !hasTimeEvidence
-    ? 'No subtask time evidence'
-    : (subtaskLoggedHrs === 0 && subtaskEstimatedHrs > 0
-      ? 'Plans entered, no actual logs'
-      : (subtaskLoggedHrs > 0 ? 'Actual logs present' : 'Partial evidence'));
-  html += '<div class="summary-strip role-proof-strip" aria-live="polite">';
-  html += '<div class="summary-headline">';
-  html += '<strong>Evidence snapshot</strong>';
-  html += '<span>Stories, subtasks, and risk flags in one place.</span>';
-  html += '</div>';
-  html += '<div class="summary-links">';
-  html += '<a href="#stories-table">Table view</a>';
-  html += '<a href="#burndown-card">Flow over time</a>';
-  html += '</div>';
-  html += '<p class="meta-row"><small>'
-    + recentSubtaskMovement + ' subtask updates in last 24h (' + movingParents + ' active parent stor' + (movingParents === 1 ? 'y' : 'ies') + ')'
-    + ' | ' + formatNumber(subtaskLoggedHrs, 1, '0') + 'h logged / ' + formatNumber(subtaskEstimatedHrs, 1, '0') + 'h estimated'
-    + ' | ' + escapeHtml(timeConfidence)
-    + '</small></p>';
-  html += '<div class="subtask-chips">';
-  html += '<button type="button" class="subtask-chip subtask-chip-warning" data-risk-tags="no-log" title="Filter issues to Estimated, no log">Estimated, no log: ' + subtasksNoLog + '</button>';
-  html += '<span class="subtask-chip subtask-chip-info">Logged, no estimate: ' + subtasksNoEstimate + '</span>';
-  html += '<span class="subtask-chip subtask-chip-warning">Overrun: ' + subtasksOverrun + '</span>';
-  html += '<span class="subtask-chip subtask-chip-neutral">Done, no log: ' + subtasksDoneNoLog + '</span>';
-  html += '<span class="subtask-chip subtask-chip-neutral">Scope +' + scopeChanges.length + ' | Unowned outcomes ' + parentUnassigned + '</span>';
-  html += '</div>';
-  html += '<p class="meta-row"><small>' + blockersInProgress + ' active blockers, ' + blockersNotStarted + ' not started, ' + excludedParents + ' parent flow item' + (excludedParents === 1 ? '' : 's') + ' excluded via recent subtask movement.</small></p>';
-  if (stories.length > 0 && subtaskCoveragePct < 60) {
-    html += '<p class="meta-row"><small>Only ' + subtaskCoveragePct + '% of stories use subtasks; time-based metrics are partial.</small></p>';
-  }
-  html += '</div>';
-
-  const hasAnyRisk = blockersInProgress > 0 || scopeChanges.length > 0 || parentUnassigned > 0 || subtasksNoLog > 0 || subtasksNoEstimate > 0;
-  html += '<div class="stories-risk-summary-bar" aria-label="Risk filter shortcuts">';
-  if (hasAnyRisk) {
-    html += '<span class="stories-risk-bar-label">Risks:</span>';
-    if (blockersInProgress > 0) {
-      html += '<button type="button" class="stories-risk-chip stories-risk-chip-blocker" data-risk-tags="blocker" title="Filter to blocker issues">' + blockersInProgress + ' blocker' + (blockersInProgress !== 1 ? 's' : '') + '</button>';
-    }
-    if (scopeChanges.length > 0) {
-      html += '<button type="button" class="stories-risk-chip stories-risk-chip-scope" data-risk-tags="scope" title="Filter to scope changes">' + scopeChanges.length + ' scope</button>';
-    }
-    if (parentUnassigned > 0) {
-      html += '<button type="button" class="stories-risk-chip stories-risk-chip-unassigned" data-risk-tags="unassigned" title="Filter to unowned outcomes">' + parentUnassigned + ' unowned</button>';
-    }
-    if (subtasksNoLog > 0) {
-      html += '<button type="button" class="stories-risk-chip stories-risk-chip-no-log" data-risk-tags="no-log" title="Filter to no-log rows">' + subtasksNoLog + ' no log</button>';
-    }
-    if (subtasksNoEstimate > 0) {
-      html += '<button type="button" class="stories-risk-chip stories-risk-chip-missing-estimate" data-risk-tags="missing-estimate" title="Filter to missing estimate">' + subtasksNoEstimate + ' missing est</button>';
-    }
-    html += '<button type="button" class="stories-risk-chip stories-risk-chip-clear" data-risk-tags="" title="Show all rows">All</button>';
-  } else {
-    html += '<span class="stories-risk-bar-empty">No risks</span>';
-  }
-  html += '</div>';
 
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();
@@ -471,6 +399,8 @@ export function renderStories(data) {
     if (blockerKeys.has(rowKey)) rowTags.push('blocker');
     if (scopeKeys.has(rowKey)) rowTags.push('scope');
     if (unownedOutcomeKeys.has(rowKey)) rowTags.push('unassigned');
+    if (Number(row.subtaskEstimateHours || 0) > 0 && !(Number(row.subtaskLoggedHours || 0) > 0)) rowTags.push('no-log');
+    if (!(Number(row.subtaskEstimateHours || 0) > 0) && Number(row.subtaskLoggedHours || 0) > 0) rowTags.push('missing-estimate');
     const outcomeLabels = Array.isArray(row.labels) ? row.labels : [];
     const isOutcome = isOutcomeStoryLike({ labels: outcomeLabels, epicKey: row.epicKey }) || hasOutcomeLabel(outcomeLabels);
     const status = String(row.status || '-');
@@ -493,6 +423,20 @@ export function renderStories(data) {
     htmlCard += '</div>';
     htmlCard += '<p class="story-mobile-summary">' + escapeHtml(row.summary || '-') + (isOutcome ? '<span class="story-row-flag">Outcome</span>' : '') + '</p>';
     htmlCard += '<div class="story-mobile-meta"><span>' + escapeHtml(assignee) + '</span><span>SP ' + sp + '</span><span>Log/Est ' + log + 'h/' + est + 'h</span></div>';
+    if (rowTags.length) {
+      htmlCard += '<div class="story-mobile-risk-chips">';
+      rowTags.forEach((tag) => {
+        const label = tag === 'blocker'
+          ? 'Blocker'
+          : (tag === 'scope'
+            ? 'Scope'
+            : (tag === 'unassigned'
+              ? 'Unowned'
+              : (tag === 'no-log' ? 'No log' : (tag === 'missing-estimate' ? 'No est' : tag))));
+        htmlCard += '<span class="story-risk-pill story-risk-pill-' + escapeHtml(tag) + '">' + escapeHtml(label) + '</span>';
+      });
+      htmlCard += '</div>';
+    }
     htmlCard += '</button>';
     htmlCard += '<div class="story-mobile-expand" hidden>';
     htmlCard += '<div class="story-mobile-detail-grid">';
@@ -769,10 +713,8 @@ export function wireDailyCompletionTimelineHandlers() {
 
     try {
       window.addEventListener('currentSprint:focusStoriesEvidence', () => {
-        const strip = card.querySelector('.role-proof-strip');
-        if (!strip) return;
-        strip.classList.add('row-attention-pulse');
-        window.setTimeout(() => strip.classList.remove('row-attention-pulse'), 1200);
+        card.classList.add('row-attention-pulse');
+        window.setTimeout(() => card.classList.remove('row-attention-pulse'), 1200);
       });
     } catch (_) {}
 

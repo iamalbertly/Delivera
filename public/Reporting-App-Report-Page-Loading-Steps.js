@@ -212,7 +212,8 @@ export function setLoadingVisible(visible = true) {
     loadingEl.style.display = 'block';
     loadingEl.setAttribute('aria-hidden', 'false');
     if (previewArea) previewArea.setAttribute('aria-busy', 'true');
-    if (loadLatestWrap) loadLatestWrap.style.display = 'none';
+    if (typeof window.__reportSyncHeaderLoadLatestVisibility === 'function') window.__reportSyncHeaderLoadLatestVisibility(false);
+    else if (loadLatestWrap) loadLatestWrap.style.display = 'none';
     clearLoadingChipShowTimer();
     loadingChipShowTimerId = setTimeout(() => {
       loadingChipShowTimerId = null;

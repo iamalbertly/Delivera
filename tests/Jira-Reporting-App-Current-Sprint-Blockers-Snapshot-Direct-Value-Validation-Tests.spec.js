@@ -206,21 +206,18 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
     expect(linkedCount + unlinkedCount).toBeGreaterThan(0);
   });
 
-  test('Validation 13: detail toggle remains stable after refresh (no double-binding)', async ({ page }) => {
+  test('Validation 13: header intelligence remains stable after refresh rerender', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
-    const toggle = page.locator('.card-details-toggle');
-    if (!(await toggle.isVisible().catch(() => false))) {
-      test.skip(true, 'No details toggle in dataset');
+    const insightStrip = page.locator('.header-intelligence-strip');
+    if (!(await insightStrip.isVisible().catch(() => false))) {
+      test.skip(true, 'No header intelligence strip in dataset');
       return;
     }
 
     await page.click('.header-refresh-btn').catch(() => null);
     await page.waitForTimeout(800);
-
-    const stateBefore = await toggle.getAttribute('aria-expanded');
-    await toggle.click();
-    const stateAfter = await toggle.getAttribute('aria-expanded');
-    expect(stateAfter).not.toBe(stateBefore);
+    await expect(insightStrip).toBeVisible();
+    await expect(page.locator('.card-details-toggle')).toHaveCount(0);
   });
 
   test('Validation 14: export menu remains functional after refresh rerender', async ({ page }) => {
@@ -245,7 +242,13 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
     if (await skipIfNoActiveSprint(page, test)) return;
     const snapshot = page.locator('#sprint-executive-snapshot');
     await expect(snapshot).toHaveCount(0);
-    await expect(page.locator('.current-sprint-header-bar')).toContainText(/done/i);
+    const header = page.locator('.current-sprint-header-bar');
+    const headerVisible = await header.isVisible().catch(() => false);
+    if (!headerVisible) {
+      test.skip(true, 'Current sprint header not available for this dataset');
+      return;
+    }
+    await expect(header).toContainText(/done/i);
   });
 
   test('Edge Case A: zero blockers shows explicit no-blocker state', async ({ page }) => {

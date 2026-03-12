@@ -33,9 +33,23 @@ export function ensureSharedHeader() {
 
     header.classList.add('app-header');
 
-    // Context bar: one line showing current projects and date range (SSOT / last query) + freshness and state
+    const path = (() => {
+      try {
+        return window.location && window.location.pathname ? window.location.pathname : '';
+      } catch (_) {
+        return '';
+      }
+    })();
+    const suppressContextBar = path === '/report'
+      || path.endsWith('/report')
+      || path === '/current-sprint'
+      || path.endsWith('/current-sprint');
+
+    // Context bar: keep only on pages that do not already have a dedicated context strip/card.
     let contextBar = header.querySelector('[data-context-bar]');
-    if (!contextBar) {
+    if (suppressContextBar) {
+      contextBar?.remove();
+    } else if (!contextBar) {
       contextBar = document.createElement('div');
       contextBar.setAttribute('data-context-bar', 'true');
       contextBar.className = 'subtitle shared-context-bar';
@@ -44,32 +58,24 @@ export function ensureSharedHeader() {
       if (row) row.after(contextBar);
       else header.appendChild(contextBar);
     }
-    const contextText = getContextDisplayString();
-    const state = getContextStateBadge();
-    const freshnessInfo = getLastMetaFreshnessInfo();
-    const isCurrentSprint = (() => {
-      try {
-        const path = window.location && window.location.pathname;
-        return path === '/current-sprint' || (path || '').endsWith('/current-sprint');
-      } catch (_) {
-        return false;
+    if (contextBar) {
+      const contextText = getContextDisplayString();
+      const state = getContextStateBadge();
+      const freshnessInfo = getLastMetaFreshnessInfo();
+      contextBar.innerHTML = '';
+      const textSpan = document.createElement('span');
+      textSpan.className = 'shared-context-bar-text';
+      textSpan.textContent = contextText;
+      contextBar.appendChild(textSpan);
+      if (state) {
+        const badge = document.createElement('span');
+        badge.setAttribute('data-context-state-badge', 'true');
+        badge.className = 'context-state-badge context-state-badge--' + state.kind;
+        badge.textContent = ` ${state.label}`;
+        contextBar.appendChild(badge);
       }
-    })();
-    contextBar.innerHTML = '';
-    const textSpan = document.createElement('span');
-    textSpan.className = 'shared-context-bar-text';
-    textSpan.textContent = isCurrentSprint
-      ? `Report cache: ${contextText}`
-      : contextText;
-    contextBar.appendChild(textSpan);
-    if (state) {
-      const badge = document.createElement('span');
-      badge.setAttribute('data-context-state-badge', 'true');
-      badge.className = 'context-state-badge context-state-badge--' + state.kind;
-      badge.textContent = ` ${state.label}`;
-      contextBar.appendChild(badge);
+      attachStaleHint(contextBar, freshnessInfo);
     }
-    attachStaleHint(contextBar, freshnessInfo);
 
     /**
      * Call after persisting last query (e.g. after successful preview) to update the bar without reload.
@@ -98,7 +104,7 @@ export function ensureSharedHeader() {
       const headerEl = document.querySelector('header');
       if (!headerEl) return;
       const bar = headerEl.querySelector('[data-context-bar]');
-      if (!bar) return;
+      if (!bar || suppressContextBar) return;
       const text = getContextDisplayString();
       const state = getContextStateBadge();
       const info = getLastMetaFreshnessInfo();

@@ -14,6 +14,7 @@ import {
 const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
 const CONTEXT_SEPARATOR = ' | ';
 const DATE_RANGE_SEPARATOR = ' - ';
+const CONTEXT_LABEL_ORDER = ['Last', 'Projects', 'Range', 'Freshness', 'Context'];
 
 function parseDate(s) {
   if (typeof s !== 'string' || !s.trim()) return null;
@@ -98,12 +99,100 @@ export function buildReportRangeLabel(startIso, endIso) {
 }
 
 export function buildActiveFiltersContextLabel(projectsCsv, startIso, endIso) {
-  const projectsLabel = typeof projectsCsv === 'string'
-    ? projectsCsv.split(',').map((p) => p.trim()).filter(Boolean).join(', ')
-    : '';
-  const rangeLabel = buildReportRangeLabel(startIso, endIso);
-  if (!projectsLabel) return rangeLabel;
-  return `Active filters: Projects ${projectsLabel}${CONTEXT_SEPARATOR}${rangeLabel}`;
+  const pieces = getContextPieces({
+    projects: projectsCsv,
+    rangeStart: startIso,
+    rangeEnd: endIso,
+    lastRun: '',
+    freshness: '',
+  });
+  const summary = buildContextSegmentList(pieces)
+    .filter((segment) => segment.label === 'Projects' || segment.label === 'Range')
+    .map((segment) => `${segment.label} ${segment.value}`);
+  return summary.length ? `Active filters: ${summary.join(CONTEXT_SEPARATOR)}` : 'Active filters';
+}
+
+export function getLastRunSummaryLabel() {
+  return getLastRunSummary();
+}
+
+export function getContextPieces(overrides = {}) {
+  const ctx = getValidLastQuery() || getFallbackContext();
+  const freshnessInfo = getLastMetaFreshnessInfo();
+  const filtersStale = getFiltersStaleFlag();
+
+  const projects = typeof overrides.projects === 'string'
+    ? overrides.projects.trim()
+    : (ctx?.projects || '');
+  const rangeStart = overrides.rangeStart || ctx?.start || '';
+  const rangeEnd = overrides.rangeEnd || ctx?.end || '';
+  const last = overrides.lastRun === undefined ? getLastRunSummary() : overrides.lastRun;
+  const freshness = overrides.freshness === undefined ? freshnessInfo.label : overrides.freshness;
+
+  return {
+    last,
+    projects: projects ? projects.split(',').map((p) => p.trim()).filter(Boolean).join(', ') : '',
+    range: rangeStart && rangeEnd ? buildCompactReportRangeLabel(rangeStart, rangeEnd) : '',
+    freshness,
+    filtersStale,
+    filtersStaleLabel: 'Filters changed since last run - Refresh',
+    freshnessIsStale: overrides.freshnessIsStale === undefined ? freshnessInfo.isStale : !!overrides.freshnessIsStale,
+  };
+}
+
+export function buildContextSegmentList(pieces) {
+  const parts = [];
+  const safePieces = pieces || {};
+
+  if (safePieces.last) parts.push({ label: 'Last', value: safePieces.last });
+  if (safePieces.projects) parts.push({ label: 'Projects', value: safePieces.projects });
+  if (safePieces.range) parts.push({ label: 'Range', value: safePieces.range });
+  if (safePieces.freshness) {
+    parts.push({
+      label: 'Freshness',
+      value: safePieces.freshness,
+      stateClass: safePieces.freshnessIsStale ? ' is-stale' : ' is-fresh',
+    });
+  }
+  if (safePieces.filtersStale) {
+    parts.push({
+      label: 'Context',
+      value: safePieces.filtersStaleLabel || 'Filters changed since last run - Refresh',
+      stateClass: ' is-warning',
+      isAction: true,
+    });
+  }
+
+  return parts.sort((a, b) => CONTEXT_LABEL_ORDER.indexOf(a.label) - CONTEXT_LABEL_ORDER.indexOf(b.label));
+}
+
+export function renderContextSegments(pieces, options = {}) {
+  const className = options.className || 'context-segments';
+  const segmentClass = options.segmentClass || 'context-segment';
+  const refreshAction = options.refreshAction || 'refresh-context';
+  const actionsByLabel = options.actionsByLabel || {};
+  const parts = buildContextSegmentList(pieces);
+
+  if (!parts.length) return '';
+
+  let html = '<div class="' + escapeHtml(className) + '" aria-label="Context">';
+  parts.forEach((part) => {
+    const stateClass = typeof part.stateClass === 'string' ? part.stateClass : '';
+    const actionName = part.isAction
+      ? refreshAction
+      : (actionsByLabel[part.label] || '');
+    const isActionable = !!actionName;
+    const tagName = isActionable ? 'button' : 'span';
+    const extraAttrs = isActionable
+      ? ' type="button" data-context-action="' + escapeHtml(actionName) + '"'
+      : '';
+    html += '<' + tagName + ' class="' + escapeHtml(segmentClass + stateClass + (isActionable ? ' is-actionable' : '')) + '"' + extraAttrs + '>';
+    html += '<span class="' + escapeHtml(segmentClass + '-label') + '">' + escapeHtml(part.label) + '</span>';
+    html += '<span class="' + escapeHtml(segmentClass + '-value') + '">' + escapeHtml(part.value) + '</span>';
+    html += '</' + tagName + '>';
+  });
+  html += '</div>';
+  return html;
 }
 
 /**
@@ -120,7 +209,7 @@ function getLastRunSummary() {
     const parts = [];
     if (stories != null) parts.push(`${stories} stories`);
     if (sprints != null) parts.push(`${sprints} sprints`);
-    return parts.length ? `Last: ${parts.join(', ')}` : null;
+    return parts.length ? parts.join(', ') : null;
   } catch (_) {
     return null;
   }
@@ -159,23 +248,8 @@ export function getLastMetaFreshnessInfo() {
  * When preview meta is available, appends a freshness fragment: "Generated N min ago".
  */
 export function getContextDisplayString() {
-  const ctx = getValidLastQuery() || getFallbackContext();
-  const lastRun = getLastRunSummary();
-  const freshnessInfo = getLastMetaFreshnessInfo();
-  const freshness = freshnessInfo.label;
-  const filtersStale = getFiltersStaleFlag();
-  const proj = ctx ? ctx.projects.replace(/,/g, ', ') : '';
-  const contextLabel = ctx ? buildActiveFiltersContextLabel(proj, ctx.start, ctx.end) : '';
-  const contextPart = contextLabel
-    ? contextLabel
-    : (proj ? `Active filters: Projects ${proj}` : '');
-  const freshnessPart = freshness ? `Data freshness: ${freshness}` : '';
-  const pieces = [];
-  if (lastRun) pieces.push(lastRun);
-  if (contextPart) pieces.push(contextPart);
-  if (freshnessPart) pieces.push(freshnessPart);
-  if (filtersStale) pieces.push('Filters changed; context from last run');
-  if (pieces.length) return pieces.join(CONTEXT_SEPARATOR);
+  const parts = buildContextSegmentList(getContextPieces()).map((segment) => `${segment.label}: ${segment.value}`);
+  if (parts.length) return parts.join(CONTEXT_SEPARATOR);
   return 'No report run yet';
 }
 
@@ -184,22 +258,20 @@ export function getContextDisplayString() {
  * Used on /report, /current-sprint, /leadership. Call renderSidebarContextCard() after DOM ready.
  */
 export function getContextCardHtml() {
-  const ctx = getValidLastQuery() || getFallbackContext();
-  const freshnessInfo = getLastMetaFreshnessInfo();
-  const filtersStale = getFiltersStaleFlag();
-  const projCount = ctx?.projects ? ctx.projects.split(',').filter(Boolean).length : 0;
-  const projectsLabel = projCount ? `Selected: ${projCount} project${projCount !== 1 ? 's' : ''}` : 'No projects selected';
-  const lastLabel = freshnessInfo.label || 'No data yet';
-  const isStale = freshnessInfo.isStale;
-  const freshnessClass = isStale ? 'context-freshness-stale' : 'context-freshness-ok';
-  const freshnessText = isStale ? 'Data may be stale (>30 min)' : (freshnessInfo.label ? 'Data freshness: OK' : 'Generate a report');
-  const rangeStr = ctx && ctx.start && ctx.end ? buildCompactReportRangeLabel(ctx.start, ctx.end).replace(' (UTC)', '') : '';
+  const pieces = getContextPieces();
+  const isReportPage = typeof document !== 'undefined' && document.body?.classList?.contains('report-page');
   let html = '<div class="context-card"><h3 class="context-card-title">Context</h3>';
-  html += '<p class="context-card-line">' + escapeHtml(projectsLabel) + (rangeStr ? ' · ' + escapeHtml(rangeStr) : '') + '</p>';
-  html += '<p class="context-card-line ' + freshnessClass + '" title="' + escapeHtml(freshnessText) + '">' + escapeHtml(lastLabel) + '</p>';
-  if (filtersStale) {
-    html += '<p class="context-card-line context-card-stale-hint">Filters changed; context from last run</p>';
-  }
+  html += renderContextSegments(pieces, {
+    className: 'context-card-segments',
+    segmentClass: 'context-card-segment',
+    actionsByLabel: isReportPage
+      ? {
+        Projects: 'open-project-filters',
+        Range: 'open-range-filters',
+        Freshness: 'explain-freshness',
+      }
+      : {},
+  }) || '<p class="context-card-line">No report run yet</p>';
   html += '</div>';
   return html;
 }

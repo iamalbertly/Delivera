@@ -12,6 +12,19 @@ function toLocalIsoMinute(date = new Date()) {
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
 
+function buildOutcomePrefill(text, reasonLabel) {
+  const narrative = String(text || '').trim();
+  if (!narrative) return '';
+  const keyMatch = narrative.match(/\b([A-Z][A-Z0-9]+-\d+)\b/i);
+  const issueKey = keyMatch && keyMatch[1] ? keyMatch[1].toUpperCase() : '';
+  const parts = [];
+  if (issueKey) parts.push('Goal: Address ' + issueKey + '.');
+  parts.push('Risk: ' + narrative + '.');
+  if (reasonLabel) parts.push('Why now: ' + reasonLabel + '.');
+  parts.push('Acceptance criteria: outcome, owner, and next step are visible in Jira.');
+  return parts.join(' ');
+}
+
 export function renderRisksAndInsights(data) {
   const notes = data.notes || { dependencies: [], learnings: [], updatedAt: null };
   const assumptions = data.assumptions || [];
@@ -43,6 +56,7 @@ export function renderRisksAndInsights(data) {
       html += '<div class="insight-item blocker-item">';
       html += '<span class="insight-icon" aria-hidden="true">!</span>';
       html += '<div class="insight-text">' + escapeHtml(item) + '</div>';
+      html += '<button type="button" class="link-style insight-promote-link" data-open-outcome-modal data-outcome-context="Promote this sprint blocker into an outcome." data-outcome-prefill="' + escapeHtml(buildOutcomePrefill(item, 'Sprint blocker')) + '">Promote to outcome</button>';
       html += '</div>';
     });
     html += '</div>';
@@ -71,6 +85,7 @@ export function renderRisksAndInsights(data) {
       html += '<div class="insight-item learning-item">';
       html += '<span class="insight-icon" aria-hidden="true">i</span>';
       html += '<div class="insight-text">' + escapeHtml(item) + '</div>';
+      html += '<button type="button" class="link-style insight-promote-link" data-open-outcome-modal data-outcome-context="Promote this sprint learning into an outcome." data-outcome-prefill="' + escapeHtml(buildOutcomePrefill(item, 'Sprint learning')) + '">Promote to outcome</button>';
       html += '</div>';
     });
     html += '</div>';
@@ -92,6 +107,7 @@ export function renderRisksAndInsights(data) {
       html += '<span class="insight-icon" aria-hidden="true">!</span>';
       html += '<div class="insight-text">' + escapeHtml(item) + '</div>';
       html += '<span class="risk-level" title="Risk level: Assumed low">Low</span>';
+      html += '<button type="button" class="link-style insight-promote-link" data-open-outcome-modal data-outcome-context="Promote this sprint risk into an outcome." data-outcome-prefill="' + escapeHtml(buildOutcomePrefill(item, 'Sprint risk')) + '">Promote to outcome</button>';
       html += '</div>';
     });
     html += '</div>';
@@ -107,6 +123,7 @@ export function renderRisksAndInsights(data) {
 
   html += '<div class="insights-actions-bar">';
   html += '<button id="insights-save" class="btn btn-primary btn-compact" type="button">Save All Insights</button>';
+  html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create an outcome from risks and insights for this sprint.">Create outcome</button>';
   html += '<div id="insights-status" class="insights-status"></div>';
   const savedAgoText = notes.updatedAt
     ? (() => {

@@ -1,7 +1,7 @@
 import { reportState } from './Reporting-App-Report-Page-State.js';
 import { buildBoardSummaries } from './Reporting-App-Shared-Boards-Summary-Builder.js';
 import { renderEmptyState, getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
+import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoBoardsForRangeEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay, formatPercent, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import {
@@ -12,6 +12,7 @@ import {
 } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
 import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
+import { getLeadershipIndexedDeliveryHint, getLeadershipTrendVisibilityHint } from './Reporting-App-Leadership-Page-Render.js';
 
 const BOARD_TABLE_COLUMN_ORDER = [
   'Board', 'Projects', 'Sprints', 'Sprint Days', 'Avg Sprint Days', 'Done Stories', 'Throughput Stories', 'Registered Work Hours', 'Estimated Work Hours', 'Done SP', 'Throughput SP',
@@ -339,13 +340,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
     html += '<p>' + escapeHtml(noBoardsMessage) + '</p>';
     html += '<p><button type="button" class="btn btn-primary btn-compact" data-action="try-last-quarter">Try last quarter</button></p>';
     html += '</div>';
-    html += renderEmptyStateHtml(
-      metrics ? 'No boards match filters' : 'No boards in this range',
-      metrics
-        ? 'No boards match the current filters. Adjust search or project filters.'
-        : 'No boards were discovered for the selected projects in the date window.',
-      'Try a different date range or project selection.'
-    );
+    html += renderNoBoardsForRangeEmptyState();
   } else {
     const hasPredictability = !!metrics?.predictability;
     if (metrics) {
@@ -366,7 +361,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       return `Performance - History - ${escapeHtml(proj)} - ${escapeHtml(start)} to ${escapeHtml(end)}`;
     })();
     html += '<p class="table-context" aria-label="Table context">' + tableContextLabel + '</p>';
-    html += '<p class="metrics-hint"><small>Time-normalized metrics (Stories / Day, SP / Day, Indexed Delivery) are shown. Indexed Delivery = current SP/day vs own baseline (last 6 closed sprints). Do not use to rank teams.</small></p>';
+    html += '<p class="metrics-hint"><small>Time-normalized metrics (Stories / Day, SP / Day, Indexed Delivery) are shown. ' + escapeHtml(getLeadershipIndexedDeliveryHint(6)) + ' ' + escapeHtml(getLeadershipTrendVisibilityHint().replace('team ranking.', 'to rank teams.')) + '</small></p>';
     // Build table using shared renderer for consistent behavior
     const columns = BOARD_TABLE_COLUMN_ORDER.map(k => ({ key: k, label: k, title: BOARD_TABLE_HEADER_TOOLTIPS[k] || '' }));
     const rowsForRender = boards.map((board) => {

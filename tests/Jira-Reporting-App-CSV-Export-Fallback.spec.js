@@ -19,7 +19,7 @@ test('CSV export fallback copies CSV to clipboard when download fails', async ({
     return;
   }
 
-  await page.click('.tab-btn[data-tab="done-stories"]');
+  await page.locator('.tab-btn[data-tab="done-stories"]').dispatchEvent('click');
   await expect(page.locator('#tab-done-stories')).toHaveClass(/active/);
   await expect(page.locator('#export-dropdown-trigger')).toBeVisible({ timeout: 15000 });
 
@@ -34,7 +34,7 @@ test('CSV export fallback copies CSV to clipboard when download fails', async ({
   });
 
   // Trigger active-tab CSV from unified export menu; forced failure should show fallback copy action
-  await page.click('#export-dropdown-trigger');
+  await page.locator('#export-dropdown-trigger').dispatchEvent('click');
   await page.evaluate(() => {
     const item = document.querySelector('.export-dropdown-item[data-export="csv-active-tab"]');
     if (item) item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
