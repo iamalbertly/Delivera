@@ -183,80 +183,52 @@ export function renderHeaderBar(data) {
     : SPRINT_COPY.historical;
 
   let html = `<div class="current-sprint-header-bar" data-sprint-id="${escapeHtml(sprint.id || '')}">`;
-
-  html += '<div class="header-row header-row-identity">';
-  html += '<div class="header-identity-main">';
-  html += '<div class="header-inline-summary">';
-  html += `<span class="header-context-chip header-context-chip-active" title="Active board and project for this sprint view">${escapeHtml(selectedProject || 'n/a')}${boardName ? ` - ${escapeHtml(boardName)}` : ''} | Single project mode</span>`;
+  html += '<div class="header-band">';
+  html += '<div class="header-band-main">';
+  html += `<span class="header-context-chip header-context-chip-active" title="${escapeHtml(statusSummary)}">${escapeHtml(selectedProject || 'n/a')}${boardName ? ` · ${escapeHtml(boardName)}` : ''} · Single-project</span>`;
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintNameLabel)}">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-sprint-dates">${escapeHtml(sprintDatesLabel)}</span>`;
-  html += `<span class="verdict-pill verdict-pill-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)} | ${escapeHtml(verdictPresentation.remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
+  html += `<span class="header-band-verdict verdict-pill verdict-pill-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
   html += '</div>';
-  if (isHistoricalSprint) {
-    html += `<div class="header-health-note">${escapeHtml(SPRINT_COPY.historical)}</div>`;
-  } else if (isJustStartedSprint) {
-    html += `<div class="header-health-note">${escapeHtml(SPRINT_COPY.justStarted)}</div>`;
-  }
+  html += '<div class="header-band-metrics" aria-label="Sprint summary metrics">';
+  html += '<button type="button" class="header-metric" data-metric="progress" title="Sprint completion"><span class="metric-label">Done</span><span class="metric-value">' + donePercentage + '%</span></button>';
+  html += '<button type="button" class="header-metric" data-metric="work-items" title="Jump to sprint work"><span class="metric-label">Issues</span><span class="metric-value">' + issuesCount + '</span></button>';
+  html += '<button type="button" class="header-metric" data-metric="log-est" title="Subtask logged versus estimated hours"><span class="metric-label">Log/Est</span><span class="metric-value">' + subtaskLoggedHrs.toFixed(1) + ' / ' + subtaskEstimatedHrs.toFixed(1) + 'h</span></button>';
+  html += '<span class="header-countdown-chip" title="' + escapeHtml(remainingChipLabel) + '">' + escapeHtml(remainingChipLabel) + '</span>';
   html += '</div>';
-  html += '<div class="header-primary-action-group">';
+  html += '<div class="header-band-actions">';
   html += '<button type="button" class="btn btn-primary btn-compact header-action-cta header-action-primary" data-header-action="take-action"'
     + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '')
     + ` title="${escapeHtml(isHistoricalSprint ? 'Historical sprint snapshot: live remediation actions are disabled.' : 'Focus highest priority risk rows')}">`
-    + escapeHtml(isHistoricalSprint ? SPRINT_COPY.historicalAction : 'Review sprint health')
+    + escapeHtml(isHistoricalSprint ? SPRINT_COPY.historicalAction : 'Focus risk work')
     + '</button>';
-  html += '</div>';
-  html += '</div>';
-
-  html += '<div class="header-row header-row-health">';
-  html += '<div class="header-identity-metrics" aria-label="Sprint summary metrics">';
-  html += '<button type="button" class="header-metric" data-metric="progress" title="Sprint completion"><span class="metric-label">Done</span><span class="metric-value">' + donePercentage + '%</span></button>';
-  html += '<button type="button" class="header-metric" data-metric="work-items" title="Jump to issues in this sprint"><span class="metric-label">Issues</span><span class="metric-value">' + issuesCount + '</span></button>';
-  html += '<button type="button" class="header-metric" data-metric="log-est" title="Subtask logged hours versus estimated hours"><span class="metric-label">Log/Est</span><span class="metric-value">' + subtaskLoggedHrs.toFixed(1) + 'h / ' + subtaskEstimatedHrs.toFixed(1) + 'h</span></button>';
-  html += '</div>';
-  html += '<div class="header-health-main">';
-  html += `<div class="sprint-verdict-line sprint-verdict-${escapeHtml(verdictPresentation.color)}" aria-live="polite">`;
-  html += `<strong>Quick filters</strong>`;
-  verdictRiskChips.slice(0, 3).forEach((chip) => {
-    html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
-  });
-  if (!verdictRiskChips.length) {
-    html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
-  }
-  html += '</div>';
-  html += '</div>';
-  html += '</div>';
-
-  html += '<div class="header-row header-row-controls">';
-  html += '<div class="header-controls-row">';
-  html += `<div class="status-badge ${statusClass}" role="status" aria-label="Data status: ${escapeHtml(statusBadge)}">${escapeHtml(statusBadge)}</div>`;
-  html += '<label class="header-lens-select-wrap">Lens <select class="header-lens-select" data-header-lens-select aria-label="Choose sprint lens">'
+  html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data and context"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh</button>';
+  html += renderExportButton(true);
+  html += '<details class="header-view-drawer">';
+  html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span data-header-active-filter-value>Lens: All | none</span></summary>';
+  html += '<div class="header-view-drawer-panel">';
+  html += '<label class="header-lens-select-wrap">View <select class="header-lens-select" data-header-lens-select aria-label="Choose sprint lens">'
     + '<option value="all">All lens</option>'
     + '<option value="developer">Dev lens</option>'
     + '<option value="scrum-master">SM lens</option>'
     + '<option value="product-owner">PO lens</option>'
     + '<option value="line-manager">Leads lens</option>'
     + '</select></label>';
-  html += '<div class="header-active-filter-state" aria-live="polite"><span class="header-active-filter-state-label">Lens:</span> <span data-header-active-filter-value>All lens | none</span><button type="button" class="header-active-filter-reset" data-header-action="reset-filters" aria-label="Reset to all work" title="Reset filters to All">Reset</button></div>';
-  html += `<div class="header-export-readiness"><span class="last-updated">${escapeHtml(statusSummary)}</span></div>`;
-  headerInsights.forEach((item) => {
-    html += '<div class="header-insight-chip header-insight-chip-' + escapeHtml(item.state || 'neutral') + '" title="' + escapeHtml(item.detail || '') + '">'
-      + '<span class="header-insight-chip-eyebrow">' + escapeHtml(item.eyebrow || '') + '</span>'
-      + '<span class="header-insight-chip-label">' + escapeHtml(item.label || '') + '</span>'
-      + '</div>';
+  html += '<div class="header-drawer-risks">';
+  verdictRiskChips.slice(0, 4).forEach((chip) => {
+    html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
   });
-  html += '<details class="header-more-details">';
-  html += '<summary>More</summary>';
-  html += '<div class="header-more-panel">';
-  html += '<div class="header-actions-row">';
-  html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data and context"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh sprint</button>';
-  html += renderExportButton(true);
-  html += '<a class="btn btn-secondary btn-compact" href="/report" data-header-action="open-report-context">Open report</a>';
+  if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
   html += '</div>';
+  html += '<div class="header-drawer-meta" title="' + escapeHtml(statusSummary) + '">';
+  html += '<span>' + escapeHtml(statusBadge) + '</span>';
+  html += '<span>' + escapeHtml(followUpSummary) + '</span>';
+  headerInsights.forEach((item) => {
+    html += '<span title="' + escapeHtml(item.detail || '') + '">' + escapeHtml(item.eyebrow + ': ' + item.label) + '</span>';
+  });
   html += '</div>';
-  html += '</details>';
-  html += '</div>';
-  html += '<div class="header-follow-up-row">';
-  html += '<span class="header-follow-up-primary">' + escapeHtml(followUpSummary) + '</span>';
+  html += '<div class="header-drawer-links">';
+  html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">Reset lens</button>';
   if (!isHistoricalSprint) {
     html += '<button type="button" class="header-follow-up-link" data-open-outcome-modal'
       + ' data-outcome-context="Create an outcome from the current sprint context."'
@@ -265,13 +237,16 @@ export function renderHeaderBar(data) {
       html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">Leadership trend</a>';
     }
   }
+  html += '<a class="header-follow-up-link" href="/report" data-header-action="open-report-context">Open report</a>';
   html += '</div>';
   html += '</div>';
-
+  html += '</details>';
+  html += '</div>';
+  html += '</div>';
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
-  html += `<span class="header-mini-strip-days">${escapeHtml(verdictPresentation.remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
+  html += `<span class="header-mini-strip-days">${escapeHtml(remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
   html += '</div>';
   html += '</div>';
 
@@ -313,7 +288,7 @@ export function wireHeaderBarHandlers() {
     else if (role === 'product-owner') roleLabel = 'PO lens';
     else if (role === 'line-manager') roleLabel = 'Leads lens';
 
-    let label = roleLabel;
+    let label = 'Lens: ' + roleLabel;
     label += ' | ' + (tags.length ? tags.join(', ') : 'none');
     if (day) label += ' | ' + day;
 

@@ -25,11 +25,19 @@
       border: 0;
     }
     .board-select-wrap {
-      display: grid;
-      grid-template-columns: minmax(220px, 1.2fr) minmax(220px, 1.3fr) minmax(240px, 1fr);
-      align-items: end;
-      gap: 8px 10px;
+      display: block;
       width: 100%;
+    }
+    .current-sprint-scope-stack {
+      display: grid;
+      gap: 8px;
+      width: min(760px, 100%);
+    }
+    .current-sprint-scope-inline {
+      display: grid;
+      grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
     }
     .current-sprint-control-field {
       display: flex;
@@ -53,22 +61,28 @@
       width: 100%;
       font-size: 0.9rem;
     }
-    .current-sprint-control-strip {
-      display: contents;
-    }
-    .current-sprint-project-stack {
-      display: grid;
-      gap: 2px;
+    .current-sprint-scope-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
       min-width: 0;
     }
-    #current-sprint-single-project-hint {
-      display: block;
-      font-size: 0.76rem;
+    .current-sprint-scope-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card-muted);
       color: var(--muted);
+      font-size: 0.76rem;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
+    .current-sprint-jump-inline input[type="text"] {
+      padding: 8px 10px;
+    }
+    #current-sprint-single-project-hint { display: inline-flex; }
     .transparency-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -132,7 +146,7 @@
       }
     }
     @media (max-width: 1024px) {
-      .board-select-wrap {
+      .current-sprint-scope-inline {
         grid-template-columns: 1fr;
       }
     }
@@ -144,13 +158,13 @@
       <div class="current-sprint-header">
         <div class="current-sprint-page-title-wrap">
           <h1><span id="current-sprint-title">Performance - Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
-          <p class="subtitle" id="current-sprint-subtitle">See sprint risks and act fast.</p>
         </div>
         <div class="board-select-wrap">
-          <div class="current-sprint-control-strip">
-            <div class="current-sprint-project-stack">
-              <div class="current-sprint-control-field">
-                <label for="current-sprint-projects">Project</label>
+          <div class="current-sprint-scope-stack">
+            <div class="current-sprint-control-field">
+              <label for="current-sprint-projects">Scope</label>
+              <div class="current-sprint-scope-row">
+                <div class="current-sprint-scope-inline">
                 <select id="current-sprint-projects" aria-label="Select project">
                   <option value="MPSA">MPSA - M-SQUAD</option>
                   <option value="MAS">MAS - Mini - Apps Squad</option>
@@ -165,18 +179,15 @@
                   <option value="AMS2">AMS2 - AMS Squad (Tachyons)</option>
                   <option value="BIO">BIO - Bio metric KYC &amp; KYA</option>
                 </select>
+                <select id="board-select" aria-label="Select board">
+                  <option value="">Loading boards...</option>
+                </select>
+                </div>
+                <span id="current-sprint-single-project-hint" class="current-sprint-scope-badge" aria-live="polite">Single-project</span>
               </div>
-              <span id="current-sprint-single-project-hint" class="selection-status" aria-live="polite">Single-project mode for clean sprint trust.</span>
             </div>
-            <div class="current-sprint-control-field">
-              <label for="board-select">Board</label>
-              <select id="board-select" aria-label="Select board">
-                <option value="">Loading boards...</option>
-              </select>
-            </div>
-            <div class="current-sprint-control-field">
-              <label for="issue-jump-input">Jump</label>
-              <input id="issue-jump-input" type="text" class="input-compact" placeholder="Jump: /browse/KEY or KEY" aria-label="Search or jump to Jira issue by key or URL">
+            <div class="current-sprint-jump-inline">
+              <input id="issue-jump-input" type="text" class="input-compact" placeholder="Jump to KEY or /browse/KEY" aria-label="Search or jump to Jira issue by key or URL">
             </div>
           </div>
         </div>
@@ -185,7 +196,6 @@
 
     <main id="main-content" data-current-sprint-state="welcome">
       <!-- M9: Sprint loading context — shows board + sprint name above spinner while loading -->
-      <div id="sprint-loading-context" class="sprint-loading-context" aria-live="polite"></div>
       <div id="current-sprint-loading">Select project and board to see sprint health.</div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>
       <div id="current-sprint-content"></div>

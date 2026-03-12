@@ -3732,63 +3732,117 @@ body.current-sprint-page .current-sprint-header-bar {
   padding: 8px 12px;
 }
 
-body.current-sprint-page .header-row-identity {
-  align-items: center;
+body.current-sprint-page .header-row,
+body.current-sprint-page .header-follow-up-row,
+body.current-sprint-page .header-health-note,
+body.current-sprint-page .header-insight-chip {
+  display: none !important;
 }
 
-body.current-sprint-page .header-row-controls {
-  gap: 6px;
-}
-
-body.current-sprint-page .header-controls-row {
+body.current-sprint-page .header-band {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 8px 12px;
 }
 
-body.current-sprint-page .header-insight-chip {
+body.current-sprint-page .header-band-main,
+body.current-sprint-page .header-band-metrics,
+body.current-sprint-page .header-band-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+body.current-sprint-page .header-band-main {
+  flex: 1 1 280px;
+}
+
+body.current-sprint-page .header-band-metrics {
+  flex: 1 1 320px;
+}
+
+body.current-sprint-page .header-band-actions {
+  flex: 0 1 auto;
+}
+
+body.current-sprint-page .header-band-verdict {
+  cursor: default;
+}
+
+body.current-sprint-page .header-countdown-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: #f8fafc;
   font-size: 0.75rem;
   color: var(--muted);
 }
 
-body.current-sprint-page .header-insight-chip-healthy {
-  border-color: #a7f3d0;
-  background: #ecfdf5;
-  color: #065f46;
+body.current-sprint-page .header-view-drawer {
+  position: relative;
 }
 
-body.current-sprint-page .header-insight-chip-warning {
-  border-color: #fde68a;
-  background: #fffbeb;
-  color: #92400e;
+body.current-sprint-page .header-view-drawer summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  cursor: pointer;
+  color: var(--text);
 }
 
-body.current-sprint-page .header-insight-chip-eyebrow {
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+body.current-sprint-page .header-view-drawer summary::-webkit-details-marker {
+  display: none;
 }
 
-body.current-sprint-page .header-follow-up-row {
+body.current-sprint-page .header-view-drawer-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+body.current-sprint-page .header-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+body.current-sprint-page .header-status-dot.status-live {
+  background: #16a34a;
+}
+
+body.current-sprint-page .header-status-dot.status-snapshot {
+  background: #f59e0b;
+}
+
+body.current-sprint-page .header-drawer-risks,
+body.current-sprint-page .header-drawer-meta,
+body.current-sprint-page .header-drawer-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 8px;
   align-items: center;
-  font-size: 0.82rem;
-  color: var(--muted);
 }
 
-body.current-sprint-page .header-follow-up-primary {
-  font-weight: 600;
-  color: var(--text);
+body.current-sprint-page .header-drawer-meta span {
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 body.current-sprint-page .header-follow-up-link {
@@ -3801,8 +3855,8 @@ body.current-sprint-page .header-follow-up-link {
   font: inherit;
 }
 
-body.current-sprint-page .header-mini-mode .header-row:not(.header-mini-strip),
-body.current-sprint-page .header-mini-mode .header-follow-up-row {
+body.current-sprint-page .header-mini-mode .header-band,
+body.current-sprint-page .header-mini-mode .header-view-drawer[open] .header-view-drawer-panel {
   display: none;
 }
 
@@ -3840,7 +3894,7 @@ body.current-sprint-page .section-inline-stats {
 }
 
 body.current-sprint-page .section-inline-stats span,
-body.current-sprint-page .stories-evidence-inline span {
+body.current-sprint-page .stories-evidence-inline {
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
@@ -3852,25 +3906,24 @@ body.current-sprint-page .stories-evidence-inline span {
 }
 
 body.current-sprint-page .stories-evidence-inline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0;
   margin-bottom: 12px;
 }
 
 body.current-sprint-page .work-risks-inline-explainer {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 body.current-sprint-page .work-risks-inline-summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 body.current-sprint-page .work-risks-inline-summary strong {
@@ -3879,7 +3932,7 @@ body.current-sprint-page .work-risks-inline-summary strong {
 
 body.current-sprint-page .work-risks-inline-summary span {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.8rem;
 }
 
 body.current-sprint-page .work-risks-inline-toggle {
@@ -3894,7 +3947,7 @@ body.current-sprint-page .work-risks-inline-toggle {
 }
 
 body.current-sprint-page .work-risks-inline-details {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 body.current-sprint-page .sprint-switcher-card {
@@ -3920,7 +3973,7 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 
 @media (max-width: 720px) {
   body.current-sprint-page .header-controls-row,
-  body.current-sprint-page .header-follow-up-row,
+  body.current-sprint-page .header-band,
   body.current-sprint-page .section-inline-header {
     flex-direction: column;
     align-items: stretch;

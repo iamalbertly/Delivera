@@ -8,7 +8,6 @@ export const currentSprintDom = {
   contentEl: document.getElementById('current-sprint-content'),
   titleEl: document.getElementById('current-sprint-title'),
   nameEl: document.getElementById('current-sprint-name'),
-  subtitleEl: document.getElementById('current-sprint-subtitle'),
 };
 
 export const currentSprintKeys = {

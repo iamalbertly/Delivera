@@ -1,7 +1,7 @@
 import { currentSprintDom, currentSprintKeys } from './Reporting-App-CurrentSprint-Page-Context.js';
 import { showLoading, showError, clearError } from './Reporting-App-CurrentSprint-Page-Status.js';
 import { loadBoards, loadCurrentSprint } from './Reporting-App-CurrentSprint-Page-Data-Loaders.js';
-import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, describeCurrentSprintProjectMode, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Reporting-App-CurrentSprint-Page-Storage.js';
+import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Reporting-App-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
 import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Reporting-App-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
 import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
@@ -98,7 +98,7 @@ function refreshBoards(preferredId, preferredSprintId) {
         preferredSprintId = null;
         const boardName = boards.find(b => String(b.id) === boardId)?.name || boardId;
         const hint = document.getElementById('current-sprint-single-project-hint');
-        if (hint) hint.textContent = 'Previously saved board is no longer available. Switched to ' + boardName + '.';
+        if (hint) hint.textContent = 'Switched to ' + boardName + '.';
       }
       if (!cachedSnapshot?.data) showLoading('Loading current sprint...');
       const sprintRequestId = ++lastBoardsRefreshRequestId;
@@ -136,16 +136,8 @@ function onBoardChange() {
   currentBoardId = boardId;
   currentSprintId = null;
   persistSelection(boardId, null);
-  showLoading('Loading current sprint...');
-  // M9: Show board name in loading context so user knows which board is loading
-  try {
-    const ctxEl = document.getElementById('sprint-loading-context');
-    if (ctxEl) {
-      const boardSelect = currentSprintDom.boardSelect;
-      const boardLabel = boardSelect ? (boardSelect.options[boardSelect.selectedIndex]?.text || '') : '';
-      ctxEl.textContent = boardLabel ? 'Loading: ' + boardLabel : '';
-    }
-  } catch (_) {}
+  const boardLabel = boardSelect?.options?.[boardSelect.selectedIndex]?.text || 'board';
+  showLoading('Loading: ' + boardLabel);
   loadAndRenderSprint({ boardId, sprintId: null, loadingText: null, retryFactory: () => onBoardChange() });
 }
 
@@ -153,7 +145,7 @@ function updateProjectHint() {
   try {
     const hint = document.getElementById('current-sprint-single-project-hint');
     if (!hint) return;
-    hint.textContent = describeCurrentSprintProjectMode(getStoredProjects() || getProjectsParam());
+    hint.textContent = 'Single-project';
   } catch (_) {}
 }
 
@@ -191,7 +183,7 @@ function handleRefreshSprint() {
   loadAndRenderSprint({
     boardId: currentBoardId,
     sprintId: currentSprintId,
-    loadingText: 'Refreshing sprint...',
+    loadingText: 'Refreshing current sprint...',
     retryFactory: () => handleRefreshSprint(),
     errorTitle: 'Could not refresh sprint.',
     errorPrimaryLabel: 'Retry refresh',
@@ -238,7 +230,7 @@ function loadAndRenderSprint({
           : null;
         if (!urlHasSprintId && sprintId && selectedState !== 'active' && activeAlternative?.id) {
           const hint = document.getElementById('current-sprint-single-project-hint');
-          if (hint) hint.textContent = 'Switched to active sprint: ' + (activeAlternative.name || activeAlternative.id) + ' (saved sprint was closed).';
+          if (hint) hint.textContent = 'Active sprint';
           currentSprintId = String(activeAlternative.id);
           persistSelection(currentBoardId, currentSprintId);
           return loadAndRenderSprint({

@@ -6,6 +6,7 @@ import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js
 import { buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 import { hasOutcomeLabel, isOutcomeStoryLike } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
 import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
+import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -228,6 +229,7 @@ export function renderStories(data) {
   const summary = data.summary || {};
   const dailySeries = Array.isArray(data?.dailyCompletions?.stories) ? data.dailyCompletions.stories : [];
   const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
+  const capacitySummary = buildCapacitySummary(data);
   const parentUnassigned = Number(unifiedRiskCounts.unownedOutcomes || 0);
   const blockerKeys = new Set(
     mergedRiskRows
@@ -250,7 +252,9 @@ export function renderStories(data) {
   html += '<div class="section-inline-stats"><span>' + stories.length + ' issues</span><span>' + blockerKeys.size + ' blockers</span><span>' + parentUnassigned + ' unowned</span></div>';
   html += '</div>';
   html += renderWorkRisksMerged(data);
-  html += '<div class="stories-evidence-inline"><span>Estimated Hrs = plan</span><span>Logged Hrs = actual work entered</span><span>Parent rows hold outcome fields; subtasks hold execution detail</span></div>';
+  html += '<div class="stories-evidence-inline">Evidence: '
+    + escapeHtml(Number(summary.subtaskLoggedHours || 0) > 0 ? 'logs healthy' : 'logs building')
+    + ' · Capacity: ' + escapeHtml(capacitySummary?.label || 'watch') + '</div>';
 
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();

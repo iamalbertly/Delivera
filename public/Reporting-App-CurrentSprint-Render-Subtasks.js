@@ -43,7 +43,7 @@ export function renderWorkRisksMerged(data) {
 
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
   html += '<div class="work-risks-inline-summary">';
-  html += '<strong>Risk focus</strong><span>Blockers, missing estimates, no logs, and unowned outcomes flow into the same work list below.</span>';
+  html += '<strong>Risk focus</strong><span>Blockers, missing estimates, no logs, and unowned outcomes filter the same work list.</span>';
   html += '<button type="button" class="work-risks-inline-toggle" data-work-risk-inline-toggle aria-expanded="false">How this is calculated</button>';
   html += '</div>';
   html += '<div class="work-risks-inline-details" data-work-risk-inline-details hidden>';

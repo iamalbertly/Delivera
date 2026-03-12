@@ -2,7 +2,7 @@ import { currentSprintDom } from './Reporting-App-CurrentSprint-Page-Context.js'
 import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
 
 export function updateHeader(sprint) {
-  const { titleEl, nameEl, subtitleEl } = currentSprintDom;
+  const { titleEl, nameEl } = currentSprintDom;
   const pageHeader = document.querySelector('header .current-sprint-header');
   if (!titleEl || !nameEl) return;
 
@@ -11,7 +11,6 @@ export function updateHeader(sprint) {
     pageHeader?.classList.remove('current-sprint-header-compact');
     titleEl.textContent = SPRINT_COPY.pageTitle;
     nameEl.textContent = '';
-    if (subtitleEl) subtitleEl.textContent = SPRINT_COPY.pageSubtitleEmpty;
     return;
   }
 
@@ -19,5 +18,4 @@ export function updateHeader(sprint) {
   pageHeader?.classList.add('current-sprint-header-compact');
   titleEl.textContent = SPRINT_COPY.pageTitle;
   nameEl.textContent = sprint.name ? '- ' + sprint.name : (sprint.id ? '- ' + sprint.id : '');
-  if (subtitleEl) subtitleEl.textContent = SPRINT_COPY.pageSubtitleLoaded;
 }
