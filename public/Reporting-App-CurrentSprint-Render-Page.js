@@ -1,22 +1,24 @@
 import { updateHeader } from './Reporting-App-CurrentSprint-Render-Overview.js';
 import { renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Render-Progress.js';
 import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
-import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
+import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoActiveSprintEmptyState, renderNoIssuesForContextEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
-import { renderCapacityAllocation } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
+import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
+import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 
 export function renderCurrentSprintPage(data) {
+  const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
+  if (!hasProjectContext) {
+    updateHeader(null);
+    return '<div class="transparency-card">' + renderNoProjectsSelectedEmptyState() + '</div>';
+  }
   if (!data.sprint) {
     updateHeader(null);
     return (
       '<div class="transparency-card">' +
-      renderEmptyStateHtml(
-        'No active sprint',
-        'No active sprint - choose previous sprint or align backlog before starting.',
-        'Try the previous sprint tab in the carousel above or select a different board.'
-      ) +
+      renderNoActiveSprintEmptyState() +
       '</div>'
     );
   }
@@ -43,24 +45,33 @@ export function renderCurrentSprintPage(data) {
   const hasDailyCompletions = Array.isArray(data?.dailyCompletions?.stories) && data.dailyCompletions.stories.length > 0;
   const hasBurndownSeries = Array.isArray(data.remainingWorkByDay) && data.remainingWorkByDay.length > 0;
   const hasBurndownData = hasBurndownSeries || hasStories;
-  // Capacity is useful whenever we have assignee data - SP is optional (story count allocation still meaningful)
-  const hasCapacityData = hasStories;
-
   if (!hasStories) availabilityGaps.push({ source: 'Data', label: 'Work items hidden', reason: 'No sprint issues returned for this board.' });
   if (!hasDailyCompletions) availabilityGaps.push({ source: 'Window', label: 'Daily completion hidden', reason: 'No completed items in this sprint window yet.' });
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
-  if (!hasCapacityData) availabilityGaps.push({ source: 'Workflow', label: 'Capacity hidden', reason: 'No work items in this sprint.' });
 
   html += renderHeaderBar(data);
 
-  const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData && !hasCapacityData;
+  const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData;
   if (allSectionsHidden) {
     html += renderDataAvailabilitySummaryHtml({ title: 'Hidden sections', items: availabilityGaps });
-    html += renderEmptyStateHtml(
-      'No trackable work in this sprint yet',
-      'This sprint has no stories, estimates, or logged work. Add stories in Jira to see health metrics here.',
-      'Check the board configuration or select a different sprint from the carousel.'
-    );
+    if (!hasStories) {
+      html += renderNoIssuesForContextEmptyState();
+    } else {
+      const isHistoricalSprint = String(data?.sprint?.state || '').toLowerCase() !== 'active';
+      const isJustStartedSprint = Number(summary.percentDone || 0) === 0 && (summary.totalStories || 0) > 0;
+      const title = isHistoricalSprint
+        ? 'Historical snapshot with limited trackable signals'
+        : (isJustStartedSprint ? 'Sprint just started - evidence not formed yet' : 'No trackable work in this sprint yet');
+      const message = isHistoricalSprint
+        ? 'This sprint snapshot does not include enough trackable time or issue movement to render health sections.'
+        : (isJustStartedSprint
+          ? 'Stories exist, but logs and movement have not formed enough evidence yet.'
+          : 'This sprint has no stories, estimates, or logged work. Add stories in Jira to see health metrics here.');
+      const hint = isHistoricalSprint
+        ? 'Pick an active sprint from the carousel for live signals.'
+        : 'Check the board configuration or select a different sprint from the carousel.';
+      html += renderEmptyStateHtml(title, message, hint, isHistoricalSprint ? 'View report' : 'Pick a board', isHistoricalSprint ? { href: '/report' } : {});
+    }
     try {
       const sprintState = (data.sprint?.state || '').toLowerCase();
       const freshLabel = sprintState === 'active' ? 'Live sprint data' : 'Snapshot: ' + (data.sprint?.name || '');
@@ -71,30 +82,67 @@ export function renderCurrentSprintPage(data) {
 
   const jumpLinks = [];
   const hasRisks = riskCount > 0 || stuckCount > 0 || (data.stuckCandidates || []).length > 0;
+  const outcomeProjects = Array.isArray(data?.board?.projectKeys) && data.board.projectKeys.length
+    ? data.board.projectKeys.join(',')
+    : String(data?.meta?.projects || '');
+  const outcomeContext = [
+    data?.board?.name || 'Current sprint board',
+    data?.sprint?.name || 'Current sprint',
+    data?.sprint?.startDate && data?.sprint?.endDate
+      ? `${String(data.sprint.startDate).slice(0, 10)} - ${String(data.sprint.endDate).slice(0, 10)}`
+      : '',
+  ].filter(Boolean).join(' | ');
   if (hasRisks) jumpLinks.push('<a href="#stuck-card">Risks</a>');
   if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
-  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-dropdown" role="navigation" aria-label="Jump to section">' +
-    '<button type="button" class="btn btn-secondary btn-compact sprint-section-dropdown-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="sprint-section-dropdown-menu">Sections</button>' +
-    '<div id="sprint-section-dropdown-menu" class="sprint-section-dropdown-menu" role="menu" aria-hidden="true" hidden>' +
-    jumpLinks.join('') +
-    '</div></div>';
+  const sectionActions = [];
+  sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create an outcome from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Narrative to Epic</button>');
+  if (data?.board?.name && outcomeProjects) {
+    sectionActions.push('<a class="sprint-section-inline-link" href="/leadership?project=' + encodeURIComponent(String(outcomeProjects).split(',')[0]) + '&board=' + encodeURIComponent(data.board.name) + '">Leadership trend</a>');
+  }
+  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-sticky" role="navigation" aria-label="Jump to section">'
+    + jumpLinks.join('')
+    + (sectionActions.length ? '<div class="sprint-section-inline-actions">' + sectionActions.join('') + '</div>' : '')
+    + '<button type="button" class="btn btn-secondary btn-compact sprint-section-dropdown-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="sprint-section-dropdown-menu">More</button>'
+    + '<div id="sprint-section-dropdown-menu" class="sprint-section-dropdown-menu" role="menu" aria-hidden="true" hidden>'
+    + jumpLinks.join('')
+    + '</div></div>';
+
+  const verdict = deriveSprintVerdict(data);
+  const capacitySummary = buildCapacitySummary(data);
 
   html += '<div class="current-sprint-grid-layout">';
 
-  /* Direct-to-value: stories card first so primary content is immediately after header */
-  html += '<div class="sprint-cards-column full-width">';
-  if (hasStories) html += renderStories(data);
-  html += '</div>';
+  html += buildSprintAtAGlanceHero(data, verdict, capacitySummary);
 
   html += sectionLinksHtml;
+  const hasDeepDive = hasStories || hasBurndownData;
+  if (hasDeepDive) {
+    html += '<details class="mobile-secondary-details" open>';
+    html += '<summary>Detailed work items and flow</summary>';
+  }
 
-  if (hasRisks || hasBurndownData) {
-    html += '<div class="sprint-cards-row risks-row">';
-    if (hasRisks) html += '<div class="card-column risks-stuck-column">' + renderWorkRisksMerged(data) + '</div>';
-    if (hasBurndownData) html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
+  if (hasStories) {
+    html += '<div class="sprint-cards-column full-width">';
+    html += renderStories(data);
     html += '</div>';
+  }
+
+  if (hasRisks) {
+    html += '<div class="sprint-cards-row top-row">';
+    html += '<div class="card-column risks-stuck-column">' + renderWorkRisksMerged(data) + '</div>';
+    html += '</div>';
+  }
+
+  if (hasBurndownData) {
+    html += '<div class="sprint-cards-row risks-row">';
+    html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
+    html += '</div>';
+  }
+
+  if (hasDeepDive) {
+    html += '</details>';
   }
 
   html += renderSprintCarousel(data);
@@ -102,16 +150,6 @@ export function renderCurrentSprintPage(data) {
   html += '<div class="sprint-cards-row secondary-row">';
   html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
   html += '</div>';
-
-  const detailsCollapsed = riskCount === 0 ? ' card-details-collapsed' : '';
-  if (hasCapacityData) {
-    html += '<div class="sprint-cards-row top-row card-details-toggle-wrap' + detailsCollapsed + '" data-region="details">';
-    html += '<button type="button" class="card-details-toggle btn btn-secondary btn-compact" aria-expanded="' + (riskCount === 0 ? 'false' : 'true') + '" aria-controls="card-details-region">' + (riskCount === 0 ? 'Show capacity details' : 'Hide capacity details') + '</button>';
-    html += '</div>';
-    html += '<div class="sprint-cards-row top-row" id="card-details-region" aria-hidden="' + (riskCount === 0 ? 'true' : 'false') + '">';
-    html += '<div class="card-column capacity-column">' + renderCapacityAllocation(data) + '</div>';
-    html += '</div>';
-  }
   html += '</div>';
 
   try {
@@ -120,5 +158,106 @@ export function renderCurrentSprintPage(data) {
     window.dispatchEvent(new CustomEvent('app:data-freshness', { detail: { label: freshLabel, state: sprintState === 'active' ? 'live' : 'stale' } }));
   } catch (_) {}
 
+  return html;
+}
+
+export function renderCurrentSprintPageParts(data) {
+  const fullHtml = renderCurrentSprintPage(data);
+  const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
+  if (!hasProjectContext || !data?.sprint) {
+    return {
+      initialHtml: fullHtml,
+      fullHtml,
+      hasDeferredSections: false,
+    };
+  }
+
+  const verdict = deriveSprintVerdict(data);
+  const capacitySummary = buildCapacitySummary(data);
+  const initialHtml = ''
+    + renderHeaderBar(data)
+    + '<div class="current-sprint-grid-layout current-sprint-grid-layout-phased">'
+    + buildSprintAtAGlanceHero(data, verdict, capacitySummary)
+    + '<div class="transparency-card sprint-progressive-shell" data-progressive-shell="deferred">'
+    + '<h2>Loading deeper sprint evidence</h2>'
+    + '<p>Header, health signal, and key counters are ready. Work items and trends are loading next.</p>'
+    + '</div>'
+    + '</div>';
+
+  return {
+    initialHtml,
+    fullHtml,
+    hasDeferredSections: true,
+  };
+}
+
+function buildSprintAtAGlanceHero(data, verdict, capacitySummary) {
+  const summary = data.summary || {};
+  const daysMeta = data.daysMeta || {};
+  const totalStories = summary.totalStories ?? 0;
+  const doneStories = summary.doneStories ?? 0;
+  const totalSP = summary.totalSP ?? 0;
+  const doneSP = summary.doneSP ?? 0;
+  const percentDone = typeof summary.percentDone === 'number' ? summary.percentDone : 0;
+  const remainingDays = daysMeta.daysRemainingWorking ?? daysMeta.daysRemainingCalendar;
+
+  const sprintHealthClass = verdict.color === 'red' || verdict.color === 'critical'
+    ? 'sprint-health-needs-attention'
+    : verdict.color === 'yellow' || verdict.color === 'warning'
+      ? 'sprint-health-at-risk'
+      : 'sprint-health-healthy';
+
+  const capacityLabel = capacitySummary?.label || 'Capacity status not available yet';
+  const narrative = Number(percentDone || 0) === 0 && totalStories > 0
+    ? 'Sprint just started. Evidence is still forming.'
+    : (verdict.tagline || verdict.summary || 'Health combines blockers, scope, ownership, and time tracking.');
+
+  return ''
+    + '<section class="sprint-at-a-glance-hero" aria-label="Sprint at a glance">'
+    + '<div class="sprint-at-a-glance-stats">'
+    + '<strong>' + percentDone + '% done</strong>'
+    + (totalStories ? ' | ' + doneStories + '/' + totalStories + ' stories' : '')
+    + (totalSP ? ' | ' + doneSP + '/' + totalSP + ' SP' : '')
+    + '</div>'
+    + (remainingDays != null
+      ? '<div>' + remainingDays + ' working day' + (remainingDays === 1 ? '' : 's') + ' left</div>'
+      : '')
+    + '<p class="sprint-at-a-glance-cta">'
+    + '<span class="' + sprintHealthClass + '">' + (verdict.verdict || 'Sprint health') + '</span>'
+    + ' | ' + narrative
+    + '<br>Capacity: ' + capacityLabel
+    + '</p>'
+    + '</section>';
+}
+
+function buildCapacityAllocationCard(capacitySummary, data) {
+  const summary = capacitySummary || {};
+  const unassignedDetail = summary.unassignedCount > 0
+    ? summary.unassignedCount + ' issue' + (summary.unassignedCount === 1 ? '' : 's') + ' unassigned'
+    : 'All issues have an owner';
+
+  const baseClass = summary.state === 'critical'
+    ? 'capacity-health red'
+    : summary.state === 'warning'
+      ? 'capacity-health yellow'
+      : 'capacity-health green';
+
+  const totalStories = (data.summary && data.summary.totalStories) || 0;
+
+  let html = '<div class="transparency-card capacity-allocation-card" id="capacity-card">';
+  html += '<h2>Capacity and ownership</h2>';
+  html += '<div class="' + baseClass + '">' + (summary.label || 'Capacity signal loading') + '</div>';
+  html += '<div class="capacity-warning">' + (summary.detail || 'Sprint ownership will appear once issues are fully assigned.') + '</div>';
+  html += '<div class="capacity-allocations">';
+  html += '<div class="allocation-item">';
+  html += '<div class="allocation-header">';
+  html += '<span class="allocation-name">Ownership coverage</span>';
+  html += '<span class="allocation-stats">' + summary.assigneeCount + ' owner' + (summary.assigneeCount === 1 ? '' : 's') +
+    (totalStories ? ' · ' + totalStories + ' stories' : '') + '</span>';
+  html += '</div>';
+  html += '<p>' + unassignedDetail + '.</p>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
   return html;
 }

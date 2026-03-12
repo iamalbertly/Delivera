@@ -7,57 +7,62 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     /* Compact page header: single row with board select; header bar is the main strip */
+    body.current-sprint-page header {
+      padding: 10px 16px;
+    }
     .current-sprint-header {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px 12px;
+      display: block;
     }
-    .current-sprint-header h1 {
-      color: var(--primary);
-      font-size: 1.1rem;
-      margin: 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: baseline;
-    }
-    .current-sprint-header h1 .sprint-name {
-      color: var(--accent);
-      font-weight: 700;
-      font-size: 1rem;
-    }
-    .current-sprint-header .subtitle {
-      display: none;
+    .current-sprint-page-title-wrap {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
     .board-select-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      gap: 6px 10px;
+      display: grid;
+      grid-template-columns: minmax(260px, 1.6fr) minmax(180px, 1fr) minmax(240px, 1fr);
+      align-items: end;
+      gap: 8px 10px;
+      width: 100%;
     }
-    .board-select-wrap label {
+    .current-sprint-control-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .current-sprint-control-field label {
       font-weight: 500;
       color: var(--muted);
       font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
-    .board-select-wrap select,
-    .board-select-wrap input[type="text"] {
+    .current-sprint-control-field select,
+    .current-sprint-control-field input[type="text"] {
       padding: 6px 10px;
       border-radius: var(--radius);
       border: 1px solid var(--border);
-      min-width: 190px;
+      min-width: 0;
+      width: 100%;
       font-size: 0.9rem;
     }
     #current-sprint-single-project-hint {
-      display: block;
-      margin-top: 2px;
-      max-width: 360px;
-      font-size: 0.8rem;
-      color: var(--muted);
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
     .transparency-card {
       background: var(--card);
@@ -118,47 +123,52 @@
     #current-sprint-content { display: none; }
     @media (min-width: 960px) {
       .current-sprint-header {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-start;
+        display: block;
       }
+    }
+    @media (max-width: 1024px) {
       .board-select-wrap {
-        max-width: 520px;
-        justify-content: flex-end;
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
-<body>
+<body class="current-sprint-page">
   <div class="container">
     <header>
       <div class="current-sprint-header">
-        <div>
+        <div class="current-sprint-page-title-wrap">
           <h1><span id="current-sprint-title">Performance - Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
           <p class="subtitle" id="current-sprint-subtitle">See sprint risks and act fast.</p>
         </div>
         <div class="board-select-wrap">
-          <label for="current-sprint-projects">Project</label>
-          <select id="current-sprint-projects" aria-label="Select project">
-            <option value="MPSA">MPSA - M-SQUAD</option>
-            <option value="MAS">MAS - Mini - Apps Squad</option>
-            <option value="RPA">RPA - Robotics Process Automation (RPA)</option>
-            <option value="MVA">MVA - Digital Squad</option>
-            <option value="ASG">ASG - Agile and Security Guild</option>
-            <option value="FIN">FIN - Finance Squad</option>
-            <option value="SD">SD - DMS Squad (Kilimanjaro Legends)</option>
-            <option value="MPSA2">MPSA2 - TRANSFORMERS</option>
-            <option value="TRS">TRS - T-Squad</option>
-            <option value="VB">VB - Vodacom Business</option>
-            <option value="AMS2">AMS2 - AMS Squad (Tachyons)</option>
-            <option value="BIO">BIO - Bio metric KYC &amp; KYA</option>
-          </select>
-          <label for="board-select">Board</label>
-          <select id="board-select" aria-label="Select board">
-            <option value="">Loading boards...</option>
-          </select>
-          <label for="issue-jump-input">Jump to issue</label>
-          <input id="issue-jump-input" type="text" class="input-compact" placeholder="Paste /browse/KEY or KEY" aria-label="Paste Jira link or key to jump">
+          <div class="current-sprint-control-field">
+            <label for="current-sprint-projects">Project</label>
+            <select id="current-sprint-projects" aria-label="Select project">
+              <option value="MPSA">MPSA - M-SQUAD</option>
+              <option value="MAS">MAS - Mini - Apps Squad</option>
+              <option value="RPA">RPA - Robotics Process Automation (RPA)</option>
+              <option value="MVA">MVA - Digital Squad</option>
+              <option value="ASG">ASG - Agile and Security Guild</option>
+              <option value="FIN">FIN - Finance Squad</option>
+              <option value="SD">SD - DMS Squad (Kilimanjaro Legends)</option>
+              <option value="MPSA2">MPSA2 - TRANSFORMERS</option>
+              <option value="TRS">TRS - T-Squad</option>
+              <option value="VB">VB - Vodacom Business</option>
+              <option value="AMS2">AMS2 - AMS Squad (Tachyons)</option>
+              <option value="BIO">BIO - Bio metric KYC &amp; KYA</option>
+            </select>
+          </div>
+          <div class="current-sprint-control-field">
+            <label for="board-select">Board</label>
+            <select id="board-select" aria-label="Select board">
+              <option value="">Loading boards...</option>
+            </select>
+          </div>
+          <div class="current-sprint-control-field">
+            <label for="issue-jump-input">Search or jump</label>
+            <input id="issue-jump-input" type="text" class="input-compact" placeholder="Search or jump to KEY" aria-label="Search or jump to Jira issue by key or URL">
+          </div>
           <span id="current-sprint-single-project-hint" class="selection-status" aria-live="polite">Current Sprint runs in single-project mode for accuracy.</span>
         </div>
       </div>

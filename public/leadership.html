@@ -6,163 +6,180 @@
   <title>Performance - Leadership HUD | VodaAgileBoard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    :root {
-      --hud-bg: #0f172a;
-      --hud-card-bg: #1e293b;
-      --hud-text: #f8fafc;
-      --hud-accent: #38bdf8;
-      --hud-success: #4ade80;
-      --hud-danger: #f87171;
-      --hud-warning: #fbbf24;
-    }
     body.hud-mode {
-      background-color: var(--hud-bg);
-      color: var(--hud-text);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(180deg, #f6f9fc 0%, #eef4f9 100%);
+      color: #10243e;
       margin: 0;
-      padding: 2rem;
-      height: 100vh;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
+      min-height: 100vh;
     }
-    .hud-header {
+    .hud-shell {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .hud-header-mission-control {
+      position: sticky;
+      top: var(--sticky-global-nav-top, 0px);
+      z-index: 40;
+      display: grid;
+      gap: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+      backdrop-filter: blur(10px);
+    }
+    .hud-header-top {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .hud-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
       margin: 0;
+      font-size: 1.2rem;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
     }
-    .hud-meta {
-      font-size: 0.875rem;
-      color: #94a3b8;
-      display: flex;
-      gap: 1rem;
+    .hud-subtitle {
+      margin: 4px 0 0;
+      font-size: 0.84rem;
+      color: #526277;
+    }
+    .hud-status-row {
+      display: inline-flex;
       align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
-    .live-indicator {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      background-color: var(--hud-success);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--hud-success);
-      margin-right: 0.5rem;
+    .hud-status-pill,
+    .hud-freshness-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(255,255,255,0.9);
+      font-size: 0.78rem;
+      color: #334155;
+      white-space: nowrap;
+    }
+    .hud-status-pill.is-live {
+      color: #166534;
+      border-color: rgba(34, 197, 94, 0.35);
+      background: rgba(240, 253, 244, 0.96);
+    }
+    .hud-status-pill.is-offline {
+      color: #991b1b;
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(254, 242, 242, 0.96);
+    }
+    .hud-summary-line {
+      margin: 0;
+      font-size: 0.84rem;
+      color: #24364d;
     }
     .hud-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      flex: 1;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
       align-content: start;
     }
     .hud-card {
-      background-color: var(--hud-card-bg);
-      border-radius: 12px;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s ease;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
     .hud-card:hover {
-      transform: translateY(-2px);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
     }
     .metric-label {
-      font-size: 0.875rem;
-      color: #94a3b8;
+      font-size: 0.76rem;
+      color: #64748b;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      margin-bottom: 8px;
     }
     .metric-value {
-      font-size: 2.5rem;
+      font-size: 2.1rem;
       font-weight: 700;
-      color: var(--hud-text);
-      line-height: 1.1;
+      color: #10243e;
+      line-height: 1.05;
     }
     .metric-unit {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: #64748b;
-      font-weight: 400;
-      margin-left: 0.25rem;
+      font-weight: 500;
+      margin-left: 4px;
     }
     .metric-trend {
-      font-size: 0.875rem;
-      margin-top: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
+      font-size: 0.82rem;
+      margin-top: 10px;
+      display: grid;
+      gap: 4px;
     }
-    .trend-up { color: var(--hud-success); }
-    .trend-down { color: var(--hud-danger); }
-    .trend-neutral { color: #94a3b8; }
-    
+    .trend-up { color: #166534; }
+    .trend-down { color: #991b1b; }
+    .trend-neutral { color: #526277; }
     .loading-pulse {
       animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: .5; }
+      50% { opacity: .55; }
     }
-    
-    /* Mobile Stack */
-    @media (max-width: 600px) {
-      body.hud-mode { padding: 1rem; height: auto; }
-      .hud-title { font-size: 1.25rem; }
-      .metric-value { font-size: 2rem; }
+    @media (max-width: 768px) {
+      .hud-shell {
+        padding: 14px;
+      }
+      .hud-header-mission-control {
+        position: static;
+      }
+      .hud-title {
+        font-size: 1.05rem;
+      }
+      .metric-value {
+        font-size: 1.7rem;
+      }
     }
   </style>
 </head>
 <body class="hud-mode">
-  <header class="hud-header">
-    <div>
-      <h1 class="hud-title">Performance - Leadership HUD</h1>
-      <div id="project-context" class="text-sm text-slate-500 mt-1">All Projects</div>
-    </div>
-    <div class="hud-meta">
-      <span id="connection-status"><span class="live-indicator"></span>Live</span>
-      <span id="last-updated">Updating...</span>
-    </div>
-  </header>
+  <div class="hud-shell">
+    <header class="hud-header-mission-control">
+      <div class="hud-header-top">
+        <div>
+          <h1 class="hud-title">Performance - Leadership HUD</h1>
+          <p class="hud-subtitle">Leadership mission control - delivery trend, risk pressure, and data hygiene.</p>
+        </div>
+        <div class="hud-status-row">
+          <span id="connection-status" class="hud-status-pill is-live">Live</span>
+          <span id="last-updated" class="hud-freshness-pill">Updating...</span>
+        </div>
+      </div>
+      <div id="project-context"></div>
+      <p id="leadership-summary" class="hud-summary-line">Loading leadership signals...</p>
+    </header>
 
-  <main class="hud-grid" id="hud-grid">
-    <!-- Velocity Card -->
-    <div class="hud-card loading-pulse">
-      <div>
-        <div class="metric-label">Velocity (Avg)</div>
-        <div class="metric-value">No data yet<span class="metric-unit">SP</span></div>
+    <main class="hud-grid" id="hud-grid">
+      <div class="hud-card loading-pulse" style="grid-column:1/-1;">
+        <div>
+          <div class="metric-label">Leadership signals</div>
+          <div class="metric-value" style="font-size:1.35rem;">Loading range context and portfolio health...</div>
+          <div class="metric-trend"><span class="trend-neutral">One leadership state replaces repeated empty KPI cards.</span></div>
+        </div>
       </div>
-    </div>
-    <!-- Risk Card -->
-    <div class="hud-card loading-pulse">
-      <div>
-        <div class="metric-label">Risk Index</div>
-        <div class="metric-value">No data yet<span class="metric-unit">%</span></div>
-      </div>
-    </div>
-    <!-- Quality Card -->
-    <div class="hud-card loading-pulse">
-      <div>
-        <div class="metric-label">Rework Ratio</div>
-        <div class="metric-value">No data yet<span class="metric-unit">%</span></div>
-      </div>
-    </div>
-    <!-- Predictability Card -->
-    <div class="hud-card loading-pulse">
-      <div>
-        <div class="metric-label">Predictability</div>
-        <div class="metric-value">No data yet<span class="metric-unit">%</span></div>
-      </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script type="module" src="Reporting-App-Leadership-HUD-Controller.js"></script>
 </body>

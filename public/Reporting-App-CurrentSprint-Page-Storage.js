@@ -62,6 +62,8 @@ export function persistProjectsSelection(value) {
   try {
     const cleaned = (value || '').trim();
     if (!cleaned) return;
+    const prev = localStorage.getItem(currentSprintKeys.projectsKey);
+    if (prev === cleaned) return;
     localStorage.setItem(currentSprintKeys.projectsKey, cleaned);
   } catch (_) {}
 }

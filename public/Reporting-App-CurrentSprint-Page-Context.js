@@ -1,4 +1,4 @@
-import { PROJECTS_SSOT_KEY, CURRENT_SPRINT_BOARD_KEY, CURRENT_SPRINT_SPRINT_KEY, CURRENT_SPRINT_SPRINT_SELECTED_AT_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { PROJECTS_SSOT_KEY, CURRENT_SPRINT_BOARD_KEY, CURRENT_SPRINT_SPRINT_KEY, CURRENT_SPRINT_SPRINT_SELECTED_AT_KEY, CURRENT_SPRINT_SNAPSHOT_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 
 export const currentSprintDom = {
   projectsSelect: document.getElementById('current-sprint-projects'),
@@ -16,4 +16,5 @@ export const currentSprintKeys = {
   boardKey: CURRENT_SPRINT_BOARD_KEY,
   sprintKey: CURRENT_SPRINT_SPRINT_KEY,
   sprintTsKey: CURRENT_SPRINT_SPRINT_SELECTED_AT_KEY,
+  snapshotKey: CURRENT_SPRINT_SNAPSHOT_KEY,
 };

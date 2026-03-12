@@ -18,6 +18,8 @@ import { updateRangeHint } from './Reporting-App-Report-Page-DateRange-Controlle
 import { sortSprintsLatestFirst } from './Reporting-App-Report-Page-Sorting.js';
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
+import { resetPerfMarks, markPerf } from './Reporting-App-Shared-Perf-Marks.js';
+import { warmCurrentSprintJourney } from './Reporting-App-Shared-Journey-Warmup.js';
 import {
   RECENT_SPLIT_DEFAULT_DAYS,
   PREVIEW_TIMEOUT_LIGHT_MS,
@@ -77,6 +79,7 @@ function showReportError(shortText, detailsText) {
 
 export function restoreLastPreviewFromStorage() {
   try {
+    resetPerfMarks('report');
     const raw = localStorage.getItem(REPORT_LAST_PREVIEW_KEY);
     if (!raw) return false;
     const payload = JSON.parse(raw);
@@ -91,6 +94,8 @@ export function restoreLastPreviewFromStorage() {
     reportState.visibleSprintRows = sortSprintsLatestFirst(payload.sprintsIncluded || []);
     reportState.previewHasRows = reportState.previewRows.length > 0;
     renderPreview();
+    markPerf('report', 'firstValueRendered', { firstValueSource: 'last-success-cache' });
+    markPerf('report', 'fullRenderComplete');
     if (reportDom.previewContent) reportDom.previewContent.style.display = 'block';
     const statusEl = document.getElementById('preview-status');
     if (statusEl) {
@@ -157,8 +162,13 @@ export function initPreviewFlow() {
         if (oneClickHint) oneClickHint.textContent = 'Pick at least one squad';
         return;
       }
+      const lastQuarterPill = document.querySelector('.quarter-strip-inner .quarter-pill.is-current')
+        || document.querySelector('.quarter-strip-inner .quarter-pill:not(.quarter-pill-custom)');
+      if (lastQuarterPill && typeof lastQuarterPill.click === 'function') {
+        lastQuarterPill.click();
+      }
       if (oneClickHint) oneClickHint.textContent = '';
-      previewBtn.click();
+      window.setTimeout(() => previewBtn.click(), 40);
     });
   }
 
@@ -212,7 +222,8 @@ export function initPreviewFlow() {
         const reportContextLine = document.getElementById('report-context-line');
         const loadLatestWrap = document.getElementById('report-load-latest-wrap');
         if (reportContextLine) reportContextLine.textContent = 'Preview failed. Use Load latest to retry.';
-        if (loadLatestWrap) loadLatestWrap.style.display = 'inline';
+        if (typeof window.__reportSyncHeaderLoadLatestVisibility === 'function') window.__reportSyncHeaderLoadLatestVisibility(true);
+        else if (loadLatestWrap) loadLatestWrap.style.display = 'inline';
       }
       if (!previewBtn.disabled && typeof previewBtn.focus === 'function') {
         previewBtn.focus();
@@ -302,6 +313,7 @@ export function initPreviewFlow() {
 
   previewBtn.addEventListener('click', async () => {
     const previewRunStartedAt = Date.now();
+    resetPerfMarks('report');
     reportState.previewInProgress = true;
     previewRunId += 1;
     const runIdForThisRequest = previewRunId;
@@ -540,6 +552,7 @@ export function initPreviewFlow() {
 
       try {
         renderPreview();
+        markPerf('report', 'firstValueRendered', { firstValueSource: fromSessionCache ? 'session-cache' : 'live' });
       } catch (renderErr) {
         if (errorEl) {
           setActionErrorOnEl(errorEl, {
@@ -572,6 +585,7 @@ export function initPreviewFlow() {
       }
       updateExportHint();
       updateExportFilteredState();
+      markPerf('report', 'fullRenderComplete');
     };
 
     const cachedPreview = readCachedPreview();
@@ -657,6 +671,9 @@ export function initPreviewFlow() {
       setLoadingStage(4, 'Final checks…');
       if (runIdForThisRequest === previewRunId) applyPreviewPayload(responseJson);
       try {
+        warmCurrentSprintJourney(responseJson?.meta?.selectedProjects || []);
+      } catch (_) {}
+      try {
         const params = collectFilterParams();
         if (params?.projects && params?.start && params?.end) {
           try {
@@ -706,8 +723,8 @@ export function initPreviewFlow() {
       else if (/fetch|network|failed to fetch/i.test(errorMsg || '')) shortText = 'Request failed';
 
       if (errorEl) {
-        try {
-          const redirectReport = escapeHtml(window.location.pathname === '/report' ? '/report' : '/report');
+      try {
+          const redirectReport = escapeHtml(window.location.pathname + window.location.search + window.location.hash);
           if (error && error.sessionExpired) {
             setActionErrorOnEl(errorEl, {
               title: 'Session expired',

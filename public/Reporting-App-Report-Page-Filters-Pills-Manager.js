@@ -24,6 +24,20 @@ function getUnifiedSearchInput() {
   return document.getElementById('report-tab-search');
 }
 
+function getStoredSearchState() {
+  try {
+    const raw = localStorage.getItem(REPORT_SEARCH_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return {
+      boards: typeof parsed?.boards === 'string' ? parsed.boards : '',
+      sprints: typeof parsed?.sprints === 'string' ? parsed.sprints : '',
+      stories: typeof parsed?.stories === 'string' ? parsed.stories : '',
+    };
+  } catch (_) {
+    return { boards: '', sprints: '', stories: '' };
+  }
+}
+
 function setLegacySearchValues(values) {
   const boardsSearch = document.getElementById('boards-search-box');
   const sprintsSearch = document.getElementById('sprints-search-box');
@@ -40,15 +54,15 @@ function syncUnifiedSearchUi(searchState) {
   const cfg = TAB_SEARCH_CONFIG[activeTab] || TAB_SEARCH_CONFIG['project-epic-level'];
   input.placeholder = cfg.placeholder;
   input.value = String(searchState[cfg.field] || '');
-  input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function readCurrentSearchState() {
-  return {
-    boards: document.getElementById('boards-search-box')?.value || '',
-    sprints: document.getElementById('sprints-search-box')?.value || '',
-    stories: document.getElementById('search-box')?.value || '',
-  };
+  const input = getUnifiedSearchInput();
+  const tab = getActiveTabName();
+  const cfg = TAB_SEARCH_CONFIG[tab] || TAB_SEARCH_CONFIG['project-epic-level'];
+  const state = getStoredSearchState();
+  state[cfg.field] = input?.value || state[cfg.field] || '';
+  return state;
 }
 
 function persistSearchState() {
@@ -85,7 +99,7 @@ function applyTabFilter(allItems, searchText, activePills, config) {
 }
 
 export function applyBoardsFilters() {
-  const searchText = document.getElementById('boards-search-box')?.value || '';
+  const searchText = getStoredSearchState().boards;
   const activePills = Array.from(document.querySelectorAll('#boards-project-pills .pill.active')).map(p => p.dataset.project);
   reportState.visibleBoardRows = applyTabFilter(reportState.previewData?.boards || [], searchText, activePills, {
     projectKey: (board) => (board.projectKeys || []).join(','),
@@ -96,7 +110,7 @@ export function applyBoardsFilters() {
 }
 
 export function applySprintsFilters() {
-  const searchText = document.getElementById('sprints-search-box')?.value || '';
+  const searchText = getStoredSearchState().sprints;
   const activePills = Array.from(document.querySelectorAll('#sprints-project-pills .pill.active')).map(p => p.dataset.project);
   reportState.visibleSprintRows = applyTabFilter(reportState.previewData?.sprintsIncluded || [], searchText, activePills, {
     projectKey: (sprint) => (sprint.projectKey || ''),
@@ -107,7 +121,7 @@ export function applySprintsFilters() {
 }
 
 export function applyFilters() {
-  const searchText = (document.getElementById('search-box')?.value || '').toLowerCase();
+  const searchText = (getStoredSearchState().stories || '').toLowerCase();
   const activePills = Array.from(document.querySelectorAll('#project-pills .pill.active')).map(p => p.dataset.project);
   reportState.visibleRows = applyTabFilter(reportState.previewRows || [], searchText, activePills, {
     projectKey: (row) => row.projectKey || '',
@@ -183,21 +197,6 @@ export function populateProjectsPills() {
 export function initFilters() {
   hydrateSearchState();
   const unifiedSearch = getUnifiedSearchInput();
-  const searchBox = document.getElementById('search-box');
-  if (searchBox) searchBox.addEventListener('input', () => {
-    applyFilters();
-    persistSearchState();
-  });
-  const boardsSearchBox = document.getElementById('boards-search-box');
-  if (boardsSearchBox) boardsSearchBox.addEventListener('input', () => {
-    applyBoardsFilters();
-    persistSearchState();
-  });
-  const sprintsSearchBox = document.getElementById('sprints-search-box');
-  if (sprintsSearchBox) sprintsSearchBox.addEventListener('input', () => {
-    applySprintsFilters();
-    persistSearchState();
-  });
   if (unifiedSearch) {
     unifiedSearch.addEventListener('input', () => {
       const tab = getActiveTabName();
@@ -214,10 +213,7 @@ export function initFilters() {
     window.addEventListener('report:active-tab-changed', () => {
       const activeTab = getActiveTabName();
       const cfg = TAB_SEARCH_CONFIG[activeTab] || TAB_SEARCH_CONFIG['project-epic-level'];
-      const state = readCurrentSearchState();
-      state[cfg.field] = '';
-      setLegacySearchValues(state);
-      persistSearchState();
+      const state = getStoredSearchState();
       syncUnifiedSearchUi(state);
       if (cfg.field === 'boards') applyBoardsFilters();
       if (cfg.field === 'sprints') applySprintsFilters();
@@ -226,8 +222,8 @@ export function initFilters() {
     });
   }
 
-  if (searchBox?.value) applyFilters();
-  if (boardsSearchBox?.value) applyBoardsFilters();
-  if (sprintsSearchBox?.value) applySprintsFilters();
   syncUnifiedSearchUi(readCurrentSearchState());
+  applyBoardsFilters();
+  applySprintsFilters();
+  applyFilters();
 }

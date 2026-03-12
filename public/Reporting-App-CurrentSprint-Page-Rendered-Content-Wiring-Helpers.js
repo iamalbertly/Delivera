@@ -1,18 +1,19 @@
 import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
 import { updateNotificationStore } from './Reporting-App-CurrentSprint-Notifications-Helpers.js';
 import { showContent } from './Reporting-App-CurrentSprint-Page-Status.js';
-import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Page.js';
+import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Reporting-App-CurrentSprint-Render-Page.js';
 import { wireDynamicHandlers } from './Reporting-App-CurrentSprint-Page-Handlers.js';
 import { wireHeaderBarHandlers } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { wireHealthDashboardHandlers } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
 import { wireRisksAndInsightsHandlers } from './Reporting-App-CurrentSprint-Risks-Insights.js';
-import { wireCapacityAllocationHandlers } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { wireSprintCarouselHandlers } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
 import { wireCountdownTimerHandlers } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
 import { wireSubtasksShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
 import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers } from './Reporting-App-CurrentSprint-Render-Progress.js';
 import { wireExportHandlers } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { wireIssuePreviewHandlers } from './Reporting-App-CurrentSprint-Issue-Preview.js';
+import { scheduleRender } from './Reporting-App-Report-Page-Loading-Steps.js';
+import { markPerf } from './Reporting-App-Shared-Perf-Marks.js';
 
 function collapseMobileDetailsSections() {
   try {
@@ -61,6 +62,9 @@ function wireSectionLinks() {
   }
   const links = Array.from(nav.querySelectorAll('a[href^="#"]'));
   if (!links.length) return;
+  const targets = links
+    .map((link) => ({ link, target: document.querySelector(link.getAttribute('href') || '') }))
+    .filter((entry) => entry.target);
   links.forEach((link) => {
     link.addEventListener('click', (event) => {
       const href = link.getAttribute('href') || '';
@@ -79,12 +83,24 @@ function wireSectionLinks() {
       }
     });
   });
+  const syncActiveLink = () => {
+    const offset = 180;
+    let activeHref = '';
+    targets.forEach((entry) => {
+      const top = entry.target.getBoundingClientRect().top;
+      if (top - offset <= 0) activeHref = entry.link.getAttribute('href') || activeHref;
+    });
+    targets.forEach((entry) => entry.link.classList.toggle('is-active', (entry.link.getAttribute('href') || '') === activeHref));
+  };
+  syncActiveLink();
+  window.addEventListener('scroll', syncActiveLink, { passive: true });
 }
 
 export function appendCurrentSprintLoginLink(errorEl) {
   if (!errorEl || errorEl.querySelector('a.nav-link')) return;
   const link = document.createElement('a');
-  link.href = '/?redirect=/current-sprint';
+  const redirect = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+  link.href = '/?redirect=' + redirect;
   link.className = 'nav-link';
   link.textContent = 'Sign in';
   link.style.marginLeft = '8px';
@@ -92,15 +108,13 @@ export function appendCurrentSprintLoginLink(errorEl) {
   errorEl.appendChild(link);
 }
 
-export function showCurrentSprintRenderedContent(data, onSelectSprintById) {
-  showContent(renderCurrentSprintPage(data));
+function wireRenderedContent(data, onSelectSprintById) {
   const summary = updateNotificationStore(data);
   renderNotificationDock({ summary, pageContext: 'current-sprint' });
   wireDynamicHandlers(data);
   wireHeaderBarHandlers();
   wireHealthDashboardHandlers();
   wireRisksAndInsightsHandlers();
-  wireCapacityAllocationHandlers();
   wireCountdownTimerHandlers();
   wireSubtasksShowMoreHandlers();
   wireProgressShowMoreHandlers();
@@ -111,4 +125,35 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById) {
   wireSectionLinks();
   collapseMobileDetailsSections();
   applyInitialHashFocus();
+}
+
+export function showCurrentSprintRenderedContent(data, onSelectSprintById, options = {}) {
+  const useProgressive = options.progressive !== false;
+  if (!useProgressive) {
+    showContent(renderCurrentSprintPage(data));
+    wireRenderedContent(data, onSelectSprintById);
+    markPerf('current-sprint', 'firstValueRendered', { firstValueSource: options.source || 'live' });
+    markPerf('current-sprint', 'fullRenderComplete');
+    return;
+  }
+
+  const parts = renderCurrentSprintPageParts(data);
+  showContent(parts.initialHtml);
+  markPerf('current-sprint', 'firstValueRendered', { firstValueSource: options.source || 'live' });
+
+  if (!parts.hasDeferredSections) {
+    wireRenderedContent(data, onSelectSprintById);
+    markPerf('current-sprint', 'fullRenderComplete');
+    return;
+  }
+
+  scheduleRender(() => {
+    showContent(parts.fullHtml);
+    wireRenderedContent(data, onSelectSprintById);
+    const anchor = document.querySelector('.sprint-at-a-glance-hero');
+    if (anchor && window.scrollY > 120) {
+      anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    markPerf('current-sprint', 'fullRenderComplete');
+  });
 }

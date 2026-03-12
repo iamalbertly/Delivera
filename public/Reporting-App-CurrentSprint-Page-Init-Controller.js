@@ -4,6 +4,9 @@ import { loadBoards, loadCurrentSprint } from './Reporting-App-CurrentSprint-Pag
 import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, describeCurrentSprintProjectMode, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Reporting-App-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
 import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Reporting-App-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
+import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
+import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprintSnapshot } from './Reporting-App-CurrentSprint-Page-Snapshot.js';
+import { markPerf, resetPerfMarks } from './Reporting-App-Shared-Perf-Marks.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -82,15 +85,22 @@ function refreshBoards(preferredId, preferredSprintId) {
       const boardId = preferredStillExists ? preferredId : boardIds[0];
       boardSelect.value = boardId;
       currentBoardId = boardId;
+      const cachedSnapshot = readCurrentSprintSnapshot(getProjectsParam(), boardId);
+      if (cachedSnapshot?.data) {
+        currentSprintId = cachedSnapshot.data?.sprint?.id || preferredSprintId || null;
+        persistSelection(currentBoardId, currentSprintId);
+        showCurrentSprintRenderedContent(cachedSnapshot.data, (sprintId) => initHandlers.selectSprintById(sprintId), { source: 'snapshot' });
+      }
       if (preferredId && !preferredStillExists) {
         try { localStorage.removeItem(currentSprintKeys.boardKey); } catch (_) {}
         try { localStorage.removeItem(currentSprintKeys.sprintKey); } catch (_) {}
+        clearCurrentSprintSnapshot(getProjectsParam(), preferredId);
         preferredSprintId = null;
         const boardName = boards.find(b => String(b.id) === boardId)?.name || boardId;
         const hint = document.getElementById('current-sprint-single-project-hint');
         if (hint) hint.textContent = 'Previously saved board is no longer available. Switched to ' + boardName + '.';
       }
-      showLoading('Loading current sprint...');
+      if (!cachedSnapshot?.data) showLoading('Loading current sprint...');
       const sprintRequestId = ++lastBoardsRefreshRequestId;
       return loadCurrentSprintWithGuard(boardId, preferredSprintId)
         .catch((err) => {
@@ -102,6 +112,7 @@ function refreshBoards(preferredId, preferredSprintId) {
           if (sprintRequestId !== lastBoardsRefreshRequestId) return null;
           currentSprintId = data?.sprint?.id || null;
           persistSelection(currentBoardId, currentSprintId);
+          saveCurrentSprintSnapshot(getProjectsParam(), currentBoardId, data);
           showRenderedContent(data);
           return null;
         });
@@ -242,6 +253,7 @@ function loadAndRenderSprint({
       } catch (_) {}
       currentSprintId = data?.sprint?.id || sprintId || null;
       persistSelection(currentBoardId, currentSprintId);
+      saveCurrentSprintSnapshot(getProjectsParam(), boardId, data);
       showRenderedContent(data);
       return data;
     })
@@ -283,9 +295,26 @@ function safeInitBoot() {
 
 function init() {
   const { boardSelect, contentEl, projectsSelect, errorEl } = currentSprintDom;
+  resetPerfMarks('current-sprint');
+  try {
+    if (window.history && 'scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  } catch (_) {}
   const preferredId = getPreferredBoardId();
   const preferredSprintId = getPreferredSprintId();
   syncProjectsSelect(getStoredProjects());
+  const initialSnapshot = readCurrentSprintSnapshot(getProjectsParam(), preferredId);
+  if (initialSnapshot?.data) {
+    showCurrentSprintRenderedContent(initialSnapshot.data, (sprintId) => initHandlers.selectSprintById(sprintId), { source: 'snapshot' });
+  }
+  initGlobalOutcomeModal({
+    getSelectedProjects: () => {
+      const selected = (getStoredProjects() || getProjectsParam() || '').split(',').map((value) => value.trim()).filter(Boolean);
+      return selected.length ? selected : ['MPSA'];
+    },
+  });
   initHandlers.refreshBoards(preferredId, preferredSprintId)
     .catch((err) => {
       showError(err.message || 'Failed to load current sprint.');
@@ -318,10 +347,14 @@ function init() {
   const { projectsKey } = currentSprintKeys;
   window.addEventListener('storage', (event) => {
     if (event.key === projectsKey) {
+      if ((event.newValue || '') === (projectsSelect?.value || '')) return;
       syncProjectsSelect(event.newValue || '');
       initHandlers.onProjectsChange();
     }
   });
+  try {
+    markPerf('current-sprint', 'bootReady');
+  } catch (_) {}
 }
 
 if (document.readyState === 'loading') {

@@ -41,8 +41,8 @@ export function renderWorkRisksMerged(data) {
   const noEstimateRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('missing estimate')).length;
   const unassignedRows = rows.filter((row) => row.isUnownedOutcome).length;
 
-  let html = '<div class="transparency-card" id="stuck-card">';
-  html += '<h2>Work risks – how this view is calculated</h2>';
+  let html = '<details class="transparency-card work-risks-explainer-card" id="stuck-card" data-mobile-collapse="true">';
+  html += '<summary>Risk rows focus on blockers, missing estimates, no logs, and unowned outcomes</summary>';
 
   // Compact meta: one-line context only, deeper semantics live in the stories card.
   const metaParts = [];
@@ -51,14 +51,14 @@ export function renderWorkRisksMerged(data) {
   if (metaParts.length > 0) {
     html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' | ')) + '</small></p>';
   }
-  html += '<p class="meta-row"><small>Use header <strong>View as</strong> and the risk chips on <strong>Issues in this sprint</strong> to slice Work risks by role and focus.</small></p>';
+  html += '<p class="meta-row"><small>Use the Lens control and risk chips to change the same work-risk view in one place.</small></p>';
   if (noEstimateRows > 0 || noLogRows > 0) {
     html += '<p class="meta-row"><small>Interpretation: <strong>Missing estimate</strong> = no planning baseline; <strong>No log yet</strong> = plan exists, actual effort missing.</small></p>';
   }
 
   if (!rows.length) {
     html += '<p class="meta-row"><small>No risks detected from scope changes, flow, sub-task tracking, or issue ownership. Check <a href="#stories-card">Issues in this sprint</a> to confirm.</small></p>';
-    html += '</div>';
+    html += '</details>';
     return html;
   }
 
@@ -89,7 +89,7 @@ export function renderWorkRisksMerged(data) {
   html += '</div>';
   html += '</div>';
 
-  html += '</div>';
+  html += '</details>';
   return html;
 }
 
@@ -144,4 +144,3 @@ export function wireSubtasksShowMoreHandlers() {
     });
   } catch (_) {}
 }
-

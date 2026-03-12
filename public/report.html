@@ -17,6 +17,9 @@
           <h1>Performance - History (General Performance)</h1>
           <p id="report-subtitle" class="subtitle">Choose filters. Preview. Decide fast.</p>
         </div>
+        <div id="report-header-actions" class="report-header-actions">
+          <button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Filters</button>
+        </div>
       </div>
       <div id="feedback-panel" class="feedback-panel" style="display: none;"></div>
     </header>
@@ -178,28 +181,6 @@
 
       <!-- Preview Area -->
       <main id="main-content" class="preview-area">
-        <p id="report-context-line" class="report-context-line" aria-live="polite"></p>
-        <section id="report-outcome-intake" class="report-outcome-intake" aria-label="Paste outcome story to create Jira epic">
-          <div class="report-outcome-intake-inner">
-            <div class="report-outcome-intake-header">
-              <p class="report-outcome-intake-title">Start by pasting your outcome story</p>
-              <p class="report-outcome-intake-hint">Paste a narrative (Goal / As a / I want / So that / Acceptance criteria) to create a Jira epic in one step.</p>
-            </div>
-            <textarea id="report-outcome-text" class="report-outcome-text" rows="3"
-              placeholder="Goal: … As a … I want … So that … Acceptance criteria: …"
-              aria-label="Outcome story narrative"></textarea>
-            <div class="report-outcome-intake-actions">
-              <span id="report-outcome-intake-status" class="report-outcome-intake-status" aria-live="polite"></span>
-              <button type="button" id="report-outcome-intake-create" class="btn btn-compact report-outcome-intake-create-btn" disabled>
-                Create Jira Epic from this narrative
-              </button>
-            </div>
-          </div>
-          <div class="report-outcome-intake-secondary" id="report-one-click-cta-wrap" aria-live="polite">
-            <button type="button" id="report-one-click-cta" class="link-style report-one-click-link">See last quarter's delivery in 1 click</button>
-            <small id="report-one-click-cta-hint" class="report-one-click-hint"></small>
-          </div>
-        </section>
         <span id="report-load-latest-wrap" class="report-load-latest-wrap" style="display: none;"><button type="button" class="link-style" data-action="load-latest-preview" id="report-load-latest-btn" aria-label="Run preview to load latest data">Load latest</button></span>
         <div id="loading" class="loading loading-skeleton" style="display: none;" aria-live="polite" aria-busy="true">
           <!-- M3: Filter context bar — confirms which filters are loading -->
@@ -298,7 +279,7 @@
           <div class="tab-content">
             <div id="tab-project-epic-level" class="tab-pane" role="tabpanel"
               aria-labelledby="tab-btn-project-epic-level">
-              <div class="boards-controls done-stories-controls report-tab-search-legacy">
+              <div class="boards-controls done-stories-controls report-tab-search-legacy" aria-hidden="true" hidden>
                 <div class="search-input-wrap">
                   <input type="text" id="boards-search-box" placeholder="Search boards by name or ID..."
                     aria-label="Search boards by name or ID">
@@ -311,7 +292,7 @@
             </div>
 
             <div id="tab-sprints" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-sprints">
-              <div class="sprints-controls done-stories-controls report-tab-search-legacy">
+              <div class="sprints-controls done-stories-controls report-tab-search-legacy" aria-hidden="true" hidden>
                 <div class="search-input-wrap">
                   <input type="text" id="sprints-search-box" placeholder="Search sprints by name..."
                     aria-label="Search sprints by name">
@@ -324,7 +305,7 @@
             </div>
 
             <div id="tab-done-stories" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-done-stories">
-              <div class="done-stories-controls report-tab-search-legacy">
+              <div class="done-stories-controls report-tab-search-legacy" aria-hidden="true" hidden>
                 <div class="search-input-wrap search-unified-only" aria-hidden="true" style="display: none;">
                   <input type="text" id="search-box" placeholder="Search by key or summary..."
                     aria-label="Search done stories">
@@ -340,7 +321,7 @@
                   data-action="toggle-done-stories-quarter-review" aria-pressed="false"
                   title="Expand all sprints into a single scrollable list">Quarter review mode</button>
               <button type="button" class="btn btn-secondary btn-compact" id="done-stories-export-only-btn"
-                  data-action="export-done-stories-focused" title="Export focused CSV for Outcomes only" style="display: none;" aria-hidden="true">Export Outcomes CSV</button>
+                  data-action="export-done-stories-focused" title="Export focused CSV for Outcomes only" style="display: none;" aria-hidden="true" hidden>Export Outcomes CSV</button>
               </div>
               <div id="done-stories-content"></div>
               <div id="done-stories-totals" class="totals-bar"></div>

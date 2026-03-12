@@ -1,4 +1,5 @@
 import { getProjectsParam } from './Reporting-App-CurrentSprint-Page-Storage.js';
+import { readWarmBoards, writeWarmBoards } from './Reporting-App-Shared-Journey-Warmup.js';
 
 export function getErrorMessage(response, body, fallback) {
   if (response.status === 401) return 'Session expired. Sign in again to continue.';
@@ -16,6 +17,10 @@ export async function loadBoards() {
   } catch (_) {}
 
   const projects = encodeURIComponent(getProjectsParam());
+  const warmed = readWarmBoards(getProjectsParam());
+  if (warmed && Array.isArray(warmed.boards) && warmed.boards.length > 0) {
+    return warmed;
+  }
   const response = await fetch(`/api/boards.json?projects=${projects}`, {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
@@ -25,6 +30,7 @@ export async function loadBoards() {
   if (!response.ok) {
     throw new Error(getErrorMessage(response, body, 'Failed to load boards'));
   }
+  writeWarmBoards(getProjectsParam(), body);
   return body;
 }
 
