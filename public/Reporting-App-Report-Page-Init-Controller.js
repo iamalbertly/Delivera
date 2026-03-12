@@ -162,7 +162,7 @@ function initReportPage() {
       getSelectedProjects,
     });
     wrap.innerHTML = ''
-      + '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Filters</button>'
+      + '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Edit filters</button>'
       + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-action="load-latest-preview" hidden>Load latest</button>'
       + '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'

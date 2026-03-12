@@ -2240,6 +2240,214 @@ body.report-page .report-outcome-intake .report-outcome-intake-actions {
   }
 }
 
+body.report-page header h1 {
+  margin-bottom: 4px;
+}
+
+body.report-page .subtitle {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+body.report-page .report-filter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+body.report-page .report-filter-strip-summary {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.report-page .filters-panel .filters-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+body.report-page .filters-panel .filter-group {
+  margin-bottom: 0;
+  padding-bottom: 12px;
+}
+
+body.report-page .project-group-label {
+  margin: 2px 0 4px;
+  font-size: 0.72rem;
+}
+
+body.report-page .project-inline-tag {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: #f8fafc;
+}
+
+body.report-page .checkbox-label {
+  gap: 10px;
+}
+
+body.report-page .report-range-bar {
+  display: grid;
+  gap: 8px;
+}
+
+body.report-page .date-range-summary-wrap {
+  margin: 0;
+}
+
+body.report-page .date-range-summary {
+  font-size: 0.86rem;
+  color: var(--text);
+}
+
+body.report-page .date-range-custom-wrap {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body.report-page .date-range-custom-wrap label + label {
+  margin-top: 0;
+}
+
+body.report-page .date-display[hidden] {
+  display: none !important;
+}
+
+body.report-page .report-rules-tile {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fafcff;
+}
+
+body.report-page .report-rules-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+body.report-page .report-rules-summary::-webkit-details-marker {
+  display: none;
+}
+
+body.report-page .rules-summary-inline {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+body.report-page .report-rules-tile .advanced-options {
+  margin-top: 0;
+  padding: 0 12px 12px;
+}
+
+body.report-page .report-filters-status-bar {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--card-muted);
+}
+
+body.report-page .applied-filters-summary {
+  margin-bottom: 0;
+  min-height: 0;
+  color: var(--text);
+}
+
+body.report-page .applied-filters-chips-row {
+  position: static;
+  margin-bottom: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body.report-page .applied-filters-chips {
+  display: block;
+  white-space: nowrap;
+  overflow-x: auto;
+  text-overflow: clip;
+}
+
+body.report-page .range-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9a3412;
+}
+
+body.report-page .loading-progress-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+body.report-page .skeleton-preview-compact .skeleton-table {
+  margin-top: 8px;
+}
+
+body.report-page .skeleton-preview-compact .skeleton-line:nth-child(n+4) {
+  display: none;
+}
+
+body.report-page .preview-header {
+  align-items: flex-start;
+}
+
+body.report-page .preview-header-story {
+  margin-bottom: 8px;
+}
+
+body.report-page .preview-header #preview-meta .meta-info-summary {
+  gap: 8px;
+}
+
+body.report-page .preview-header-export-wrap {
+  position: relative;
+  gap: 8px;
+}
+
+body.report-page #export-excel-btn[aria-expanded="true"] {
+  background-color: #4b5663;
+}
+
+body.report-page .export-dropdown-trigger[hidden] {
+  display: none !important;
+}
+
+body.report-page .preview-status-strip[data-state="fresh"] {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  body.report-page .report-filter-strip {
+    flex-wrap: wrap;
+  }
+
+  body.report-page .date-range-custom-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (min-width: 1025px) {
   body.report-page .filters-panel-collapsed-bar {
     display: none !important;

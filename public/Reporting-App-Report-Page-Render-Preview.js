@@ -60,8 +60,9 @@ function wirePreviewContextActions() {
     if (action === 'focus-config') {
       event.preventDefault();
       openFiltersPanel();
+      const rulesTile = document.getElementById('report-rules-tile');
       const advanced = document.getElementById('advanced-options-toggle');
-      if (advanced && advanced.getAttribute('aria-expanded') !== 'true') advanced.click();
+      if (rulesTile && !rulesTile.open) rulesTile.open = true;
       advanced?.focus();
       return;
     }
@@ -142,13 +143,16 @@ export function renderPreview() {
   const reportSubtitleEl = document.getElementById('report-subtitle');
   if (reportSubtitleEl) {
     reportSubtitleEl.textContent = rowsCount > 0
-      ? 'See results fast. Change filters when needed.'
-      : 'Preview updates with filters. Use Preview for heavy ranges.';
+      ? 'Results ready. Adjust filters only when the story changes.'
+      : 'Set filters, preview once, then decide fast.';
     reportSubtitleEl.style.display = rowsCount > 0 ? 'none' : '';
   }
-  const outcomeLineEl = document.getElementById('preview-outcome-line');
-  if (outcomeLineEl) outcomeLineEl.innerHTML = metaBlock.outcomeLineHTML;
-  if (previewMeta) previewMeta.innerHTML = metaBlock.previewMetaHTML;
+  if (previewMeta) {
+    previewMeta.innerHTML = `
+      <div class="preview-header-story">${metaBlock.outcomeLineHTML}</div>
+      ${metaBlock.previewMetaHTML}
+    `;
+  }
   if (reportContextLine) {
     const strictEnabled = meta.requireResolvedBySprintEnd === true;
     const contextBase = getContextDisplayString();
@@ -178,9 +182,10 @@ export function renderPreview() {
   }
   const statusStripEl = document.getElementById('preview-status-strip');
   if (statusStripEl) {
-    statusStripEl.textContent = partial ? 'Results: partial data' : (meta.reducedScope ? 'Results: closest match' : 'Results: up to date');
+    const hasAlertState = partial || meta.reducedScope;
+    statusStripEl.textContent = partial ? 'Results: partial data' : (meta.reducedScope ? 'Results: closest match' : '');
     statusStripEl.setAttribute('data-state', partial ? 'partial' : (meta.reducedScope ? 'closest' : 'fresh'));
-    statusStripEl.style.display = '';
+    statusStripEl.style.display = hasAlertState ? '' : 'none';
   }
 
   const hasRows = rowsCount > 0;
@@ -230,6 +235,8 @@ export function renderPreview() {
       }
     }
   }
+  const exportTriggerEl = document.getElementById('export-dropdown-trigger');
+  if (exportTriggerEl) exportTriggerEl.hidden = true;
 
   updateDateDisplay();
   renderSidebarContextCard();

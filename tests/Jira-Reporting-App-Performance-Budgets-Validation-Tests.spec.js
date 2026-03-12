@@ -31,7 +31,8 @@ test.describe('Jira Reporting App - Performance Budgets Validation', () => {
 
     await assertPreviewOrSkip(page, test, { timeout: 20000 });
     await expect(page.locator('#preview-content')).toBeVisible();
-    await expect(page.locator('#preview-status-strip')).toBeVisible();
+    await expect(page.locator('#preview-meta .preview-header-story')).toBeVisible();
+    await expect(page.locator('#preview-status-strip')).toHaveCount(1);
 
     const perf = await readPerf(page, 'report');
     expect(perf).toBeTruthy();

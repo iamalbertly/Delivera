@@ -19,6 +19,8 @@ export function isRangeValid() {
 }
 
 export function updateDateDisplay() {
+  const dateDisplayEl = document.getElementById('date-display');
+  if (!dateDisplayEl) return;
   const startDate = document.getElementById('start-date')?.value || '';
   const endDate = document.getElementById('end-date')?.value || '';
 
@@ -26,7 +28,7 @@ export function updateDateDisplay() {
     const startISO = toUtcIsoFromLocalInput(startDate);
     const endISO = toUtcIsoFromLocalInput(endDate, true);
     if (!startISO || !endISO) {
-      document.getElementById('date-display').innerHTML = `
+      dateDisplayEl.innerHTML = `
         <small>
           UTC: Invalid date input<br>
           Local: Invalid date input
@@ -39,7 +41,7 @@ export function updateDateDisplay() {
     const startUtc = new Date(startISO).toUTCString();
     const endUtc = new Date(endISO).toUTCString();
 
-    document.getElementById('date-display').innerHTML = `
+    dateDisplayEl.innerHTML = `
       <small>
         UTC: ${startUtc} to ${endUtc}<br>
         Local: ${startLocal} to ${endLocal}
@@ -127,6 +129,11 @@ export function updateRangeHint() {
   } catch (_) {
     hintEl.style.display = rangeDays > 90 ? 'block' : 'none';
   }
+  if (hintEl.style.display === 'block') {
+    hintEl.textContent = rangeDays > 90
+      ? 'Large range; preview may be slower.'
+      : 'Preview once to load results.';
+  }
 }
 
 function tryFirstRunAutoSetRange(startInput, endInput) {
@@ -162,7 +169,7 @@ function tryFirstRunAutoSetRange(startInput, endInput) {
       updateDateDisplay();
       const hintEl = document.getElementById('range-hint');
       if (hintEl) {
-        hintEl.textContent = "We've set the range to last quarter for a faster first run. You can change it.";
+        hintEl.textContent = 'Set to last quarter for a faster first run.';
         hintEl.style.display = 'block';
       } else {
         updateRangeHint();

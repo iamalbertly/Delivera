@@ -149,35 +149,60 @@ export function initExportMenu() {
   if (exportExcelBtn) {
     exportExcelBtn.addEventListener('click', () => {
       if (exportExcelBtn.disabled) return;
+      if (exportDropdownMenu) {
+        const isOpen = exportDropdownMenu.getAttribute('aria-hidden') === 'false';
+        if (isOpen) {
+          exportDropdownMenu.setAttribute('aria-hidden', 'true');
+          exportExcelBtn.setAttribute('aria-expanded', 'false');
+          if (exportDropdownTrigger) exportDropdownTrigger.setAttribute('aria-expanded', 'false');
+        } else {
+          openExportMenu();
+        }
+        return;
+      }
       handleExcelExport(true).catch((err) => showExportError(err?.message || err));
     });
   }
-  if (!exportDropdownTrigger || !exportDropdownMenu) return;
+  if (!exportDropdownMenu) return;
 
   function openExportMenu() {
     exportDropdownMenu.setAttribute('aria-hidden', 'false');
-    exportDropdownTrigger.setAttribute('aria-expanded', 'true');
+    if (exportDropdownTrigger) exportDropdownTrigger.setAttribute('aria-expanded', 'true');
+    if (exportExcelBtn) exportExcelBtn.setAttribute('aria-expanded', 'true');
     const firstItem = exportDropdownMenu.querySelector('.export-dropdown-item:not([disabled])');
     if (firstItem) firstItem.focus();
   }
 
   function closeExportMenu() {
     exportDropdownMenu.setAttribute('aria-hidden', 'true');
-    exportDropdownTrigger.setAttribute('aria-expanded', 'false');
+    if (exportDropdownTrigger) exportDropdownTrigger.setAttribute('aria-expanded', 'false');
+    if (exportExcelBtn) exportExcelBtn.setAttribute('aria-expanded', 'false');
   }
 
-  exportDropdownTrigger.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const isOpen = exportDropdownMenu.getAttribute('aria-hidden') === 'false';
-    if (isOpen) {
-      closeExportMenu();
-    } else {
-      openExportMenu();
-    }
-  });
+  if (exportDropdownTrigger) {
+    exportDropdownTrigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = exportDropdownMenu.getAttribute('aria-hidden') === 'false';
+      if (isOpen) {
+        closeExportMenu();
+      } else {
+        openExportMenu();
+      }
+    });
+  }
+
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowDown' && event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      const isOpen = exportDropdownMenu.getAttribute('aria-hidden') === 'false';
+      if (isOpen) closeExportMenu();
+      else openExportMenu();
+    });
+  }
 
   document.addEventListener('click', (event) => {
-    if (!exportDropdownMenu.contains(event.target) && event.target !== exportDropdownTrigger) {
+    if (!exportDropdownMenu.contains(event.target) && event.target !== exportDropdownTrigger && event.target !== exportExcelBtn) {
       closeExportMenu();
     }
   });
@@ -223,4 +248,5 @@ export function initExportMenu() {
 
   updateExportFilteredState();
   updateExportHint();
+  closeExportMenu();
 }

@@ -108,6 +108,8 @@ export function refreshPreviewButtonLabel() {
 export function updateAppliedFiltersSummary() {
   const summaryEl = document.getElementById('applied-filters-summary');
   const chipsEl = document.getElementById('applied-filters-chips');
+  const filterStripSummaryEl = document.getElementById('report-filter-strip-summary');
+  const rulesSummaryInlineEl = document.getElementById('rules-summary-inline');
   const projects = getSelectedProjects();
   const startVal = document.getElementById('start-date')?.value || '';
   const endVal = document.getElementById('end-date')?.value || '';
@@ -123,7 +125,9 @@ export function updateAppliedFiltersSummary() {
     : 'Select projects and dates, then preview.';
 
   if (summaryEl) {
-    summaryEl.textContent = 'Active filters are summarized in the Context card above.';
+    const projectSummary = projects.length ? `${projects.length} project${projects.length !== 1 ? 's' : ''}` : 'no projects';
+    const rangeSummary = compactRangeLabel || 'no range';
+    summaryEl.textContent = `Active: ${projectSummary} | ${rangeSummary}`;
     summaryEl.title = summaryText;
   }
   if (chipsEl) {
@@ -134,6 +138,16 @@ export function updateAppliedFiltersSummary() {
     if (options.length > 0) chips.push('+Advanced (' + options.length + ')');
     chipsEl.textContent = chips.length ? chips.join(' | ') : 'No filters selected';
     chipsEl.title = summaryText;
+  }
+  if (filterStripSummaryEl) {
+    const stripProjects = projects.length ? (projects.length <= 3 ? projects.join(', ') : `${projects.slice(0, 2).join(', ')} +${projects.length - 2}`) : 'projects';
+    const stripRange = compactRangeLabel || 'range';
+    const stripRules = options.length ? `${options.length} rule${options.length !== 1 ? 's' : ''}` : 'default rules';
+    filterStripSummaryEl.textContent = `Filter by: ${stripProjects} | ${stripRange} | ${stripRules}`;
+    filterStripSummaryEl.title = summaryText;
+  }
+  if (rulesSummaryInlineEl) {
+    rulesSummaryInlineEl.textContent = options.length ? `${options.length} active` : 'Optional';
   }
 
   const activeCount = projects.length + (startVal && endVal ? 1 : 0) + options.length;

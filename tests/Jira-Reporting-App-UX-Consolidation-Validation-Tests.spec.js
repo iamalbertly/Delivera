@@ -50,12 +50,18 @@ test.describe('Jira Reporting App - UX Consolidation Validation', () => {
     }
 
     await assertPreviewOrSkip(page, test, { timeout: 20000 });
+    await expect(page.locator('#report-filter-strip')).toBeVisible();
+    await expect(page.locator('#filters-panel h2')).toHaveCount(0);
     await expect(page.locator('#report-tab-search')).toBeVisible();
+    await expect(page.locator('#report-filters-status-bar')).toHaveCount(1);
     const legacyBlocks = page.locator('.report-tab-search-legacy');
     const legacyCount = await legacyBlocks.count();
     for (let index = 0; index < legacyCount; index += 1) {
       await expect(legacyBlocks.nth(index)).toBeHidden();
     }
+    await expect(page.locator('#preview-meta .preview-header-story')).toBeVisible();
+    await expect(page.locator('#preview-content #preview-outcome-line')).toHaveCount(0);
+    await expect(page.locator('#export-dropdown-trigger')).toBeHidden();
     assertTelemetryClean(telemetry);
   });
 
