@@ -62,7 +62,7 @@ function bindIssueJump() {
   const runJump = () => {
     const key = parseJiraIssueKey(input.value);
     if (!key) {
-      if (status) status.textContent = 'Paste a Jira /browse/KEY link or a KEY to jump.';
+      if (status) status.textContent = 'Use /browse/KEY or KEY.';
       return;
     }
     const row = document.querySelector('.story-parent-row[data-parent-key="' + key + '"]')
@@ -74,7 +74,7 @@ function bindIssueJump() {
       if (status) status.textContent = 'Jumped to ' + key + '.';
       return;
     }
-    if (status) status.textContent = 'Issue ' + key + ' not found in this sprint view. Verify board or sprint.';
+    if (status) status.textContent = key + ' is not in this sprint view.';
   };
 
   input.addEventListener('keydown', (event) => {

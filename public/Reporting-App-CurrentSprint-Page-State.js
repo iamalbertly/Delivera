@@ -16,8 +16,8 @@ export const PAGE_STATE = Object.freeze({
 });
 
 const LOADING_SPINNER_HTML = '<div class="current-sprint-loading-spinner" aria-hidden="true"></div><p class="current-sprint-loading-msg" aria-live="polite"></p>';
-const CURRENT_SPRINT_LOADING_MESSAGES = ['Loading board…', 'Loading sprint…', 'Building view…'];
-const WELCOME_MESSAGE = 'Pick a project, then a board — sprint view loads automatically.';
+const CURRENT_SPRINT_LOADING_MESSAGES = ['Loading board...', 'Loading sprint...', 'Building sprint HUD...'];
+const WELCOME_MESSAGE = 'Select project and board to see sprint health.';
 
 let currentState = PAGE_STATE.WELCOME;
 
@@ -64,7 +64,7 @@ export function setPageState(state, options = {}) {
       break;
 
     case PAGE_STATE.LOADING: {
-      const msg = options.message != null ? options.message : 'Loading…';
+      const msg = options.message != null ? options.message : 'Loading...';
       if (loadingEl) {
         loadingEl.innerHTML = LOADING_SPINNER_HTML;
         const msgEl = loadingEl.querySelector('.current-sprint-loading-msg');

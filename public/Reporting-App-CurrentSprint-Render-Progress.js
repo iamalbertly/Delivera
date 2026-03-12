@@ -5,6 +5,7 @@ import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Hel
 import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
 import { buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 import { hasOutcomeLabel, isOutcomeStoryLike } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
+import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -221,23 +222,12 @@ export function renderBurndown(data) {
 
 export function renderStories(data) {
   const stories = data.stories || [];
-  const planned = data.plannedWindow || {};
   const scopeChanges = data.scopeChanges || [];
-  const stuckCandidates = data.stuckCandidates || [];
   const mergedRiskRows = buildMergedWorkRiskRows(data);
   const unifiedRiskCounts = getUnifiedRiskCounts(data);
   const summary = data.summary || {};
   const dailySeries = Array.isArray(data?.dailyCompletions?.stories) ? data.dailyCompletions.stories : [];
   const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
-  let html = '<div class="transparency-card" id="stories-card">';
-  html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
-  html += '<h2>Issues in this sprint</h2>';
-  // Dates are already shown in the sticky header; this line focuses on evidence semantics.
-  html += '<p class="meta-row"><small>Time evidence uses subtasks: Estimated Hrs = plan, Logged Hrs = actual work entered.</small></p>';
-  html += '<p class="meta-row"><small>Type guide: Parent issues carry outcome fields (story points, ownership). Sub-tasks are shown as child rows focused on time tracking.</small></p>';
-
-  // Direct-to-value trust strip: answers common role questions without scrolling.
-  const allSubtasks = stories.flatMap((s) => (Array.isArray(s.subtasks) ? s.subtasks : []));
   const parentUnassigned = Number(unifiedRiskCounts.unownedOutcomes || 0);
   const blockerKeys = new Set(
     mergedRiskRows
@@ -245,7 +235,6 @@ export function renderStories(data) {
       .map((row) => String(row?.issueKey || row?.key || '').toUpperCase())
       .filter(Boolean)
   );
-  const blockersInProgress = blockerKeys.size;
   const unownedOutcomeKeys = new Set(
     mergedRiskRows
       .filter((row) => row.isUnownedOutcome)
@@ -253,6 +242,15 @@ export function renderStories(data) {
       .filter(Boolean)
   );
   const scopeKeys = new Set((scopeChanges || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
+
+  let html = '<div class="transparency-card" id="stories-card">';
+  html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
+  html += '<div class="section-inline-header">';
+  html += '<div><h2>Sprint work &amp; flow</h2><p class="section-inline-hint">One list, one lens, faster risk triage.</p></div>';
+  html += '<div class="section-inline-stats"><span>' + stories.length + ' issues</span><span>' + blockerKeys.size + ' blockers</span><span>' + parentUnassigned + ' unowned</span></div>';
+  html += '</div>';
+  html += renderWorkRisksMerged(data);
+  html += '<div class="stories-evidence-inline"><span>Estimated Hrs = plan</span><span>Logged Hrs = actual work entered</span><span>Parent rows hold outcome fields; subtasks hold execution detail</span></div>';
 
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();

@@ -1,6 +1,5 @@
 import { updateHeader } from './Reporting-App-CurrentSprint-Render-Overview.js';
 import { renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Render-Progress.js';
-import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoActiveSprintEmptyState, renderNoIssuesForContextEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
@@ -27,19 +26,6 @@ export function renderCurrentSprintPage(data) {
 
   let html = '';
   const summary = data.summary || {};
-  const trackingRows = data?.subtaskTracking?.rows || [];
-  const stuckCount = (data.stuckCandidates || []).length || 0;
-  const missingEstimates = trackingRows.filter((r) => !r.estimateHours || r.estimateHours === 0).length;
-  const missingLoggedItems = trackingRows.filter((r) => !r.loggedHours || r.loggedHours === 0).length;
-  const percentDone = typeof summary.percentDone === 'number' ? summary.percentDone : 0;
-
-  const signals = [];
-  if (stuckCount > 0) signals.push(stuckCount + ' stuck >24h');
-  if (missingEstimates > 0) signals.push(missingEstimates + ' missing estimates');
-  if (missingLoggedItems > 0) signals.push(missingLoggedItems + ' with no log');
-  if (percentDone < 50 && (summary.totalStories || 0) > 0) signals.push('less than half of stories done');
-
-  const riskCount = signals.length;
   const availabilityGaps = [];
   const hasStories = Array.isArray(data.stories) && data.stories.length > 0;
   const hasDailyCompletions = Array.isArray(data?.dailyCompletions?.stories) && data.dailyCompletions.stories.length > 0;
@@ -81,7 +67,6 @@ export function renderCurrentSprintPage(data) {
   }
 
   const jumpLinks = [];
-  const hasRisks = riskCount > 0 || stuckCount > 0 || (data.stuckCandidates || []).length > 0;
   const outcomeProjects = Array.isArray(data?.board?.projectKeys) && data.board.projectKeys.length
     ? data.board.projectKeys.join(',')
     : String(data?.meta?.projects || '');
@@ -92,8 +77,7 @@ export function renderCurrentSprintPage(data) {
       ? `${String(data.sprint.startDate).slice(0, 10)} - ${String(data.sprint.endDate).slice(0, 10)}`
       : '',
   ].filter(Boolean).join(' | ');
-  if (hasRisks) jumpLinks.push('<a href="#stuck-card">Risks</a>');
-  if (hasStories) jumpLinks.push('<a href="#stories-card">Work items</a>');
+  if (hasStories) jumpLinks.push('<a href="#stories-card">Work & flow</a>');
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   const sectionActions = [];
@@ -120,18 +104,12 @@ export function renderCurrentSprintPage(data) {
   const hasDeepDive = hasStories || hasBurndownData;
   if (hasDeepDive) {
     html += '<details class="mobile-secondary-details" open>';
-    html += '<summary>Detailed work items and flow</summary>';
+    html += '<summary>Sprint work &amp; flow</summary>';
   }
 
   if (hasStories) {
     html += '<div class="sprint-cards-column full-width">';
     html += renderStories(data);
-    html += '</div>';
-  }
-
-  if (hasRisks) {
-    html += '<div class="sprint-cards-row top-row">';
-    html += '<div class="card-column risks-stuck-column">' + renderWorkRisksMerged(data) + '</div>';
     html += '</div>';
   }
 
@@ -145,7 +123,10 @@ export function renderCurrentSprintPage(data) {
     html += '</details>';
   }
 
+  html += '<details class="sprint-switcher-card" data-mobile-collapse="true">';
+  html += '<summary>Switch sprint</summary>';
   html += renderSprintCarousel(data);
+  html += '</details>';
 
   html += '<div class="sprint-cards-row secondary-row">';
   html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
@@ -179,8 +160,8 @@ export function renderCurrentSprintPageParts(data) {
     + '<div class="current-sprint-grid-layout current-sprint-grid-layout-phased">'
     + buildSprintAtAGlanceHero(data, verdict, capacitySummary)
     + '<div class="transparency-card sprint-progressive-shell" data-progressive-shell="deferred">'
-    + '<h2>Loading deeper sprint evidence</h2>'
-    + '<p>Header, health signal, and key counters are ready. Work items and trends are loading next.</p>'
+    + '<h2>Loading sprint work</h2>'
+    + '<p>Header, health signal, and direct-to-value counters are ready. Work rows load next.</p>'
     + '</div>'
     + '</div>';
 
@@ -218,14 +199,12 @@ function buildSprintAtAGlanceHero(data, verdict, capacitySummary) {
     + '<strong>' + percentDone + '% done</strong>'
     + (totalStories ? ' | ' + doneStories + '/' + totalStories + ' stories' : '')
     + (totalSP ? ' | ' + doneSP + '/' + totalSP + ' SP' : '')
+    + (remainingDays != null ? ' | Ends in ' + remainingDays + 'd' : '')
     + '</div>'
-    + (remainingDays != null
-      ? '<div>' + remainingDays + ' working day' + (remainingDays === 1 ? '' : 's') + ' left</div>'
-      : '')
     + '<p class="sprint-at-a-glance-cta">'
     + '<span class="' + sprintHealthClass + '">' + (verdict.verdict || 'Sprint health') + '</span>'
     + ' | ' + narrative
-    + '<br>Capacity: ' + capacityLabel
+    + ' | Capacity: ' + capacityLabel
     + '</p>'
     + '</section>';
 }

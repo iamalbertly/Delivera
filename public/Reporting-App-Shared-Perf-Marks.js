@@ -29,7 +29,15 @@ export function markPerf(routeKey, name, extra = {}) {
     resetPerfMarks(key);
   }
   const entry = store[key];
-  entry[name] = Date.now();
+  const now = Date.now();
+  let nextValue = now;
+  if (name === 'fullRenderComplete' && Number.isFinite(entry.firstValueRendered)) {
+    nextValue = Math.max(now, entry.firstValueRendered);
+  }
+  if (Number.isFinite(entry[name])) {
+    nextValue = Math.max(nextValue, entry[name]);
+  }
+  entry[name] = nextValue;
   if (extra && typeof extra === 'object') {
     Object.assign(entry, extra);
   }

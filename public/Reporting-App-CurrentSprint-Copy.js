@@ -1,7 +1,7 @@
 export const SPRINT_COPY = {
   pageTitle: 'Current Sprint',
-  pageSubtitleEmpty: 'Squad view - planned vs observed work, daily completion, scope changes',
-  pageSubtitleLoaded: 'Sprint mission control - health, ownership, and next action',
+  pageSubtitleEmpty: 'Sprint work, risks, and next action in one view',
+  pageSubtitleLoaded: 'Sprint work, risks, and next action in one view',
   statusLive: 'Live',
   statusSnapshot: 'Snapshot',
   exportReady: 'Export ready',
@@ -17,4 +17,3 @@ export const SPRINT_COPY = {
   reviewRisks: 'Review Work risks anyway',
   historicalAction: 'View historical risks',
 };
-

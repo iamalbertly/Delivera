@@ -58,7 +58,7 @@ function refreshBoards(preferredId, preferredSprintId) {
   retryLastIntent = () => refreshBoards(preferredId, preferredSprintId);
   const requestId = ++lastBoardsRefreshRequestId;
   const { boardSelect } = currentSprintDom;
-  showLoading('Loading boards for project ' + getProjectsParam() + '...');
+  showLoading('Loading boards for ' + getProjectsParam() + '...');
   return loadBoards()
     .then((res) => {
       if (requestId !== lastBoardsRefreshRequestId) return null;
@@ -130,7 +130,7 @@ function onBoardChange() {
   const { boardSelect } = currentSprintDom;
   const boardId = boardSelect?.value || '';
   if (!boardId) {
-    showLoading('Choose projects above; boards load for those projects. Then pick a board.');
+    showLoading('Choose a board to see sprint health.');
     return;
   }
   currentBoardId = boardId;
@@ -186,7 +186,7 @@ function handleRefreshSprint() {
   const refreshBtn = document.querySelector('.header-refresh-btn');
   if (refreshBtn) {
     refreshBtn.disabled = true;
-    refreshBtn.textContent = 'Refreshing...';
+    refreshBtn.textContent = 'Refreshing sprint...';
   }
   loadAndRenderSprint({
     boardId: currentBoardId,
@@ -199,7 +199,7 @@ function handleRefreshSprint() {
     .finally(() => {
       if (refreshBtn) {
         refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Refresh';
+        refreshBtn.textContent = 'Refresh sprint';
       }
     });
 }

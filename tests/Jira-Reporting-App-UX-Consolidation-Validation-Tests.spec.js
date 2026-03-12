@@ -22,8 +22,11 @@ test.describe('Jira Reporting App - UX Consolidation Validation', () => {
     }
 
     await expect(page.locator('.current-sprint-header-bar')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('.board-select-wrap')).toBeVisible();
+    await expect(page.locator('#issue-jump-input')).toHaveAttribute('placeholder', /\/browse\/KEY or KEY/i);
     await expect(page.locator('[data-header-lens-select]')).toBeVisible();
     await expect(page.locator('.role-mode-pill')).toHaveCount(0);
+    await expect(page.locator('#stories-card #stuck-card')).toHaveCount(1);
 
     const order = await page.evaluate(() => {
       const stories = document.getElementById('stories-card');

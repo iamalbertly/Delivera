@@ -41,8 +41,12 @@ export function renderWorkRisksMerged(data) {
   const noEstimateRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('missing estimate')).length;
   const unassignedRows = rows.filter((row) => row.isUnownedOutcome).length;
 
-  let html = '<details class="transparency-card work-risks-explainer-card" id="stuck-card" data-mobile-collapse="true">';
-  html += '<summary>Risk rows focus on blockers, missing estimates, no logs, and unowned outcomes</summary>';
+  let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
+  html += '<div class="work-risks-inline-summary">';
+  html += '<strong>Risk focus</strong><span>Blockers, missing estimates, no logs, and unowned outcomes flow into the same work list below.</span>';
+  html += '<button type="button" class="work-risks-inline-toggle" data-work-risk-inline-toggle aria-expanded="false">How this is calculated</button>';
+  html += '</div>';
+  html += '<div class="work-risks-inline-details" data-work-risk-inline-details hidden>';
 
   // Compact meta: one-line context only, deeper semantics live in the stories card.
   const metaParts = [];
@@ -58,7 +62,7 @@ export function renderWorkRisksMerged(data) {
 
   if (!rows.length) {
     html += '<p class="meta-row"><small>No risks detected from scope changes, flow, sub-task tracking, or issue ownership. Check <a href="#stories-card">Issues in this sprint</a> to confirm.</small></p>';
-    html += '</details>';
+    html += '</div></div>';
     return html;
   }
 
@@ -89,7 +93,7 @@ export function renderWorkRisksMerged(data) {
   html += '</div>';
   html += '</div>';
 
-  html += '</details>';
+  html += '</div></div>';
   return html;
 }
 
@@ -127,6 +131,15 @@ export function wireSubtasksShowMoreHandlers() {
     }
 
     card.addEventListener('click', (event) => {
+      const inlineToggle = event.target.closest('[data-work-risk-inline-toggle]');
+      if (inlineToggle && card.contains(inlineToggle)) {
+        const details = card.querySelector('[data-work-risk-inline-details]');
+        const expanded = inlineToggle.getAttribute('aria-expanded') === 'true';
+        inlineToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        inlineToggle.textContent = expanded ? 'How this is calculated' : 'Hide calculation';
+        if (details) details.hidden = expanded;
+        return;
+      }
       const shortcut = event.target.closest('[data-work-risk-shortcut]');
       if (!shortcut || !card.contains(shortcut)) return;
       const tagsAttr = (shortcut.getAttribute('data-risk-tags') || '').trim();

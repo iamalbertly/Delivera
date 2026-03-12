@@ -10,7 +10,6 @@ import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js'
 import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { readNotificationSummary } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
-import { renderCountdownTimer } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
 import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
@@ -20,14 +19,10 @@ function getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness }
 }
 
 function getVerdictPresentation({ verdictInfo, remainingChipLabel, remainingDays, donePercentage }) {
-  const compactProgress = remainingDays == null
-    ? `${donePercentage}% done`
-    : `${remainingChipLabel} | ${donePercentage}% done`;
   return {
     verdict: verdictInfo.verdict,
     color: verdictInfo.color,
     remainingChipLabel,
-    compactProgress,
   };
 }
 
@@ -108,9 +103,6 @@ export function renderHeaderBar(data) {
   const statusBadge = (meta.fromSnapshot || sprintState !== 'active') ? SPRINT_COPY.statusSnapshot : SPRINT_COPY.statusLive;
   const statusClass = statusBadge === SPRINT_COPY.statusLive ? 'status-live' : 'status-snapshot';
   const isHistoricalSprint = sprintState && sprintState !== 'active';
-  const closedSprintCount = Array.isArray(data.recentSprints)
-    ? data.recentSprints.filter((s) => String(s?.state || '').toLowerCase() === 'closed').length
-    : 0;
   const issuesCount = (data.stories || []).length;
   const verdictInfo = deriveSprintVerdict(data);
   const riskCounts = getUnifiedRiskCounts(data);
@@ -162,8 +154,6 @@ export function renderHeaderBar(data) {
   const sprintNameCompact = sprintNameLabel.length > 40 ? `${sprintNameLabel.slice(0, 40).trimEnd()}...` : sprintNameLabel;
   const hasNoHealthSignals = verdictRiskChips.length === 0;
   const isJustStartedSprint = !isHistoricalSprint && Number(donePercentage || 0) === 0 && hasNoHealthSignals && issuesCount > 0;
-  const lowConfidence = closedSprintCount > 0 && closedSprintCount < 3;
-
   const generatedAt = meta && (meta.generatedAt || meta.snapshotAt) ? new Date(meta.generatedAt || meta.snapshotAt) : null;
   let freshnessLabel = '';
   if (generatedAt) {
@@ -188,7 +178,9 @@ export function renderHeaderBar(data) {
   });
   const statusSummary = getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness });
   const headerInsights = buildHeaderInsights(data, { isHistoricalSprint });
-  const evidenceSummary = headerInsights.map((item) => item.label).filter(Boolean).join(' | ');
+  const followUpSummary = !isHistoricalSprint
+    ? (loggingAlertTotal > 0 ? SPRINT_COPY.loggingNudges(loggingAlertTotal) : SPRINT_COPY.loggingHealthy)
+    : SPRINT_COPY.historical;
 
   let html = `<div class="current-sprint-header-bar" data-sprint-id="${escapeHtml(sprint.id || '')}">`;
 
@@ -198,7 +190,7 @@ export function renderHeaderBar(data) {
   html += `<span class="header-context-chip header-context-chip-active" title="Active board and project for this sprint view">${escapeHtml(selectedProject || 'n/a')}${boardName ? ` - ${escapeHtml(boardName)}` : ''} | Single project mode</span>`;
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintNameLabel)}">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-sprint-dates">${escapeHtml(sprintDatesLabel)}</span>`;
-  html += `<span class="verdict-pill verdict-pill-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)} | ${escapeHtml(verdictPresentation.remainingChipLabel)}</span>`;
+  html += `<span class="verdict-pill verdict-pill-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)} | ${escapeHtml(verdictPresentation.remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
   html += '</div>';
   if (isHistoricalSprint) {
     html += `<div class="header-health-note">${escapeHtml(SPRINT_COPY.historical)}</div>`;
@@ -223,7 +215,7 @@ export function renderHeaderBar(data) {
   html += '</div>';
   html += '<div class="header-health-main">';
   html += `<div class="sprint-verdict-line sprint-verdict-${escapeHtml(verdictPresentation.color)}" aria-live="polite">`;
-  html += `<strong>Lens quick filters</strong>`;
+  html += `<strong>Quick filters</strong>`;
   verdictRiskChips.slice(0, 3).forEach((chip) => {
     html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
   });
@@ -231,9 +223,6 @@ export function renderHeaderBar(data) {
     html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
   }
   html += '</div>';
-  html += '</div>';
-  html += '<div class="header-health-countdown">';
-  html += renderCountdownTimer(data, { compact: true, inlineHeader: true });
   html += '</div>';
   html += '</div>';
 
@@ -249,37 +238,40 @@ export function renderHeaderBar(data) {
     + '</select></label>';
   html += '<div class="header-active-filter-state" aria-live="polite"><span class="header-active-filter-state-label">Lens:</span> <span data-header-active-filter-value>All lens | none</span><button type="button" class="header-active-filter-reset" data-header-action="reset-filters" aria-label="Reset to all work" title="Reset filters to All">Reset</button></div>';
   html += `<div class="header-export-readiness"><span class="last-updated">${escapeHtml(statusSummary)}</span></div>`;
+  headerInsights.forEach((item) => {
+    html += '<div class="header-insight-chip header-insight-chip-' + escapeHtml(item.state || 'neutral') + '" title="' + escapeHtml(item.detail || '') + '">'
+      + '<span class="header-insight-chip-eyebrow">' + escapeHtml(item.eyebrow || '') + '</span>'
+      + '<span class="header-insight-chip-label">' + escapeHtml(item.label || '') + '</span>'
+      + '</div>';
+  });
   html += '<details class="header-more-details">';
   html += '<summary>More</summary>';
   html += '<div class="header-more-panel">';
-  if (evidenceSummary) {
-    html += '<p class="header-more-summary"><strong>Evidence & Capacity:</strong> ' + escapeHtml(evidenceSummary) + '</p>';
-  }
-  html += '<p class="header-more-summary">' + escapeHtml(!isHistoricalSprint
-    ? (loggingAlertTotal > 0 ? SPRINT_COPY.loggingNudges(loggingAlertTotal) : SPRINT_COPY.loggingHealthy)
-    : SPRINT_COPY.historical) + '</p>';
   html += '<div class="header-actions-row">';
-  if (!isHistoricalSprint) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal'
-      + ' data-outcome-context="Create an outcome from the current sprint context."'
-      + ' data-outcome-projects="' + escapeHtml((selectedProject || meta.projects || '').replace(/\s+/g, '')) + '">Create outcome</button>';
-    if ((verdictPresentation.verdict === 'Critical' || verdictPresentation.verdict === 'At Risk') && selectedProject && boardName) {
-      html += '<a class="btn btn-secondary btn-compact header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">Leadership trend</a>';
-    }
-  }
-  html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh</button>';
+  html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data and context"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh sprint</button>';
   html += renderExportButton(true);
   html += '<a class="btn btn-secondary btn-compact" href="/report" data-header-action="open-report-context">Open report</a>';
   html += '</div>';
   html += '</div>';
   html += '</details>';
   html += '</div>';
+  html += '<div class="header-follow-up-row">';
+  html += '<span class="header-follow-up-primary">' + escapeHtml(followUpSummary) + '</span>';
+  if (!isHistoricalSprint) {
+    html += '<button type="button" class="header-follow-up-link" data-open-outcome-modal'
+      + ' data-outcome-context="Create an outcome from the current sprint context."'
+      + ' data-outcome-projects="' + escapeHtml((selectedProject || meta.projects || '').replace(/\s+/g, '')) + '">Create outcome</button>';
+    if (selectedProject && boardName) {
+      html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">Leadership trend</a>';
+    }
+  }
+  html += '</div>';
   html += '</div>';
 
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
-  html += `<span class="header-mini-strip-days">${escapeHtml(verdictPresentation.compactProgress)}</span>`;
+  html += `<span class="header-mini-strip-days">${escapeHtml(verdictPresentation.remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
   html += '</div>';
   html += '</div>';
 
@@ -461,9 +453,9 @@ export function wireHeaderBarHandlers() {
   }
 
   function syncMiniMode() {
-    const threshold = window.innerWidth <= 560
-      ? 24
-      : Math.max(180, (headerBar.offsetTop || 0) + 120);
+    const threshold = window.innerWidth <= 720
+      ? 8
+      : Math.max(120, (headerBar.offsetTop || 0) + 72);
     headerBar.classList.toggle('header-mini-mode', window.scrollY > threshold);
   }
   syncMiniMode();
@@ -474,9 +466,13 @@ export function wireHeaderBarHandlers() {
   if (sprintName) {
     sprintName.style.cursor = 'pointer';
     sprintName.addEventListener('click', () => {
-      const carousel = document.querySelector('.sprint-carousel');
+      const switcher = document.querySelector('.sprint-switcher-card');
+      if (switcher) {
+        switcher.open = true;
+      }
+      const carousel = document.querySelector('.sprint-carousel, .sprint-switcher-card');
       if (carousel) {
-        carousel.scrollIntoView({ behavior: 'smooth' });
+        carousel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   }
