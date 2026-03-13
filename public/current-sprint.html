@@ -156,9 +156,7 @@
   <div class="container">
     <header>
       <div class="current-sprint-header">
-        <div class="current-sprint-page-title-wrap">
-          <h1><span id="current-sprint-title">Performance - Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
-        </div>
+        <h1 class="current-sprint-page-title-wrap"><span id="current-sprint-title">Performance - Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
         <div class="board-select-wrap">
           <div class="current-sprint-scope-stack">
             <div class="current-sprint-control-field">
@@ -195,8 +193,18 @@
     </header>
 
     <main id="main-content" data-current-sprint-state="welcome">
+      <div id="current-sprint-ribbon" class="preview-status-strip" style="display: none;" aria-live="polite"></div>
       <!-- M9: Sprint loading context — shows board + sprint name above spinner while loading -->
-      <div id="current-sprint-loading">Select project and board to see sprint health.</div>
+      <div id="current-sprint-loading">
+        <div class="skeleton-preview skeleton-preview-compact" aria-hidden="true" style="display: none;">
+          <div class="skeleton-block skeleton-table">
+            <div class="skeleton-line skeleton-table-header"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+          </div>
+        </div>
+        <div class="current-sprint-loading-copy">Select project and board to see sprint health.</div>
+      </div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>
       <div id="current-sprint-content"></div>
     </main>

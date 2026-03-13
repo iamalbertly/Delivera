@@ -18,6 +18,21 @@ let lastBoardsRefreshRequestId = 0;
 let currentSprintLoadRequestId = 0;
 let retryLastIntent = () => {};
 
+function showRibbon(message, state = 'info') {
+  const ribbonEl = currentSprintDom.ribbonEl;
+  if (!ribbonEl) return;
+  ribbonEl.textContent = message || '';
+  ribbonEl.setAttribute('data-state', state);
+  ribbonEl.style.display = message ? '' : 'none';
+}
+
+function buildLoadingContext(boardLabel = '', sprintLabel = '') {
+  const parts = [];
+  if (boardLabel) parts.push('Board: ' + boardLabel);
+  if (sprintLabel) parts.push('Sprint: ' + sprintLabel);
+  return parts.join(' | ');
+}
+
 function loadCurrentSprintWithGuard(boardId, sprintId, onStale) {
   const requestId = ++currentSprintLoadRequestId;
   return loadCurrentSprint(boardId, sprintId).then((data) => {
@@ -58,6 +73,7 @@ function refreshBoards(preferredId, preferredSprintId) {
   retryLastIntent = () => refreshBoards(preferredId, preferredSprintId);
   const requestId = ++lastBoardsRefreshRequestId;
   const { boardSelect } = currentSprintDom;
+  showRibbon('', 'fresh');
   showLoading('Loading boards for ' + getProjectsParam() + '...');
   return loadBoards()
     .then((res) => {
@@ -100,7 +116,10 @@ function refreshBoards(preferredId, preferredSprintId) {
         const hint = document.getElementById('current-sprint-single-project-hint');
         if (hint) hint.textContent = 'Switched to ' + boardName + '.';
       }
-      if (!cachedSnapshot?.data) showLoading('Loading current sprint...');
+      if (!cachedSnapshot?.data) {
+        const loadingContext = buildLoadingContext(boardSelect?.options?.[boardSelect.selectedIndex]?.text || '');
+        showLoading(loadingContext ? ('Loading ' + loadingContext) : 'Loading current sprint...');
+      }
       const sprintRequestId = ++lastBoardsRefreshRequestId;
       return loadCurrentSprintWithGuard(boardId, preferredSprintId)
         .catch((err) => {
@@ -113,6 +132,11 @@ function refreshBoards(preferredId, preferredSprintId) {
           currentSprintId = data?.sprint?.id || null;
           persistSelection(currentBoardId, currentSprintId);
           saveCurrentSprintSnapshot(getProjectsParam(), currentBoardId, data);
+          if (data?.meta?.noActiveSprintFallback) {
+            showRibbon(data.meta.explanatoryLine || 'No active sprint - showing last completed sprint.', 'closest');
+          } else if (data?.meta?.partialPermissions) {
+            showRibbon('Some Jira fields are hidden by permissions. Showing the data that is still available.', 'closest');
+          }
           showRenderedContent(data);
           return null;
         });
@@ -217,7 +241,12 @@ function loadAndRenderSprint({
   errorPrimaryLabel = 'Retry sprint',
 }) {
   if (!boardId) return Promise.resolve();
-  if (loadingText) showLoading(loadingText);
+  if (loadingText) {
+    const boardLabel = currentSprintDom.boardSelect?.options?.[currentSprintDom.boardSelect.selectedIndex]?.text || '';
+    const loadingContext = buildLoadingContext(boardLabel, sprintId ? ('Sprint ' + sprintId) : '');
+    showLoading(loadingText + (loadingContext ? (' | ' + loadingContext) : ''));
+  }
+  showRibbon('', 'fresh');
   retryLastIntent = typeof retryFactory === 'function' ? retryFactory : (() => {});
   return loadCurrentSprintWithGuard(boardId, sprintId)
     .then((data) => {
@@ -246,11 +275,23 @@ function loadAndRenderSprint({
       currentSprintId = data?.sprint?.id || sprintId || null;
       persistSelection(currentBoardId, currentSprintId);
       saveCurrentSprintSnapshot(getProjectsParam(), boardId, data);
+      if (data?.meta?.noActiveSprintFallback) {
+        showRibbon(data.meta.explanatoryLine || 'No active sprint - showing last completed sprint.', 'closest');
+      } else if (data?.meta?.partialPermissions) {
+        showRibbon('Some Jira fields are hidden by permissions. Showing the data that is still available.', 'closest');
+      }
       showRenderedContent(data);
       return data;
     })
     .catch((err) => {
       const msg = err.message || 'Failed to load sprint.';
+      if (err?.code === 'SESSION_EXPIRED' || err?.code === 'AUTH_REQUIRED') {
+        showRibbon('Session expired. Sign in again to restore this sprint context.', 'warning');
+      } else if (err?.code === 'JIRA_RECONNECT_REQUIRED' || err?.code === 'JIRA_ACCESS_DENIED') {
+        showRibbon('Jira needs reconnection. Showing your last safe context where possible.', 'warning');
+      } else if (err?.code === 'JIRA_RATE_LIMITED') {
+        showRibbon('Jira is rate limiting requests. Retry in a moment.', 'closest');
+      }
       showError({
         title: errorTitle,
         message: msg,

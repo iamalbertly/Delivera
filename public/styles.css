@@ -2926,9 +2926,20 @@ body.report-page .filters-panel .filters-panel-body {
   gap: 12px;
 }
 
+body.report-page .report-primary-filters-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
 body.report-page .filters-panel .filter-group {
   margin-bottom: 0;
   padding-bottom: 12px;
+}
+
+body.report-page .report-secondary-filters-row {
+  padding-top: 0;
 }
 
 body.report-page .project-group-label {
@@ -2970,6 +2981,19 @@ body.report-page .date-range-custom-wrap {
   gap: 8px;
 }
 
+body.report-page .boards-table-compact-mode table.data-table td,
+body.report-page .boards-table-compact-mode table.data-table th {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 0.84rem;
+}
+
+body.report-page .boards-table-load-more-wrap {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 10px;
+}
+
 body.report-page .date-range-custom-wrap label + label {
   margin-top: 0;
 }
@@ -2982,6 +3006,12 @@ body.report-page .report-rules-tile {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fafcff;
+}
+
+@media (max-width: 1024px) {
+  body.report-page .report-primary-filters-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 body.report-page .report-rules-summary {
@@ -4525,6 +4555,12 @@ body .preview-area {
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--primary);
+  line-height: 1.1;
+}
+
+.metric-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
   line-height: 1.1;
 }
 
@@ -7669,29 +7705,17 @@ body.current-sprint-page .header-band-actions {
 
 body.current-sprint-page .header-band-main {
   flex: 1 1 280px;
+  gap: 6px;
 }
 
 body.current-sprint-page .header-band-metrics {
   flex: 1 1 320px;
+  gap: 6px;
 }
 
 body.current-sprint-page .header-band-actions {
   flex: 0 1 auto;
-}
-
-body.current-sprint-page .header-band-verdict {
-  cursor: default;
-}
-
-body.current-sprint-page .header-countdown-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: #f8fafc;
-  font-size: 0.75rem;
-  color: var(--muted);
+  gap: 6px;
 }
 
 body.current-sprint-page .header-view-drawer {
@@ -7717,13 +7741,27 @@ body.current-sprint-page .header-view-drawer summary::-webkit-details-marker {
 
 body.current-sprint-page .header-view-drawer-panel {
   display: grid;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 12px;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+body.current-sprint-page .header-view-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+body.current-sprint-page .header-view-summary-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
 }
 
 body.current-sprint-page .header-status-dot {
@@ -7780,21 +7818,15 @@ body.current-sprint-page .header-mini-mode .header-mini-strip {
 
 body.current-sprint-page .section-inline-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 body.current-sprint-page .section-inline-header h2 {
-  margin: 0 0 4px;
-}
-
-body.current-sprint-page .section-inline-hint {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.84rem;
 }
 
 body.current-sprint-page .section-inline-stats {
@@ -7819,11 +7851,11 @@ body.current-sprint-page .stories-evidence-inline {
   display: inline-flex;
   flex-wrap: nowrap;
   gap: 0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 body.current-sprint-page .work-risks-inline-explainer {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -7836,13 +7868,9 @@ body.current-sprint-page .work-risks-inline-summary {
   gap: 6px;
 }
 
-body.current-sprint-page .work-risks-inline-summary strong {
+body.current-sprint-page .work-risks-inline-label {
   color: var(--text);
-}
-
-body.current-sprint-page .work-risks-inline-summary span {
-  color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
 body.current-sprint-page .work-risks-inline-toggle {
@@ -7858,6 +7886,12 @@ body.current-sprint-page .work-risks-inline-toggle {
 
 body.current-sprint-page .work-risks-inline-details {
   margin-top: 6px;
+}
+
+body.current-sprint-page .work-risks-shortcut-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 body.current-sprint-page .sprint-switcher-card {

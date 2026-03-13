@@ -145,6 +145,8 @@ export function renderHeaderBar(data) {
   }
 
   const boardName = data.board?.name || '';
+  const boardId = data.board?.id || '';
+  const sprintId = sprint.id || '';
   const selectedProject = Array.isArray(data.board?.projectKeys) && data.board.projectKeys.length > 0
     ? data.board.projectKeys[0]
     : (meta.projects || '');
@@ -152,6 +154,7 @@ export function renderHeaderBar(data) {
     .replace(/^-\s-\s-$/, 'No active sprint window');
   const sprintNameLabel = sprint.name || (sprint.id ? `Sprint ${sprint.id}` : 'No active sprint');
   const sprintNameCompact = sprintNameLabel.length > 40 ? `${sprintNameLabel.slice(0, 40).trimEnd()}...` : sprintNameLabel;
+  const sprintIdentityLine = [sprintNameCompact, sprintDatesLabel, verdictInfo.verdict].filter(Boolean).join(' | ');
   const hasNoHealthSignals = verdictRiskChips.length === 0;
   const isJustStartedSprint = !isHistoricalSprint && Number(donePercentage || 0) === 0 && hasNoHealthSignals && issuesCount > 0;
   const generatedAt = meta && (meta.generatedAt || meta.snapshotAt) ? new Date(meta.generatedAt || meta.snapshotAt) : null;
@@ -185,16 +188,13 @@ export function renderHeaderBar(data) {
   let html = `<div class="current-sprint-header-bar" data-sprint-id="${escapeHtml(sprint.id || '')}">`;
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
-  html += `<span class="header-context-chip header-context-chip-active" title="${escapeHtml(statusSummary)}">${escapeHtml(selectedProject || 'n/a')}${boardName ? ` · ${escapeHtml(boardName)}` : ''} · Single-project</span>`;
-  html += `<span class="header-sprint-name" title="${escapeHtml(sprintNameLabel)}">${escapeHtml(sprintNameCompact)}</span>`;
-  html += `<span class="header-sprint-dates">${escapeHtml(sprintDatesLabel)}</span>`;
-  html += `<span class="header-band-verdict verdict-pill verdict-pill-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
+  html += `<span class="header-context-chip header-context-chip-active" title="${escapeHtml(statusSummary)}">${escapeHtml(selectedProject || 'n/a')}${boardName ? ` | ${escapeHtml(boardName)}` : ''} | Single-project</span>`;
+  html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintIdentityLine)}</span>`;
   html += '</div>';
   html += '<div class="header-band-metrics" aria-label="Sprint summary metrics">';
-  html += '<button type="button" class="header-metric" data-metric="progress" title="Sprint completion"><span class="metric-label">Done</span><span class="metric-value">' + donePercentage + '%</span></button>';
+  html += '<button type="button" class="header-metric" data-metric="progress" title="Sprint completion"><span class="metric-label">Done</span><span class="metric-value">' + donePercentage + '%</span><span class="metric-meta">' + escapeHtml(remainingChipLabel) + '</span></button>';
   html += '<button type="button" class="header-metric" data-metric="work-items" title="Jump to sprint work"><span class="metric-label">Issues</span><span class="metric-value">' + issuesCount + '</span></button>';
   html += '<button type="button" class="header-metric" data-metric="log-est" title="Subtask logged versus estimated hours"><span class="metric-label">Log/Est</span><span class="metric-value">' + subtaskLoggedHrs.toFixed(1) + ' / ' + subtaskEstimatedHrs.toFixed(1) + 'h</span></button>';
-  html += '<span class="header-countdown-chip" title="' + escapeHtml(remainingChipLabel) + '">' + escapeHtml(remainingChipLabel) + '</span>';
   html += '</div>';
   html += '<div class="header-band-actions">';
   html += '<button type="button" class="btn btn-primary btn-compact header-action-cta header-action-primary" data-header-action="take-action"'
@@ -207,7 +207,8 @@ export function renderHeaderBar(data) {
   html += '<details class="header-view-drawer">';
   html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span data-header-active-filter-value>Lens: All | none</span></summary>';
   html += '<div class="header-view-drawer-panel">';
-  html += '<label class="header-lens-select-wrap">View <select class="header-lens-select" data-header-lens-select aria-label="Choose sprint lens">'
+  html += '<div class="header-view-summary" title="' + escapeHtml(statusSummary) + '"><span class="header-view-summary-label">Status</span><span class="header-view-summary-value">' + escapeHtml(statusBadge === SPRINT_COPY.statusLive ? 'Live' : 'Snapshot') + '</span></div>';
+  html += '<label class="header-lens-select-wrap">View as <select class="header-lens-select" data-header-lens-select aria-label="Choose sprint lens">'
     + '<option value="all">All lens</option>'
     + '<option value="developer">Dev lens</option>'
     + '<option value="scrum-master">SM lens</option>'
@@ -221,7 +222,6 @@ export function renderHeaderBar(data) {
   if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
   html += '</div>';
   html += '<div class="header-drawer-meta" title="' + escapeHtml(statusSummary) + '">';
-  html += '<span>' + escapeHtml(statusBadge) + '</span>';
   html += '<span>' + escapeHtml(followUpSummary) + '</span>';
   headerInsights.forEach((item) => {
     html += '<span title="' + escapeHtml(item.detail || '') + '">' + escapeHtml(item.eyebrow + ': ' + item.label) + '</span>';
@@ -237,7 +237,10 @@ export function renderHeaderBar(data) {
       html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">Leadership trend</a>';
     }
   }
-  html += '<a class="header-follow-up-link" href="/report" data-header-action="open-report-context">Open report</a>';
+  const reportHref = boardId
+    ? ('/report?boardId=' + encodeURIComponent(String(boardId)) + (sprintId ? '&sprintId=' + encodeURIComponent(String(sprintId)) : '') + (selectedProject ? '&projects=' + encodeURIComponent(String(selectedProject)) : ''))
+    : '/report';
+  html += '<a class="header-follow-up-link" href="' + reportHref + '" data-header-action="open-report-context">Open report</a>';
   html += '</div>';
   html += '</div>';
   html += '</details>';

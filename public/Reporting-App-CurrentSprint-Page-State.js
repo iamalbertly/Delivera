@@ -15,7 +15,12 @@ export const PAGE_STATE = Object.freeze({
   ERROR: 'error',
 });
 
-const LOADING_SPINNER_HTML = '<div class="current-sprint-loading-spinner" aria-hidden="true"></div><p class="current-sprint-loading-msg" aria-live="polite"></p>';
+const LOADING_SPINNER_HTML = ''
+  + '<div class="current-sprint-loading-spinner" aria-hidden="true"></div>'
+  + '<p class="current-sprint-loading-msg" aria-live="polite"></p>'
+  + '<div class="skeleton-preview skeleton-preview-compact" aria-hidden="true">'
+  + '<div class="skeleton-block skeleton-table"><div class="skeleton-line skeleton-table-header"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>'
+  + '</div>';
 const CURRENT_SPRINT_LOADING_MESSAGES = ['Loading board...', 'Loading sprint...', 'Building sprint HUD...'];
 const WELCOME_MESSAGE = 'Select project and board to see sprint health.';
 
@@ -56,7 +61,10 @@ export function setPageState(state, options = {}) {
   switch (state) {
     case PAGE_STATE.WELCOME:
       if (loadingEl) {
-        loadingEl.textContent = options.message != null ? options.message : WELCOME_MESSAGE;
+        const message = options.message != null ? options.message : WELCOME_MESSAGE;
+        loadingEl.innerHTML = '<div class="current-sprint-loading-copy"></div>';
+        const copyEl = loadingEl.querySelector('.current-sprint-loading-copy');
+        if (copyEl) copyEl.textContent = message;
         loadingEl.style.display = 'block';
         loadingEl.removeAttribute('role');
         loadingEl.setAttribute('aria-live', 'polite');
@@ -69,7 +77,8 @@ export function setPageState(state, options = {}) {
         loadingEl.innerHTML = LOADING_SPINNER_HTML;
         const msgEl = loadingEl.querySelector('.current-sprint-loading-msg');
         if (msgEl) {
-          msgEl.textContent = msg;
+          const contextText = options.context != null ? String(options.context) : '';
+          msgEl.textContent = contextText ? (msg + ' | ' + contextText) : msg;
           startRotatingMessages(msgEl, CURRENT_SPRINT_LOADING_MESSAGES, 1200);
         }
         loadingEl.classList.add('current-sprint-loading-with-spinner');

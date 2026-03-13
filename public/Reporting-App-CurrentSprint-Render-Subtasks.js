@@ -43,8 +43,8 @@ export function renderWorkRisksMerged(data) {
 
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
   html += '<div class="work-risks-inline-summary">';
-  html += '<strong>Risk focus</strong><span>Blockers, missing estimates, no logs, and unowned outcomes filter the same work list.</span>';
-  html += '<button type="button" class="work-risks-inline-toggle" data-work-risk-inline-toggle aria-expanded="false">How this is calculated</button>';
+  html += '<span class="work-risks-inline-label">Flow | Issues | Blockers</span>';
+  html += '<button type="button" class="work-risks-inline-toggle" data-work-risk-inline-toggle aria-expanded="false" title="How sprint risks are calculated">How this is calculated</button>';
   html += '</div>';
   html += '<div class="work-risks-inline-details" data-work-risk-inline-details hidden>';
 
@@ -61,7 +61,7 @@ export function renderWorkRisksMerged(data) {
   }
 
   if (!rows.length) {
-    html += '<p class="meta-row"><small>No risks detected from scope changes, flow, sub-task tracking, or issue ownership. Check <a href="#stories-card">Issues in this sprint</a> to confirm.</small></p>';
+    html += '<p class="meta-row"><small>No extra risks detected. The main work list already reflects the current sprint state.</small></p>';
     html += '</div></div>';
     return html;
   }
@@ -75,21 +75,20 @@ export function renderWorkRisksMerged(data) {
   html += '</ul>';
 
   html += '<div class="work-risks-shortcuts" aria-label="Jump to stories filtered by risk">';
-  html += '<p class="meta-row"><small>Shortcuts below jump to <a href="#stories-card">Issues in this sprint</a> with risk filters applied.</small></p>';
   html += '<div class="work-risks-shortcut-chips">';
+  html += '<button type="button" class="btn btn-tertiary btn-compact" data-work-risk-shortcut data-risk-tags="">All</button>';
   if (blockerInProgress + blockerNotStarted > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="blocker">View blocker risks in stories</button>';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="blocker">Blockers</button>';
   }
   if (noLogRows > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="no-log">View estimated, no log in stories</button>';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="no-log">No log</button>';
   }
   if (noEstimateRows > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="missing-estimate">View logged, no estimate in stories</button>';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="missing-estimate">No est</button>';
   }
   if (unassignedRows > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="unassigned">View unowned outcomes in stories</button>';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="unassigned">Unowned</button>';
   }
-  html += '<button type="button" class="btn btn-tertiary btn-compact" data-work-risk-shortcut data-risk-tags="">Clear risk filter</button>';
   html += '</div>';
   html += '</div>';
 
@@ -136,7 +135,7 @@ export function wireSubtasksShowMoreHandlers() {
         const details = card.querySelector('[data-work-risk-inline-details]');
         const expanded = inlineToggle.getAttribute('aria-expanded') === 'true';
         inlineToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-        inlineToggle.textContent = expanded ? 'How this is calculated' : 'Hide calculation';
+        inlineToggle.textContent = expanded ? 'How this is calculated' : 'Hide';
         if (details) details.hidden = expanded;
         return;
       }

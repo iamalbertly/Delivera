@@ -248,13 +248,13 @@ export function renderStories(data) {
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
   html += '<div class="section-inline-header">';
-  html += '<div><h2>Sprint work &amp; flow</h2><p class="section-inline-hint">One list, one lens, faster risk triage.</p></div>';
+  html += '<div><h2>Sprint work</h2></div>';
   html += '<div class="section-inline-stats"><span>' + stories.length + ' issues</span><span>' + blockerKeys.size + ' blockers</span><span>' + parentUnassigned + ' unowned</span></div>';
   html += '</div>';
   html += renderWorkRisksMerged(data);
   html += '<div class="stories-evidence-inline">Evidence: '
     + escapeHtml(Number(summary.subtaskLoggedHours || 0) > 0 ? 'logs healthy' : 'logs building')
-    + ' · Capacity: ' + escapeHtml(capacitySummary?.label || 'watch') + '</div>';
+    + ' | Capacity: ' + escapeHtml(capacitySummary?.label || 'watch') + '</div>';
 
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();
@@ -268,7 +268,7 @@ export function renderStories(data) {
     const dayKeys = Array.from(dayKeysSet).sort();
     if (dayKeys.length > 0) {
       html += '<div class="daily-completion-timeline" aria-label="Filter issues by completion day">';
-      html += '<button type="button" class="daily-timeline-chip daily-timeline-chip-active" data-day-key="">All</button>';
+      html += '<button type="button" class="daily-timeline-chip daily-timeline-chip-active" data-day-key="">Flow</button>';
       dayKeys.forEach((key) => {
         const label = formatDayLabel(key);
         html += '<button type="button" class="daily-timeline-chip" data-day-key="' + escapeHtml(key) + '"><span class="daily-timeline-chip-label">' + escapeHtml(label) + '</span></button>';
@@ -467,11 +467,18 @@ export function renderStories(data) {
     html += renderEmptyStateHtml('No work items', 'No work items in this sprint.', '');
   } else {
     // Prevent rendering all rows to avoid large initial DOM
-    const initialLimit = resolveResponsiveRowLimit(10, 6);
+    const largeBoardMode = stories.length >= 18;
+    const initialLimit = largeBoardMode
+      ? resolveResponsiveRowLimit(8, 5)
+      : resolveResponsiveRowLimit(10, 6);
     const toShow = stories.slice(0, initialLimit);
     const remaining = stories.slice(initialLimit);
 
-    html += '<div class="data-table-scroll-wrap stories-table-scroll-wrap">';
+    if (largeBoardMode) {
+      html += '<p class="meta-row"><small>Large sprint. Highest-signal work first.</small></p>';
+    }
+
+    html += '<div class="data-table-scroll-wrap stories-table-scroll-wrap' + (largeBoardMode ? ' stories-table-scroll-wrap-compact' : '') + '">';
     html += '<table class="data-table" id="stories-table"><thead><tr>'
       + '<th title="Issue key and expand subtasks">Issue</th>'
       + '<th>Type</th>'
@@ -499,7 +506,7 @@ export function renderStories(data) {
     html += '</div>';
 
     if (remaining.length > 0) {
-      html += '<button class="btn btn-secondary btn-compact stories-show-more" data-count="' + remaining.length + '">Show ' + remaining.length + ' more</button>';
+      html += '<button class="btn btn-secondary btn-compact stories-show-more" data-count="' + remaining.length + '">' + (largeBoardMode ? 'Load ' : 'Show ') + remaining.length + ' more</button>';
       html += '<template id="stories-more-template">';
       for (const row of remaining) {
         html += renderStoryRow(row);
@@ -513,7 +520,7 @@ export function renderStories(data) {
       html += '</template>';
     }
   }
-  html += '<p class="meta-row"><small>Edge rules: subtasks with logs but no estimates = unestimated effort; done subtasks with 0 logged = process gap; parent items can be active via subtask movement and are excluded from blocker count.</small></p>';
+  html += '<p class="meta-row"><small>Subtask edge cases stay folded into the same list.</small></p>';
   html += '</div>';
   return html;
 }

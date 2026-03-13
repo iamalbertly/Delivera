@@ -24,10 +24,12 @@ test.describe('Jira Reporting App - UX Consolidation Validation', () => {
     await expect(page.locator('.current-sprint-header-bar')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('.board-select-wrap')).toBeVisible();
     await expect(page.locator('#issue-jump-input')).toHaveAttribute('placeholder', /KEY|\/browse\/KEY/i);
+    await expect(page.locator('#sprint-loading-context')).toHaveCount(0);
     await expect(page.locator('.header-view-drawer')).toHaveCount(1);
     await expect(page.locator('[data-header-lens-select]')).toHaveCount(1);
     await expect(page.locator('.role-mode-pill')).toHaveCount(0);
     await expect(page.locator('#stories-card #stuck-card')).toHaveCount(1);
+    await expect(page.locator('#stories-card h2')).toContainText('Sprint work');
 
     const order = await page.evaluate(() => {
       const stories = document.getElementById('stories-card');
