@@ -7,6 +7,13 @@ export function getErrorMessage(response, body, fallback) {
   return (body && (body.message || body.error)) || response.statusText || fallback;
 }
 
+function buildLoaderError(response, body, fallback) {
+  const error = new Error(getErrorMessage(response, body, fallback));
+  error.code = body?.code || '';
+  error.httpStatus = response.status;
+  return error;
+}
+
 export async function loadBoards() {
   // Instrumentation for tests and reliability: track invocation counts on the window for debugging
   try {
@@ -28,7 +35,7 @@ export async function loadBoards() {
   const body = await response.json().catch(() => ({}));
   try { if (typeof window !== 'undefined') window.__lastBoardsCallStatus = response.ok ? 'ok' : 'error'; } catch (_) {}
   if (!response.ok) {
-    throw new Error(getErrorMessage(response, body, 'Failed to load boards'));
+    throw buildLoaderError(response, body, 'Failed to load boards');
   }
   writeWarmBoards(getProjectsParam(), body);
   return body;
@@ -48,7 +55,7 @@ export async function loadCurrentSprint(boardId, sprintId) {
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(getErrorMessage(response, body, 'Failed to load current sprint'));
+      throw buildLoaderError(response, body, 'Failed to load current sprint');
     }
     return body;
   } catch (error) {
@@ -59,7 +66,7 @@ export async function loadCurrentSprint(boardId, sprintId) {
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(getErrorMessage(response, body, 'Failed to load current sprint'));
+      throw buildLoaderError(response, body, 'Failed to load current sprint');
     }
     return body;
   }

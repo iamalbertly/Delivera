@@ -10,6 +10,7 @@ export const CURRENT_SPRINT_BOARD_KEY = 'vodaAgileBoard_lastBoardId';
 export const CURRENT_SPRINT_SPRINT_KEY = 'vodaAgileBoard_lastSprintId';
 export const CURRENT_SPRINT_SPRINT_SELECTED_AT_KEY = 'vodaAgileBoard_lastSprintSelectedAt';
 export const CURRENT_SPRINT_SNAPSHOT_KEY = 'vodaAgileBoard_currentSprintSnapshot_v1';
+export const REPORT_CONTEXT_KEY = 'vodaAgileBoard_reportContext_v1';
 
 /** Report page only: first-run hint and last run meta (same key used for range hint). */
 export const REPORT_HAS_RUN_PREVIEW_KEY = 'report-has-run-preview';

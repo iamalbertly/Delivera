@@ -125,4 +125,20 @@ test.describe('Cross-Page Persistence', () => {
     await expect(page.locator('#start-date')).toHaveValue(/2025-10-01/);
     await expect(page.locator('#end-date')).toHaveValue(/2025-12-31/);
   });
+
+  test('report header current-sprint shortcut preserves remembered board and sprint context', async ({ page }) => {
+    await page.goto(BASE_URL + '/report?boardId=101&sprintId=202&projects=MPSA');
+    if (page.url().includes('login') || page.url().endsWith('/')) {
+      test.skip(true, 'Redirected to login; auth may be required');
+      return;
+    }
+
+    const shortcut = page.locator('#report-header-actions a[href*="/current-sprint"]').first();
+    await expect(shortcut).toBeVisible();
+    const href = await shortcut.getAttribute('href');
+    expect(href || '').toContain('/current-sprint?');
+    expect(href || '').toContain('boardId=101');
+    expect(href || '').toContain('sprintId=202');
+    expect(href || '').toContain('projects=MPSA');
+  });
 });

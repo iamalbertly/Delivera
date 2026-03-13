@@ -294,9 +294,10 @@ async function runAllTests() {
 
   const smokeSpecPaths = [
     'tests/Jira-Reporting-App-API-Integration-Tests.spec.js',
+    'tests/Jira-Reporting-App-Login-Security-Deploy-Validation-Tests.spec.js',
     'tests/Jira-Reporting-App-E2E-User-Journey-Tests.spec.js',
-    'tests/Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js',
     'tests/Jira-Reporting-App-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js',
+    'tests/Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js',
     'tests/Jira-Reporting-App-UX-Customer-Simplicity-Trust-Full-Validation-Tests.spec.js',
   ];
 

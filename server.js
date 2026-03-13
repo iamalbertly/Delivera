@@ -1,12 +1,12 @@
-
 import dotenv from 'dotenv';
 import { logger } from './lib/Jira-Reporting-App-Server-Logging-Utility.js';
 import { authEnabled, superTokensEnabled } from './lib/middleware.js';
 import { createJiraReportingExpressCoreApp } from './lib/Jira-Reporting-App-Express-Core-App-Factory-Handler.js';
+import { appEnvConfig } from './lib/Jira-Reporting-App-Config-Env-Services-Core-SSOT.js';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = appEnvConfig.port;
 const app = createJiraReportingExpressCoreApp({ port: PORT, enableBackgroundWorkers: true });
 
 // Start server
@@ -27,4 +27,3 @@ server.on('error', (err) => {
   }
   throw err;
 });
-

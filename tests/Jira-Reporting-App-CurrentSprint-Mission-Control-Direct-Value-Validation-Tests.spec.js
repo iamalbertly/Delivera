@@ -84,7 +84,59 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     }
   });
 
+  test('loading state keeps one compact loading line instead of a separate context row', async ({ page }) => {
+    await page.goto(SPRINT_PAGE);
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('#sprint-loading-context')).toHaveCount(0);
+    const text = (await page.locator('#current-sprint-loading').textContent().catch(() => '')) || '';
+    expect(text.trim().length).toBeGreaterThan(0);
+  });
+
+  test('current sprint maps partial-permission Jira response into top ribbon', async ({ page }) => {
+    await page.route('**/api/boards.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          projects: ['MPSA'],
+          boards: [{ id: 101, name: 'Main Board', projectKey: 'MPSA' }],
+        }),
+      });
+    });
+    await page.route('**/api/current-sprint.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          board: { id: 101, name: 'Main Board', projectKeys: ['MPSA'] },
+          sprint: { id: 301, name: 'Sprint 301', state: 'active', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-03-15T00:00:00.000Z' },
+          stories: [],
+          summary: { totalStories: 0, doneStories: 0, totalSP: 0, doneSP: 0, percentDone: 0 },
+          daysMeta: { daysRemainingWorking: 3 },
+          recentSprints: [],
+          meta: {
+            partialPermissions: true,
+            projects: 'MPSA',
+          },
+        }),
+      });
+    });
+
+    await page.goto(SPRINT_PAGE);
+    await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
+    await page.selectOption('#board-select', '101');
+    await expect(page.locator('#current-sprint-ribbon')).toContainText(/hidden by permissions|accessible/i);
+    await expect(page.locator('#current-sprint-content')).toBeVisible();
+  });
+
   test.beforeEach(async ({ page }, testInfo) => {
+    const exemptTitles = [
+      'loading state keeps one compact loading line instead of a separate context row',
+      'current sprint maps partial-permission Jira response into top ribbon',
+    ];
+    if (exemptTitles.includes(testInfo.title)) {
+      return;
+    }
     const state = await loadSprintPage(page);
     if (state?.hasError) {
       testInfo.skip(`Skipping: current sprint page error - ${state.message}`);

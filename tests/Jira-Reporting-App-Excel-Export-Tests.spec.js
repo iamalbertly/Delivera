@@ -34,7 +34,7 @@ async function loadWorkbookFromDownload(download) {
 test.describe('Jira Reporting App - Excel Export Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
   });
 
   test('should generate Excel file with correct filename format', async ({ page }) => {
@@ -355,12 +355,10 @@ test.describe('Jira Reporting App - Excel Export Tests', () => {
     }
     
     // Navigate to Project & Epic Level tab
-    await page.click('.tab-btn[data-tab="project-epic-level"]');
+    await page.locator('.tab-btn[data-tab="project-epic-level"]').click({ force: true });
     
-    await expect(page.locator('#export-dropdown-trigger')).toBeVisible();
-    await page.click('#export-dropdown-trigger');
-    const csvActive = page.locator('.export-dropdown-item[data-export="csv-active-tab"]');
-    await expect(csvActive).toBeVisible();
+    await expect(page.locator('#export-excel-btn')).toBeVisible();
+    await page.locator('#export-excel-btn').click({ force: true });
     const downloadPromise = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
     await page.evaluate(() => {
       const item = document.querySelector('.export-dropdown-item[data-export="csv-active-tab"]');

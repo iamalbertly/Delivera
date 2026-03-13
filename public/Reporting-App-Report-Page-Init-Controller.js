@@ -15,6 +15,7 @@ import {
   PROJECTS_SSOT_KEY,
   REPORT_FILTERS_STALE_KEY,
   REPORT_FILTERS_STALE_REASON_KEY,
+  REPORT_CONTEXT_KEY,
 } from './Reporting-App-Shared-Storage-Keys.js';
 import { DEFAULT_WINDOW_START_LOCAL, DEFAULT_WINDOW_END_LOCAL } from './Reporting-App-Report-Config-Constants.js';
 import { AUTO_PREVIEW_DELAY_MS } from './Reporting-App-Shared-AutoPreview-Config.js';
@@ -70,6 +71,26 @@ function initReportPage() {
   }
 
   initFeedbackPanel();
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const boardId = params.get('boardId') || '';
+    const sprintId = params.get('sprintId') || '';
+    const projects = params.get('projects') || '';
+    if (boardId || sprintId || projects) {
+      localStorage.setItem(REPORT_CONTEXT_KEY, JSON.stringify({
+        boardId,
+        sprintId,
+        projects,
+        updatedAt: new Date().toISOString(),
+      }));
+      fetch('/api/user-context/report', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ boardId, sprintId, projects, reportPath: '/report' }),
+      }).catch(() => {});
+    }
+  } catch (_) {}
   function syncHashWithTab(tabName) {
     if (!allowHashTabSync) return;
     const onLeadershipTab = tabName === 'trends';
@@ -161,8 +182,20 @@ function initReportPage() {
     initGlobalOutcomeModal({
       getSelectedProjects,
     });
+    let currentSprintHref = '/current-sprint';
+    try {
+      const raw = localStorage.getItem(REPORT_CONTEXT_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      const params = new URLSearchParams();
+      if (parsed?.boardId) params.set('boardId', parsed.boardId);
+      if (parsed?.sprintId) params.set('sprintId', parsed.sprintId);
+      if (parsed?.projects) params.set('projects', parsed.projects);
+      const query = params.toString();
+      if (query) currentSprintHref += '?' + query;
+    } catch (_) {}
     wrap.innerHTML = ''
       + '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Edit filters</button>'
+      + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Open current sprint</a>'
       + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-action="load-latest-preview" hidden>Load latest</button>'
       + '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'

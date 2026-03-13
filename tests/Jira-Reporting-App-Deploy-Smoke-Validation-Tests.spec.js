@@ -34,7 +34,7 @@ test.describe('VodaAgileBoard – Deploy Smoke Tests', () => {
       }
     }
 
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
     await expect(page.locator('#preview-btn')).toBeVisible();
     await expect(page.locator('#project-mpsa')).toBeVisible();
     await expect(page.locator('#project-mas')).toBeVisible();

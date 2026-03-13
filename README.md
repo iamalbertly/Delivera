@@ -6,6 +6,24 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 
 ## Latest Reliability and UX Updates (2026-03-06)
 
+## Latest Reliability and UX Updates (2026-03-13)
+
+- Direct-to-value auth and context recovery:
+  - Auth success paths now prefer `/report` with remembered `boardId`, `sprintId`, and `projects` context instead of dropping users onto a neutral landing.
+  - Report and Current Sprint now persist board/sprint/project context through local storage and the existing session-backed `/api/user-context/report` contract, so returning users land closer to their active board without repeated setup clicks.
+  - Current Sprint deep links back to Report and Report shortcuts into Current Sprint now preserve the same board/sprint context through query params.
+- Trust-preserving inline recovery states:
+  - `/report` maps session expiry, Jira access changes, and rate limiting into the existing top status strip instead of leaving users with blank or ambiguous failures.
+  - `/current-sprint` maps no-active-sprint fallback and partial-permission states into the same ribbon pattern while keeping previously safe context visible when possible.
+  - Current Sprint loading now includes explicit scope/loading context plus the shared skeleton language instead of a bare spinner.
+- Large-data responsiveness and filter compression:
+  - Report filters now keep primary controls (`Who` + `When`) in a tighter first row and push rules/status/actions into a slimmer secondary row to reduce initial scroll.
+  - Large board sets on Report and large sprint issue sets on Current Sprint now cap the first render and use existing compact/show-more behavior so leaders see value faster on heavy datasets.
+- Technical debt and orchestration cleanup:
+  - Current Sprint session context writes and narrative dedupe JQL strings were consolidated into reusable helpers in existing route paths.
+  - The shared Playwright console guard now treats intentional preview recovery statuses (`401/403/429`) as handled UX states instead of false-negative test failures.
+  - The orchestration runner remains foreground, serial, and fail-fast; focused test runs now cover report session-expiry recovery, report context persistence, current-sprint partial-permission ribbons, and explicit loading context.
+
 - Current Sprint direct-to-value consolidation:
   - Work risks table is now an explainer-only card beneath `Issues in this sprint`, with all actionable filtering and risk counts owned by the stories card and header risk chips.
   - Burndown and Daily completion views are merged into a single `Flow over time` card that reuses the existing datasets and adapts between SP-based and story-count burndown copy.
@@ -964,7 +982,26 @@ VodaAgileBoard behaves slightly differently depending on which environment varia
 
 ## Deployment
 
-VodaAgileBoard can be deployed to [Render](https://render.com) or any Node host.
+VodaAgileBoard can be deployed to [Render](https://render.com), Vercel, or any Node host.
+
+### Vercel (Node server)
+
+When deploying to Vercel as a Node server (using `server.js` as the entrypoint that imports `express`):
+
+1. **Project settings**
+   - Framework preset: `Node.js` or `Other`.
+   - Root directory: repository root (where `package.json` and `server.js` live).
+   - Build command: `npm install` (or `npm ci`); if you rely on CSS compilation, use `npm run build:css` or a `build` script that calls it.
+   - Start command: `npm start` (which runs `node server.js`).
+2. **Environment variables**
+   - Required Jira: `JIRA_HOST`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `NODE_ENV=production`.
+   - Preferred auth (SuperTokens): `SUPERTOKENS_ENABLED=true`, `SUPERTOKENS_CONNECTION_URI`, `SUPERTOKENS_API_DOMAIN`, `SUPERTOKENS_WEBSITE_DOMAIN`, optional `SUPERTOKENS_API_KEY`.
+   - Legacy fallback auth: `APP_LOGIN_USER`, `APP_LOGIN_PASSWORD`, `SESSION_SECRET` (omit these if you only use SuperTokens).
+   - Cache: `CACHE_BACKEND=redis` (optional) and `REDIS_URL` pointing to a managed Redis instance that is reachable from Vercel; omit `CACHE_BACKEND` to stay on in-memory cache only.
+3. **Base URL for tests**
+   - For Playwright and orchestration scripts, set `BASE_URL` in Vercel (and locally) to the deployed URL, e.g. `https://vodaagileboard.vercel.app`.
+
+### Render
 
 1. Connect your Git repo (e.g. GitHub) to Render and create a Web Service.
 2. Set **Build command** to `npm install` (or `npm ci`) and **Start command** to `npm start`.
@@ -976,7 +1013,7 @@ VodaAgileBoard can be deployed to [Render](https://render.com) or any Node host.
 
 ### Live instance
 
-After the first deploy succeeds, your app will be available at a URL like `https://voda-agile-board.onrender.com`. Update this README with your actual live URL.
+After the first deploy succeeds, your app will be available at a URL like `https://voda-agile-board.onrender.com` or a Vercel URL such as `https://vodaagileboard.vercel.app`. Update this README with your actual live URL.
 
 ### CI/CD
 

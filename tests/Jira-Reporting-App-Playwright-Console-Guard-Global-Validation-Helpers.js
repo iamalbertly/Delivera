@@ -10,6 +10,13 @@ import { IGNORE_CONSOLE_ERRORS } from './JiraReporting-Tests-Shared-PreviewExpor
 export const test = base.extend({
   page: async ({ page }, use, testInfo) => {
     const consoleMessages = [];
+    const allowHttpStatusConsole = new Set(
+      testInfo.annotations
+        .filter((annotation) => annotation?.type === 'allow-http-status-console')
+        .flatMap((annotation) => String(annotation.description || '').split(','))
+        .map((value) => value.trim())
+        .filter(Boolean)
+    );
 
     const handleConsole = (msg) => {
       const type = msg.type();
@@ -23,6 +30,14 @@ export const test = base.extend({
         url.includes('/api/outcome-from-narrative') &&
         /status of 409/i.test(text || '');
       if (isExpectedOutcomeConflict) return;
+      const isExpectedPreviewHttpRecovery =
+        /preview\.json/i.test(url || text || '') &&
+        /status of (401|403|429)\b/i.test(text || '');
+      if (isExpectedPreviewHttpRecovery) return;
+      const isAllowedHttpStatusConsole = Array.from(allowHttpStatusConsole).some((statusCode) =>
+        new RegExp(`status of ${statusCode}\\b`, 'i').test(text || '')
+      );
+      if (isAllowedHttpStatusConsole) return;
       if (IGNORE_CONSOLE_ERRORS.some((ignored) => text === ignored || text.includes(ignored))) return;
       consoleMessages.push(`[console:${type}] ${text}`);
     };
@@ -57,4 +72,3 @@ export const test = base.extend({
 });
 
 export { expect } from '@playwright/test';
-

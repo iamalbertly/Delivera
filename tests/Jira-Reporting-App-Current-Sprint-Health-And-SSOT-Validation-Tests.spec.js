@@ -45,17 +45,17 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     }
   });
 
-  test('no-active-sprint empty state, when present, explains next steps', async ({ page }) => {
+  test('no-active-sprint state, when present, explains fallback or next steps', async ({ page }) => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     const bodyText = (await page.locator('body').textContent()) || '';
-    if (!/No active sprint on this board/i.test(bodyText)) {
+    if (!/No active sprint/i.test(bodyText)) {
       test.skip(true, 'No "No active sprint" empty state visible for current data set');
       return;
     }
 
-    expect(bodyText).toMatch(/Try the previous sprint tab/i);
+    expect(bodyText).toMatch(/showing last completed sprint|Pick a recent sprint|Pick a board|previous sprint/i);
   });
 
   test('projects SSOT sync applies silently and normalizes to one project for current sprint', async ({ page }) => {

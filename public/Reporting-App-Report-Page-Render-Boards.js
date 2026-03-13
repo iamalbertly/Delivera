@@ -13,6 +13,8 @@ import {
 import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { getLeadershipIndexedDeliveryHint, getLeadershipTrendVisibilityHint } from './Reporting-App-Leadership-Page-Render.js';
+import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
+import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
 
 const BOARD_TABLE_COLUMN_ORDER = [
   'Board', 'Projects', 'Sprints', 'Sprint Days', 'Avg Sprint Days', 'Done Stories', 'Throughput Stories', 'Registered Work Hours', 'Estimated Work Hours', 'Done SP', 'Throughput SP',
@@ -302,6 +304,35 @@ function applyBoardsColumnVisibility() {
   render();
 }
 
+function buildBoardsTableHtml(columns, rowsForRender) {
+  const initialLimit = rowsForRender.length >= 10 ? resolveResponsiveRowLimit(7, 5) : rowsForRender.length;
+  const initialRows = rowsForRender.slice(0, initialLimit);
+  const remainingRows = rowsForRender.slice(initialLimit);
+  let html = buildDataTableHtml(columns, initialRows, {
+    id: 'boards-table',
+    wrapperClass: 'data-table-scroll-wrap--with-vertical-limit' + (remainingRows.length ? ' boards-table-compact-mode' : ''),
+  });
+  if (remainingRows.length > 0) {
+    html += '<div class="boards-table-load-more-wrap">';
+    html += '<button type="button" class="btn btn-secondary btn-compact boards-show-more" data-count="' + remainingRows.length + '">Load ' + remainingRows.length + ' more boards</button>';
+    html += '</div>';
+    html += '<template id="boards-more-template">';
+    remainingRows.forEach((row) => {
+      const rowClass = row && row.__rowClass ? ' class="' + escapeHtml(String(row.__rowClass)) + '"' : '';
+      html += '<tr' + rowClass + '>';
+      columns.forEach((col) => {
+        const key = String(col.key || col);
+        const value = row[key] == null ? '' : String(row[key]);
+        html += '<td data-label="' + escapeHtml(col.label || key) + '">' + escapeHtml(value) + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</template>';
+    html += '<p class="metrics-hint"><small>Large board set detected. Initial render is capped so leaders see the signal first.</small></p>';
+  }
+  return html;
+}
+
 export function renderProjectEpicLevelTab(boards, metrics) {
   const content = document.getElementById('project-epic-level-content');
   const meta = getSafeMeta(reportState.previewData);
@@ -386,10 +417,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       summaryRow['Board'] = 'All Boards (Comparison)';
       rowsForRender.unshift({ __rowClass: 'boards-summary-row', ...summaryRow });
     }
-    html += buildDataTableHtml(columns, rowsForRender, {
-      id: 'boards-table',
-      wrapperClass: 'data-table-scroll-wrap--with-vertical-limit',
-    });
+    html += buildBoardsTableHtml(columns, rowsForRender);
     html += '<div class="boards-column-toggle-row"><button type="button" class="btn btn-secondary btn-compact" id="boards-columns-toggle" aria-expanded="false">Show advanced columns</button></div>';
     html += '<p class="metrics-hint"><small>Throughput signals are merged into Boards columns (Throughput Stories, Throughput SP). Sprint-level throughput remains in Sprint history.</small></p>';
     html += '<p class="table-scroll-hint metrics-hint" aria-live="polite"><small>Scroll right for more columns. Export includes all columns.</small></p>';
@@ -518,6 +546,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
     });
   }
   applyBoardsColumnVisibility();
+  wireShowMoreHandler('.boards-show-more', 'boards-more-template', '#boards-table tbody');
   // Add hover titles for truncated headers/cells for better discoverability (dynamic import)
   try { import('./Reporting-App-Shared-Dom-Escape-Helpers.js').then(({ addTitleForTruncatedCells }) => addTitleForTruncatedCells('#project-epic-level-content table.data-table th, #project-epic-level-content table.data-table td')).catch(() => {}); } catch (e) {}
 }

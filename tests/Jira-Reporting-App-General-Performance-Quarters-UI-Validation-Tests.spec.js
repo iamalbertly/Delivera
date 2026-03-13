@@ -6,6 +6,15 @@
 import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { runDefaultPreview, waitForPreview, captureBrowserTelemetry, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
+async function ensureFiltersVisible(page) {
+  const strip = page.locator('.quick-range-strip, [aria-label="Vodacom quarters"]').first();
+  if (await strip.isVisible().catch(() => false)) return;
+  const toggle = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"], #report-header-actions [data-action="toggle-filters"]').first();
+  if (await toggle.isVisible().catch(() => false)) {
+    await toggle.click({ force: true }).catch(() => null);
+  }
+}
+
 test.describe('Jira Reporting App - General Performance Quarters UI Validation', () => {
   test('report page title or heading includes General Performance', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
@@ -57,6 +66,7 @@ test.describe('Jira Reporting App - General Performance Quarters UI Validation',
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
+    await ensureFiltersVisible(page);
     const strip = page.locator('.quick-range-strip, [aria-label="Vodacom quarters"]').first();
     await expect(strip).toBeVisible({ timeout: 15000 });
     await page.waitForSelector('.quarter-pill', { timeout: 15000 }).catch(() => null);
@@ -111,6 +121,7 @@ test.describe('Jira Reporting App - General Performance Quarters UI Validation',
     await page.goto('/sprint-leadership');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
+    await ensureFiltersVisible(page);
     const strip = page.locator('.quick-range-strip, [aria-label="Vodacom quarters"]').first();
     await expect(strip).toBeVisible({ timeout: 15000 });
     await page.waitForSelector('.quarter-pill', { timeout: 15000 }).catch(() => null);

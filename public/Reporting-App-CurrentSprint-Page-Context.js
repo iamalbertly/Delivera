@@ -5,6 +5,7 @@ export const currentSprintDom = {
   boardSelect: document.getElementById('board-select'),
   loadingEl: document.getElementById('current-sprint-loading'),
   errorEl: document.getElementById('current-sprint-error'),
+  ribbonEl: document.getElementById('current-sprint-ribbon'),
   contentEl: document.getElementById('current-sprint-content'),
   titleEl: document.getElementById('current-sprint-title'),
   nameEl: document.getElementById('current-sprint-name'),

@@ -7,7 +7,7 @@ const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=
 test.describe('RED LINE ITEMS KPI Validation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
   });
 
   test('should include issueType column in CSV export', async ({ page, request }) => {

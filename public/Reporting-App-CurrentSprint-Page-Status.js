@@ -9,7 +9,10 @@ export function showWelcome(message) {
 
 export function showLoading(msg) {
   const text = msg || ('Loading sprint data for project ' + getProjectsParam() + '...');
-  setPageState(PAGE_STATE.LOADING, { message: text });
+  setPageState(PAGE_STATE.LOADING, {
+    message: text,
+    context: 'Scope: ' + getProjectsParam() + ' | Sprint health in progress',
+  });
 }
 
 export function showError(msg) {

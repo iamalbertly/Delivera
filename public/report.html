@@ -39,115 +39,118 @@
           <button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Show filters</button>
         </div>
         <div class="filters-panel-body" id="filters-panel-body">
-          <div class="filter-group filter-group-who">
-            <h3>Who</h3>
-            <div class="project-tools">
-              <div class="search-input-wrap">
-                <input type="text" id="project-search" placeholder="Filter projects..." aria-label="Filter projects">
-                <button type="button" class="search-clear-btn" data-target="project-search"
-                  aria-label="Clear project filter" title="Clear">Clear</button>
-              </div>
-              <div id="projects-selection-status" class="selection-status"></div>
-              <div id="projects-no-match" class="selection-status" style="display: none;">No projects match your search.
-              </div>
-            </div>
-            <p class="project-group-label"><small>Core squads</small></p>
-            <label class="checkbox-label">
-              <input type="checkbox" id="project-mpsa" class="project-checkbox" data-project="MPSA" checked>
-              <span class="project-code">MPSA</span>
-              <span class="project-desc">M-SQUAD</span>
-              <span class="project-inline-tag">Core</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" id="project-mas" class="project-checkbox" data-project="MAS" checked>
-              <span class="project-code">MAS</span>
-              <span class="project-desc">Mini - Apps Squad</span>
-              <span class="project-inline-tag">Core</span>
-            </label>
-            <p class="project-group-label"><small>Other squads</small></p>
-            <div id="other-squads-group">
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-rpa" class="project-checkbox" data-project="RPA">
-                <span class="project-code">RPA</span>
-                <span class="project-desc">Robotics Process Automation (RPA)</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-mva" class="project-checkbox" data-project="MVA">
-                <span class="project-code">MVA</span>
-                <span class="project-desc">Digital Squad</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-asg" class="project-checkbox" data-project="ASG">
-                <span class="project-code">ASG</span>
-                <span class="project-desc">Agile and Security Guild</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-fin" class="project-checkbox" data-project="FIN">
-                <span class="project-code">FIN</span>
-                <span class="project-desc">Finance Squad</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-sd" class="project-checkbox" data-project="SD">
-                <span class="project-code">SD</span>
-                <span class="project-desc">DMS Squad (Kilimanjaro Legends)</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-mpsa2" class="project-checkbox" data-project="MPSA2">
-                <span class="project-code">MPSA2</span>
-                <span class="project-desc">TRANSFORMERS</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-trs" class="project-checkbox" data-project="TRS">
-                <span class="project-code">TRS</span>
-                <span class="project-desc">T-Squad</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-vb" class="project-checkbox" data-project="VB">
-                <span class="project-code">VB</span>
-                <span class="project-desc">Vodacom Business</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-ams2" class="project-checkbox" data-project="AMS2">
-                <span class="project-code">AMS2</span>
-                <span class="project-desc">AMS Squad (Tachyons)</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" id="project-bio" class="project-checkbox" data-project="BIO">
-                <span class="project-code">BIO</span>
-                <span class="project-desc">Bio metric KYC &amp; KYA</span>
-                <span class="project-inline-tag">Other</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="filter-group filter-group-when">
-            <h3>When</h3>
-            <div class="report-range-bar">
-              <div class="quick-range-strip" role="group" aria-label="Date range">
-                <div class="quarter-strip-inner" style="overflow-x: auto; display: flex; gap: 6px; flex-wrap: nowrap;">
+          <div class="report-primary-filters-grid">
+            <div class="filter-group filter-group-who">
+              <h3>Who</h3>
+              <div class="project-tools">
+                <div class="search-input-wrap">
+                  <input type="text" id="project-search" placeholder="Filter projects..." aria-label="Filter projects">
+                  <button type="button" class="search-clear-btn" data-target="project-search"
+                    aria-label="Clear project filter" title="Clear">Clear</button>
+                </div>
+                <div id="projects-selection-status" class="selection-status"></div>
+                <div id="projects-no-match" class="selection-status" style="display: none;">No projects match your search.
                 </div>
               </div>
-              <div id="date-range-summary-wrap" class="date-range-summary-wrap">
-                <span id="date-range-summary" class="date-range-summary" aria-live="polite"></span>
+              <p class="project-group-label"><small>Core squads</small></p>
+              <label class="checkbox-label">
+                <input type="checkbox" id="project-mpsa" class="project-checkbox" data-project="MPSA" checked>
+                <span class="project-code">MPSA</span>
+                <span class="project-desc">M-SQUAD</span>
+                <span class="project-inline-tag">Core</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="project-mas" class="project-checkbox" data-project="MAS" checked>
+                <span class="project-code">MAS</span>
+                <span class="project-desc">Mini - Apps Squad</span>
+                <span class="project-inline-tag">Core</span>
+              </label>
+              <p class="project-group-label"><small>Other squads</small></p>
+              <div id="other-squads-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-rpa" class="project-checkbox" data-project="RPA">
+                  <span class="project-code">RPA</span>
+                  <span class="project-desc">Robotics Process Automation (RPA)</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-mva" class="project-checkbox" data-project="MVA">
+                  <span class="project-code">MVA</span>
+                  <span class="project-desc">Digital Squad</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-asg" class="project-checkbox" data-project="ASG">
+                  <span class="project-code">ASG</span>
+                  <span class="project-desc">Agile and Security Guild</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-fin" class="project-checkbox" data-project="FIN">
+                  <span class="project-code">FIN</span>
+                  <span class="project-desc">Finance Squad</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-sd" class="project-checkbox" data-project="SD">
+                  <span class="project-code">SD</span>
+                  <span class="project-desc">DMS Squad (Kilimanjaro Legends)</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-mpsa2" class="project-checkbox" data-project="MPSA2">
+                  <span class="project-code">MPSA2</span>
+                  <span class="project-desc">TRANSFORMERS</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-trs" class="project-checkbox" data-project="TRS">
+                  <span class="project-code">TRS</span>
+                  <span class="project-desc">T-Squad</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-vb" class="project-checkbox" data-project="VB">
+                  <span class="project-code">VB</span>
+                  <span class="project-desc">Vodacom Business</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-ams2" class="project-checkbox" data-project="AMS2">
+                  <span class="project-code">AMS2</span>
+                  <span class="project-desc">AMS Squad (Tachyons)</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="project-bio" class="project-checkbox" data-project="BIO">
+                  <span class="project-code">BIO</span>
+                  <span class="project-desc">Bio metric KYC &amp; KYA</span>
+                  <span class="project-inline-tag">Other</span>
+                </label>
               </div>
             </div>
-            <div id="date-range-custom-wrap" class="date-range-custom-wrap">
-              <label>Start <input type="datetime-local" id="start-date"></label>
-              <label>End <input type="datetime-local" id="end-date"></label>
+
+            <div class="filter-group filter-group-when">
+              <h3>When</h3>
+              <div class="report-range-bar">
+                <div class="quick-range-strip" role="group" aria-label="Date range">
+                  <div class="quarter-strip-inner" style="overflow-x: auto; display: flex; gap: 6px; flex-wrap: nowrap;">
+                  </div>
+                </div>
+                <div id="date-range-summary-wrap" class="date-range-summary-wrap">
+                  <span id="date-range-summary" class="date-range-summary" aria-live="polite"></span>
+                </div>
+              </div>
+              <div id="date-range-custom-wrap" class="date-range-custom-wrap">
+                <label>Start <input type="datetime-local" id="start-date"></label>
+                <label>End <input type="datetime-local" id="end-date"></label>
+              </div>
+              <div class="date-display" id="date-display" hidden></div>
             </div>
-            <div class="date-display" id="date-display" hidden></div>
+          </div>
           </div>
 
-          <div class="filter-group filter-group-rules">
+          <div class="filter-group filter-group-rules report-secondary-filters-row">
             <details class="report-rules-tile" id="report-rules-tile">
               <summary id="advanced-options-toggle" class="report-rules-summary" aria-controls="advanced-options">
                 <span>Rules &amp; strictness</span>
@@ -180,14 +183,15 @@
             </details>
           </div>
 
-          <div id="report-filters-status-bar" class="report-filters-status-bar" aria-live="polite">
-            <div id="applied-filters-summary" class="applied-filters-summary"></div>
-            <div class="applied-filters-chips-row" id="applied-filters-chips-row">
-              <div id="applied-filters-chips" class="applied-filters-chips"></div>
+            <div id="report-filters-status-bar" class="report-filters-status-bar" aria-live="polite">
+              <div id="applied-filters-summary" class="applied-filters-summary"></div>
+              <div class="applied-filters-chips-row" id="applied-filters-chips-row">
+                <div id="applied-filters-chips" class="applied-filters-chips"></div>
+              </div>
+              <p id="range-hint" class="range-hint" style="display: none;"></p>
             </div>
-            <p id="range-hint" class="range-hint" style="display: none;"></p>
           </div>
-          <div class="button-group filters-actions">
+          <div class="button-group filters-actions report-secondary-filters-row">
             <button id="preview-btn" class="btn btn-primary" title="Generate report for selected filters.">Preview
               report</button>
             <button type="button" id="reset-filters-btn" class="btn btn-secondary btn-compact"

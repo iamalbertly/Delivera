@@ -511,7 +511,7 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
   test('Report load – h1, Preview button, nav links, applied-filters-summary', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
     await expect(page.locator('#preview-btn')).toContainText(/Preview/i);
     await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a[href="/current-sprint"]')).toContainText('Current Sprint');
     await expect(page.locator('#tab-btn-trends')).toContainText('Trends');

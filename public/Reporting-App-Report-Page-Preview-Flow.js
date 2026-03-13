@@ -77,6 +77,14 @@ function showReportError(shortText, detailsText) {
   errorEl.appendChild(details);
 }
 
+function showReportRibbon(message, state = 'warning') {
+  const statusStrip = document.getElementById('preview-status-strip');
+  if (!statusStrip) return;
+  statusStrip.textContent = message || '';
+  statusStrip.setAttribute('data-state', state);
+  statusStrip.style.display = message ? '' : 'none';
+}
+
 export function restoreLastPreviewFromStorage() {
   try {
     resetPerfMarks('report');
@@ -632,10 +640,19 @@ export function initPreviewFlow() {
         const errorMsg = responseJson?.message || responseJson?.error || responseText || 'Failed to fetch preview';
         const errorCode = responseJson?.code || 'UNKNOWN_ERROR';
         const is401 = response.status === 401;
+        const is403 = response.status === 403;
+        const is429 = response.status === 429;
 
         let displayMessage = errorMsg;
         if (is401) {
           displayMessage = 'Session expired. Sign in again to continue.';
+          showReportRibbon('Session expired. Sign in again to restore your report context.', 'warning');
+        } else if (is403) {
+          displayMessage = 'Jira access changed. Reconnect Jira or sign in again to restore full access.';
+          showReportRibbon('Some Jira boards or fields are no longer accessible. Reconnect Jira to restore full context.', 'warning');
+        } else if (is429) {
+          displayMessage = 'Jira API rate limit exceeded. Please wait a moment and try again.';
+          showReportRibbon('Jira is rate limiting this report. Retry shortly or narrow the range.', 'closest');
         } else if (errorCode === 'NO_PROJECTS_SELECTED') {
           displayMessage = 'Please select at least one project before generating a preview.';
         } else if (errorCode === 'INVALID_DATE_FORMAT') {
@@ -650,6 +667,7 @@ export function initPreviewFlow() {
           displayMessage = 'Jira API rate limit exceeded. Please wait a moment and try again.';
         } else if (errorCode === 'RATE_LIMIT_COOLDOWN') {
           displayMessage = 'Jira API has recently rate limited this report. Please wait around a minute and try again, or narrow the date range.';
+          showReportRibbon('Jira is rate limiting this report. Retry shortly or narrow the range.', 'closest');
         } else if (errorCode === 'NETWORK_ERROR') {
           displayMessage = 'Network error. Please check your connection and try again.';
         }
@@ -667,6 +685,7 @@ export function initPreviewFlow() {
       }
 
       writeCachedPreview(responseJson);
+      showReportRibbon('', 'fresh');
 
       setLoadingStage(4, 'Final checks…');
       if (runIdForThisRequest === previewRunId) applyPreviewPayload(responseJson);
@@ -720,6 +739,7 @@ export function initPreviewFlow() {
       let shortText = 'Server error';
       if (error && error.sessionExpired) shortText = 'Session expired';
       else if (error && error.name === 'AbortError') shortText = 'Preview timed out';
+      else if (/access changed|reconnect jira|no longer accessible/i.test(errorMsg || '')) shortText = 'Jira access changed';
       else if (/fetch|network|failed to fetch/i.test(errorMsg || '')) shortText = 'Request failed';
 
       if (errorEl) {

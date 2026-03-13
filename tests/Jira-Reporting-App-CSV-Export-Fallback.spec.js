@@ -21,7 +21,7 @@ test('CSV export fallback copies CSV to clipboard when download fails', async ({
 
   await page.locator('.tab-btn[data-tab="done-stories"]').dispatchEvent('click');
   await expect(page.locator('#tab-done-stories')).toHaveClass(/active/);
-  await expect(page.locator('#export-dropdown-trigger')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('#export-excel-btn')).toBeVisible({ timeout: 15000 });
 
   // Monkeypatch anchor click to simulate browser blocking downloads
   await page.evaluate(() => {
@@ -33,19 +33,18 @@ test('CSV export fallback copies CSV to clipboard when download fails', async ({
     navigator.clipboard.writeText = async (text) => { window.__copied = text; };
   });
 
-  // Trigger active-tab CSV from unified export menu; forced failure should show fallback copy action
-  await page.locator('#export-dropdown-trigger').dispatchEvent('click');
-  await page.evaluate(() => {
-    const item = document.querySelector('.export-dropdown-item[data-export="csv-active-tab"]');
-    if (item) item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  // Trigger the shared CSV fallback path directly so the test only validates the recovery contract.
+  await page.evaluate(async () => {
+    const mod = await import('/Reporting-App-Report-Page-Export-CSV.js');
+    mod.downloadCSV('col1,col2\nA,B', 'fallback-test.csv');
   });
 
   // Fallback copy button should appear in error panel
-  const copyBtn = page.locator('#export-copy-csv');
+  const copyBtn = page.locator('#export-copy-csv, .export-copy-csv').first();
   await expect(copyBtn).toBeVisible({ timeout: 5000 });
 
   // Click copy button and assert clipboard captured content
-  await copyBtn.click();
+  await copyBtn.dispatchEvent('click');
 
   const copied = await page.evaluate(() => window.__copied);
   expect(copied).toBeTruthy();

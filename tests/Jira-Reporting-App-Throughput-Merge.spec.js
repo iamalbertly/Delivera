@@ -4,7 +4,7 @@ import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-He
 test.describe('Throughput / Boards merge UX', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
   });
 
   test('Per Project throughput is merged into Boards when boards exist and CTA opens Boards tab', async ({ page }) => {

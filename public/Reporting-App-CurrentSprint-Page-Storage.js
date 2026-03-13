@@ -1,4 +1,5 @@
 import { currentSprintDom, currentSprintKeys } from './Reporting-App-CurrentSprint-Page-Context.js';
+import { REPORT_CONTEXT_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 
 function normalizeForCurrentSprint(value) {
   const raw = (value || '').trim();
@@ -110,6 +111,12 @@ export function persistSelection(boardId, sprintId) {
       localStorage.removeItem(currentSprintKeys.sprintKey);
       localStorage.removeItem(currentSprintKeys.sprintTsKey);
     }
+    localStorage.setItem(REPORT_CONTEXT_KEY, JSON.stringify({
+      boardId: boardId || '',
+      sprintId: sprintId || '',
+      projects: getProjectsParam(),
+      updatedAt: new Date().toISOString(),
+    }));
   } catch (_) {}
   try {
     const url = new URL(window.location.href);
@@ -117,5 +124,18 @@ export function persistSelection(boardId, sprintId) {
     if (sprintId) url.searchParams.set('sprintId', sprintId);
     else url.searchParams.delete('sprintId');
     window.history.replaceState({}, '', url.toString());
+  } catch (_) {}
+  try {
+    fetch('/api/user-context/report', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        boardId: boardId || '',
+        sprintId: sprintId || '',
+        projects: getProjectsParam(),
+        reportPath: '/report',
+      }),
+    }).catch(() => {});
   } catch (_) {}
 }

@@ -27,7 +27,7 @@ async function openProjectEpicTabIfVisible(page) {
 test.describe('UX Reliability & Technical Debt Fixes', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
   });
 
   test('refreshing preview keeps previous results visible while loading', async ({ page }) => {
@@ -71,6 +71,63 @@ test.describe('UX Reliability & Technical Debt Fixes', () => {
 
     await routeHandled.catch(() => {});
     await page.waitForSelector('#loading', { state: 'hidden', timeout: 120000 }).catch(() => {});
+  });
+
+  test('report maps session expiry into ribbon and sign-in recovery instead of blank state', async ({ page }, testInfo) => {
+    testInfo.annotations.push({ type: 'allow-http-status-console', description: '401' });
+    await page.route('**/preview.json*', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'AUTH_REQUIRED', message: 'Session expired' }),
+      });
+    });
+
+    const previewBtn = page.locator('#preview-btn');
+    if (!(await previewBtn.isVisible().catch(() => false))) {
+      const showFilters = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"]').first();
+      if (await showFilters.isVisible().catch(() => false)) {
+        await showFilters.click({ force: true }).catch(() => null);
+      }
+      await previewBtn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
+    }
+    await previewBtn.click();
+
+    await expect(page.locator('#preview-status-strip')).toContainText(/session expired/i);
+    await expect(page.locator('#error')).toContainText(/sign in/i);
+  });
+
+  test('report keeps previous content visible when Jira access changes on refresh', async ({ page }, testInfo) => {
+    test.setTimeout(120000);
+    testInfo.annotations.push({ type: 'allow-http-status-console', description: '403' });
+    await runDefaultPreview(page);
+    const previewVisible = await page.locator('#preview-content').isVisible().catch(() => false);
+    const errorVisible = await page.locator('#error').isVisible().catch(() => false);
+    if (!previewVisible || errorVisible) {
+      test.skip();
+      return;
+    }
+
+    await page.route('**/preview.json*', async (route) => {
+      await route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'AUTH_ERROR', message: 'Some Jira boards or fields are no longer accessible.' }),
+      });
+    });
+
+    const previewBtn = page.locator('#preview-btn');
+    if (!(await previewBtn.isVisible().catch(() => false))) {
+      const showFilters = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"]').first();
+      if (await showFilters.isVisible().catch(() => false)) {
+        await showFilters.click({ force: true }).catch(() => null);
+      }
+      await previewBtn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
+    }
+    await previewBtn.click();
+
+    await expect(page.locator('#preview-status-strip')).toContainText(/accessible|reconnect jira/i);
+    await expect(page.locator('#preview-content')).toBeVisible();
   });
 
   test('should display Unknown for empty issueType in Done Stories table', async ({ page, request }) => {
@@ -764,15 +821,15 @@ test.describe('Mobile-First UX Decisions M1-M12', () => {
     console.log(`[M8] ✓ .tabs position: ${position}`);
   });
 
-  // M9: Sprint loading context element exists in current-sprint page
-  test('M9: Sprint loading context div exists in current-sprint page', async ({ page }) => {
+  // M9: Current Sprint loading state no longer uses a separate context row
+  test('M9: Current Sprint loading state has no separate sprint-loading-context row', async ({ page }) => {
     test.setTimeout(30000);
     await page.goto('/current-sprint');
     await page.waitForTimeout(1000);
     const ctxEl = page.locator('#sprint-loading-context');
     const count = await ctxEl.count();
-    expect(count).toBeGreaterThan(0);
-    console.log('[M9] ✓ #sprint-loading-context element present in current-sprint DOM');
+    expect(count).toBe(0);
+    console.log('[M9] current-sprint uses a single compact loading block');
   });
 
   // M10: Touch targets meet 44px minimum on mobile

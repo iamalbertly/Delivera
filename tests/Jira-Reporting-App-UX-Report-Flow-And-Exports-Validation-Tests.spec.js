@@ -17,7 +17,7 @@ test.describe('UX Report Flow & Export Experience', () => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
 
-    await expect(page.locator('h1')).toContainText(/General Performance/i);
+    await expect(page.locator('h1')).toContainText(/General Performance|Performance History/i);
     await expect(page.locator('#report-subtitle')).toContainText(/Preview updates automatically when filters change/i);
     await expect(page.locator('#preview-btn')).toBeVisible();
 

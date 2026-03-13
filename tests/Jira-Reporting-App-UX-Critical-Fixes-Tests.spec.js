@@ -25,7 +25,7 @@ async function clickAndWaitForDownload(page, selector, timeout = 15000) {
 test.describe('Jira Reporting App - UX Critical Fixes Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
   });
 
   test('should display Epic Title and Summary in Stories done report when epicLinkFieldId exists', async ({ page }) => {

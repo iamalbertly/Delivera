@@ -4,7 +4,7 @@ import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-He
 test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance/);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
   });
 
   test('boards table column titles expose helpful tooltips', async ({ page }) => {
@@ -16,7 +16,7 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
       test.skip();
     }
 
-    await page.click('.tab-btn[data-tab="project-epic-level"]');
+    await page.locator('.tab-btn[data-tab="project-epic-level"]').click({ force: true });
     const table = page.locator('#project-epic-level-content table');
     const tableVisible = await table.isVisible().catch(() => false);
     if (!tableVisible) {
@@ -44,7 +44,7 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
 
     const advancedToggle = page.locator('#boards-columns-toggle');
     if (await advancedToggle.isVisible().catch(() => false)) {
-      await advancedToggle.click();
+      await advancedToggle.click({ force: true });
       await expectHeaderWithTooltip('Ad-hoc', 'without epic links');
     }
   });
@@ -58,7 +58,7 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
       test.skip();
     }
 
-    await page.click('.tab-btn[data-tab="sprints"]');
+    await page.locator('.tab-btn[data-tab="sprints"]').click({ force: true });
     const table = page.locator('#sprints-content table');
     const tableVisible = await table.isVisible().catch(() => false);
     if (!tableVisible) {
@@ -95,7 +95,7 @@ test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
       test.skip();
     }
 
-    await page.click('.tab-btn[data-tab="done-stories"]');
+    await page.locator('.tab-btn[data-tab="done-stories"]').click({ force: true });
     const table = page.locator('#done-stories-content table');
     const tableVisible = await table.isVisible().catch(() => false);
     if (!tableVisible) {

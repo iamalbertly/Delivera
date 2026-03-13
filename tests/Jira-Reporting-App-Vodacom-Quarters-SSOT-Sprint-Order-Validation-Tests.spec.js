@@ -12,7 +12,7 @@ test.describe('Jira Reporting App - Vodacom Quarters SSOT Sprint Order Validatio
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
 
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|High-Level Performance/i);
+    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|High-Level Performance|Performance History/i);
     await expect(page.locator('.quick-range-strip')).toBeVisible();
     await page.waitForSelector('.quarter-pill', { timeout: 15000 }).catch(() => null);
     await expect(page.locator('.quarter-pill').first()).toContainText(/Q[1-4]/i);

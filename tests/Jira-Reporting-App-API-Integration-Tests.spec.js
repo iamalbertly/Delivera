@@ -47,6 +47,32 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     expect(Array.isArray(body.namespaces)).toBeTruthy();
   });
 
+  test('report context API persists board and sprint context when authenticated', async ({ request }) => {
+    const writeResponse = await request.post('/api/user-context/report', {
+      data: { boardId: '42', sprintId: '84', projects: 'MPSA', reportPath: '/report' },
+    });
+    if (writeResponse.status() === 401) {
+      test.skip('Auth required; cannot assert report-context session contract');
+      return;
+    }
+    expect(writeResponse.status()).toBe(200);
+    const writeJson = await writeResponse.json();
+    expect(writeJson.ok).toBeTruthy();
+    if (!writeJson.context) {
+      test.skip('Session-backed report context is unavailable when auth/session middleware is disabled.');
+      return;
+    }
+    expect(writeJson.context.boardId).toBe('42');
+    expect(writeJson.context.sprintId).toBe('84');
+
+    const readResponse = await request.get('/api/user-context/report');
+    expect(readResponse.status()).toBe(200);
+    const readJson = await readResponse.json();
+    expect(readJson.ok).toBeTruthy();
+    expect(readJson.context.boardId).toBe('42');
+    expect(readJson.context.sprintId).toBe('84');
+  });
+
   test('GET /report should return HTML page', async ({ request }) => {
     const response = await request.get('/report');
     expect(response.status()).toBe(200);

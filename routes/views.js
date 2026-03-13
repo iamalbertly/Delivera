@@ -2,31 +2,38 @@
 import express from 'express';
 import { requireAuth, authEnabled, legacyAuthEnabled, superTokensEnabled, APP_LOGIN_USER, APP_LOGIN_PASSWORD } from '../lib/middleware.js';
 import { logger } from '../lib/Jira-Reporting-App-Server-Logging-Utility.js';
+import { buildReportUrlFromContext, readReportContextFromSession } from '../lib/Jira-Reporting-App-User-Context-SSOT.js';
 
 const router = express.Router();
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
 const loginFailuresByIp = new Map(); // ip -> { count, resetAt }
 
+function getPreferredReportRedirect(req, explicitRedirect = '') {
+    const safeRedirect = String(explicitRedirect || '').startsWith('/report') ? String(explicitRedirect) : '';
+    if (safeRedirect) return safeRedirect;
+    return buildReportUrlFromContext(readReportContextFromSession(req) || {}, '/report');
+}
+
 // Login: first screen for unauthenticated users
 router.get('/', (req, res) => {
     if (superTokensEnabled && !legacyAuthEnabled) return res.redirect('/auth');
-    if (!authEnabled) return res.redirect('/report');
-    if (req.session && req.session.user) return res.redirect(req.query.redirect || '/report');
+    if (!authEnabled) return res.redirect(getPreferredReportRedirect(req));
+    if (req.session && req.session.user) return res.redirect(getPreferredReportRedirect(req, req.query.redirect));
     res.sendFile('login.html', { root: './public' });
 });
 
 router.get('/login', (req, res) => {
     if (superTokensEnabled && !legacyAuthEnabled) return res.redirect('/auth');
-    if (!authEnabled) return res.redirect('/report');
-    if (req.session && req.session.user) return res.redirect(req.query.redirect || '/report');
+    if (!authEnabled) return res.redirect(getPreferredReportRedirect(req));
+    if (req.session && req.session.user) return res.redirect(getPreferredReportRedirect(req, req.query.redirect));
     res.sendFile('login.html', { root: './public' });
 });
 
 router.post('/login', (req, res) => {
     if (superTokensEnabled && !legacyAuthEnabled) return res.redirect('/auth');
     if (!authEnabled) return res.redirect('/report');
-    const redirect = (req.body.redirect && req.body.redirect.startsWith('/')) ? req.body.redirect : '/report';
+    const redirect = getPreferredReportRedirect(req, req.body.redirect);
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
     const now = Date.now();
     let record = loginFailuresByIp.get(ip);

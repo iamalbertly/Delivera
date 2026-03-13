@@ -6,13 +6,20 @@
  */
 export function wireShowMoreHandler(btnSelector, templateId, tableSelector) {
   const btn = document.querySelector(btnSelector);
-  if (!btn) return;
+  if (!btn || btn.dataset.wiredShowMore === '1') return;
+  btn.dataset.wiredShowMore = '1';
   btn.addEventListener('click', () => {
     const tpl = document.getElementById(templateId);
     const tbody = document.querySelector(tableSelector);
     if (tpl && tbody) {
+      btn.disabled = true;
       tbody.insertAdjacentHTML('beforeend', tpl.innerHTML);
-      btn.style.display = 'none';
+      tpl.remove();
+      btn.remove();
+      try {
+        const firstNewRow = tbody.querySelector('tr:last-child');
+        firstNewRow?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+      } catch (_) {}
     }
   });
 }

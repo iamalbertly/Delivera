@@ -36,6 +36,9 @@ export function renderCurrentSprintPage(data) {
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
 
   html += renderHeaderBar(data);
+  if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
+    html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
+  }
 
   const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData;
   if (allSectionsHidden) {

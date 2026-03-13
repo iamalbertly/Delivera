@@ -1,7 +1,7 @@
 
 import express from 'express';
 import { requireAuth } from '../lib/middleware.js';
-import { logger } from '../lib/Jira-Reporting-App-Server-Logging-Utility.js';
+import { logger, buildRequestLogContext } from '../lib/Jira-Reporting-App-Server-Logging-Utility.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
@@ -14,6 +14,12 @@ import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resol
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
 import { getUnifiedRiskCounts } from '../public/Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { appEnvConfig } from '../lib/Jira-Reporting-App-Config-Env-Services-Core-SSOT.js';
+import {
+    readReportContextFromSession,
+    writeReportContextToSession,
+    normalizeReportContext,
+} from '../lib/Jira-Reporting-App-User-Context-SSOT.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -27,8 +33,79 @@ const FEEDBACK_FILE = join(FEEDBACK_DIR, 'JiraReporting-Feedback-UserInput-Submi
 const router = express.Router();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
 
+function getErrorStatusCode(error) {
+    return error?.statusCode
+        || error?.cause?.response?.status
+        || error?.response?.status
+        || error?.cause?.status
+        || 500;
+}
+
+function mapCurrentSprintError(error) {
+    const statusCode = getErrorStatusCode(error);
+    if (statusCode === 401) {
+        return {
+            httpStatus: 401,
+            payload: {
+                error: 'Jira authentication expired',
+                code: 'JIRA_RECONNECT_REQUIRED',
+                message: 'Reconnect Jira to restore sprint data.',
+                ribbon: { tone: 'warning', cta: 'Reconnect Jira' },
+            },
+        };
+    }
+    if (statusCode === 403) {
+        return {
+            httpStatus: 403,
+            payload: {
+                error: 'Jira access changed',
+                code: 'JIRA_ACCESS_DENIED',
+                message: 'Some Jira boards or fields are no longer accessible.',
+                ribbon: { tone: 'warning', cta: 'Reconnect Jira' },
+                partialPermissions: true,
+            },
+        };
+    }
+    if (statusCode === 429) {
+        return {
+            httpStatus: 429,
+            payload: {
+                error: 'Jira rate limit',
+                code: 'JIRA_RATE_LIMITED',
+                message: 'Jira is rate limiting requests. Retry in a moment.',
+                ribbon: { tone: 'info', cta: 'Retry' },
+            },
+        };
+    }
+    return {
+        httpStatus: 500,
+        payload: {
+            error: 'Failed to generate current sprint data',
+            code: 'CURRENT_SPRINT_FAILED',
+            message: error?.message || 'Unexpected error while loading current sprint data.',
+        },
+    };
+}
+
 function normalizeNarrativeText(value) {
     return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function buildOutcomeDuplicateHashJql(projectKey, hashLabel) {
+    return `project = ${projectKey} AND labels = "${hashLabel}" ORDER BY created DESC`;
+}
+
+function buildOutcomeDuplicateLabelJql(projectKey) {
+    return `project = ${projectKey} AND labels = OutcomeStory ORDER BY created DESC`;
+}
+
+function buildCurrentSprintSessionContext(projects, boardId, sprintId) {
+    return {
+        boardId,
+        sprintId,
+        projects: Array.isArray(projects) ? projects.join(',') : String(projects || ''),
+        reportPath: '/report',
+    };
 }
 
 function extractFirstNarrativeIssueKey(text) {
@@ -206,17 +283,49 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         payload.meta.snapshotAt = null;
         payload.meta.jiraHost = resolvedJiraHost();
         payload.meta.jiraHostResolved = payload.meta.jiraHost || '';
+        payload.meta.requestId = req.requestId || '';
+        payload.meta.projects = projectKeys.join(',');
+        payload.meta.partialPermissions = false;
+
+        const selectedSprintState = String(payload?.sprint?.state || '').toLowerCase();
+        const noActiveSprintFallback = !sprintId && selectedSprintState === 'closed' && Number(payload?.meta?.activeSprintCount || 0) === 0;
+        if (noActiveSprintFallback) {
+            payload.meta.noActiveSprintFallback = true;
+            payload.meta.explanatoryLine = 'No active sprint - showing last completed sprint.';
+        }
+
+        writeReportContextToSession(req, buildCurrentSprintSessionContext(projectKeys, boardId, payload?.sprint?.id || sprintId));
 
         try {
             await cache.set(snapshotKey, payload, CACHE_TTL.CURRENT_SPRINT_SNAPSHOT, { namespace: 'currentSprintSnapshot' });
         } catch (e) {
-            logger.warn('Failed to cache current-sprint snapshot', { boardId, error: e.message });
+            logger.warn('Failed to cache current-sprint snapshot', buildRequestLogContext(req, { boardId, error: e.message }));
         }
         res.json(payload);
     } catch (error) {
-        logger.error('Error generating current-sprint payload', error);
-        res.status(500).json({ error: 'Failed to generate current sprint data', message: error.message });
+        const boardId = req.query?.boardId != null ? Number(req.query.boardId) : null;
+        const mapped = mapCurrentSprintError(error);
+        if (mapped.httpStatus === 401 || mapped.httpStatus === 403) {
+            await cache.invalidateCurrentSprintSnapshot({ boardId }).catch(() => {});
+        }
+        logger.error('Error generating current-sprint payload', {
+            ...buildRequestLogContext(req, { boardId, status: mapped.httpStatus }),
+            error,
+        });
+        res.status(mapped.httpStatus).json(mapped.payload);
     }
+});
+
+router.get('/api/user-context/report', requireAuth, (req, res) => {
+    res.json({
+        ok: true,
+        context: readReportContextFromSession(req),
+    });
+});
+
+router.post('/api/user-context/report', requireAuth, (req, res) => {
+    const context = writeReportContextToSession(req, req.body || {});
+    res.json({ ok: true, context });
 });
 
 router.post('/api/current-sprint-notes', requireAuth, async (req, res) => {
@@ -385,7 +494,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         const candidates = [];
         try {
             const byHash = await version3Client.issueSearch.searchForIssuesUsingJqlPost({
-                jql: `project = ${projectKey} AND labels = "${hashLabel}" ORDER BY created DESC`,
+                jql: buildOutcomeDuplicateHashJql(projectKey, hashLabel),
                 maxResults: 5,
                 fields: ['summary', 'labels', 'description'],
             });
@@ -396,7 +505,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         if (!candidates.length) {
             try {
                 const byOutcomeStory = await version3Client.issueSearch.searchForIssuesUsingJqlPost({
-                    jql: `project = ${projectKey} AND labels = OutcomeStory ORDER BY created DESC`,
+                    jql: buildOutcomeDuplicateLabelJql(projectKey),
                     maxResults: 30,
                     fields: ['summary', 'labels', 'description'],
                 });
@@ -549,9 +658,8 @@ router.post('/feedback', async (req, res) => {
     }
 });
 
-const allowTestCacheClear = process.env.NODE_ENV === 'test' || process.env.ALLOW_TEST_CACHE_CLEAR === '1';
 router.post('/api/test/clear-cache', async (req, res) => {
-    if (!allowTestCacheClear) return res.status(404).json({ error: 'Not found' });
+    if (!appEnvConfig.allowTestCacheClear) return res.status(404).json({ error: 'Not found' });
     await cache.clear();
     res.json({ ok: true });
 });

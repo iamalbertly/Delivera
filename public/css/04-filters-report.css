@@ -2277,9 +2277,20 @@ body.report-page .filters-panel .filters-panel-body {
   gap: 12px;
 }
 
+body.report-page .report-primary-filters-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
 body.report-page .filters-panel .filter-group {
   margin-bottom: 0;
   padding-bottom: 12px;
+}
+
+body.report-page .report-secondary-filters-row {
+  padding-top: 0;
 }
 
 body.report-page .project-group-label {
@@ -2321,6 +2332,19 @@ body.report-page .date-range-custom-wrap {
   gap: 8px;
 }
 
+body.report-page .boards-table-compact-mode table.data-table td,
+body.report-page .boards-table-compact-mode table.data-table th {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 0.84rem;
+}
+
+body.report-page .boards-table-load-more-wrap {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 10px;
+}
+
 body.report-page .date-range-custom-wrap label + label {
   margin-top: 0;
 }
@@ -2333,6 +2357,12 @@ body.report-page .report-rules-tile {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fafcff;
+}
+
+@media (max-width: 1024px) {
+  body.report-page .report-primary-filters-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 body.report-page .report-rules-summary {
