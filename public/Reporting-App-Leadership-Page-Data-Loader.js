@@ -146,6 +146,7 @@ function buildPreviewUrl() {
     includeBugsForRework: 'true',
     includePredictability: 'true',
     includeEpicTTM: 'true',
+    includeQuarterlyKpiSummary: 'true',
   });
   return '/preview.json?' + params.toString();
 }

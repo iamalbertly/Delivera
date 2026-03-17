@@ -86,6 +86,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/sprint-leadership,/report',
   },
+  'tests/Jira-Reporting-App-Leadership-Investment-KPI-Validation-Tests.spec.js': {
+    journey: 'journey.leadership',
+    layer: 'page-ux',
+    page: '/leadership,/report#trends',
+  },
 
   // Outcome intake and outcome-first UX
   'tests/Jira-Reporting-App-Outcome-Intake-And-Readiness-Validation-Tests.spec.js': {

@@ -3,7 +3,8 @@ import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-
 import { renderEmptyStateHtml, renderNoBoardsForRangeEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { buildActiveFiltersContextLabel, buildReportRangeLabel, getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
+import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
+import { buildTrustBadge, formatCostPerSPDisplay, formatOverheadDisplay, buildUtilizationDisplay } from './Reporting-App-Shared-Cost-Capacity-Calc.js';
 
 export function getLeadershipTrendVisibilityHint() {
   return 'For trend visibility, not team ranking.';
@@ -11,6 +12,156 @@ export function getLeadershipTrendVisibilityHint() {
 
 export function getLeadershipIndexedDeliveryHint(windowSize = 6) {
   return `Indexed Delivery = current SP/day vs own baseline (last ${windowSize} closed sprints).`;
+}
+
+function formatPct(value, decimals = 0) {
+  return value == null || Number.isNaN(Number(value)) ? '-' : `${formatNumber(value, decimals, '-') }%`;
+}
+
+function renderLeadershipRecommendedAction(data, projectsLabel) {
+  const outlierEpics = Array.isArray(data?.kpis?.outlierEpics) ? data.kpis.outlierEpics : [];
+  const outlierSprints = Array.isArray(data?.kpis?.outlierSprints) ? data.kpis.outlierSprints : [];
+  const trustBand = data?.kpis?.dataQuality?.trustBand || '';
+  let headline = 'Portfolio looks readable.';
+  let body = 'Use board trends to compare delivery movement, then jump straight into current sprint for intervention.';
+  let secondaryAction = '<a class="btn btn-secondary btn-compact" href="/current-sprint">Open current sprint</a>';
+
+  if (trustBand === 'Weak') {
+    headline = 'Data quality needs repair before this becomes a board-ranking conversation.';
+    body = 'Fix missing epic dates or timesheets first so cost, utilization, and predictability stay trustworthy.';
+    secondaryAction = '<button type="button" class="btn btn-secondary btn-compact" data-preview-context-action="open-unusable-sprints">Fix excluded sprints</button>';
+  } else if (outlierEpics.length > 0) {
+    headline = 'Long-running epics are the clearest leadership intervention right now.';
+    body = `Start with ${outlierEpics[0].label} and tighten scope, owner decisions, or slicing before it drags another quarter.`;
+  } else if (outlierSprints.length > 0) {
+    headline = 'Sprint reliability is the fastest place to recover trust.';
+    body = `Review ${outlierSprints[0].label} and stop scope churn before it becomes systemic drag.`;
+  }
+
+  return `
+    <section class="leadership-direct-value-card" aria-label="Recommended next action">
+      <div>
+        <p class="leadership-direct-value-eyebrow">Recommended next action</p>
+        <h2>${escapeHtml(headline)}</h2>
+        <p>${escapeHtml(body)}</p>
+      </div>
+      <div class="leadership-direct-value-actions">
+        <button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="${escapeHtml(headline)}" data-outcome-projects="${escapeHtml((projectsLabel || '').replace(/\s+/g, ''))}">Create work from insight</button>
+        ${secondaryAction}
+      </div>
+    </section>
+  `;
+}
+
+function renderLeadershipKpiStrip(data) {
+  const projectKPIs = data?.kpis?.projectKPIs || {};
+  const projectKeys = Object.keys(projectKPIs);
+  if (!projectKeys.length) return '';
+
+  const cards = projectKeys.map((projectKey) => {
+    const kpi = projectKPIs[projectKey];
+    const trustBadge = buildTrustBadge(kpi?.dataQuality);
+    const utilization = buildUtilizationDisplay(kpi);
+    return `
+      <article class="leadership-kpi-project-card" data-kpi-project="${escapeHtml(projectKey)}">
+        <header>
+          <h3>${escapeHtml(projectKey)}</h3>
+          ${trustBadge ? `<span class="kpi-trust-badge tone-${escapeHtml(trustBadge.tone)}" title="${escapeHtml(trustBadge.tooltip || '')}">${escapeHtml(trustBadge.label)}</span>` : ''}
+        </header>
+        <dl class="leadership-kpi-mini-grid">
+          <div><dt>Cost / SP</dt><dd>${escapeHtml(formatCostPerSPDisplay(kpi) || 'No data')}</dd></div>
+          <div><dt>Overhead</dt><dd>${escapeHtml(formatOverheadDisplay(kpi) || 'No data')}</dd></div>
+          <div><dt>Utilization</dt><dd>${escapeHtml(utilization.text || 'No data')}</dd></div>
+          <div><dt>Predictability</dt><dd>${escapeHtml(formatPct(kpi?.avgPredictabilityPct, 0))}</dd></div>
+          <div><dt>Rework</dt><dd>${escapeHtml(formatPct(kpi?.reworkPct, 1))}</dd></div>
+          <div><dt>Epic TTM</dt><dd>${escapeHtml(kpi?.epicTTMWorkingDays != null ? `${formatNumber(kpi.epicTTMWorkingDays, 0, '-') }d` : 'No data')}</dd></div>
+        </dl>
+      </article>
+    `;
+  }).join('');
+
+  const csvRows = projectKeys.map((projectKey) => {
+    const kpi = projectKPIs[projectKey];
+    const utilization = buildUtilizationDisplay(kpi);
+    return [
+      projectKey,
+      formatCostPerSPDisplay(kpi) || '',
+      formatOverheadDisplay(kpi) || '',
+      utilization.text || '',
+      formatPct(kpi?.avgPredictabilityPct, 0),
+      formatPct(kpi?.reworkPct, 1),
+      kpi?.epicTTMWorkingDays != null ? `${formatNumber(kpi.epicTTMWorkingDays, 0, '-')}` : '',
+      kpi?.dataQuality?.trustBand || '',
+    ].join('|');
+  }).join('\n');
+
+  return `
+    <section class="leadership-kpi-strip" aria-label="Quarterly KPI comparison">
+      <div class="leadership-card-header leadership-card-header--compact">
+        <div>
+          <h2>Investment and delivery KPIs</h2>
+          <p class="leadership-delivery-hint">Compact squad comparison for quarterly cost, throughput, reliability, and trust.</p>
+        </div>
+        <div class="leadership-view-actions">
+          <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-kpis-csv">Export KPI CSV</button>
+        </div>
+      </div>
+      <div class="leadership-kpi-project-grid">${cards}</div>
+      <pre class="visually-hidden" id="leadership-kpi-export-data">${escapeHtml(csvRows)}</pre>
+    </section>
+  `;
+}
+
+function renderLeadershipTrustCard(data) {
+  const quality = data?.kpis?.dataQuality;
+  if (!quality) return '';
+  const costModelSource = data?.kpis?.meta?.costModelSource || quality.costModelSource || 'unavailable';
+  return `
+    <section class="leadership-trust-card" aria-label="Data quality and assumptions">
+      <div>
+        <p class="leadership-direct-value-eyebrow">Trust and assumptions</p>
+        <h3>${escapeHtml(quality.trustBand || 'Weak')} evidence quality</h3>
+      </div>
+      <div class="leadership-trust-grid">
+        <div><span>SP coverage</span><strong>${escapeHtml(formatPct((quality.spCoverage || 0) * 100, 0))}</strong></div>
+        <div><span>Sprint dates</span><strong>${escapeHtml(formatPct((quality.dateCoverage || 0) * 100, 0))}</strong></div>
+        <div><span>Timesheets</span><strong>${escapeHtml(formatPct((quality.timesheetCoverage || 0) * 100, 0))}</strong></div>
+        <div><span>Epic hygiene</span><strong>${escapeHtml(formatPct((quality.epicHygiene || 0) * 100, 0))}</strong></div>
+      </div>
+      <p class="metrics-hint">Cost model source: ${escapeHtml(costModelSource)}. ${escapeHtml(quality.assumptions?.costPerSP || '')} ${escapeHtml(quality.assumptions?.utilization || '')}</p>
+    </section>
+  `;
+}
+
+function renderLeadershipOutliers(data) {
+  const outlierEpics = Array.isArray(data?.kpis?.outlierEpics) ? data.kpis.outlierEpics : [];
+  const outlierSprints = Array.isArray(data?.kpis?.outlierSprints) ? data.kpis.outlierSprints : [];
+  if (!outlierEpics.length && !outlierSprints.length) return '';
+
+  const renderList = (items, sectionTitle) => {
+    if (!items.length) return '';
+    const rows = items.map((item) => `
+      <li>
+        <strong>${escapeHtml(item.label)}</strong>
+        <span>${escapeHtml(item.metric)}: ${escapeHtml(formatNumber(item.value, 0, '-'))}${item.metric.includes('%') ? '%' : ''}</span>
+        <span>${escapeHtml(item.rcaHint || '')}</span>
+        ${item.jiraHref ? `<a href="${escapeHtml(item.jiraHref)}" target="_blank" rel="noopener noreferrer">Open in Jira</a>` : ''}
+      </li>
+    `).join('');
+    return `
+      <section class="leadership-outlier-panel">
+        <h3>${escapeHtml(sectionTitle)}</h3>
+        <ul>${rows}</ul>
+      </section>
+    `;
+  };
+
+  return `
+    <section class="leadership-outliers" aria-label="Delivery outliers">
+      ${renderList(outlierEpics, 'Epic outliers')}
+      ${renderList(outlierSprints, 'Sprint outliers')}
+    </section>
+  `;
 }
 
 function computeVelocityWindowStats(sprints, windowEnd, months) {
@@ -64,7 +215,6 @@ export function renderLeadershipPage(data) {
   const rangeEnd = meta.windowEnd ? formatDateShort(meta.windowEnd) : '-';
   const indexedDeliveryHint = getLeadershipIndexedDeliveryHint(6);
   const trendVisibilityHint = getLeadershipTrendVisibilityHint();
-  const rangeTooltip = 'Completion anchored to resolution date. ' + indexedDeliveryHint + ' ' + trendVisibilityHint.replace('ranking.', 'performance ranking.');
   const rangeStartAttr = meta.windowStart ? formatDateShort(meta.windowStart) : '';
   const rangeEndAttr = meta.windowEnd ? formatDateShort(meta.windowEnd) : '';
   const projectsAttr = (meta.projects || '').replace(/,/g, '-').replace(/\s+/g, '') || '';
@@ -73,10 +223,6 @@ export function renderLeadershipPage(data) {
     .map((p) => String(p || '').trim())
     .filter(Boolean)
     .join(', ');
-  const leadershipContextLabel = [
-    buildActiveFiltersContextLabel(projectsLabel || '-', meta.windowStart, meta.windowEnd).replace(/\|\s*Range\b[^|]*$/i, '').trim(),
-    buildReportRangeLabel(meta.windowStart, meta.windowEnd),
-  ].filter(Boolean).join(' | ');
   const contextSegments = renderContextSegments(getContextPieces({
     projects: projectsLabel || '-',
     rangeStart: meta.windowStart,
@@ -88,9 +234,6 @@ export function renderLeadershipPage(data) {
   let html = '<div class="leadership-context-sticky">';
   html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
   html += contextSegments;
-  html += '<p class="metrics-hint leadership-context-line">';
-  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">' + escapeHtml(leadershipContextLabel) + '</span>';
-  html += '</p>';
 
   let outcomeLine = '';
   if (boards.length > 0) {
@@ -144,6 +287,10 @@ export function renderLeadershipPage(data) {
     html += '<p class="leadership-outcome-line" aria-live="polite">' + escapeHtml(compactOutcomeLine) + '</p>';
   }
   html += '</div>';
+  html += renderLeadershipRecommendedAction(data, projectsLabel);
+  html += renderLeadershipKpiStrip(data);
+  html += renderLeadershipTrustCard(data);
+  html += renderLeadershipOutliers(data);
 
   html += '<div class="leadership-card">';
   html += '<div class="leadership-card-header">';
@@ -378,6 +525,15 @@ export function renderLeadershipPage(data) {
     }
     html += '</tbody></table></div></div>';
     html += '</details>';
+  }
+
+  if (data?.kpis?.meta?.generatedAt || data?.kpis?.dataQuality) {
+    html += '<section class="leadership-governance-footer" aria-label="Leadership governance note">';
+    html += '<p><strong>Leadership use:</strong> trend visibility, intervention prioritization, and investment hygiene. Do not use this page as a team-ranking scoreboard.</p>';
+    if (data?.kpis?.meta?.generatedAt) {
+      html += '<p class="metrics-hint">KPI snapshot generated ' + escapeHtml(formatDateShort(data.kpis.meta.generatedAt)) + ' for this report window.</p>';
+    }
+    html += '</section>';
   }
 
   return html;

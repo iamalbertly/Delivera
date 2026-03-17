@@ -492,6 +492,7 @@ export function initPreviewFlow() {
     // Prefer serving any usable cached preview first so users see value faster,
     // especially on heavy ranges, while the server refreshes in the background.
     params.preferCache = 'true';
+    params.includeQuarterlyKpiSummary = 'true';
 
     const queryString = new URLSearchParams(params).toString();
     const cacheKey = `${cachePrefix}${queryString}`;

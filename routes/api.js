@@ -21,6 +21,7 @@ import {
     normalizeReportContext,
 } from '../lib/Jira-Reporting-App-User-Context-SSOT.js';
 import { parseOutcomeIntake } from '../public/Reporting-App-Shared-Outcome-Intake-Parser.js';
+import { buildQuarterlyKPIForProjects } from '../lib/Jira-Reporting-App-Data-QuarterlyKPI-Calculator.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -1366,6 +1367,42 @@ router.post('/export-excel', requireAuth, async (req, res) => {
     } catch (error) {
         logger.error('Error exporting Excel', error);
         res.status(500).json({ error: 'Failed to export Excel' });
+    }
+});
+
+router.get('/api/quarterly-kpi-summary.json', requireAuth, async (req, res) => {
+    try {
+        const projectsParam = String(req.query.projects || '').trim();
+        const projectKeys = projectsParam ? projectsParam.split(',').map((p) => p.trim()).filter(Boolean) : [];
+        if (!projectKeys.length) {
+            res.status(400).json({
+                error: 'Missing projects',
+                code: 'MISSING_PROJECTS',
+                message: 'At least one project key is required.',
+            });
+            return;
+        }
+
+        const windowStart = req.query.start || DEFAULT_WINDOW_START;
+        const windowEnd = req.query.end || DEFAULT_WINDOW_END;
+
+        const kpiPayload = await buildQuarterlyKPIForProjects({
+            projectKeys,
+            windowStart,
+            windowEnd,
+            projectRoot: join(__dirname, '..'),
+        });
+
+        res.json(kpiPayload);
+    } catch (error) {
+        logger.error('Failed to build quarterly KPI summary', {
+            error,
+        });
+        res.status(500).json({
+            error: 'Failed to build quarterly KPI summary',
+            code: 'QUARTERLY_KPI_FAILED',
+            message: error?.message || 'Unexpected error while computing quarterly KPIs.',
+        });
     }
 });
 

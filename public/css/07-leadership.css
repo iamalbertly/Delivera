@@ -30,11 +30,161 @@
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
+.leadership-direct-value-card,
+.leadership-trust-card,
+.leadership-kpi-strip,
+.leadership-outliers,
+.leadership-governance-footer {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.leadership-direct-value-card,
+.leadership-trust-card {
+  display: grid;
+  gap: 10px;
+}
+
+.leadership-direct-value-eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.leadership-direct-value-card h2,
+.leadership-trust-card h3 {
+  margin: 0;
+  color: var(--primary);
+}
+
+.leadership-direct-value-card p,
+.leadership-governance-footer p {
+  margin: 0;
+}
+
+.leadership-direct-value-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.leadership-kpi-project-grid,
+.leadership-outliers {
+  display: grid;
+  gap: 12px;
+}
+
+.leadership-kpi-project-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.leadership-kpi-project-card,
+.leadership-outlier-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--card-muted);
+}
+
+.leadership-kpi-project-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.leadership-kpi-project-card h3,
+.leadership-outlier-panel h3 {
+  margin: 0;
+  font-size: 0.96rem;
+  color: var(--primary);
+}
+
+.leadership-kpi-mini-grid,
+.leadership-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px 12px;
+}
+
+.leadership-kpi-mini-grid dt,
+.leadership-trust-grid span {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.leadership-kpi-mini-grid dd,
+.leadership-trust-grid strong {
+  margin: 2px 0 0;
+  font-size: 0.98rem;
+  color: var(--text);
+}
+
+.leadership-outlier-panel ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.leadership-outlier-panel li {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.leadership-outlier-panel a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.kpi-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.kpi-trust-badge.tone-strong {
+  color: #166534;
+  background: #ecfdf3;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.kpi-trust-badge.tone-mixed {
+  color: #9a6700;
+  background: #fff8e6;
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.kpi-trust-badge.tone-weak {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .current-sprint-header-bar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .leadership-kpi-project-grid,
+  .leadership-trust-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .header-bar-center {
@@ -200,6 +350,11 @@
   .scope-modal-content {
     max-height: 90vh;
     border-radius: var(--radius);
+  }
+
+  .leadership-kpi-project-grid,
+  .leadership-trust-grid {
+    grid-template-columns: 1fr;
   }
 
   .modal-header {

@@ -4,7 +4,8 @@
  */
 
 import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
-import { getLeadershipTrendVisibilityHint } from './Reporting-App-Leadership-Page-Render.js';
+import { renderKPICard, KPI_TREND_VISIBILITY_HINT } from './Reporting-App-Shared-KPI-Card-Renderer.js';
+import { buildTrustBadge, formatCostPerSPDisplay, buildUtilizationDisplay } from './Reporting-App-Shared-Cost-Capacity-Calc.js';
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
 const STALE_THRESHOLD_MS = 15 * 60 * 1000;
@@ -20,22 +21,6 @@ function getTrendHtml(trend) {
   const direction = trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
   const arrow = trend > 0 ? '^' : trend < 0 ? 'v' : '->';
   return `<span class="trend-${direction}">${arrow} ${Math.abs(trend)}% vs last 3</span>`;
-}
-
-function renderCard(label, value, unit, trendHtml, colorClass = '', href = '') {
-  const wrap = href
-    ? `<a href="${href}" class="hud-card-link" style="text-decoration:none;color:inherit;display:block;">`
-    : '';
-  const wrapEnd = href ? '</a>' : '';
-  return `
-    ${wrap}<div class="hud-card">
-      <div>
-        <div class="metric-label">${label}</div>
-        <div class="metric-value ${colorClass}">${value}<span class="metric-unit">${unit}</span></div>
-        <div class="metric-trend">${trendHtml}</div>
-      </div>
-    </div>${wrapEnd}
-  `;
 }
 
 function updateHeaderStatus(text, stateClass) {
@@ -97,8 +82,9 @@ function renderContextHeader(data) {
   if (risk.blockersOwned != null) parts.push(`${formatNumber(risk.blockersOwned, 0)} owned blockers`);
   if (risk.dataQualityRisk != null) parts.push(`Hygiene ${formatNumber(risk.dataQualityRisk, 0)}%`);
   if (limitedHistory > 0) parts.push(`${limitedHistory} low-confidence boards`);
+  if (data?.kpis?.dataQuality?.trustBand) parts.push(`Trust ${data.kpis.dataQuality.trustBand}`);
   summaryEl.textContent = parts.length
-    ? parts.join(' - ') + ' - ' + getLeadershipTrendVisibilityHint()
+    ? parts.join(' - ') + ' - ' + KPI_TREND_VISIBILITY_HINT
     : 'Delivery trend and risk signals will appear here once data loads.';
 }
 
@@ -113,9 +99,36 @@ async function fetchHudData() {
     }
     if (!res.ok) throw new Error(`API Error ${res.status}`);
 
-    const data = await res.json();
-    renderHud(data);
-    renderContextHeader(data);
+    const baseData = await res.json();
+
+    let kpis = null;
+    try {
+      const projectContextRaw = Array.isArray(baseData.projects)
+        ? baseData.projects.join(',')
+        : String(baseData.projectContext || '').split(',').map((p) => p.trim()).filter(Boolean).join(',');
+      const windowStart = baseData.windowStart || baseData.meta?.windowStart || '';
+      const windowEnd = baseData.windowEnd || baseData.meta?.windowEnd || '';
+      const params = new URLSearchParams();
+      if (projectContextRaw) params.set('projects', projectContextRaw);
+      if (windowStart) params.set('start', windowStart);
+      if (windowEnd) params.set('end', windowEnd);
+
+      if (params.toString()) {
+        const kpiRes = await fetch(`/api/quarterly-kpi-summary.json?${params.toString()}`);
+        if (kpiRes.ok) {
+          kpis = await kpiRes.json();
+        } else {
+          console.warn('Quarterly KPI summary request failed', kpiRes.status); // eslint-disable-line no-console
+        }
+      }
+    } catch (innerErr) {
+      console.warn('Quarterly KPI summary fetch error', innerErr); // eslint-disable-line no-console
+    }
+
+    const merged = kpis ? { ...baseData, kpis } : baseData;
+
+    renderHud(merged);
+    renderContextHeader(merged);
     lastFetchTime = Date.now();
     updateHeaderStatus('Live', 'hud-status-pill is-live');
     updateTimeAgo();
@@ -132,7 +145,7 @@ function renderHud(data) {
   const grid = document.getElementById('hud-grid');
   if (!grid) return;
 
-  const { velocity = {}, risk = {}, quality = {}, predictability = {} } = data || {};
+  const { velocity = {}, risk = {}, quality = {}, predictability = {}, kpis = {} } = data || {};
   const noMetricData = [velocity?.avg, risk?.score, quality?.reworkPct, predictability?.avg]
     .every((value) => value == null || Number.isNaN(Number(value)));
 
@@ -154,12 +167,107 @@ function renderHud(data) {
     '<span class="trend-neutral"><a href="/report" style="color:#0f4c81">Open Performance - History</a> - <a href="/current-sprint" style="color:#0f4c81">Open Performance - Current Sprint</a></span>',
   ].join('');
 
-  grid.innerHTML = [
-    renderCard('Velocity (Last 3)', formatNumber(velocity.avg, 0), 'SP', getTrendHtml(velocity.trend), '', '/report#trends'),
-    renderCard('Risk Index', formatNumber(risk.score, 0), '%', riskNarrative, risk.score > 20 ? 'trend-down' : '', '/current-sprint'),
-    renderCard('Rework Ratio', formatNumber(quality.reworkPct, 1), '%', getTrendHtml(quality.trend), '', '/report#trends'),
-    renderCard('Predictability', formatNumber(predictability.avg, 0), '%', getTrendHtml(predictability.trend), '', '/report'),
-  ].join('');
+  const projectKpis = kpis?.projectKPIs || {};
+  const projectKeys = Object.keys(projectKpis);
+  const fallbackProjectKey = Array.isArray(data?.projects) && data.projects.length === 1 ? data.projects[0] : (projectKeys[0] || null);
+  const projectKpi = fallbackProjectKey ? projectKpis[fallbackProjectKey] : null;
+  const cards = [];
+
+  cards.push(renderKPICard({
+    label: 'Velocity (Last 3)',
+    value: velocity?.avg != null ? formatNumber(velocity.avg, 0) : null,
+    unit: 'SP',
+    trendHtml: getTrendHtml(velocity.trend),
+    detailHref: '/report#trends',
+  }));
+
+  cards.push(renderKPICard({
+    label: 'Risk Index',
+    value: risk?.score != null ? formatNumber(risk.score, 0) : null,
+    unit: '%',
+    trendHtml: riskNarrative,
+    status: risk?.score > 20 ? 'below-target' : 'on-target',
+    detailHref: '/current-sprint',
+  }));
+
+  cards.push(renderKPICard({
+    label: 'Rework Ratio',
+    value: quality?.reworkPct != null ? formatNumber(quality.reworkPct, 1) : null,
+    unit: '%',
+    trendHtml: getTrendHtml(quality.trend),
+    detailHref: '/report#trends',
+  }));
+
+  cards.push(renderKPICard({
+    label: 'Predictability',
+    value: predictability?.avg != null ? formatNumber(predictability.avg, 0) : null,
+    unit: '%',
+    trendHtml: getTrendHtml(predictability.trend),
+    detailHref: '/report',
+  }));
+
+  if (projectKpi) {
+    const trustBadge = buildTrustBadge(projectKpi.dataQuality || null);
+    const utilization = buildUtilizationDisplay(projectKpi);
+
+    if (projectKpi.costPerSP != null) {
+      cards.push(renderKPICard({
+        label: `Cost per SP${projectKeys.length > 1 ? ` (${fallbackProjectKey})` : ''}`,
+        value: formatCostPerSPDisplay(projectKpi),
+        unit: '',
+        status: projectKpi.costPerSPStatus || 'no-data',
+        detailHref: '/report#trends',
+        trustBadge,
+      }));
+    }
+
+    if (projectKpi.avgOverheadPct != null) {
+      cards.push(renderKPICard({
+        label: `AVG Overhead${projectKeys.length > 1 ? ` (${fallbackProjectKey})` : ''}`,
+        value: Number(projectKpi.avgOverheadPct).toFixed(1),
+        unit: '%',
+        status: projectKpi.avgOverheadStatus || 'no-data',
+        detailHref: '/report#trends',
+        trustBadge,
+      }));
+    }
+
+    cards.push(renderKPICard({
+      label: `Utilization${projectKeys.length > 1 ? ` (${fallbackProjectKey})` : ''}`,
+      value: utilization.text,
+      unit: '',
+      status: projectKpi.utilizationPct != null ? 'on-target' : 'no-data',
+      detailHref: '/report#trends',
+      trustBadge,
+    }));
+  }
+
+  if (kpis?.dataQuality) {
+    cards.push(renderKPICard({
+      label: 'Portfolio trust',
+      value: kpis.dataQuality.trustBand || 'Weak',
+      unit: '',
+      trendHtml: `<span class="trend-neutral">SP ${(kpis.dataQuality.spCoverage * 100).toFixed(0)}% · Dates ${(kpis.dataQuality.dateCoverage * 100).toFixed(0)}% · Timesheets ${(kpis.dataQuality.timesheetCoverage * 100).toFixed(0)}%</span>`,
+      detailHref: '/report#trends',
+      trustBadge: buildTrustBadge(kpis.dataQuality),
+    }));
+  }
+
+  const primaryOutlier = (Array.isArray(kpis?.outlierEpics) && kpis.outlierEpics[0])
+    || (Array.isArray(kpis?.outlierSprints) && kpis.outlierSprints[0])
+    || null;
+  if (primaryOutlier) {
+    cards.push(renderKPICard({
+      label: 'Top outlier',
+      value: primaryOutlier.label,
+      unit: '',
+      detailHref: '/report#trends',
+      status: 'below-target',
+      trendHtml: `<span class="trend-neutral">${primaryOutlier.metric}: ${formatNumber(primaryOutlier.value, 0)}</span><span class="trend-neutral">${primaryOutlier.rcaHint || ''}</span>`,
+    }));
+  }
+
+  grid.innerHTML = cards.join('');
 }
 
 function updateTimeAgo() {

@@ -38,6 +38,24 @@ function exportLeadershipBoardsCsv() {
   setTimeout(() => window.URL.revokeObjectURL(url), 500);
 }
 
+function exportLeadershipKpisCsv() {
+  const raw = document.getElementById('leadership-kpi-export-data')?.textContent || '';
+  const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
+  if (!lines.length) return;
+  const csv = [
+    'Project,Cost per SP,Overhead,Utilization,Predictability,Rework,Epic TTM (days),Trust',
+    ...lines.map((line) => line.split('|').map(csvEscape).join(',')),
+  ].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `leadership-kpis-${stamp}.csv`;
+  a.click();
+  setTimeout(() => window.URL.revokeObjectURL(url), 500);
+}
+
 function initLeadershipPage() {
   renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
   initGlobalOutcomeModal({
@@ -60,6 +78,10 @@ function initLeadershipPage() {
     }
     if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-boards-csv') {
       exportLeadershipBoardsCsv();
+      return;
+    }
+    if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-kpis-csv') {
+      exportLeadershipKpisCsv();
     }
     const viewBtn = ev.target && ev.target.closest ? ev.target.closest('#leadership-content [data-leadership-view]') : null;
     if (viewBtn) {
