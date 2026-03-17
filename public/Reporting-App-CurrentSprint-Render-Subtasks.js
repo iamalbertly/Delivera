@@ -43,22 +43,18 @@ export function renderWorkRisksMerged(data) {
 
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
   html += '<div class="work-risks-inline-summary">';
-  html += '<span class="work-risks-inline-label">Flow | Issues | Blockers</span>';
+  html += '<span class="work-risks-inline-label">Mission-critical work</span>';
   html += '<button type="button" class="work-risks-inline-toggle" data-work-risk-inline-toggle aria-expanded="false" title="How sprint risks are calculated">How this is calculated</button>';
   html += '</div>';
   html += '<div class="work-risks-inline-details" data-work-risk-inline-details hidden>';
 
-  // Compact meta: one-line context only, deeper semantics live in the stories card.
   const metaParts = [];
   if (scopeChanges.length > 0) metaParts.push('+' + scopeChanges.length + ' scope (' + formatNumber(scopeSP, 1, '0') + ' SP)');
   if (excludedParents > 0) metaParts.push(excludedParents + ' parent' + (excludedParents > 1 ? 's' : '') + ' via subtasks');
   if (metaParts.length > 0) {
     html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' | ')) + '</small></p>';
   }
-  html += '<p class="meta-row"><small>Use the Lens control and risk chips to change the same work-risk view in one place.</small></p>';
-  if (noEstimateRows > 0 || noLogRows > 0) {
-    html += '<p class="meta-row"><small>Interpretation: <strong>Missing estimate</strong> = no planning baseline; <strong>No log yet</strong> = plan exists, actual effort missing.</small></p>';
-  }
+  html += '<p class="meta-row"><small>One filtered work list. Use shortcuts below to focus the exact risk.</small></p>';
 
   if (!rows.length) {
     html += '<p class="meta-row"><small>No extra risks detected. The main work list already reflects the current sprint state.</small></p>';

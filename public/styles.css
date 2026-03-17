@@ -4585,6 +4585,23 @@ body .preview-area {
   flex-wrap: wrap;
 }
 
+#main-content[data-current-sprint-state="loading"] #current-sprint-loading {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius);
+  background: rgba(239, 246, 255, 0.9);
+}
+
+#main-content[data-current-sprint-state="error"] #current-sprint-error {
+  margin: 0 0 8px;
+}
+
+.current-sprint-loading-copy-inline {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .sprint-hud-card {
   display: grid;
   gap: 8px;
@@ -4894,28 +4911,6 @@ body .preview-area {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
-}
-
-.issue-jump-results {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.issue-jump-result {
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--text);
-  font-size: 0.78rem;
-  padding: 4px 10px;
-  cursor: pointer;
-}
-
-.issue-jump-result:hover {
-  background: var(--bg-accent);
-  border-color: rgba(15, 76, 129, 0.28);
 }
 
 .story-row-flag {
@@ -5658,43 +5653,73 @@ body .preview-area {
 .health-dashboard-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .health-dashboard-card h2 {
-  margin-bottom: 8px;
-}
-
-.health-snapshot-row {
-  font-size: 0.9rem;
-  color: var(--text);
-  background: var(--card-muted);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
+  margin-bottom: 0;
 }
 
 .health-status-chip {
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 600;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.82rem;
 }
 
 .health-status-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.health-hud-strip {
+  display: grid;
+  gap: 8px;
+}
+
+.health-inline-metric {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(15, 76, 129, 0.08);
+  color: var(--primary-strong);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.health-evidence-line {
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+.health-inline-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.health-inline-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-muted);
+  color: var(--muted);
+  font-size: 0.74rem;
 }
 
 .health-breakdown-detail {
-  margin-bottom: 12px;
-  padding: 10px 12px;
+  margin-bottom: 0;
+  padding: 8px 10px;
   background: var(--card-muted);
   border-radius: 8px;
-  font-size: 0.9em;
+  font-size: 0.85em;
 }
 
 .health-breakdown-formula {
@@ -5721,27 +5746,16 @@ body .preview-area {
 }
 
 .health-progress-section {
-  padding: 12px;
-  background: var(--card-muted);
-  border-radius: var(--radius);
-}
-
-.progress-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  padding: 6px 0 0;
 }
 
 .progress-bar-container {
   display: flex;
-  height: 20px;
+  height: 18px;
   border-radius: 10px;
   overflow: hidden;
   background: var(--border);
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .progress-bar {
@@ -5766,95 +5780,13 @@ body .preview-area {
   display: none;
 }
 
-.progress-summary {
-  font-size: 0.85rem;
-  color: var(--muted);
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.health-split-section {
-  padding: 12px;
-  background: var(--card-muted);
-  border-radius: var(--radius);
-}
-
-.split-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.split-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.split-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.split-name {
-  font-size: 0.85rem;
-  min-width: 100px;
-  font-weight: 500;
-}
-
-.split-bar-container {
-  flex: 1;
-  height: 16px;
-  border-radius: 8px;
-  background: var(--border);
-  overflow: hidden;
-  min-width: 100px;
-}
-
-.split-bar {
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-.split-bar.feature {
-  background: #3b82f6;
-}
-
-.split-bar.support {
-  background: #8b5cf6;
-}
-
-.split-value {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text);
-  min-width: 80px;
-  text-align: right;
-}
-
 .health-tracking-section {
-  padding: 12px;
-  background: var(--card-muted);
-  border-radius: var(--radius);
-}
-
-.tracking-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  padding: 8px 0 0;
 }
 
 .tracking-items {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 8px;
 }
 
@@ -5932,25 +5864,13 @@ body .preview-area {
 .health-actions {
   display: flex;
   gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
+  padding-top: 0;
 }
 
-.health-detail-btn,
-.health-copy-btn {
-  flex: 1;
+.health-breakdown-toggle,
+.health-detail-link {
   padding: 8px;
-  font-size: 0.85rem;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.health-detail-btn:hover,
-.health-copy-btn:hover {
-  background: var(--bg-accent);
-  border-color: var(--primary);
+  font-size: 0.8rem;
 }
 
 /* Sprint Carousel */

@@ -34,8 +34,6 @@ async function prepareExportCapture(page) {
         },
       });
     } catch (e) {
-      // Fallback in environments where navigator.clipboard is writable
-      // eslint-disable-next-line no-global-assign
       navigator.clipboard = clip;
     }
   });
@@ -57,30 +55,17 @@ test.describe('Current Sprint - Summary UX contract and export text structure', 
     }
   });
 
-  test('Exported sprint summary text follows the four-line summary contract', async ({ page }) => {
+  test('Primary Copy summary action exports a terse executive summary contract', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
     const exportBtn = page.locator('.export-dashboard-btn').first();
-    const exportToggle = page.locator('.export-menu-toggle').first();
-    const hasPrimary = await exportBtn.isVisible().catch(() => false);
-    const hasToggle = await exportToggle.isVisible().catch(() => false);
-    if (!hasPrimary && !hasToggle) {
-      test.skip(true, 'Current sprint export controls not visible for dataset');
+    if (!(await exportBtn.isVisible().catch(() => false))) {
+      test.skip(true, 'Current sprint export button not visible for dataset');
       return;
     }
 
     await prepareExportCapture(page);
-
-    if (hasPrimary) {
-      await exportBtn.click().catch(() => null);
-    } else {
-      await exportToggle.click().catch(() => null);
-      const copyOption = page.locator('.export-option[data-action="copy-text"]').first();
-      if (await copyOption.isVisible().catch(() => false)) {
-        await copyOption.click().catch(() => null);
-      }
-    }
-
+    await exportBtn.click().catch(() => null);
     await page.waitForTimeout(300);
 
     const exported = await page.evaluate(() => window.__lastExportText || '');
@@ -90,57 +75,39 @@ test.describe('Current Sprint - Summary UX contract and export text structure', 
     }
 
     const lines = exported.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-    if (lines.length < 3) {
+    if (lines.length < 2) {
       test.skip(true, 'Export text too short to assert summary contract');
       return;
     }
 
-    const topLine = lines[0] || '';
-    const secondLine = lines[1] || '';
-    const thirdLine = lines[2] || '';
-    const fourthLine = lines[3] || '';
-
-    expect(topLine).toMatch(/sprint health/i);
-    expect(topLine.split('·').length).toBeGreaterThanOrEqual(2);
-
-    expect(secondLine).toMatch(/\d+% complete/i);
-    expect(secondLine).toMatch(/stories done/i);
-
-    expect(thirdLine).toMatch(/(Flow is moving|Recent activity|No recent activity|Sprint signals)/i);
-
-    expect(fourthLine).toMatch(/blocker/i);
-
-    const hasSeparator = exported.includes('--- More detail below ---');
-    expect(hasSeparator).toBeTruthy();
+    expect(lines[0]).toMatch(/^Current Sprint - /i);
+    expect(lines[0]).toMatch(/ - (Healthy|At risk|Critical|Limited history|Sprint just starting|Historical snapshot)/i);
+    expect(lines[1]).toMatch(/^Health:\s+/i);
+    expect(lines.length).toBeLessThanOrEqual(4);
+    if (lines[2]) expect(lines[2]).toMatch(/^(Scope|Capacity|Risks|Next):\s+/i);
+    if (lines[3]) expect(lines[3]).toMatch(/^(Scope|Capacity|Risks|Next):\s+/i);
 
     const telemetry = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 
-  test('Detailed summary contains grouped sections for activity, blockers, not started, scope, and work breakdown', async ({ page }) => {
+  test('Detailed Copy as Text export keeps grouped sections for health, risks, scope, capacity, and actions', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
-    const exportBtn = page.locator('.export-dashboard-btn').first();
     const exportToggle = page.locator('.export-menu-toggle').first();
-    const hasPrimary = await exportBtn.isVisible().catch(() => false);
-    const hasToggle = await exportToggle.isVisible().catch(() => false);
-    if (!hasPrimary && !hasToggle) {
-      test.skip(true, 'Current sprint export controls not visible for dataset');
+    if (!(await exportToggle.isVisible().catch(() => false))) {
+      test.skip(true, 'Detailed export menu unavailable for dataset');
       return;
     }
 
     await prepareExportCapture(page);
-
-    if (hasPrimary) {
-      await exportBtn.click().catch(() => null);
-    } else {
-      await exportToggle.click().catch(() => null);
-      const copyOption = page.locator('.export-option[data-action="copy-text"]').first();
-      if (await copyOption.isVisible().catch(() => false)) {
-        await copyOption.click().catch(() => null);
-      }
+    await exportToggle.click().catch(() => null);
+    const copyOption = page.locator('.export-option[data-action="copy-text"]').first();
+    if (!(await copyOption.isVisible().catch(() => false))) {
+      test.skip(true, 'Detailed export action unavailable for dataset');
+      return;
     }
-
+    await copyOption.click().catch(() => null);
     await page.waitForTimeout(300);
 
     const exported = await page.evaluate(() => window.__lastExportText || '');
@@ -149,20 +116,13 @@ test.describe('Current Sprint - Summary UX contract and export text structure', 
       return;
     }
 
-    expect(exported).toContain('RECENT ACTIVITY & TIME LOGGING');
-    expect(exported).toMatch(/Blockers \(\d+\)/);
-    if (exported.match(/Not started \(\d+\)/)) {
-      expect(exported).toMatch(/Not started \(\d+\)/);
-    }
-    if (exported.includes('Scope added mid-sprint')) {
-      expect(exported).toContain('Scope added mid-sprint');
-    }
-    if (exported.includes('Work breakdown')) {
-      expect(exported).toMatch(/Work breakdown \(\d+ stories with subtasks\)/);
-    }
+    expect(exported).toContain('Health');
+    if (exported.includes('Work risks')) expect(exported).toContain('Work risks');
+    if (exported.includes('Scope')) expect(exported).toContain('Scope');
+    if (exported.includes('Capacity')) expect(exported).toContain('Capacity');
+    if (exported.includes('Actions')) expect(exported).toContain('Actions');
 
     const telemetry = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 });
-

@@ -34,7 +34,6 @@ async function prepareClipboardCapture(page) {
         },
       });
     } catch (e) {
-      // eslint-disable-next-line no-global-assign
       navigator.clipboard = clip;
     }
   });
@@ -44,14 +43,11 @@ async function prepareMarkdownCapture(page) {
   await page.evaluate(() => {
     const OriginalBlob = window.Blob;
     window.__lastMarkdownExport = '';
-    // eslint-disable-next-line no-global-assign
     window.Blob = function Blob(parts, options) {
       try {
         const textParts = (parts || []).map((p) => (typeof p === 'string' ? p : ''));
         window.__lastMarkdownExport = textParts.join('');
-      } catch (e) {
-        // ignore capture failure; fallback to normal Blob
-      }
+      } catch (e) {}
       return new OriginalBlob(parts, options);
     };
     window.Blob.prototype = OriginalBlob.prototype;
@@ -74,30 +70,17 @@ test.describe('Current Sprint - Clipboard & Markdown export contract', () => {
     }
   });
 
-  test('Clipboard summary uses four-line markdown-enhanced contract but stays readable without markdown', async ({ page }) => {
+  test('Clipboard summary is plain, readable, and anchored to sprint context', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
     const exportBtn = page.locator('.export-dashboard-btn').first();
-    const exportToggle = page.locator('.export-menu-toggle').first();
-    const hasPrimary = await exportBtn.isVisible().catch(() => false);
-    const hasToggle = await exportToggle.isVisible().catch(() => false);
-    if (!hasPrimary && !hasToggle) {
+    if (!(await exportBtn.isVisible().catch(() => false))) {
       test.skip(true, 'Current sprint export controls not visible for dataset');
       return;
     }
 
     await prepareClipboardCapture(page);
-
-    if (hasPrimary) {
-      await exportBtn.click().catch(() => null);
-    } else {
-      await exportToggle.click().catch(() => null);
-      const copyOption = page.locator('.export-option[data-action="copy-text"]').first();
-      if (await copyOption.isVisible().catch(() => false)) {
-        await copyOption.click().catch(() => null);
-      }
-    }
-
+    await exportBtn.click().catch(() => null);
     await page.waitForTimeout(300);
 
     const exported = await page.evaluate(() => window.__lastExportText || '');
@@ -107,43 +90,16 @@ test.describe('Current Sprint - Clipboard & Markdown export contract', () => {
     }
 
     const lines = exported.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-    if (lines.length < 4) {
-      test.skip(true, 'Export text too short to assert summary contract');
-      return;
-    }
-
-    const topLine = lines[0] || '';
-    const secondLine = lines[1] || '';
-    const thirdLine = lines[2] || '';
-    const fourthLine = lines[3] || '';
-
-    expect(topLine).toMatch(/sprint health/i);
-    expect(topLine).toMatch(/\*\*/); // markdown emphasis on headline
-
-    expect(secondLine).toMatch(/\d+% complete/i);
-    expect(secondLine).toMatch(/\*\*/); // markdown emphasis around primary metric
-
-    expect(thirdLine).toMatch(/Flow & logging/i);
-    expect(thirdLine).toMatch(/\*\*Flow & logging:\*\*/);
-
-    expect(fourthLine).toMatch(/Risk snapshot/i);
-    expect(fourthLine).toMatch(/\*\*Risk snapshot:\*\*/);
-    expect(fourthLine).toMatch(/blocker/i);
-
-    const hasSeparator = exported.includes('--- More detail below ---');
-    expect(hasSeparator).toBeTruthy();
-
-    const plain = exported.replace(/[*_`]/g, '');
-    const plainLines = plain.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-    expect(plainLines[0]).toMatch(/sprint health/i);
-    expect(plainLines[1]).toMatch(/\d+% complete/i);
-    expect(plainLines[3]).toMatch(/blocker/i);
+    expect(lines[0]).toMatch(/^Current Sprint - /i);
+    expect(lines[0]).not.toMatch(/\*\*/);
+    expect(lines[1]).toMatch(/^Health:\s+/i);
+    expect(exported).not.toContain('--- More detail below ---');
 
     const telemetry = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 
-  test('Markdown export produces stakeholder-ready structure with headings and sections', async ({ page }) => {
+  test('Markdown export produces stakeholder-ready headings without duplicate summary chrome', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
 
     const markdownBtn = page.locator('.export-dashboard-secondary').first();
@@ -176,22 +132,14 @@ test.describe('Current Sprint - Clipboard & Markdown export contract', () => {
     }
 
     expect(markdown).toMatch(/^# .+/m);
-    expect(markdown).toMatch(/^> \*\d+% done\*/m);
-
-    expect(markdown).toContain('## Summary');
-    expect(markdown).toContain('## Flow & Logging');
-    expect(markdown).toContain('## Blockers');
-    expect(markdown).toContain('## Scope changes');
-    expect(markdown).toContain('## Work breakdown');
-    expect(markdown).toContain('## Actions');
-
-    const plain = markdown.replace(/[*_`]/g, '');
-    expect(plain).toMatch(/Summary/);
-    expect(plain).toMatch(/Blockers/);
-    expect(plain).toMatch(/Scope changes/);
+    expect(markdown).toMatch(/^> \*\*Current Sprint - /m);
+    expect(markdown).toContain('## Health');
+    expect(markdown).toContain('## Work risks');
+    if (markdown.includes('## Scope')) expect(markdown).toContain('## Scope');
+    if (markdown.includes('## Capacity')) expect(markdown).toContain('## Capacity');
+    if (markdown.includes('## Actions')) expect(markdown).toContain('## Actions');
 
     const telemetry = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 });
-

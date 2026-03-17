@@ -1,11 +1,9 @@
-
 import { loadCurrentSprint } from './Reporting-App-CurrentSprint-Page-Data-Loaders.js';
-import { showContent } from './Reporting-App-CurrentSprint-Page-Status.js';
-import { renderCurrentSprintPage } from './Reporting-App-CurrentSprint-Render-Page.js';
 
 let isGlobalHoverBound = false;
 let isCardToggleBound = false;
 let isIssueJumpBound = false;
+let notesSaveTimer = null;
 
 function bindGlobalPrefetchHover() {
   if (isGlobalHoverBound) return;
@@ -59,17 +57,47 @@ function bindIssueJump() {
     window.setTimeout(() => row.classList.remove('row-attention-pulse'), 1400);
   };
 
+  const getCandidateRows = () =>
+    Array.from(document.querySelectorAll('#stories-table tbody tr.story-parent-row, #stories-mobile-card-list .story-mobile-card'))
+      .filter((row) => !row.classList.contains('subtask-child-row'));
+
+  const applyJumpFilter = (query) => {
+    const normalized = String(query || '').trim().toLowerCase();
+    const rows = getCandidateRows();
+    let firstMatch = null;
+    rows.forEach((row) => {
+      const haystack = String(row.textContent || '').toLowerCase();
+      const show = !normalized || haystack.includes(normalized);
+      row.style.display = show ? '' : 'none';
+      if (show && !firstMatch) firstMatch = row;
+    });
+    if (normalized && firstMatch) {
+      focusRow(firstMatch);
+      if (status) status.textContent = 'Filtered to matching work items.';
+    } else if (normalized && status) {
+      status.textContent = 'No matching work item in this sprint.';
+    } else if (status) {
+      status.textContent = 'Using single-project mode';
+    }
+  };
+
   const runJump = () => {
     const key = parseJiraIssueKey(input.value);
     if (!key) {
-      if (status) status.textContent = 'Use /browse/KEY or KEY.';
+      const query = String(input.value || '').trim().toLowerCase();
+      if (!query) {
+        applyJumpFilter('');
+        return;
+      }
+      applyJumpFilter(query);
       return;
     }
     const row = document.querySelector('.story-parent-row[data-parent-key="' + key + '"]')
-      || document.querySelector('.work-risk-parent-row[data-parent-key="' + key + '"]')
-      || Array.from(document.querySelectorAll('#stories-table tbody tr, #work-risks-table tbody tr'))
+      || document.querySelector('.story-mobile-card[data-parent-key="' + key + '"]')
+      || Array.from(document.querySelectorAll('#stories-table tbody tr.story-parent-row, #stories-mobile-card-list .story-mobile-card'))
         .find((tr) => String(tr.textContent || '').toUpperCase().includes(key));
     if (row) {
+      applyJumpFilter(key);
       focusRow(row);
       if (status) status.textContent = 'Jumped to ' + key + '.';
       return;
@@ -82,12 +110,16 @@ function bindIssueJump() {
     event.preventDefault();
     runJump();
   });
+  input.addEventListener('input', () => {
+    applyJumpFilter(input.value);
+  });
 }
 
 export function wireDynamicHandlers(data) {
   bindGlobalPrefetchHover();
   bindCardToggles();
   bindIssueJump();
+  bindNotesAutosave(data);
 
   const saveBtn = document.getElementById('notes-save');
   // Clean event listener replacement
@@ -118,11 +150,27 @@ function saveNotes(boardId, sprintId) {
   })
     .then(r => r.ok ? r.json() : Promise.reject('Failed'))
     .then(() => {
-      statusEl.textContent = 'Saved.';
+      statusEl.textContent = 'Saved just now';
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
-      return loadCurrentSprint(boardId, sprintId);
     })
-    .then(d => { if (d) showContent(renderCurrentSprintPage(d)); })
     .catch(() => { statusEl.textContent = 'Save failed.'; })
     .finally(() => { if (saveBtn) saveBtn.disabled = false; });
+}
+
+function bindNotesAutosave(data) {
+  const depsEl = document.getElementById('notes-dependencies');
+  const learningsEl = document.getElementById('notes-learnings');
+  if (!depsEl || !learningsEl || !data?.board?.id || !data?.sprint?.id) return;
+  const queueSave = () => {
+    if (notesSaveTimer) window.clearTimeout(notesSaveTimer);
+    notesSaveTimer = window.setTimeout(() => {
+      saveNotes(data.board?.id, data.sprint?.id);
+    }, 2000);
+  };
+  [depsEl, learningsEl].forEach((el) => {
+    if (el.dataset.notesAutosaveWired === '1') return;
+    el.dataset.notesAutosaveWired = '1';
+    el.addEventListener('input', queueSave);
+    el.addEventListener('blur', queueSave);
+  });
 }

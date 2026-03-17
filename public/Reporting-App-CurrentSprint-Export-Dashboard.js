@@ -321,6 +321,34 @@ function renderSummaryModelToClipboard(model, options = {}) {
   return linesOut.join('\n').trim();
 }
 
+function renderSummaryModelToQuickClipboard(model) {
+  const lines = [];
+  const meta = model?.meta || {};
+  const headerLine = String(meta.headerLine || '').trim();
+  if (headerLine) lines.push(headerLine);
+
+  const healthLine = normalizeBulletText(model?.sections?.health?.[0]?.text || '');
+  if (healthLine) lines.push(`Health: ${healthLine}`);
+
+  const scopeLine = normalizeBulletText(model?.sections?.scope?.[0]?.text || '');
+  const capacityLine = normalizeBulletText(model?.sections?.flowLogging?.[0]?.text || '');
+  if (scopeLine) {
+    lines.push(`Scope: ${scopeLine}`);
+  } else if (capacityLine) {
+    lines.push(`Capacity: ${capacityLine}`);
+  }
+
+  const blockersLine = normalizeBulletText(model?.sections?.blockers?.[0]?.text || '');
+  const actionLine = normalizeBulletText(model?.sections?.actions?.[0]?.text || '');
+  if (blockersLine) {
+    lines.push(`Risks: ${blockersLine}`);
+  } else if (actionLine) {
+    lines.push(`Next: ${actionLine}`);
+  }
+
+  return lines.filter(Boolean).slice(0, 4).join('\n').trim();
+}
+
 function renderSummaryModelToClipboardHtml(model) {
   let html = '<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.4;color:#142334;max-width:760px">';
   const summary = model.sections.summary || [];
@@ -346,6 +374,16 @@ function renderSummaryModelToClipboardHtml(model) {
   if (!hasSections) {
     html += '<div style="margin-top:8px;color:#5a6b7f">No additional details.</div>';
   }
+  html += '</div>';
+  return html;
+}
+
+function renderSummaryModelToQuickClipboardHtml(model) {
+  const lines = renderSummaryModelToQuickClipboard(model).split('\n').map((line) => line.trim()).filter(Boolean);
+  let html = '<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.35;color:#142334;max-width:760px">';
+  lines.forEach((line, index) => {
+    html += `<div style="margin:${index === 0 ? '0 0 6px' : '0 0 4px'};${index === 0 ? 'font-size:15px;font-weight:700;' : ''}">${escapeHtmlText(line)}</div>`;
+  });
   html += '</div>';
   return html;
 }
@@ -483,12 +521,12 @@ export function wireExportHandlers(data) {
   if (!menu) return;
   const effectiveBtn = btn || menuToggle;
   if (!effectiveBtn) return;
-  // Primary button: direct copy-text action (1-click export)
+  // Primary button: concise executive summary (1-click share)
   if (btn) {
     btn.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
-      copyDashboardAsText(data, btn);
+      copyDashboardSummary(data, btn);
     });
   }
   if (secondaryBtn) {
@@ -632,9 +670,25 @@ async function copyDashboardAsText(data, btn) {
     const html = renderSummaryModelToClipboardHtml(model);
     await writeRichClipboardWithFallback(html, text);
     setButtonStatus(btn, 'Copied!', originalText);
-    setLastExportStatus('Share state', 'Rich text copied (HTML + plain text fallback)');
+    setLastExportStatus('Copy detail', 'Detailed sprint text copied');
   } catch (error) {
     console.error('Copy text error:', error);
+    setButtonStatus(btn, 'Copy failed', originalText);
+  }
+}
+
+async function copyDashboardSummary(data, btn) {
+  const originalText = btn?.textContent || '';
+  setButtonStatus(btn, 'Copying...', null, true);
+  try {
+    const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
+    const text = renderSummaryModelToQuickClipboard(model);
+    const html = renderSummaryModelToQuickClipboardHtml(model);
+    await writeRichClipboardWithFallback(html, text);
+    setButtonStatus(btn, 'Copied!', originalText);
+    setLastExportStatus('Copy summary', 'Executive sprint summary copied');
+  } catch (error) {
+    console.error('Copy summary error:', error);
     setButtonStatus(btn, 'Copy failed', originalText);
   }
 }

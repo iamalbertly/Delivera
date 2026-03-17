@@ -169,7 +169,7 @@ export function renderBurndown(data) {
     html += '<a href="#stories-card" class="btn btn-secondary btn-compact">View work items</a>';
     html += '</div>';
   } else {
-    html += '<p><strong>' + pct + '%</strong> complete (' + formatNumber(doneSP, 1, '-') + ' SP done of ' + formatNumber(totalSP, 1, '-') + ' SP).</p>';
+    html += '<p><strong>' + pct + '%</strong> complete | ' + formatNumber(lastRemaining, 1, '-') + ' SP remaining</p>';
     const health = burndownHealth(remaining, ideal, totalSP);
     if (health.label) html += '<p class="burndown-health ' + health.class + '"><span class="burndown-health-label">' + escapeHtml(health.label) + '</span></p>';
     if (hasMultiSpFields) {
@@ -226,7 +226,7 @@ export function renderStories(data) {
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
   html += '<div class="section-inline-header">';
-  html += '<div><h2>Sprint work</h2></div>';
+  html += '<div><h2>Mission-critical work</h2></div>';
   html += '<div class="section-inline-stats"><span>' + stories.length + ' issues</span><span>' + blockerKeys.size + ' blockers</span><span>' + parentUnassigned + ' unowned</span></div>';
   html += '</div>';
   html += renderWorkRisksMerged(data);

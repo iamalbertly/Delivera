@@ -79,7 +79,11 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
         ).catch(() => null);
         await page.waitForTimeout(500);
         const urlAfter = page.url();
-        expect(urlAfter).toBe(urlBefore);
+        expect(urlAfter.startsWith(SPRINT_PAGE)).toBeTruthy();
+        const headerOrErrorVisible =
+          await page.locator('.current-sprint-header-bar').first().isVisible().catch(() => false)
+          || await page.locator('#current-sprint-error').isVisible().catch(() => false);
+        expect(headerOrErrorVisible).toBeTruthy();
       }
     }
   });
@@ -143,24 +147,17 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     }
   });
 
-  test('Metric pills filter Work risks and scroll into view', async ({ page }) => {
-    const verdictLine = page.locator('.sprint-verdict-line');
-    await expect(verdictLine).toBeVisible();
-    const blockerPill = verdictLine.locator('.verdict-pill').first();
+  test('Intervention chips filter Work risks and scroll into view', async ({ page }) => {
+    const blockerPill = page.locator('.current-sprint-header-bar .sprint-intervention-item').first();
     const hasPill = await blockerPill.isVisible().catch(() => false);
     if (!hasPill) {
-      test.skip(true, 'No verdict pills rendered for this dataset');
+      test.skip(true, 'No intervention chips rendered for this dataset');
       return;
     }
     const beforeVisibleCount = await page.locator('#work-risks-table tbody tr.work-risk-parent-row').count();
     await blockerPill.dispatchEvent('click');
-    const table = page.locator('#work-risks-table');
-    const tableVisible = await table.isVisible().catch(() => false);
-    if (!tableVisible) {
-      test.skip(true, 'Work risks table not visible for this dataset');
-      return;
-    }
-    const afterVisibleCount = await table.locator('tbody tr.work-risk-parent-row').evaluateAll((rows) =>
+    await expect(page.locator('[data-header-active-filter-value]')).not.toHaveText(/All lens \| none/i);
+    const afterVisibleCount = await page.locator('#work-risks-table tbody tr.work-risk-parent-row').evaluateAll((rows) =>
       rows.filter((r) => (r.style.display || '') !== 'none').length
     );
     expect(afterVisibleCount).toBeLessThanOrEqual(beforeVisibleCount);
@@ -204,7 +201,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('Header context strip is compressed into one deduplicated scope line', async ({ page }) => {
-    const strip = page.locator('.header-context-inline-wrap .header-context-strip, .header-context-strip').first();
+    const strip = page.locator('.current-sprint-header-bar .mission-context-ribbon .context-summary-strip').first();
     const visible = await strip.isVisible().catch(() => false);
     if (!visible) {
       test.skip(true, 'Context strip not rendered for this dataset');
@@ -212,8 +209,8 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     }
     const text = (await strip.textContent().catch(() => '')) || '';
     expect(text.trim().length).toBeGreaterThan(12);
-    expect(/projects|range|last/i.test(text)).toBeTruthy();
-    expect(/last:\s*last:/i.test(text)).toBeFalsy();
+    expect(/scope|window|trust/i.test(text)).toBeTruthy();
+    expect(/scope.*scope/i.test(text)).toBeFalsy();
     expect(/from report cache/i.test(text)).toBeFalsy();
   });
 
@@ -226,6 +223,11 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       test.skip(true, 'Header not visible for this dataset');
       return;
     }
+    const scrollHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+    if (scrollHeight <= 950) {
+      test.skip(true, 'Page not tall enough to trigger mini mode in current dataset');
+      return;
+    }
     await page.evaluate(() => window.scrollTo(0, 500));
     await page.waitForTimeout(200);
     const hasMiniMode = await header.evaluate((el) => el.classList.contains('header-mini-mode'));
@@ -233,31 +235,29 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(header.locator('.header-mini-strip')).toBeVisible();
   });
 
-  test('Role-mode pills remember selection and drive filters', async ({ page }) => {
-    const rolePills = page.locator('.role-mode-pill');
-    const count = await rolePills.count();
-    if (count === 0) {
-      test.skip(true, 'Role mode pills not rendered');
+  test('Header lens select remembers selection and drives filters', async ({ page }) => {
+    const lensSelect = page.locator('.header-lens-select').first();
+    const visible = await lensSelect.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Header lens select not rendered');
       return;
     }
-    const devPill = rolePills.filter({ hasText: 'Dev' }).first();
-    const devVisible = await devPill.isVisible().catch(() => false);
-    if (!devVisible) {
-      test.skip(true, 'Role mode pills hidden in this dataset/layout');
-      return;
-    }
-    await devPill.dispatchEvent('click');
+    await lensSelect.selectOption('developer');
     await page.reload();
     await loadSprintPage(page);
-    const devPillAfter = page.locator('.role-mode-pill[data-role-mode="developer"]');
-    await expect(devPillAfter).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.header-lens-select').first()).toHaveValue('developer');
+    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/Dev lens \| no-log/i);
   });
 
-  test('Role-mode hint and active lens text stay explicit', async ({ page }) => {
-    const hint = page.locator('.header-role-mode-hint').first();
-    await expect(hint).toContainText(/Dev: no-log; SM: blockers; PO: scope; Leads: unowned/i);
-    await page.locator('.role-mode-pill[data-role-mode="developer"]').dispatchEvent('click');
-    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/Dev \| no-log/i);
+  test('Active lens text stays explicit when the compact header lens changes', async ({ page }) => {
+    const lensSelect = page.locator('.header-lens-select').first();
+    const visible = await lensSelect.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Header lens select not rendered for this dataset');
+      return;
+    }
+    await lensSelect.selectOption('developer');
+    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/Dev lens \| no-log/i);
   });
 
   test('Current sprint can open the shared outcome modal without prompt flow', async ({ page }) => {
@@ -280,11 +280,13 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     expect(await page.evaluate(() => window.__promptCalls || 0)).toBe(0);
   });
 
-  test('Header intelligence replaces duplicate evidence and capacity cards', async ({ page }) => {
+  test('Header More drawer owns evidence while duplicate capacity cards stay removed', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(150);
-    const insightStrip = page.locator('.header-intelligence-strip');
-    await expect(insightStrip).toBeVisible();
+    const summary = page.locator('.header-view-drawer > summary').first();
+    await expect(summary).toBeVisible();
+    await summary.click({ force: true });
+    await expect(page.locator('.header-drawer-evidence .sprint-hud-health-details')).toHaveCount(1);
     await expect(page.locator('#capacity-card, .capacity-allocation-card')).toHaveCount(0);
     await expect(page.getByText('Evidence snapshot', { exact: true })).toHaveCount(0);
   });

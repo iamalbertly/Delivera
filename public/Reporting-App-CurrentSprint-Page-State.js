@@ -6,7 +6,7 @@
 
 import { currentSprintDom } from './Reporting-App-CurrentSprint-Page-Context.js';
 import { setActionErrorOnEl, clearEl } from './Reporting-App-Shared-Status-Helpers.js';
-import { startRotatingMessages, stopRotatingMessages } from './Reporting-App-Shared-Loading-Theater.js';
+import { stopRotatingMessages } from './Reporting-App-Shared-Loading-Theater.js';
 
 export const PAGE_STATE = Object.freeze({
   WELCOME: 'welcome',
@@ -17,12 +17,8 @@ export const PAGE_STATE = Object.freeze({
 
 const LOADING_SPINNER_HTML = ''
   + '<div class="current-sprint-loading-spinner" aria-hidden="true"></div>'
-  + '<p class="current-sprint-loading-msg" aria-live="polite"></p>'
-  + '<div class="skeleton-preview skeleton-preview-compact" aria-hidden="true">'
-  + '<div class="skeleton-block skeleton-table"><div class="skeleton-line skeleton-table-header"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>'
-  + '</div>';
-const CURRENT_SPRINT_LOADING_MESSAGES = ['Loading board...', 'Loading sprint...', 'Building sprint HUD...'];
-const WELCOME_MESSAGE = 'Select project and board to see sprint health.';
+  + '<p class="current-sprint-loading-msg" aria-live="polite"></p>';
+const WELCOME_MESSAGE = 'Choose scope to load the sprint HUD.';
 
 let currentState = PAGE_STATE.WELCOME;
 
@@ -49,12 +45,17 @@ function hideAll() {
     errorEl.style.display = 'none';
     clearEl(errorEl);
   }
-  if (contentEl) contentEl.style.display = 'none';
+  if (contentEl && contentEl.getAttribute('data-preserve-content') !== 'true') contentEl.style.display = 'none';
 }
 
 export function setPageState(state, options = {}) {
   stopRotatingMessages();
   const { loadingEl, errorEl, contentEl } = currentSprintDom;
+  const hasContent = Boolean(contentEl && contentEl.innerHTML && contentEl.innerHTML.trim());
+  const preserveContent = options.preserveContent !== false && hasContent && (state === PAGE_STATE.LOADING || state === PAGE_STATE.ERROR);
+  if (contentEl) {
+    contentEl.setAttribute('data-preserve-content', preserveContent ? 'true' : 'false');
+  }
 
   hideAll();
 
@@ -74,16 +75,23 @@ export function setPageState(state, options = {}) {
     case PAGE_STATE.LOADING: {
       const msg = options.message != null ? options.message : 'Loading...';
       if (loadingEl) {
-        loadingEl.innerHTML = LOADING_SPINNER_HTML;
-        const msgEl = loadingEl.querySelector('.current-sprint-loading-msg');
-        if (msgEl) {
-          const contextText = options.context != null ? String(options.context) : '';
-          msgEl.textContent = contextText ? (msg + ' | ' + contextText) : msg;
-          startRotatingMessages(msgEl, CURRENT_SPRINT_LOADING_MESSAGES, 1200);
+        if (preserveContent) {
+          loadingEl.innerHTML = '<div class="current-sprint-loading-copy current-sprint-loading-copy-inline"></div>';
+          const copyEl = loadingEl.querySelector('.current-sprint-loading-copy');
+          if (copyEl) copyEl.textContent = msg;
+          loadingEl.classList.remove('current-sprint-loading-with-spinner');
+        } else {
+          loadingEl.innerHTML = LOADING_SPINNER_HTML;
+          const msgEl = loadingEl.querySelector('.current-sprint-loading-msg');
+          if (msgEl) {
+            const contextText = options.context != null ? String(options.context) : '';
+            msgEl.textContent = contextText ? (msg + ' | ' + contextText) : msg;
+          }
+          loadingEl.classList.add('current-sprint-loading-with-spinner');
         }
-        loadingEl.classList.add('current-sprint-loading-with-spinner');
         loadingEl.style.display = 'block';
       }
+      if (preserveContent && contentEl) contentEl.style.display = 'block';
       break;
     }
 
@@ -105,6 +113,7 @@ export function setPageState(state, options = {}) {
           errorEl.setAttribute('role', 'alert');
         }
       }
+      if (preserveContent && contentEl) contentEl.style.display = 'block';
       break;
 
     default:

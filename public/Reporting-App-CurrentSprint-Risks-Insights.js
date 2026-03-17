@@ -32,19 +32,29 @@ export function renderRisksAndInsights(data) {
   const scopeChanges = data.scopeChanges || [];
 
   const dependencies = notes.dependencies || [];
-  const learnings = notes.learnings || [];
-  const hasAssumptions = assumptions.length > 0;
-  const riskCounts = getUnifiedRiskCounts(data);
-  const ownedBlockerCount = Number(riskCounts.blockersOwned || 0);
-
-  // Dependencies only - scope changes are already shown in the Work Risks table above
   const blockersText = [];
   if (dependencies.length > 0) {
     blockersText.push(...dependencies);
   }
+  const learnings = notes.learnings || [];
+  const hasAssumptions = assumptions.length > 0;
+  const riskCounts = getUnifiedRiskCounts(data);
+  const ownedBlockerCount = Number(riskCounts.blockersOwned || 0);
+  const lightweightMode = blockersText.length === 0 && learnings.length === 0 && assumptions.length <= 1;
 
   let html = '<div class="transparency-card risks-insights-card" id="risks-insights-card">';
   html += '<h2>Risks & Insights</h2>';
+
+  if (lightweightMode) {
+    const summaryLabel = assumptions.length > 0
+      ? assumptions.length + ' risk' + (assumptions.length === 1 ? '' : 's') + ' need review'
+      : 'No blockers or learnings captured yet';
+    html += '<div class="insight-empty insight-empty-compact"><p>' + escapeHtml(summaryLabel) + '</p>';
+    html += '<div class="insights-actions-bar">';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create an outcome from risks and insights for this sprint.">Create outcome</button>';
+    html += '</div></div></div>';
+    return html;
+  }
 
   html += '<div class="insights-tabs" role="tablist" aria-label="Sprint insights">';
   html += '<button class="insights-tab active" role="tab" aria-selected="true" data-tab="blockers" aria-controls="blockers-panel">Blockers<span class="insights-tab-badge">' + blockersText.length + '</span></button>';

@@ -21,9 +21,10 @@ let retryLastIntent = () => {};
 function showRibbon(message, state = 'info') {
   const ribbonEl = currentSprintDom.ribbonEl;
   if (!ribbonEl) return;
+  const shouldShow = !!message && state !== 'fresh';
   ribbonEl.textContent = message || '';
   ribbonEl.setAttribute('data-state', state);
-  ribbonEl.style.display = message ? '' : 'none';
+  ribbonEl.style.display = shouldShow ? '' : 'none';
 }
 
 function buildLoadingContext(boardLabel = '', sprintLabel = '') {
@@ -169,7 +170,7 @@ function updateProjectHint() {
   try {
     const hint = document.getElementById('current-sprint-single-project-hint');
     if (!hint) return;
-    hint.textContent = 'Single-project';
+    hint.textContent = 'Using single-project mode';
   } catch (_) {}
 }
 
@@ -215,7 +216,7 @@ function handleRefreshSprint() {
     .finally(() => {
       if (refreshBtn) {
         refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Refresh sprint';
+        refreshBtn.textContent = 'Refresh';
       }
     });
 }
