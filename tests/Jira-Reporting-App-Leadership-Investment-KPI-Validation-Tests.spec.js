@@ -2,7 +2,7 @@ import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Glob
 import { captureBrowserTelemetry, assertTelemetryClean, waitForPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Leadership investment KPI and trust surfaces', () => {
-  test('report trends now acts as a compact bridge into the standalone leadership HUD', async ({ page }) => {
+  test('report trends now uses the same leadership shell and KPI contract as the standalone HUD', async ({ page }) => {
     test.setTimeout(90000);
     const telemetry = captureBrowserTelemetry(page);
 
@@ -23,13 +23,12 @@ test.describe('Leadership investment KPI and trust surfaces', () => {
 
     await page.click('#tab-btn-trends');
     await expect(page.locator('#tab-btn-trends')).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('.leadership-bridge-card')).toBeVisible();
-    await expect(page.locator('.leadership-bridge-card .btn[href="/leadership"]')).toBeVisible();
-    await expect(page.locator('#leadership-content .leadership-kpi-strip')).toHaveCount(0);
-    await expect(page.locator('#leadership-content .leadership-direct-value-card')).toHaveCount(0);
+    await expect(page.locator('#leadership-content .leadership-shell-top')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-mission-strip')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-kpi-strip')).toBeVisible();
 
-    const bridgeText = await page.locator('.leadership-bridge-card').textContent();
-    expect(bridgeText || '').toMatch(/Leadership snapshot|Open Leadership HUD/i);
+    const leadershipText = await page.locator('#leadership-content').textContent();
+    expect(leadershipText || '').toMatch(/Leadership mission|Investment and delivery KPIs|Open current sprint/i);
 
     assertTelemetryClean(telemetry);
   });
@@ -62,6 +61,10 @@ test.describe('Leadership investment KPI and trust surfaces', () => {
 
     await page.goto('/leadership.html');
     await page.waitForTimeout(1000);
+    const exportSummary = page.locator('.leadership-export-menu > summary').first();
+    if (await exportSummary.isVisible().catch(() => false)) {
+      await exportSummary.click().catch(() => null);
+    }
     const exportButton = page.locator('[data-action="export-leadership-quarterly-story"]').first();
     if (await exportButton.isVisible().catch(() => false)) {
       await expect(exportButton).toBeVisible();

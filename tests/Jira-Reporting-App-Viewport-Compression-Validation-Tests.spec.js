@@ -59,7 +59,7 @@ test.describe('Viewport compression and layering', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('leadership trends becomes a compact bridge without duplicate embedded trust chrome', async ({ page }) => {
+  test('leadership trends reuses the shared leadership shell without duplicate trust chrome', async ({ page }) => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
     await runDefaultPreview(page);
@@ -72,9 +72,14 @@ test.describe('Viewport compression and layering', () => {
 
     await page.click('#tab-btn-trends');
     await expect(page.locator('#leadership-content')).toBeVisible();
-    await expect(page.locator('.leadership-bridge-card')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-shell-top')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-mission-strip')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-kpi-strip')).toBeVisible();
     await expect(page.locator('#leadership-content .leadership-context-line')).toHaveCount(0);
-    await expect(page.locator('#leadership-content .leadership-trust-card')).toHaveCount(0);
+    const trustCard = page.locator('#leadership-content .leadership-trust-card').first();
+    if (await trustCard.count()) {
+      await expect(trustCard).toBeHidden();
+    }
 
     assertTelemetryClean(telemetry);
   });
@@ -120,7 +125,7 @@ test.describe('Viewport compression and layering', () => {
     );
     expect(headerText || '').toMatch(/Focus risk work|View historical risks/i);
     expect(headerText || '').toMatch(/Refresh/i);
-    expect(visibleActionLabels.join(' | ')).not.toMatch(/Copy summary/i);
+    expect(visibleActionLabels.join(' | ')).toMatch(/Copy summary/i);
     const visibleDrawerText = await page.locator('.current-sprint-header-bar .header-view-drawer-panel').evaluateAll((nodes) =>
       nodes
         .filter((node) => {

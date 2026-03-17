@@ -30,12 +30,14 @@ import { initReportFiltersPanelState } from './Reporting-App-Report-Page-Init-Fi
 import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
 import { renderReportNamedViewsBar, wireReportNamedViews } from './Reporting-App-Report-Page-Named-Views.js';
 import { initOverlayManager } from './Reporting-App-Shared-Overlay-Manager.js';
+import { wireLeadershipContentInteractions } from './Reporting-App-Leadership-Shared-Actions.js';
 
 const LEADERSHIP_HASH = '#trends';
 
 function initReportPage() {
   try { document.body.classList.add('report-page'); } catch (_) {}
   initOverlayManager();
+  wireLeadershipContentInteractions(document);
   let autoPreviewTimer = null;
   let autoPreviewInProgress = false;
   let allowHashTabSync = false;

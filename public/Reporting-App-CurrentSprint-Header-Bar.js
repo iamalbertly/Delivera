@@ -275,6 +275,7 @@ export function renderHeaderBar(data, options = {}) {
       + ' data-outcome-context="Create work from the current sprint context."'
       + ' data-outcome-projects="' + escapeHtml((selectedProject || meta.projects || '').replace(/\s+/g, '')) + '">Create work</button>';
   }
+  html += renderExportButton(true);
   html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data and context"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh</button>';
   html += '<details class="header-view-drawer">';
   html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span>More</span><span data-header-active-filter-value>Lens: All | none</span></summary>';
@@ -305,7 +306,6 @@ export function renderHeaderBar(data, options = {}) {
     html += (sectionLinksHtml || '<div class="sprint-section-links sprint-section-links-compact" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>');
     html += '</div>';
   }
-  html += renderExportButton(true);
   html += '<div class="header-drawer-evidence">';
   html += '<div class="header-drawer-section">';
   html += '<div class="header-drawer-section-label">Why this verdict</div>';

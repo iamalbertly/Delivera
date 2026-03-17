@@ -8,7 +8,7 @@ import {
 } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Overlay, context, and attention SSOT', () => {
-  test('report uses one context strip, a real overlay drawer, named views, and a compact leadership bridge', async ({ page }) => {
+  test('report uses one context strip, a real overlay drawer, named views, and the shared leadership lens', async ({ page }) => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
 
@@ -42,9 +42,12 @@ test.describe('Overlay, context, and attention SSOT', () => {
 
     await expect(page.locator('#preview-meta .attention-queue')).toBeVisible();
     await page.click('#tab-btn-trends');
-    await expect(page.locator('.leadership-bridge-card')).toBeVisible();
-    await expect(page.locator('.leadership-bridge-card .btn[href="/leadership"]')).toBeVisible();
-    await expect(page.locator('#leadership-content .leadership-kpi-strip')).toHaveCount(0);
+    await expect(page.locator('#leadership-content .leadership-shell-top')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-mission-strip')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-kpi-strip')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-export-menu > summary').first()).toBeVisible();
+    await page.locator('#leadership-content .leadership-export-menu > summary').first().click();
+    await expect(page.locator('#leadership-content [data-action="export-leadership-quarterly-story"]').first()).toBeVisible();
 
     assertTelemetryClean(telemetry);
   });
@@ -97,6 +100,8 @@ test.describe('Overlay, context, and attention SSOT', () => {
 
     await expect(page.locator('.leadership-shell-top .context-summary-strip')).toBeVisible();
     await expect(page.locator('#leadership-content .attention-queue')).toBeVisible();
+    await expect(page.locator('.leadership-export-menu > summary').first()).toBeVisible();
+    await page.locator('.leadership-export-menu > summary').first().click();
     await expect(page.locator('[data-action="export-leadership-quarterly-story"]').first()).toBeVisible();
     await expect(page.locator('[data-action="export-leadership-kpis-csv"]').first()).toBeVisible();
 
