@@ -23,11 +23,11 @@
 }
 
 .leadership-context-sticky {
-  padding: 12px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .leadership-direct-value-card,
@@ -52,7 +52,118 @@
 }
 
 .leadership-context-sticky .context-summary-strip {
-  margin-top: 10px;
+  margin-top: 0;
+}
+
+.leadership-mission-strip {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.leadership-mission-strip .context-summary-strip {
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.leadership-mission-strip .context-summary-chips {
+  gap: 6px;
+}
+
+.leadership-mission-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.leadership-mission-copy {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 360px;
+}
+
+.leadership-mission-copy h2,
+.leadership-mission-copy p {
+  margin: 0;
+}
+
+.leadership-mission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.leadership-mission-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.leadership-mission-hint,
+.leadership-mission-trust {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.leadership-export-menu {
+  position: relative;
+}
+
+.leadership-export-menu summary {
+  list-style: none;
+}
+
+.leadership-export-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.leadership-export-menu-panel {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.leadership-evidence-fold {
+  margin: 0 0 12px;
+}
+
+.leadership-evidence-fold > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary);
+  list-style: none;
+}
+
+.leadership-evidence-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.leadership-evidence-fold[open] {
+  display: grid;
+  gap: 12px;
 }
 
 .leadership-direct-value-eyebrow {
@@ -186,6 +297,10 @@
   .current-sprint-header-bar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .leadership-mission-main {
+    flex-direction: column;
   }
 
   .leadership-kpi-project-grid,
@@ -335,6 +450,11 @@
   .insights-tab {
     font-size: 0.8rem;
     padding: 8px 12px;
+  }
+
+  .leadership-mission-actions,
+  .leadership-mission-meta {
+    width: 100%;
   }
   .mobile-secondary-details .transparency-card {
     margin-bottom: 0;

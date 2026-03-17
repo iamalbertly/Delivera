@@ -3,7 +3,6 @@ import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-
 import { renderEmptyStateHtml, renderNoBoardsForRangeEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
 import { buildTrustBadge, formatCostPerSPDisplay, formatOverheadDisplay, buildUtilizationDisplay } from './Reporting-App-Shared-Cost-Capacity-Calc.js';
 import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
 import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
@@ -21,18 +20,18 @@ function formatPct(value, decimals = 0) {
   return value == null || Number.isNaN(Number(value)) ? '-' : `${formatNumber(value, decimals, '-') }%`;
 }
 
-function renderLeadershipRecommendedAction(data, projectsLabel) {
+function buildLeadershipRecommendation(data) {
   const outlierEpics = Array.isArray(data?.kpis?.outlierEpics) ? data.kpis.outlierEpics : [];
   const outlierSprints = Array.isArray(data?.kpis?.outlierSprints) ? data.kpis.outlierSprints : [];
   const trustBand = data?.kpis?.dataQuality?.trustBand || '';
   let headline = 'Portfolio looks readable.';
   let body = 'Use board trends to compare delivery movement, then jump straight into current sprint for intervention.';
-  let secondaryAction = '<a class="btn btn-secondary btn-compact" href="/current-sprint">Open current sprint</a>';
+  let repairAction = 'open-current-sprint';
 
   if (trustBand === 'Weak') {
     headline = 'Data quality needs repair before this becomes a board-ranking conversation.';
     body = 'Fix missing epic dates or timesheets first so cost, utilization, and predictability stay trustworthy.';
-    secondaryAction = '<button type="button" class="btn btn-secondary btn-compact" data-preview-context-action="open-unusable-sprints">Fix excluded sprints</button>';
+    repairAction = 'fix-excluded-sprints';
   } else if (outlierEpics.length > 0) {
     headline = 'Long-running epics are the clearest leadership intervention right now.';
     body = `Start with ${outlierEpics[0].label} and tighten scope, owner decisions, or slicing before it drags another quarter.`;
@@ -41,19 +40,7 @@ function renderLeadershipRecommendedAction(data, projectsLabel) {
     body = `Review ${outlierSprints[0].label} and stop scope churn before it becomes systemic drag.`;
   }
 
-  return `
-    <section class="leadership-direct-value-card" aria-label="Recommended next action">
-      <div>
-        <p class="leadership-direct-value-eyebrow">Recommended next action</p>
-        <h2>${escapeHtml(headline)}</h2>
-        <p>${escapeHtml(body)}</p>
-      </div>
-      <div class="leadership-direct-value-actions">
-        <button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="${escapeHtml(headline)}" data-outcome-projects="${escapeHtml((projectsLabel || '').replace(/\s+/g, ''))}">Create work from insight</button>
-        ${secondaryAction}
-      </div>
-    </section>
-  `;
+  return { headline, body, repairAction, trustBand };
 }
 
 function renderLeadershipKpiStrip(data) {
@@ -105,10 +92,6 @@ function renderLeadershipKpiStrip(data) {
           <h2>Investment and delivery KPIs</h2>
           <p class="leadership-delivery-hint">Compact squad comparison for quarterly cost, throughput, reliability, and trust.</p>
         </div>
-        <div class="leadership-view-actions">
-          <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-quarterly-story">Export quarterly story</button>
-          <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-kpis-csv">Export KPI CSV</button>
-        </div>
       </div>
       <div class="leadership-kpi-project-grid">${cards}</div>
       <pre class="visually-hidden" id="leadership-kpi-export-data">${escapeHtml(csvRows)}</pre>
@@ -116,31 +99,12 @@ function renderLeadershipKpiStrip(data) {
   `;
 }
 
-function renderLeadershipTrustCard(data) {
+function renderLeadershipEvidenceFold(data) {
   const quality = data?.kpis?.dataQuality;
-  if (!quality) return '';
-  const costModelSource = data?.kpis?.meta?.costModelSource || quality.costModelSource || 'unavailable';
-  return `
-    <section class="leadership-trust-card" aria-label="Data quality and assumptions">
-      <div>
-        <p class="leadership-direct-value-eyebrow">Trust and assumptions</p>
-        <h3>${escapeHtml(quality.trustBand || 'Weak')} evidence quality</h3>
-      </div>
-      <div class="leadership-trust-grid">
-        <div><span>SP coverage</span><strong>${escapeHtml(formatPct((quality.spCoverage || 0) * 100, 0))}</strong></div>
-        <div><span>Sprint dates</span><strong>${escapeHtml(formatPct((quality.dateCoverage || 0) * 100, 0))}</strong></div>
-        <div><span>Timesheets</span><strong>${escapeHtml(formatPct((quality.timesheetCoverage || 0) * 100, 0))}</strong></div>
-        <div><span>Epic hygiene</span><strong>${escapeHtml(formatPct((quality.epicHygiene || 0) * 100, 0))}</strong></div>
-      </div>
-      <p class="metrics-hint">Cost model source: ${escapeHtml(costModelSource)}. ${escapeHtml(quality.assumptions?.costPerSP || '')} ${escapeHtml(quality.assumptions?.utilization || '')}</p>
-    </section>
-  `;
-}
-
-function renderLeadershipOutliers(data) {
   const outlierEpics = Array.isArray(data?.kpis?.outlierEpics) ? data.kpis.outlierEpics : [];
   const outlierSprints = Array.isArray(data?.kpis?.outlierSprints) ? data.kpis.outlierSprints : [];
-  if (!outlierEpics.length && !outlierSprints.length) return '';
+  if (!quality && !outlierEpics.length && !outlierSprints.length) return '';
+  const costModelSource = data?.kpis?.meta?.costModelSource || quality.costModelSource || 'unavailable';
 
   const renderList = (items, sectionTitle) => {
     if (!items.length) return '';
@@ -161,10 +125,30 @@ function renderLeadershipOutliers(data) {
   };
 
   return `
-    <section class="leadership-outliers" aria-label="Delivery outliers">
-      ${renderList(outlierEpics, 'Epic outliers')}
-      ${renderList(outlierSprints, 'Sprint outliers')}
-    </section>
+    <details class="leadership-evidence-fold" data-mobile-collapse="true">
+      <summary>Trust, assumptions, and outliers</summary>
+      ${quality ? `
+        <section class="leadership-trust-card" aria-label="Data quality and assumptions">
+          <div>
+            <p class="leadership-direct-value-eyebrow">Trust and assumptions</p>
+            <h3>${escapeHtml(quality.trustBand || 'Weak')} evidence quality</h3>
+          </div>
+          <div class="leadership-trust-grid">
+            <div><span>SP coverage</span><strong>${escapeHtml(formatPct((quality.spCoverage || 0) * 100, 0))}</strong></div>
+            <div><span>Sprint dates</span><strong>${escapeHtml(formatPct((quality.dateCoverage || 0) * 100, 0))}</strong></div>
+            <div><span>Timesheets</span><strong>${escapeHtml(formatPct((quality.timesheetCoverage || 0) * 100, 0))}</strong></div>
+            <div><span>Epic hygiene</span><strong>${escapeHtml(formatPct((quality.epicHygiene || 0) * 100, 0))}</strong></div>
+          </div>
+          <p class="metrics-hint">Cost model source: ${escapeHtml(costModelSource)}. ${escapeHtml(quality.assumptions?.costPerSP || '')} ${escapeHtml(quality.assumptions?.utilization || '')}</p>
+        </section>
+      ` : ''}
+      ${(outlierEpics.length || outlierSprints.length) ? `
+        <section class="leadership-outliers" aria-label="Delivery outliers">
+          ${renderList(outlierEpics, 'Epic outliers')}
+          ${renderList(outlierSprints, 'Sprint outliers')}
+        </section>
+      ` : ''}
+    </details>
   `;
 }
 
@@ -197,10 +181,10 @@ function renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd)
     },
   ];
   return renderContextSummaryStrip({
-    title: 'Leadership lens',
+    title: '',
     chips,
-    secondary: KPI_TREND_VISIBILITY_HINT,
-    actions: '<a class="btn btn-secondary btn-compact" href="/current-sprint">Open current sprint</a>',
+    secondary: '',
+    actions: [],
   });
 }
 
@@ -209,7 +193,8 @@ function renderLeadershipAttentionQueue(data) {
   const outlierSprints = Array.isArray(data?.kpis?.outlierSprints) ? data.kpis.outlierSprints : [];
   const trustBand = data?.kpis?.dataQuality?.trustBand || '';
   return renderAttentionQueue({
-    title: 'Attention queue',
+    title: '',
+    compact: true,
     items: [
       outlierEpics[0] ? {
         label: `Epic outlier: ${outlierEpics[0].label}`,
@@ -228,6 +213,44 @@ function renderLeadershipAttentionQueue(data) {
       } : null,
     ].filter(Boolean),
   });
+}
+
+function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd, outcomeLine) {
+  const recommendation = buildLeadershipRecommendation(data);
+  let repairActionHtml = '<a class="btn btn-secondary btn-compact" href="/current-sprint">Open current sprint</a>';
+  if (recommendation.repairAction === 'fix-excluded-sprints') {
+    repairActionHtml = '<button type="button" class="btn btn-secondary btn-compact" data-preview-context-action="open-unusable-sprints">Fix excluded sprints</button>';
+  }
+  const trustBand = data?.kpis?.dataQuality?.trustBand || 'Mixed';
+  return `
+    <section class="leadership-mission-strip" aria-label="Leadership mission strip">
+      ${renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd)}
+      <div class="leadership-mission-main">
+        <div class="leadership-mission-copy">
+          <p class="leadership-direct-value-eyebrow">Leadership mission</p>
+          <h2>${escapeHtml(recommendation.headline)}</h2>
+          <p>${escapeHtml(outcomeLine || recommendation.body)}</p>
+        </div>
+        <div class="leadership-mission-actions">
+          <button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="${escapeHtml(recommendation.headline)}" data-outcome-projects="${escapeHtml((projectsLabel || '').replace(/\s+/g, ''))}">Create work from insight</button>
+          ${repairActionHtml}
+          <details class="leadership-export-menu">
+            <summary class="btn btn-secondary btn-compact">Export &amp; share</summary>
+            <div class="leadership-export-menu-panel">
+              <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-quarterly-story">Copy portfolio summary</button>
+              <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-kpis-csv">Export KPI CSV</button>
+              <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-boards-csv">Export boards CSV</button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="leadership-mission-meta">
+        <span class="leadership-mission-hint">Trend lens, not team ranking.</span>
+        <span class="leadership-mission-trust">Trust: ${escapeHtml(trustBand)}</span>
+      </div>
+      ${renderLeadershipAttentionQueue(data)}
+    </section>
+  `;
 }
 
 function computeVelocityWindowStats(sprints, windowEnd, months) {
@@ -289,18 +312,8 @@ export function renderLeadershipPage(data) {
     .map((p) => String(p || '').trim())
     .filter(Boolean)
     .join(', ');
-  const contextSegments = renderContextSegments(getContextPieces({
-    projects: projectsLabel || '-',
-    rangeStart: meta.windowStart,
-    rangeEnd: meta.windowEnd,
-  }), {
-    className: 'header-context-strip leadership-context-strip',
-    segmentClass: 'header-context-segment',
-  });
   let html = '<div class="leadership-context-sticky">';
   html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
-  html += contextSegments;
-  html += renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd);
 
   let outcomeLine = '';
   if (boards.length > 0) {
@@ -350,15 +363,12 @@ export function renderLeadershipPage(data) {
     }
   }
   if (outcomeLine) {
-    const compactOutcomeLine = outcomeLine.split('|').slice(0, 2).join(' | ').trim();
-    html += '<p class="leadership-outcome-line" aria-live="polite">' + escapeHtml(compactOutcomeLine) + '</p>';
+    outcomeLine = outcomeLine.split('|').slice(0, 3).join(' | ').trim();
   }
+  html += renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd, outcomeLine);
   html += '</div>';
-  html += renderLeadershipAttentionQueue(data);
-  html += renderLeadershipRecommendedAction(data, projectsLabel);
   html += renderLeadershipKpiStrip(data);
-  html += renderLeadershipTrustCard(data);
-  html += renderLeadershipOutliers(data);
+  html += renderLeadershipEvidenceFold(data);
 
   html += '<div class="leadership-card">';
   html += '<div class="leadership-card-header">';

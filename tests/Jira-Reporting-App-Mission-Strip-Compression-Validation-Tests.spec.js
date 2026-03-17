@@ -113,4 +113,64 @@ test.describe('Mission strip compression contracts', () => {
       allowConsolePatterns: [/Quarterly KPI summary request failed/i],
     });
   });
+
+  test('current sprint treats non-story peer work types as first-class work items', async ({ page }) => {
+    test.setTimeout(120000);
+    const telemetry = captureBrowserTelemetry(page);
+
+    await page.route('**/api/boards.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          projects: ['OPS'],
+          boards: [{ id: 501, name: 'Service Board', projectKey: 'OPS' }],
+        }),
+      });
+    });
+
+    await page.route('**/api/current-sprint.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          board: { id: 501, name: 'Service Board', projectKeys: ['OPS'] },
+          sprint: { id: 901, name: 'Sprint 901', state: 'active', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-03-15T00:00:00.000Z' },
+          daysMeta: { daysRemainingWorking: 4 },
+          summary: { totalStories: 1, doneStories: 0, totalSP: 3, doneSP: 0, percentDone: 0 },
+          dailyCompletions: { stories: [], subtasks: [] },
+          remainingWorkByDay: [],
+          idealBurndown: [],
+          scopeChanges: [],
+          stuckCandidates: [],
+          recentSprints: [],
+          notes: { dependencies: [], learnings: [], updatedAt: null },
+          assumptions: [],
+          meta: { projects: 'OPS', fromSnapshot: false, generatedAt: new Date().toISOString() },
+          stories: [{
+            issueKey: 'OPS-101',
+            key: 'OPS-101',
+            summary: 'Improve incident triage workflow',
+            status: 'In Progress',
+            issueType: 'Service Request',
+            assignee: 'Ops Lead',
+            reporter: 'Ops Lead',
+            storyPoints: 3,
+            subtaskEstimateHours: 0,
+            subtaskLoggedHours: 0,
+            labels: [],
+            subtasks: [],
+            issueUrl: 'https://jira.example.com/browse/OPS-101',
+          }],
+        }),
+      });
+    });
+
+    await page.goto('/current-sprint');
+    await page.waitForSelector('.current-sprint-header-bar, #stories-card', { timeout: 30000 }).catch(() => null);
+    await expect(page.locator('.current-sprint-header-bar')).toContainText(/Issues\s*1/i);
+    await expect(page.locator('#stories-card')).toContainText(/1 issues/i);
+    await expect(page.locator('#stories-table')).toContainText(/Service Request/i);
+    assertTelemetryClean(telemetry);
+  });
 });
