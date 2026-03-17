@@ -97,10 +97,6 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
 
   window.addEventListener('report-preview-shown', () => {
     if (!panel || !panelBody || !collapsedBar) return;
-    if (isDesktopDrawer()) {
-      setFiltersPanelCollapsed(false);
-      return;
-    }
     try {
       sessionStorage.setItem(collapsedStorageKey, '1');
       setFiltersPanelCollapsed(true);

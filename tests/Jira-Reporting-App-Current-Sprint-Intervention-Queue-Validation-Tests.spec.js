@@ -64,8 +64,8 @@ test.describe('Current Sprint Intervention Queue Validation', () => {
     const bodyText = await page.locator('body').textContent();
     expect(bodyText || '').not.toMatch(/Narrative to Epic|No blockers detected\. Sprint is flowing well\./i);
     await expect(page.locator('.sprint-intervention-queue')).toContainText(/Your blockers now/i);
-    await expect(page.locator('.sprint-intervention-queue')).toContainText(/Missing estimates blocking planning/i);
-    await expect(page.locator('.sprint-intervention-queue')).toContainText(/Overloaded or unclear ownership/i);
+    await expect(page.locator('.sprint-intervention-queue')).toContainText(/Missing estimates/i);
+    await expect(page.locator('.sprint-intervention-queue')).toContainText(/Ownership gaps/i);
     await expect(page.locator('body')).toContainText(/Create work from insight/i);
     await expect(page.locator('#blockers-panel')).toContainText(/blocker detected in sprint risk signals|Blocked integration/i);
     assertTelemetryClean(telemetry);

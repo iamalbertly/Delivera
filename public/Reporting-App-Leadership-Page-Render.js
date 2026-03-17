@@ -90,7 +90,6 @@ export function renderLeadershipPage(data) {
   html += contextSegments;
   html += '<p class="metrics-hint leadership-context-line">';
   html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">' + escapeHtml(leadershipContextLabel) + '</span>';
-  html += ' <span class="leadership-trust-hint">' + escapeHtml(indexedDeliveryHint + ' ' + trendVisibilityHint) + '</span>';
   html += '</p>';
 
   let outcomeLine = '';
@@ -141,7 +140,7 @@ export function renderLeadershipPage(data) {
     }
   }
   if (outcomeLine) {
-    const compactOutcomeLine = outcomeLine.split('|').slice(0, 3).join(' | ').trim();
+    const compactOutcomeLine = outcomeLine.split('|').slice(0, 2).join(' | ').trim();
     html += '<p class="leadership-outcome-line" aria-live="polite">' + escapeHtml(compactOutcomeLine) + '</p>';
   }
   html += '</div>';

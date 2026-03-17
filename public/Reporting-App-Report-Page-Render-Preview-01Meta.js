@@ -16,6 +16,7 @@ function summarizeProjectsList(projects) {
   if (list.length <= 2) return { label: list.join(', '), full: list.join(', ') };
   return { label: `${list[0]}, ${list[1]} +${list.length - 2}`, full: list.join(', ') };
 }
+
 function buildGeneratedLabels(generatedAt) {
   const generatedMs = generatedAt ? new Date(generatedAt).getTime() : Date.now();
   const ageMs = Date.now() - generatedMs;
@@ -24,7 +25,6 @@ function buildGeneratedLabels(generatedAt) {
     : new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
   const recent = ageMs >= 0 && ageMs < 3600000;
   const ageMin = Math.max(0, Math.round(ageMs / 60000));
-  // UX Fix #1: Human-readable freshness — no developer-speak [Cached]/[Live] brackets
   const label = recent
     ? (ageMin < 1 ? 'Updated just now' : `Updated ${ageMin} min ago`)
     : `Updated: ${generatedShort}`;
@@ -34,10 +34,6 @@ function buildGeneratedLabels(generatedAt) {
   return { label, stickySuffix, ageMin, isRecent: recent };
 }
 
-/**
- * @param {{ meta: object, previewRows?: array, boardsCount: number, sprintsCount: number, rowsCount: number, unusableCount: number }} params
- * @returns {{ reportSubtitleText: string, appliedFiltersText: string, outcomeLineHTML: string, previewMetaHTML: string, stickyText: string, statusHTML: string, statusDisplay: string, statusStripText: string }}
- */
 export function buildPreviewMetaAndStatus(params) {
   const { meta, previewRows = [], boardsCount, sprintsCount, rowsCount, unusableCount } = params;
   const windowStartLocal = formatDateForDisplay(meta.windowStart);
@@ -105,39 +101,45 @@ export function buildPreviewMetaAndStatus(params) {
   if (meta.includePredictability) opts.push('Include Predictability');
   const appliedFiltersText = `Applied: ${selectedProjectsLabel} | ${windowStartLocal} - ${windowEndLocal}${opts.length ? ' | ' + opts.join(', ') : ''}`;
 
-  let prevRunHtml = '';
+  let prevRunText = '';
   try {
     const lastRun = sessionStorage.getItem(REPORT_LAST_RUN_KEY);
     if (lastRun) {
       const obj = JSON.parse(lastRun);
       const prevStories = typeof obj.doneStories === 'number' ? obj.doneStories : 0;
       const prevSprints = typeof obj.sprintsCount === 'number' ? obj.sprintsCount : 0;
-      prevRunHtml = '<span class="preview-previous-run" aria-live="polite"> Previous run: ' + prevStories + ' done stories, ' + prevSprints + ' sprints.</span>';
+      prevRunText = `Previous run: ${prevStories} done stories, ${prevSprints} sprints.`;
     }
   } catch (_) {}
-  // Single outcome line SSOT: one scannable line with outcome + badge + previous run (no duplicate "Window coverage").
+
   const generated = buildGeneratedLabels(meta.generatedAt);
-  let dataStateLabel = 'Live';
+  let dataStateLabel = 'Just updated';
   let dataStateKind = 'live';
   if (reducedScope) {
     dataStateLabel = 'Closest match';
     dataStateKind = 'closest';
   } else if (partial) {
-    dataStateLabel = 'Partial data';
+    dataStateLabel = 'Unavailable';
     dataStateKind = 'partial';
   } else if (fromCache) {
     const ageMin = generated.ageMin;
-    dataStateLabel = ageMin < 1 ? 'Just updated' : (ageMin < 60 ? `${ageMin} min ago` : 'Over 1h ago');
-    dataStateKind = ageMin > 30 ? 'stale' : 'cached';
+    if (ageMin < 1) {
+      dataStateLabel = 'Just updated';
+      dataStateKind = 'cached';
+    } else if (ageMin <= 30) {
+      dataStateLabel = `Updated ${ageMin} min ago`;
+      dataStateKind = 'cached';
+    } else {
+      dataStateLabel = 'Stale - refresh recommended';
+      dataStateKind = 'stale';
+    }
   }
   const dataStateBadgeHTML = `<span class="data-state-badge data-state-badge--${dataStateKind}" title="Data freshness: ${escapeHtml(generated.label)}">${escapeHtml(dataStateLabel)}</span>`;
-  // configGapChips built later inside the tiered chip strip (neutral style, not orange warning)
   const riskCounts = deriveOutcomeRiskFromPreviewRows(previewRows);
   const blockersOwned = Number(riskCounts.blockersOwned || 0);
   const unownedOutcomes = Number(riskCounts.unownedOutcomes || 0);
   const exportLabel = rowsCount > 0 ? 'Export ready' : 'No data yet';
 
-  // Tier 1 – health sentence: one scannable outcome truth
   let healthSentence;
   let zeroOutcomeHint = '';
   if (rowsCount === 0) {
@@ -147,45 +149,28 @@ export function buildPreviewMetaAndStatus(params) {
     const riskParts = [];
     if (blockersOwned > 0) riskParts.push(`${blockersOwned} blocker${blockersOwned > 1 ? 's' : ''}`);
     if (unownedOutcomes > 0) riskParts.push(`${unownedOutcomes} unowned`);
-    healthSentence = (partial ? 'Partial: ' : '')
-      + `${rowsCount} stor${rowsCount === 1 ? 'y' : 'ies'} · ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} · ${boardsCount} board${boardsCount === 1 ? '' : 's'}`
-      + (riskParts.length ? ' · ' + riskParts.join(' · ') : '');
+    healthSentence = `${rowsCount} stor${rowsCount === 1 ? 'y' : 'ies'} | ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} | ${boardsCount} board${boardsCount === 1 ? '' : 's'}`
+      + (riskParts.length ? ' | ' + riskParts.join(' | ') : '');
   }
+
+  const detailsHintParts = [];
+  if (meta.requireResolvedBySprintEnd) detailsHintParts.push('Strict end-of-sprint rule enabled');
+  if (!meta.discoveredFields?.storyPointsFieldId) detailsHintParts.push('Story points unavailable');
+  if (!meta.discoveredFields?.epicLinkFieldId) detailsHintParts.push('Epic rollups unavailable');
+  if (prevRunText) detailsHintParts.push(prevRunText);
+  if (!rowsCount) detailsHintParts.push(exportLabel);
+  const detailsHint = detailsHintParts.join(' | ');
   const healthRisk = blockersOwned > 0 || unownedOutcomes > 0;
   const healthChipExtra = healthRisk ? ' preview-context-chip-health--risk' : '';
-  const strictBadge = meta.requireResolvedBySprintEnd
-    ? '<span class="preview-context-chip preview-context-chip-muted preview-context-chip-strict" title="Require resolved by sprint end is enabled">Strict</span>'
-    : '';
 
-  // Config gaps – neutral outlined info chips (not screaming orange)
-  const configGapChipsNew = [];
-  if (!meta.discoveredFields?.storyPointsFieldId) {
-    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Story Points field not configured — SP metrics show limited data." aria-label="Story points unavailable. Open advanced options">Story points unavailable</button>');
-  }
-  if (!meta.discoveredFields?.epicLinkFieldId) {
-    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Epic Link field not configured — Epic rollups are limited." aria-label="Epic rollups unavailable. Open advanced options">Epic rollups unavailable</button>');
-  }
-
-  // Build tiered chip strip: T2 scope → T1 health hero → T3 right-side data/export
   const outcomeLineHTML =
     '<div class="preview-context-bar" data-context-bar="true" role="group" aria-label="Report preview context and outcome">' +
-      // Identity – flat, low-ink label
       '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Performance history</span>' +
-      // T2: Scope (muted interactive)
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '<span class="visually-hidden"> Projects full list: ' + escapeHtml(projectSummary.full) + '</span></button>' +
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>' +
-      // T1: Health hero chip – outcome truth in one sentence
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-outcomes-shortcut" data-preview-context-action="open-done-stories" title="Jump to Outcomes tab" aria-label="Open Outcomes tab">Open outcomes</button>' +
-      strictBadge +
-      // T3: Data state + export (right-side badges)
       '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>' +
-      '<span class="preview-context-chip' + (rowsCount > 0 ? ' preview-context-chip-ok' : ' preview-context-chip-muted') + '">' + escapeHtml(exportLabel) + '</span>' +
-      // Config gap chips (neutral, demoted – not orange, not primary)
-      configGapChipsNew.join('') +
-      (prevRunHtml ? '<span class="preview-context-inline-note">' + prevRunHtml + '</span>' : '') +
-      // Details toggle – collapses the raw meta block
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="Show range, timing and data mode details">Details</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Details</button>' +
     '</div>' +
     zeroOutcomeHint;
 
@@ -193,10 +178,6 @@ export function buildPreviewMetaAndStatus(params) {
   const phaseLogHtml = phaseLog.length > 0
     ? '<br><strong>Phase log:</strong> ' + phaseLog.map((p) => escapeHtml((p.phase || '') + (p.at ? ' @ ' + p.at : ''))).join(' | ')
     : '';
-  let metaSummaryWhy = '';
-  if (partial) metaSummaryWhy = partialReason ? ` | Partial: ${partialReason}` : ' | Partial: time limit';
-  else if (timedOut) metaSummaryWhy = ' | Time limit reached (partial data)';
-  else if (previewMode === 'recent-first') metaSummaryWhy = ' | Recent live; older from cache';
 
   if (meta.failedBoardCount && meta.failedBoardCount > 0) {
     const failedBoards = Array.isArray(meta.failedBoards) ? meta.failedBoards : [];
@@ -206,11 +187,12 @@ export function buildPreviewMetaAndStatus(params) {
     const suffix = boardNames.length ? ` (${boardNames.join(', ')})` : '';
     detailsLines.push(`Skipped boards: ${meta.failedBoardCount}${suffix}`);
   }
-  // Preview meta: collapsed by default; revealed by "Details" toggle in chip strip.
+
   const previewMetaHTML = `
     <div class="meta-info meta-info-details" id="preview-meta-details" hidden>
       <strong>Range (UTC):</strong> ${escapeHtml(windowStartUtc)} to ${escapeHtml(windowEndUtc)}<br>
       <strong>Example story:</strong> ${sampleLabel}<br>
+      <strong>Scope:</strong> ${escapeHtml(exportLabel)}${detailsHint ? ` | ${escapeHtml(detailsHint)}` : ''}<br>
       <strong>Details:</strong> ${escapeHtml(detailsLines.join(' | '))}
       ${phaseLogHtml}
       ${partialNotice}
@@ -219,10 +201,11 @@ export function buildPreviewMetaAndStatus(params) {
 
   const stickyText = `Preview: ${selectedProjectsLabel} | ${compactRangeLabel}${generated.stickySuffix}`;
   let statusStripText = '';
-  if (partial) statusStripText = 'PARTIAL DATA';
+  if (partial) statusStripText = 'UNAVAILABLE';
   else if (reducedScope) statusStripText = 'CLOSEST MATCH';
   else if (previewMode !== 'normal') statusStripText = 'FAST MODE';
   else statusStripText = 'UP TO DATE';
+
   let statusHTML = '';
   let statusDisplay = 'none';
   if (rowsCount > 0 && (partial || previewMode !== 'normal' || reducedScope)) {
@@ -247,8 +230,15 @@ export function buildPreviewMetaAndStatus(params) {
     `;
     statusDisplay = 'block';
   }
-  return { reportSubtitleText, appliedFiltersText, outcomeLineHTML, previewMetaHTML, stickyText, statusHTML, statusDisplay, statusStripText };
+
+  return {
+    reportSubtitleText,
+    appliedFiltersText,
+    outcomeLineHTML,
+    previewMetaHTML,
+    stickyText,
+    statusHTML,
+    statusDisplay,
+    statusStripText,
+  };
 }
-
-
-

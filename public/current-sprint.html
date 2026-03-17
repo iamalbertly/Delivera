@@ -8,7 +8,7 @@
   <style>
     /* Compact page header: single row with board select; header bar is the main strip */
     body.current-sprint-page header {
-      padding: 10px 16px;
+      padding: 8px 16px;
     }
     .current-sprint-header {
       display: block;
@@ -30,19 +30,19 @@
     }
     .current-sprint-scope-stack {
       display: grid;
-      gap: 8px;
-      width: min(760px, 100%);
+      gap: 6px;
+      width: min(960px, 100%);
     }
     .current-sprint-scope-inline {
       display: grid;
-      grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 8px;
       align-items: center;
     }
     .current-sprint-control-field {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
       min-width: 0;
     }
     .current-sprint-control-field label {
@@ -68,6 +68,10 @@
       flex-wrap: wrap;
       min-width: 0;
     }
+    .current-sprint-scope-row--compact {
+      flex-wrap: nowrap;
+      align-items: stretch;
+    }
     .current-sprint-scope-badge {
       display: inline-flex;
       align-items: center;
@@ -79,8 +83,12 @@
       font-size: 0.76rem;
       white-space: nowrap;
     }
+    .current-sprint-jump-inline {
+      flex: 1 1 220px;
+      min-width: 220px;
+    }
     .current-sprint-jump-inline input[type="text"] {
-      padding: 8px 10px;
+      padding: 6px 10px;
     }
     #current-sprint-single-project-hint { display: inline-flex; }
     .transparency-card {
@@ -115,15 +123,19 @@
     .histogram-bar { height: 14px; background: var(--primary); border-radius: 4px; min-width: 4px; display: inline-block; vertical-align: middle; }
     #current-sprint-loading,
     #current-sprint-error {
-      padding: 20px;
+      padding: 12px 14px;
       text-align: center;
       color: var(--muted);
+      max-width: 720px;
+      margin: 0 auto;
     }
     #current-sprint-loading.current-sprint-loading-with-spinner {
-      display: flex;
-      flex-direction: column;
+      display: inline-flex;
+      flex-direction: row;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      gap: 10px;
+      min-height: 48px;
     }
     .current-sprint-loading-spinner {
       width: 32px;
@@ -146,8 +158,10 @@
       }
     }
     @media (max-width: 1024px) {
-      .current-sprint-scope-inline {
+      .current-sprint-scope-inline,
+      .current-sprint-scope-row--compact {
         grid-template-columns: 1fr;
+        flex-wrap: wrap;
       }
     }
   </style>
@@ -161,7 +175,7 @@
           <div class="current-sprint-scope-stack">
             <div class="current-sprint-control-field">
               <label for="current-sprint-projects">Scope</label>
-              <div class="current-sprint-scope-row">
+              <div class="current-sprint-scope-row current-sprint-scope-row--compact">
                 <div class="current-sprint-scope-inline">
                 <select id="current-sprint-projects" aria-label="Select project">
                   <option value="MPSA">MPSA - M-SQUAD</option>
@@ -181,11 +195,12 @@
                   <option value="">Loading boards...</option>
                 </select>
                 </div>
-                <span id="current-sprint-single-project-hint" class="current-sprint-scope-badge" aria-live="polite">Single-project</span>
+                <span id="current-sprint-single-project-hint" class="current-sprint-scope-badge" aria-live="polite">Using single-project mode</span>
+                <div class="current-sprint-jump-inline">
+                  <input id="issue-jump-input" type="text" class="input-compact" placeholder="Jump to KEY or /browse/KEY" aria-label="Search or jump to Jira issue by key or URL">
+                  <div id="issue-jump-results" class="issue-jump-results" aria-live="polite"></div>
+                </div>
               </div>
-            </div>
-            <div class="current-sprint-jump-inline">
-              <input id="issue-jump-input" type="text" class="input-compact" placeholder="Jump to KEY or /browse/KEY" aria-label="Search or jump to Jira issue by key or URL">
             </div>
           </div>
         </div>
@@ -203,7 +218,7 @@
             <div class="skeleton-line"></div>
           </div>
         </div>
-        <div class="current-sprint-loading-copy">Select project and board to see sprint health.</div>
+        <div class="current-sprint-loading-copy">Choose scope to load the sprint HUD.</div>
       </div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>
       <div id="current-sprint-content"></div>

@@ -535,7 +535,6 @@ export function renderProjectEpicLevelTab(boards, metrics) {
           reason: 'No epics with usable timing data in this window.'
         });
       } else {
-        html += '<h3 id="epic-ttm-section" class="visually-hidden">Epic time-to-market</h3>';
         html += buildEpicTtmSectionHtml(epicTTMRows, meta, reportState.previewRows, {
           includeCompletionAnchor: true,
           wrapperClass: 'data-table-scroll-wrap data-table-scroll-wrap--with-vertical-limit',

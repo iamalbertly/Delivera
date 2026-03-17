@@ -118,6 +118,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report,/current-sprint,/sprint-leadership',
   },
+  'tests/Jira-Reporting-App-Viewport-Compression-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'layout/responsiveness',
+    page: '/report,/current-sprint,/sprint-leadership',
+  },
 
   // Global UX, navigation, trust, responsiveness
   'tests/Jira-Reporting-App-UX-Trust-And-Export-Validation-Tests.spec.js': {

@@ -73,7 +73,7 @@ test.describe('Outcome-First and First-Paint Validation', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('report: after preview runs context line cleared from main area', async ({ page }) => {
+  test('report: after preview runs context line keeps active filter narrative visible', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
@@ -87,8 +87,9 @@ test.describe('Outcome-First and First-Paint Validation', () => {
     const previewContent = page.locator('#preview-content');
     const previewVisible = await previewContent.isVisible().catch(() => false);
     if (previewVisible) {
-      const contextLineText = (await page.locator('#report-context-line').textContent()) || '';
-      expect(contextLineText.trim()).toBe('');
+      const contextBarText = (await page.locator('.preview-context-bar').textContent().catch(() => ''))
+        || ((await page.locator('#report-context-line').textContent()) || '');
+      expect(contextBarText).toMatch(/Projects:|Updated|story|stories|Report range:/i);
     }
     assertTelemetryClean(telemetry);
   });

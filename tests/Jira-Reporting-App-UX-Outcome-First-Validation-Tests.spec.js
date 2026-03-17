@@ -23,10 +23,10 @@ test.describe('UX Outcome-First', () => {
       test.skip(true, 'Preview not visible within timeout; may require Jira credentials');
       return;
     }
-    const outcomeLine = page.locator('#preview-outcome-line');
+    const outcomeLine = page.locator('.preview-context-bar');
     await expect(outcomeLine).toBeVisible();
     const text = await outcomeLine.textContent().catch(() => '');
-    expect(text).toMatch(/done stories|sprints|boards/);
+    expect(text).toMatch(/stories|sprints|boards|Updated/i);
 
     assertTelemetryClean(telemetry);
   });
@@ -100,7 +100,7 @@ test.describe('UX Outcome-First', () => {
       return;
     }
     const body = await page.locator('body').textContent().catch(() => '');
-    expect(body).toMatch(/Generated/);
+    expect(body).toMatch(/Just updated|Updated just now|Updated \d+ min ago|Updated:/);
 
     assertTelemetryClean(telemetry);
   });

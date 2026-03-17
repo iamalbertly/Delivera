@@ -168,7 +168,7 @@ export function renderPreview() {
   if (previewBtn && rowsCount > 0) {
     previewBtn.classList.remove('btn-primary');
     previewBtn.classList.add('btn-secondary');
-    previewBtn.textContent = 'Refresh preview';
+    previewBtn.textContent = 'Refresh';
     previewBtn.title = 'Refresh report results for current filters.';
   }
   const stickyEl = document.getElementById('preview-summary-sticky');
@@ -178,6 +178,22 @@ export function renderPreview() {
     // M4: Add body class so mobile CSS can hide duplicate applied-filters-summary
     document.body.classList.add('preview-active');
   }
+  const filtersPanel = document.getElementById('filters-panel');
+  const filtersPanelBody = document.getElementById('filters-panel-body');
+  const filtersCollapsedBar = document.getElementById('filters-panel-collapsed-bar');
+  if (filtersPanel) {
+    filtersPanel.classList.add('collapsed');
+    filtersPanel.classList.remove('expanded');
+  }
+  if (filtersPanelBody) filtersPanelBody.style.display = 'none';
+  if (filtersCollapsedBar) {
+    filtersCollapsedBar.style.display = 'none';
+    filtersCollapsedBar.setAttribute('aria-hidden', 'true');
+  }
+  document.querySelectorAll('[data-action="toggle-filters"]').forEach((button) => {
+    button.textContent = 'Filters';
+    button.setAttribute('aria-expanded', 'false');
+  });
   wirePreviewContextActions();
   const statusEl = document.getElementById('preview-status');
   if (statusEl) {
@@ -198,12 +214,6 @@ export function renderPreview() {
 
   const exportHint = document.getElementById('export-hint');
   if (exportHint) {
-    const modeDetails = [];
-    if (meta.fromCache) modeDetails.push('cache');
-    if (meta.recentSplitReason) modeDetails.push('split by ' + meta.recentSplitReason);
-    if (meta.reducedScope) modeDetails.push('closest available scope');
-    if (meta.partial) modeDetails.push('partial payload');
-    const modeSuffix = modeDetails.length ? (' Data mode: ' + modeDetails.join(', ') + '.') : '';
     if (!hasRows) {
       exportHint.innerHTML = '<small>Generate a report with data to enable export.</small>';
     } else if (partial) {
@@ -213,7 +223,7 @@ export function renderPreview() {
     } else {
       exportHint.innerHTML = '';
     }
-    exportHint.title = modeSuffix ? modeSuffix.replace(/^ Data mode:\s*/, '').trim() : '';
+    exportHint.title = '';
   }
   const tabHintEl = document.getElementById('tab-outcome-hint');
   if (tabHintEl) {

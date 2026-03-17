@@ -87,9 +87,6 @@ export function renderCurrentSprintPage(data) {
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   const sectionActions = [];
   sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create work from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Create work from insight</button>');
-  if (data?.board?.name && outcomeProjects) {
-    sectionActions.push('<a class="sprint-section-inline-link" href="/leadership?project=' + encodeURIComponent(String(outcomeProjects).split(',')[0]) + '&board=' + encodeURIComponent(data.board.name) + '">Leadership trend</a>');
-  }
   const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact sprint-section-links-sticky" role="navigation" aria-label="Jump to section">'
     + jumpLinks.join('')
     + (sectionActions.length ? '<div class="sprint-section-inline-actions">' + sectionActions.join('') + '</div>' : '')
@@ -232,14 +229,15 @@ function buildUnifiedSprintHud(data, verdict, capacitySummary, sectionLinksHtml,
   html += '</div>';
   html += sectionLinksHtml || '';
   html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
-  html += '<button type="button" class="header-metric sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + Number(riskCounts.blockersOwned || 0) + '</span><span class="metric-meta">Open the riskiest work first</span></button>';
-  html += '<button type="button" class="header-metric sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates blocking planning</span><span class="metric-value">' + missingEstimateCount + '</span><span class="metric-meta">Estimate the work planning cannot trust yet</span></button>';
-  html += '<button type="button" class="header-metric sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Overloaded or unclear ownership</span><span class="metric-value">' + Math.max(Number(riskCounts.unownedOutcomes || 0), overloadedOwners) + '</span><span class="metric-meta">Fix ownership before the queue expands</span></button>';
+  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + Number(riskCounts.blockersOwned || 0) + '</span><span class="metric-meta">Open now</span></button>';
+  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates</span><span class="metric-value">' + missingEstimateCount + '</span><span class="metric-meta">Plan safely</span></button>';
+  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership gaps</span><span class="metric-value">' + Math.max(Number(riskCounts.unownedOutcomes || 0), overloadedOwners) + '</span><span class="metric-meta">Fix next</span></button>';
   html += '</div>';
   if (!isLoadingShell) {
-    html += '<div class="sprint-hud-carousel-inline">';
+    html += '<details class="sprint-hud-carousel-inline" data-mobile-collapse="true">';
+    html += '<summary>Switch sprint</summary>';
     html += renderSprintCarousel(data);
-    html += '</div>';
+    html += '</details>';
   }
   html += '<details class="sprint-hud-details" data-mobile-collapse="true">';
   html += '<summary>Why this verdict</summary>';

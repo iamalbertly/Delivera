@@ -197,14 +197,12 @@ export function renderHeaderBar(data) {
   html += '<button type="button" class="header-metric" data-metric="log-est" title="Subtask logged versus estimated hours"><span class="metric-label">Log/Est</span><span class="metric-value">' + subtaskLoggedHrs.toFixed(1) + ' / ' + subtaskEstimatedHrs.toFixed(1) + 'h</span></button>';
   html += '</div>';
   html += '<div class="header-band-actions">';
-  html += '<span class="header-export-readiness" title="' + escapeHtml(exportReadiness) + '">' + escapeHtml(exportReadiness) + '</span>';
   html += '<button type="button" class="btn btn-primary btn-compact header-action-cta header-action-primary" data-header-action="take-action"'
     + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '')
     + ` title="${escapeHtml(isHistoricalSprint ? 'Historical sprint snapshot: live remediation actions are disabled.' : 'Focus highest priority risk rows')}">`
     + escapeHtml(isHistoricalSprint ? SPRINT_COPY.historicalAction : 'Focus risk work')
     + '</button>';
   html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data and context"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh</button>';
-  html += renderExportButton(true);
   html += '<details class="header-view-drawer">';
   html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span data-header-active-filter-value>Lens: All | none</span></summary>';
   html += '<div class="header-view-drawer-panel">';
@@ -228,6 +226,7 @@ export function renderHeaderBar(data) {
     html += '<span title="' + escapeHtml(item.detail || '') + '">' + escapeHtml(item.eyebrow + ': ' + item.label) + '</span>';
   });
   html += '</div>';
+  html += renderExportButton(true);
   html += '<div class="header-drawer-links">';
   html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">Reset lens</button>';
   if (!isHistoricalSprint) {
@@ -257,16 +256,6 @@ export function renderHeaderBar(data) {
   } else {
     html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(remainingChipLabel)}</span>`;
   }
-  html += '</div>';
-  html += '<div class="header-intelligence-strip">';
-  headerInsights.forEach((item) => {
-    const stateClass = item.state ? ' header-intelligence-card-' + escapeHtml(item.state) : '';
-    html += '<article class="header-intelligence-card' + stateClass + '" data-header-insight="' + escapeHtml(item.key) + '">';
-    html += '<span class="header-intelligence-eyebrow">' + escapeHtml(item.eyebrow) + '</span>';
-    html += '<span class="header-intelligence-title">' + escapeHtml(item.label) + '</span>';
-    html += '<span class="header-intelligence-detail">' + escapeHtml(item.detail || '') + '</span>';
-    html += '</article>';
-  });
   html += '</div>';
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
