@@ -27,11 +27,12 @@ test.describe('Mission strip compression contracts', () => {
     await expect(page.locator('.current-sprint-header-bar .attention-queue--compact')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .sprint-intervention-queue')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .header-view-drawer')).toBeVisible();
+    await expect(page.locator('.sprint-jump-rail')).toHaveCount(0);
     await expect(page.locator('.current-sprint-header-bar + .context-summary-strip')).toHaveCount(0);
     await expect(page.locator('.current-sprint-header-bar + .attention-queue')).toHaveCount(0);
 
     const viewport = await page.locator('.current-sprint-header-bar').evaluate((node) => node.getBoundingClientRect().height);
-    expect(viewport).toBeLessThan(220);
+    expect(viewport).toBeLessThan(226);
 
     assertTelemetryClean(telemetry);
   });
@@ -114,7 +115,7 @@ test.describe('Mission strip compression contracts', () => {
     });
   });
 
-  test('current sprint treats non-story peer work types as first-class work items', async ({ page }) => {
+  test('current sprint treats mixed peer work types as first-class work items', async ({ page }) => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
 
@@ -137,7 +138,7 @@ test.describe('Mission strip compression contracts', () => {
           board: { id: 501, name: 'Service Board', projectKeys: ['OPS'] },
           sprint: { id: 901, name: 'Sprint 901', state: 'active', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-03-15T00:00:00.000Z' },
           daysMeta: { daysRemainingWorking: 4 },
-          summary: { totalStories: 1, doneStories: 0, totalSP: 3, doneSP: 0, percentDone: 0 },
+          summary: { totalStories: 6, doneStories: 3, totalSP: 13, doneSP: 8, percentDone: 50 },
           dailyCompletions: { stories: [], subtasks: [] },
           remainingWorkByDay: [],
           idealBurndown: [],
@@ -147,30 +148,111 @@ test.describe('Mission strip compression contracts', () => {
           notes: { dependencies: [], learnings: [], updatedAt: null },
           assumptions: [],
           meta: { projects: 'OPS', fromSnapshot: false, generatedAt: new Date().toISOString() },
-          stories: [{
-            issueKey: 'OPS-101',
-            key: 'OPS-101',
-            summary: 'Improve incident triage workflow',
-            status: 'In Progress',
-            issueType: 'Service Request',
-            assignee: 'Ops Lead',
-            reporter: 'Ops Lead',
-            storyPoints: 3,
-            subtaskEstimateHours: 0,
-            subtaskLoggedHours: 0,
-            labels: [],
-            subtasks: [],
-            issueUrl: 'https://jira.example.com/browse/OPS-101',
-          }],
+          stories: [
+            {
+              issueKey: 'OPS-101',
+              key: 'OPS-101',
+              summary: 'Improve incident triage workflow',
+              status: 'In Progress',
+              issueType: 'Service Request',
+              assignee: 'Ops Lead',
+              reporter: 'Ops Lead',
+              storyPoints: 3,
+              subtaskEstimateHours: 0,
+              subtaskLoggedHours: 0,
+              labels: [],
+              subtasks: [],
+              issueUrl: 'https://jira.example.com/browse/OPS-101',
+            },
+            {
+              issueKey: 'OPS-102',
+              key: 'OPS-102',
+              summary: 'Resolve customer consent export bug',
+              status: 'Done',
+              issueType: 'Bug',
+              assignee: 'Ops Lead',
+              reporter: 'Ops Lead',
+              storyPoints: 2,
+              subtaskEstimateHours: 0,
+              subtaskLoggedHours: 0,
+              labels: [],
+              subtasks: [],
+              issueUrl: 'https://jira.example.com/browse/OPS-102',
+            },
+            {
+              issueKey: 'OPS-103',
+              key: 'OPS-103',
+              summary: 'Customer territory KPI request',
+              status: 'In Progress',
+              issueType: 'Task',
+              assignee: 'Ops Lead',
+              reporter: 'Ops Lead',
+              storyPoints: 3,
+              subtaskEstimateHours: 0,
+              subtaskLoggedHours: 0,
+              labels: [],
+              subtasks: [],
+              issueUrl: 'https://jira.example.com/browse/OPS-103',
+            },
+            {
+              issueKey: 'OPS-104',
+              key: 'OPS-104',
+              summary: 'Modernize feedback categorization flow',
+              status: 'Done',
+              issueType: 'Improvement',
+              assignee: 'Ops Lead',
+              reporter: 'Ops Lead',
+              storyPoints: 2,
+              subtaskEstimateHours: 0,
+              subtaskLoggedHours: 0,
+              labels: [],
+              subtasks: [],
+              issueUrl: 'https://jira.example.com/browse/OPS-104',
+            },
+            {
+              issueKey: 'OPS-105',
+              key: 'OPS-105',
+              summary: 'Service onboarding request',
+              status: 'Done',
+              issueType: 'Change',
+              assignee: 'Ops Lead',
+              reporter: 'Ops Lead',
+              storyPoints: 1,
+              subtaskEstimateHours: 0,
+              subtaskLoggedHours: 0,
+              labels: [],
+              subtasks: [],
+              issueUrl: 'https://jira.example.com/browse/OPS-105',
+            },
+            {
+              issueKey: 'OPS-106',
+              key: 'OPS-106',
+              summary: 'Feedback filter enhancement',
+              status: 'In Progress',
+              issueType: 'Service Request',
+              assignee: 'Ops Lead',
+              reporter: 'Ops Lead',
+              storyPoints: 2,
+              subtaskEstimateHours: 0,
+              subtaskLoggedHours: 0,
+              labels: [],
+              subtasks: [],
+              issueUrl: 'https://jira.example.com/browse/OPS-106',
+            },
+          ],
         }),
       });
     });
 
     await page.goto('/current-sprint');
     await page.waitForSelector('.current-sprint-header-bar, #stories-card', { timeout: 30000 }).catch(() => null);
-    await expect(page.locator('.current-sprint-header-bar')).toContainText(/Issues\s*1/i);
-    await expect(page.locator('#stories-card')).toContainText(/1 issues/i);
+    await expect(page.locator('.current-sprint-header-bar')).toContainText(/Issues\s*6/i);
+    await expect(page.locator('#stories-card')).toContainText(/6 issues/i);
     await expect(page.locator('#stories-table')).toContainText(/Service Request/i);
+    await expect(page.locator('#stories-table')).toContainText(/Bug/i);
+    await expect(page.locator('#stories-table')).toContainText(/Task/i);
+    await expect(page.locator('#stories-table')).toContainText(/Improvement/i);
+    await expect(page.locator('#stories-table')).toContainText(/Change/i);
     assertTelemetryClean(telemetry);
   });
 });

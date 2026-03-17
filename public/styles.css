@@ -4425,8 +4425,8 @@ body .preview-area {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
-  padding: 6px 10px;
+  gap: 3px;
+  padding: 5px 8px;
   min-height: 40px;
   background: linear-gradient(135deg, var(--card) 0%, var(--card-muted) 100%);
   border: 1px solid var(--border);
@@ -8347,8 +8347,8 @@ body.current-sprint-page .stories-evidence-inline {
 
 body.current-sprint-page .mission-strip-secondary {
   display: grid;
-  gap: 6px;
-  padding-top: 4px;
+  gap: 4px;
+  padding-top: 3px;
   border-top: 1px solid rgba(148, 163, 184, 0.16);
 }
 
@@ -8363,6 +8363,38 @@ body.current-sprint-page .mission-attention-rail {
 
 body.current-sprint-page .mission-strip-tertiary {
   justify-content: space-between;
+}
+
+body.current-sprint-page .mission-context-ribbon .context-summary-strip {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  gap: 6px;
+}
+
+body.current-sprint-page .mission-context-ribbon .context-summary-chips {
+  gap: 6px;
+}
+
+body.current-sprint-page .mission-context-ribbon .context-summary-chip {
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+body.current-sprint-page .mission-strip-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+body.current-sprint-page .mission-strip-nav .sprint-section-links {
+  width: 100%;
 }
 
 body.current-sprint-page .current-sprint-history-banner-inline {
@@ -8412,6 +8444,13 @@ body.current-sprint-page .sprint-intervention-item {
   min-width: 0;
   padding: 6px 8px;
   border-radius: 999px;
+}
+
+body.current-sprint-page .sprint-intervention-item--quiet {
+  justify-content: space-between;
+  background: rgba(248, 250, 252, 0.96);
+  border-style: dashed;
+  cursor: default;
 }
 
 body.current-sprint-page .sprint-intervention-item .metric-label,

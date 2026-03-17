@@ -15,6 +15,7 @@ import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-All
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
 import { renderHealthDashboard } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
 import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
+import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
 import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
 function getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness }) {
   const freshnessText = freshnessLabel || (statusBadge === SPRINT_COPY.statusLive ? 'Live data' : 'Snapshot');
@@ -109,6 +110,23 @@ function buildMissionContextChips({
   return chips.join('');
 }
 
+function buildMissionContextRibbon({
+  selectedProject,
+  boardName,
+  sprintDatesLabel,
+  statusBadge,
+  freshnessLabel,
+  exportReadiness,
+}) {
+  return renderContextSummaryStrip({
+    chips: [
+      { label: 'Scope', value: [selectedProject || 'n/a', boardName || 'Board'].filter(Boolean).join(' | ') },
+      { label: 'Window', value: sprintDatesLabel || 'No active sprint window' },
+      { label: 'Trust', value: `${freshnessLabel || statusBadge} | ${exportReadiness}`, tone: statusBadge === SPRINT_COPY.statusLive ? 'success' : 'warning' },
+    ],
+  });
+}
+
 function buildMissionAttentionRail(verdictRiskChips, remainingChipLabel) {
   const items = Array.isArray(verdictRiskChips) && verdictRiskChips.length
     ? verdictRiskChips.slice(0, 3).map((chip) => ({
@@ -125,7 +143,8 @@ function buildMissionAttentionRail(verdictRiskChips, remainingChipLabel) {
   return renderAttentionQueue({ title: '', items, compact: true });
 }
 
-export function renderHeaderBar(data) {
+export function renderHeaderBar(data, options = {}) {
+  const { sectionLinksHtml = '', isLoadingShell = false } = options;
   const sprint = data.sprint || {};
   const summary = data.summary || {};
   const days = data.daysMeta || {};
@@ -220,14 +239,13 @@ export function renderHeaderBar(data) {
   const followUpSummary = !isHistoricalSprint
     ? (loggingAlertTotal > 0 ? SPRINT_COPY.loggingNudges(loggingAlertTotal) : SPRINT_COPY.loggingHealthy)
     : SPRINT_COPY.historical;
-  const missionContextChips = buildMissionContextChips({
+  const missionContextRibbon = buildMissionContextRibbon({
     selectedProject,
     boardName,
     sprintDatesLabel,
     freshnessLabel: freshnessLabel || (statusBadge === SPRINT_COPY.statusLive ? 'Live data' : 'Snapshot'),
     statusBadge,
     exportReadiness,
-    isHistoricalSprint,
   });
   const missionAttentionRail = buildMissionAttentionRail(verdictRiskChips, remainingChipLabel);
 
@@ -306,12 +324,21 @@ export function renderHeaderBar(data) {
   html += '</div>';
   html += '</div>';
   html += '<div class="mission-strip-secondary" aria-label="Sprint mission strip detail">';
-  html += '<div class="mission-context-ribbon">' + missionContextChips + '</div>';
+  html += '<div class="mission-context-ribbon">' + missionContextRibbon + '</div>';
   html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
-  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Blockers</span><span class="metric-value">' + stuckCount + '</span><span class="metric-meta">Open now</span></button>';
-  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing est</span><span class="metric-value">' + missingEstimates + '</span><span class="metric-meta">Plan safely</span></button>';
-  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership</span><span class="metric-value">' + unassignedParents + '</span><span class="metric-meta">Fix next</span></button>';
+  if (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0) {
+    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + stuckCount + '</span><span class="metric-meta">Open now</span></button>';
+    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates</span><span class="metric-value">' + missingEstimates + '</span><span class="metric-meta">Plan safely</span></button>';
+    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership gaps</span><span class="metric-value">' + unassignedParents + '</span><span class="metric-meta">Fix next</span></button>';
+  } else {
+    html += '<span class="sprint-intervention-item sprint-intervention-item--quiet"><span class="metric-label">All systems healthy</span><span class="metric-meta">No critical intervention queued</span></span>';
+  }
   html += '</div>';
+  if (sectionLinksHtml) {
+    html += '<div class="mission-strip-nav" aria-label="Sprint jump links and quick actions">' + sectionLinksHtml + '</div>';
+  } else if (isLoadingShell) {
+    html += '<div class="mission-strip-nav mission-strip-nav-loading" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>';
+  }
   html += '<div class="mission-strip-tertiary">';
   html += '<div class="mission-attention-rail">' + missionAttentionRail + '</div>';
   if (isHistoricalSprint) {

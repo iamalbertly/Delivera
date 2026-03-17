@@ -3,9 +3,6 @@ import { renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Ren
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoActiveSprintEmptyState, renderNoIssuesForContextEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
-import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
-import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
-import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 export function renderCurrentSprintPage(data) {
   const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
@@ -35,7 +32,28 @@ export function renderCurrentSprintPage(data) {
   if (!hasDailyCompletions) availabilityGaps.push({ source: 'Window', label: 'Daily completion hidden', reason: 'No completed items in this sprint window yet.' });
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
 
-  html += renderHeaderBar(data);
+  const jumpLinks = [];
+  const outcomeProjects = Array.isArray(data?.board?.projectKeys) && data.board.projectKeys.length
+    ? data.board.projectKeys.join(',')
+    : String(data?.meta?.projects || '');
+  const outcomeContext = [
+    data?.board?.name || 'Current sprint board',
+    data?.sprint?.name || 'Current sprint',
+    data?.sprint?.startDate && data?.sprint?.endDate
+      ? `${String(data.sprint.startDate).slice(0, 10)} - ${String(data.sprint.endDate).slice(0, 10)}`
+      : '',
+  ].filter(Boolean).join(' | ');
+  if (hasStories) jumpLinks.push('<a href="#stories-card">Work & flow</a>');
+  if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
+  jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
+  const sectionActions = [];
+  sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create work from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Create work from insight</button>');
+  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact" role="navigation" aria-label="Jump to section">'
+    + jumpLinks.join('')
+    + (sectionActions.length ? '<div class="sprint-section-inline-actions">' + sectionActions.join('') + '</div>' : '')
+    + '</div>';
+
+  html += renderHeaderBar(data, { sectionLinksHtml });
   if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
     html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
   }
@@ -69,32 +87,7 @@ export function renderCurrentSprintPage(data) {
     return html;
   }
 
-  const jumpLinks = [];
-  const outcomeProjects = Array.isArray(data?.board?.projectKeys) && data.board.projectKeys.length
-    ? data.board.projectKeys.join(',')
-    : String(data?.meta?.projects || '');
-  const outcomeContext = [
-    data?.board?.name || 'Current sprint board',
-    data?.sprint?.name || 'Current sprint',
-    data?.sprint?.startDate && data?.sprint?.endDate
-      ? `${String(data.sprint.startDate).slice(0, 10)} - ${String(data.sprint.endDate).slice(0, 10)}`
-      : '',
-  ].filter(Boolean).join(' | ');
-  if (hasStories) jumpLinks.push('<a href="#stories-card">Work & flow</a>');
-  if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
-  jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
-  const sectionActions = [];
-  sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create work from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Create work from insight</button>');
-  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact" role="navigation" aria-label="Jump to section">'
-    + jumpLinks.join('')
-    + (sectionActions.length ? '<div class="sprint-section-inline-actions">' + sectionActions.join('') + '</div>' : '')
-    + '</div>';
-
-  const verdict = deriveSprintVerdict(data);
-  const capacitySummary = buildCapacitySummary(data);
-
   html += '<div class="current-sprint-grid-layout">';
-  html += buildUnifiedSprintHud(data, verdict, capacitySummary, sectionLinksHtml);
 
   if (hasStories) {
     html += '<div class="sprint-cards-column full-width">';
@@ -133,12 +126,9 @@ export function renderCurrentSprintPageParts(data) {
     };
   }
 
-  const verdict = deriveSprintVerdict(data);
-  const capacitySummary = buildCapacitySummary(data);
   const initialHtml = ''
-    + renderHeaderBar(data)
+    + renderHeaderBar(data, { isLoadingShell: true })
     + '<div class="current-sprint-grid-layout current-sprint-grid-layout-phased">'
-    + buildUnifiedSprintHud(data, verdict, capacitySummary, '<div class="sprint-section-links sprint-section-links-compact" role="navigation" aria-label="Jump to section"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Burndown</span><div class="sprint-section-inline-actions"><button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" disabled>Create work from insight</button></div></div>', true)
     + '<div class="transparency-card sprint-progressive-shell" data-progressive-shell="deferred">'
     + '<h2>Loading sprint work</h2>'
     + '<p>HUD is ready. Stories and flow load next.</p>'
@@ -187,31 +177,6 @@ function buildSprintAtAGlanceHero(data, verdict, capacitySummary) {
     + ' | Capacity: ' + capacityLabel
     + '</p>'
     + '</section>';
-}
-
-function buildUnifiedSprintHud(data, verdict, capacitySummary, sectionLinksHtml, isLoadingShell = false) {
-  const summary = data.summary || {};
-  const issueCount = summary.totalStories ?? 0;
-  const riskCounts = getUnifiedRiskCounts(data);
-  const missingEstimateCount = Number(verdict.missingEstimate || 0);
-  const overloadedOwners = Number(capacitySummary?.overloadedAssignees || 0);
-  const capacitySignal = capacitySummary?.state === 'critical'
-    ? 'Capacity needs intervention'
-    : capacitySummary?.state === 'warning'
-      ? 'Capacity needs attention'
-      : 'Capacity covered';
-  let html = '<section class="sprint-jump-rail" aria-label="Sprint navigation and next actions">';
-  html += '<p class="sprint-jump-rail-copy"><span class="sprint-hud-verdict">Next actions</span><span>' + (verdict.tagline || verdict.summary || 'Jump straight to work, flow, and unblock paths.') + '</span><span>' + capacitySignal + ' across ' + issueCount + ' issues.</span></p>';
-  html += sectionLinksHtml || '';
-  if (!isLoadingShell && (Number(riskCounts.blockersOwned || 0) > 0 || missingEstimateCount > 0 || overloadedOwners > 0)) {
-    html += '<div class="sprint-jump-rail-signals">';
-    html += '<span class="sprint-jump-signal">Blockers ' + Number(riskCounts.blockersOwned || 0) + '</span>';
-    html += '<span class="sprint-jump-signal">Missing est ' + missingEstimateCount + '</span>';
-    html += '<span class="sprint-jump-signal">Ownership ' + Math.max(Number(riskCounts.unownedOutcomes || 0), overloadedOwners) + '</span>';
-    html += '</div>';
-  }
-  html += '</section>';
-  return html;
 }
 
 function buildCapacityAllocationCard(capacitySummary, data) {
