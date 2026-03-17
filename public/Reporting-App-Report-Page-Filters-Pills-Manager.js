@@ -10,9 +10,9 @@ import { updateExportFilteredState } from './Reporting-App-Report-Page-Export-Me
 const REPORT_SEARCH_STORAGE_KEY = 'vodaAgileBoard_reportSearch_v1';
 const REPORT_ACTIVE_TAB_SEARCH_KEY = 'vodaAgileBoard_reportSearch_active_v1';
 const TAB_SEARCH_CONFIG = {
-  'project-epic-level': { field: 'boards', placeholder: 'Search boards...' },
-  sprints: { field: 'sprints', placeholder: 'Search sprints...' },
-  'done-stories': { field: 'stories', placeholder: 'Search stories...' },
+  'project-epic-level': { field: 'boards', placeholder: 'Search current view' },
+  sprints: { field: 'sprints', placeholder: 'Search current view' },
+  'done-stories': { field: 'stories', placeholder: 'Search current view' },
 };
 
 function getActiveTabName() {

@@ -3,7 +3,7 @@ import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-
 import { renderEmptyStateHtml, renderNoBoardsForRangeEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
+import { buildActiveFiltersContextLabel, buildReportRangeLabel, getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
 
 export function getLeadershipTrendVisibilityHint() {
   return 'For trend visibility, not team ranking.';
@@ -73,6 +73,10 @@ export function renderLeadershipPage(data) {
     .map((p) => String(p || '').trim())
     .filter(Boolean)
     .join(', ');
+  const leadershipContextLabel = [
+    buildActiveFiltersContextLabel(projectsLabel || '-', meta.windowStart, meta.windowEnd).replace(/\|\s*Range\b[^|]*$/i, '').trim(),
+    buildReportRangeLabel(meta.windowStart, meta.windowEnd),
+  ].filter(Boolean).join(' | ');
   const contextSegments = renderContextSegments(getContextPieces({
     projects: projectsLabel || '-',
     rangeStart: meta.windowStart,
@@ -85,8 +89,8 @@ export function renderLeadershipPage(data) {
   html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
   html += contextSegments;
   html += '<p class="metrics-hint leadership-context-line">';
-  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">' + escapeHtml(indexedDeliveryHint) + '</span>';
-  html += ' <span class="leadership-trust-hint">' + escapeHtml(trendVisibilityHint) + '</span>';
+  html += '<span class="leadership-range-hint" title="' + escapeHtml(rangeTooltip) + '">' + escapeHtml(leadershipContextLabel) + '</span>';
+  html += ' <span class="leadership-trust-hint">' + escapeHtml(indexedDeliveryHint + ' ' + trendVisibilityHint) + '</span>';
   html += '</p>';
 
   let outcomeLine = '';
@@ -147,7 +151,7 @@ export function renderLeadershipPage(data) {
   html += '<h2>Boards - normalized delivery</h2>';
   html += '<p class="leadership-delivery-hint"><small>Delivery % adjusted for scope changes. Use this for within-board trends, not ranking teams.</small></p>';
   html += '<div class="leadership-view-actions">';
-  html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create an outcome from this board trend." data-outcome-projects="' + escapeHtml(projectsLabel.replace(/\s+/g, '')) + '">Create outcome from this board trend</button>';
+  html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from this board trend." data-outcome-projects="' + escapeHtml(projectsLabel.replace(/\s+/g, '')) + '">Create work from insight</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact active" data-leadership-view="cards" aria-pressed="true">Cards</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact" data-leadership-view="table" aria-pressed="false">Table</button>';
   html += '<div class="leadership-export-wrap"><button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-boards-csv" title="Export boards table to CSV">Export CSV</button></div>';
@@ -210,7 +214,12 @@ export function renderLeadershipPage(data) {
     if (limitedCards.length > 0) {
       if (sufficientCards.length === 0) {
         html += '<div class="leadership-all-limited-empty">';
-        html += '<p>Trend analysis requires 3+ completed sprints. Your boards are building history - check back next sprint.</p>';
+        html += '<p>Trend analysis needs more history, but there is still immediate action available.</p>';
+        html += '<div class="leadership-empty-actions">';
+        html += '<a class="btn btn-secondary btn-compact" href="/current-sprint">Go to current sprint</a>';
+        html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from thin trend data." data-outcome-projects="' + escapeHtml(projectsLabel.replace(/\s+/g, '')) + '">Create work from insight</button>';
+        html += '<button type="button" class="btn btn-secondary btn-compact" data-preview-context-action="open-unusable-sprints">Fix excluded sprints</button>';
+        html += '</div>';
         html += '</div>';
         html += '<div id="leadership-limited-cards" class="leadership-boards-cards leadership-limited-cards">';
       } else {

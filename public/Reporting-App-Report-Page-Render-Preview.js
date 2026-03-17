@@ -2,7 +2,12 @@ import { reportDom } from './Reporting-App-Report-Page-Context.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
 import { getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
 import { buildPreviewMetaAndStatus } from './Reporting-App-Report-Page-Render-Preview-01Meta.js';
-import { getContextDisplayString, renderSidebarContextCard } from './Reporting-App-Shared-Context-From-Storage.js';
+import {
+  buildActiveFiltersContextLabel,
+  buildReportRangeLabel,
+  getContextDisplayString,
+  renderSidebarContextCard,
+} from './Reporting-App-Shared-Context-From-Storage.js';
 import { scheduleRender } from './Reporting-App-Report-Page-Loading-Steps.js';
 import { updateDateDisplay } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import {
@@ -17,7 +22,7 @@ import {
 } from './Reporting-App-Report-Page-Render-Registry.js';
 import { applyDoneStoriesOptionalColumnsPreference } from './Reporting-App-Report-Page-DoneStories-Column-Preference.js';
 
-function wirePreviewContextActions() {
+export function wirePreviewContextActions() {
   if (typeof document === 'undefined' || document.body?.dataset.previewContextActionsBound === '1') return;
   document.body.dataset.previewContextActionsBound = '1';
   document.addEventListener('click', (event) => {
@@ -70,6 +75,7 @@ function wirePreviewContextActions() {
       'open-boards': 'tab-btn-project-epic-level',
       'open-sprints': 'tab-btn-sprints',
       'open-done-stories': 'tab-btn-done-stories',
+      'open-unusable-sprints': 'tab-btn-unusable-sprints',
       'open-owned-blockers': 'tab-btn-done-stories',
       'open-unowned-outcomes': 'tab-btn-done-stories',
     };
@@ -143,9 +149,9 @@ export function renderPreview() {
   const reportSubtitleEl = document.getElementById('report-subtitle');
   if (reportSubtitleEl) {
     reportSubtitleEl.textContent = rowsCount > 0
-      ? 'Results ready. Adjust filters only when the story changes.'
-      : 'Set filters, preview once, then decide fast.';
-    reportSubtitleEl.style.display = rowsCount > 0 ? 'none' : '';
+      ? ('You are viewing ' + metaBlock.reportSubtitleText.replace(/^Projects:\s*/i, '') + '. Change the story only when the question changes.')
+      : 'History mission control for squads, range, and delivery signals.';
+    reportSubtitleEl.style.display = '';
   }
   if (previewMeta) {
     previewMeta.innerHTML = `
@@ -154,11 +160,9 @@ export function renderPreview() {
     `;
   }
   if (reportContextLine) {
-    const strictEnabled = meta.requireResolvedBySprintEnd === true;
-    const contextBase = getContextDisplayString();
-    reportContextLine.textContent = strictEnabled ? `${contextBase} | Strict rules: On` : contextBase;
-    reportContextLine.removeAttribute('aria-hidden');
-    reportContextLine.style.display = '';
+    reportContextLine.textContent = '';
+    reportContextLine.setAttribute('aria-hidden', 'true');
+    reportContextLine.style.display = 'none';
   }
   if (oneClickWrap) oneClickWrap.style.display = rowsCount > 0 ? 'none' : '';
   if (previewBtn && rowsCount > 0) {
@@ -211,6 +215,10 @@ export function renderPreview() {
     }
     exportHint.title = modeSuffix ? modeSuffix.replace(/^ Data mode:\s*/, '').trim() : '';
   }
+  const tabHintEl = document.getElementById('tab-outcome-hint');
+  if (tabHintEl) {
+    tabHintEl.style.display = rowsCount > 0 ? 'none' : '';
+  }
 
   const partialExportTitle = 'Export contains only loaded (partial) data.';
   if (exportDropdownTrigger) {
@@ -244,9 +252,7 @@ export function renderPreview() {
   try {
     const ageMs = meta.cacheAgeMs ?? 0;
     const ageMins = Math.round(ageMs / 60000);
-    const freshLabel = meta.fromCache
-      ? (ageMins < 1 ? 'Updated just now' : (ageMins < 60 ? 'Updated ' + ageMins + 'm ago' : 'Updated >1h ago'))
-      : 'Updated just now';
+    const freshLabel = ageMins < 1 ? 'Just updated' : (ageMins < 60 ? 'Updated ' + ageMins + ' min ago' : 'Stale - refresh recommended');
     const freshState = ageMins > 30 ? 'stale' : 'live';
     window.dispatchEvent(new CustomEvent('app:data-freshness', { detail: { label: freshLabel, state: freshState } }));
   } catch (_) {}
@@ -287,9 +293,9 @@ export function renderPreview() {
         ? 'No done stories in this window; check dates or Jira hygiene.'
         : (meta.partial ? 'Partial preview: count reflects loaded outcomes only.' : 'Total done stories in the selected window.');
     }
-    setTabLabel(tabUnusable, 'Excluded (' + unusableCountForTab + ')', '⛔ ' + unusableCountForTab);
+    setTabLabel(tabUnusable, 'Repair center (' + unusableCountForTab + ')', '⛔ ' + unusableCountForTab);
     const tabTrends = document.getElementById('tab-btn-trends');
-    setTabLabel(tabTrends, 'Leadership HUD →', '👥');
+    setTabLabel(tabTrends, 'Leadership trends →', '👥');
     const hash = window.location && window.location.hash ? window.location.hash : '';
     if (hash === '#trends') {
       const trendsBtn = document.getElementById('tab-btn-trends');
@@ -308,8 +314,10 @@ export function renderPreview() {
 
   const statusStripElAfter = document.getElementById('preview-status-strip');
   if (statusStripElAfter && !statusStripElAfter.textContent) {
-    statusStripElAfter.textContent = 'Results: up to date';
-    statusStripElAfter.setAttribute('data-state', 'fresh');
+    const ageMs = Number(meta.cacheAgeMs || 0);
+    const ageMins = Math.round(ageMs / 60000);
+    statusStripElAfter.textContent = ageMins > 30 ? 'Stale - refresh recommended' : 'Just updated';
+    statusStripElAfter.setAttribute('data-state', ageMins > 30 ? 'stale' : 'fresh');
     statusStripElAfter.style.display = '';
   }
 }

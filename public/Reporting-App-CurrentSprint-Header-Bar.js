@@ -185,7 +185,7 @@ export function renderHeaderBar(data) {
     ? (loggingAlertTotal > 0 ? SPRINT_COPY.loggingNudges(loggingAlertTotal) : SPRINT_COPY.loggingHealthy)
     : SPRINT_COPY.historical;
 
-  let html = `<div class="current-sprint-header-bar" data-sprint-id="${escapeHtml(sprint.id || '')}">`;
+  let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}">`;
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
   html += `<span class="header-context-chip header-context-chip-active" title="${escapeHtml(statusSummary)}">${escapeHtml(selectedProject || 'n/a')}${boardName ? ` | ${escapeHtml(boardName)}` : ''} | Single-project</span>`;
@@ -197,6 +197,7 @@ export function renderHeaderBar(data) {
   html += '<button type="button" class="header-metric" data-metric="log-est" title="Subtask logged versus estimated hours"><span class="metric-label">Log/Est</span><span class="metric-value">' + subtaskLoggedHrs.toFixed(1) + ' / ' + subtaskEstimatedHrs.toFixed(1) + 'h</span></button>';
   html += '</div>';
   html += '<div class="header-band-actions">';
+  html += '<span class="header-export-readiness" title="' + escapeHtml(exportReadiness) + '">' + escapeHtml(exportReadiness) + '</span>';
   html += '<button type="button" class="btn btn-primary btn-compact header-action-cta header-action-primary" data-header-action="take-action"'
     + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '')
     + ` title="${escapeHtml(isHistoricalSprint ? 'Historical sprint snapshot: live remediation actions are disabled.' : 'Focus highest priority risk rows')}">`
@@ -245,6 +246,27 @@ export function renderHeaderBar(data) {
   html += '</div>';
   html += '</details>';
   html += '</div>';
+  html += '</div>';
+  html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '">';
+  html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
+  html += '<span class="sprint-verdict-explain">' + escapeHtml(verdictInfo.tagline || verdictInfo.summary || followUpSummary) + '</span>';
+  if (verdictRiskChips.length) {
+    verdictRiskChips.slice(0, 2).forEach((chip) => {
+      html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
+    });
+  } else {
+    html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(remainingChipLabel)}</span>`;
+  }
+  html += '</div>';
+  html += '<div class="header-intelligence-strip">';
+  headerInsights.forEach((item) => {
+    const stateClass = item.state ? ' header-intelligence-card-' + escapeHtml(item.state) : '';
+    html += '<article class="header-intelligence-card' + stateClass + '" data-header-insight="' + escapeHtml(item.key) + '">';
+    html += '<span class="header-intelligence-eyebrow">' + escapeHtml(item.eyebrow) + '</span>';
+    html += '<span class="header-intelligence-title">' + escapeHtml(item.label) + '</span>';
+    html += '<span class="header-intelligence-detail">' + escapeHtml(item.detail || '') + '</span>';
+    html += '</article>';
+  });
   html += '</div>';
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
@@ -444,11 +466,11 @@ export function wireHeaderBarHandlers() {
   if (sprintName) {
     sprintName.style.cursor = 'pointer';
     sprintName.addEventListener('click', () => {
-      const switcher = document.querySelector('.sprint-switcher-card');
+      const switcher = document.querySelector('.sprint-switcher-card, .sprint-hud-details');
       if (switcher) {
         switcher.open = true;
       }
-      const carousel = document.querySelector('.sprint-carousel, .sprint-switcher-card');
+      const carousel = document.querySelector('.sprint-hud-carousel-inline, .sprint-carousel, .sprint-switcher-card');
       if (carousel) {
         carousel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }

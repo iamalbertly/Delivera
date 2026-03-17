@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   },
   {
     key: PAGE_LEADERSHIP,
-    label: 'Leadership HUD',
+    label: 'Leadership trends',
     href: '/report#trends',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7 4a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7-8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
   },
@@ -409,4 +409,3 @@ if (typeof document !== 'undefined') {
   window.addEventListener('hashchange', ensureGlobalNav);
   window.addEventListener('popstate', ensureGlobalNav);
 }
-

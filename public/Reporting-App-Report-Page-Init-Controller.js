@@ -4,6 +4,7 @@ import { initTabs } from './Reporting-App-Report-UI-Tabs.js';
 import { initProjectSelection, getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
 import { initDateRangeControls } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import { initPreviewFlow, clearPreviewOnFilterChange, restoreLastPreviewFromStorage } from './Reporting-App-Report-Page-Preview-Flow.js';
+import { wirePreviewContextActions } from './Reporting-App-Report-Page-Render-Preview.js';
 import { initSearchClearButtons } from './Reporting-App-Report-Page-Search-Clear.js';
 import { initFilters } from './Reporting-App-Report-Page-Filters-Pills-Manager.js';
 import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
@@ -145,9 +146,7 @@ function initReportPage() {
   const reportContextLine = document.getElementById('report-context-line');
   const hasProjects = getSelectedProjects().length > 0;
   if (reportContextLine) {
-    reportContextLine.textContent = hasProjects
-      ? getContextDisplayString()
-      : 'Select at least one project to see results.';
+    reportContextLine.textContent = getContextDisplayString();
   }
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
   const loadLatestBtn = document.getElementById('report-load-latest-btn');
@@ -170,6 +169,7 @@ function initReportPage() {
   }
   initReportExportMenu();
   initPreviewFlow();
+  wirePreviewContextActions();
   restoreLastPreviewFromStorage();
   initFilters();
   initSearchClearButtons();
@@ -194,13 +194,28 @@ function initReportPage() {
       if (query) currentSprintHref += '?' + query;
     } catch (_) {}
     wrap.innerHTML = ''
-      + '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Edit filters</button>'
-      + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Open current sprint</a>'
-      + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-action="load-latest-preview" hidden>Load latest</button>'
+      + '<button type="button" id="report-header-preview-btn" class="btn btn-primary btn-compact">Refresh</button>'
       + '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'
-      + '<button type="button" class="btn btn-compact report-outcome-intake-create-btn" data-open-outcome-modal data-outcome-context="Create an outcome from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create outcome</button>'
+      + '<button type="button" class="btn btn-compact report-outcome-intake-create-btn" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
       + '</div>';
+    wrap.innerHTML += ''
+      + '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Edit filters</button>'
+      + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Current sprint</a>'
+      + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact">Export</button>'
+      + '<details class="report-header-more-menu">'
+      + '<summary class="btn btn-secondary btn-compact">More</summary>'
+      + '<div class="report-header-more-panel">'
+      + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-action="load-latest-preview" hidden>Load latest</button>'
+      + '<button type="button" class="btn btn-secondary btn-compact" data-action="reset-filters">Reset scope</button>'
+      + '</div>'
+      + '</details>';
+    wrap.querySelector('#report-header-preview-btn')?.addEventListener('click', () => {
+      document.getElementById('preview-btn')?.click();
+    });
+    wrap.querySelector('#report-header-export-btn')?.addEventListener('click', () => {
+      document.getElementById('export-excel-btn')?.click();
+    });
     syncHeaderLoadLatestVisibility(getSelectedProjects().length > 0 && getContextDisplayString() === 'No report run yet');
   }
 

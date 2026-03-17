@@ -20,6 +20,7 @@ import {
     writeReportContextToSession,
     normalizeReportContext,
 } from '../lib/Jira-Reporting-App-User-Context-SSOT.js';
+import { parseOutcomeIntake } from '../public/Reporting-App-Shared-Outcome-Intake-Parser.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -29,6 +30,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const FEEDBACK_DIR = join(__dirname, '..', 'data');
 const FEEDBACK_FILE = join(FEEDBACK_DIR, 'JiraReporting-Feedback-UserInput-Submission-Log.jsonl');
+const OUTCOME_INTAKE_LOG_FILE = join(FEEDBACK_DIR, 'JiraReporting-Outcome-Intake-Log.jsonl');
+const OUTCOME_CREATE_META_TTL = 20 * 60 * 1000;
 
 const router = express.Router();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
@@ -124,6 +127,445 @@ function buildNarrativeHash(text) {
         hash = Math.imul(hash, 16777619);
     }
     return Math.abs(hash >>> 0).toString(16).slice(0, 8);
+}
+
+function capSummary(value, max = 180) {
+    const text = String(value || '').trim() || 'Outcome from narrative';
+    return text.length > max ? text.slice(0, max - 3).trimEnd() + '...' : text;
+}
+
+function ensureLabels(baseLabels, projectKey) {
+    const labels = Array.isArray(baseLabels)
+        ? baseLabels.map((l) => String(l || '').trim()).filter(Boolean)
+        : [];
+    if (!labels.includes('OutcomeStory')) labels.push('OutcomeStory');
+    if (!labels.includes('quarterly-planning')) labels.push('quarterly-planning');
+    if (!labels.some((l) => /^Squad_/i.test(l))) labels.push(`Squad_${projectKey}`);
+    return Array.from(new Set(labels));
+}
+
+function normalizeIssueTypeToken(value) {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function isParentFieldMeta(fieldMeta) {
+    const fieldId = normalizeIssueTypeToken(fieldMeta?.fieldId);
+    const key = normalizeIssueTypeToken(fieldMeta?.key);
+    const name = normalizeIssueTypeToken(fieldMeta?.name);
+    return fieldId === 'parent' || key === 'parent' || name === 'parent';
+}
+
+function isEpicLinkFieldMeta(fieldMeta, epicLinkFieldId) {
+    if (!fieldMeta) return false;
+    if (epicLinkFieldId && String(fieldMeta.fieldId || '') === String(epicLinkFieldId)) return true;
+    const fieldId = normalizeIssueTypeToken(fieldMeta?.fieldId);
+    const key = normalizeIssueTypeToken(fieldMeta?.key);
+    const name = normalizeIssueTypeToken(fieldMeta?.name);
+    return fieldId === 'epiclink' || key === 'epiclink' || name === 'epiclink';
+}
+
+function extractJiraErrorData(error) {
+    const direct = error?.response?.data;
+    if (direct && typeof direct === 'object') return direct;
+    const response = error?.response;
+    if (response && typeof response === 'object' && (response.errorMessages || response.errors)) return response;
+    const nested = error?.cause?.response?.data;
+    if (nested && typeof nested === 'object') return nested;
+    const data = error?.data;
+    if (data && typeof data === 'object') return data;
+    return {};
+}
+
+function formatJiraValidationMessage(error) {
+    const jiraData = extractJiraErrorData(error);
+    const errorMessages = Array.isArray(jiraData?.errorMessages) ? jiraData.errorMessages.filter(Boolean) : [];
+    const fieldErrors = jiraData?.errors && typeof jiraData.errors === 'object' ? jiraData.errors : {};
+    const formattedFieldErrors = Object.entries(fieldErrors)
+        .map(([field, message]) => `${field}: ${message}`)
+        .filter(Boolean);
+    return [...errorMessages, ...formattedFieldErrors].join(' | ') || error?.message || 'Jira rejected the issue payload.';
+}
+
+function buildOutcomeHttpError({ status = 422, code = 'OUTCOME_CREATE_FAILED', message, details = null }) {
+    const error = new Error(message || 'Outcome creation failed');
+    error.httpStatus = status;
+    error.clientPayload = {
+        error: message || 'Outcome creation failed',
+        code,
+        message: message || 'Outcome creation failed',
+        details,
+    };
+    return error;
+}
+
+function issueTypeIntentScore(issueType, intent, requestedName = '') {
+    const name = String(issueType?.name || '');
+    const normalized = normalizeIssueTypeToken(name);
+    const requested = normalizeIssueTypeToken(requestedName);
+    const hierarchyLevel = Number(issueType?.hierarchyLevel);
+    let score = 0;
+    if (requested) {
+        if (normalized === requested) return 5000;
+        return -1000;
+    }
+    if (intent === 'subtask') {
+        if (issueType?.subtask) score += 1000;
+        if (normalized.includes('subtask')) score += 300;
+        return score;
+    }
+    if (issueType?.subtask) return -1000;
+
+    const isEpicLike = /(epic|feature|initiative|outcome|capabilit|theme)/i.test(name);
+    const isStoryLike = /(story|task|issue|work\s*item|request)/i.test(name);
+    const isBugLike = /(bug|incident|problem)/i.test(name);
+
+    if (intent === 'epic') {
+        if (hierarchyLevel > 0) score += 600;
+        if (isEpicLike) score += 450;
+        if (isStoryLike) score += 80;
+        if (hierarchyLevel === 0) score += 20;
+        if (isBugLike) score -= 400;
+        return score;
+    }
+
+    if (isStoryLike) score += 450;
+    if (hierarchyLevel === 0) score += 220;
+    if (isEpicLike) score -= 260;
+    if (isBugLike) score -= 320;
+    return score;
+}
+
+function resolveLinkModeForIssueType(issueType, epicLinkFieldId) {
+    const fields = Array.isArray(issueType?.fields) ? issueType.fields : [];
+    const epicLinkField = fields.find((fieldMeta) => isEpicLinkFieldMeta(fieldMeta, epicLinkFieldId));
+    if (epicLinkField) {
+        return {
+            mode: 'epicLink',
+            fieldId: epicLinkField.fieldId || epicLinkField.key || epicLinkField.name || '',
+        };
+    }
+    if (fields.some(isParentFieldMeta)) {
+        return { mode: 'parent', fieldId: 'parent' };
+    }
+    return { mode: 'none', fieldId: '' };
+}
+
+function getUnsupportedRequiredFields(issueType, options = {}) {
+    const { epicLinkFieldId = null, linkMode = 'none', linkFieldId = '' } = options;
+    const provided = new Set([
+        'summary',
+        'description',
+        'labels',
+        'project',
+        'issuetype',
+    ].map(normalizeIssueTypeToken));
+    if (linkMode === 'parent') provided.add('parent');
+    if (linkMode === 'epicLink' && epicLinkFieldId) provided.add(normalizeIssueTypeToken(epicLinkFieldId));
+    if (linkMode === 'epicLink' && linkFieldId) provided.add(normalizeIssueTypeToken(linkFieldId));
+    if (linkMode === 'epicLink') provided.add('epiclink');
+
+    return (Array.isArray(issueType?.fields) ? issueType.fields : [])
+        .filter((fieldMeta) => fieldMeta?.required && !fieldMeta?.hasDefaultValue)
+        .filter((fieldMeta) => {
+            const candidates = [
+                fieldMeta.fieldId,
+                fieldMeta.key,
+                fieldMeta.name,
+            ].map(normalizeIssueTypeToken).filter(Boolean);
+            return !candidates.some((candidate) => provided.has(candidate));
+        })
+        .map((fieldMeta) => ({
+            fieldId: fieldMeta.fieldId || '',
+            key: fieldMeta.key || '',
+            name: fieldMeta.name || fieldMeta.fieldId || 'Unknown field',
+        }));
+}
+
+async function discoverOutcomeProjectCreateMeta(version3Client, projectKey) {
+    const normalizedProjectKey = String(projectKey || '').trim().toUpperCase();
+    const cacheKey = `outcomeCreateMeta:${normalizedProjectKey}`;
+    const cached = await cache.get(cacheKey, { namespace: 'discovery' });
+    const cachedValue = cached?.value || cached;
+    if (cachedValue?.projectKey === normalizedProjectKey && Array.isArray(cachedValue?.issueTypes)) {
+        return cachedValue;
+    }
+
+    const page = await version3Client.issues.getCreateIssueMetaIssueTypes({
+        projectIdOrKey: normalizedProjectKey,
+        maxResults: 100,
+    });
+    const issueTypes = Array.isArray(page?.issueTypes) ? page.issueTypes : (Array.isArray(page?.createMetaIssueType) ? page.createMetaIssueType : []);
+    const detailedIssueTypes = [];
+
+    for (const issueType of issueTypes) {
+        const issueTypeId = String(issueType?.id || '').trim();
+        if (!issueTypeId) continue;
+        let fields = [];
+        try {
+            const fieldsPage = await version3Client.issues.getCreateIssueMetaIssueTypeId({
+                projectIdOrKey: normalizedProjectKey,
+                issueTypeId,
+                maxResults: 200,
+            });
+            fields = Array.isArray(fieldsPage?.fields) ? fieldsPage.fields : (Array.isArray(fieldsPage?.results) ? fieldsPage.results : []);
+        } catch (error) {
+            logger.warn('Outcome intake create field metadata lookup failed', {
+                projectKey: normalizedProjectKey,
+                issueTypeId,
+                issueTypeName: issueType?.name || '',
+                error: error?.message,
+            });
+        }
+        detailedIssueTypes.push({
+            id: issueTypeId,
+            name: String(issueType?.name || '').trim(),
+            subtask: issueType?.subtask === true,
+            hierarchyLevel: Number.isFinite(Number(issueType?.hierarchyLevel)) ? Number(issueType.hierarchyLevel) : null,
+            fields: fields.map((fieldMeta) => ({
+                fieldId: fieldMeta?.fieldId || '',
+                key: fieldMeta?.key || '',
+                name: fieldMeta?.name || fieldMeta?.fieldId || '',
+                required: fieldMeta?.required === true,
+                hasDefaultValue: fieldMeta?.hasDefaultValue === true,
+            })),
+        });
+    }
+
+    const result = {
+        projectKey: normalizedProjectKey,
+        issueTypes: detailedIssueTypes,
+    };
+    await cache.set(cacheKey, result, OUTCOME_CREATE_META_TTL, { namespace: 'discovery' });
+    return result;
+}
+
+function resolveOutcomeIssueType(projectMeta, options = {}) {
+    const { intent = 'story', requestedName = '', epicLinkFieldId = null, requireChildLink = false } = options;
+    const issueTypes = Array.isArray(projectMeta?.issueTypes) ? projectMeta.issueTypes : [];
+    const ranked = issueTypes
+        .map((issueType) => {
+            const link = requireChildLink ? resolveLinkModeForIssueType(issueType, epicLinkFieldId) : { mode: 'none', fieldId: '' };
+            const missingRequiredFields = getUnsupportedRequiredFields(issueType, {
+                epicLinkFieldId,
+                linkMode: link.mode,
+                linkFieldId: link.fieldId,
+            });
+            return {
+                issueType,
+                linkMode: link.mode,
+                linkFieldId: link.fieldId,
+                missingRequiredFields,
+                score: issueTypeIntentScore(issueType, intent, requestedName),
+            };
+        })
+        .filter((entry) => entry.score > 0)
+        .filter((entry) => !requireChildLink || entry.linkMode !== 'none')
+        .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (a.missingRequiredFields.length !== b.missingRequiredFields.length) return a.missingRequiredFields.length - b.missingRequiredFields.length;
+            return String(a.issueType?.name || '').localeCompare(String(b.issueType?.name || ''));
+        });
+
+    const supportedNames = issueTypes.map((issueType) => issueType.name).filter(Boolean);
+    const viable = ranked.find((entry) => entry.missingRequiredFields.length === 0) || null;
+    const best = viable || ranked[0] || null;
+
+    return {
+        viable,
+        best,
+        supportedNames,
+    };
+}
+
+async function appendOutcomeIntakeLog(entry) {
+    await mkdir(FEEDBACK_DIR, { recursive: true });
+    await appendFile(OUTCOME_INTAKE_LOG_FILE, `${JSON.stringify(entry)}\n`, 'utf-8');
+}
+
+function buildIssueUrl(host, issueKey) {
+    return host && issueKey ? `${host.replace(/\/+$/, '')}/browse/${issueKey}` : '';
+}
+
+function renderIssueTypePhrase(issueTypeName, fallback) {
+    const text = String(issueTypeName || fallback || 'Jira issue').trim();
+    if (!text) return 'Jira issue';
+    return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function buildOutcomeSummaryHtml(payload) {
+    const projectKey = escapeHtml(payload.projectKey || '');
+    const failures = Array.isArray(payload.failures) ? payload.failures : [];
+    const verification = payload.verification || null;
+    const verificationBits = [];
+    if (verification?.createdIssueCount > 0) {
+        if (verification.fetchVerified) {
+            verificationBits.push('Verified in Jira');
+        } else if (verification.missingKeys?.length) {
+            verificationBits.push(`Jira verification failed for ${verification.missingKeys.map((item) => escapeHtml(item)).join(', ')}`);
+        }
+        if (verification.boardName && verification.backlogTopVerified) {
+            verificationBits.push(`placed at the top of ${escapeHtml(verification.boardName)} backlog`);
+        } else if (verification.boardName && verification.backlogVisibleKeys?.length) {
+            verificationBits.push(`visible in ${escapeHtml(verification.boardName)} backlog but not at the top yet`);
+        } else if (verification.boardName && verification.backlogErrors?.length) {
+            verificationBits.push(`backlog validation failed on ${escapeHtml(verification.boardName)}`);
+        } else if (verification.createdIssueCount > 0) {
+            verificationBits.push('backlog placement could not be verified');
+        }
+    }
+    const verificationSuffix = verificationBits.length ? ` ${verificationBits.join(' and ')}.` : '';
+    if (payload.structureMode === 'STORY_WITH_SUBTASKS' && payload.primary?.key) {
+        const storyLink = payload.primary.url
+            ? `<a href="${escapeHtml(payload.primary.url)}" target="_blank" rel="noopener">${escapeHtml(payload.primary.key)}</a>`
+            : escapeHtml(payload.primary.key);
+        const parentLabel = renderIssueTypePhrase(payload.primaryIssueTypeName, 'parent issue');
+        const childLabel = renderIssueTypePhrase(payload.childIssueTypeName, 'child issue');
+        const successBase = `Created ${escapeHtml(parentLabel)} ${storyLink} with ${payload.childIssues.length} ${escapeHtml(childLabel)}${payload.childIssues.length === 1 ? '' : 's'} in project ${projectKey} backlog.`;
+        if (!failures.length) return `${successBase}${verificationSuffix}`;
+        return `${successBase} Created ${payload.createdCount} of ${payload.expectedCreateCount}. Failed on: ${failures.map((item) => escapeHtml(item.title)).join(', ')}.${verificationSuffix}`;
+    }
+    if (payload.structureMode === 'MULTIPLE_EPICS') {
+        const itemLabel = renderIssueTypePhrase(payload.standaloneIssueTypeName, 'Jira item');
+        if (!failures.length) return `Created ${payload.createdCount} ${escapeHtml(itemLabel)}${payload.createdCount === 1 ? '' : 's'} in project ${projectKey} backlog.${verificationSuffix}`;
+        return `Created ${payload.createdCount} of ${payload.expectedCreateCount} ${escapeHtml(itemLabel)}${payload.expectedCreateCount === 1 ? '' : 's'} in project ${projectKey} backlog. Failed on: ${failures.map((item) => escapeHtml(item.title)).join(', ')}.${verificationSuffix}`;
+    }
+    if (payload.structureMode === 'TABLE_ISSUES') {
+        if (!failures.length) return `Created ${payload.createdCount} Jira issues with descriptions in project ${projectKey} backlog.${verificationSuffix}`;
+        return `Created ${payload.createdCount} of ${payload.expectedCreateCount} Jira issues in project ${projectKey} backlog. Failed on: ${failures.map((item) => escapeHtml(item.title)).join(', ')}.${verificationSuffix}`;
+    }
+    if (payload.structureMode === 'EPIC_WITH_STORIES' && payload.primary?.key) {
+        const epicLink = payload.primary.url
+            ? `<a href="${escapeHtml(payload.primary.url)}" target="_blank" rel="noopener">${escapeHtml(payload.primary.key)}</a>`
+            : escapeHtml(payload.primary.key);
+        const childKeys = payload.childIssues.map((item) => item.key).filter(Boolean);
+        const childRange = childKeys.length ? ` (${escapeHtml(childKeys[0])}${childKeys.length > 1 ? `-${escapeHtml(childKeys[childKeys.length - 1])}` : ''})` : '';
+        const parentLabel = renderIssueTypePhrase(payload.primaryIssueTypeName, 'parent issue');
+        const childLabel = renderIssueTypePhrase(payload.childIssueTypeName, 'child issue');
+        const successBase = `Created ${escapeHtml(parentLabel)} ${epicLink} with ${payload.childIssues.length} linked ${escapeHtml(childLabel)}${payload.childIssues.length === 1 ? '' : 's'}${childRange} in project ${projectKey} backlog.`;
+        if (!failures.length) return `${successBase}${verificationSuffix}`;
+        return `${successBase} Created ${payload.createdCount} of ${payload.expectedCreateCount}. Failed on: ${failures.map((item) => escapeHtml(item.title)).join(', ')}.${verificationSuffix}`;
+    }
+    if (payload.primary?.key) {
+        const issueLink = payload.primary.url
+            ? `<a href="${escapeHtml(payload.primary.url)}" target="_blank" rel="noopener">${escapeHtml(payload.primary.key)}</a>`
+            : escapeHtml(payload.primary.key);
+        return `Created 1 Jira issue ${issueLink} in project ${projectKey} backlog.${verificationSuffix}`;
+    }
+    return `Created Jira work items in project ${projectKey} backlog.${verificationSuffix}`;
+}
+
+function pickPrimaryBacklogBoard(boards, projectKey) {
+    const normalizedProjectKey = String(projectKey || '').trim().toUpperCase();
+    const list = Array.isArray(boards) ? boards : [];
+    return list.find((board) => String(board?.location?.projectKey || '').toUpperCase() === normalizedProjectKey && String(board?.type || '').toLowerCase() === 'scrum')
+        || list.find((board) => String(board?.location?.projectKey || '').toUpperCase() === normalizedProjectKey)
+        || list.find((board) => String(board?.type || '').toLowerCase() === 'scrum')
+        || list[0]
+        || null;
+}
+
+async function verifyOutcomeCreationAndBacklog({
+    agileClient,
+    version3Client,
+    projectKey,
+    issueKeys,
+}) {
+    const uniqueIssueKeys = Array.from(new Set((issueKeys || []).map((key) => String(key || '').trim().toUpperCase()).filter(Boolean)));
+    const verification = {
+        createdIssueCount: uniqueIssueKeys.length,
+        fetchVerified: false,
+        verifiedKeys: [],
+        missingKeys: [],
+        boardId: null,
+        boardName: '',
+        rankRequested: false,
+        rankApplied: false,
+        backlogVisibleKeys: [],
+        backlogTopKeys: [],
+        backlogTopVerified: false,
+        backlogErrors: [],
+        issueChecks: [],
+    };
+    if (!uniqueIssueKeys.length) return verification;
+
+    for (const issueKey of uniqueIssueKeys) {
+        try {
+            const issue = await version3Client.issues.getIssue({
+                issueIdOrKey: issueKey,
+                fields: ['summary', 'status', 'project', 'issuetype', 'parent', 'created'],
+            });
+            verification.verifiedKeys.push(issueKey);
+            verification.issueChecks.push({
+                key: issueKey,
+                fetched: true,
+                projectKey: issue?.fields?.project?.key || '',
+                issueType: issue?.fields?.issuetype?.name || '',
+                status: issue?.fields?.status?.name || '',
+            });
+        } catch (error) {
+            verification.missingKeys.push(issueKey);
+            verification.issueChecks.push({
+                key: issueKey,
+                fetched: false,
+                error: error?.message || 'Fetch failed',
+            });
+        }
+    }
+    verification.fetchVerified = verification.verifiedKeys.length === uniqueIssueKeys.length;
+
+    try {
+        const boards = await discoverBoardsWithCache([projectKey], agileClient);
+        const board = pickPrimaryBacklogBoard(boards, projectKey);
+        if (!board?.id) {
+            verification.backlogErrors.push(`No matching Scrum board found for ${projectKey}.`);
+            return verification;
+        }
+        verification.boardId = Number(board.id);
+        verification.boardName = String(board.name || '');
+
+        const beforeBacklog = await agileClient.board.getIssuesForBacklog({
+            boardId: verification.boardId,
+            maxResults: Math.max(10, uniqueIssueKeys.length + 5),
+            fields: ['summary'],
+        });
+        const beforeTopKeys = Array.isArray(beforeBacklog?.issues) ? beforeBacklog.issues.map((issue) => issue?.key).filter(Boolean) : [];
+        const firstForeignKey = beforeTopKeys.find((key) => !uniqueIssueKeys.includes(String(key || '').toUpperCase())) || '';
+
+        verification.rankRequested = true;
+        await agileClient.backlog.moveIssuesToBacklogForBoard({
+            boardId: verification.boardId,
+            issues: uniqueIssueKeys,
+            ...(firstForeignKey ? { rankBeforeIssue: firstForeignKey } : {}),
+        });
+        verification.rankApplied = true;
+
+        const afterBacklog = await agileClient.board.getIssuesForBacklog({
+            boardId: verification.boardId,
+            maxResults: Math.max(10, uniqueIssueKeys.length + 5),
+            fields: ['summary'],
+        });
+        const afterTopKeys = Array.isArray(afterBacklog?.issues) ? afterBacklog.issues.map((issue) => String(issue?.key || '').toUpperCase()).filter(Boolean) : [];
+        verification.backlogTopKeys = afterTopKeys.slice(0, Math.max(uniqueIssueKeys.length, 5));
+        verification.backlogVisibleKeys = uniqueIssueKeys.filter((key) => afterTopKeys.includes(key));
+        verification.backlogTopVerified = uniqueIssueKeys.every((key, index) => verification.backlogTopKeys[index] === key);
+        if (!verification.backlogVisibleKeys.length) {
+            verification.backlogErrors.push(`Created issues are not visible in backlog for board ${verification.boardName || verification.boardId}.`);
+        } else if (!verification.backlogTopVerified) {
+            verification.backlogErrors.push(`Created issues are visible in backlog for board ${verification.boardName || verification.boardId}, but not at the top.`);
+        }
+    } catch (error) {
+        verification.backlogErrors.push(error?.message || 'Backlog verification failed');
+    }
+
+    return verification;
 }
 
 function tokenizeForSimilarity(value) {
@@ -447,6 +889,8 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             ? req.body.selectedProjects.map((p) => String(p || '').trim().toUpperCase()).filter(Boolean)
             : [];
         const createAnyway = req.body?.createAnyway === true;
+        const requestedStructureMode = typeof req.body?.structureMode === 'string' ? req.body.structureMode.trim() : '';
+        const requestedConfidenceScore = Number(req.body?.confidenceScore || 0);
         if (!rawNarrative) {
             return res.status(400).json({ error: 'Narrative text is required', code: 'MISSING_NARRATIVE' });
         }
@@ -457,8 +901,10 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         if (!projectKey) {
             return res.status(400).json({ error: 'Primary project key is required to create an outcome story', code: 'MISSING_PROJECT_KEY' });
         }
+        const parsedIntake = parseOutcomeIntake(rawNarrative);
+        const structureMode = parsedIntake.structureMode;
         const embeddedIssueKey = extractFirstNarrativeIssueKey(rawNarrative);
-        if (embeddedIssueKey) {
+        if (embeddedIssueKey && structureMode === 'SINGLE_ISSUE') {
             const host = resolvedJiraHost();
             const url = host ? `${host.replace(/\/+$/, '')}/browse/${embeddedIssueKey}` : '';
             return res.status(409).json({
@@ -467,19 +913,21 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                 existing: { key: embeddedIssueKey, url },
             });
         }
-        const lines = rawNarrative.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        const summaryBase = lines.length > 0 ? lines[0] : 'Outcome from narrative';
-        const summary = summaryBase.length > 180 ? summaryBase.slice(0, 177) + '...' : summaryBase;
-        const labels = Array.isArray(req.body?.labels)
-            ? req.body.labels.map((l) => String(l || '').trim()).filter(Boolean)
-            : [];
-        if (!labels.includes('OutcomeStory')) labels.push('OutcomeStory');
-        if (!labels.some((l) => /^Squad_/i.test(l))) labels.push(`Squad_${projectKey}`);
+        const summaryBase = parsedIntake?.epic?.title || 'Outcome from narrative';
+        const summary = capSummary(summaryBase);
+        const labels = ensureLabels(
+            [
+                ...(Array.isArray(req.body?.labels) ? req.body.labels : []),
+                ...(Array.isArray(parsedIntake?.suggestedLabels) ? parsedIntake.suggestedLabels : []),
+            ],
+            projectKey,
+        );
         const narrativeHash = buildNarrativeHash(rawNarrative);
         const hashLabel = `OutcomeHash_${narrativeHash}`;
         if (!labels.includes(hashLabel)) labels.push(hashLabel);
 
         const version3Client = createVersion3Client();
+        const agileClient = createAgileClient();
         const host = resolvedJiraHost();
         const asPlainText = (description) => {
             if (!description) return '';
@@ -550,37 +998,347 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             });
         }
 
-        const issueTypeName = (req.body && typeof req.body.issueTypeName === 'string' && req.body.issueTypeName.trim())
+        const fields = await discoverFieldsWithCache(version3Client);
+        const projectCreateMeta = await discoverOutcomeProjectCreateMeta(version3Client, projectKey);
+        const requestedIssueTypeName = (req.body && typeof req.body.issueTypeName === 'string' && req.body.issueTypeName.trim())
             ? req.body.issueTypeName.trim()
-            : 'Epic';
+            : '';
+        const requestedChildIssueTypeName = (req.body && typeof req.body.childIssueTypeName === 'string' && req.body.childIssueTypeName.trim())
+            ? req.body.childIssueTypeName.trim()
+            : '';
+        const parentTypeIntent = structureMode === 'STORY_WITH_SUBTASKS'
+            ? 'story'
+            : ((structureMode === 'SINGLE_ISSUE' && parsedIntake.singleIssueType === 'Story') || structureMode === 'TABLE_ISSUES' ? 'story' : 'epic');
+        const childTypeIntent = structureMode === 'STORY_WITH_SUBTASKS' ? 'subtask' : 'story';
+        const parentSelection = resolveOutcomeIssueType(projectCreateMeta, {
+            intent: parentTypeIntent,
+            requestedName: requestedIssueTypeName,
+            epicLinkFieldId: fields?.epicLinkFieldId || null,
+            requireChildLink: false,
+        });
+        const childSelection = (structureMode === 'EPIC_WITH_STORIES' || structureMode === 'STORY_WITH_SUBTASKS')
+            ? resolveOutcomeIssueType(projectCreateMeta, {
+                intent: childTypeIntent,
+                requestedName: requestedChildIssueTypeName,
+                epicLinkFieldId: fields?.epicLinkFieldId || null,
+                requireChildLink: true,
+            })
+            : null;
+        const standaloneSelection = (structureMode === 'MULTIPLE_EPICS' || structureMode === 'TABLE_ISSUES')
+            ? resolveOutcomeIssueType(projectCreateMeta, {
+                intent: structureMode === 'MULTIPLE_EPICS' ? 'epic' : 'story',
+                epicLinkFieldId: fields?.epicLinkFieldId || null,
+                requireChildLink: false,
+            })
+            : null;
+        const selectedParentType = parentSelection?.best?.issueType || null;
+        const selectedChildType = childSelection?.best?.issueType || null;
+        const selectedStandaloneType = standaloneSelection?.best?.issueType || null;
+        const childLinkMode = childSelection?.best?.linkMode || 'none';
+        const childLinkFieldId = childSelection?.best?.linkFieldId || fields?.epicLinkFieldId || '';
 
-        const createPayload = {
-            fields: {
-                summary,
-                description: rawNarrative,
-                project: { key: projectKey },
-                issuetype: { name: issueTypeName },
-                labels,
-            },
+        const parentIssueTypeName = selectedParentType?.name || requestedIssueTypeName || (structureMode === 'SINGLE_ISSUE' ? parsedIntake.singleIssueType : 'Epic');
+        const childIssueTypeName = selectedChildType?.name || requestedChildIssueTypeName || (structureMode === 'STORY_WITH_SUBTASKS' ? 'Sub-task' : 'Story');
+        const standaloneIssueTypeName = selectedStandaloneType?.name || (structureMode === 'MULTIPLE_EPICS' ? 'Epic' : 'Story');
+
+        const configurationProblems = [];
+        if ((structureMode === 'SINGLE_ISSUE' || structureMode === 'EPIC_WITH_STORIES' || structureMode === 'STORY_WITH_SUBTASKS') && !selectedParentType) {
+            configurationProblems.push({
+                role: 'parent',
+                issueTypeName: requestedIssueTypeName || 'No supported parent issue type',
+                missingFields: ['Supported issue type'],
+            });
+        }
+        if ((structureMode === 'SINGLE_ISSUE' || structureMode === 'EPIC_WITH_STORIES' || structureMode === 'STORY_WITH_SUBTASKS') && selectedParentType && parentSelection?.best?.missingRequiredFields?.length) {
+            configurationProblems.push({
+                role: 'parent',
+                issueTypeName: selectedParentType.name,
+                missingFields: parentSelection.best.missingRequiredFields.map((fieldMeta) => fieldMeta.name),
+            });
+        }
+        if ((structureMode === 'EPIC_WITH_STORIES' || structureMode === 'STORY_WITH_SUBTASKS') && !selectedChildType) {
+            configurationProblems.push({
+                role: 'child',
+                issueTypeName: requestedChildIssueTypeName || 'No supported child issue type',
+                missingFields: ['Supported child issue type with parent linking'],
+            });
+        }
+        if ((structureMode === 'EPIC_WITH_STORIES' || structureMode === 'STORY_WITH_SUBTASKS') && selectedChildType) {
+            if (childSelection?.best?.missingRequiredFields?.length) {
+                configurationProblems.push({
+                    role: 'child',
+                    issueTypeName: selectedChildType.name,
+                    missingFields: childSelection.best.missingRequiredFields.map((fieldMeta) => fieldMeta.name),
+                });
+            }
+            if (childLinkMode === 'none') {
+                configurationProblems.push({
+                    role: 'child',
+                    issueTypeName: selectedChildType.name,
+                    missingFields: ['Parent link field'],
+                });
+            }
+        }
+        if ((structureMode === 'MULTIPLE_EPICS' || structureMode === 'TABLE_ISSUES') && !selectedStandaloneType) {
+            configurationProblems.push({
+                role: 'item',
+                issueTypeName: 'No supported issue type',
+                missingFields: ['Supported issue type'],
+            });
+        }
+        if ((structureMode === 'MULTIPLE_EPICS' || structureMode === 'TABLE_ISSUES') && selectedStandaloneType && standaloneSelection?.best?.missingRequiredFields?.length) {
+            configurationProblems.push({
+                role: 'item',
+                issueTypeName: selectedStandaloneType.name,
+                missingFields: standaloneSelection.best.missingRequiredFields.map((fieldMeta) => fieldMeta.name),
+            });
+        }
+        if (configurationProblems.length) {
+            throw buildOutcomeHttpError({
+                status: 422,
+                code: 'OUTCOME_CREATE_CONFIG_REQUIRED',
+                message: `Project ${projectKey} needs extra Jira create fields before this narrative can be created automatically.`,
+                details: {
+                    projectKey,
+                    supportedIssueTypes: projectCreateMeta?.issueTypes?.map((issueType) => issueType.name).filter(Boolean) || [],
+                    problems: configurationProblems,
+                },
+            });
+        }
+        const createdChildren = [];
+        const linkedExisting = [];
+        const warnings = [];
+        const failures = [];
+        const createdStandalone = [];
+        let primary = null;
+
+        const createIssue = async (issueFields, issueTypeMeta = null, createContext = {}) => {
+            try {
+                const created = await version3Client.issues.createIssue({ fields: issueFields });
+                const createdKey = created?.key || '';
+                return {
+                    key: createdKey,
+                    id: created?.id || '',
+                    self: created?.self || '',
+                    url: buildIssueUrl(host, createdKey),
+                    issueTypeName: issueTypeMeta?.name || issueFields?.issuetype?.name || '',
+                    context: createContext,
+                };
+            } catch (error) {
+                logger.error('Jira outcome create request failed', {
+                    projectKey,
+                    statusCode: getErrorStatusCode(error),
+                    context: createContext,
+                    issueTypeName: issueTypeMeta?.name || issueFields?.issuetype?.name || '',
+                    jira: extractJiraErrorData(error),
+                });
+                throw error;
+            }
         };
 
-        const created = await version3Client.issues.createIssue(createPayload);
-        const key = (created && (created.key || created.id)) || null;
-        const url = (host && key) ? `${host.replace(/\/+$/, '')}/browse/${key}` : '';
+        if (structureMode === 'SINGLE_ISSUE') {
+            primary = await createIssue({
+                summary,
+                description: parsedIntake?.epic?.description || rawNarrative,
+                project: { key: projectKey },
+                issuetype: { name: parentIssueTypeName },
+                labels,
+            }, selectedParentType, { role: 'single' });
+        } else if (structureMode === 'MULTIPLE_EPICS' || structureMode === 'TABLE_ISSUES') {
+            for (const item of parsedIntake.items) {
+                const existingKey = Array.isArray(item.jiraKeys) && item.jiraKeys.length ? item.jiraKeys[0] : '';
+                if (existingKey) {
+                    linkedExisting.push({ key: existingKey, url: buildIssueUrl(host, existingKey), title: item.title });
+                    continue;
+                }
+                try {
+                    const createdItem = await createIssue({
+                        summary: capSummary(item.title),
+                        description: item.description || item.title,
+                        project: { key: projectKey },
+                        issuetype: { name: standaloneIssueTypeName },
+                        labels: ensureLabels(item.labels, projectKey),
+                    }, selectedStandaloneType, { role: 'standalone', title: item.title });
+                    createdStandalone.push({ ...createdItem, title: item.title });
+                } catch (error) {
+                    failures.push({ title: item.title, reason: formatJiraValidationMessage(error) });
+                }
+            }
+        } else {
+            primary = await createIssue({
+                summary,
+                description: parsedIntake?.epic?.description || rawNarrative,
+                project: { key: projectKey },
+                issuetype: { name: parentIssueTypeName },
+                labels,
+            }, selectedParentType, { role: 'parent' });
+            for (const item of parsedIntake.items) {
+                const itemLabels = ensureLabels(
+                    [...labels, ...(Array.isArray(item.labels) ? item.labels : [])].filter((label) => !/^OutcomeHash_/i.test(label)),
+                    projectKey,
+                );
+                const existingKey = Array.isArray(item.jiraKeys) && item.jiraKeys.length ? item.jiraKeys[0] : '';
+                if (existingKey) {
+                    try {
+                        const updateFields = childLinkMode === 'epicLink'
+                            ? { [childLinkFieldId]: primary.key }
+                            : (childLinkMode === 'parent' ? { parent: { key: primary.key } } : {});
+                        if (Object.keys(updateFields).length) {
+                            await version3Client.issues.editIssue({
+                                issueIdOrKey: existingKey,
+                                fields: updateFields,
+                            });
+                        }
+                        linkedExisting.push({ key: existingKey, url: buildIssueUrl(host, existingKey), title: item.title });
+                    } catch (error) {
+                        failures.push({ title: item.title, reason: formatJiraValidationMessage(error) });
+                    }
+                    continue;
+                }
+                const childFields = {
+                    summary: capSummary(item.title),
+                    description: item.description || item.title,
+                    project: { key: projectKey },
+                    issuetype: { name: childIssueTypeName },
+                    labels: itemLabels,
+                };
+                if (childLinkMode === 'parent') childFields.parent = { key: primary.key };
+                else if (childLinkMode === 'epicLink' && childLinkFieldId) childFields[childLinkFieldId] = primary.key;
+                try {
+                    const createdItem = await createIssue(childFields, selectedChildType, {
+                        role: 'child',
+                        title: item.title,
+                        linkMode: childLinkMode,
+                    });
+                    createdChildren.push({ ...createdItem, title: item.title });
+                } catch (error) {
+                    failures.push({ title: item.title, reason: formatJiraValidationMessage(error) });
+                }
+            }
+        }
 
-        logger.info('Outcome issue created from narrative', { projectKey, key, labels, hashLabel });
-        return res.json({
+        const expectedCreateCount = (parsedIntake.previewRows || []).filter((item) => !(item.jiraKeys?.length)).length;
+        const createdCount = [primary?.key ? 1 : 0, createdChildren.length, createdStandalone.length].reduce((sum, value) => sum + value, 0);
+        failures.forEach((item) => warnings.push(`${item.title}: ${item.reason}`));
+
+        const createdKeysForVerification = [
+            primary?.key || '',
+            ...createdChildren.map((item) => item.key),
+            ...createdStandalone.map((item) => item.key),
+        ].filter(Boolean);
+        const verification = await verifyOutcomeCreationAndBacklog({
+            agileClient,
+            version3Client,
+            projectKey,
+            issueKeys: createdKeysForVerification,
+        });
+        const responsePayload = {
             ok: true,
-            key,
-            url,
+            verified: verification.fetchVerified && verification.backlogTopVerified,
+            key: primary?.key || createdStandalone[0]?.key || null,
+            url: primary?.url || createdStandalone[0]?.url || '',
+            epic: structureMode === 'EPIC_WITH_STORIES' ? primary : null,
+            primary,
+            structureMode,
+            confidenceScore: parsedIntake.confidenceScore,
+            confidenceLabel: parsedIntake.confidenceLabel,
+            createdCount,
+            expectedCreateCount,
+            issueCount: createdCount + linkedExisting.length,
+            childIssues: createdChildren,
+            linkedExisting,
+            createdStandalone,
+            projectKey,
+            primaryIssueTypeName: parentIssueTypeName,
+            childIssueTypeName,
+            standaloneIssueTypeName,
+            failures,
+            warnings,
+            verification,
+            summaryHtml: buildOutcomeSummaryHtml({
+                structureMode,
+                primary,
+                childIssues: createdChildren,
+                createdCount,
+                expectedCreateCount,
+                failures,
+                projectKey,
+                verification,
+            }),
             dedupe: match && match.similarity >= 0.8 ? { bypassed: true, key: match.key } : null,
+        };
+
+        await appendOutcomeIntakeLog({
+            createdAt: new Date().toISOString(),
+            projectKey,
+            userId: req.session?.user?.id || null,
+            narrative: rawNarrative,
+            parsed: parsedIntake,
+            requestedStructureMode,
+            requestedConfidenceScore,
+            response: {
+                primaryKey: primary?.key || null,
+                childKeys: createdChildren.map((item) => item.key),
+                standaloneKeys: createdStandalone.map((item) => item.key),
+                linkedExisting: linkedExisting.map((item) => item.key),
+                failures,
+                warnings,
+                verification,
+            },
+        }).catch((error) => {
+            logger.warn('Failed to append outcome intake log', { error: error?.message });
         });
+
+        logger.info('Outcome issue created from narrative', {
+            projectKey,
+            key: responsePayload.key,
+            labels,
+            hashLabel,
+            structureMode,
+            primaryIssueTypeName: parentIssueTypeName,
+            childIssueTypeName,
+            confidenceScore: parsedIntake.confidenceScore,
+            childCount: createdChildren.length,
+            linkedExisting: linkedExisting.length,
+            failures: failures.length,
+            verification,
+        });
+        if (!verification.fetchVerified || verification.backlogErrors.length || !verification.backlogTopVerified) {
+            logger.warn('Outcome issue verification requires attention', {
+                projectKey,
+                key: responsePayload.key,
+                verification,
+            });
+        }
+        return res.json(responsePayload);
     } catch (error) {
-        logger.error('Error creating outcome issue from narrative', { error: error.message });
-        return res.status(500).json({
-            error: 'Failed to create Jira issue from narrative',
-            message: error && error.message ? error.message : 'Unexpected error while creating issue',
+        await appendOutcomeIntakeLog({
+            createdAt: new Date().toISOString(),
+            projectKey: req.body?.projectKey || '',
+            userId: req.session?.user?.id || null,
+            narrative: req.body?.narrative || '',
+            requestedStructureMode: req.body?.structureMode || '',
+            requestedConfidenceScore: Number(req.body?.confidenceScore || 0),
+            error: error?.message || 'Unexpected error',
+        }).catch(() => {});
+        const statusCode = error?.httpStatus || getErrorStatusCode(error);
+        const jira = extractJiraErrorData(error);
+        logger.error('Error creating outcome issue from narrative', {
+            error: error.message,
+            statusCode,
+            jira,
         });
+        if (error?.clientPayload) {
+            return res.status(error.httpStatus || 422).json(error.clientPayload);
+        }
+        const message = formatJiraValidationMessage(error);
+        const payload = {
+            error: statusCode >= 500 ? 'Failed to create Jira issue from narrative' : 'Jira rejected the outcome payload',
+            code: statusCode === 400 ? 'JIRA_CREATE_VALIDATION_FAILED' : 'OUTCOME_CREATE_FAILED',
+            message,
+            details: Object.keys(jira || {}).length ? jira : null,
+        };
+        return res.status(statusCode === 400 ? 422 : statusCode).json(payload);
     }
 });
 

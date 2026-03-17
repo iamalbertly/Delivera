@@ -60,6 +60,123 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     expect(callCount).toBe(2);
   });
 
+  test('outcome intake previews epic plus stories with mode and confidence', async ({ page }) => {
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    await page.locator('[data-open-outcome-modal]').first().click();
+    const textarea = page.locator('#global-outcome-modal #report-outcome-text');
+    await textarea.fill([
+      '1: Users walio-share feedback(On Display and Export):',
+      '2: Add Customer Number on Feedback(On Display and Export)',
+      '3: Consent to be displayed.',
+      '4: Filter by Feedback Category.',
+      '5: Fix SMS notification',
+    ].join('\n'));
+
+    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Will create 4 backlog items under 1 parent issue/i);
+    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Mode: epic with stories/i);
+    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/confidence/i);
+    await expect(page.locator('#report-outcome-intake-create')).toContainText(/Create 5 Jira issues from this list/i);
+  });
+
+  test('outcome intake flips to story plus subtasks for concrete user story with steps', async ({ page }) => {
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    await page.locator('[data-open-outcome-modal]').first().click();
+    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+      'As a customer I want to receive an SMS when feedback is shared so that I know it was sent',
+      'Add the SMS event trigger',
+      'Wire the notification handler',
+      'Update the confirmation copy',
+      'Validate the delivery retry path',
+    ].join('\n'));
+
+    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Mode: story with subtasks/i);
+    await expect(page.locator('#report-outcome-intake-create')).toContainText(/Create parent \+ child items/i);
+  });
+
+  test('outcome intake handles table input as issues with descriptions', async ({ page }) => {
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    await page.locator('[data-open-outcome-modal]').first().click();
+    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+      'Summary\tDescription',
+      'Fix SMS notification\tWhen a user shares feedback, they get a confirmation SMS',
+      'Filter feedback by category\tAdd category selection and persistence',
+    ].join('\n'));
+
+    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Detected table input/i);
+    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Mode: table issues/i);
+  });
+
+  test('outcome intake surfaces partial failures without hiding successes', async ({ page }) => {
+    await page.route('**/api/outcome-from-narrative', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          structureMode: 'EPIC_WITH_STORIES',
+          projectKey: 'SD',
+          primary: { key: 'SD-100', url: 'https://jira.example.com/browse/SD-100' },
+          childIssues: [{ key: 'SD-101', url: 'https://jira.example.com/browse/SD-101', title: 'Add customer number' }],
+          linkedExisting: [],
+          createdCount: 2,
+          expectedCreateCount: 3,
+          failures: [{ title: 'Fix SMS notification flow for feedback events', reason: 'Permission denied' }],
+          summaryHtml: 'Created epic <a href="https://jira.example.com/browse/SD-100" target="_blank" rel="noopener">SD-100</a> with 1 linked stories in project SD backlog. Created 2 of 3. Failed on: Fix SMS notification flow for feedback events.',
+        }),
+      });
+    });
+
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.locator('[data-open-outcome-modal]').first().click();
+    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+      'Customer feedback improvements',
+      'Add customer number',
+      'Fix SMS notification',
+    ].join('\n'));
+    await page.locator('#global-outcome-modal #report-outcome-intake-create').click();
+    await expect(page.locator('#report-outcome-intake-status')).toContainText(/Created 2 of 3/i);
+    await expect(page.locator('#report-outcome-intake-status')).toContainText(/Fix SMS notification/i);
+  });
+
+  test('outcome intake shows Jira configuration gaps without generic 500 copy', async ({ page }) => {
+    await page.route('**/api/outcome-from-narrative', async (route) => {
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'OUTCOME_CREATE_CONFIG_REQUIRED',
+          message: 'Project SD needs extra Jira create fields before this narrative can be created automatically.',
+          details: {
+            problems: [
+              { role: 'parent', issueTypeName: 'Feature', missingFields: ['Team', 'Business Owner'] },
+              { role: 'child', issueTypeName: 'Story', missingFields: ['Parent link field'] },
+            ],
+          },
+        }),
+      });
+    });
+
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.locator('[data-open-outcome-modal]').first().click();
+    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+      'Customer feedback improvements',
+      'Add customer number',
+      'Fix SMS notification',
+    ].join('\n'));
+    await page.locator('#global-outcome-modal #report-outcome-intake-create').click();
+    await expect(page.locator('#report-outcome-intake-status')).toContainText(/Project SD needs extra Jira create fields/i);
+    await expect(page.locator('#report-outcome-intake-status')).toContainText(/parent Feature needs Team, Business Owner/i);
+    await expect(page.locator('#report-outcome-intake-status')).toContainText(/child Story needs Parent link field/i);
+  });
+
   test('current sprint shows readiness verdict in header and supports paste Jira jump', async ({ page }) => {
     await page.route('**/api/boards.json**', async (route) => {
       await route.fulfill({

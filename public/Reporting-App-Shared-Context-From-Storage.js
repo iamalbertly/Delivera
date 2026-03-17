@@ -216,7 +216,7 @@ function getLastRunSummary() {
 }
 
 /**
- * Returns freshness info like { label: 'Generated 3 min ago', isStale: true }
+ * Returns freshness info like { label: 'Updated 3 min ago', isStale: true }
  * based on the last preview meta stored in sessionStorage.
  */
 export function getLastMetaFreshnessInfo() {
@@ -232,11 +232,11 @@ export function getLastMetaFreshnessInfo() {
     const diffMs = Date.now() - ts.getTime();
     if (diffMs < 0) return { label: null, isStale: false };
     const isStale = diffMs >= FRESHNESS_STALE_THRESHOLD_MS;
-    if (diffMs < 60000) return { label: 'Generated just now', isStale };
+    if (diffMs < 60000) return { label: 'Just updated', isStale };
     const minutes = Math.round(diffMs / 60000);
-    if (minutes < 60) return { label: `Generated ${minutes} min ago`, isStale };
+    if (minutes < 60) return { label: `Updated ${minutes} min ago`, isStale };
     const hours = Math.round(minutes / 60);
-    return { label: `Generated ${hours}h ago`, isStale };
+    return { label: isStale ? 'Stale - refresh recommended' : `Updated ${hours}h ago`, isStale };
   } catch (_) {
     return { label: null, isStale: false };
   }

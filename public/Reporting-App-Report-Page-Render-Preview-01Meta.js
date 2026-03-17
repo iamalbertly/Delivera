@@ -160,23 +160,23 @@ export function buildPreviewMetaAndStatus(params) {
   // Config gaps – neutral outlined info chips (not screaming orange)
   const configGapChipsNew = [];
   if (!meta.discoveredFields?.storyPointsFieldId) {
-    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Story Points field not configured — SP metrics show limited data." aria-label="SP metrics limited. Open advanced options">SP limited</button>');
+    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Story Points field not configured — SP metrics show limited data." aria-label="Story points unavailable. Open advanced options">Story points unavailable</button>');
   }
   if (!meta.discoveredFields?.epicLinkFieldId) {
-    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Epic Link field not configured — Epic rollups are limited." aria-label="Epic rollups limited. Open advanced options">Epic limited</button>');
+    configGapChipsNew.push('<button type="button" class="preview-context-chip preview-context-chip-config" data-preview-context-action="focus-config" title="Epic Link field not configured — Epic rollups are limited." aria-label="Epic rollups unavailable. Open advanced options">Epic rollups unavailable</button>');
   }
 
   // Build tiered chip strip: T2 scope → T1 health hero → T3 right-side data/export
   const outcomeLineHTML =
-    '<div class="preview-context-bar" role="group" aria-label="Report preview context and outcome">' +
+    '<div class="preview-context-bar" data-context-bar="true" role="group" aria-label="Report preview context and outcome">' +
       // Identity – flat, low-ink label
-      '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Performance · History</span>' +
+      '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Performance history</span>' +
       // T2: Scope (muted interactive)
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '<span class="visually-hidden"> Projects full list: ' + escapeHtml(projectSummary.full) + '</span></button>' +
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>' +
       // T1: Health hero chip – outcome truth in one sentence
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-outcomes-shortcut" data-preview-context-action="open-done-stories" title="Jump to Outcomes tab" aria-label="Open Outcomes tab">Outcomes</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-outcomes-shortcut" data-preview-context-action="open-done-stories" title="Jump to Outcomes tab" aria-label="Open Outcomes tab">Open outcomes</button>' +
       strictBadge +
       // T3: Data state + export (right-side badges)
       '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>' +

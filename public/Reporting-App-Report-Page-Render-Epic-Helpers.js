@@ -91,12 +91,14 @@ export function renderEpicStoryList(epic, meta, rows) {
   const items = getEpicStoryItems(epic, rows);
   if (!items || items.length === 0) return '-';
   const pills = items.map(item => {
+    const issueKey = String(item?.key || '').trim();
+    if (!issueKey) return '<span class="story-pill story-pill--unlinked" title="Jira link unavailable">Jira link unavailable</span>';
     const url = buildJiraIssueUrl(host, item.key);
-    const label = escapeHtml(item.key || '');
+    const label = escapeHtml(issueKey);
     const summary = escapeHtml(item.summary || '');
-    const titleText = summary ? `Open in Jira: ${item.key} — ${summary}` : `Open in Jira: ${item.key}`;
+    const titleText = summary ? `Open in Jira: ${issueKey} — ${summary}` : `Open in Jira: ${issueKey}`;
     const title = ` title="${escapeHtml(titleText)}"`;
-    const aria = ` aria-label="Open issue ${escapeHtml(item.key || '')} in Jira"`;
+    const aria = ` aria-label="Open issue ${escapeHtml(issueKey)} in Jira"`;
     if (url) {
       return `<a class="story-pill" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"${title}${aria}>${label}</a>`;
     }

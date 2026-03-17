@@ -107,7 +107,7 @@ export function restoreLastPreviewFromStorage() {
     if (reportDom.previewContent) reportDom.previewContent.style.display = 'block';
     const statusEl = document.getElementById('preview-status');
     if (statusEl) {
-      statusEl.innerHTML = '<div class="status-banner warning">Results may be stale - refresh?<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
+      statusEl.innerHTML = '<div class="status-banner warning">Stale - refresh recommended<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
       statusEl.style.display = 'block';
     }
     return true;

@@ -4,6 +4,7 @@
  */
 
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 const INSIGHT_MAX_LEN = 1000;
 
 function toLocalIsoMinute(date = new Date()) {
@@ -33,6 +34,8 @@ export function renderRisksAndInsights(data) {
   const dependencies = notes.dependencies || [];
   const learnings = notes.learnings || [];
   const hasAssumptions = assumptions.length > 0;
+  const riskCounts = getUnifiedRiskCounts(data);
+  const ownedBlockerCount = Number(riskCounts.blockersOwned || 0);
 
   // Dependencies only - scope changes are already shown in the Work Risks table above
   const blockersText = [];
@@ -74,7 +77,10 @@ export function renderRisksAndInsights(data) {
     html += '<span id="blockers-char-count" class="insight-char-count" aria-live="polite">0 / 1000</span>';
     html += '</div>';
   } else {
-    html += '<div class="insight-empty"><p>No blockers detected. Sprint is flowing well.</p></div>';
+    const blockerMessage = ownedBlockerCount > 0
+      ? ownedBlockerCount + ' blocker' + (ownedBlockerCount === 1 ? '' : 's') + ' detected in sprint risk signals. Review the work queue below.'
+      : 'No blockers detected from notes or unified sprint risk signals.';
+    html += '<div class="insight-empty"><p>' + escapeHtml(blockerMessage) + '</p></div>';
   }
   html += '</div>';
 

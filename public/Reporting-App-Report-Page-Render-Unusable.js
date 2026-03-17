@@ -40,12 +40,12 @@ export function renderUnusableSprintsTab(unusable) {
   }
 
   let html = '<div class="unusable-sprints-summary">';
-  html += '<p><strong>' + total + ' sprint' + (total === 1 ? '' : 's') + ' excluded from metrics.</strong> These sprints do not affect your Performance overview numbers.</p>';
+  html += '<p><strong>' + total + ' sprint' + (total === 1 ? '' : 's') + ' excluded from metrics.</strong> Fix these first to restore complete report trust.</p>';
   if (byReason.size > 0) {
-    html += '<ul>';
+    html += '<ul aria-label="Repair priorities">';
     for (const [reason, count] of byReason.entries()) {
       const guidance = getReasonGuidance(reason);
-      html += '<li><strong>' + count + '</strong> with reason "' + escapeHtml(reason) + '" — Fix in Jira: ' + escapeHtml(guidance) + '</li>';
+      html += '<li><strong>' + count + '</strong> with reason "' + escapeHtml(reason) + '" — Fix in Jira: ' + escapeHtml(guidance) + ' — affects history, trends, and outcome trust.</li>';
     }
     html += '</ul>';
   }

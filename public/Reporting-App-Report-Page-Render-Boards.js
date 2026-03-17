@@ -266,6 +266,57 @@ function buildOutcomeDigestStripHtml(boards, boardSummaries, previewRows, meta) 
   return html;
 }
 
+function buildOverviewActionSummaryHtml(boards, boardSummaries, previewRows, meta) {
+  const rows = Array.isArray(previewRows) ? previewRows : [];
+  const riskBoard = Array.isArray(boards)
+    ? boards.map((board) => {
+      const summary = boardSummaries.get(board.id) || {};
+      const doneStories = Number(summary.doneStories || 0);
+      const onTimePct = doneStories > 0 ? (Number(summary.doneBySprintEnd || 0) / doneStories) * 100 : null;
+      return { name: board.name || 'Board', onTimePct };
+    }).sort((a, b) => (a.onTimePct ?? 999) - (b.onTimePct ?? 999))[0]
+    : null;
+  const outcomeCounts = new Map();
+  rows.forEach((row) => {
+    const epic = String(row.epicName || row.epicKey || '').trim();
+    if (!epic) return;
+    outcomeCounts.set(epic, (outcomeCounts.get(epic) || 0) + 1);
+  });
+  const topOutcome = Array.from(outcomeCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+  const dataGap = !meta?.discoveredFields?.storyPointsFieldId
+    ? 'Story points unavailable'
+    : (!meta?.discoveredFields?.epicLinkFieldId ? 'Epic rollups unavailable' : '');
+  const cards = [
+    {
+      title: 'What changed',
+      value: rows.length ? rows.length + ' shipped outcomes' : 'No shipped outcomes',
+      detail: rows.length ? 'Delivered across ' + new Set(rows.map((row) => row.sprintId).filter(Boolean)).size + ' sprint windows.' : 'This range is maintenance-heavy or too narrow.',
+    },
+    {
+      title: 'What needs attention',
+      value: riskBoard && Number.isFinite(riskBoard.onTimePct) ? riskBoard.name : 'No critical board',
+      detail: riskBoard && Number.isFinite(riskBoard.onTimePct) ? 'Lowest on-time rate in range: ' + formatNumber(riskBoard.onTimePct, 0, '0') + '%.' : 'No cross-board risk spike detected.',
+    },
+    dataGap
+      ? {
+        title: 'What to create next',
+        value: 'Fix data gap',
+        detail: dataGap + ' is limiting confidence.',
+        actionHtml: '<button type="button" class="btn btn-secondary btn-compact" data-preview-context-action="focus-config">Fix data gap</button>',
+      }
+      : {
+        title: 'What to create next',
+        value: topOutcome ? topOutcome[0] : 'Promote the strongest insight',
+        detail: topOutcome ? topOutcome[1] + ' shipped stories point to the strongest outcome theme.' : 'Create work from the strongest signal in this range.',
+        actionHtml: '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from the strongest report insight.">Create work</button>',
+      },
+  ];
+  let html = '<section class="report-decision-strip" aria-label="Direct to value summary">';
+  html += cards.map((card) => '<article class="transparency-card report-decision-card"><p class="eyebrow">' + escapeHtml(card.title) + '</p><h3>' + escapeHtml(card.value) + '</h3><p>' + escapeHtml(card.detail) + '</p>' + (card.actionHtml || '') + '</article>').join('');
+  html += '</section>';
+  return html;
+}
+
 function applyBoardsColumnVisibility() {
   const table = document.getElementById('boards-table');
   const toggle = document.getElementById('boards-columns-toggle');
@@ -381,6 +432,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
         html += buildSignalsRailHtml(metrics, meta);
       }
     }
+    html += buildOverviewActionSummaryHtml(boards, boardSummaries, reportState.previewRows, meta);
     html += buildOutcomeDigestStripHtml(boards, boardSummaries, reportState.previewRows, meta);
 
     html += '<h3>Boards</h3>';

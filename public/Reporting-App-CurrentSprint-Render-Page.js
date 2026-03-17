@@ -6,6 +6,8 @@ import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insi
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
 import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
+import { renderHealthDashboard } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
+import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 
 export function renderCurrentSprintPage(data) {
   const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
@@ -84,11 +86,11 @@ export function renderCurrentSprintPage(data) {
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   const sectionActions = [];
-  sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create an outcome from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Narrative to Epic</button>');
+  sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create work from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Create work from insight</button>');
   if (data?.board?.name && outcomeProjects) {
     sectionActions.push('<a class="sprint-section-inline-link" href="/leadership?project=' + encodeURIComponent(String(outcomeProjects).split(',')[0]) + '&board=' + encodeURIComponent(data.board.name) + '">Leadership trend</a>');
   }
-  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-sticky" role="navigation" aria-label="Jump to section">'
+  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact sprint-section-links-sticky" role="navigation" aria-label="Jump to section">'
     + jumpLinks.join('')
     + (sectionActions.length ? '<div class="sprint-section-inline-actions">' + sectionActions.join('') + '</div>' : '')
     + '<button type="button" class="btn btn-secondary btn-compact sprint-section-dropdown-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="sprint-section-dropdown-menu">More</button>'
@@ -101,12 +103,10 @@ export function renderCurrentSprintPage(data) {
 
   html += '<div class="current-sprint-grid-layout">';
 
-  html += buildSprintAtAGlanceHero(data, verdict, capacitySummary);
-
-  html += sectionLinksHtml;
+  html += buildUnifiedSprintHud(data, verdict, capacitySummary, sectionLinksHtml);
   const hasDeepDive = hasStories || hasBurndownData;
   if (hasDeepDive) {
-    html += '<details class="mobile-secondary-details" open>';
+    html += '<details class="mobile-secondary-details" data-mobile-collapse="true" open>';
     html += '<summary>Sprint work &amp; flow</summary>';
   }
 
@@ -125,11 +125,6 @@ export function renderCurrentSprintPage(data) {
   if (hasDeepDive) {
     html += '</details>';
   }
-
-  html += '<details class="sprint-switcher-card" data-mobile-collapse="true">';
-  html += '<summary>Switch sprint</summary>';
-  html += renderSprintCarousel(data);
-  html += '</details>';
 
   html += '<div class="sprint-cards-row secondary-row">';
   html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
@@ -161,10 +156,10 @@ export function renderCurrentSprintPageParts(data) {
   const initialHtml = ''
     + renderHeaderBar(data)
     + '<div class="current-sprint-grid-layout current-sprint-grid-layout-phased">'
-    + buildSprintAtAGlanceHero(data, verdict, capacitySummary)
+    + buildUnifiedSprintHud(data, verdict, capacitySummary, '<div class="sprint-section-links sprint-section-links-compact sprint-section-links-sticky" role="navigation" aria-label="Jump to section"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Burndown</span><div class="sprint-section-inline-actions"><button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" disabled>Create work from insight</button></div></div>', true)
     + '<div class="transparency-card sprint-progressive-shell" data-progressive-shell="deferred">'
     + '<h2>Loading sprint work</h2>'
-    + '<p>Header, health signal, and direct-to-value counters are ready. Work rows load next.</p>'
+    + '<p>HUD is ready. Stories and flow load next.</p>'
     + '</div>'
     + '</div>';
 
@@ -210,6 +205,48 @@ function buildSprintAtAGlanceHero(data, verdict, capacitySummary) {
     + ' | Capacity: ' + capacityLabel
     + '</p>'
     + '</section>';
+}
+
+function buildUnifiedSprintHud(data, verdict, capacitySummary, sectionLinksHtml, isLoadingShell = false) {
+  const summary = data.summary || {};
+  const issueCount = summary.totalStories ?? 0;
+  const riskCounts = getUnifiedRiskCounts(data);
+  const missingEstimateCount = Number(verdict.missingEstimate || 0);
+  const overloadedOwners = Number(capacitySummary?.overloadedAssignees || 0);
+  const capacitySignal = capacitySummary?.state === 'critical'
+    ? 'Capacity needs intervention'
+    : capacitySummary?.state === 'warning'
+      ? 'Capacity needs attention'
+      : 'Capacity covered';
+  const heroTone = verdict.color === 'red' || verdict.color === 'critical'
+    ? 'is-critical'
+    : verdict.color === 'yellow' || verdict.color === 'warning'
+      ? 'is-warning'
+      : 'is-healthy';
+
+  let html = '<section class="transparency-card sprint-hud-card ' + heroTone + '" aria-label="Sprint HUD">';
+  html += '<div class="sprint-hud-topline">';
+  html += '<div class="sprint-hud-primary">';
+  html += '<p class="sprint-hud-narrative"><span class="sprint-hud-verdict">Next actions</span><span>' + (verdict.tagline || verdict.summary || 'Use the chips below to jump straight to work, flow, and unblock paths.') + '</span><span>' + capacitySignal + ' across ' + issueCount + ' issues.</span></p>';
+  html += '</div>';
+  html += '</div>';
+  html += sectionLinksHtml || '';
+  html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
+  html += '<button type="button" class="header-metric sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + Number(riskCounts.blockersOwned || 0) + '</span><span class="metric-meta">Open the riskiest work first</span></button>';
+  html += '<button type="button" class="header-metric sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates blocking planning</span><span class="metric-value">' + missingEstimateCount + '</span><span class="metric-meta">Estimate the work planning cannot trust yet</span></button>';
+  html += '<button type="button" class="header-metric sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Overloaded or unclear ownership</span><span class="metric-value">' + Math.max(Number(riskCounts.unownedOutcomes || 0), overloadedOwners) + '</span><span class="metric-meta">Fix ownership before the queue expands</span></button>';
+  html += '</div>';
+  if (!isLoadingShell) {
+    html += '<div class="sprint-hud-carousel-inline">';
+    html += renderSprintCarousel(data);
+    html += '</div>';
+  }
+  html += '<details class="sprint-hud-details" data-mobile-collapse="true">';
+  html += '<summary>Why this verdict</summary>';
+  html += renderHealthDashboard(data, { compact: true });
+  html += '</details>';
+  html += '</section>';
+  return html;
 }
 
 function buildCapacityAllocationCard(capacitySummary, data) {

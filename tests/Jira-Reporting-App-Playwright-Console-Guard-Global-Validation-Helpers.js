@@ -24,11 +24,11 @@ export const test = base.extend({
       const text = msg.text();
       const location = typeof msg.location === 'function' ? msg.location() : {};
       const url = location && location.url ? String(location.url) : '';
-      // Known expected case: outcome-intake dedupe tests intentionally simulate a 409 Conflict
-      // from /api/outcome-from-narrative. We treat that as handled UX, not a failing console error.
+      // Known expected case: outcome-intake tests intentionally simulate handled
+      // 409 duplicate and 422 validation responses from /api/outcome-from-narrative.
       const isExpectedOutcomeConflict =
         url.includes('/api/outcome-from-narrative') &&
-        /status of 409/i.test(text || '');
+        /status of (409|422)\b/i.test(text || '');
       if (isExpectedOutcomeConflict) return;
       const isExpectedPreviewHttpRecovery =
         /preview\.json/i.test(url || text || '') &&
