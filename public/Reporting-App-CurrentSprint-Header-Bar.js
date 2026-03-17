@@ -269,6 +269,11 @@ export function renderHeaderBar(data, options = {}) {
     + ` title="${escapeHtml(isHistoricalSprint ? 'Historical sprint snapshot: live remediation actions are disabled.' : 'Focus highest priority risk rows')}">`
     + escapeHtml(isHistoricalSprint ? SPRINT_COPY.historicalAction : 'Focus risk work')
     + '</button>';
+  if (!isHistoricalSprint) {
+    html += '<button type="button" class="btn btn-secondary btn-compact header-create-work-btn" data-open-outcome-modal'
+      + ' data-outcome-context="Create work from the current sprint context."'
+      + ' data-outcome-projects="' + escapeHtml((selectedProject || meta.projects || '').replace(/\s+/g, '')) + '">Create work</button>';
+  }
   html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data and context"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh</button>';
   html += '<details class="header-view-drawer">';
   html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span>More</span><span data-header-active-filter-value>Lens: All | none</span></summary>';
@@ -327,9 +332,9 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="mission-context-ribbon">' + missionContextRibbon + '</div>';
   html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
   if (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0) {
-    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + stuckCount + '</span><span class="metric-meta">Open now</span></button>';
-    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates</span><span class="metric-value">' + missingEstimates + '</span><span class="metric-meta">Plan safely</span></button>';
-    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership gaps</span><span class="metric-value">' + unassignedParents + '</span><span class="metric-meta">Fix next</span></button>';
+    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + stuckCount + '</span></button>';
+    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates</span><span class="metric-value">' + missingEstimates + '</span></button>';
+    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership gaps</span><span class="metric-value">' + unassignedParents + '</span></button>';
   } else {
     html += '<span class="sprint-intervention-item sprint-intervention-item--quiet"><span class="metric-label">All systems healthy</span><span class="metric-meta">No critical intervention queued</span></span>';
   }
@@ -339,8 +344,11 @@ export function renderHeaderBar(data, options = {}) {
   } else if (isLoadingShell) {
     html += '<div class="mission-strip-nav mission-strip-nav-loading" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>';
   }
+  const showAttentionRail = verdictRiskChips.length > 0 && isHistoricalSprint;
   html += '<div class="mission-strip-tertiary">';
-  html += '<div class="mission-attention-rail">' + missionAttentionRail + '</div>';
+  if (showAttentionRail) {
+    html += '<div class="mission-attention-rail">' + missionAttentionRail + '</div>';
+  }
   if (isHistoricalSprint) {
     const histLabel = `${sprint.name || 'Historical sprint'} - ${sprintDatesLabel}`;
     html += `<span class="current-sprint-history-banner current-sprint-history-banner-inline" role="note">${escapeHtml(SPRINT_COPY.historical)} (${escapeHtml(histLabel)})</span>`;

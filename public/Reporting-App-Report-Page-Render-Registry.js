@@ -5,11 +5,6 @@ export { renderDoneStoriesTab, toggleSprint } from './Reporting-App-Report-Page-
 export { renderUnusableSprintsTab } from './Reporting-App-Report-Page-Render-Unusable.js';
 export { updateExportFilteredState } from './Reporting-App-Report-Page-Export-Menu.js';
 
-/**
- * Render a compact bridge into the standalone Leadership page.
- * Report keeps the tab for continuity, but the heavyweight trends
- * analysis now has one home: /leadership.
- */
 export function renderTrendsTab(previewData) {
   const container = document.getElementById('leadership-content');
   if (!container) return;
@@ -24,14 +19,12 @@ export function renderTrendsTab(previewData) {
   const unusable = Array.isArray(previewData?.sprintsUnusable) ? previewData.sprintsUnusable.length : 0;
   const partial = meta.partial === true;
   const statusLine = partial
-    ? 'This report window is partial. Leadership HUD will carry the same trust warning with the full anomaly queue.'
-    : 'Leadership HUD gives you the full investment, anomaly, and trust view without duplicating the report surface.';
+    ? 'Partial window. Open Leadership HUD for the full trust and anomaly breakdown.'
+    : 'Leadership HUD is available now with the same context and a tighter executive view.';
   container.innerHTML = ''
-    + '<section class="transparency-card leadership-bridge-card" aria-label="Open Leadership HUD">'
-    + '<p class="eyebrow">Leadership mission control</p>'
-    + '<h2>Leadership analysis now lives in one place</h2>'
-    + '<p class="leadership-bridge-copy">' + statusLine + '</p>'
-    + '<div class="leadership-bridge-metrics">'
+    + '<section class="transparency-card leadership-bridge-card leadership-bridge-card-compact" aria-label="Leadership snapshot">'
+    + '<div class="leadership-bridge-copy leadership-bridge-copy-row"><strong>Leadership snapshot</strong><span>' + statusLine + '</span></div>'
+    + '<div class="leadership-bridge-metrics leadership-bridge-metrics-compact">'
     + '<span><strong>' + boards + '</strong> boards</span>'
     + '<span><strong>' + outcomes + '</strong> outcomes</span>'
     + '<span><strong>' + unusable + '</strong> repair items</span>'

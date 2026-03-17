@@ -702,6 +702,16 @@
   font-weight: 600;
 }
 
+.story-row-flag.story-row-flag-icon {
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 10px;
+}
+
 .sprint-readiness-strip {
   display: flex;
   justify-content: space-between;
@@ -3992,6 +4002,10 @@ body.current-sprint-page .header-band-actions {
   justify-content: flex-end;
 }
 
+body.current-sprint-page .header-create-work-btn {
+  white-space: nowrap;
+}
+
 body.current-sprint-page .header-view-drawer {
   position: relative;
 }
@@ -4156,6 +4170,22 @@ body.current-sprint-page .stories-evidence-inline {
   border: 1px solid var(--border);
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+body.current-sprint-page .burndown-details-drawer {
+  margin-top: 8px;
+}
+
+body.current-sprint-page .burndown-details-drawer > summary {
+  list-style: none;
+}
+
+body.current-sprint-page .burndown-details-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+body.current-sprint-page .burndown-details-drawer .data-table {
+  margin-top: 8px;
 }
 
 body.current-sprint-page .mission-strip-secondary {

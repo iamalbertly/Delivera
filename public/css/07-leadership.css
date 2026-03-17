@@ -22,7 +22,8 @@
   margin-bottom: 8px;
 }
 
-.leadership-context-sticky {
+.leadership-context-sticky,
+.leadership-shell-top {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -57,9 +58,9 @@
 
 .leadership-mission-strip {
   display: grid;
-  gap: 10px;
-  margin: 0 0 12px;
-  padding: 12px 14px;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
@@ -82,7 +83,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -107,10 +108,10 @@
 .leadership-mission-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .leadership-mission-hint,
@@ -199,7 +200,27 @@
 }
 
 .leadership-kpi-project-grid {
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.leadership-bridge-card-compact {
+  padding: 10px 12px;
+}
+
+.leadership-bridge-copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.leadership-bridge-metrics-compact {
+  margin-top: 6px;
+}
+
+.leadership-card .data-table thead th,
+.leadership-boards-table thead th {
+  position: static;
 }
 
 .leadership-kpi-project-card,

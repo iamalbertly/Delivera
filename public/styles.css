@@ -4889,6 +4889,16 @@ body .preview-area {
   font-weight: 600;
 }
 
+.story-row-flag.story-row-flag-icon {
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 10px;
+}
+
 .sprint-readiness-strip {
   display: flex;
   justify-content: space-between;
@@ -8179,6 +8189,10 @@ body.current-sprint-page .header-band-actions {
   justify-content: flex-end;
 }
 
+body.current-sprint-page .header-create-work-btn {
+  white-space: nowrap;
+}
+
 body.current-sprint-page .header-view-drawer {
   position: relative;
 }
@@ -8343,6 +8357,22 @@ body.current-sprint-page .stories-evidence-inline {
   border: 1px solid var(--border);
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+body.current-sprint-page .burndown-details-drawer {
+  margin-top: 8px;
+}
+
+body.current-sprint-page .burndown-details-drawer > summary {
+  list-style: none;
+}
+
+body.current-sprint-page .burndown-details-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+body.current-sprint-page .burndown-details-drawer .data-table {
+  margin-top: 8px;
 }
 
 body.current-sprint-page .mission-strip-secondary {
@@ -8706,7 +8736,8 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
   margin-bottom: 8px;
 }
 
-.leadership-context-sticky {
+.leadership-context-sticky,
+.leadership-shell-top {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -8741,9 +8772,9 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 
 .leadership-mission-strip {
   display: grid;
-  gap: 10px;
-  margin: 0 0 12px;
-  padding: 12px 14px;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
@@ -8766,7 +8797,7 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -8791,10 +8822,10 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 .leadership-mission-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .leadership-mission-hint,
@@ -8883,7 +8914,27 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 }
 
 .leadership-kpi-project-grid {
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.leadership-bridge-card-compact {
+  padding: 10px 12px;
+}
+
+.leadership-bridge-copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.leadership-bridge-metrics-compact {
+  margin-top: 6px;
+}
+
+.leadership-card .data-table thead th,
+.leadership-boards-table thead th {
+  position: static;
 }
 
 .leadership-kpi-project-card,

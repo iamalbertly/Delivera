@@ -59,8 +59,8 @@ function exportLeadershipKpisCsv() {
 function buildLeadershipQuarterlyStory() {
   const root = document.getElementById('leadership-content');
   if (!root) return '';
-  const recommendation = root.querySelector('.leadership-direct-value-card h2')?.textContent?.trim() || 'Leadership snapshot';
-  const recommendationBody = root.querySelector('.leadership-direct-value-card p:last-of-type')?.textContent?.trim() || '';
+  const recommendation = root.querySelector('.leadership-mission-copy h2')?.textContent?.trim() || 'Leadership snapshot';
+  const recommendationBody = root.querySelector('.leadership-mission-copy p:last-of-type')?.textContent?.trim() || '';
   const kpiCards = Array.from(root.querySelectorAll('.leadership-kpi-project-card')).map((card) => {
     const title = card.querySelector('h3')?.textContent?.trim() || 'Project';
     const facts = Array.from(card.querySelectorAll('dd')).slice(0, 4).map((el) => el.textContent.trim()).filter(Boolean);

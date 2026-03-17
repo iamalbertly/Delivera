@@ -2,11 +2,9 @@ import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escap
 import { formatDate, formatDayLabel, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
-import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
 import { buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 import { hasOutcomeLabel, isOutcomeStoryLike } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
 import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
-import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -186,26 +184,11 @@ export function renderBurndown(data) {
     html += buildBurndownChart(remaining, ideal, 'Remaining SP');
   }
 
+  html += '<details class="burndown-details-drawer">';
+  html += '<summary class="btn btn-secondary btn-compact">Open full burndown</summary>';
   html += '<table class="data-table" id="burndown-table">';
   html += '<thead><tr><th>Date</th><th>Remaining SP</th><th>Ideal Remaining</th></tr></thead><tbody>';
-  const burndownInitial = 7;
-  const burndownToShow = remaining.slice(0, burndownInitial);
-  const burndownRemaining = remaining.slice(burndownInitial);
-  for (let i = 0; i < burndownToShow.length; i++) {
-    const row = burndownToShow[i];
-    const idealRow = ideal[i] || ideal[ideal.length - 1] || {};
-    html += '<tr>';
-    html += '<td>' + escapeHtml(formatDayLabel(row.date)) + '</td>';
-    html += '<td>' + formatNumber(row.remainingSP ?? 0, 1, '-') + '</td>';
-    html += '<td>' + formatNumber(idealRow.remainingSP ?? 0, 1, '-') + '</td>';
-    html += '</tr>';
-  }
-  html += '</tbody></table>';
-
-  if (burndownRemaining.length > 0) {
-    html += '<button class="btn btn-secondary btn-compact burndown-show-more" data-count="' + burndownRemaining.length + '">Show ' + burndownRemaining.length + ' more</button>';
-    html += '<template id="burndown-more-template">';
-    for (let i = burndownInitial; i < remaining.length; i++) {
+  for (let i = 0; i < remaining.length; i++) {
       const row = remaining[i];
       const idealRow = ideal[i] || ideal[ideal.length - 1] || {};
       html += '<tr>';
@@ -213,9 +196,9 @@ export function renderBurndown(data) {
       html += '<td>' + formatNumber(row.remainingSP ?? 0, 1, '-') + '</td>';
       html += '<td>' + formatNumber(idealRow.remainingSP ?? 0, 1, '-') + '</td>';
       html += '</tr>';
-    }
-    html += '</template>';
   }
+  html += '</tbody></table>';
+  html += '</details>';
 
   html += '</div>';
   return html;
@@ -226,10 +209,7 @@ export function renderStories(data) {
   const scopeChanges = data.scopeChanges || [];
   const mergedRiskRows = buildMergedWorkRiskRows(data);
   const unifiedRiskCounts = getUnifiedRiskCounts(data);
-  const summary = data.summary || {};
   const dailySeries = Array.isArray(data?.dailyCompletions?.stories) ? data.dailyCompletions.stories : [];
-  const excludedParents = Number(summary.stuckExcludedParentsWithActiveSubtasks || 0);
-  const capacitySummary = buildCapacitySummary(data);
   const parentUnassigned = Number(unifiedRiskCounts.unownedOutcomes || 0);
   const blockerKeys = new Set(
     mergedRiskRows
@@ -252,9 +232,6 @@ export function renderStories(data) {
   html += '<div class="section-inline-stats"><span>' + stories.length + ' issues</span><span>' + blockerKeys.size + ' blockers</span><span>' + parentUnassigned + ' unowned</span></div>';
   html += '</div>';
   html += renderWorkRisksMerged(data);
-  html += '<div class="stories-evidence-inline">Evidence: '
-    + escapeHtml(Number(summary.subtaskLoggedHours || 0) > 0 ? 'logs healthy' : 'logs building')
-    + ' | Capacity: ' + escapeHtml(capacitySummary?.label || 'watch') + '</div>';
 
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();
@@ -306,10 +283,7 @@ export function renderStories(data) {
     rowHtml += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
     rowHtml += '<td class="cell-wrap story-summary-cell">' + escapeHtml(row.summary || '-');
     if (isOutcome) {
-      rowHtml += '<span class="story-row-flag">Outcome</span>';
-    }
-    if (subtasks.length) {
-      rowHtml += '<div class="story-subtask-summary"><span class="story-subtask-count">' + subtasks.length + ' subtask' + (subtasks.length === 1 ? '' : 's') + '</span></div>';
+      rowHtml += '<span class="story-row-flag story-row-flag-icon" title="Outcome-linked work" aria-label="Outcome-linked work">O</span>';
     }
     rowHtml += '</td>';
     rowHtml += '<td class="story-status-cell">' + escapeHtml(row.status || '-') + '</td>';
@@ -423,7 +397,7 @@ export function renderStories(data) {
     htmlCard += '<span class="story-mobile-key">' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</span>';
     htmlCard += '<span class="story-mobile-status">' + escapeHtml(status) + '</span>';
     htmlCard += '</div>';
-    htmlCard += '<p class="story-mobile-summary">' + escapeHtml(row.summary || '-') + (isOutcome ? '<span class="story-row-flag">Outcome</span>' : '') + '</p>';
+    htmlCard += '<p class="story-mobile-summary">' + escapeHtml(row.summary || '-') + (isOutcome ? '<span class="story-row-flag story-row-flag-icon" title="Outcome-linked work" aria-label="Outcome-linked work">O</span>' : '') + '</p>';
     htmlCard += '<div class="story-mobile-meta"><span>' + escapeHtml(assignee) + '</span><span>SP ' + sp + '</span><span>Log/Est ' + log + 'h/' + est + 'h</span></div>';
     if (rowTags.length) {
       htmlCard += '<div class="story-mobile-risk-chips">';
@@ -545,7 +519,6 @@ export function wireProgressShowMoreHandlers() {
       storiesBtn.remove();
     });
   }
-  wireShowMoreHandler('.burndown-show-more', 'burndown-more-template', '#burndown-table tbody');
 }
 
 export function wireDailyCompletionTimelineHandlers() {

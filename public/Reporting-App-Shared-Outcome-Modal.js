@@ -10,6 +10,7 @@ const outcomeComposerState = {
   parentIndex: 0,
   issueTypeName: '',
   childIssueTypeName: '',
+  showAdvanced: false,
 };
 
 function escapeHtml(value) {
@@ -126,6 +127,7 @@ function resetOutcomeComposerState() {
   outcomeComposerState.parentIndex = 0;
   outcomeComposerState.issueTypeName = '';
   outcomeComposerState.childIssueTypeName = '';
+  outcomeComposerState.showAdvanced = false;
 }
 
 function getEffectiveStructureMode() {
@@ -162,7 +164,8 @@ function getTypeOptions(parsed) {
 
 function renderOverrides(overridesEl, parsed) {
   if (!overridesEl) return;
-  const show = parsed?.hasMultipleItems || Number(parsed?.confidenceScore || 0) < 0.55;
+  const lowConfidence = Number(parsed?.confidenceScore || 0) < 0.55;
+  const show = parsed?.hasMultipleItems || lowConfidence || outcomeComposerState.showAdvanced;
   if (!show) {
     overridesEl.hidden = true;
     overridesEl.innerHTML = '';
@@ -176,28 +179,33 @@ function renderOverrides(overridesEl, parsed) {
   ];
   const typeOptions = getTypeOptions(parsed);
   const inferredLabel = String(parsed?.inferredStructureMode || parsed?.structureMode || '').replace(/_/g, ' ').toLowerCase();
+  const showTypeControls = outcomeComposerState.showAdvanced && (outcomeComposerState.structureMode !== 'AUTO' || lowConfidence);
   let html = '<div class="report-outcome-overrides-panel">';
-  html += '<div class="report-outcome-overrides-head"><strong>Structure</strong><span>Auto picked ' + escapeHtml(inferredLabel || 'single issue') + '.</span></div>';
-  html += '<div class="report-outcome-structure-toggle" role="group" aria-label="Choose work structure">';
+  html += '<div class="report-outcome-overrides-head"><strong>Structure</strong><span>Auto picked ' + escapeHtml(inferredLabel || 'single issue') + '.</span><button type="button" class="link-style" data-outcome-toggle-advanced="' + (outcomeComposerState.showAdvanced ? 'collapse' : 'expand') + '">' + (outcomeComposerState.showAdvanced ? 'Hide options' : 'Adjust') + '</button></div>';
+  html += '<div class="report-outcome-structure-toggle report-outcome-structure-toggle-compact" role="group" aria-label="Choose work structure">';
   html += structureButtons.map((item) => {
     const active = outcomeComposerState.structureMode === item.key;
-    return '<button type="button" class="btn btn-secondary btn-compact' + (active ? ' is-active' : '') + '" data-outcome-structure="' + escapeHtml(item.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '">' + escapeHtml(item.label) + '</button>';
+    const minimalLabel = item.key === 'AUTO' ? 'Auto' : item.label;
+    return '<button type="button" class="btn btn-secondary btn-compact' + (active ? ' is-active' : '') + '" data-outcome-structure="' + escapeHtml(item.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '">' + escapeHtml(minimalLabel) + '</button>';
   }).join('');
   html += '</div>';
-  html += '<div class="report-outcome-type-row">';
-  html += '<label class="insight-label" for="report-outcome-issue-type">Parent type</label>';
-  html += '<select id="report-outcome-issue-type" class="insight-inline-input" aria-label="Choose parent issue type">';
-  html += '<option value="">Auto</option>';
-  html += typeOptions.issueTypes.map((value) => '<option value="' + escapeHtml(value) + '"' + (outcomeComposerState.issueTypeName === value ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
-  html += '</select>';
-  if (typeOptions.childTypes.length > 0) {
-    html += '<label class="insight-label" for="report-outcome-child-type">Child type</label>';
-    html += '<select id="report-outcome-child-type" class="insight-inline-input" aria-label="Choose child issue type">';
+  if (showTypeControls) {
+    html += '<div class="report-outcome-type-row">';
+    html += '<label class="insight-label" for="report-outcome-issue-type">Parent type</label>';
+    html += '<select id="report-outcome-issue-type" class="insight-inline-input" aria-label="Choose parent issue type">';
     html += '<option value="">Auto</option>';
-    html += typeOptions.childTypes.map((value) => '<option value="' + escapeHtml(value) + '"' + (outcomeComposerState.childIssueTypeName === value ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
+    html += typeOptions.issueTypes.map((value) => '<option value="' + escapeHtml(value) + '"' + (outcomeComposerState.issueTypeName === value ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
     html += '</select>';
+    if (typeOptions.childTypes.length > 0) {
+      html += '<label class="insight-label" for="report-outcome-child-type">Child type</label>';
+      html += '<select id="report-outcome-child-type" class="insight-inline-input" aria-label="Choose child issue type">';
+      html += '<option value="">Auto</option>';
+      html += typeOptions.childTypes.map((value) => '<option value="' + escapeHtml(value) + '"' + (outcomeComposerState.childIssueTypeName === value ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
+      html += '</select>';
+    }
+    html += '</div>';
   }
-  html += '</div></div>';
+  html += '</div>';
   overridesEl.hidden = false;
   overridesEl.innerHTML = html;
 }
@@ -474,13 +482,21 @@ export function initGlobalOutcomeModal(config = {}) {
     const structureBtn = event.target?.closest?.('[data-outcome-structure]');
     if (structureBtn) {
       outcomeComposerState.structureMode = structureBtn.getAttribute('data-outcome-structure') || 'AUTO';
+      outcomeComposerState.showAdvanced = true;
       if (outcomeComposerState.structureMode === 'SINGLE') outcomeComposerState.parentIndex = 0;
+      updateUi(elements.modal.__outcomePrefill || {});
+      return;
+    }
+    const advancedBtn = event.target?.closest?.('[data-outcome-toggle-advanced]');
+    if (advancedBtn) {
+      outcomeComposerState.showAdvanced = advancedBtn.getAttribute('data-outcome-toggle-advanced') === 'expand';
       updateUi(elements.modal.__outcomePrefill || {});
       return;
     }
     const makeParentBtn = event.target?.closest?.('[data-outcome-make-parent]');
     if (makeParentBtn) {
       outcomeComposerState.structureMode = 'PARENT_CHILD';
+      outcomeComposerState.showAdvanced = true;
       outcomeComposerState.parentIndex = Number(makeParentBtn.getAttribute('data-outcome-make-parent') || 0);
       updateUi(elements.modal.__outcomePrefill || {});
     }
@@ -495,6 +511,7 @@ export function initGlobalOutcomeModal(config = {}) {
     }
     if (target.id === 'report-outcome-child-type') {
       outcomeComposerState.childIssueTypeName = String(target.value || '').trim();
+      outcomeComposerState.showAdvanced = true;
       if (outcomeComposerState.childIssueTypeName) outcomeComposerState.structureMode = 'PARENT_CHILD';
       updateUi(elements.modal.__outcomePrefill || {});
     }

@@ -33,24 +33,11 @@ export function renderCurrentSprintPage(data) {
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
 
   const jumpLinks = [];
-  const outcomeProjects = Array.isArray(data?.board?.projectKeys) && data.board.projectKeys.length
-    ? data.board.projectKeys.join(',')
-    : String(data?.meta?.projects || '');
-  const outcomeContext = [
-    data?.board?.name || 'Current sprint board',
-    data?.sprint?.name || 'Current sprint',
-    data?.sprint?.startDate && data?.sprint?.endDate
-      ? `${String(data.sprint.startDate).slice(0, 10)} - ${String(data.sprint.endDate).slice(0, 10)}`
-      : '',
-  ].filter(Boolean).join(' | ');
   if (hasStories) jumpLinks.push('<a href="#stories-card">Work & flow</a>');
   if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
-  const sectionActions = [];
-  sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create work from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Create work from insight</button>');
   const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact" role="navigation" aria-label="Jump to section">'
     + jumpLinks.join('')
-    + (sectionActions.length ? '<div class="sprint-section-inline-actions">' + sectionActions.join('') + '</div>' : '')
     + '</div>';
 
   html += renderHeaderBar(data, { sectionLinksHtml });

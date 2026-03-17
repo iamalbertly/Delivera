@@ -29,7 +29,7 @@ test.describe('Leadership investment KPI and trust surfaces', () => {
     await expect(page.locator('#leadership-content .leadership-direct-value-card')).toHaveCount(0);
 
     const bridgeText = await page.locator('.leadership-bridge-card').textContent();
-    expect(bridgeText || '').toMatch(/Leadership analysis now lives in one place|Open Leadership HUD/i);
+    expect(bridgeText || '').toMatch(/Leadership snapshot|Open Leadership HUD/i);
 
     assertTelemetryClean(telemetry);
   });

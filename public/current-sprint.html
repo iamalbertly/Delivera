@@ -6,9 +6,10 @@
   <title>Performance - Current Sprint - VodaAgileBoard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* Compact page header: single row with board select; header bar is the main strip */
+    /* Compact page header: scope is a ribbon, not a card */
     body.current-sprint-page header {
-      padding: 8px 16px;
+      padding: 6px 12px;
+      margin-bottom: 8px;
     }
     .current-sprint-header {
       display: block;
@@ -29,66 +30,53 @@
       width: 100%;
     }
     .current-sprint-scope-stack {
-      display: grid;
-      gap: 6px;
-      width: min(960px, 100%);
+      width: 100%;
     }
     .current-sprint-scope-inline {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 8px;
-      align-items: center;
-    }
-    .current-sprint-control-field {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      gap: 6px;
+      align-items: center;
       min-width: 0;
     }
-    .current-sprint-control-field label {
-      font-weight: 500;
-      color: var(--muted);
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
+    .current-sprint-control-field {
+      min-width: 0;
     }
     .current-sprint-control-field select,
     .current-sprint-control-field input[type="text"] {
-      padding: 6px 10px;
+      padding: 6px 9px;
       border-radius: var(--radius);
       border: 1px solid var(--border);
       min-width: 0;
       width: 100%;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
     }
     .current-sprint-scope-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 6px;
       min-width: 0;
     }
     .current-sprint-scope-row--compact {
-      flex-wrap: nowrap;
       align-items: stretch;
+      flex-wrap: nowrap;
     }
     .current-sprint-scope-badge {
       display: inline-flex;
       align-items: center;
-      padding: 3px 8px;
+      padding: 3px 7px;
       border-radius: 999px;
       border: 1px solid var(--border);
       background: var(--card-muted);
       color: var(--muted);
-      font-size: 0.76rem;
+      font-size: 0.74rem;
       white-space: nowrap;
     }
     .current-sprint-jump-inline {
-      flex: 1 1 220px;
-      min-width: 220px;
+      flex: 1 1 180px;
+      min-width: 180px;
     }
     .current-sprint-jump-inline input[type="text"] {
-      padding: 6px 10px;
+      padding: 6px 9px;
     }
     #current-sprint-single-project-hint { display: inline-flex; }
     .transparency-card {
@@ -160,7 +148,6 @@
     @media (max-width: 1024px) {
       .current-sprint-scope-inline,
       .current-sprint-scope-row--compact {
-        grid-template-columns: 1fr;
         flex-wrap: wrap;
       }
     }
@@ -174,7 +161,6 @@
         <div class="board-select-wrap">
           <div class="current-sprint-scope-stack">
             <div class="current-sprint-control-field">
-              <label for="current-sprint-projects">Scope</label>
               <div class="current-sprint-scope-row current-sprint-scope-row--compact">
                 <div class="current-sprint-scope-inline">
                 <select id="current-sprint-projects" aria-label="Select project">

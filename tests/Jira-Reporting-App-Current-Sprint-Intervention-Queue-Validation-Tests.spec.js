@@ -66,7 +66,7 @@ test.describe('Current Sprint Intervention Queue Validation', () => {
     await expect(page.locator('.sprint-intervention-queue')).toContainText(/Your blockers now/i);
     await expect(page.locator('.sprint-intervention-queue')).toContainText(/Missing estimates/i);
     await expect(page.locator('.sprint-intervention-queue')).toContainText(/Ownership gaps/i);
-    await expect(page.locator('body')).toContainText(/Create work from insight/i);
+    await expect(page.locator('.current-sprint-header-bar')).toContainText(/Create work/i);
     await expect(page.locator('#blockers-panel')).toContainText(/blocker detected in sprint risk signals|Blocked integration/i);
     assertTelemetryClean(telemetry);
   });

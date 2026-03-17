@@ -24,7 +24,7 @@ test.describe('Mission strip compression contracts', () => {
     await page.waitForSelector('.current-sprint-header-bar, #current-sprint-error', { timeout: 45000 }).catch(() => null);
     await expect(page.locator('.current-sprint-header-bar')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .mission-context-ribbon')).toBeVisible();
-    await expect(page.locator('.current-sprint-header-bar .attention-queue--compact')).toBeVisible();
+    await expect(page.locator('.current-sprint-header-bar .attention-queue--compact')).toHaveCount(0);
     await expect(page.locator('.current-sprint-header-bar .sprint-intervention-queue')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .header-view-drawer')).toBeVisible();
     await expect(page.locator('.sprint-jump-rail')).toHaveCount(0);

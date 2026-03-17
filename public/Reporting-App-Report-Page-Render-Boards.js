@@ -103,8 +103,8 @@ function buildSignalsRailHtml(metrics, meta) {
   if (metrics.rework) {
     const r = metrics.rework;
     const label = r.spAvailable
-      ? `Rework ${formatPercent(r.reworkRatio)}`
-      : 'Rework (SP unavailable)';
+      ? `${formatPercent(r.reworkRatio)}`
+      : 'SP unavailable';
     items.push({
       id: 'rework-signals-tile',
       href: '#rework-section',
@@ -126,11 +126,13 @@ function buildSignalsRailHtml(metrics, meta) {
   const epicTTMRows = Array.isArray(metrics.epicTTM) ? metrics.epicTTM : [];
   const epicHygiene = meta?.epicHygiene;
   if (metrics.epicTTM || epicTTMRows.length === 0) {
-    let label = 'Epic TTM';
+    let label = '';
     if (epicHygiene && epicHygiene.ok === false) {
-      label = 'Epic TTM hidden (hygiene)';
+      label = 'Hidden (hygiene)';
     } else if (epicTTMRows.length === 0) {
-      label = 'Epic TTM (no data)';
+      label = 'No data';
+    } else {
+      label = 'Open';
     }
     items.push({
       id: 'epic-ttm-signals-tile',
