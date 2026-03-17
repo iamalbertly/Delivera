@@ -17,7 +17,7 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
   }
   const TAB_HELP_TEXT = {
     'project-epic-level': 'Overview: board-level health and signals.',
-    trends: 'Trends: how delivery changes over time.',
+    trends: 'Leadership HUD: open the full investment and anomaly cockpit.',
     sprints: 'Sprints: compare sprint outcomes and timing.',
     'done-stories': 'Outcomes: inspect completed work items.',
     'unusable-sprints': 'Excluded: review hidden/invalid sprints.',

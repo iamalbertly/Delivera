@@ -148,7 +148,6 @@
               <div class="date-display" id="date-display" hidden></div>
             </div>
           </div>
-          </div>
 
           <div class="filter-group filter-group-rules report-secondary-filters-row">
             <details class="report-rules-tile" id="report-rules-tile">
@@ -183,14 +182,14 @@
             </details>
           </div>
 
-            <div id="report-filters-status-bar" class="report-filters-status-bar" aria-live="polite">
-              <div id="applied-filters-summary" class="applied-filters-summary"></div>
-              <div class="applied-filters-chips-row" id="applied-filters-chips-row">
-                <div id="applied-filters-chips" class="applied-filters-chips"></div>
-              </div>
-              <p id="range-hint" class="range-hint" style="display: none;"></p>
+          <div id="report-filters-status-bar" class="report-filters-status-bar" aria-live="polite">
+            <div id="applied-filters-summary" class="applied-filters-summary"></div>
+            <div class="applied-filters-chips-row" id="applied-filters-chips-row">
+              <div id="applied-filters-chips" class="applied-filters-chips"></div>
             </div>
+            <p id="range-hint" class="range-hint" style="display: none;"></p>
           </div>
+
           <div class="button-group filters-actions report-secondary-filters-row">
             <button id="preview-btn" class="btn btn-primary" title="Generate report for selected filters.">Preview
               report</button>
@@ -199,9 +198,11 @@
             <div id="export-hint" class="export-hint"></div>
           </div>
           <p id="report-context-line" class="report-context-line" aria-live="polite">No report run yet</p>
-          
-     <!-- Preview Area -->
-     <main id="main-content" class="preview-area">
+        </div>
+      </aside>
+
+      <!-- Preview Area -->
+      <main id="main-content" class="preview-area">
       <span id="report-load-latest-wrap" class="report-load-latest-wrap" style="display: none;"><button type="button" class="link-style" data-action="load-latest-preview" id="report-load-latest-btn" aria-label="Run preview to load latest data">Load latest</button></span>
       <div id="loading" class="loading loading-skeleton" style="display: none;" aria-live="polite" aria-busy="true">
         <!-- M3: Filter context bar — confirms which filters are loading -->
@@ -343,12 +344,7 @@
           </div>
         </div>
       </div>
-    </main>
-        </div>
-      </aside>
-
-
-     
+      </main>
     </div>
   </div>
 
@@ -361,4 +357,3 @@
 </body>
 
 </html>
-

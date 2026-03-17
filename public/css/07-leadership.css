@@ -33,6 +33,8 @@
 .leadership-direct-value-card,
 .leadership-trust-card,
 .leadership-kpi-strip,
+.leadership-summary-strip-wrap,
+.leadership-attention-wrap,
 .leadership-outliers,
 .leadership-governance-footer {
   margin: 0 0 12px;
@@ -47,6 +49,10 @@
 .leadership-trust-card {
   display: grid;
   gap: 10px;
+}
+
+.leadership-context-sticky .context-summary-strip {
+  margin-top: 10px;
 }
 
 .leadership-direct-value-eyebrow {

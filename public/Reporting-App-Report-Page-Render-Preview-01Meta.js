@@ -7,6 +7,7 @@ import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js'
 import { REPORT_LAST_RUN_KEY } from './Reporting-App-Shared-Storage-Keys.js';
 import { buildCompactReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
 import { deriveOutcomeRiskFromPreviewRows } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
+import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
 
 function summarizeProjectsList(projects) {
   const list = Array.isArray(projects)
@@ -173,6 +174,15 @@ export function buildPreviewMetaAndStatus(params) {
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Details</button>' +
     '</div>' +
     zeroOutcomeHint;
+  const attentionQueueHtml = renderAttentionQueue({
+    title: 'Attention queue',
+    items: [
+      blockersOwned > 0 ? { label: `${blockersOwned} blockers owned by the team`, detail: 'Open outcomes', tone: 'danger', action: 'open-owned-blockers' } : null,
+      unownedOutcomes > 0 ? { label: `${unownedOutcomes} outcomes without clear ownership`, detail: 'Fix ownership', tone: 'warning', action: 'open-unowned-outcomes' } : null,
+      unusableCount > 0 ? { label: `${unusableCount} excluded sprints reducing trust`, detail: 'Repair data', tone: 'warning', action: 'open-unusable-sprints' } : null,
+      rowsCount === 0 ? { label: 'No outcome stories in this window', detail: 'Adjust scope or open outcomes', tone: 'muted', action: 'open-done-stories' } : null,
+    ].filter(Boolean),
+  });
 
   const phaseLog = Array.isArray(meta.phaseLog) ? meta.phaseLog : [];
   const phaseLogHtml = phaseLog.length > 0
@@ -235,6 +245,7 @@ export function buildPreviewMetaAndStatus(params) {
     reportSubtitleText,
     appliedFiltersText,
     outcomeLineHTML,
+    attentionQueueHtml,
     previewMetaHTML,
     stickyText,
     statusHTML,

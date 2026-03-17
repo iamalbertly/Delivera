@@ -28,11 +28,14 @@ import { getCurrentSelectionComplexity, shouldAutoPreviewOnInit, refreshPreviewB
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
 import { initReportFiltersPanelState } from './Reporting-App-Report-Page-Init-Filters-Panel-State-Helpers.js';
 import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
+import { renderReportNamedViewsBar, wireReportNamedViews } from './Reporting-App-Report-Page-Named-Views.js';
+import { initOverlayManager } from './Reporting-App-Shared-Overlay-Manager.js';
 
 const LEADERSHIP_HASH = '#trends';
 
 function initReportPage() {
   try { document.body.classList.add('report-page'); } catch (_) {}
+  initOverlayManager();
   let autoPreviewTimer = null;
   let autoPreviewInProgress = false;
   let allowHashTabSync = false;
@@ -178,6 +181,7 @@ function initReportPage() {
 
   function initOutcomeIntake() {
     const wrap = document.getElementById('report-header-actions');
+    const strip = document.getElementById('report-filter-strip');
     if (!wrap) return;
     initGlobalOutcomeModal({
       getSelectedProjects,
@@ -210,6 +214,12 @@ function initReportPage() {
       + '<button type="button" class="btn btn-secondary btn-compact" data-action="reset-filters">Reset scope</button>'
       + '</div>'
       + '</details>';
+    if (strip && !document.getElementById('report-named-views')) {
+      const viewsWrap = document.createElement('div');
+      viewsWrap.id = 'report-named-views';
+      viewsWrap.innerHTML = renderReportNamedViewsBar();
+      strip.appendChild(viewsWrap);
+    }
     wrap.querySelector('#report-header-preview-btn')?.addEventListener('click', () => {
       document.getElementById('preview-btn')?.click();
     });
@@ -309,6 +319,14 @@ function initReportPage() {
       scheduleAutoPreview();
     }
   }
+  wireReportNamedViews({
+    onChange() {
+      updateAppliedFiltersSummary();
+      scheduleAutoPreview(0);
+      const viewsWrap = document.getElementById('report-named-views');
+      if (viewsWrap) viewsWrap.innerHTML = renderReportNamedViewsBar();
+    },
+  });
   function refreshPreviewNow() {
     if (reportState.previewInProgress) return;
     scheduleAutoPreview(0);

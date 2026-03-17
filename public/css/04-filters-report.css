@@ -61,6 +61,11 @@ body.report-page .preview-context-details-toggle::before {
     pointer-events: auto;
     transform: translateY(0);
   }
+  body.report-page .filters-panel.overlay-drawer.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
   body.report-page .filters-panel.collapsed {
     display: block;
     background: transparent;
@@ -77,6 +82,14 @@ body.report-page .preview-context-details-toggle::before {
   body.report-page .preview-area {
     width: 100%;
   }
+}
+
+body.report-page .filters-panel.overlay-drawer {
+  z-index: 1400;
+}
+
+body.report-page .filters-panel.overlay-drawer.collapsed {
+  visibility: hidden;
 }
 
 @media (min-width: 1025px) {
@@ -2444,6 +2457,11 @@ body.report-page .report-filter-strip {
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
 }
 
+body.report-page .report-filter-strip #report-named-views {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 body.report-page .report-filter-strip-summary {
   min-width: 0;
   color: var(--muted);
@@ -2640,6 +2658,30 @@ body.report-page .skeleton-preview-compact .skeleton-line:nth-child(n+4) {
 
 body.report-page .preview-header {
   align-items: flex-start;
+}
+
+body.report-page .leadership-bridge-card {
+  display: grid;
+  gap: 12px;
+}
+
+body.report-page .leadership-bridge-copy {
+  margin: 0;
+  color: var(--muted);
+}
+
+body.report-page .leadership-bridge-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+body.report-page .leadership-bridge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 body.report-page .preview-header-story {
@@ -2854,10 +2896,6 @@ body.report-page .preview-status-strip[data-state="fresh"] {
 }
 
 @media (min-width: 1025px) {
-  body.report-page .preview-active #report-filter-strip {
-    display: none;
-  }
-
   body.report-page.preview-active .filters-panel.collapsed {
     display: none;
   }

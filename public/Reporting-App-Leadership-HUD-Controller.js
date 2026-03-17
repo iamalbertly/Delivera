@@ -154,7 +154,7 @@ function renderHud(data) {
       <div class="hud-card" style="grid-column:1/-1;">
         <div class="metric-label">No data yet</div>
         <div class="metric-value" style="font-size:1.25rem">Open Report, choose a range, run Preview, then reopen Leadership.</div>
-        <div class="metric-trend"><a href="/report#trends" style="color:#0f4c81;text-decoration:underline;">Open Report Trends</a></div>
+        <div class="metric-trend"><a href="/leadership" style="color:#0f4c81;text-decoration:underline;">Open Leadership HUD</a></div>
       </div>
     `;
     return;
@@ -178,7 +178,7 @@ function renderHud(data) {
     value: velocity?.avg != null ? formatNumber(velocity.avg, 0) : null,
     unit: 'SP',
     trendHtml: getTrendHtml(velocity.trend),
-    detailHref: '/report#trends',
+    detailHref: '/leadership',
   }));
 
   cards.push(renderKPICard({
@@ -195,7 +195,7 @@ function renderHud(data) {
     value: quality?.reworkPct != null ? formatNumber(quality.reworkPct, 1) : null,
     unit: '%',
     trendHtml: getTrendHtml(quality.trend),
-    detailHref: '/report#trends',
+    detailHref: '/leadership',
   }));
 
   cards.push(renderKPICard({
@@ -216,7 +216,7 @@ function renderHud(data) {
         value: formatCostPerSPDisplay(projectKpi),
         unit: '',
         status: projectKpi.costPerSPStatus || 'no-data',
-        detailHref: '/report#trends',
+        detailHref: '/leadership',
         trustBadge,
       }));
     }
@@ -227,7 +227,7 @@ function renderHud(data) {
         value: Number(projectKpi.avgOverheadPct).toFixed(1),
         unit: '%',
         status: projectKpi.avgOverheadStatus || 'no-data',
-        detailHref: '/report#trends',
+        detailHref: '/leadership',
         trustBadge,
       }));
     }
@@ -237,7 +237,7 @@ function renderHud(data) {
       value: utilization.text,
       unit: '',
       status: projectKpi.utilizationPct != null ? 'on-target' : 'no-data',
-      detailHref: '/report#trends',
+      detailHref: '/leadership',
       trustBadge,
     }));
   }
@@ -248,7 +248,7 @@ function renderHud(data) {
       value: kpis.dataQuality.trustBand || 'Weak',
       unit: '',
       trendHtml: `<span class="trend-neutral">SP ${(kpis.dataQuality.spCoverage * 100).toFixed(0)}% · Dates ${(kpis.dataQuality.dateCoverage * 100).toFixed(0)}% · Timesheets ${(kpis.dataQuality.timesheetCoverage * 100).toFixed(0)}%</span>`,
-      detailHref: '/report#trends',
+      detailHref: '/leadership',
       trustBadge: buildTrustBadge(kpis.dataQuality),
     }));
   }
@@ -261,7 +261,7 @@ function renderHud(data) {
       label: 'Top outlier',
       value: primaryOutlier.label,
       unit: '',
-      detailHref: '/report#trends',
+      detailHref: '/leadership',
       status: 'below-target',
       trendHtml: `<span class="trend-neutral">${primaryOutlier.metric}: ${formatNumber(primaryOutlier.value, 0)}</span><span class="trend-neutral">${primaryOutlier.rcaHint || ''}</span>`,
     }));

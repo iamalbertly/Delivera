@@ -40,9 +40,9 @@ export function wirePreviewContextActions() {
       }
       return;
     }
-    const trigger = event.target.closest('[data-preview-context-action]');
+    const trigger = event.target.closest('[data-preview-context-action], [data-attention-action]');
     if (!trigger) return;
-    const action = trigger.getAttribute('data-preview-context-action') || '';
+    const action = trigger.getAttribute('data-preview-context-action') || trigger.getAttribute('data-attention-action') || '';
     const filtersPanel = document.getElementById('filters-panel');
     const filtersToggle = document.querySelector('[data-action="toggle-filters"]');
     const openFiltersPanel = () => {
@@ -156,6 +156,7 @@ export function renderPreview() {
   if (previewMeta) {
     previewMeta.innerHTML = `
       <div class="preview-header-story">${metaBlock.outcomeLineHTML}</div>
+      ${metaBlock.attentionQueueHtml || ''}
       ${metaBlock.previewMetaHTML}
     `;
   }
@@ -305,7 +306,7 @@ export function renderPreview() {
     }
     setTabLabel(tabUnusable, 'Repair center (' + unusableCountForTab + ')', '⛔ ' + unusableCountForTab);
     const tabTrends = document.getElementById('tab-btn-trends');
-    setTabLabel(tabTrends, 'Leadership trends →', '👥');
+    setTabLabel(tabTrends, 'Leadership HUD →', '👥');
     const hash = window.location && window.location.hash ? window.location.hash : '';
     if (hash === '#trends') {
       const trendsBtn = document.getElementById('tab-btn-trends');

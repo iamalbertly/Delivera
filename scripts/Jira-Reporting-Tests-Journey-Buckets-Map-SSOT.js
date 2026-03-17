@@ -205,6 +205,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report,/current-sprint,/leadership',
   },
+  'tests/Jira-Reporting-App-Overlay-Context-And-Attention-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/report,/current-sprint,/leadership',
+  },
 
   // API + data integrity, exports, contracts
   'tests/Jira-Reporting-App-API-Integration-Tests.spec.js': {

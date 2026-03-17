@@ -5,48 +5,41 @@ export { renderDoneStoriesTab, toggleSprint } from './Reporting-App-Report-Page-
 export { renderUnusableSprintsTab } from './Reporting-App-Report-Page-Render-Unusable.js';
 export { updateExportFilteredState } from './Reporting-App-Report-Page-Export-Menu.js';
 
-import { renderLeadershipContent } from './Reporting-App-Leadership-Page-Render.js';
-
 /**
- * Render the Leadership "Trends" view into the Report page tab.
- * This uses the same renderer as the standalone Leadership page
- * but targets the tab-trends / leadership-content container.
+ * Render a compact bridge into the standalone Leadership page.
+ * Report keeps the tab for continuity, but the heavyweight trends
+ * analysis now has one home: /leadership.
  */
 export function renderTrendsTab(previewData) {
-  if (!previewData) return;
   const container = document.getElementById('leadership-content');
   if (!container) return;
-  renderLeadershipContent(previewData, container);
-  let intro = container.querySelector('.trends-intro');
-  if (!intro) {
-    intro = document.createElement('p');
-    intro.className = 'trends-intro';
-    intro.innerHTML = '<small>Use Trends to answer leadership questions about change over time:</small><ul><li><small>Are delivery and predictability improving or slipping across sprints?</small></li><li><small>Which squads changed the most in throughput or rework in this window?</small></li><li><small>Where did risk or late scope spike compared with previous sprints?</small></li></ul>';
-    container.prepend(intro);
-  }
-  try {
-    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
-      container.querySelectorAll('details[data-mobile-collapse="true"]').forEach((el) => {
-        el.open = false;
-      });
-    }
-  } catch (_) {}
-
-  const meta = previewData.meta || {};
-  const isPartial = meta.partial === true;
-  if (isPartial) {
-    const existingNotice = container.querySelector('.trends-partial-notice');
-    if (!existingNotice) {
-      const notice = document.createElement('div');
-      notice.className = 'trends-partial-notice';
-      notice.setAttribute('role', 'status');
-      notice.innerHTML = 'Trends are based on partial data. Wait for the full load or use a smaller date range for accurate grades.';
-      const introEl = container.querySelector('.trends-intro');
-      if (introEl && introEl.nextSibling) {
-        container.insertBefore(notice, introEl.nextSibling);
-      } else {
-        container.prepend(notice);
-      }
-    }
-  }
+  const meta = previewData?.meta || {};
+  const projectLabel = Array.isArray(meta.selectedProjects) && meta.selectedProjects.length
+    ? meta.selectedProjects.join(', ')
+    : (meta.projects || 'Selected portfolio');
+  const start = meta.windowStart ? String(meta.windowStart).slice(0, 10) : '';
+  const end = meta.windowEnd ? String(meta.windowEnd).slice(0, 10) : '';
+  const boards = Array.isArray(previewData?.boards) ? previewData.boards.length : 0;
+  const outcomes = Array.isArray(previewData?.rows) ? previewData.rows.length : 0;
+  const unusable = Array.isArray(previewData?.sprintsUnusable) ? previewData.sprintsUnusable.length : 0;
+  const partial = meta.partial === true;
+  const statusLine = partial
+    ? 'This report window is partial. Leadership HUD will carry the same trust warning with the full anomaly queue.'
+    : 'Leadership HUD gives you the full investment, anomaly, and trust view without duplicating the report surface.';
+  container.innerHTML = ''
+    + '<section class="transparency-card leadership-bridge-card" aria-label="Open Leadership HUD">'
+    + '<p class="eyebrow">Leadership mission control</p>'
+    + '<h2>Leadership analysis now lives in one place</h2>'
+    + '<p class="leadership-bridge-copy">' + statusLine + '</p>'
+    + '<div class="leadership-bridge-metrics">'
+    + '<span><strong>' + boards + '</strong> boards</span>'
+    + '<span><strong>' + outcomes + '</strong> outcomes</span>'
+    + '<span><strong>' + unusable + '</strong> repair items</span>'
+    + '<span><strong>' + projectLabel + '</strong>' + (start && end ? ' · ' + start + ' - ' + end : '') + '</span>'
+    + '</div>'
+    + '<div class="leadership-bridge-actions">'
+    + '<a class="btn btn-primary btn-compact" href="/leadership">Open Leadership HUD</a>'
+    + '<a class="btn btn-secondary btn-compact" href="/current-sprint">Open current sprint</a>'
+    + '</div>'
+    + '</section>';
 }

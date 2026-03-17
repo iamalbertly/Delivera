@@ -23,8 +23,8 @@ const NAV_ITEMS = [
   },
   {
     key: PAGE_LEADERSHIP,
-    label: 'Leadership trends',
-    href: '/report#trends',
+    label: 'Leadership HUD',
+    href: '/leadership',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7 4a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7-8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
   },
 ];
@@ -146,12 +146,6 @@ function navigateTo(itemKey, itemHref) {
     dispatchHashSync();
     return;
   }
-  if (itemKey === PAGE_LEADERSHIP && isReportPath && hash !== LEADERSHIP_HASH) {
-    history.replaceState(null, '', '/report#trends');
-    dispatchHashSync();
-    return;
-  }
-
   window.location.href = itemHref;
 }
 
@@ -161,7 +155,7 @@ function buildBottomNavHTML() {
   let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
   for (const item of items) {
     const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');
-    const shortLabel = item.key === PAGE_SPRINT ? 'Sprint' : (item.key === PAGE_LEADERSHIP ? 'Leaders' : 'Reports');
+    const shortLabel = item.key === PAGE_SPRINT ? 'Sprint' : (item.key === PAGE_LEADERSHIP ? 'Leadership' : 'Reports');
     html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">';
     html += '<span class="mobile-bottom-nav-icon" aria-hidden="true">' + item.icon + '</span>';
     html += '<span class="mobile-bottom-nav-label">' + shortLabel + '</span>';

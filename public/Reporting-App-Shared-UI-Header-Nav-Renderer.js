@@ -46,7 +46,7 @@ export function ensureSharedHeader() {
       || path.endsWith('/current-sprint');
 
     // Context bar: keep only on pages that do not already have a dedicated context strip/card.
-    let contextBar = header.querySelector('[data-context-bar]');
+    let contextBar = header.querySelector('.shared-context-bar[data-context-bar]');
     if (suppressContextBar) {
       contextBar?.remove();
     } else if (!contextBar) {
@@ -103,7 +103,7 @@ export function ensureSharedHeader() {
     window.__refreshReportingContextBar = function refreshContextBar() {
       const headerEl = document.querySelector('header');
       if (!headerEl) return;
-      const bar = headerEl.querySelector('[data-context-bar]');
+      const bar = headerEl.querySelector('.shared-context-bar[data-context-bar]');
       if (!bar || suppressContextBar) return;
       const text = getContextDisplayString();
       const state = getContextStateBadge();

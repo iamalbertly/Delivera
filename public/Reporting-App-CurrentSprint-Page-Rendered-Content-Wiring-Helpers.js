@@ -96,6 +96,30 @@ function wireSectionLinks() {
   window.addEventListener('scroll', syncActiveLink, { passive: true });
 }
 
+function wireAttentionQueueHandlers() {
+  document.querySelectorAll('[data-attention-action]').forEach((button) => {
+    if (button.dataset.attentionWired === '1') return;
+    button.dataset.attentionWired = '1';
+    button.addEventListener('click', () => {
+      const action = button.getAttribute('data-attention-action') || '';
+      const riskTagMap = {
+        'open-blockers': ['blocker'],
+        'open-missing-estimate': ['missing-estimate'],
+        'open-unassigned': ['unassigned'],
+      };
+      const tags = riskTagMap[action];
+      if (tags) {
+        try {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
+            detail: { riskTags: tags, source: action },
+          }));
+        } catch (_) {}
+        document.getElementById('stories-card')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+}
+
 export function appendCurrentSprintLoginLink(errorEl) {
   if (!errorEl || errorEl.querySelector('a.nav-link')) return;
   const link = document.createElement('a');
@@ -122,6 +146,7 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireSprintCarouselHandlers((sprintId) => onSelectSprintById(sprintId));
   wireExportHandlers(data);
   wireIssuePreviewHandlers();
+  wireAttentionQueueHandlers();
   wireSectionLinks();
   collapseMobileDetailsSections();
   applyInitialHashFocus();
@@ -150,7 +175,7 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById, optio
   scheduleRender(() => {
     showContent(parts.fullHtml);
     wireRenderedContent(data, onSelectSprintById);
-    const anchor = document.querySelector('.sprint-at-a-glance-hero');
+    const anchor = document.querySelector('.sprint-hud-card, .sprint-at-a-glance-hero');
     if (anchor && window.scrollY > 120) {
       anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }

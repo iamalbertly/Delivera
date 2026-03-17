@@ -22,7 +22,8 @@ test.describe('Viewport compression and layering', () => {
     }
 
     await expect(page.locator('.tab-hint')).toBeHidden();
-    await expect(page.locator('#report-filter-strip')).toBeHidden();
+    await expect(page.locator('#report-filter-strip')).toBeVisible();
+    await expect(page.locator('#report-filter-strip .context-summary-strip')).toBeVisible();
     await expect(page.locator('.preview-context-bar')).toBeVisible();
 
     const bodyText = await page.locator('body').textContent().catch(() => '');
@@ -58,7 +59,7 @@ test.describe('Viewport compression and layering', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('leadership trends removes duplicate trust copy in the local header', async ({ page }) => {
+  test('leadership trends becomes a compact bridge without duplicate embedded trust chrome', async ({ page }) => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
     await runDefaultPreview(page);
@@ -71,10 +72,9 @@ test.describe('Viewport compression and layering', () => {
 
     await page.click('#tab-btn-trends');
     await expect(page.locator('#leadership-content')).toBeVisible();
-    await expect(page.locator('.leadership-context-line .leadership-trust-hint')).toHaveCount(0);
-
-    const contextText = await page.locator('.leadership-context-line').textContent().catch(() => '');
-    expect(contextText || '').toMatch(/Projects|Report range|Active filters/i);
+    await expect(page.locator('.leadership-bridge-card')).toBeVisible();
+    await expect(page.locator('#leadership-content .leadership-context-line')).toHaveCount(0);
+    await expect(page.locator('#leadership-content .leadership-trust-card')).toHaveCount(0);
 
     assertTelemetryClean(telemetry);
   });

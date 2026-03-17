@@ -21,3 +21,7 @@ export const REPORT_LAST_META_KEY = 'report-last-meta';
 export const REPORT_LAST_PREVIEW_KEY = 'report-last-preview-v1';
 export const REPORT_FILTERS_STALE_KEY = 'report-context-filters-stale';
 export const REPORT_FILTERS_STALE_REASON_KEY = 'report-context-filters-stale-reason';
+export const REPORT_NAMED_VIEWS_KEY = 'report-named-views-v1';
+export const REPORT_LAST_VIEW_KEY = 'report-last-view-v1';
+export const CURRENT_SPRINT_LAST_VIEW_KEY = 'current-sprint-last-view-v1';
+export const LEADERSHIP_LAST_VIEW_KEY = 'leadership-last-view-v1';

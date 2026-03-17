@@ -1,6 +1,6 @@
 import { classifyPreviewComplexity } from './Reporting-App-Report-Page-Preview-Complexity-Config.js';
 import { getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
-import { getValidLastQuery, buildCompactReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
+import { getValidLastQuery, buildCompactReportRangeLabel, getContextDisplayString } from './Reporting-App-Shared-Context-From-Storage.js';
 import {
   PROJECTS_SSOT_KEY,
   REPORT_LAST_META_KEY,
@@ -10,6 +10,7 @@ import {
 } from './Reporting-App-Shared-Storage-Keys.js';
 import { isRangeValid, updateRangeHint } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
+import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
 
 const CONTEXT_SEPARATOR = ' | ';
 
@@ -127,23 +128,29 @@ export function updateAppliedFiltersSummary() {
   if (summaryEl) {
     const projectSummary = projects.length ? `${projects.length} project${projects.length !== 1 ? 's' : ''}` : 'no projects';
     const rangeSummary = compactRangeLabel || 'no range';
-    summaryEl.textContent = `Active: ${projectSummary} | ${rangeSummary}`;
+    summaryEl.textContent = `Scope: ${projectSummary} | ${rangeSummary}`;
     summaryEl.title = summaryText;
   }
   if (chipsEl) {
-    const primaryProject = projects.length === 0 ? 'No project' : projects[0] + (projects.length > 1 ? ' +' + (projects.length - 1) : '');
     const chips = [];
-    if (projects.length > 0) chips.push('Projects: ' + primaryProject);
-    if (compactRangeLabel) chips.push('Range: ' + compactRangeLabel);
-    if (options.length > 0) chips.push('+Advanced (' + options.length + ')');
-    chipsEl.textContent = chips.length ? chips.join(' | ') : 'No filters selected';
+    if (options.length > 0) chips.push('Advanced ' + options.length);
+    if (reportState.previewData) chips.push('Ready');
+    chipsEl.textContent = chips.length ? chips.join(' | ') : 'Waiting for preview';
     chipsEl.title = summaryText;
   }
   if (filterStripSummaryEl) {
     const stripProjects = projects.length ? (projects.length <= 3 ? projects.join(', ') : `${projects.slice(0, 2).join(', ')} +${projects.length - 2}`) : 'projects';
     const stripRange = compactRangeLabel || 'range';
     const stripRules = options.length ? `${options.length} rule${options.length !== 1 ? 's' : ''}` : 'default rules';
-    filterStripSummaryEl.textContent = `Filter by: ${stripProjects} | ${stripRange} | ${stripRules}`;
+    filterStripSummaryEl.innerHTML = renderContextSummaryStrip({
+      title: 'Current context',
+      chips: [
+        { label: 'Projects', value: stripProjects, action: 'open-projects' },
+        { label: 'Range', value: stripRange, action: 'open-range' },
+        { label: 'Rules', value: stripRules, action: 'focus-config', tone: options.length ? 'highlight' : 'muted' },
+      ],
+      secondary: reportState.previewData ? 'Results reflect this exact context.' : 'Run once to turn this context into a live report.',
+    });
     filterStripSummaryEl.title = summaryText;
   }
   if (rulesSummaryInlineEl) {
@@ -180,7 +187,7 @@ export function updateAppliedFiltersSummary() {
   }
   const reportContextLine = document.getElementById('report-context-line');
   if (reportContextLine && projects.length === 0) {
-    reportContextLine.textContent = 'Select at least one project to see results.';
+    reportContextLine.textContent = getContextDisplayString();
   }
 }
 

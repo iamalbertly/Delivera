@@ -5,9 +5,12 @@ import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
 import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
 import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
 import { buildTrustBadge, formatCostPerSPDisplay, formatOverheadDisplay, buildUtilizationDisplay } from './Reporting-App-Shared-Cost-Capacity-Calc.js';
+import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
+import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
+import { KPI_TREND_VISIBILITY_HINT } from './Reporting-App-Shared-KPI-Card-Renderer.js';
 
 export function getLeadershipTrendVisibilityHint() {
-  return 'For trend visibility, not team ranking.';
+  return KPI_TREND_VISIBILITY_HINT;
 }
 
 export function getLeadershipIndexedDeliveryHint(windowSize = 6) {
@@ -103,6 +106,7 @@ function renderLeadershipKpiStrip(data) {
           <p class="leadership-delivery-hint">Compact squad comparison for quarterly cost, throughput, reliability, and trust.</p>
         </div>
         <div class="leadership-view-actions">
+          <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-quarterly-story">Export quarterly story</button>
           <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-kpis-csv">Export KPI CSV</button>
         </div>
       </div>
@@ -162,6 +166,68 @@ function renderLeadershipOutliers(data) {
       ${renderList(outlierSprints, 'Sprint outliers')}
     </section>
   `;
+}
+
+function renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd) {
+  const trustBand = data?.kpis?.dataQuality?.trustBand || 'Mixed';
+  const boards = Array.isArray(data?.boards) ? data.boards.length : 0;
+  const chips = [
+    {
+      title: 'Projects',
+      value: projectsLabel || 'All squads',
+      action: 'refresh-context',
+    },
+    {
+      title: 'Range',
+      value: `${rangeStart} - ${rangeEnd}`,
+      action: 'refresh-context',
+    },
+    {
+      title: 'Lens',
+      value: 'Leadership HUD',
+    },
+    {
+      title: 'Trust',
+      value: trustBand,
+      tone: trustBand === 'Weak' ? 'warning' : 'ok',
+    },
+    {
+      title: 'Boards',
+      value: String(boards),
+    },
+  ];
+  return renderContextSummaryStrip({
+    title: 'Leadership lens',
+    chips,
+    secondary: KPI_TREND_VISIBILITY_HINT,
+    actions: '<a class="btn btn-secondary btn-compact" href="/current-sprint">Open current sprint</a>',
+  });
+}
+
+function renderLeadershipAttentionQueue(data) {
+  const outlierEpics = Array.isArray(data?.kpis?.outlierEpics) ? data.kpis.outlierEpics : [];
+  const outlierSprints = Array.isArray(data?.kpis?.outlierSprints) ? data.kpis.outlierSprints : [];
+  const trustBand = data?.kpis?.dataQuality?.trustBand || '';
+  return renderAttentionQueue({
+    title: 'Attention queue',
+    items: [
+      outlierEpics[0] ? {
+        label: `Epic outlier: ${outlierEpics[0].label}`,
+        detail: outlierEpics[0].rcaHint || 'Longest-running epic in this window',
+        tone: 'danger',
+      } : null,
+      outlierSprints[0] ? {
+        label: `Sprint outlier: ${outlierSprints[0].label}`,
+        detail: outlierSprints[0].rcaHint || 'Reliability moved outside the normal band',
+        tone: 'warning',
+      } : null,
+      trustBand === 'Weak' ? {
+        label: 'Trust is weak',
+        detail: 'Repair epic hygiene or timesheet coverage before judging investment quality',
+        tone: 'warning',
+      } : null,
+    ].filter(Boolean),
+  });
 }
 
 function computeVelocityWindowStats(sprints, windowEnd, months) {
@@ -234,6 +300,7 @@ export function renderLeadershipPage(data) {
   let html = '<div class="leadership-context-sticky">';
   html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
   html += contextSegments;
+  html += renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd);
 
   let outcomeLine = '';
   if (boards.length > 0) {
@@ -287,6 +354,7 @@ export function renderLeadershipPage(data) {
     html += '<p class="leadership-outcome-line" aria-live="polite">' + escapeHtml(compactOutcomeLine) + '</p>';
   }
   html += '</div>';
+  html += renderLeadershipAttentionQueue(data);
   html += renderLeadershipRecommendedAction(data, projectsLabel);
   html += renderLeadershipKpiStrip(data);
   html += renderLeadershipTrustCard(data);

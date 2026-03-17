@@ -12,7 +12,8 @@ import {
 } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
 import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
-import { getLeadershipIndexedDeliveryHint, getLeadershipTrendVisibilityHint } from './Reporting-App-Leadership-Page-Render.js';
+import { getLeadershipIndexedDeliveryHint } from './Reporting-App-Leadership-Page-Render.js';
+import { KPI_TREND_VISIBILITY_HINT } from './Reporting-App-Shared-KPI-Card-Renderer.js';
 import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
 import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
 
@@ -444,7 +445,7 @@ export function renderProjectEpicLevelTab(boards, metrics) {
       return `Performance - History - ${escapeHtml(proj)} - ${escapeHtml(start)} to ${escapeHtml(end)}`;
     })();
     html += '<p class="table-context" aria-label="Table context">' + tableContextLabel + '</p>';
-    html += '<p class="metrics-hint"><small>Time-normalized metrics (Stories / Day, SP / Day, Indexed Delivery) are shown. ' + escapeHtml(getLeadershipIndexedDeliveryHint(6)) + ' ' + escapeHtml(getLeadershipTrendVisibilityHint().replace('team ranking.', 'to rank teams.')) + '</small></p>';
+    html += '<p class="metrics-hint"><small>Time-normalized metrics (Stories / Day, SP / Day, Indexed Delivery) are shown. ' + escapeHtml(getLeadershipIndexedDeliveryHint(6)) + ' ' + escapeHtml(KPI_TREND_VISIBILITY_HINT.replace('ranking teams.', 'ranking teams directly.')) + '</small></p>';
     // Build table using shared renderer for consistent behavior
     const columns = BOARD_TABLE_COLUMN_ORDER.map(k => ({ key: k, label: k, title: BOARD_TABLE_HEADER_TOOLTIPS[k] || '' }));
     const rowsForRender = boards.map((board) => {

@@ -56,6 +56,55 @@ function exportLeadershipKpisCsv() {
   setTimeout(() => window.URL.revokeObjectURL(url), 500);
 }
 
+function buildLeadershipQuarterlyStory() {
+  const root = document.getElementById('leadership-content');
+  if (!root) return '';
+  const recommendation = root.querySelector('.leadership-direct-value-card h2')?.textContent?.trim() || 'Leadership snapshot';
+  const recommendationBody = root.querySelector('.leadership-direct-value-card p:last-of-type')?.textContent?.trim() || '';
+  const kpiCards = Array.from(root.querySelectorAll('.leadership-kpi-project-card')).map((card) => {
+    const title = card.querySelector('h3')?.textContent?.trim() || 'Project';
+    const facts = Array.from(card.querySelectorAll('dd')).slice(0, 4).map((el) => el.textContent.trim()).filter(Boolean);
+    return `- ${title}: ${facts.join(' | ')}`;
+  });
+  const outliers = Array.from(root.querySelectorAll('.leadership-outlier-panel li')).slice(0, 5).map((item) => {
+    const text = item.textContent.replace(/\s+/g, ' ').trim();
+    return `- ${text}`;
+  });
+  const trust = root.querySelector('.leadership-trust-card')?.textContent?.replace(/\s+/g, ' ')?.trim() || 'Trust details unavailable.';
+  return [
+    '# Quarterly leadership story',
+    '',
+    '## Recommendation',
+    `- ${recommendation}`,
+    recommendationBody ? `- ${recommendationBody}` : '',
+    '',
+    '## KPI snapshot',
+    ...(kpiCards.length ? kpiCards : ['- KPI comparison unavailable for this context.']),
+    '',
+    '## Observations',
+    ...(outliers.length ? outliers : ['- No delivery outliers crossed the active thresholds in this window.']),
+    '',
+    '## Trust and assumptions',
+    `- ${trust}`,
+  ].filter(Boolean).join('\n');
+}
+
+async function exportLeadershipQuarterlyStory() {
+  const story = buildLeadershipQuarterlyStory();
+  if (!story) return;
+  try {
+    await navigator.clipboard.writeText(story);
+  } catch (_) {
+    const blob = new Blob([story], { type: 'text/markdown;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leadership-quarterly-story.md';
+    a.click();
+    setTimeout(() => window.URL.revokeObjectURL(url), 500);
+  }
+}
+
 function initLeadershipPage() {
   renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
   initGlobalOutcomeModal({
@@ -82,6 +131,11 @@ function initLeadershipPage() {
     }
     if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-kpis-csv') {
       exportLeadershipKpisCsv();
+      return;
+    }
+    if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-quarterly-story') {
+      exportLeadershipQuarterlyStory();
+      return;
     }
     const viewBtn = ev.target && ev.target.closest ? ev.target.closest('#leadership-content [data-leadership-view]') : null;
     if (viewBtn) {

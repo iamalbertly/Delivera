@@ -1,3 +1,5 @@
+import { createOverlayController } from './Reporting-App-Shared-Overlay-Manager.js';
+
 function getActiveFiltersCount() {
   let count = 0;
   count += document.querySelectorAll('.project-checkbox:checked').length;
@@ -22,6 +24,7 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
   const appliedSummary = document.getElementById('applied-filters-summary');
   const appliedChips = document.getElementById('applied-filters-chips');
   const toggleSelectors = '[data-action="toggle-filters"]';
+  const overlayController = panel ? createOverlayController(panel, { mode: 'drawer' }) : null;
   const isDesktopDrawer = () => {
     try {
       return document.body?.classList?.contains('report-page')
@@ -48,11 +51,14 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
     } catch (_) {}
     panel.classList.toggle('collapsed', collapsed);
     panel.classList.toggle('expanded', !collapsed && isDesktopDrawer());
+    panel.classList.toggle('overlay-drawer', !collapsed);
     panelBody.style.display = collapsed ? 'none' : '';
     const showCollapsedBar = collapsed && !isDesktopDrawer();
     collapsedBar.style.display = showCollapsedBar ? 'flex' : 'none';
     collapsedBar.setAttribute('aria-hidden', showCollapsedBar ? 'false' : 'true');
     updateToggleLabels(collapsed);
+    if (collapsed) overlayController?.close({ returnFocus: false });
+    else overlayController?.open({});
     if (collapsed && collapsedSummary && appliedSummary) {
       const chipsText = (appliedChips?.textContent || '').trim();
       const base = chipsText || appliedSummary.textContent || 'Applied filters';
@@ -63,7 +69,12 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
   function applyStoredFiltersCollapsed() {
     if (!panel || !panelBody || !collapsedBar) return;
     if (isDesktopDrawer()) {
-      setFiltersPanelCollapsed(false);
+      let shouldCollapse = true;
+      try {
+        const stored = sessionStorage.getItem(collapsedStorageKey);
+        shouldCollapse = stored !== '0';
+      } catch (_) {}
+      setFiltersPanelCollapsed(shouldCollapse);
       return;
     }
     const previewContent = document.getElementById('preview-content');

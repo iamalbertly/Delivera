@@ -8,6 +8,8 @@ import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-All
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { renderHealthDashboard } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
 import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { renderCurrentSprintContextStrip } from './Reporting-App-CurrentSprint-Context-Strip.js';
+import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
 
 export function renderCurrentSprintPage(data) {
   const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
@@ -38,6 +40,7 @@ export function renderCurrentSprintPage(data) {
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
 
   html += renderHeaderBar(data);
+  html += renderCurrentSprintContextStrip(data);
   if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
     html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
   }
@@ -97,6 +100,15 @@ export function renderCurrentSprintPage(data) {
 
   const verdict = deriveSprintVerdict(data);
   const capacitySummary = buildCapacitySummary(data);
+  const riskCounts = getUnifiedRiskCounts(data);
+  html += renderAttentionQueue({
+    title: 'Attention queue',
+    items: [
+      Number(riskCounts.blockersOwned || 0) > 0 ? { label: `${Number(riskCounts.blockersOwned || 0)} blockers need action`, detail: 'Open now', tone: 'danger', action: 'open-blockers' } : null,
+      Number(verdict.missingEstimate || 0) > 0 ? { label: `${Number(verdict.missingEstimate || 0)} missing estimates`, detail: 'Planning trust is weak', tone: 'warning', action: 'open-missing-estimate' } : null,
+      Number(riskCounts.unownedOutcomes || 0) > 0 ? { label: `${Number(riskCounts.unownedOutcomes || 0)} ownership gaps`, detail: 'Assign next', tone: 'warning', action: 'open-unassigned' } : null,
+    ].filter(Boolean),
+  });
 
   html += '<div class="current-sprint-grid-layout">';
 
