@@ -182,13 +182,19 @@ function renderOverrides(overridesEl, parsed) {
   const showTypeControls = outcomeComposerState.showAdvanced && (outcomeComposerState.structureMode !== 'AUTO' || lowConfidence);
   let html = '<div class="report-outcome-overrides-panel">';
   html += '<div class="report-outcome-overrides-head"><strong>Structure</strong><span>Auto picked ' + escapeHtml(inferredLabel || 'single issue') + '.</span><button type="button" class="link-style" data-outcome-toggle-advanced="' + (outcomeComposerState.showAdvanced ? 'collapse' : 'expand') + '">' + (outcomeComposerState.showAdvanced ? 'Hide options' : 'Adjust') + '</button></div>';
-  html += '<div class="report-outcome-structure-toggle report-outcome-structure-toggle-compact" role="group" aria-label="Choose work structure">';
-  html += structureButtons.map((item) => {
-    const active = outcomeComposerState.structureMode === item.key;
-    const minimalLabel = item.key === 'AUTO' ? 'Auto' : item.label;
-    return '<button type="button" class="btn btn-secondary btn-compact' + (active ? ' is-active' : '') + '" data-outcome-structure="' + escapeHtml(item.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '">' + escapeHtml(minimalLabel) + '</button>';
-  }).join('');
-  html += '</div>';
+  if (outcomeComposerState.showAdvanced) {
+    html += '<div class="report-outcome-structure-toggle report-outcome-structure-toggle-compact" role="group" aria-label="Choose work structure">';
+    html += structureButtons.map((item) => {
+      const active = outcomeComposerState.structureMode === item.key;
+      const minimalLabel = item.key === 'AUTO' ? 'Auto' : item.label;
+      return '<button type="button" class="btn btn-secondary btn-compact' + (active ? ' is-active' : '') + '" data-outcome-structure="' + escapeHtml(item.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '">' + escapeHtml(minimalLabel) + '</button>';
+    }).join('');
+    html += '</div>';
+  } else {
+    html += '<div class="report-outcome-structure-toggle report-outcome-structure-toggle-compact" role="group" aria-label="Detected work structure">';
+    html += '<span class="report-outcome-structure-pill">' + escapeHtml(outcomeComposerState.structureMode === 'AUTO' ? 'Auto' : inferredLabel || 'auto') + '</span>';
+    html += '</div>';
+  }
   if (showTypeControls) {
     html += '<div class="report-outcome-type-row">';
     html += '<label class="insight-label" for="report-outcome-issue-type">Parent type</label>';

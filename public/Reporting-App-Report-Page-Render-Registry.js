@@ -19,11 +19,11 @@ export function renderTrendsTab(previewData) {
   const unusable = Array.isArray(previewData?.sprintsUnusable) ? previewData.sprintsUnusable.length : 0;
   const partial = meta.partial === true;
   const statusLine = partial
-    ? 'Partial window. Open Leadership HUD for the full trust and anomaly breakdown.'
-    : 'Leadership HUD is available now with the same context and a tighter executive view.';
+    ? 'Partial window. Leadership HUD carries the same scope with the full trust and anomaly breakdown.'
+    : 'Same scope, tighter leadership view.';
   container.innerHTML = ''
     + '<section class="transparency-card leadership-bridge-card leadership-bridge-card-compact" aria-label="Leadership snapshot">'
-    + '<div class="leadership-bridge-copy leadership-bridge-copy-row"><strong>Leadership snapshot</strong><span>' + statusLine + '</span></div>'
+    + '<div class="leadership-bridge-copy leadership-bridge-copy-row"><strong>Leadership HUD</strong><span>' + statusLine + '</span></div>'
     + '<div class="leadership-bridge-metrics leadership-bridge-metrics-compact">'
     + '<span><strong>' + boards + '</strong> boards</span>'
     + '<span><strong>' + outcomes + '</strong> outcomes</span>'

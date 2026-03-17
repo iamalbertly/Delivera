@@ -25,11 +25,14 @@ test.describe('Mission strip compression contracts', () => {
     await expect(page.locator('.current-sprint-header-bar')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .mission-context-ribbon')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .attention-queue--compact')).toHaveCount(0);
-    await expect(page.locator('.current-sprint-header-bar .sprint-intervention-queue')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .header-view-drawer')).toBeVisible();
     await expect(page.locator('.sprint-jump-rail')).toHaveCount(0);
     await expect(page.locator('.current-sprint-header-bar + .context-summary-strip')).toHaveCount(0);
     await expect(page.locator('.current-sprint-header-bar + .attention-queue')).toHaveCount(0);
+
+    await expect(page.locator('.current-sprint-header-bar .mission-strip-secondary')).toBeVisible();
+    const contextChipCount = await page.locator('.current-sprint-header-bar .context-summary-chip').count();
+    expect(contextChipCount).toBeGreaterThanOrEqual(3);
 
     const viewport = await page.locator('.current-sprint-header-bar').evaluate((node) => node.getBoundingClientRect().height);
     expect(viewport).toBeLessThan(226);
@@ -105,7 +108,7 @@ test.describe('Mission strip compression contracts', () => {
       return;
     }
 
-    await expect(page.locator('.leadership-context-sticky .context-summary-strip')).toBeVisible();
+    await expect(page.locator('.leadership-shell-top .context-summary-strip')).toBeVisible();
     await expect(page.locator('#leadership-content .attention-queue')).toBeVisible();
     const duplicateQueues = await page.locator('#leadership-content .attention-queue').count();
     expect(duplicateQueues).toBe(1);

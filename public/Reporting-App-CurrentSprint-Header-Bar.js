@@ -248,6 +248,7 @@ export function renderHeaderBar(data, options = {}) {
     exportReadiness,
   });
   const missionAttentionRail = buildMissionAttentionRail(verdictRiskChips, remainingChipLabel);
+  const hasPriorityInterventions = stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0;
 
   let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}">`;
   html += '<div class="header-band">';
@@ -298,6 +299,12 @@ export function renderHeaderBar(data, options = {}) {
     html += '<span title="' + escapeHtml(item.detail || '') + '">' + escapeHtml(item.eyebrow + ': ' + item.label) + '</span>';
   });
   html += '</div>';
+  if (sectionLinksHtml || isLoadingShell) {
+    html += '<div class="header-drawer-section">';
+    html += '<div class="header-drawer-section-label">Jump to</div>';
+    html += (sectionLinksHtml || '<div class="sprint-section-links sprint-section-links-compact" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>');
+    html += '</div>';
+  }
   html += renderExportButton(true);
   html += '<div class="header-drawer-evidence">';
   html += '<div class="header-drawer-section">';
@@ -312,9 +319,6 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-drawer-links">';
   html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">Reset lens</button>';
   if (!isHistoricalSprint) {
-    html += '<button type="button" class="header-follow-up-link" data-open-outcome-modal'
-      + ' data-outcome-context="Create an outcome from the current sprint context."'
-      + ' data-outcome-projects="' + escapeHtml((selectedProject || meta.projects || '').replace(/\s+/g, '')) + '">Create outcome</button>';
     if (selectedProject && boardName) {
       html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">Leadership trend</a>';
     }
@@ -330,22 +334,14 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += '<div class="mission-strip-secondary" aria-label="Sprint mission strip detail">';
   html += '<div class="mission-context-ribbon">' + missionContextRibbon + '</div>';
-  html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
-  if (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0) {
+  if (hasPriorityInterventions) {
+    html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
     html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + stuckCount + '</span></button>';
     html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates</span><span class="metric-value">' + missingEstimates + '</span></button>';
     html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership gaps</span><span class="metric-value">' + unassignedParents + '</span></button>';
-  } else {
-    html += '<span class="sprint-intervention-item sprint-intervention-item--quiet"><span class="metric-label">All systems healthy</span><span class="metric-meta">No critical intervention queued</span></span>';
-  }
-  html += '</div>';
-  if (sectionLinksHtml) {
-    html += '<div class="mission-strip-nav" aria-label="Sprint jump links and quick actions">' + sectionLinksHtml + '</div>';
-  } else if (isLoadingShell) {
-    html += '<div class="mission-strip-nav mission-strip-nav-loading" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>';
+    html += '</div>';
   }
   const showAttentionRail = verdictRiskChips.length > 0 && isHistoricalSprint;
-  html += '<div class="mission-strip-tertiary">';
   if (showAttentionRail) {
     html += '<div class="mission-attention-rail">' + missionAttentionRail + '</div>';
   }
@@ -353,8 +349,9 @@ export function renderHeaderBar(data, options = {}) {
     const histLabel = `${sprint.name || 'Historical sprint'} - ${sprintDatesLabel}`;
     html += `<span class="current-sprint-history-banner current-sprint-history-banner-inline" role="note">${escapeHtml(SPRINT_COPY.historical)} (${escapeHtml(histLabel)})</span>`;
   }
-  html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(statusBadge === SPRINT_COPY.statusLive ? 'Live' : 'Snapshot') + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(exportReadiness) + '</span></span>';
-  html += '</div>';
+  if (!hasPriorityInterventions && !isHistoricalSprint) {
+    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>Healthy</span><span class="header-export-readiness-sep">|</span><span>No urgent intervention</span></span>';
+  }
   html += '</div>';
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;

@@ -136,7 +136,6 @@ export function renderBurndown(data) {
     });
     let html = '<div class="transparency-card" id="burndown-card">';
     html += '<h2>Flow over time</h2>';
-    html += '<p class="meta-row"><small>Burndown by story count with daily completion trend.</small></p>';
     const statusMessage = summaryTotalAllSP === 0
       ? 'Burndown by story count (story points field is not configured for this board).'
       : 'Burndown by story count (this sprint\u2019s stories currently total 0 SP).';
@@ -160,7 +159,6 @@ export function renderBurndown(data) {
 
   let html = '<div class="transparency-card" id="burndown-card">';
   html += '<h2>Flow over time</h2>';
-  html += '<p class="meta-row"><small>Burndown of remaining SP plus completion flow.</small></p>';
 
   if (sprintJustStarted) {
     html += '<p class="burndown-status-card burndown-status-info">Sprint just started. Burndown will update as work is completed.</p>';
@@ -280,7 +278,7 @@ export function renderStories(data) {
       rowHtml += '<span class="story-row-toggle story-row-toggle-placeholder" aria-hidden="true"></span>';
     }
     rowHtml += renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
-    rowHtml += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
+    rowHtml += '<td title="' + escapeHtml(row.issueType || '-') + '">' + escapeHtml(row.issueType || '-') + '</td>';
     rowHtml += '<td class="cell-wrap story-summary-cell">' + escapeHtml(row.summary || '-');
     if (isOutcome) {
       rowHtml += '<span class="story-row-flag story-row-flag-icon" title="Outcome-linked work" aria-label="Outcome-linked work">O</span>';
@@ -494,7 +492,6 @@ export function renderStories(data) {
       html += '</template>';
     }
   }
-  html += '<p class="meta-row"><small>Subtask edge cases stay folded into the same list.</small></p>';
   html += '</div>';
   return html;
 }

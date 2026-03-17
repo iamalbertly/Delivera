@@ -375,10 +375,8 @@ export function renderLeadershipPage(data) {
   html += '<h2>Boards - normalized delivery</h2>';
   html += '<p class="leadership-delivery-hint"><small>Delivery % adjusted for scope changes. Use this for within-board trends, not ranking teams.</small></p>';
   html += '<div class="leadership-view-actions">';
-  html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from this board trend." data-outcome-projects="' + escapeHtml(projectsLabel.replace(/\s+/g, '')) + '">Create work from insight</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact active" data-leadership-view="cards" aria-pressed="true">Cards</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact" data-leadership-view="table" aria-pressed="false">Table</button>';
-  html += '<div class="leadership-export-wrap"><button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-boards-csv" title="Export boards table to CSV">Export CSV</button></div>';
   html += '</div>';
   html += '</div>';
   if (boards.length === 0) {

@@ -197,7 +197,7 @@
               data-action="reset-filters" title="Clear project selection and reset date range">Reset filters</button>
             <div id="export-hint" class="export-hint"></div>
           </div>
-          <p id="report-context-line" class="report-context-line" aria-live="polite">No report run yet</p>
+          <p id="report-context-line" class="report-context-line visually-hidden" aria-live="polite">No report run yet</p>
         </div>
       </aside>
 
@@ -254,6 +254,7 @@
         <div id="preview-summary-sticky" class="preview-summary-sticky" aria-hidden="true"></div>
         <div id="preview-status-strip" class="preview-status-strip" aria-live="polite"></div>
         <!-- Tabs: Overview → Leadership → Sprints → Outcomes → Excluded -->
+        <div class="report-tabs-shell">
         <div class="tabs" role="tablist">
           <button id="tab-btn-project-epic-level" class="tab-btn active" data-tab="project-epic-level" role="tab"
             aria-selected="true" aria-controls="tab-project-epic-level" tabindex="0">
@@ -275,11 +276,13 @@
             aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">
             <span class="tab-btn-label">Repair center</span>
           </button>
-        </div>          <div class="report-unified-tab-search">
+        </div>
+        <div class="report-unified-tab-search">
           <div class="search-input-wrap">
             <input type="text" id="report-tab-search" placeholder="Search current view" aria-label="Search current view">
             <button type="button" class="search-clear-btn" data-target="report-tab-search" aria-label="Clear tab search" title="Clear">Clear</button>
           </div>
+        </div>
         </div>
 
         <!-- Tab Content -->

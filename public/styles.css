@@ -1642,8 +1642,8 @@ body.report-page .preview-active .tab-hint {
 }
 
 .preview-status-strip {
-  margin: 0 0 8px 0;
-  font-size: 0.78rem;
+  margin: 0 0 6px 0;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--muted);
   letter-spacing: 0.03em;
@@ -3099,8 +3099,8 @@ body.report-page .report-filter-strip {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  padding: 6px 10px;
-  margin-top: 8px;
+  padding: 5px 9px;
+  margin-top: 6px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
@@ -3114,7 +3114,7 @@ body.report-page .report-filter-strip #report-named-views {
 body.report-page .report-filter-strip-summary {
   min-width: 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -3311,7 +3311,7 @@ body.report-page .preview-header {
 
 body.report-page .leadership-bridge-card {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 body.report-page .leadership-bridge-copy {
@@ -3322,15 +3322,15 @@ body.report-page .leadership-bridge-copy {
 body.report-page .leadership-bridge-metrics {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  font-size: 0.84rem;
+  gap: 6px 10px;
+  font-size: 0.8rem;
   color: var(--text);
 }
 
 body.report-page .leadership-bridge-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 body.report-page .preview-header-story {
@@ -3344,6 +3344,37 @@ body.report-page .preview-header #preview-meta .meta-info-summary {
 body.report-page .preview-header-export-wrap {
   position: relative;
   gap: 8px;
+}
+
+body.report-page .report-tabs-shell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+body.report-page .report-tabs-shell .tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.report-page .report-tabs-shell .report-unified-tab-search {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+body.report-page .report-tabs-shell .report-unified-tab-search .search-input-wrap {
+  width: min(280px, 100%);
+}
+
+body.report-page .report-context-line.visually-hidden {
+  display: none !important;
+}
+
+body.report-page .preview-header {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
 }
 
 body.report-page #export-excel-btn[aria-expanded="true"] {
@@ -3361,6 +3392,15 @@ body.report-page .preview-status-strip[data-state="fresh"] {
 @media (max-width: 1024px) {
   body.report-page .report-filter-strip {
     flex-wrap: wrap;
+  }
+
+  body.report-page .report-tabs-shell {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.report-page .report-tabs-shell .report-unified-tab-search .search-input-wrap {
+    width: 100%;
   }
 
   body.report-page .date-range-custom-wrap {
@@ -4425,7 +4465,7 @@ body .preview-area {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 3px;
+  gap: 2px;
   padding: 5px 8px;
   min-height: 40px;
   background: linear-gradient(135deg, var(--card) 0%, var(--card-muted) 100%);
@@ -8376,14 +8416,16 @@ body.current-sprint-page .burndown-details-drawer .data-table {
 }
 
 body.current-sprint-page .mission-strip-secondary {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
   padding-top: 3px;
   border-top: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 body.current-sprint-page .mission-context-ribbon,
-body.current-sprint-page .mission-strip-tertiary,
 body.current-sprint-page .mission-attention-rail {
   display: flex;
   flex-wrap: wrap;
@@ -8391,12 +8433,8 @@ body.current-sprint-page .mission-attention-rail {
   align-items: center;
 }
 
-body.current-sprint-page .mission-strip-tertiary {
-  justify-content: space-between;
-}
-
 body.current-sprint-page .mission-context-ribbon .context-summary-strip {
-  width: 100%;
+  width: auto;
   padding: 0;
   border: none;
   background: transparent;
@@ -8406,6 +8444,9 @@ body.current-sprint-page .mission-context-ribbon .context-summary-strip {
 
 body.current-sprint-page .mission-context-ribbon .context-summary-chips {
   gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 body.current-sprint-page .mission-context-ribbon .context-summary-chip {
@@ -8413,18 +8454,7 @@ body.current-sprint-page .mission-context-ribbon .context-summary-chip {
   font-size: 0.74rem;
   border-color: rgba(148, 163, 184, 0.22);
   background: rgba(255, 255, 255, 0.9);
-}
-
-body.current-sprint-page .mission-strip-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-body.current-sprint-page .mission-strip-nav .sprint-section-links {
-  width: 100%;
+  white-space: nowrap;
 }
 
 body.current-sprint-page .current-sprint-history-banner-inline {
@@ -8467,13 +8497,16 @@ body.current-sprint-page .mission-context-chip.is-stale {
 
 body.current-sprint-page .sprint-intervention-queue {
   gap: 6px;
+  flex: 1 1 320px;
+  justify-content: flex-end;
 }
 
 body.current-sprint-page .sprint-intervention-item {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 5px 8px;
   border-radius: 999px;
+  max-width: 100%;
 }
 
 body.current-sprint-page .sprint-intervention-item--quiet {
@@ -8489,7 +8522,7 @@ body.current-sprint-page .sprint-intervention-item .metric-meta {
 }
 
 body.current-sprint-page .sprint-intervention-item .metric-value {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 body.current-sprint-page .sprint-jump-rail {
@@ -8577,6 +8610,26 @@ body.current-sprint-page .story-risk-pill {
   padding: 1px 5px;
 }
 
+body.current-sprint-page .story-row-flag.story-row-flag-icon {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: 6px;
+  font-size: 0.64rem;
+}
+
+.report-outcome-structure-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-muted);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
 body.current-sprint-page .daily-completion-timeline {
   margin-bottom: 8px;
 }
@@ -8587,10 +8640,6 @@ body.current-sprint-page .risks-insights-card .insight-actions {
 }
 
 @media (max-width: 960px) {
-  body.current-sprint-page .mission-strip-tertiary {
-    justify-content: flex-start;
-  }
-
   body.current-sprint-page .header-band-actions {
     width: 100%;
     justify-content: flex-start;
@@ -8602,8 +8651,7 @@ body.current-sprint-page .risks-insights-card .insight-actions {
 }
 
 @media (max-width: 720px) {
-  body.current-sprint-page .mission-context-ribbon,
-  body.current-sprint-page .mission-strip-tertiary {
+  body.current-sprint-page .mission-context-ribbon {
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
@@ -8772,9 +8820,9 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 
 .leadership-mission-strip {
   display: grid;
-  gap: 8px;
-  margin: 0 0 10px;
-  padding: 10px 12px;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 9px 11px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
@@ -8825,7 +8873,7 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
   gap: 6px;
   align-items: center;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .leadership-mission-hint,
@@ -8910,7 +8958,7 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 .leadership-kpi-project-grid,
 .leadership-outliers {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .leadership-kpi-project-grid {
@@ -8918,7 +8966,7 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 }
 
 .leadership-bridge-card-compact {
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .leadership-bridge-copy-row {
@@ -8935,6 +8983,19 @@ body.current-sprint-page .sprint-switcher-card:not([open]) .sprint-carousel-cont
 .leadership-card .data-table thead th,
 .leadership-boards-table thead th {
   position: static;
+}
+
+.leadership-view-actions {
+  gap: 6px;
+}
+
+.leadership-card-header {
+  gap: 8px;
+}
+
+.leadership-card-header > p,
+.leadership-card-header .leadership-delivery-hint {
+  margin: 0;
 }
 
 .leadership-kpi-project-card,

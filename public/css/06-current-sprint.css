@@ -238,7 +238,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 3px;
+  gap: 2px;
   padding: 5px 8px;
   min-height: 40px;
   background: linear-gradient(135deg, var(--card) 0%, var(--card-muted) 100%);
@@ -4189,14 +4189,16 @@ body.current-sprint-page .burndown-details-drawer .data-table {
 }
 
 body.current-sprint-page .mission-strip-secondary {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
   padding-top: 3px;
   border-top: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 body.current-sprint-page .mission-context-ribbon,
-body.current-sprint-page .mission-strip-tertiary,
 body.current-sprint-page .mission-attention-rail {
   display: flex;
   flex-wrap: wrap;
@@ -4204,12 +4206,8 @@ body.current-sprint-page .mission-attention-rail {
   align-items: center;
 }
 
-body.current-sprint-page .mission-strip-tertiary {
-  justify-content: space-between;
-}
-
 body.current-sprint-page .mission-context-ribbon .context-summary-strip {
-  width: 100%;
+  width: auto;
   padding: 0;
   border: none;
   background: transparent;
@@ -4219,6 +4217,9 @@ body.current-sprint-page .mission-context-ribbon .context-summary-strip {
 
 body.current-sprint-page .mission-context-ribbon .context-summary-chips {
   gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 body.current-sprint-page .mission-context-ribbon .context-summary-chip {
@@ -4226,18 +4227,7 @@ body.current-sprint-page .mission-context-ribbon .context-summary-chip {
   font-size: 0.74rem;
   border-color: rgba(148, 163, 184, 0.22);
   background: rgba(255, 255, 255, 0.9);
-}
-
-body.current-sprint-page .mission-strip-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-body.current-sprint-page .mission-strip-nav .sprint-section-links {
-  width: 100%;
+  white-space: nowrap;
 }
 
 body.current-sprint-page .current-sprint-history-banner-inline {
@@ -4280,13 +4270,16 @@ body.current-sprint-page .mission-context-chip.is-stale {
 
 body.current-sprint-page .sprint-intervention-queue {
   gap: 6px;
+  flex: 1 1 320px;
+  justify-content: flex-end;
 }
 
 body.current-sprint-page .sprint-intervention-item {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 5px 8px;
   border-radius: 999px;
+  max-width: 100%;
 }
 
 body.current-sprint-page .sprint-intervention-item--quiet {
@@ -4302,7 +4295,7 @@ body.current-sprint-page .sprint-intervention-item .metric-meta {
 }
 
 body.current-sprint-page .sprint-intervention-item .metric-value {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 body.current-sprint-page .sprint-jump-rail {
@@ -4390,6 +4383,26 @@ body.current-sprint-page .story-risk-pill {
   padding: 1px 5px;
 }
 
+body.current-sprint-page .story-row-flag.story-row-flag-icon {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin-left: 6px;
+  font-size: 0.64rem;
+}
+
+.report-outcome-structure-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-muted);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
 body.current-sprint-page .daily-completion-timeline {
   margin-bottom: 8px;
 }
@@ -4400,10 +4413,6 @@ body.current-sprint-page .risks-insights-card .insight-actions {
 }
 
 @media (max-width: 960px) {
-  body.current-sprint-page .mission-strip-tertiary {
-    justify-content: flex-start;
-  }
-
   body.current-sprint-page .header-band-actions {
     width: 100%;
     justify-content: flex-start;
@@ -4415,8 +4424,7 @@ body.current-sprint-page .risks-insights-card .insight-actions {
 }
 
 @media (max-width: 720px) {
-  body.current-sprint-page .mission-context-ribbon,
-  body.current-sprint-page .mission-strip-tertiary {
+  body.current-sprint-page .mission-context-ribbon {
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;

@@ -65,13 +65,14 @@ test.describe('Overlay, context, and attention SSOT', () => {
     await page.waitForSelector('.current-sprint-header-bar, #current-sprint-error', { timeout: 45000 }).catch(() => null);
     await expect(page.locator('.current-sprint-header-bar')).toBeVisible();
     await expect(page.locator('.current-sprint-header-bar .mission-context-ribbon')).toBeVisible();
-    await expect(page.locator('.current-sprint-header-bar .attention-queue--compact')).toBeVisible();
-    await expect(page.locator('.current-sprint-header-bar .sprint-intervention-queue')).toBeVisible();
-
-    const firstAttention = page.locator('.current-sprint-header-bar .attention-queue [data-attention-action]').first();
-    if (await firstAttention.isVisible().catch(() => false)) {
-      await firstAttention.click().catch(() => null);
-      await expect(page.locator('#stories-card')).toBeVisible();
+    await expect(page.locator('.current-sprint-header-bar .mission-strip-secondary')).toBeVisible();
+    const historicalAttention = page.locator('.current-sprint-header-bar .attention-queue--compact');
+    if (await historicalAttention.isVisible().catch(() => false)) {
+      const firstAttention = page.locator('.current-sprint-header-bar .attention-queue [data-attention-action]').first();
+      if (await firstAttention.isVisible().catch(() => false)) {
+        await firstAttention.click().catch(() => null);
+        await expect(page.locator('#stories-card')).toBeVisible();
+      }
     }
 
     assertTelemetryClean(telemetry);
@@ -94,7 +95,7 @@ test.describe('Overlay, context, and attention SSOT', () => {
       return;
     }
 
-    await expect(page.locator('.leadership-context-sticky .context-summary-strip')).toBeVisible();
+    await expect(page.locator('.leadership-shell-top .context-summary-strip')).toBeVisible();
     await expect(page.locator('#leadership-content .attention-queue')).toBeVisible();
     await expect(page.locator('[data-action="export-leadership-quarterly-story"]').first()).toBeVisible();
     await expect(page.locator('[data-action="export-leadership-kpis-csv"]').first()).toBeVisible();

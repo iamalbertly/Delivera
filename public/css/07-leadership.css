@@ -58,9 +58,9 @@
 
 .leadership-mission-strip {
   display: grid;
-  gap: 8px;
-  margin: 0 0 10px;
-  padding: 10px 12px;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 9px 11px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
@@ -111,7 +111,7 @@
   gap: 6px;
   align-items: center;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .leadership-mission-hint,
@@ -196,7 +196,7 @@
 .leadership-kpi-project-grid,
 .leadership-outliers {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .leadership-kpi-project-grid {
@@ -204,7 +204,7 @@
 }
 
 .leadership-bridge-card-compact {
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .leadership-bridge-copy-row {
@@ -221,6 +221,19 @@
 .leadership-card .data-table thead th,
 .leadership-boards-table thead th {
   position: static;
+}
+
+.leadership-view-actions {
+  gap: 6px;
+}
+
+.leadership-card-header {
+  gap: 8px;
+}
+
+.leadership-card-header > p,
+.leadership-card-header .leadership-delivery-hint {
+  margin: 0;
 }
 
 .leadership-kpi-project-card,

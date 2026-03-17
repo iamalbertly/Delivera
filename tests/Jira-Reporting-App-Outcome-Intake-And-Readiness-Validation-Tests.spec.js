@@ -78,6 +78,7 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Mode: epic with stories/i);
     await expect(page.locator('#report-outcome-parse-summary')).toContainText(/confidence/i);
     await expect(page.locator('#report-outcome-overrides')).toContainText(/Adjust|Hide options/i);
+    await expect(page.locator('#report-outcome-overrides .report-outcome-structure-pill')).toContainText(/Auto/i);
     await expect(page.locator('#report-outcome-overrides #report-outcome-issue-type')).toHaveCount(0);
     await expect(page.locator('#report-outcome-intake-create')).toContainText(/Create 5 Jira issues from this list/i);
   });

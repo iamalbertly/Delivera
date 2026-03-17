@@ -97,9 +97,11 @@ test.describe('Viewport compression and layering', () => {
     await expect(page.locator('.header-intelligence-strip')).toHaveCount(0);
     await expect(page.locator('.sprint-hud-carousel-inline')).toHaveCount(0);
     await expect(page.locator('.mobile-secondary-details')).toHaveCount(0);
-    await expect(page.locator('.current-sprint-header-bar .sprint-intervention-item')).toHaveCount(3);
-    await expect(page.locator('.current-sprint-header-bar .mission-context-chip')).toHaveCount(3);
-    await expect(page.locator('.current-sprint-grid-layout > .sprint-jump-rail')).toBeVisible();
+    const interventionCount = await page.locator('.current-sprint-header-bar .sprint-intervention-item').count();
+    expect(interventionCount).toBeLessThanOrEqual(3);
+    const contextChipCount = await page.locator('.current-sprint-header-bar .context-summary-chip').count();
+    expect(contextChipCount).toBeGreaterThanOrEqual(3);
+    await expect(page.locator('.current-sprint-grid-layout > .sprint-jump-rail')).toHaveCount(0);
 
     const headerText = await page.locator('.current-sprint-header-bar').textContent().catch(() => '');
     const visibleActionLabels = await page.locator('.header-band-actions button, .header-band-actions summary').evaluateAll((nodes) =>
@@ -143,6 +145,24 @@ test.describe('Viewport compression and layering', () => {
     await expect(compactRow).toBeVisible();
     await expect(compactRow.locator('#issue-jump-input')).toBeVisible();
     await expect(page.locator('.current-sprint-scope-stack .current-sprint-jump-inline')).toHaveCount(1);
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report keeps tabs and unified search in one compact shell', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await runDefaultPreview(page);
+
+    const previewVisible = await page.locator('#preview-content').isVisible().catch(() => false);
+    if (!previewVisible) {
+      test.skip(true, 'Preview unavailable for current dataset');
+      return;
+    }
+
+    await expect(page.locator('.report-tabs-shell')).toBeVisible();
+    await expect(page.locator('.report-tabs-shell .tabs')).toBeVisible();
+    await expect(page.locator('.report-tabs-shell .report-unified-tab-search')).toBeVisible();
+    await expect(page.locator('#report-context-line')).toBeHidden();
 
     assertTelemetryClean(telemetry);
   });

@@ -993,8 +993,8 @@ body.report-page .preview-active .tab-hint {
 }
 
 .preview-status-strip {
-  margin: 0 0 8px 0;
-  font-size: 0.78rem;
+  margin: 0 0 6px 0;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--muted);
   letter-spacing: 0.03em;
@@ -2450,8 +2450,8 @@ body.report-page .report-filter-strip {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  padding: 6px 10px;
-  margin-top: 8px;
+  padding: 5px 9px;
+  margin-top: 6px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
@@ -2465,7 +2465,7 @@ body.report-page .report-filter-strip #report-named-views {
 body.report-page .report-filter-strip-summary {
   min-width: 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2662,7 +2662,7 @@ body.report-page .preview-header {
 
 body.report-page .leadership-bridge-card {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 body.report-page .leadership-bridge-copy {
@@ -2673,15 +2673,15 @@ body.report-page .leadership-bridge-copy {
 body.report-page .leadership-bridge-metrics {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  font-size: 0.84rem;
+  gap: 6px 10px;
+  font-size: 0.8rem;
   color: var(--text);
 }
 
 body.report-page .leadership-bridge-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 body.report-page .preview-header-story {
@@ -2695,6 +2695,37 @@ body.report-page .preview-header #preview-meta .meta-info-summary {
 body.report-page .preview-header-export-wrap {
   position: relative;
   gap: 8px;
+}
+
+body.report-page .report-tabs-shell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+body.report-page .report-tabs-shell .tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.report-page .report-tabs-shell .report-unified-tab-search {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+body.report-page .report-tabs-shell .report-unified-tab-search .search-input-wrap {
+  width: min(280px, 100%);
+}
+
+body.report-page .report-context-line.visually-hidden {
+  display: none !important;
+}
+
+body.report-page .preview-header {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
 }
 
 body.report-page #export-excel-btn[aria-expanded="true"] {
@@ -2712,6 +2743,15 @@ body.report-page .preview-status-strip[data-state="fresh"] {
 @media (max-width: 1024px) {
   body.report-page .report-filter-strip {
     flex-wrap: wrap;
+  }
+
+  body.report-page .report-tabs-shell {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.report-page .report-tabs-shell .report-unified-tab-search .search-input-wrap {
+    width: 100%;
   }
 
   body.report-page .date-range-custom-wrap {
