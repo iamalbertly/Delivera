@@ -3,13 +3,9 @@ import { renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Ren
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoActiveSprintEmptyState, renderNoIssuesForContextEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
 import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
-import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
 import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
-import { renderHealthDashboard } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
 import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
-import { renderCurrentSprintContextStrip } from './Reporting-App-CurrentSprint-Context-Strip.js';
-import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
 
 export function renderCurrentSprintPage(data) {
   const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
@@ -40,7 +36,6 @@ export function renderCurrentSprintPage(data) {
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
 
   html += renderHeaderBar(data);
-  html += renderCurrentSprintContextStrip(data);
   if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
     html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
   }
@@ -90,34 +85,16 @@ export function renderCurrentSprintPage(data) {
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   const sectionActions = [];
   sectionActions.push('<button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" data-open-outcome-modal data-outcome-context="' + String(outcomeContext || 'Create work from the current sprint menu.').replace(/"/g, '&quot;') + '" data-outcome-projects="' + String(outcomeProjects).replace(/"/g, '&quot;') + '">Create work from insight</button>');
-  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact sprint-section-links-sticky" role="navigation" aria-label="Jump to section">'
+  const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact" role="navigation" aria-label="Jump to section">'
     + jumpLinks.join('')
     + (sectionActions.length ? '<div class="sprint-section-inline-actions">' + sectionActions.join('') + '</div>' : '')
-    + '<button type="button" class="btn btn-secondary btn-compact sprint-section-dropdown-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="sprint-section-dropdown-menu">More</button>'
-    + '<div id="sprint-section-dropdown-menu" class="sprint-section-dropdown-menu" role="menu" aria-hidden="true" hidden>'
-    + jumpLinks.join('')
-    + '</div></div>';
+    + '</div>';
 
   const verdict = deriveSprintVerdict(data);
   const capacitySummary = buildCapacitySummary(data);
-  const riskCounts = getUnifiedRiskCounts(data);
-  html += renderAttentionQueue({
-    title: 'Attention queue',
-    items: [
-      Number(riskCounts.blockersOwned || 0) > 0 ? { label: `${Number(riskCounts.blockersOwned || 0)} blockers need action`, detail: 'Open now', tone: 'danger', action: 'open-blockers' } : null,
-      Number(verdict.missingEstimate || 0) > 0 ? { label: `${Number(verdict.missingEstimate || 0)} missing estimates`, detail: 'Planning trust is weak', tone: 'warning', action: 'open-missing-estimate' } : null,
-      Number(riskCounts.unownedOutcomes || 0) > 0 ? { label: `${Number(riskCounts.unownedOutcomes || 0)} ownership gaps`, detail: 'Assign next', tone: 'warning', action: 'open-unassigned' } : null,
-    ].filter(Boolean),
-  });
 
   html += '<div class="current-sprint-grid-layout">';
-
   html += buildUnifiedSprintHud(data, verdict, capacitySummary, sectionLinksHtml);
-  const hasDeepDive = hasStories || hasBurndownData;
-  if (hasDeepDive) {
-    html += '<details class="mobile-secondary-details" data-mobile-collapse="true" open>';
-    html += '<summary>Sprint work &amp; flow</summary>';
-  }
 
   if (hasStories) {
     html += '<div class="sprint-cards-column full-width">';
@@ -129,10 +106,6 @@ export function renderCurrentSprintPage(data) {
     html += '<div class="sprint-cards-row risks-row">';
     html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
     html += '</div>';
-  }
-
-  if (hasDeepDive) {
-    html += '</details>';
   }
 
   html += '<div class="sprint-cards-row secondary-row">';
@@ -165,7 +138,7 @@ export function renderCurrentSprintPageParts(data) {
   const initialHtml = ''
     + renderHeaderBar(data)
     + '<div class="current-sprint-grid-layout current-sprint-grid-layout-phased">'
-    + buildUnifiedSprintHud(data, verdict, capacitySummary, '<div class="sprint-section-links sprint-section-links-compact sprint-section-links-sticky" role="navigation" aria-label="Jump to section"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Burndown</span><div class="sprint-section-inline-actions"><button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" disabled>Create work from insight</button></div></div>', true)
+    + buildUnifiedSprintHud(data, verdict, capacitySummary, '<div class="sprint-section-links sprint-section-links-compact" role="navigation" aria-label="Jump to section"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Burndown</span><div class="sprint-section-inline-actions"><button type="button" class="btn btn-secondary btn-compact sprint-section-inline-action" disabled>Create work from insight</button></div></div>', true)
     + '<div class="transparency-card sprint-progressive-shell" data-progressive-shell="deferred">'
     + '<h2>Loading sprint work</h2>'
     + '<p>HUD is ready. Stories and flow load next.</p>'
@@ -227,34 +200,16 @@ function buildUnifiedSprintHud(data, verdict, capacitySummary, sectionLinksHtml,
     : capacitySummary?.state === 'warning'
       ? 'Capacity needs attention'
       : 'Capacity covered';
-  const heroTone = verdict.color === 'red' || verdict.color === 'critical'
-    ? 'is-critical'
-    : verdict.color === 'yellow' || verdict.color === 'warning'
-      ? 'is-warning'
-      : 'is-healthy';
-
-  let html = '<section class="transparency-card sprint-hud-card ' + heroTone + '" aria-label="Sprint HUD">';
-  html += '<div class="sprint-hud-topline">';
-  html += '<div class="sprint-hud-primary">';
-  html += '<p class="sprint-hud-narrative"><span class="sprint-hud-verdict">Next actions</span><span>' + (verdict.tagline || verdict.summary || 'Use the chips below to jump straight to work, flow, and unblock paths.') + '</span><span>' + capacitySignal + ' across ' + issueCount + ' issues.</span></p>';
-  html += '</div>';
-  html += '</div>';
+  let html = '<section class="sprint-jump-rail" aria-label="Sprint navigation and next actions">';
+  html += '<p class="sprint-jump-rail-copy"><span class="sprint-hud-verdict">Next actions</span><span>' + (verdict.tagline || verdict.summary || 'Jump straight to work, flow, and unblock paths.') + '</span><span>' + capacitySignal + ' across ' + issueCount + ' issues.</span></p>';
   html += sectionLinksHtml || '';
-  html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
-  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + Number(riskCounts.blockersOwned || 0) + '</span><span class="metric-meta">Open now</span></button>';
-  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates</span><span class="metric-value">' + missingEstimateCount + '</span><span class="metric-meta">Plan safely</span></button>';
-  html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership gaps</span><span class="metric-value">' + Math.max(Number(riskCounts.unownedOutcomes || 0), overloadedOwners) + '</span><span class="metric-meta">Fix next</span></button>';
-  html += '</div>';
-  if (!isLoadingShell) {
-    html += '<details class="sprint-hud-carousel-inline" data-mobile-collapse="true">';
-    html += '<summary>Switch sprint</summary>';
-    html += renderSprintCarousel(data);
-    html += '</details>';
+  if (!isLoadingShell && (Number(riskCounts.blockersOwned || 0) > 0 || missingEstimateCount > 0 || overloadedOwners > 0)) {
+    html += '<div class="sprint-jump-rail-signals">';
+    html += '<span class="sprint-jump-signal">Blockers ' + Number(riskCounts.blockersOwned || 0) + '</span>';
+    html += '<span class="sprint-jump-signal">Missing est ' + missingEstimateCount + '</span>';
+    html += '<span class="sprint-jump-signal">Ownership ' + Math.max(Number(riskCounts.unownedOutcomes || 0), overloadedOwners) + '</span>';
+    html += '</div>';
   }
-  html += '<details class="sprint-hud-details" data-mobile-collapse="true">';
-  html += '<summary>Why this verdict</summary>';
-  html += renderHealthDashboard(data, { compact: true });
-  html += '</details>';
   html += '</section>';
   return html;
 }

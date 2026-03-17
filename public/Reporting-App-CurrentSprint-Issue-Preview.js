@@ -19,12 +19,12 @@ function buildPreviewHtml(targetRow, options = {}) {
   const link = targetRow.querySelector('a[href*="/browse/"]');
   const key = link ? (link.textContent || '').trim() : (targetRow.getAttribute('data-issue-key') || '');
   const url = link ? link.href : '';
-  const summaryCell = targetRow.querySelector('td:nth-child(4), td.subtask-child-summary');
-  const statusCell = targetRow.querySelector('td[data-label="Status"], td:nth-child(4)');
-  const assigneeCell = targetRow.querySelector('td[data-label="Assignee"], td:nth-child(9)');
-  const reporterCell = targetRow.querySelector('td[data-label="Reporter"], td:nth-child(8)');
-  const hoursCell = targetRow.querySelector('td[data-label="Logged Hrs"]');
-  const updatedCell = targetRow.querySelector('td[data-label="Updated"]');
+  const summaryCell = targetRow.querySelector('.story-summary-cell, td.subtask-child-summary, td[data-label="Summary"]');
+  const statusCell = targetRow.querySelector('.story-status-cell, td[data-label="Status"]');
+  const assigneeCell = targetRow.querySelector('.story-assignee-cell, td[data-label="Assignee"]');
+  const reporterCell = targetRow.querySelector('.story-reporter-cell, td[data-label="Reporter"]');
+  const hoursCell = targetRow.querySelector('.story-logged-cell, td[data-label="Logged Hrs"]');
+  const updatedCell = targetRow.querySelector('.story-resolved-cell, td[data-label="Updated"], td[data-label="Resolved"]');
 
   const summary = summaryCell ? (summaryCell.textContent || '').trim() : '';
   const status = statusCell ? (statusCell.textContent || '').trim() : '';

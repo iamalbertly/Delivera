@@ -304,7 +304,7 @@ export function renderStories(data) {
     }
     rowHtml += renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + '</td>';
     rowHtml += '<td>' + escapeHtml(row.issueType || '-') + '</td>';
-    rowHtml += '<td class="cell-wrap">' + escapeHtml(row.summary || '-');
+    rowHtml += '<td class="cell-wrap story-summary-cell">' + escapeHtml(row.summary || '-');
     if (isOutcome) {
       rowHtml += '<span class="story-row-flag">Outcome</span>';
     }
@@ -312,14 +312,14 @@ export function renderStories(data) {
       rowHtml += '<div class="story-subtask-summary"><span class="story-subtask-count">' + subtasks.length + ' subtask' + (subtasks.length === 1 ? '' : 's') + '</span></div>';
     }
     rowHtml += '</td>';
-    rowHtml += '<td>' + escapeHtml(row.status || '-') + '</td>';
-    rowHtml += '<td>' + escapeHtml(row.reporter || '-') + '</td>';
-    rowHtml += '<td>' + escapeHtml(row.assignee || '-') + '</td>';
+    rowHtml += '<td class="story-status-cell">' + escapeHtml(row.status || '-') + '</td>';
+    rowHtml += '<td class="story-reporter-cell">' + escapeHtml(row.reporter || '-') + '</td>';
+    rowHtml += '<td class="story-assignee-cell">' + escapeHtml(row.assignee || '-') + '</td>';
     rowHtml += '<td>' + formatNumber(row.storyPoints ?? 0, 1, '-') + '</td>';
     rowHtml += '<td>' + formatNumber(row.subtaskEstimateHours ?? 0, 1, '-') + '</td>';
-    rowHtml += '<td>' + formatNumber(row.subtaskLoggedHours ?? 0, 1, '-') + '</td>';
+    rowHtml += '<td class="story-logged-cell">' + formatNumber(row.subtaskLoggedHours ?? 0, 1, '-') + '</td>';
     rowHtml += '<td>' + escapeHtml(formatDate(row.created)) + '</td>';
-    rowHtml += '<td>' + escapeHtml(formatDate(row.resolved)) + '</td>';
+    rowHtml += '<td class="story-resolved-cell">' + escapeHtml(formatDate(row.resolved)) + '</td>';
     rowHtml += '<td class="story-risks-cell">';
     if (rowTags.length) {
       rowTags.forEach((tag) => {
@@ -373,19 +373,19 @@ export function renderStories(data) {
       rowsHtml += '>';
       rowsHtml += '<td class="subtask-child-issue"><span class="subtask-parent-context" title="Parent issue">' + escapeHtml(parentKey) + '</span>' + renderIssueKeyLink(child.issueKey || '-', child.issueUrl) + '</td>';
       rowsHtml += '<td>' + escapeHtml(child.issueType || 'Sub-task') + '</td>';
-      rowsHtml += '<td class="cell-wrap subtask-child-summary">' + escapeHtml(child.summary || '-');
+      rowsHtml += '<td class="cell-wrap subtask-child-summary story-summary-cell">' + escapeHtml(child.summary || '-');
       if (flagBadges.length > 0) {
         rowsHtml += '<div class="subtask-row-flags">' + flagBadges.map((f) => '<span class="subtask-row-flag">' + escapeHtml(f) + '</span>').join('') + '</div>';
       }
       rowsHtml += '</td>';
-      rowsHtml += '<td>' + escapeHtml(child.status || '-') + '</td>';
+      rowsHtml += '<td class="story-status-cell">' + escapeHtml(child.status || '-') + '</td>';
       rowsHtml += '<td>-</td>';
-      rowsHtml += '<td>' + escapeHtml(owner) + '</td>';
+      rowsHtml += '<td class="story-assignee-cell">' + escapeHtml(owner) + '</td>';
       rowsHtml += '<td>-</td>';
       rowsHtml += '<td>' + formatNumber(child.estimateHours ?? 0, 1, '-') + '</td>';
-      rowsHtml += '<td>' + formatNumber(child.loggedHours ?? 0, 1, '-') + '</td>';
+      rowsHtml += '<td class="story-logged-cell">' + formatNumber(child.loggedHours ?? 0, 1, '-') + '</td>';
       rowsHtml += '<td>-</td>';
-      rowsHtml += '<td>-</td>';
+      rowsHtml += '<td class="story-resolved-cell">-</td>';
       rowsHtml += '<td class="story-risks-cell">-</td>';
       rowsHtml += '</tr>';
     }

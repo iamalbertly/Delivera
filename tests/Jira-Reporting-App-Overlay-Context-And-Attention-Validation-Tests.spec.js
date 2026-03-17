@@ -62,12 +62,13 @@ test.describe('Overlay, context, and attention SSOT', () => {
       return;
     }
 
-    await page.waitForTimeout(2500);
-    await expect(page.locator('.current-sprint-content .context-summary-strip, .context-summary-strip').first()).toBeVisible();
-    await expect(page.locator('.attention-queue')).toBeVisible();
-    await expect(page.locator('.sprint-intervention-queue')).toBeVisible();
+    await page.waitForSelector('.current-sprint-header-bar, #current-sprint-error', { timeout: 45000 }).catch(() => null);
+    await expect(page.locator('.current-sprint-header-bar')).toBeVisible();
+    await expect(page.locator('.current-sprint-header-bar .mission-context-ribbon')).toBeVisible();
+    await expect(page.locator('.current-sprint-header-bar .attention-queue--compact')).toBeVisible();
+    await expect(page.locator('.current-sprint-header-bar .sprint-intervention-queue')).toBeVisible();
 
-    const firstAttention = page.locator('.attention-queue [data-attention-action]').first();
+    const firstAttention = page.locator('.current-sprint-header-bar .attention-queue [data-attention-action]').first();
     if (await firstAttention.isVisible().catch(() => false)) {
       await firstAttention.click().catch(() => null);
       await expect(page.locator('#stories-card')).toBeVisible();

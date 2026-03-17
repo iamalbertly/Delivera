@@ -93,10 +93,13 @@ test.describe('Viewport compression and layering', () => {
       return;
     }
 
-    await page.waitForSelector('.current-sprint-header-bar, .sprint-hud-card', { timeout: 45000 }).catch(() => null);
+    await page.waitForSelector('.current-sprint-header-bar, .sprint-jump-rail', { timeout: 45000 }).catch(() => null);
     await expect(page.locator('.header-intelligence-strip')).toHaveCount(0);
-    await expect(page.locator('.sprint-hud-carousel-inline')).not.toHaveAttribute('open', /true/i);
-    await expect(page.locator('.sprint-intervention-item')).toHaveCount(3);
+    await expect(page.locator('.sprint-hud-carousel-inline')).toHaveCount(0);
+    await expect(page.locator('.mobile-secondary-details')).toHaveCount(0);
+    await expect(page.locator('.current-sprint-header-bar .sprint-intervention-item')).toHaveCount(3);
+    await expect(page.locator('.current-sprint-header-bar .mission-context-chip')).toHaveCount(3);
+    await expect(page.locator('.current-sprint-grid-layout > .sprint-jump-rail')).toBeVisible();
 
     const headerText = await page.locator('.current-sprint-header-bar').textContent().catch(() => '');
     const visibleActionLabels = await page.locator('.header-band-actions button, .header-band-actions summary').evaluateAll((nodes) =>
@@ -116,6 +119,16 @@ test.describe('Viewport compression and layering', () => {
     expect(headerText || '').toMatch(/Focus risk work|View historical risks/i);
     expect(headerText || '').toMatch(/Refresh/i);
     expect(visibleActionLabels.join(' | ')).not.toMatch(/Copy summary/i);
+    const visibleDrawerText = await page.locator('.current-sprint-header-bar .header-view-drawer-panel').evaluateAll((nodes) =>
+      nodes
+        .filter((node) => {
+          const style = window.getComputedStyle(node);
+          return style.display !== 'none' && style.visibility !== 'hidden' && node.getBoundingClientRect().height > 0;
+        })
+        .map((node) => (node.textContent || '').trim())
+        .join(' | ')
+    );
+    expect(visibleDrawerText).not.toMatch(/Why this verdict/i);
 
     assertTelemetryClean(telemetry);
   });

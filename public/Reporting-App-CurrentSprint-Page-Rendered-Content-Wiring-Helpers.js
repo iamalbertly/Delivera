@@ -175,7 +175,7 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById, optio
   scheduleRender(() => {
     showContent(parts.fullHtml);
     wireRenderedContent(data, onSelectSprintById);
-    const anchor = document.querySelector('.sprint-hud-card, .sprint-at-a-glance-hero');
+    const anchor = document.querySelector('.current-sprint-header-bar, .sprint-jump-rail');
     if (anchor && window.scrollY > 120) {
       anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
