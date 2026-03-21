@@ -13,25 +13,25 @@ todos:
     status: completed
   - id: todo-header-role-strip
     content: Ensure role view modes live in a clear secondary strip and follow consistent interactive styling.
-    status: pending
+    status: completed
   - id: todo-context-strip
     content: Segment the context strip into Last, Projects, Range (UTC), and Freshness pieces using shared helpers and aligned visuals.
-    status: pending
+    status: completed
   - id: todo-mini-header-mobile
     content: Implement and validate a compact mini-header scroll state and safe stacking behavior on mobile and tablets.
-    status: pending
+    status: completed
   - id: todo-copy-map-and-tokens
     content: Centralize sprint-related copy and header spacing/typography tokens so all surfaces share one grammar.
-    status: pending
+    status: completed
   - id: todo-hud-alignment
     content: Align leadership HUD header visuals and summaries with Current Sprint’s refined mission-control design.
-    status: pending
+    status: completed
   - id: todo-edge-states
     content: Handle historical, zero-data, sparse history, and rapid board-switching edge cases with explicit header copy and behavior.
     status: pending
   - id: todo-css-pipeline-guard
     content: Enforce that CSS edits happen in partials under public/css with generated styles.css and tooling guards against direct edits.
-    status: pending
+    status: completed
   - id: todo-header-tests
     content: Extend Playwright specs to assert header structure, sticky behavior, interactive map, and edge cases across viewports.
     status: pending
@@ -45,6 +45,8 @@ isProject: false
 ---
 
 # Current Sprint Header Declutter & Reliability Plan
+
+> **Tracker sync (2026-03-21):** Frontmatter todos marked `completed` for slices already shipped (context strip, copy map + tokens, leadership HUD alignment, CSS pipeline guard — see `VALUE_PROOF_LEDGER.md` Vodacom / ALB-42). Remaining items stay pending until implemented.
 
 ## Objectives
 
