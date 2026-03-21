@@ -1,4 +1,5 @@
 import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Jira Reporting App - UX Enhancements', () => {
   test('report filters: search, select all/none, advanced options, export hint', async ({ page }) => {
@@ -152,15 +153,13 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
   });
 
   test('report and leadership views use clean placeholders and delivery-grade vocabulary', async ({ page }) => {
-    await page.goto('/report');
-    if (page.url().includes('login')) {
-      test.skip(true, 'Redirected to login; auth may be required');
-      return;
-    }
-    await page.click('#preview-btn');
+    await runDefaultPreview(page);
+    if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#loading')).toBeHidden({ timeout: 60000 });
     const bodyText = (await page.locator('body').textContent().catch(() => '')) || '';
     expect(bodyText).not.toMatch(/â€”|â€“|ï¿½/);
+    expect(bodyText).not.toContain('Leadership HUD â†’');
+    expect(bodyText).not.toContain('Details âœ•');
 
     const boardsTab = page.locator('#tab-btn-project-epic-level');
     if (await boardsTab.count()) {
@@ -172,9 +171,35 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
 
     const trendsTab = page.locator('#tab-btn-trends');
     if (await trendsTab.count()) {
+      await expect(trendsTab).toContainText('Leadership HUD ->');
       await trendsTab.click();
       await expect(page.locator('#tab-trends')).toBeVisible();
       await expect(page.locator('#tab-trends')).toContainText(/Strong|Solid|Mixed|Weak|Critical|Insufficient data/i);
     }
+  });
+
+  test('notification bell exposes alert count in accessible name', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('appNotificationsV1', JSON.stringify({
+        total: 4,
+        missingEstimate: 0,
+        missingLogged: 4,
+        boardName: 'Test board',
+        sprintName: 'Sprint 1',
+      }));
+    });
+    await page.goto('/report');
+    if (page.url().includes('login')) {
+      test.skip(true, 'Redirected to login; auth may be required');
+      return;
+    }
+    const bell = page.locator('#app-notification-toggle');
+    if (!(await bell.count())) {
+      test.skip(true, 'Notification bell not rendered for this dataset');
+      return;
+    }
+    await expect(bell).toBeVisible();
+    await expect(bell).toHaveAttribute('aria-label', /Show notifications: 4 time tracking alerts/);
+    await expect(bell.locator('.app-notification-badge')).toHaveText('4');
   });
 });

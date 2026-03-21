@@ -41,6 +41,12 @@ export function writeNotificationDockState(next, stateKey = DEFAULT_NOTIFICATION
   } catch (_) {}
 }
 
+function ariaLabelForNotificationToggle(total) {
+  const n = Math.max(0, Number(total) || 0);
+  if (n === 0) return 'Show notifications';
+  return `Show notifications: ${n} time tracking alert${n === 1 ? '' : 's'}`;
+}
+
 function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
   let toggle = document.getElementById(toggleId);
   if (!toggle) {
@@ -50,8 +56,8 @@ function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
     toggle.className = 'app-notification-toggle';
     toggle.type = 'button';
     const total = summary && summary.total ? Number(summary.total) : 0;
-    toggle.setAttribute('aria-label', 'Show notifications');
-    toggle.innerHTML = `🔔 <span class="app-notification-badge">${total}</span>`;
+    toggle.setAttribute('aria-label', ariaLabelForNotificationToggle(total));
+    toggle.innerHTML = `Bell <span class="app-notification-badge">${total}</span>`;
     toggle.addEventListener('click', () => {
       const state = readNotificationDockState(stateKey);
       writeNotificationDockState({ ...state, hidden: false }, stateKey);
@@ -62,6 +68,7 @@ function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
   } else if (summary && typeof summary.total !== 'undefined') {
     const badge = toggle.querySelector('.app-notification-badge');
     if (badge) badge.textContent = String(summary.total);
+    toggle.setAttribute('aria-label', ariaLabelForNotificationToggle(summary.total));
   }
 }
 
@@ -70,7 +77,10 @@ function updateSidebarAlertFooter(summary, pageContext = 'report') {
   if (!el) return;
   const total = summary && summary.total != null ? Number(summary.total) : 0;
   const healthy = total <= 0;
-  const label = healthy ? 'Logging alerts: 0 · Healthy' : `Logging alerts: ${total}`;
+  const trustLabel = summary && summary.trustLabel ? String(summary.trustLabel) : '';
+  const label = healthy
+    ? `Logging alerts: 0 | ${trustLabel || 'Evidence complete'}`
+    : `Logging alerts: ${total}${trustLabel ? ` | ${trustLabel}` : ''}`;
   el.innerHTML = `<button type="button" class="sidebar-alert-footer-chip${healthy ? ' is-healthy' : ''}" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Work risks">${label}</button>`;
   const btn = el.querySelector('[data-sidebar-alert-jump]');
   if (!btn) return;
@@ -78,7 +88,8 @@ function updateSidebarAlertFooter(summary, pageContext = 'report') {
     try {
       if (pageContext === 'current-sprint') {
         const target = document.getElementById('stories-card') || document.getElementById('stuck-card');
-        target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(target);
+        else target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } else {
         window.location.href = '/current-sprint#stories-card';
       }
@@ -93,8 +104,6 @@ export function renderNotificationDock(options = {}) {
     stateKey = DEFAULT_NOTIFICATION_DOCK_STATE_KEY,
     dockId = DEFAULT_DOCK_ID,
     toggleId = DEFAULT_TOGGLE_ID,
-    linkHref = '/current-sprint',
-    title = 'Time tracking alerts',
     pageContext = 'report',
     collapsedByDefault = false,
   } = options;
@@ -131,6 +140,7 @@ export function renderNotificationDock(options = {}) {
   updateSidebarAlertFooter(resolvedSummary || { total: 0 }, pageContext);
 
   if (total <= 0) return;
+  renderToggleButton({ toggleId, stateKey, summary: resolvedSummary });
 }
 
 export const NOTIFICATION_STORE_KEY = DEFAULT_NOTIFICATION_STORE_KEY;
