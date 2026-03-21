@@ -4,10 +4,10 @@ overview: Consolidate the Current Sprint page into a single, calm mission-contro
 todos:
   - id: todo-header-single-visual
     content: Collapse duplicate headers into a single mission-control band on /current-sprint, making .current-sprint-header-bar the primary visual header.
-    status: pending
+    status: completed
   - id: todo-header-identity-and-metrics
     content: Finalize the identity row with project/board chip, sprint name/dates, and standardized Done/Issues/LogEst metric tiles plus inline last-sprint delta.
-    status: pending
+    status: completed
   - id: todo-header-risk-and-logging
     content: Normalize risk colors and copy, demote logging alerts to hygiene context, and clarify health vs hygiene in the header.
     status: pending

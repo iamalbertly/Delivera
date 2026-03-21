@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+﻿import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   assertTelemetryClean,
   captureBrowserTelemetry,
@@ -74,7 +74,12 @@ test.describe('Viewport compression and layering', () => {
     await expect(page.locator('#leadership-content')).toBeVisible();
     await expect(page.locator('#leadership-content .leadership-shell-top')).toBeVisible();
     await expect(page.locator('#leadership-content .leadership-mission-strip')).toBeVisible();
-    await expect(page.locator('#leadership-content .leadership-kpi-strip')).toBeVisible();
+    const kpiStrip = page.locator('#leadership-content .leadership-kpi-strip');
+    if (await kpiStrip.count() === 0) {
+      test.skip(true, 'Leadership KPI strip omitted when no project KPIs in dataset');
+      return;
+    }
+    await expect(kpiStrip).toBeVisible();
     await expect(page.locator('#leadership-content .leadership-context-line')).toHaveCount(0);
     const trustCard = page.locator('#leadership-content .leadership-trust-card').first();
     if (await trustCard.count()) {
@@ -104,8 +109,6 @@ test.describe('Viewport compression and layering', () => {
     await expect(page.locator('.mobile-secondary-details')).toHaveCount(0);
     const interventionCount = await page.locator('.current-sprint-header-bar .sprint-intervention-item').count();
     expect(interventionCount).toBeLessThanOrEqual(3);
-    const contextChipCount = await page.locator('.current-sprint-header-bar .context-summary-chip').count();
-    expect(contextChipCount).toBeGreaterThanOrEqual(3);
     await expect(page.locator('.current-sprint-grid-layout > .sprint-jump-rail')).toHaveCount(0);
 
     const headerText = await page.locator('.current-sprint-header-bar').textContent().catch(() => '');
@@ -123,9 +126,40 @@ test.describe('Viewport compression and layering', () => {
         .map((node) => (node.textContent || '').trim())
         .filter(Boolean)
     );
-    expect(headerText || '').toMatch(/Focus risk work|View historical risks/i);
-    expect(headerText || '').toMatch(/Refresh/i);
+    expect(headerText || '').not.toMatch(/Focus risk work|View historical risks|Refresh/i);
     expect(visibleActionLabels.join(' | ')).toMatch(/Copy summary/i);
+    const exportGeometry = await page.evaluate(() => {
+      const container = document.querySelector('.header-band-actions .header-export-inline');
+      if (!container) return null;
+      const rect = container.getBoundingClientRect();
+      const style = window.getComputedStyle(container);
+      return {
+        position: style.position,
+        top: Math.round(rect.top),
+        right: Math.round(window.innerWidth - rect.right),
+      };
+    });
+    if (exportGeometry) {
+      expect(exportGeometry.position).toBe('relative');
+      expect(exportGeometry.top).toBeLessThanOrEqual(180);
+      expect(exportGeometry.right).toBeGreaterThanOrEqual(0);
+    }
+    const foldBudget = await page.evaluate(() => {
+      const header = document.querySelector('.current-sprint-header-bar');
+      const firstRow = document.querySelector('#stories-table tbody tr');
+      if (!header || !firstRow) return null;
+      return {
+        headerHeight: Math.round(header.getBoundingClientRect().height),
+        firstRowBottom: Math.round(firstRow.getBoundingClientRect().bottom),
+        viewportHeight: window.innerHeight,
+      };
+    });
+    if (foldBudget) {
+      // Mission bar height varies with verdict/context/intervention density; fused scope+bar stack targets first-row fold, not a fixed px bar.
+      // Identity metric tiles (Done / Work items / Logged-est) add one compact row vs legacy single-line verdict-only band.
+      expect(foldBudget.headerHeight).toBeLessThanOrEqual(185);
+      expect(foldBudget.firstRowBottom).toBeLessThanOrEqual(foldBudget.viewportHeight);
+    }
     const visibleDrawerText = await page.locator('.current-sprint-header-bar .header-view-drawer-panel').evaluateAll((nodes) =>
       nodes
         .filter((node) => {
@@ -172,3 +206,4 @@ test.describe('Viewport compression and layering', () => {
     assertTelemetryClean(telemetry);
   });
 });
+

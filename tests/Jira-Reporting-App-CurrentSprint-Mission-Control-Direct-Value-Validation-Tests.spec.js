@@ -255,6 +255,21 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(page.locator('#stories-card')).toBeVisible();
   });
 
+  test('Mission control row 1 shows three standardized metric tiles (Done, Work items, Logged/est)', async ({ page }) => {
+    const row = page.locator('.current-sprint-header-bar .header-identity-metrics[data-header-metric-row="1"]').first();
+    const visible = await row.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'Metric row not rendered for this dataset');
+      return;
+    }
+    await expect(row).toHaveAttribute('aria-label', /Sprint metrics/i);
+    await expect(row.locator('[data-metric="done"] .metric-label')).toHaveText(/^Done$/i);
+    await expect(row.locator('[data-metric="issues"] .metric-label')).toHaveText(/^Work items$/i);
+    await expect(row.locator('[data-metric="hours"] .metric-label')).toHaveText(/^Logged \/ est$/i);
+    const doneVal = await row.locator('[data-metric="done"] .metric-value').textContent();
+    expect(doneVal || '').toMatch(/%/);
+  });
+
   test('Header context strip is compressed into one deduplicated scope line', async ({ page }) => {
     await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
     const strip = page.locator('.current-sprint-header-bar .header-context-summary-row').first();
