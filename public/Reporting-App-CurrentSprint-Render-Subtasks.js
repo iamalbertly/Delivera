@@ -1,6 +1,7 @@
 import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatDateTime, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { buildMergedWorkRiskRows } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 
 function riskPriorityWeight(row) {
   const risk = String(row?.riskType || '').toLowerCase();
@@ -27,9 +28,11 @@ function riskPriorityWeight(row) {
 
 export function renderWorkRisksMerged(data) {
   const rows = buildMergedWorkRiskRows(data);
+  const verdictInfo = deriveSprintVerdict(data);
+  const sprintState = String(data?.sprint?.state || '').toLowerCase();
+  const isHistoricalSprint = sprintState && sprintState !== 'active';
   const scopeChanges = data.scopeChanges || [];
   const scopeSP = scopeChanges.reduce((sum, row) => sum + (Number(row.storyPoints) || 0), 0);
-  const scopeUnestimated = scopeChanges.filter((row) => row.storyPoints == null || row.storyPoints === '').length;
   const excludedParents = Number(data?.summary?.stuckExcludedParentsWithActiveSubtasks || 0);
   const blockerRows = rows.filter((row) => row.isOwnedBlocker);
   const blockerInProgress = blockerRows.filter((row) => {
@@ -40,55 +43,35 @@ export function renderWorkRisksMerged(data) {
   const noLogRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('no log yet')).length;
   const noEstimateRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('missing estimate')).length;
   const unassignedRows = rows.filter((row) => row.isUnownedOutcome).length;
+  const scopeRows = rows.filter((row) => String(row.riskType || '').toLowerCase().includes('added mid-sprint')).length;
+  const hasShortcuts = blockerInProgress + blockerNotStarted > 0 || noLogRows > 0 || noEstimateRows > 0 || unassignedRows > 0 || scopeRows > 0;
+  if (!hasShortcuts && isHistoricalSprint) {
+    return '';
+  }
+  const distinctViews = buildDistinctSprintFilterViews(data, verdictInfo);
+  const visibleRiskViews = Array.isArray(distinctViews?.distinctRiskViews) ? distinctViews.distinctRiskViews.slice(0, 3) : [];
+  const remediationLine = verdictInfo.topRemediation || 'Top focus: no urgent remediation';
 
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
   html += '<div class="work-risks-inline-summary">';
-  html += '<span class="work-risks-inline-label">Mission-critical work</span>';
-  html += '<button type="button" class="work-risks-inline-toggle" data-work-risk-inline-toggle aria-expanded="false" title="How sprint risks are calculated">How this is calculated</button>';
-  html += '</div>';
-  html += '<div class="work-risks-inline-details" data-work-risk-inline-details hidden>';
-
-  const metaParts = [];
-  if (scopeChanges.length > 0) metaParts.push('+' + scopeChanges.length + ' scope (' + formatNumber(scopeSP, 1, '0') + ' SP)');
-  if (excludedParents > 0) metaParts.push(excludedParents + ' parent' + (excludedParents > 1 ? 's' : '') + ' via subtasks');
-  if (metaParts.length > 0) {
-    html += '<p class="meta-row"><small>' + escapeHtml(metaParts.join(' | ')) + '</small></p>';
+  html += '<span class="work-risks-inline-label">Remediation queue</span>';
+  html += '<span class="work-risks-inline-copy">' + escapeHtml(remediationLine) + '</span>';
+  if (scopeChanges.length > 0 || excludedParents > 0) {
+    const metaParts = [];
+    if (scopeChanges.length > 0) metaParts.push('+' + scopeChanges.length + ' scope (' + formatNumber(scopeSP, 1, '0') + ' SP)');
+    if (excludedParents > 0) metaParts.push(excludedParents + ' parent' + (excludedParents > 1 ? 's' : '') + ' via subtasks');
+    html += '<span class="work-risks-shortcut-meta">' + escapeHtml(metaParts.join(' | ')) + '</span>';
   }
-  html += '<p class="meta-row"><small>One filtered work list. Use shortcuts below to focus the exact risk.</small></p>';
-
-  if (!rows.length) {
-    html += '<p class="meta-row"><small>No extra risks detected. The main work list already reflects the current sprint state.</small></p>';
-    html += '</div></div>';
-    return html;
-  }
-
-  html += '<ul class="meta-list">';
-  html += '<li><small><strong>' + blockerInProgress + '</strong> active owned blocker' + (blockerInProgress === 1 ? '' : 's') + '</small></li>';
-  html += '<li><small><strong>' + blockerNotStarted + '</strong> blocker candidate' + (blockerNotStarted === 1 ? '' : 's') + ' not yet in flow</small></li>';
-  html += '<li><small><strong>' + noLogRows + '</strong> items with time planned but no logs</small></li>';
-  html += '<li><small><strong>' + noEstimateRows + '</strong> items with logs but no estimate</small></li>';
-  html += '<li><small><strong>' + unassignedRows + '</strong> unowned outcomes</small></li>';
-  html += '</ul>';
-
-  html += '<div class="work-risks-shortcuts" aria-label="Jump to stories filtered by risk">';
-  html += '<div class="work-risks-shortcut-chips">';
-  html += '<button type="button" class="btn btn-tertiary btn-compact" data-work-risk-shortcut data-risk-tags="">All</button>';
-  if (blockerInProgress + blockerNotStarted > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="blocker">Blockers</button>';
-  }
-  if (noLogRows > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="no-log">No log</button>';
-  }
-  if (noEstimateRows > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="missing-estimate">No est</button>';
-  }
-  if (unassignedRows > 0) {
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="unassigned">Unowned</button>';
+  if (visibleRiskViews.length > 0) {
+    html += '<div class="work-risks-shortcut-chips" data-work-risk-inline-details aria-label="Jump to stories filtered by risk">';
+    html += '<button type="button" class="btn btn-tertiary btn-compact" data-work-risk-shortcut data-risk-tags="">All</button>';
+    visibleRiskViews.forEach((item) => {
+      html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="' + escapeHtml((item.riskTags || []).join(' ')) + '">' + escapeHtml(item.label) + '</button>';
+    });
+    html += '</div>';
   }
   html += '</div>';
   html += '</div>';
-
-  html += '</div></div>';
   return html;
 }
 
@@ -103,38 +86,16 @@ export function wireSubtasksShowMoreHandlers() {
         const activeTags = Array.isArray(detail.riskTags)
           ? detail.riskTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
           : [];
-        // Stuck card no longer owns filtering UI; rely on stories card + header to visualise filters.
+        const banner = card.querySelector('.work-risks-filter-banner');
         if (!activeTags.length) {
-          const banner = card.querySelector('.work-risks-filter-banner');
           banner?.remove();
           return;
         }
-        let banner = card.querySelector('.work-risks-filter-banner');
-        if (!banner) {
-          banner = document.createElement('div');
-          banner.className = 'work-risks-filter-banner';
-          banner.setAttribute('role', 'status');
-          const title = card.querySelector('h2');
-          if (title && title.nextSibling) card.insertBefore(banner, title.nextSibling);
-          else card.prepend(banner);
-        }
-        const sourceLabel = String(detail.source || '').startsWith('role-mode-')
-          ? (String(detail.source).replace('role-mode-', '').replace('scrum-master', 'SM').replace('product-owner', 'PO').replace('line-manager', 'Leads').replace('developer', 'Dev'))
-          : 'current view';
-        banner.textContent = 'Showing risks for ' + sourceLabel + ' in Issues in this sprint.';
+        banner?.remove();
       });
     }
 
     card.addEventListener('click', (event) => {
-      const inlineToggle = event.target.closest('[data-work-risk-inline-toggle]');
-      if (inlineToggle && card.contains(inlineToggle)) {
-        const details = card.querySelector('[data-work-risk-inline-details]');
-        const expanded = inlineToggle.getAttribute('aria-expanded') === 'true';
-        inlineToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-        inlineToggle.textContent = expanded ? 'How this is calculated' : 'Hide';
-        if (details) details.hidden = expanded;
-        return;
-      }
       const shortcut = event.target.closest('[data-work-risk-shortcut]');
       if (!shortcut || !card.contains(shortcut)) return;
       const tagsAttr = (shortcut.getAttribute('data-risk-tags') || '').trim();
@@ -146,9 +107,21 @@ export function wireSubtasksShowMoreHandlers() {
       } catch (_) {}
       try {
         const stories = document.getElementById('stories-card');
-        if (stories) stories.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (stories && typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
+        else if (stories) stories.scrollIntoView({ behavior: 'smooth', block: 'start' });
         else window.location.hash = '#stories-card';
       } catch (_) {}
+    });
+
+    card.querySelectorAll('[data-work-risk-role-mode]').forEach((button) => {
+      if (button.dataset.roleModeWired === '1') return;
+      button.dataset.roleModeWired = '1';
+      button.addEventListener('click', () => {
+        const mode = button.getAttribute('data-work-risk-role-mode') || 'all';
+        try {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyRoleMode', { detail: { mode } }));
+        } catch (_) {}
+      });
     });
   } catch (_) {}
 }

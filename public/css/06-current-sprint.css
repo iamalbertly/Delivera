@@ -2931,6 +2931,27 @@ button.health-inline-pill {
   flex-wrap: wrap;
 }
 
+body.current-sprint-page .current-sprint-header-bar .header-role-modes-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+body.current-sprint-page .current-sprint-header-bar .header-role-modes-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
 .role-mode-pill {
   padding: 2px 8px;
   border-radius: 999px;
@@ -4182,7 +4203,9 @@ body.current-sprint-page .header-follow-up-link {
 }
 
 body.current-sprint-page .header-mini-mode .header-band-main,
-body.current-sprint-page .header-mini-mode .header-compact-strip {
+body.current-sprint-page .header-mini-mode .header-compact-strip,
+body.current-sprint-page .header-mini-mode .header-context-strip,
+body.current-sprint-page .header-mini-mode .header-role-modes-row {
   display: none;
 }
 

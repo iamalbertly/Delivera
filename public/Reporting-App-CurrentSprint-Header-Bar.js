@@ -84,6 +84,22 @@ function computeDoneDeltaVsPriorClosed(data, currentPct) {
   };
 }
 
+/** Role lens presets: secondary strip below verdict/context (plan todo-header-role-strip). */
+function renderHeaderRoleModesRow(roleViews) {
+  if (!Array.isArray(roleViews) || !roleViews.length) return '';
+  const pills = roleViews.map((item) => {
+    const mode = String(item.roleMode || '').trim();
+    const label = String(item.label || '').trim();
+    if (!mode) return '';
+    return '<button type="button" class="role-mode-pill" data-work-risk-role-mode="' + escapeHtml(mode) + '" data-role-mode="' + escapeHtml(mode) + '" aria-pressed="false">' + escapeHtml(label) + '</button>';
+  }).filter(Boolean).join('');
+  if (!pills) return '';
+  return '<div class="header-role-modes-row" role="group" aria-label="View work as role">'
+    + '<span class="header-role-modes-label">View as</span>'
+    + '<div class="header-role-modes">' + pills + '</div>'
+    + '</div>';
+}
+
 function renderHeaderIdentityMetricsRow({ donePct, issuesCount, logH, estH, delta }) {
   const deltaHtml = delta
     ? ('<span class="' + escapeHtml(delta.className) + '" title="' + escapeHtml(delta.title) + '">' + escapeHtml(delta.short) + '</span>')
@@ -253,6 +269,10 @@ export function renderHeaderBar(data, options = {}) {
     : SPRINT_COPY.historical;
   const headerContextStripHtml = buildHeaderContextStrip(data, freshnessLabel);
   const interventionItems = Array.isArray(distinctViews?.distinctRiskViews) ? distinctViews.distinctRiskViews.slice(0, 3) : [];
+  const distinctRoleViews = Array.isArray(distinctViews?.distinctRoleViews) ? distinctViews.distinctRoleViews : [];
+  const headerRoleViews = !isHistoricalSprint
+    ? distinctRoleViews.filter((item) => !interventionItems.some((riskView) => riskView.setKey === item.setKey))
+    : [];
   const hasPriorityInterventions = interventionItems.length > 0;
   const defaultRiskTags = hasPriorityInterventions ? (interventionItems[0].riskTags || []) : [];
   const compactSummaryBits = [
@@ -357,6 +377,7 @@ export function renderHeaderBar(data, options = {}) {
   }
   html += '</div>';
   html += headerContextStripHtml;
+  html += renderHeaderRoleModesRow(headerRoleViews);
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;

@@ -264,6 +264,17 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     expect(/from report cache/i.test(text)).toBeFalsy();
   });
 
+  test('Mission header exposes role lens strip with View as label when role presets exist', async ({ page }) => {
+    const row = page.locator('.current-sprint-header-bar .header-role-modes-row').first();
+    const visible = await row.isVisible().catch(() => false);
+    if (!visible) {
+      test.skip(true, 'No distinct role presets for this dataset');
+      return;
+    }
+    await expect(row.locator('.header-role-modes-label')).toHaveText(/^View as$/i);
+    await expect(row.locator('.role-mode-pill[data-work-risk-role-mode]').first()).toBeVisible();
+  });
+
   test('Context drawer shows logging hygiene in a demoted hygiene strip (not risk styling)', async ({ page }) => {
     await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
     const hygiene = page.locator('.current-sprint-header-bar .header-hygiene-followup[data-signal="hygiene"]').first();

@@ -27,7 +27,7 @@ test.describe('Jira Reporting App - UX Consolidation Validation', () => {
     await expect(page.locator('#sprint-loading-context')).toHaveCount(0);
     await expect(page.locator('.header-view-drawer')).toHaveCount(1);
     await expect(page.locator('[data-header-lens-select]')).toHaveCount(1);
-    await expect(page.locator('.role-mode-pill')).toHaveCount(0);
+    await expect(page.locator('#stuck-card .role-mode-pill')).toHaveCount(0);
     await expect(page.locator('#stories-card #stuck-card')).toHaveCount(1);
     await expect(page.locator('#stories-card h2')).toContainText('Sprint work');
 
