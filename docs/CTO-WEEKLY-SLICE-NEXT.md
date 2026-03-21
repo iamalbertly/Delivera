@@ -1,43 +1,38 @@
 # CTO weekly slice — Vodacom Impact Engine (locked)
 
-**Locked:** 2026-03-21 — **next slice:** `todo-header-risk-and-logging`  
-**Shipped this lock:** Row 1 identity + metric tiles + inline last-sprint delta (`todo-header-identity-and-metrics`) — proof ALB-18 / `VALUE_PROOF_LEDGER.md`  
-**ALB-ID:** Proof entry on ship ties to active Paperclip task (ALB-7 lane until ChiefOfStaff rotates strike list)  
-**Source plan:** `docs/current-sprint-header-declutter_6c80b0d6.plan.md` → `todo-header-risk-and-logging`
+**Locked:** 2026-03-21 — **next slice:** `todo-header-role-strip`  
+**Shipped this lock:** Verdict/risk normalization on the mission band (`todo-header-risk-and-logging`): main `.sprint-verdict-line` carries `data-signal="health"`, `role="status"`, `aria-label="Sprint health verdict"`, and a left accent rail per verdict color; drawer hygiene remains `data-signal="hygiene"` (neutral chrome). Proof: `VALUE_PROOF_LEDGER.md` + `npm run test:current-sprint:dedupe-fold`.  
+**ALB-ID:** Strike #1 (ALB-7 lane) when no Paperclip issue is queued — EngineerLead executes from this doc.  
+**Source plan:** `docs/current-sprint-header-declutter_6c80b0d6.plan.md` → `todo-header-role-strip`
 
 ## Decision
 
-The next manager-visible Jira improvement is **verdict/risk color normalization and logging demotion** (`todo-header-risk-and-logging`): normalize risk colors and copy, demote logging alerts to hygiene context, and clarify health vs hygiene in the header — per plan §3 and §7. Touch surface stays the Current Sprint header stack (`Reporting-App-CurrentSprint-Header-Bar.js`, related helpers, `public/css/06-current-sprint.css`); no new routes or deps unless ChiefOfStaff reopens scope.
+The next manager-visible Jira improvement is **role view strip consistency** (`todo-header-role-strip`): ensure “View as” role modes live in a clear secondary strip with consistent interactive styling versus risk CTAs — per plan §4. Touch surface: `Reporting-App-CurrentSprint-Header-Bar.js`, `public/css/06-current-sprint.css`; verify `npm run test:current-sprint:dedupe-fold`.
 
 ## Previously shipped (reference)
 
-Identity row + three metric tiles (Done %, Work items, Logged/est) + delta inline on Done % — implemented in `Reporting-App-CurrentSprint-Header-Bar.js` (`renderHeaderIdentityMetricsRow`, `computeDoneDeltaVsPriorClosed`). Regression: Playwright **Mission control row 1 shows three standardized metric tiles** in `Jira-Reporting-App-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js`.
+- **Identity + metrics:** `renderHeaderIdentityMetricsRow`, delta on Done %, Playwright metric row test.  
+- **Risk / logging:** Verdict line explicitly marked as sprint **health** signal; CSS accent rail distinguishes health from dashed neutral **hygiene** strip in the Context drawer.
 
-## Out of scope for the risk/logging slice
+## Out of scope for the role-strip slice
 
-- Mini-header scroll polish, segmented context strip-only work, leadership HUD alignment, CSS pipeline guard — queue after risk/logging passes `test:current-sprint:dedupe-fold`.
+- Leadership HUD alignment, CSS pipeline guard — queue after role strip passes `test:current-sprint:dedupe-fold`.
 
 ## Acceptance
 
-- `npm run test:current-sprint:dedupe-fold` passes (no regressions in viewport + mission-control specs).
-- Manual spot-check: verdict line uses one strong risk color system; logging/hygiene reads as demoted vs sprint health.
+- `npm run test:current-sprint:dedupe-fold` passes.  
+- Manual spot-check: role pills read as neutral filters; risk chips and “Take action” keep stronger affordance.
 
 ## Baseline / verify commands (PowerShell)
 
 ```powershell
 Set-Location C:\Shared\Projects\Jira
+npm run build:css
 npm run test:current-sprint:dedupe-fold
-```
-
-Optional full gate after edits:
-
-```powershell
-Set-Location C:\Shared\Projects\Jira
-npm run test:all
 ```
 
 ## Proof handoff
 
-On ship: append one entry to `C:\Shared\Projects\VALUE_PROOF_LEDGER.md` (Vodacom Impact Engine) with files touched, the command above (or `test:all` if used), and the ALB issue id in use when merged.
+On ship: append to `C:\Shared\Projects\VALUE_PROOF_LEDGER.md` (Vodacom Impact Engine) with files touched and verify command.
 
-**Scope contract (SSOT pair):** App/CSS edit surface matches `C:\Shared\Projects\REUSE_RADAR.md` — Jira Internal App **must-win slice** bullet; verify with `npm run test:current-sprint:dedupe-fold`.
+**Scope contract:** Matches `C:\Shared\Projects\REUSE_RADAR.md` Jira must-win line.

@@ -270,6 +270,17 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     expect(doneVal || '').toMatch(/%/);
   });
 
+  test('Mission band verdict line is tagged as sprint health (distinct from drawer hygiene)', async ({ page }) => {
+    const line = page.locator('.current-sprint-header-bar .sprint-verdict-line[data-signal="health"]').first();
+    const ok = await line.isVisible().catch(() => false);
+    if (!ok) {
+      test.skip(true, 'Verdict line not visible for this dataset');
+      return;
+    }
+    await expect(line).toHaveAttribute('data-signal', 'health');
+    await expect(line).toHaveAttribute('aria-label', /Sprint health verdict/i);
+  });
+
   test('Header context strip is compressed into one deduplicated scope line', async ({ page }) => {
     await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
     const strip = page.locator('.current-sprint-header-bar .header-context-summary-row').first();

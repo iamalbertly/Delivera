@@ -298,7 +298,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-band-main">';
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintIdentityLine)}</span>`;
   html += identityMetricsHtml;
-  html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '">';
+  html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="Sprint health verdict">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
   html += '<span class="sprint-verdict-explain">' + escapeHtml(verdictDisplayLine) + '</span>';
   html += '</div>';

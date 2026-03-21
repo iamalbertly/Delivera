@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: todo-header-risk-and-logging
     content: Normalize risk colors and copy, demote logging alerts to hygiene context, and clarify health vs hygiene in the header.
-    status: pending
+    status: completed
   - id: todo-header-role-strip
     content: Ensure role view modes live in a clear secondary strip and follow consistent interactive styling.
     status: pending

@@ -317,6 +317,17 @@
   flex-wrap: wrap;
 }
 
+/* Health verdict (risk slice): one accent rail — distinct from drawer hygiene (data-signal=hygiene). */
+.sprint-verdict-line[data-signal="health"] {
+  padding-left: 8px;
+  border-left: 3px solid transparent;
+  border-radius: 2px;
+}
+.sprint-verdict-line[data-signal="health"].sprint-verdict-green { border-left-color: #16a34a; }
+.sprint-verdict-line[data-signal="health"].sprint-verdict-yellow { border-left-color: #ca8a04; }
+.sprint-verdict-line[data-signal="health"].sprint-verdict-orange { border-left-color: #ea580c; }
+.sprint-verdict-line[data-signal="health"].sprint-verdict-red { border-left-color: #dc2626; }
+
 .sprint-verdict-green { color: #166534; }
 .sprint-verdict-yellow { color: #854d0e; }
 .sprint-verdict-orange,
