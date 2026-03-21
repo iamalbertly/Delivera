@@ -28,6 +28,8 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     }
     const text = await verdict.textContent();
     expect(text || '').toMatch(/Healthy|Caution|At Risk|Critical/i);
+    expect(text || '').toMatch(/Evidence|blockers|gaps|No material sprint risks/i);
+    await expect(page.locator('.header-compact-strip')).toBeVisible();
 
     assertTelemetryClean(telemetry);
   });
@@ -100,36 +102,41 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
 
     // Scroll to bottom to simulate deep inspection of cards/tables
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(300);
+    const metrics = await headerBar.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return {
+        top: rect.top,
+        height: rect.height,
+        position: style.position,
+      };
+    });
 
-    const box = await headerBar.boundingBox();
-    if (!box) {
-      test.skip(true, 'Could not measure header bar position');
-      return;
-    }
-
-    // Sticky header bar should remain within the top portion of the viewport
-    expect(box.y).toBeGreaterThanOrEqual(0);
-    expect(box.y).toBeLessThan(200);
+    expect(['sticky', 'fixed']).toContain(metrics.position);
+    expect(metrics.top).toBeLessThan(200);
+    // Full mission band (metrics + context + role strip) stays mounted on narrow viewports (no mini-collapse); cap catches runaway growth
+    expect(metrics.height).toBeLessThanOrEqual(220);
   });
 
-  test('work risks table when present has Summary column and displays row data', async ({ page }) => {
+  test('stories table stays as the first actionable surface and displays row data', async ({ page }) => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
-    const table = page.locator('#work-risks-table');
+    const table = page.locator('#stories-table');
     const tableVisible = await table.isVisible().catch(() => false);
     if (!tableVisible) {
-      test.skip(true, 'Work risks table not visible for current data set');
+      test.skip(true, 'Stories table not visible for current data set');
       return;
     }
     await expect(table.locator('th:has-text("Summary")')).toBeVisible();
     const rows = table.locator('tbody tr');
     const count = await rows.count();
     if (count === 0) {
-      test.skip(true, 'Work risks table has no rows');
+      test.skip(true, 'Stories table has no rows');
       return;
     }
     const firstRow = rows.first();
-    const summaryCell = firstRow.locator('td.cell-wrap[data-label="Summary"]').or(firstRow.locator('td:nth-child(4)'));
+    const summaryCell = firstRow.locator('td.story-summary-cell').or(firstRow.locator('td:nth-child(3)'));
     await expect(summaryCell).toBeVisible();
   });
 

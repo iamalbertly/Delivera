@@ -195,6 +195,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       'loading state keeps one compact loading line instead of a separate context row',
       'current sprint maps partial-permission Jira response into top ribbon',
       'current sprint header shows shared report context strip and stale refresh cue',
+      'Mobile viewport keeps full mission header (no mini-mode collapse)',
     ];
     if (exemptTitles.includes(testInfo.title)) {
       return;
@@ -307,6 +308,46 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       return;
     }
     await expect(header.locator('.header-mini-strip')).toBeVisible();
+  });
+
+  test('Mobile viewport keeps full mission header (no mini-mode collapse)', async ({ page }) => {
+    await page.route('**/api/boards.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          projects: ['MPSA'],
+          boards: [{ id: 101, name: 'Main Board', projectKey: 'MPSA' }],
+        }),
+      });
+    });
+    await page.route('**/api/current-sprint.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          board: { id: 101, name: 'Main Board', projectKeys: ['MPSA'] },
+          sprint: { id: 301, name: 'Sprint 301', state: 'active', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-03-15T00:00:00.000Z' },
+          stories: [
+            { key: 'MPSA-1', summary: 'Story 1', statusCategory: 'In Progress', issueType: 'Story', subtasks: [] },
+          ],
+          summary: { totalStories: 1, doneStories: 0, totalSP: 3, doneSP: 0, percentDone: 0 },
+          daysMeta: { daysRemainingWorking: 3 },
+          recentSprints: [],
+          meta: { projects: 'MPSA', generatedAt: '2026-03-20T09:15:00.000Z' },
+        }),
+      });
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto(SPRINT_PAGE);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
+    await page.selectOption('#board-select', '101');
+    await page.waitForSelector('.current-sprint-header-bar', { timeout: 30000 });
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await page.waitForTimeout(250);
+    const header = page.locator('.current-sprint-header-bar').first();
+    await expect(header).not.toHaveClass(/header-mini-mode/);
   });
 
   test('Work-risk role mode remembers selection and drives filters', async ({ page }) => {

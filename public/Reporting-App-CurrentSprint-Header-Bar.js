@@ -571,13 +571,17 @@ export function wireHeaderBarHandlers() {
     } catch (_) {}
   }
 
+  /** Mini collapse: tablets/desktop only (plan todo-mini-header-mobile — avoid empty/churn strip on phones). */
   function syncMiniMode() {
-    const threshold = window.innerWidth <= 720
-      ? 8
-      : Math.max(120, (headerBar.offsetTop || 0) + 72);
+    const miniStrip = headerBar.querySelector('.header-mini-strip');
+    if (window.innerWidth <= 720) {
+      headerBar.classList.remove('header-mini-mode');
+      if (miniStrip) miniStrip.setAttribute('aria-hidden', 'true');
+      return;
+    }
+    const threshold = Math.max(120, (headerBar.offsetTop || 0) + 72);
     const hasMiniMode = window.scrollY > threshold;
     headerBar.classList.toggle('header-mini-mode', hasMiniMode);
-    const miniStrip = headerBar.querySelector('.header-mini-strip');
     if (miniStrip) {
       miniStrip.setAttribute('aria-hidden', hasMiniMode ? 'false' : 'true');
     }
