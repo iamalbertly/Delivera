@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Fixed Header Bar Component
  * Displays sprint metadata: name, date range, days remaining, total SP, status badge
  * Sticky positioning on desktop, relative on mobile
@@ -246,8 +246,6 @@ export function renderHeaderBar(data, options = {}) {
     sprintDatesLabel,
     (isHistoricalSprint ? SPRINT_COPY.historicalSnapshotShort : ''),
   ].filter(Boolean).join(' | ');
-  const hasNoHealthSignals = verdictRiskChips.length === 0;
-  const isJustStartedSprint = !isHistoricalSprint && Number(donePercentage || 0) === 0 && hasNoHealthSignals && issuesCount > 0;
   const generatedAt = meta && (meta.generatedAt || meta.snapshotAt) ? new Date(meta.generatedAt || meta.snapshotAt) : null;
   let freshnessLabel = '';
   if (generatedAt) {
@@ -287,7 +285,36 @@ export function renderHeaderBar(data, options = {}) {
     `${subtaskLoggedHrs.toFixed(1)}h / ${subtaskEstimatedHrs.toFixed(1)}h`,
   ];
   const verdictEvidenceLine = [evidenceLine].filter(Boolean).join(' | ');
-  const verdictDisplayLine = verdictEvidenceLine || verdictInfo.summary || followUpSummary || compactSummaryBits.join(' | ');
+  let verdictDisplayLine = verdictEvidenceLine || verdictInfo.summary || followUpSummary || compactSummaryBits.join(' | ');
+  const recentSprintsList = Array.isArray(data.recentSprints) ? data.recentSprints : [];
+  const closedSprintsInRecent = recentSprintsList.filter((s) => String(s.state || '').toLowerCase() === 'closed').length;
+  const sparseHistory =
+    !isHistoricalSprint
+    && sprintState === 'active'
+    && closedSprintsInRecent > 0
+    && closedSprintsInRecent < 3;
+  const noPriorClosedForDelta =
+    !isHistoricalSprint
+    && sprintState === 'active'
+    && !data.previousSprint
+    && issuesCount > 0;
+  const showLowConfidence =
+    (sparseHistory || noPriorClosedForDelta)
+    && !verdictInfo.justStarted
+    && issuesCount > 0;
+  let edgeStateAttr = 'none';
+  if (!isHistoricalSprint && issuesCount === 0) {
+    verdictDisplayLine = SPRINT_COPY.noTrackableWork;
+    edgeStateAttr = 'empty';
+  } else if (verdictInfo.justStarted && !isHistoricalSprint) {
+    verdictDisplayLine = SPRINT_COPY.justStarted;
+    edgeStateAttr = 'just-started';
+  } else if (showLowConfidence) {
+    verdictDisplayLine = `${verdictDisplayLine} · ${SPRINT_COPY.lowConfidence}`;
+    edgeStateAttr = 'low-confidence';
+  }
+  const verdictExplainTitle =
+    edgeStateAttr === 'low-confidence' ? SPRINT_COPY.lowConfidenceHint : verdictInfo.trackingReasons || '';
   const doneDelta = computeDoneDeltaVsPriorClosed(data, donePercentage);
   const identityMetricsHtml = renderHeaderIdentityMetricsRow({
     donePct: donePercentage,
@@ -297,14 +324,14 @@ export function renderHeaderBar(data, options = {}) {
     delta: doneDelta,
   });
 
-  let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
+  let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintIdentityLine)}</span>`;
   html += identityMetricsHtml;
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
-  html += '<span class="sprint-verdict-explain">' + escapeHtml(verdictDisplayLine) + '</span>';
+  html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictDisplayLine) + '</span>';
   html += '</div>';
   html += '</div>';
   html += '<div class="header-band-actions">';

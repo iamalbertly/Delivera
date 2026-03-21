@@ -28,7 +28,7 @@ todos:
     status: completed
   - id: todo-edge-states
     content: Handle historical, zero-data, sparse history, and rapid board-switching edge cases with explicit header copy and behavior.
-    status: pending
+    status: completed
   - id: todo-css-pipeline-guard
     content: Enforce that CSS edits happen in partials under public/css with generated styles.css and tooling guards against direct edits.
     status: completed
@@ -46,7 +46,7 @@ isProject: false
 
 # Current Sprint Header Declutter & Reliability Plan
 
-> **Tracker sync (2026-03-21):** Frontmatter todos marked `completed` for slices already shipped (context strip, copy map + tokens, leadership HUD alignment, CSS pipeline guard, **orchestration** — `test:all` runs `build:css` + `check:css` before journeys; `test:current-sprint:dedupe-fold` runs `check:css` first; see `TESTING.md`). Remaining items stay pending until implemented.
+> **Tracker sync (2026-03-21):** Frontmatter todos marked `completed` for slices already shipped (context strip, copy map + tokens, leadership HUD alignment, CSS pipeline guard, orchestration, **`todo-edge-states`** — header `data-edge-state` + explicit empty / just-started / low-confidence copy). Remaining: `todo-header-tests`, `todo-manual-verification-and-commit`.
 
 ## Objectives
 

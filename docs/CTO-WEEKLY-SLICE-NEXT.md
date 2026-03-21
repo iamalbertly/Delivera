@@ -1,7 +1,7 @@
 # CTO weekly slice — Vodacom Impact Engine (locked)
 
-**Locked:** 2026-03-21 — **next slice:** `todo-edge-states` or `todo-header-tests` (next backlog in plan)  
-**Shipped this lock:** `todo-orchestration` — documented in **`TESTING.md`**: `npm run test:all` runs **`build:css` + `check:css`** before Playwright journeys (`Jira-Reporting-App-Test-Orchestration-Steps.js`); `test:current-sprint:dedupe-fold` runs **`check:css`** first. Plan frontmatter updated.  
+**Locked:** 2026-03-21 — **next slice:** `todo-header-tests` (then `todo-manual-verification-and-commit`)  
+**Shipped this lock:** `todo-edge-states` — mission header **`data-edge-state`** (`empty` | `just-started` | `low-confidence` | `none`); explicit copy for zero-work sprints, **`SPRINT_COPY.justStarted`** when health model `justStarted`, **` · Low confidence`** when prior-sprint delta is missing or fewer than three closed sprints appear in `recentSprints`; historical hygiene string uses en-dash; verdict explain `title` uses low-confidence hint when applicable. Gate: **`npm run test:current-sprint:dedupe-fold`** exit 0 (32 passed, 12 skipped).  
 **ALB-ID:** ALB-42 (EngineerLead).  
 **Source plan:** `docs/current-sprint-header-declutter_6c80b0d6.plan.md`
 
