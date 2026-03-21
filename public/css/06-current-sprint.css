@@ -3664,6 +3664,26 @@ body.notification-dock-visible .export-dashboard-container {
   margin-top: 0;
 }
 
+.current-sprint-header-bar ul.header-context-strip {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.current-sprint-header-bar ul.header-context-strip > li {
+  margin: 0;
+}
+
+@media (min-width: 900px) {
+  .current-sprint-header-bar .header-context-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    width: 100%;
+    align-items: stretch;
+  }
+}
+
 .header-context-inline-wrap {
   display: inline-flex;
   align-items: center;

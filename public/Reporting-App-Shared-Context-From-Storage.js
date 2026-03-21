@@ -171,11 +171,18 @@ export function renderContextSegments(pieces, options = {}) {
   const segmentClass = options.segmentClass || 'context-segment';
   const refreshAction = options.refreshAction || 'refresh-context';
   const actionsByLabel = options.actionsByLabel || {};
+  const listSemantics = options.listSemantics === true;
+  const stripAriaLabel = typeof options.stripAriaLabel === 'string' ? options.stripAriaLabel : 'Report and sprint context';
   const parts = buildContextSegmentList(pieces);
 
   if (!parts.length) return '';
 
-  let html = '<div class="' + escapeHtml(className) + '" aria-label="Context">';
+  const outerOpen = listSemantics
+    ? '<ul class="' + escapeHtml(className) + '" role="list" aria-label="' + escapeHtml(stripAriaLabel) + '">'
+    : '<div class="' + escapeHtml(className) + '" aria-label="Context">';
+  const outerClose = listSemantics ? '</ul>' : '</div>';
+
+  let html = outerOpen;
   parts.forEach((part) => {
     const stateClass = typeof part.stateClass === 'string' ? part.stateClass : '';
     const actionName = part.isAction
@@ -186,12 +193,14 @@ export function renderContextSegments(pieces, options = {}) {
     const extraAttrs = isActionable
       ? ' type="button" data-context-action="' + escapeHtml(actionName) + '"'
       : '';
+    if (listSemantics) html += '<li>';
     html += '<' + tagName + ' class="' + escapeHtml(segmentClass + stateClass + (isActionable ? ' is-actionable' : '')) + '"' + extraAttrs + '>';
     html += '<span class="' + escapeHtml(segmentClass + '-label') + '">' + escapeHtml(part.label) + '</span>';
     html += '<span class="' + escapeHtml(segmentClass + '-value') + '">' + escapeHtml(part.value) + '</span>';
     html += '</' + tagName + '>';
+    if (listSemantics) html += '</li>';
   });
-  html += '</div>';
+  html += outerClose;
   return html;
 }
 

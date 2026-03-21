@@ -141,6 +141,8 @@ function buildHeaderContextStrip(data, freshnessLabel) {
     className: 'header-context-strip',
     segmentClass: 'header-context-segment',
     refreshAction: 'refresh-current-sprint-context',
+    listSemantics: true,
+    stripAriaLabel: 'Sprint scope and report context',
   });
   if (stripHtml) return stripHtml;
 
