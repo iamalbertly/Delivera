@@ -2,6 +2,11 @@
 
 This project uses Playwright for end-to-end and integration tests. The `test:all` script orchestrates all suites.
 
+### CSS pipeline before Playwright (SSOT)
+
+- **`npm run test:all`** — after optional `npm install`, the orchestration always runs **`npm run build:css`** then **`npm run check:css`** (`scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`). If `public/styles.css` is missing or out of sync with `public/css/*.css` partials, the run stops before any browser tests.
+- **`npm run test:current-sprint:dedupe-fold`** — runs **`npm run check:css`** first, then the Current Sprint / viewport Playwright pack (`package.json`). Use this for a fast header-focused gate without the full orchestration.
+
 ### Default behaviour: fast, impacted + last-failed
 
 - Running `npm run test:all` now:

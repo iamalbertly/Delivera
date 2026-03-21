@@ -37,7 +37,7 @@ todos:
     status: pending
   - id: todo-orchestration
     content: Ensure header-focused tests are wired into focused runs and npm run test:all remains a fail-fast, visible gate.
-    status: pending
+    status: completed
   - id: todo-manual-verification-and-commit
     content: After tests pass, manually validate key journeys with Playwright MCP/browser-view, then create a single scoped commit and push.
     status: pending
@@ -46,7 +46,7 @@ isProject: false
 
 # Current Sprint Header Declutter & Reliability Plan
 
-> **Tracker sync (2026-03-21):** Frontmatter todos marked `completed` for slices already shipped (context strip, copy map + tokens, leadership HUD alignment, CSS pipeline guard — see `VALUE_PROOF_LEDGER.md` Vodacom / ALB-42). Remaining items stay pending until implemented.
+> **Tracker sync (2026-03-21):** Frontmatter todos marked `completed` for slices already shipped (context strip, copy map + tokens, leadership HUD alignment, CSS pipeline guard, **orchestration** — `test:all` runs `build:css` + `check:css` before journeys; `test:current-sprint:dedupe-fold` runs `check:css` first; see `TESTING.md`). Remaining items stay pending until implemented.
 
 ## Objectives
 

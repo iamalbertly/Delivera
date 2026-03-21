@@ -1,21 +1,17 @@
 # CTO weekly slice — Vodacom Impact Engine (locked)
 
-**Locked:** 2026-03-21 — **next slice:** pick next item from `docs/current-sprint-header-declutter_6c80b0d6.plan.md` backlog (CSS gate satisfied)  
-**Shipped this lock:** `todo-css-pipeline-guard` — `npm run test:current-sprint:dedupe-fold` now runs **`npm run check:css` first** (`scripts/check-css.js`): fails if `public/styles.css` was edited directly or is stale vs `public/css/*.css` partials. Proof: `npm run check:css` + `npm run test:current-sprint:dedupe-fold`.  
+**Locked:** 2026-03-21 — **next slice:** `todo-edge-states` or `todo-header-tests` (next backlog in plan)  
+**Shipped this lock:** `todo-orchestration` — documented in **`TESTING.md`**: `npm run test:all` runs **`build:css` + `check:css`** before Playwright journeys (`Jira-Reporting-App-Test-Orchestration-Steps.js`); `test:current-sprint:dedupe-fold` runs **`check:css`** first. Plan frontmatter updated.  
 **ALB-ID:** ALB-42 (EngineerLead).  
 **Source plan:** `docs/current-sprint-header-declutter_6c80b0d6.plan.md`
 
 ## Decision
 
-The Vodacom gate now enforces **generated `styles.css` SSOT** before Playwright. After any CSS partial edit, run `npm run build:css`; the dedupe-fold command fails fast if the bundle was not regenerated.
+Full orchestration and the focused dedupe-fold gate both enforce **CSS SSOT** before browser tests; see `TESTING.md` for the command matrix.
 
 ## Previously shipped (reference)
 
 - **Copy/tokens slice:** centralized sprint strings + header font tokens; header bar uses `SPRINT_COPY` for drawer, chips, metric labels, time remaining.
-
-## Out of scope for HUD alignment slice
-
-- CSS pipeline guard for `styles.css` — remains queued after HUD passes the gate.
 
 ## Acceptance
 
