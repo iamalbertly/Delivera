@@ -244,14 +244,14 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('Header remediation action focuses stories and updates active view summary', async ({ page }) => {
-    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="focus-remediation"], .current-sprint-header-bar .sprint-intervention-item').first();
+    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="focus-remediation"]').first();
     const visible = await takeAction.isVisible().catch(() => false);
     if (!visible) {
       test.skip(true, 'Remediation action not rendered');
       return;
     }
-    await takeAction.dispatchEvent('click');
-    await expect(page.locator('[data-header-active-filter-value]')).not.toHaveText(/^All work$/i);
+    await takeAction.click();
+    await expect(page.locator('.header-view-drawer summary [data-header-active-filter-value]').first()).not.toHaveText(/^All work$/i);
     await expect(page.locator('#stories-card')).toBeVisible();
   });
 
@@ -299,6 +299,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       return;
     }
     await expect(row.locator('.header-role-modes-label')).toHaveText(/^View as$/i);
+    await expect(row).toHaveAttribute('data-strip', 'role-lens');
     await expect(row.locator('.role-mode-pill[data-work-risk-role-mode]').first()).toBeVisible();
   });
 

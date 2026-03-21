@@ -22,6 +22,9 @@ const headerFilterUiState = {
   dayKey: '',
 };
 
+/** Incremented each time wireHeaderBarHandlers completes a full bind (not early-return). Second+ wires must not reset risk tags from role presets — that clobbered Take action / verdict filters after progressive full render. */
+let headerBarWireSessionCount = 0;
+
 function renderHeaderActiveFilterLabel() {
   const activeEls = document.querySelectorAll('#current-sprint-content .current-sprint-header-bar [data-header-active-filter-value]');
   const fallbackEls = activeEls.length
@@ -94,7 +97,7 @@ function renderHeaderRoleModesRow(roleViews) {
     return '<button type="button" class="role-mode-pill" data-work-risk-role-mode="' + escapeHtml(mode) + '" data-role-mode="' + escapeHtml(mode) + '" aria-pressed="false">' + escapeHtml(label) + '</button>';
   }).filter(Boolean).join('');
   if (!pills) return '';
-  return '<div class="header-role-modes-row" role="group" aria-label="View work as role">'
+  return '<div class="header-role-modes-row" data-strip="role-lens" role="group" aria-label="View work as role">'
     + '<span class="header-role-modes-label">View as</span>'
     + '<div class="header-role-modes">' + pills + '</div>'
     + '</div>';
@@ -397,6 +400,9 @@ export function wireHeaderBarHandlers() {
   if (headerBar.dataset.headerBarHandlersWired === '1') return;
   headerBar.dataset.headerBarHandlersWired = '1';
 
+  const isFirstWire = headerBarWireSessionCount === 0;
+  headerBarWireSessionCount += 1;
+
   const roleButtons = Array.from(document.querySelectorAll('[data-work-risk-role-mode]'));
   const availableRoleModes = new Set(['all', ...roleButtons.map((button) => String(button.getAttribute('data-work-risk-role-mode') || '').trim()).filter(Boolean)]);
 
@@ -643,6 +649,7 @@ export function wireHeaderBarHandlers() {
 
   function applyRoleMode(mode, options = {}) {
     const silent = options.silent === true;
+    const applyPresetFromRole = options.applyPreset !== false;
     let active = mode || 'all';
     if (!availableRoleModes.has(active)) {
       active = 'all';
@@ -652,6 +659,10 @@ export function wireHeaderBarHandlers() {
       button.setAttribute('aria-pressed', button.classList.contains('is-active') ? 'true' : 'false');
     });
     headerFilterUiState.roleMode = active;
+    if (silent && !applyPresetFromRole) {
+      renderHeaderActiveFilterLabel();
+      return;
+    }
     const presetMap = {
       all: [],
       developer: ['no-log', 'missing-estimate'],
@@ -679,7 +690,11 @@ export function wireHeaderBarHandlers() {
     const stored = window.localStorage.getItem(roleModeKey);
     if (stored) initialMode = stored;
   } catch (_) {}
-  applyRoleMode(initialMode, { silent: true });
+  if (isFirstWire) {
+    applyRoleMode(initialMode, { silent: true, applyPreset: true });
+  } else {
+    applyRoleMode(headerFilterUiState.roleMode || initialMode, { silent: true, applyPreset: false });
+  }
 
   roleButtons.forEach((button) => {
     button.addEventListener('click', () => {
