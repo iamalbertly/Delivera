@@ -10,13 +10,50 @@ import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js'
 import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 import { readNotificationSummary } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
-import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
-import { buildCapacitySummary } from './Reporting-App-CurrentSprint-Capacity-Allocation.js';
+import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
-import { renderHealthDashboard } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
-import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
-import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
+import { renderHealthDashboard, buildEvidenceLine } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
+import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
 import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
+
+const headerFilterUiState = {
+  roleMode: 'all',
+  riskTags: [],
+  dayKey: '',
+};
+
+function renderHeaderActiveFilterLabel() {
+  const activeEls = document.querySelectorAll('#current-sprint-content .current-sprint-header-bar [data-header-active-filter-value]');
+  const fallbackEls = activeEls.length
+    ? []
+    : document.querySelectorAll('.current-sprint-header-bar [data-header-active-filter-value]');
+  const nodes = activeEls.length ? Array.from(activeEls) : Array.from(fallbackEls);
+  if (!nodes.length) return;
+  const role = headerFilterUiState.roleMode || 'all';
+  const tags = Array.isArray(headerFilterUiState.riskTags) ? headerFilterUiState.riskTags : [];
+  const day = headerFilterUiState.dayKey || '';
+
+  let roleLabel = 'All work';
+  if (role === 'developer') roleLabel = 'Dev lens';
+  else if (role === 'scrum-master') roleLabel = 'SM lens';
+  else if (role === 'product-owner') roleLabel = 'PO lens';
+  else if (role === 'line-manager') roleLabel = 'Leads lens';
+
+  let label = roleLabel;
+  if (tags.length) label += ' | ' + tags.join(', ');
+  if (day) label += ' | ' + day;
+
+  nodes.forEach((activeStateValueEl) => {
+    activeStateValueEl.textContent = label;
+  });
+  const headerBars = document.querySelectorAll('#current-sprint-content .current-sprint-header-bar');
+  const headerBarList = headerBars.length ? Array.from(headerBars) : Array.from(document.querySelectorAll('.current-sprint-header-bar'));
+  headerBarList.forEach((headerBar) => {
+    headerBar.classList.add('header-active-filter-state-highlight');
+    window.setTimeout(() => headerBar.classList.remove('header-active-filter-state-highlight'), 900);
+  });
+}
+
 function getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness }) {
   const freshnessText = freshnessLabel || (statusBadge === SPRINT_COPY.statusLive ? 'Live data' : 'Snapshot');
   return `${freshnessText} | ${exportReadiness}`;
@@ -30,117 +67,78 @@ function getVerdictPresentation({ verdictInfo, remainingChipLabel, remainingDays
   };
 }
 
-function buildHeaderInsights(data, { isHistoricalSprint = false } = {}) {
-  const stories = Array.isArray(data?.stories) ? data.stories : [];
-  if (!stories.length) return [];
-
-  const summary = data?.summary || {};
-  const allSubtasks = stories.flatMap((story) => (Array.isArray(story?.subtasks) ? story.subtasks : []));
-  const subtaskEstimatedHrs = allSubtasks.reduce((sum, subtask) => sum + (Number(subtask?.estimateHours) || 0), 0);
-  const subtaskLoggedHrs = allSubtasks.reduce((sum, subtask) => sum + (Number(subtask?.loggedHours) || 0), 0);
-  const subtasksNoLog = allSubtasks.filter((subtask) => Number(subtask?.estimateHours || 0) > 0 && !(Number(subtask?.loggedHours || 0) > 0)).length;
-  const recentSubtaskMovement = Number(summary.recentSubtaskMovementCount || 0);
-  const movingParents = Number(summary.parentsWithRecentSubtaskMovement || 0);
-  const noSubtasksParents = stories.filter((story) => !Array.isArray(story?.subtasks) || story.subtasks.length === 0).length;
-  const subtaskCoveragePct = stories.length > 0 ? Math.round(((stories.length - noSubtasksParents) / stories.length) * 100) : 0;
-  const capacity = buildCapacitySummary(data);
-
-  let evidenceState = 'neutral';
-  let evidenceLabel = 'Evidence is building';
-  let evidenceDetail = 'Time signals will sharpen as work updates land.';
-
-  if (isHistoricalSprint) {
-    evidenceLabel = 'Historical evidence snapshot';
-    evidenceDetail = recentSubtaskMovement > 0
-      ? `${recentSubtaskMovement} recent update${recentSubtaskMovement === 1 ? '' : 's'} were captured before sprint close.`
-      : 'This is a read-only summary of the final sprint state.';
-  } else if (!allSubtasks.length && subtaskEstimatedHrs === 0 && subtaskLoggedHrs === 0) {
-    evidenceLabel = 'Time evidence not started';
-    evidenceDetail = 'No subtasks or logs yet; tracking will appear once work begins.';
-  } else if (subtaskEstimatedHrs > 0 && subtaskLoggedHrs === 0) {
-    evidenceState = 'warning';
-    evidenceLabel = 'Plans entered, logs missing';
-    evidenceDetail = `${subtasksNoLog} estimated subtask${subtasksNoLog === 1 ? '' : 's'} still have no actual work logged.`;
-  } else if (subtaskCoveragePct > 0 && subtaskCoveragePct < 60) {
-    evidenceState = 'warning';
-    evidenceLabel = 'Time evidence is partial';
-    evidenceDetail = `Only ${subtaskCoveragePct}% of stories use subtasks, so time signals are incomplete.`;
-  } else if (recentSubtaskMovement > 0) {
-    evidenceState = 'healthy';
-    evidenceLabel = `${recentSubtaskMovement} subtask update${recentSubtaskMovement === 1 ? '' : 's'} in 24h`;
-    evidenceDetail = `${movingParents} parent stor${movingParents === 1 ? 'y' : 'ies'} moved recently.`;
-  } else if (subtaskLoggedHrs > 0) {
-    evidenceState = 'healthy';
-    evidenceLabel = 'Actual logs are flowing';
-    evidenceDetail = `Tracking is active across ${Math.max(0, subtaskCoveragePct)}% of stories.`;
-  }
-
-  return [
-    {
-      key: 'evidence',
-      eyebrow: 'Evidence',
-      state: evidenceState,
-      label: evidenceLabel,
-      detail: evidenceDetail,
-    },
-    {
-      key: 'capacity',
-      eyebrow: 'Capacity',
-      state: capacity.state,
-      label: capacity.label,
-      detail: capacity.detail,
-    },
-  ];
+/** Delta vs timeline prior sprint; server sets previousSprint.completionPercent from prior sprint issues. */
+function computeDoneDeltaVsPriorClosed(data, currentPct) {
+  const prev = data.previousSprint;
+  if (!prev || prev.completionPercent == null || Number.isNaN(Number(prev.completionPercent))) return null;
+  const prevPct = Number(prev.completionPercent);
+  const raw = Math.round(Number(currentPct) - prevPct);
+  const sign = raw > 0 ? '+' : '';
+  let className = 'header-metric-delta-stable';
+  if (raw > 3) className = 'header-metric-delta-up';
+  else if (raw < -3) className = 'header-metric-delta-down';
+  return {
+    short: `${sign}${raw}%`,
+    title: `vs prior closed sprint (${prevPct}% done)`,
+    className,
+  };
 }
 
-function buildMissionContextChips({
-  selectedProject,
-  boardName,
-  sprintDatesLabel,
-  freshnessLabel,
-  statusBadge,
-  exportReadiness,
-  isHistoricalSprint,
-}) {
-  const chips = [];
-  chips.push(`<span class="mission-context-chip" title="Current project and board">${escapeHtml(selectedProject || 'n/a')}${boardName ? ` | ${escapeHtml(boardName)}` : ''}</span>`);
-  chips.push(`<span class="mission-context-chip" title="Sprint date window">${escapeHtml(sprintDatesLabel)}</span>`);
-  const freshnessTone = statusBadge === SPRINT_COPY.statusLive && !isHistoricalSprint ? ' is-live' : ' is-stale';
-  chips.push(`<span class="mission-context-chip${freshnessTone}" title="Freshness and export readiness">${escapeHtml(freshnessLabel || statusBadge)} | ${escapeHtml(exportReadiness)}</span>`);
-  return chips.join('');
+function renderHeaderIdentityMetricsRow({ donePct, issuesCount, logH, estH, delta }) {
+  const deltaHtml = delta
+    ? ('<span class="' + escapeHtml(delta.className) + '" title="' + escapeHtml(delta.title) + '">' + escapeHtml(delta.short) + '</span>')
+    : '';
+  const doneInner = escapeHtml(String(donePct)) + '%' + (delta ? ' ' + deltaHtml : '');
+  return '<div class="header-identity-metrics" role="group" aria-label="Sprint metrics" data-header-metric-row="1">'
+    + '<div class="header-metric header-metric-tile" data-metric="done">'
+    + '<span class="metric-label">Done</span>'
+    + '<span class="metric-value">' + doneInner + '</span>'
+    + '</div>'
+    + '<div class="header-metric header-metric-tile" data-metric="issues">'
+    + '<span class="metric-label">Work items</span>'
+    + '<span class="metric-value">' + escapeHtml(String(issuesCount)) + '</span>'
+    + '</div>'
+    + '<div class="header-metric header-metric-tile" data-metric="hours">'
+    + '<span class="metric-label">Logged / est</span>'
+    + '<span class="metric-value">' + escapeHtml(logH.toFixed(1)) + 'h / ' + escapeHtml(estH.toFixed(1)) + 'h</span>'
+    + '</div>'
+    + '</div>';
 }
 
-function buildMissionContextRibbon({
-  selectedProject,
-  boardName,
-  sprintDatesLabel,
-  statusBadge,
-  freshnessLabel,
-  exportReadiness,
-}) {
-  return renderContextSummaryStrip({
-    chips: [
-      { label: 'Scope', value: [selectedProject || 'n/a', boardName || 'Board'].filter(Boolean).join(' | ') },
-      { label: 'Window', value: sprintDatesLabel || 'No active sprint window' },
-      { label: 'Trust', value: `${freshnessLabel || statusBadge} | ${exportReadiness}`, tone: statusBadge === SPRINT_COPY.statusLive ? 'success' : 'warning' },
-    ],
+function buildHeaderContextStrip(data, freshnessLabel) {
+  const board = data?.board || {};
+  const sprint = data?.sprint || {};
+  const meta = data?.meta || {};
+  const selectedProjects = Array.isArray(board.projectKeys) && board.projectKeys.length
+    ? board.projectKeys.join(', ')
+    : String(meta.projects || '').split(',').map((value) => value.trim()).filter(Boolean).join(', ');
+  const start = meta.windowStart || meta.start || '';
+  const end = meta.windowEnd || meta.end || '';
+  const contextPieces = getContextPieces({
+    projects: selectedProjects || undefined,
+    rangeStart: start,
+    rangeEnd: end,
+    freshness: freshnessLabel || (meta.fromSnapshot ? 'Snapshot view' : 'Live sprint'),
+    freshnessIsStale: !!meta.fromSnapshot,
   });
-}
+  const stripHtml = renderContextSegments(contextPieces, {
+    className: 'header-context-strip',
+    segmentClass: 'header-context-segment',
+    refreshAction: 'refresh-current-sprint-context',
+  });
+  if (stripHtml) return stripHtml;
 
-function buildMissionAttentionRail(verdictRiskChips, remainingChipLabel) {
-  const items = Array.isArray(verdictRiskChips) && verdictRiskChips.length
-    ? verdictRiskChips.slice(0, 3).map((chip) => ({
-        label: chip.label,
-        tone: chip.tags.includes('blocker') ? 'danger' : 'warning',
-        detail: chip.tags.includes('blocker') ? 'Open now' : 'Review',
-        action: chip.tags[0] === 'blocker'
-          ? 'open-blockers'
-          : (chip.tags[0] === 'missing-estimate'
-            ? 'open-missing-estimate'
-            : (chip.tags[0] === 'unassigned' ? 'open-unassigned' : 'open-blockers')),
-      }))
-    : [{ label: remainingChipLabel || SPRINT_COPY.noRisks, tone: 'muted' }];
-  return renderAttentionQueue({ title: '', items, compact: true });
+  const scopeLabel = [selectedProjects || 'All projects', board.name || 'Board', sprint.name || 'Sprint'].filter(Boolean).join(' | ');
+  return '<div class="header-context-strip">'
+    + '<span class="header-context-segment">'
+    + '<span class="header-context-segment-label">Context</span>'
+    + '<span class="header-context-segment-value">' + escapeHtml(scopeLabel) + '</span>'
+    + '</span>'
+    + '<span class="header-context-segment">'
+    + '<span class="header-context-segment-label">Freshness</span>'
+    + '<span class="header-context-segment-value">' + escapeHtml(freshnessLabel || (meta.fromSnapshot ? 'Snapshot view' : 'Live sprint')) + '</span>'
+    + '</span>'
+    + '</div>';
 }
 
 export function renderHeaderBar(data, options = {}) {
@@ -160,11 +158,22 @@ export function renderHeaderBar(data, options = {}) {
   const isHistoricalSprint = sprintState && sprintState !== 'active';
   const issuesCount = (data.stories || []).length;
   const verdictInfo = deriveSprintVerdict(data);
+  const distinctViews = buildDistinctSprintFilterViews(data, verdictInfo);
   const riskCounts = getUnifiedRiskCounts(data);
   const stuckCount = Number(riskCounts.blockersOwned || 0);
   const missingEstimates = Number(verdictInfo.missingEstimate || 0);
   const missingLoggedItems = Number(verdictInfo.missingLogged || 0);
   const unassignedParents = Number(riskCounts.unownedOutcomes || verdictInfo.unassignedParents || 0);
+  const evidenceLine = buildEvidenceLine({
+    verdict: verdictInfo,
+    stuckCount,
+    missingEstimates,
+    missingLoggedItems,
+    unassignedParents,
+    supportOpsSP: Number(summary.supportOpsSP || 0),
+    totalSP: Number(summary.totalSP || 0),
+    remainingDays,
+  });
   const remainingChipLabel = remainingDays == null
     ? 'Ends ?'
     : (remainingDays <= 0 ? 'Ended' : (remainingDays < 1 ? 'Ends today' : `Ends in ${Math.floor(remainingDays)}d`));
@@ -209,7 +218,11 @@ export function renderHeaderBar(data, options = {}) {
     .replace(/^-\s-\s-$/, 'No active sprint window');
   const sprintNameLabel = sprint.name || (sprint.id ? `Sprint ${sprint.id}` : 'No active sprint');
   const sprintNameCompact = sprintNameLabel.length > 40 ? `${sprintNameLabel.slice(0, 40).trimEnd()}...` : sprintNameLabel;
-  const sprintIdentityLine = [sprintNameCompact, sprintDatesLabel, verdictInfo.verdict].filter(Boolean).join(' | ');
+  const sprintIdentityLine = [
+    sprintNameCompact,
+    sprintDatesLabel,
+    (isHistoricalSprint ? 'Historical snapshot' : ''),
+  ].filter(Boolean).join(' | ');
   const hasNoHealthSignals = verdictRiskChips.length === 0;
   const isJustStartedSprint = !isHistoricalSprint && Number(donePercentage || 0) === 0 && hasNoHealthSignals && issuesCount > 0;
   const generatedAt = meta && (meta.generatedAt || meta.snapshotAt) ? new Date(meta.generatedAt || meta.snapshotAt) : null;
@@ -235,59 +248,50 @@ export function renderHeaderBar(data, options = {}) {
     donePercentage,
   });
   const statusSummary = getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness });
-  const headerInsights = buildHeaderInsights(data, { isHistoricalSprint });
   const followUpSummary = !isHistoricalSprint
     ? (loggingAlertTotal > 0 ? SPRINT_COPY.loggingNudges(loggingAlertTotal) : SPRINT_COPY.loggingHealthy)
     : SPRINT_COPY.historical;
-  const missionContextRibbon = buildMissionContextRibbon({
-    selectedProject,
-    boardName,
-    sprintDatesLabel,
-    freshnessLabel: freshnessLabel || (statusBadge === SPRINT_COPY.statusLive ? 'Live data' : 'Snapshot'),
-    statusBadge,
-    exportReadiness,
+  const headerContextStripHtml = buildHeaderContextStrip(data, freshnessLabel);
+  const interventionItems = Array.isArray(distinctViews?.distinctRiskViews) ? distinctViews.distinctRiskViews.slice(0, 3) : [];
+  const hasPriorityInterventions = interventionItems.length > 0;
+  const defaultRiskTags = hasPriorityInterventions ? (interventionItems[0].riskTags || []) : [];
+  const compactSummaryBits = [
+    `${donePercentage}% done`,
+    `${issuesCount} Work items`,
+    `${subtaskLoggedHrs.toFixed(1)}h / ${subtaskEstimatedHrs.toFixed(1)}h`,
+  ];
+  const verdictEvidenceLine = [evidenceLine].filter(Boolean).join(' | ');
+  const verdictDisplayLine = verdictEvidenceLine || verdictInfo.summary || followUpSummary || compactSummaryBits.join(' | ');
+  const doneDelta = computeDoneDeltaVsPriorClosed(data, donePercentage);
+  const identityMetricsHtml = renderHeaderIdentityMetricsRow({
+    donePct: donePercentage,
+    issuesCount,
+    logH: subtaskLoggedHrs,
+    estH: subtaskEstimatedHrs,
+    delta: doneDelta,
   });
-  const missionAttentionRail = buildMissionAttentionRail(verdictRiskChips, remainingChipLabel);
-  const hasPriorityInterventions = stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0;
 
-  let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}">`;
+  let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintIdentityLine)}</span>`;
+  html += identityMetricsHtml;
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
-  html += '<span class="sprint-verdict-explain">' + escapeHtml(verdictInfo.tagline || verdictInfo.summary || followUpSummary) + '</span>';
+  html += '<span class="sprint-verdict-explain">' + escapeHtml(verdictDisplayLine) + '</span>';
   html += '</div>';
-  html += '</div>';
-  html += '<div class="header-band-metrics" aria-label="Sprint summary metrics">';
-  html += '<button type="button" class="header-metric" data-metric="progress" title="Sprint completion"><span class="metric-label">Done</span><span class="metric-value">' + donePercentage + '%</span><span class="metric-meta">' + escapeHtml(remainingChipLabel) + '</span></button>';
-  html += '<button type="button" class="header-metric" data-metric="work-items" title="Jump to sprint work"><span class="metric-label">Issues</span><span class="metric-value">' + issuesCount + '</span></button>';
-  html += '<button type="button" class="header-metric" data-metric="log-est" title="Subtask logged versus estimated hours"><span class="metric-label">Log/Est</span><span class="metric-value">' + subtaskLoggedHrs.toFixed(1) + ' / ' + subtaskEstimatedHrs.toFixed(1) + 'h</span></button>';
   html += '</div>';
   html += '<div class="header-band-actions">';
-  html += '<button type="button" class="btn btn-primary btn-compact header-action-cta header-action-primary" data-header-action="take-action"'
-    + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '')
-    + ` title="${escapeHtml(isHistoricalSprint ? 'Historical sprint snapshot: live remediation actions are disabled.' : 'Focus highest priority risk rows')}">`
-    + escapeHtml(isHistoricalSprint ? SPRINT_COPY.historicalAction : 'Focus risk work')
-    + '</button>';
-  if (!isHistoricalSprint) {
-    html += '<button type="button" class="btn btn-secondary btn-compact header-create-work-btn" data-open-outcome-modal'
-      + ' data-outcome-context="Create work from the current sprint context."'
-      + ' data-outcome-projects="' + escapeHtml((selectedProject || meta.projects || '').replace(/\s+/g, '')) + '">Create work</button>';
-  }
   html += renderExportButton(true);
-  html += '<button class="btn btn-secondary btn-compact header-refresh-btn" title="Refresh sprint data and context"' + (isHistoricalSprint ? ' disabled aria-disabled="true"' : '') + '>Refresh</button>';
   html += '<details class="header-view-drawer">';
-  html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span>More</span><span data-header-active-filter-value>Lens: All | none</span></summary>';
+  html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span>Context</span><span data-header-active-filter-value>All work</span></summary>';
   html += '<div class="header-view-drawer-panel">';
   html += '<div class="header-view-summary" title="' + escapeHtml(statusSummary) + '"><span class="header-view-summary-label">Status</span><span class="header-view-summary-value">' + escapeHtml(statusBadge === SPRINT_COPY.statusLive ? 'Live' : 'Snapshot') + '</span></div>';
-  html += '<label class="header-lens-select-wrap">View as <select class="header-lens-select" data-header-lens-select aria-label="Choose sprint lens">'
-    + '<option value="all">All lens</option>'
-    + '<option value="developer">Dev lens</option>'
-    + '<option value="scrum-master">SM lens</option>'
-    + '<option value="product-owner">PO lens</option>'
-    + '<option value="line-manager">Leads lens</option>'
-    + '</select></label>';
+  html += '<div class="header-context-summary-row">';
+  html += '<span class="header-drawer-meta-item">' + escapeHtml([selectedProject || 'n/a', boardName || 'Board'].filter(Boolean).join(' | ')) + '</span>';
+  html += '<span class="header-drawer-meta-item">' + escapeHtml(freshnessLabel || statusBadge) + '</span>';
+  html += '<span class="header-drawer-meta-item">' + escapeHtml(verdictInfo.trustLabel) + '</span>';
+  html += '</div>';
   html += '<div class="header-drawer-risks">';
   verdictRiskChips.slice(0, 4).forEach((chip) => {
     html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
@@ -295,10 +299,11 @@ export function renderHeaderBar(data, options = {}) {
   if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
   html += '</div>';
   html += '<div class="header-drawer-meta" title="' + escapeHtml(statusSummary) + '">';
-  html += '<span>' + escapeHtml(followUpSummary) + '</span>';
-  headerInsights.forEach((item) => {
-    html += '<span title="' + escapeHtml(item.detail || '') + '">' + escapeHtml(item.eyebrow + ': ' + item.label) + '</span>';
-  });
+  html += '<span class="header-hygiene-followup" data-signal="hygiene" title="Time-tracking hygiene (not sprint health)">'
+    + '<span class="header-hygiene-followup-label">Hygiene</span>'
+    + '<span class="header-hygiene-followup-value">' + escapeHtml(followUpSummary) + '</span>'
+    + '</span>';
+  html += '<span class="header-remediation-hint" data-signal="risk-followup" title="' + escapeHtml(verdictInfo.trackingReasons || '') + '">' + escapeHtml(verdictInfo.topRemediation || '') + '</span>';
   html += '</div>';
   if (sectionLinksHtml || isLoadingShell) {
     html += '<div class="header-drawer-section">';
@@ -319,6 +324,9 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-drawer-links">';
   html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">Reset lens</button>';
   if (!isHistoricalSprint) {
+    html += '<button type="button" class="header-follow-up-link" data-header-action="focus-remediation-secondary">Open remediation queue</button>';
+  }
+  if (!isHistoricalSprint) {
     if (selectedProject && boardName) {
       html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">Leadership trend</a>';
     }
@@ -331,75 +339,47 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += '</details>';
   html += '</div>';
-  html += '</div>';
-  html += '<div class="mission-strip-secondary" aria-label="Sprint mission strip detail">';
-  html += '<div class="mission-context-ribbon">' + missionContextRibbon + '</div>';
+  html += '<div class="header-compact-strip" aria-label="Top sprint summary">';
   if (hasPriorityInterventions) {
-    html += '<div class="sprint-intervention-queue" aria-label="Top intervention queue">';
-    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="blocker"><span class="metric-label">Your blockers now</span><span class="metric-value">' + stuckCount + '</span></button>';
-    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="missing-estimate"><span class="metric-label">Missing estimates</span><span class="metric-value">' + missingEstimates + '</span></button>';
-    html += '<button type="button" class="sprint-intervention-item" data-risk-tags="unassigned"><span class="metric-label">Ownership gaps</span><span class="metric-value">' + unassignedParents + '</span></button>';
-    html += '</div>';
-  }
-  const showAttentionRail = verdictRiskChips.length > 0 && isHistoricalSprint;
-  if (showAttentionRail) {
-    html += '<div class="mission-attention-rail">' + missionAttentionRail + '</div>';
-  }
-  if (isHistoricalSprint) {
-    const histLabel = `${sprint.name || 'Historical sprint'} - ${sprintDatesLabel}`;
-    html += `<span class="current-sprint-history-banner current-sprint-history-banner-inline" role="note">${escapeHtml(SPRINT_COPY.historical)} (${escapeHtml(histLabel)})</span>`;
-  }
-  if (!hasPriorityInterventions && !isHistoricalSprint) {
-    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>Healthy</span><span class="header-export-readiness-sep">|</span><span>No urgent intervention</span></span>';
+    const primaryIntervention = interventionItems[0] || {};
+    const interventionText = interventionItems
+      .map((item) => (item.label || '') + ' ' + String((item.matchedKeys || []).length || 0))
+      .filter(Boolean)
+      .join(' | ');
+    const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
+    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation">Take action</button>';
+    if (primaryTags) {
+      html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">Focus: ' + escapeHtml(primaryIntervention.label || 'Risk') + '</button>';
+    }
+    html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span></span>';
+  } else {
+    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>No urgent intervention</span></span>';
   }
   html += '</div>';
+  html += headerContextStripHtml;
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
   html += `<span class="header-mini-strip-days">${escapeHtml(remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
   html += '</div>';
   html += '</div>';
+  html += '</div>';
   return html;
 }
 
 export function wireHeaderBarHandlers() {
-  const headerBar = document.querySelector('.current-sprint-header-bar');
+  const headerBar = document.querySelector('#current-sprint-content .current-sprint-header-bar')
+    || document.querySelector('.current-sprint-header-bar');
   if (!headerBar) return;
   if (headerBar.dataset.headerBarHandlersWired === '1') return;
   headerBar.dataset.headerBarHandlersWired = '1';
 
-  const uiState = {
-    roleMode: 'all',
-    riskTags: [],
-    dayKey: '',
-  };
-  const activeStateValueEl = headerBar.querySelector('[data-header-active-filter-value]');
-  const lensSelect = headerBar.querySelector('[data-header-lens-select]');
+  const roleButtons = Array.from(document.querySelectorAll('[data-work-risk-role-mode]'));
+  const availableRoleModes = new Set(['all', ...roleButtons.map((button) => String(button.getAttribute('data-work-risk-role-mode') || '').trim()).filter(Boolean)]);
 
   function setRiskTagsState(tags) {
-    uiState.riskTags = Array.isArray(tags) ? tags.map((t) => String(t || '').trim()).filter(Boolean) : [];
-    renderActiveState();
-  }
-
-  function renderActiveState() {
-    if (!activeStateValueEl) return;
-    const role = uiState.roleMode || 'all';
-    const tags = Array.isArray(uiState.riskTags) ? uiState.riskTags : [];
-    const day = uiState.dayKey || '';
-
-    let roleLabel = 'All lens';
-    if (role === 'developer') roleLabel = 'Dev lens';
-    else if (role === 'scrum-master') roleLabel = 'SM lens';
-    else if (role === 'product-owner') roleLabel = 'PO lens';
-    else if (role === 'line-manager') roleLabel = 'Leads lens';
-
-    let label = 'Lens: ' + roleLabel;
-    label += ' | ' + (tags.length ? tags.join(', ') : 'none');
-    if (day) label += ' | ' + day;
-
-    activeStateValueEl.textContent = label;
-    headerBar.classList.add('header-active-filter-state-highlight');
-    window.setTimeout(() => headerBar.classList.remove('header-active-filter-state-highlight'), 900);
+    headerFilterUiState.riskTags = Array.isArray(tags) ? tags.map((t) => String(t || '').trim()).filter(Boolean) : [];
+    renderHeaderActiveFilterLabel();
   }
 
   function applyHeaderRiskAction(preferredTags, source) {
@@ -414,7 +394,8 @@ export function wireHeaderBarHandlers() {
       } catch (_) {}
       try {
         const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
-        stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
+        else stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } catch (_) {}
       return;
     }
@@ -436,15 +417,65 @@ export function wireHeaderBarHandlers() {
     } catch (_) {}
     try {
       const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
-      stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
+      else stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     } catch (_) {}
   }
 
-  if (headerBar.dataset.headerActionDelegationWired !== '1') {
-    headerBar.dataset.headerActionDelegationWired = '1';
-    headerBar.addEventListener('click', (event) => {
-      const leadershipLink = event.target.closest('[data-header-action="open-leadership-trend"]');
-      if (leadershipLink && headerBar.contains(leadershipLink)) {
+  function handleInterventionClick(target, event) {
+    const raw = target || event?.target;
+    const el = raw && raw.nodeType === 1 ? raw : raw?.parentElement;
+    if (!el) return false;
+    const bar = el.closest('.current-sprint-header-bar');
+    if (!bar) return false;
+    if (event) event.preventDefault();
+    const focusRemediation = el.closest?.('[data-header-action="focus-remediation"]');
+    if (focusRemediation) {
+      applyHeaderRiskAction(['no-log', 'missing-estimate', 'unassigned', 'blocker'], 'header-take-action');
+      return true;
+    }
+    const interventionTarget = el.closest?.('.sprint-intervention-item');
+    if (interventionTarget) {
+      const tags = String(interventionTarget.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+      applyHeaderRiskAction(tags, 'header-intervention');
+      return true;
+    }
+    return false;
+  }
+
+  function handleVerdictPillClick(target, event) {
+    const raw = target || event?.target;
+    const el = raw && raw.nodeType === 1 ? raw : raw?.parentElement;
+    const pill = el?.matches?.('.verdict-pill') ? el : el?.closest?.('.verdict-pill');
+    const bar = pill?.closest?.('.current-sprint-header-bar');
+    if (!pill || !bar) return false;
+    if (event) event.preventDefault();
+    const riskTagsAttr = pill.getAttribute('data-risk-tags') || '';
+    const riskTags = riskTagsAttr.split(/\s+/).filter(Boolean);
+    setRiskTagsState(riskTags);
+    try {
+      window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'header-verdict' } }));
+    } catch (_) {}
+    try {
+      const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
+      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
+      else stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    } catch (_) {}
+    return true;
+  }
+
+  const contentRoot = document.getElementById('current-sprint-content');
+  const delegationHost = contentRoot || headerBar;
+  if (delegationHost.dataset.headerBarActionDelegationWired !== '1') {
+    delegationHost.dataset.headerBarActionDelegationWired = '1';
+    delegationHost.addEventListener('click', (event) => {
+      const raw = event.target;
+      const el = raw && raw.nodeType === 1 ? raw : raw?.parentElement;
+      if (!el) return;
+      const bar = el.closest('.current-sprint-header-bar');
+      if (!bar) return;
+      const leadershipLink = el.closest('[data-header-action="open-leadership-trend"]');
+      if (leadershipLink && bar.contains(leadershipLink)) {
         try {
           const url = new URL(leadershipLink.href, window.location.origin);
           window.localStorage.setItem('leadership_focus_context', JSON.stringify({
@@ -454,61 +485,38 @@ export function wireHeaderBarHandlers() {
           }));
         } catch (_) {}
       }
-      const takeAction = event.target.closest('[data-header-action="take-action"]');
-      if (takeAction && headerBar.contains(takeAction)) {
-        event.preventDefault();
-        if (takeAction.hasAttribute('disabled') || takeAction.getAttribute('aria-disabled') === 'true') {
-          document.getElementById('stuck-card')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-          return;
-        }
-        applyHeaderRiskAction(['blocker'], 'header-take-action');
+      if (handleInterventionClick(el, event)) {
         return;
       }
 
-      const resetFilters = event.target.closest('[data-header-action="reset-filters"]');
-      if (resetFilters && headerBar.contains(resetFilters)) {
+      const resetFilters = el.closest('[data-header-action="reset-filters"]');
+      if (resetFilters && bar.contains(resetFilters)) {
         event.preventDefault();
         setRiskTagsState([]);
-        uiState.dayKey = '';
+        headerFilterUiState.dayKey = '';
         applyRoleMode('all');
         try {
           window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: [], source: 'header-reset-filters' } }));
         } catch (_) {}
-        renderActiveState();
+        renderHeaderActiveFilterLabel();
         return;
       }
 
-      const refreshContext = event.target.closest('[data-context-action="refresh-current-sprint-context"]');
-      if (refreshContext && headerBar.contains(refreshContext)) {
+      const refreshContext = el.closest('[data-context-action="refresh-current-sprint-context"]');
+      if (refreshContext && bar.contains(refreshContext)) {
         event.preventDefault();
         document.dispatchEvent(new Event('refreshSprint'));
         return;
       }
 
-      const openReportContext = event.target.closest('[data-context-action="open-report-context"]');
-      if (openReportContext && headerBar.contains(openReportContext)) {
+      const openReportContext = el.closest('[data-context-action="open-report-context"]');
+      if (openReportContext && bar.contains(openReportContext)) {
         event.preventDefault();
         window.location.href = '/report';
         return;
       }
 
-      const metricTarget = event.target.closest('.header-metric, .header-metric-link');
-      if (metricTarget && headerBar.contains(metricTarget)) {
-        event.preventDefault();
-        const metricKeyAttr = (metricTarget.getAttribute('data-metric') || '').trim().toLowerCase();
-        const label = (metricTarget.querySelector('.metric-label')?.textContent || '').trim().toLowerCase();
-        const metricKey = metricKeyAttr || label;
-        if (metricKey === 'work-items' || metricKey === 'work items') {
-          try {
-            window.dispatchEvent(new CustomEvent('currentSprint:focusStoriesEvidence', { detail: { source: 'header-work-items' } }));
-          } catch (_) {}
-        } else if (metricKey === 'log-est' || metricKey === 'log/est') {
-          applyHeaderRiskAction(['no-log'], 'header-log-est');
-          return;
-        }
-        document.getElementById('stories-card')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      }
-    });
+    }, true);
   }
 
   if (!window.__currentSprintHeaderStateBridgeBound) {
@@ -517,17 +525,25 @@ export function wireHeaderBarHandlers() {
       window.addEventListener('currentSprint:applyWorkRiskFilter', (event) => {
         const detail = event?.detail || {};
         const riskTags = Array.isArray(detail.riskTags) ? detail.riskTags.map((t) => String(t || '').trim()).filter(Boolean) : [];
-        uiState.riskTags = riskTags;
-        renderActiveState();
+        const source = String(detail.source || '');
+        if (source.startsWith('role-mode-')) {
+          headerFilterUiState.roleMode = source.replace('role-mode-', '');
+        }
+        headerFilterUiState.riskTags = riskTags;
+        renderHeaderActiveFilterLabel();
+      });
+      window.addEventListener('currentSprint:applyRoleMode', (event) => {
+        const detail = event?.detail || {};
+        applyRoleMode(String(detail.mode || 'all'));
       });
       window.addEventListener('currentSprint:storiesDayFilterChanged', (event) => {
-        const activeHeader = document.querySelector('.current-sprint-header-bar');
+        const activeHeader = document.querySelector('#current-sprint-content .current-sprint-header-bar');
         if (!activeHeader) return;
         const detail = event?.detail || {};
         const dayKey = String(detail.dayKey || '').trim();
         activeHeader.setAttribute('data-active-day-key', dayKey);
-        uiState.dayKey = dayKey;
-        renderActiveState();
+        headerFilterUiState.dayKey = dayKey;
+        renderHeaderActiveFilterLabel();
       });
     } catch (_) {}
   }
@@ -536,7 +552,12 @@ export function wireHeaderBarHandlers() {
     const threshold = window.innerWidth <= 720
       ? 8
       : Math.max(120, (headerBar.offsetTop || 0) + 72);
-    headerBar.classList.toggle('header-mini-mode', window.scrollY > threshold);
+    const hasMiniMode = window.scrollY > threshold;
+    headerBar.classList.toggle('header-mini-mode', hasMiniMode);
+    const miniStrip = headerBar.querySelector('.header-mini-strip');
+    if (miniStrip) {
+      miniStrip.setAttribute('aria-hidden', hasMiniMode ? 'false' : 'true');
+    }
   }
   syncMiniMode();
   window.addEventListener('scroll', syncMiniMode, { passive: true });
@@ -552,16 +573,9 @@ export function wireHeaderBarHandlers() {
       }
       const carousel = document.querySelector('.sprint-hud-carousel-inline, .sprint-carousel, .sprint-switcher-card');
       if (carousel) {
-        carousel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(carousel);
+        else carousel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    });
-  }
-
-  const refreshBtn = headerBar.querySelector('.header-refresh-btn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      if (refreshBtn.hasAttribute('disabled') || refreshBtn.getAttribute('aria-disabled') === 'true') return;
-      document.dispatchEvent(new Event('refreshSprint'));
     });
   }
 
@@ -570,54 +584,67 @@ export function wireHeaderBarHandlers() {
     alertsBtn.addEventListener('click', () => {
       const storiesCard = document.getElementById('stories-card');
       const risksCard = document.getElementById('stuck-card');
-      (risksCard || storiesCard)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(risksCard || storiesCard);
+      else (risksCard || storiesCard)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     });
   }
 
   const verdictLine = headerBar.querySelector('.sprint-verdict-line');
   if (verdictLine) {
     verdictLine.addEventListener('click', (event) => {
-      const pill = event.target.closest('.verdict-pill');
-      if (!pill) return;
-      const riskTagsAttr = pill.getAttribute('data-risk-tags') || '';
-      const riskTags = riskTagsAttr.split(/\s+/).filter(Boolean);
-      setRiskTagsState(riskTags);
-      try {
-        window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'header-verdict' } }));
-      } catch (_) {}
-      try {
-        const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
-        stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      } catch (_) {}
+      handleVerdictPillClick(event.target, event);
     });
   }
 
+  headerBar.querySelectorAll('.sprint-intervention-item').forEach((button) => {
+    if (button.dataset.headerActionBound === '1') return;
+    button.dataset.headerActionBound = '1';
+    button.addEventListener('click', (event) => {
+      handleInterventionClick(button, event);
+    });
+  });
+
+  headerBar.querySelectorAll('.verdict-pill').forEach((button) => {
+    if (button.dataset.headerVerdictBound === '1') return;
+    button.dataset.headerVerdictBound = '1';
+    button.addEventListener('click', (event) => {
+      handleVerdictPillClick(button, event);
+    });
+  });
+
   const roleModeKey = 'current_sprint_role_mode';
 
-  function applyRoleMode(mode) {
+  function applyRoleMode(mode, options = {}) {
+    const silent = options.silent === true;
     let active = mode || 'all';
-    if (!['all', 'developer', 'scrum-master', 'product-owner', 'line-manager'].includes(active)) {
+    if (!availableRoleModes.has(active)) {
       active = 'all';
     }
-    if (lensSelect) lensSelect.value = active;
-    uiState.roleMode = active;
+    roleButtons.forEach((button) => {
+      button.classList.toggle('is-active', button.getAttribute('data-work-risk-role-mode') === active);
+      button.setAttribute('aria-pressed', button.classList.contains('is-active') ? 'true' : 'false');
+    });
+    headerFilterUiState.roleMode = active;
     const presetMap = {
       all: [],
-      developer: ['no-log'],
+      developer: ['no-log', 'missing-estimate'],
       'scrum-master': ['blocker'],
-      'product-owner': ['scope'],
-      'line-manager': ['unassigned'],
+      'product-owner': ['scope', 'blocker'],
+      'line-manager': ['unassigned', 'blocker'],
     };
     const riskTags = presetMap[active] || [];
     setRiskTagsState(riskTags);
     try {
       window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'role-mode-' + active } }));
     } catch (_) {}
-    renderActiveState();
-    try {
-      const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
-      stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-    } catch (_) {}
+    renderHeaderActiveFilterLabel();
+    if (!silent) {
+      try {
+        const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
+        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
+        else stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      } catch (_) {}
+    }
   }
 
   let initialMode = 'all';
@@ -625,15 +652,17 @@ export function wireHeaderBarHandlers() {
     const stored = window.localStorage.getItem(roleModeKey);
     if (stored) initialMode = stored;
   } catch (_) {}
-  applyRoleMode(initialMode);
+  applyRoleMode(initialMode, { silent: true });
 
-  lensSelect?.addEventListener('change', () => {
-    const mode = lensSelect.value || 'all';
-    try {
-      window.localStorage.setItem(roleModeKey, mode);
-    } catch (_) {}
-    applyRoleMode(mode);
+  roleButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const mode = button.getAttribute('data-work-risk-role-mode') || 'all';
+      try {
+        window.localStorage.setItem(roleModeKey, mode);
+      } catch (_) {}
+      applyRoleMode(mode);
+    });
   });
 
-  renderActiveState();
+  renderHeaderActiveFilterLabel();
 }

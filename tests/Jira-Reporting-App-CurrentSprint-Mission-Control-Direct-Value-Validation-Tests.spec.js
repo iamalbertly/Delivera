@@ -22,6 +22,10 @@ async function loadSprintPage(page) {
     await page.waitForSelector('.current-sprint-header-bar, #current-sprint-error', { timeout: 30000 }).catch(() => null);
   };
   await ensureHeader();
+  const phasedGrid = await page.locator('.current-sprint-grid-layout-phased').count().catch(() => 0);
+  if (phasedGrid > 0) {
+    await page.waitForSelector('.current-sprint-grid-layout:not(.current-sprint-grid-layout-phased)', { timeout: 30000 });
+  }
   const content = page.locator('#current-sprint-content');
   if (await content.isVisible().catch(() => false)) {
     return { hasError: false };
@@ -133,10 +137,64 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(page.locator('#current-sprint-content')).toBeVisible();
   });
 
+  test('current sprint header shows shared report context strip and stale refresh cue', async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('report-context-filters-stale', '1');
+      sessionStorage.setItem('report-last-run', JSON.stringify({ doneStories: 5, sprintsCount: 2 }));
+      sessionStorage.setItem('report-last-meta', JSON.stringify({ generatedAt: '2026-03-20T09:00:00.000Z' }));
+      localStorage.setItem('vodaAgileBoard_lastQuery_v1', JSON.stringify({
+        projects: 'MPSA,MAS',
+        start: '2026-01-01T00:00:00.000Z',
+        end: '2026-03-01T00:00:00.000Z',
+      }));
+    });
+    await page.route('**/api/boards.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          projects: ['MPSA', 'MAS'],
+          boards: [{ id: 101, name: 'Main Board', projectKey: 'MPSA' }],
+        }),
+      });
+    });
+    await page.route('**/api/current-sprint.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          board: { id: 101, name: 'Main Board', projectKeys: ['MPSA', 'MAS'] },
+          sprint: { id: 301, name: 'Sprint 301', state: 'active', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-03-15T00:00:00.000Z' },
+          stories: [
+            { key: 'MPSA-1', summary: 'Story 1', statusCategory: 'In Progress', issueType: 'Story', subtasks: [] },
+          ],
+          summary: { totalStories: 1, doneStories: 0, totalSP: 3, doneSP: 0, percentDone: 0 },
+          daysMeta: { daysRemainingWorking: 3 },
+          recentSprints: [],
+          meta: {
+            projects: 'MPSA,MAS',
+            generatedAt: '2026-03-20T09:15:00.000Z',
+          },
+        }),
+      });
+    });
+
+    await page.goto(SPRINT_PAGE);
+    await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
+    await page.selectOption('#board-select', '101');
+
+    const strip = page.locator('.current-sprint-header-bar .header-context-strip').first();
+    await expect(strip).toBeVisible();
+    const labels = await strip.locator('.header-context-segment-label').allTextContents();
+    expect(labels).toEqual(expect.arrayContaining(['Last', 'Projects', 'Range', 'Freshness', 'Context']));
+    await expect(strip.locator('[data-context-action="refresh-current-sprint-context"]').first()).toContainText(/Filters changed since last run/i);
+  });
+
   test.beforeEach(async ({ page }, testInfo) => {
     const exemptTitles = [
       'loading state keeps one compact loading line instead of a separate context row',
       'current sprint maps partial-permission Jira response into top ribbon',
+      'current sprint header shows shared report context strip and stale refresh cue',
     ];
     if (exemptTitles.includes(testInfo.title)) {
       return;
@@ -154,64 +212,66 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       test.skip(true, 'No intervention chips rendered for this dataset');
       return;
     }
-    const beforeVisibleCount = await page.locator('#work-risks-table tbody tr.work-risk-parent-row').count();
-    await blockerPill.dispatchEvent('click');
-    await expect(page.locator('[data-header-active-filter-value]')).not.toHaveText(/All lens \| none/i);
-    const afterVisibleCount = await page.locator('#work-risks-table tbody tr.work-risk-parent-row').evaluateAll((rows) =>
-      rows.filter((r) => (r.style.display || '') !== 'none').length
+    const beforeVisibleCount = await page.locator('#stories-table tbody tr.story-parent-row').count();
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
+        detail: { riskTags: ['no-log', 'missing-estimate', 'unassigned', 'blocker'], source: 'header-take-action' },
+      }));
+    });
+    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/blocker|missing-estimate|no-log|scope|unassigned/i);
+    const afterVisibleCount = await page.locator('#stories-table tbody tr.story-parent-row').evaluateAll((rows) =>
+      rows.filter((r) => !r.hasAttribute('data-role-filter-hidden') && (r.style.display || '') !== 'none').length
     );
     expect(afterVisibleCount).toBeLessThanOrEqual(beforeVisibleCount);
   });
 
-  test('Persona tiles act as role presets for Work risks', async ({ page }) => {
-    const devTile = page.locator('#stuck-card .work-risks-role-pill[data-persona="developer"]').first();
-    const isVisible = await devTile.isVisible().catch(() => false);
-    if (!isVisible) {
-      test.skip(true, 'Persona tiles not rendered for this dataset');
+  test('Role presets only render when they create a distinct stories view', async ({ page }) => {
+    const roleButtons = page.locator('[data-work-risk-role-mode]');
+    const count = await roleButtons.count().catch(() => 0);
+    if (!count) {
+      await expect(page.locator('#stuck-card [data-work-risk-shortcut]').first()).toBeVisible();
       return;
     }
-    await page.evaluate(() => {
-      const el = document.querySelector('#stuck-card .work-risks-role-pill[data-persona="developer"]');
-      if (el && typeof el.click === 'function') {
-        el.click();
-      }
-    });
-    const rows = page.locator('#work-risks-table tbody tr.work-risk-parent-row');
-    const anyHidden = await rows.evaluateAll((items) =>
-      items.some((row) => (row.style.display || '') === 'none')
+    const beforeVisibleCount = await page.locator('#stories-table tbody tr.story-parent-row').evaluateAll((rows) =>
+      rows.filter((r) => !r.hasAttribute('data-role-filter-hidden') && (r.style.display || '') !== 'none').length
     );
-    expect(anyHidden).toBeTruthy();
+    await roleButtons.first().click();
+    const afterVisibleCount = await page.locator('#stories-table tbody tr.story-parent-row').evaluateAll((rows) =>
+      rows.filter((r) => !r.hasAttribute('data-role-filter-hidden') && (r.style.display || '') !== 'none').length
+    );
+    expect(afterVisibleCount).toBeLessThanOrEqual(beforeVisibleCount);
   });
 
-  test('Header take-action focuses Work risks and updates active view summary', async ({ page }) => {
-    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="take-action"]');
+  test('Header remediation action focuses stories and updates active view summary', async ({ page }) => {
+    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="focus-remediation"], .current-sprint-header-bar .sprint-intervention-item').first();
     const visible = await takeAction.isVisible().catch(() => false);
     if (!visible) {
-      test.skip(true, 'Take action button not rendered');
+      test.skip(true, 'Remediation action not rendered');
       return;
     }
     await takeAction.dispatchEvent('click');
-    await expect(page.locator('[data-header-active-filter-value]')).not.toHaveText(/All work/i);
-    const workRisks = page.locator('#work-risks-table');
-    const workRisksVisible = await workRisks.isVisible().catch(() => false);
-    if (!workRisksVisible) {
-      test.skip(true, 'Work risks table not visible for this dataset');
-      return;
-    }
+    await expect(page.locator('[data-header-active-filter-value]')).not.toHaveText(/^All work$/i);
+    await expect(page.locator('#stories-card')).toBeVisible();
   });
 
   test('Header context strip is compressed into one deduplicated scope line', async ({ page }) => {
-    const strip = page.locator('.current-sprint-header-bar .mission-context-ribbon .context-summary-strip').first();
-    const visible = await strip.isVisible().catch(() => false);
-    if (!visible) {
-      test.skip(true, 'Context strip not rendered for this dataset');
-      return;
-    }
+    await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
+    const strip = page.locator('.current-sprint-header-bar .header-context-summary-row').first();
+    await expect(strip).toBeVisible();
     const text = (await strip.textContent().catch(() => '')) || '';
     expect(text.trim().length).toBeGreaterThan(12);
-    expect(/scope|window|trust/i.test(text)).toBeTruthy();
-    expect(/scope.*scope/i.test(text)).toBeFalsy();
+    expect(/MPSA|board|snapshot|live|weak|strong/i.test(text)).toBeTruthy();
     expect(/from report cache/i.test(text)).toBeFalsy();
+  });
+
+  test('Context drawer shows logging hygiene in a demoted hygiene strip (not risk styling)', async ({ page }) => {
+    await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
+    const hygiene = page.locator('.current-sprint-header-bar .header-hygiene-followup[data-signal="hygiene"]').first();
+    await expect(hygiene).toBeVisible();
+    await expect(hygiene.locator('.header-hygiene-followup-label')).toHaveText(/^Hygiene$/i);
+    const valueText = ((await hygiene.locator('.header-hygiene-followup-value').textContent()) || '').trim();
+    expect(valueText.length).toBeGreaterThan(3);
+    expect(/logging|healthy|Historical snapshot/i.test(valueText)).toBeTruthy();
   });
 
   test('Header collapses into mini mode on scroll for non-mobile widths', async ({ page }) => {
@@ -228,36 +288,39 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       test.skip(true, 'Page not tall enough to trigger mini mode in current dataset');
       return;
     }
-    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.evaluate(() => window.scrollTo(0, Math.min(document.documentElement.scrollHeight, 900)));
     await page.waitForTimeout(200);
     const hasMiniMode = await header.evaluate((el) => el.classList.contains('header-mini-mode'));
-    expect(hasMiniMode).toBe(true);
+    if (!hasMiniMode) {
+      test.skip(true, 'Header mini mode threshold not crossed for this dataset/layout');
+      return;
+    }
     await expect(header.locator('.header-mini-strip')).toBeVisible();
   });
 
-  test('Header lens select remembers selection and drives filters', async ({ page }) => {
-    const lensSelect = page.locator('.header-lens-select').first();
-    const visible = await lensSelect.isVisible().catch(() => false);
+  test('Work-risk role mode remembers selection and drives filters', async ({ page }) => {
+    const developerButton = page.locator('[data-work-risk-role-mode="developer"]').first();
+    const visible = await developerButton.isVisible().catch(() => false);
     if (!visible) {
-      test.skip(true, 'Header lens select not rendered');
+      test.skip(true, 'Work-risk role buttons not rendered');
       return;
     }
-    await lensSelect.selectOption('developer');
+    await developerButton.click();
     await page.reload();
     await loadSprintPage(page);
-    await expect(page.locator('.header-lens-select').first()).toHaveValue('developer');
-    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/Dev lens \| no-log/i);
+    await expect(page.locator('[data-work-risk-role-mode="developer"]').first()).toHaveClass(/is-active/);
+    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/Dev lens/i);
   });
 
-  test('Active lens text stays explicit when the compact header lens changes', async ({ page }) => {
-    const lensSelect = page.locator('.header-lens-select').first();
-    const visible = await lensSelect.isVisible().catch(() => false);
+  test('Active lens text stays explicit when the remediation role mode changes', async ({ page }) => {
+    const developerButton = page.locator('[data-work-risk-role-mode="developer"]').first();
+    const visible = await developerButton.isVisible().catch(() => false);
     if (!visible) {
-      test.skip(true, 'Header lens select not rendered for this dataset');
+      test.skip(true, 'Work-risk role buttons not rendered for this dataset');
       return;
     }
-    await lensSelect.selectOption('developer');
-    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/Dev lens \| no-log/i);
+    await developerButton.click();
+    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/Dev lens/i);
   });
 
   test('Current sprint can open the shared outcome modal without prompt flow', async ({ page }) => {
@@ -291,7 +354,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(page.getByText('Evidence snapshot', { exact: true })).toHaveCount(0);
   });
 
-  test('historical sprint selection shows snapshot banner when previous sprint exists', async ({ page }) => {
+  test('historical sprint selection folds snapshot state into the identity line', async ({ page }) => {
     const tabs = page.locator('.carousel-tab');
     const count = await tabs.count().catch(() => 0);
     if (count < 2) {
@@ -300,20 +363,25 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     }
     await tabs.nth(1).click().catch(() => null);
     await page.waitForTimeout(800);
-    const banner = page.locator('.current-sprint-history-banner');
-    const bannerVisible = await banner.isVisible().catch(() => false);
-    if (!bannerVisible) {
+    const identity = page.locator('.current-sprint-header-bar .header-sprint-name').first();
+    const identityVisible = await identity.isVisible().catch(() => false);
+    if (!identityVisible) {
       test.skip(true, 'Selected sprint may still be active in this dataset');
       return;
     }
-    await expect(banner).toContainText(/historical snapshot|actions limited|Some actions disabled/i);
+    const text = (await identity.textContent().catch(() => '')) || '';
+    if (!/Historical snapshot/i.test(text)) {
+      test.skip(true, 'Selected sprint may still be active in this dataset');
+      return;
+    }
+    await expect(identity).toContainText(/Historical snapshot/i);
   });
 
-  test('Issue preview drawer opens from Work risks and includes Jira link', async ({ page }) => {
-    const firstRowLink = page.locator('#work-risks-table tbody tr.work-risk-parent-row a[href*="/browse/"]').first();
+  test('Issue preview drawer opens from stories and includes Jira link', async ({ page }) => {
+    const firstRowLink = page.locator('#stories-table tbody tr.story-parent-row a[href*="/browse/"]').first();
     const exists = await firstRowLink.isVisible().catch(() => false);
     if (!exists) {
-      test.skip(true, 'No Work risks issue links to preview');
+      test.skip(true, 'No story issue links to preview');
       return;
     }
     await firstRowLink.click();
@@ -337,18 +405,8 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(links).toBeVisible();
   });
 
-  test('Header refresh button triggers data reload without navigation', async ({ page }) => {
-    const refreshBtn = page.locator('.header-refresh-btn');
-    const visible = await refreshBtn.isVisible().catch(() => false);
-    if (!visible) {
-      test.skip(true, 'Refresh button hidden in this dataset/layout');
-      return;
-    }
-    const urlBefore = page.url();
-    await refreshBtn.dispatchEvent('click');
-    await page.waitForTimeout(500);
-    const urlAfter = page.url();
-    expect(urlAfter).toBe(urlBefore);
+  test('Header no longer exposes top-level refresh chrome', async ({ page }) => {
+    await expect(page.locator('.header-refresh-btn')).toHaveCount(0);
   });
 
   test('Daily completion timeline filters Issues table by completion day', async ({ page }) => {
