@@ -1,13 +1,13 @@
 # CTO weekly slice — Vodacom Impact Engine (locked)
 
-**Locked:** 2026-03-21 — **next slice:** `todo-css-pipeline-guard` (or next plan item after CSS gate)  
-**Shipped this lock:** `todo-hud-alignment` — Leadership mission strip uses `SPRINT_COPY` for Projects / Range / Lens / Trust / Boards + `leadershipHudStripAria`; projects fallback `allProjects`; mission eyebrow + trust line from copy map; `renderContextSummaryStrip` accepts `stripAriaLabel`; `07-leadership.css` applies `--mission-header-*` + `--header-verdict-line-size` to mission copy and context chips; wide viewports use segmented grid for chips (matches Current Sprint). Proof: `npm run build:css` + `npm run test:current-sprint:dedupe-fold` (**31 passed, 13 skipped**).  
+**Locked:** 2026-03-21 — **next slice:** pick next item from `docs/current-sprint-header-declutter_6c80b0d6.plan.md` backlog (CSS gate satisfied)  
+**Shipped this lock:** `todo-css-pipeline-guard` — `npm run test:current-sprint:dedupe-fold` now runs **`npm run check:css` first** (`scripts/check-css.js`): fails if `public/styles.css` was edited directly or is stale vs `public/css/*.css` partials. Proof: `npm run check:css` + `npm run test:current-sprint:dedupe-fold`.  
 **ALB-ID:** ALB-42 (EngineerLead).  
-**Source plan:** `docs/current-sprint-header-declutter_6c80b0d6.plan.md` — HUD alignment complete.
+**Source plan:** `docs/current-sprint-header-declutter_6c80b0d6.plan.md`
 
 ## Decision
 
-The next improvement is **CSS pipeline guard for `styles.css`** (queued in plan) or the following backlog slice; verify `npm run test:current-sprint:dedupe-fold` after any CSS touch.
+The Vodacom gate now enforces **generated `styles.css` SSOT** before Playwright. After any CSS partial edit, run `npm run build:css`; the dedupe-fold command fails fast if the bundle was not regenerated.
 
 ## Previously shipped (reference)
 
