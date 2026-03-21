@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Single grammar for Current Sprint mission header + compact strips (plan todo-copy-map-and-tokens).
  */
 export const SPRINT_COPY = {
@@ -77,6 +77,16 @@ export const SPRINT_COPY = {
   focusRiskFallback: 'Risk',
   noUrgentIntervention: 'No urgent intervention',
   compactStripAria: 'Top sprint summary',
+
+  /** Leadership HUD (`leadership.html`) — same chip grammar as Current Sprint context segments */
+  leadershipHudStripAria: 'Portfolio scope and leadership context',
+  leadershipMissionEyebrow: 'Leadership mission',
+  segmentLabelProjects: 'Projects',
+  segmentLabelRange: 'Range',
+  segmentLabelLens: 'Lens',
+  lensLeadershipHud: 'Leadership HUD',
+  segmentLabelTrust: 'Trust',
+  segmentLabelBoards: 'Boards',
 };
 
 export function formatSprintRemainingLabel(remainingDays) {

@@ -1,4 +1,5 @@
 import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
 import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { renderEmptyStateHtml, renderNoBoardsForRangeEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
@@ -88,10 +89,7 @@ function renderLeadershipKpiStrip(data) {
   return `
     <section class="leadership-kpi-strip" aria-label="Quarterly KPI comparison">
       <div class="leadership-card-header leadership-card-header--compact">
-        <div>
-          <h2>Investment and delivery KPIs</h2>
-          <p class="leadership-delivery-hint">Compact squad comparison for quarterly cost, throughput, reliability, and trust.</p>
-        </div>
+        <div><h2>Investment and delivery KPIs</h2></div>
       </div>
       <div class="leadership-kpi-project-grid">${cards}</div>
       <pre class="visually-hidden" id="leadership-kpi-export-data">${escapeHtml(csvRows)}</pre>
@@ -157,26 +155,26 @@ function renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd)
   const boards = Array.isArray(data?.boards) ? data.boards.length : 0;
   const chips = [
     {
-      title: 'Projects',
-      value: projectsLabel || 'All squads',
+      label: SPRINT_COPY.segmentLabelProjects,
+      value: projectsLabel || SPRINT_COPY.allProjects,
       action: 'refresh-context',
     },
     {
-      title: 'Range',
+      label: SPRINT_COPY.segmentLabelRange,
       value: `${rangeStart} - ${rangeEnd}`,
       action: 'refresh-context',
     },
     {
-      title: 'Lens',
-      value: 'Leadership HUD',
+      label: SPRINT_COPY.segmentLabelLens,
+      value: SPRINT_COPY.lensLeadershipHud,
     },
     {
-      title: 'Trust',
+      label: SPRINT_COPY.segmentLabelTrust,
       value: trustBand,
       tone: trustBand === 'Weak' ? 'warning' : 'ok',
     },
     {
-      title: 'Boards',
+      label: SPRINT_COPY.segmentLabelBoards,
       value: String(boards),
     },
   ];
@@ -185,6 +183,7 @@ function renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd)
     chips,
     secondary: '',
     actions: [],
+    stripAriaLabel: SPRINT_COPY.leadershipHudStripAria,
   });
 }
 
@@ -197,17 +196,17 @@ function renderLeadershipAttentionQueue(data) {
     compact: true,
     items: [
       outlierEpics[0] ? {
-        label: `Epic outlier: ${outlierEpics[0].label}`,
+        label: `Scope drift: ${outlierEpics[0].label}`,
         detail: outlierEpics[0].rcaHint || 'Longest-running epic in this window',
         tone: 'danger',
       } : null,
       outlierSprints[0] ? {
-        label: `Sprint outlier: ${outlierSprints[0].label}`,
+        label: `Delivery risk: ${outlierSprints[0].label}`,
         detail: outlierSprints[0].rcaHint || 'Reliability moved outside the normal band',
         tone: 'warning',
       } : null,
       trustBand === 'Weak' ? {
-        label: 'Trust is weak',
+        label: 'Data quality is weak',
         detail: 'Repair epic hygiene or timesheet coverage before judging investment quality',
         tone: 'warning',
       } : null,
@@ -227,9 +226,9 @@ function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd,
       ${renderLeadershipSummaryStrip(data, projectsLabel, rangeStart, rangeEnd)}
       <div class="leadership-mission-main">
         <div class="leadership-mission-copy">
-          <p class="leadership-direct-value-eyebrow">Leadership mission</p>
+          <p class="leadership-direct-value-eyebrow leadership-mission-eyebrow">${escapeHtml(SPRINT_COPY.leadershipMissionEyebrow)}</p>
           <h2>${escapeHtml(recommendation.headline)}</h2>
-          <p>${escapeHtml(outcomeLine || recommendation.body)}</p>
+          <p class="leadership-mission-trust-line">${escapeHtml(SPRINT_COPY.segmentLabelTrust)}: ${escapeHtml(trustBand)}${outcomeLine ? ' | ' + escapeHtml(outcomeLine) : ''}</p>
         </div>
         <div class="leadership-mission-actions">
           <button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="${escapeHtml(recommendation.headline)}" data-outcome-projects="${escapeHtml((projectsLabel || '').replace(/\s+/g, ''))}">Create work from insight</button>
@@ -243,10 +242,6 @@ function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd,
             </div>
           </details>
         </div>
-      </div>
-      <div class="leadership-mission-meta">
-        <span class="leadership-mission-hint">Trend lens, not team ranking.</span>
-        <span class="leadership-mission-trust">Trust: ${escapeHtml(trustBand)}</span>
       </div>
       ${renderLeadershipAttentionQueue(data)}
     </section>
@@ -372,8 +367,8 @@ export function renderLeadershipPage(data) {
 
   html += '<div class="leadership-card">';
   html += '<div class="leadership-card-header">';
-  html += '<h2>Boards - normalized delivery</h2>';
-  html += '<p class="leadership-delivery-hint"><small>Delivery % adjusted for scope changes. Use this for within-board trends, not ranking teams.</small></p>';
+  html += '<h2>Boards at risk</h2>';
+  html += '<p class="leadership-delivery-hint"><small>Use this to decide where to intervene next.</small></p>';
   html += '<div class="leadership-view-actions">';
   html += '<button type="button" class="btn btn-secondary btn-compact active" data-leadership-view="cards" aria-pressed="true">Cards</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact" data-leadership-view="table" aria-pressed="false">Table</button>';
@@ -413,7 +408,7 @@ export function renderLeadershipPage(data) {
       .slice(0, 5);
     if (topRiskBoards.length > 0) {
       html += '<div class="leadership-risk-list" aria-label="Top risk boards">';
-      html += '<h3>Top 5 risk boards</h3><ul>';
+      html += '<h3>Intervention priority</h3><ul>';
       topRiskBoards.forEach((card) => {
         const reason = card.onTimePct == null
           ? 'Limited delivery evidence'

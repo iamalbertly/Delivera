@@ -8988,7 +8988,7 @@ body.current-sprint-page .burndown-metric-inline {
   }
 }
 
-﻿
+
 /* todo-copy-map-and-tokens: align HUD header title with Current Sprint tokens */
 :root {
   --header-sprint-name-size: 0.95rem;
@@ -9072,6 +9072,40 @@ body.current-sprint-page .burndown-metric-inline {
 
 .leadership-mission-strip .context-summary-chips {
   gap: 6px;
+}
+
+/* todo-hud-alignment: top band typography matches Current Sprint mission-control tokens (:root in 06-current-sprint.css) */
+.leadership-mission-copy h2 {
+  font-size: var(--mission-header-title-size);
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.25;
+}
+
+.leadership-mission-eyebrow {
+  font-size: var(--mission-header-label-size);
+  letter-spacing: 0.04em;
+}
+
+.leadership-mission-trust-line {
+  margin: 0;
+  font-size: var(--header-verdict-line-size);
+  color: #526277;
+  line-height: 1.35;
+}
+
+.leadership-mission-strip .context-summary-chip {
+  font-size: var(--mission-header-pill-size);
+}
+
+@media (min-width: 900px) {
+  .leadership-mission-strip .context-summary-chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    width: 100%;
+    align-items: stretch;
+  }
 }
 
 .leadership-mission-main {
