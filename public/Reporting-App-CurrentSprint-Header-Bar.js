@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Fixed Header Bar Component
  * Displays sprint metadata: name, date range, days remaining, total SP, status badge
  * Sticky positioning on desktop, relative on mobile
@@ -14,7 +14,11 @@ import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Reportin
 import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
 import { renderHealthDashboard, buildEvidenceLine } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
 import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
-import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
+import {
+  SPRINT_COPY,
+  formatSprintRemainingLabel,
+  formatFreshnessAgeLabel,
+} from './Reporting-App-CurrentSprint-Copy.js';
 
 const headerFilterUiState = {
   roleMode: 'all',
@@ -22,7 +26,7 @@ const headerFilterUiState = {
   dayKey: '',
 };
 
-/** Incremented each time wireHeaderBarHandlers completes a full bind (not early-return). Second+ wires must not reset risk tags from role presets — that clobbered Take action / verdict filters after progressive full render. */
+/** Incremented each time wireHeaderBarHandlers completes a full bind (not early-return). Second+ wires must not reset risk tags from role presets â€” that clobbered Take action / verdict filters after progressive full render. */
 let headerBarWireSessionCount = 0;
 
 function renderHeaderActiveFilterLabel() {
@@ -36,11 +40,11 @@ function renderHeaderActiveFilterLabel() {
   const tags = Array.isArray(headerFilterUiState.riskTags) ? headerFilterUiState.riskTags : [];
   const day = headerFilterUiState.dayKey || '';
 
-  let roleLabel = 'All work';
-  if (role === 'developer') roleLabel = 'Dev lens';
-  else if (role === 'scrum-master') roleLabel = 'SM lens';
-  else if (role === 'product-owner') roleLabel = 'PO lens';
-  else if (role === 'line-manager') roleLabel = 'Leads lens';
+  let roleLabel = SPRINT_COPY.allWorkDefault;
+  if (role === 'developer') roleLabel = SPRINT_COPY.lensDev;
+  else if (role === 'scrum-master') roleLabel = SPRINT_COPY.lensSM;
+  else if (role === 'product-owner') roleLabel = SPRINT_COPY.lensPO;
+  else if (role === 'line-manager') roleLabel = SPRINT_COPY.lensLeads;
 
   let label = roleLabel;
   if (tags.length) label += ' | ' + tags.join(', ');
@@ -58,7 +62,7 @@ function renderHeaderActiveFilterLabel() {
 }
 
 function getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness }) {
-  const freshnessText = freshnessLabel || (statusBadge === SPRINT_COPY.statusLive ? 'Live data' : 'Snapshot');
+  const freshnessText = freshnessLabel || (statusBadge === SPRINT_COPY.statusLive ? SPRINT_COPY.liveDataShort : SPRINT_COPY.statusSnapshot);
   return `${freshnessText} | ${exportReadiness}`;
 }
 
@@ -82,7 +86,7 @@ function computeDoneDeltaVsPriorClosed(data, currentPct) {
   else if (raw < -3) className = 'header-metric-delta-down';
   return {
     short: `${sign}${raw}%`,
-    title: `vs prior closed sprint (${prevPct}% done)`,
+    title: SPRINT_COPY.vsPriorClosedSprint(prevPct),
     className,
   };
 }
@@ -97,8 +101,8 @@ function renderHeaderRoleModesRow(roleViews) {
     return '<button type="button" class="role-mode-pill" data-work-risk-role-mode="' + escapeHtml(mode) + '" data-role-mode="' + escapeHtml(mode) + '" aria-pressed="false">' + escapeHtml(label) + '</button>';
   }).filter(Boolean).join('');
   if (!pills) return '';
-  return '<div class="header-role-modes-row" data-strip="role-lens" role="group" aria-label="View work as role">'
-    + '<span class="header-role-modes-label">View as</span>'
+  return '<div class="header-role-modes-row" data-strip="role-lens" role="group" aria-label="' + escapeHtml(SPRINT_COPY.ariaViewAsRole) + '">'
+    + '<span class="header-role-modes-label">' + escapeHtml(SPRINT_COPY.viewAsLabel) + '</span>'
     + '<div class="header-role-modes">' + pills + '</div>'
     + '</div>';
 }
@@ -108,17 +112,17 @@ function renderHeaderIdentityMetricsRow({ donePct, issuesCount, logH, estH, delt
     ? ('<span class="' + escapeHtml(delta.className) + '" title="' + escapeHtml(delta.title) + '">' + escapeHtml(delta.short) + '</span>')
     : '';
   const doneInner = escapeHtml(String(donePct)) + '%' + (delta ? ' ' + deltaHtml : '');
-  return '<div class="header-identity-metrics" role="group" aria-label="Sprint metrics" data-header-metric-row="1">'
+  return '<div class="header-identity-metrics" role="group" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintMetrics) + '" data-header-metric-row="1">'
     + '<div class="header-metric header-metric-tile" data-metric="done">'
-    + '<span class="metric-label">Done</span>'
+    + '<span class="metric-label">' + escapeHtml(SPRINT_COPY.metricDone) + '</span>'
     + '<span class="metric-value">' + doneInner + '</span>'
     + '</div>'
     + '<div class="header-metric header-metric-tile" data-metric="issues">'
-    + '<span class="metric-label">Work items</span>'
+    + '<span class="metric-label">' + escapeHtml(SPRINT_COPY.metricWorkItems) + '</span>'
     + '<span class="metric-value">' + escapeHtml(String(issuesCount)) + '</span>'
     + '</div>'
     + '<div class="header-metric header-metric-tile" data-metric="hours">'
-    + '<span class="metric-label">Logged / est</span>'
+    + '<span class="metric-label">' + escapeHtml(SPRINT_COPY.metricLoggedEst) + '</span>'
     + '<span class="metric-value">' + escapeHtml(logH.toFixed(1)) + 'h / ' + escapeHtml(estH.toFixed(1)) + 'h</span>'
     + '</div>'
     + '</div>';
@@ -137,7 +141,7 @@ function buildHeaderContextStrip(data, freshnessLabel) {
     projects: selectedProjects || undefined,
     rangeStart: start,
     rangeEnd: end,
-    freshness: freshnessLabel || (meta.fromSnapshot ? 'Snapshot view' : 'Live sprint'),
+    freshness: freshnessLabel || (meta.fromSnapshot ? SPRINT_COPY.snapshotViewLong : SPRINT_COPY.liveSprintShort),
     freshnessIsStale: !!meta.fromSnapshot,
   });
   const stripHtml = renderContextSegments(contextPieces, {
@@ -145,19 +149,19 @@ function buildHeaderContextStrip(data, freshnessLabel) {
     segmentClass: 'header-context-segment',
     refreshAction: 'refresh-current-sprint-context',
     listSemantics: true,
-    stripAriaLabel: 'Sprint scope and report context',
+    stripAriaLabel: SPRINT_COPY.stripScopeReportContext,
   });
   if (stripHtml) return stripHtml;
 
-  const scopeLabel = [selectedProjects || 'All projects', board.name || 'Board', sprint.name || 'Sprint'].filter(Boolean).join(' | ');
+  const scopeLabel = [selectedProjects || SPRINT_COPY.allProjects, board.name || SPRINT_COPY.boardFallback, sprint.name || SPRINT_COPY.sprintFallback].filter(Boolean).join(' | ');
   return '<div class="header-context-strip">'
     + '<span class="header-context-segment">'
-    + '<span class="header-context-segment-label">Context</span>'
+    + '<span class="header-context-segment-label">' + escapeHtml(SPRINT_COPY.segmentLabelContext) + '</span>'
     + '<span class="header-context-segment-value">' + escapeHtml(scopeLabel) + '</span>'
     + '</span>'
     + '<span class="header-context-segment">'
-    + '<span class="header-context-segment-label">Freshness</span>'
-    + '<span class="header-context-segment-value">' + escapeHtml(freshnessLabel || (meta.fromSnapshot ? 'Snapshot view' : 'Live sprint')) + '</span>'
+    + '<span class="header-context-segment-label">' + escapeHtml(SPRINT_COPY.segmentLabelFreshness) + '</span>'
+    + '<span class="header-context-segment-value">' + escapeHtml(freshnessLabel || (meta.fromSnapshot ? SPRINT_COPY.snapshotViewLong : SPRINT_COPY.liveSprintShort)) + '</span>'
     + '</span>'
     + '</div>';
 }
@@ -195,36 +199,34 @@ export function renderHeaderBar(data, options = {}) {
     totalSP: Number(summary.totalSP || 0),
     remainingDays,
   });
-  const remainingChipLabel = remainingDays == null
-    ? 'Ends ?'
-    : (remainingDays <= 0 ? 'Ended' : (remainingDays < 1 ? 'Ends today' : `Ends in ${Math.floor(remainingDays)}d`));
+  const remainingChipLabel = formatSprintRemainingLabel(remainingDays);
 
   const verdictRiskChips = [];
   if (stuckCount > 0) {
     verdictRiskChips.push({
       tags: ['blocker'],
-      label: `${stuckCount} blockers`,
+      label: SPRINT_COPY.blockersCount(stuckCount),
       aria: 'Filter issues to owned blockers',
     });
   }
   if (missingEstimates > 0) {
     verdictRiskChips.push({
       tags: ['missing-estimate'],
-      label: `${missingEstimates} missing est`,
+      label: SPRINT_COPY.missingEstCount(missingEstimates),
       aria: 'Filter issues to missing estimates',
     });
   }
   if (missingLoggedItems > 0) {
     verdictRiskChips.push({
       tags: ['no-log'],
-      label: `${missingLoggedItems} no log`,
+      label: SPRINT_COPY.noLogCount(missingLoggedItems),
       aria: 'Filter issues to estimated, no log',
     });
   }
   if (unassignedParents > 0) {
     verdictRiskChips.push({
       tags: ['unassigned'],
-      label: `${unassignedParents} unowned`,
+      label: SPRINT_COPY.unownedCount(unassignedParents),
       aria: 'Filter issues to unowned outcomes',
     });
   }
@@ -236,13 +238,13 @@ export function renderHeaderBar(data, options = {}) {
     ? data.board.projectKeys[0]
     : (meta.projects || '');
   const sprintDatesLabel = (formatDate(planned.start || sprint.startDate) + ' - ' + formatDate(planned.end || sprint.endDate))
-    .replace(/^-\s-\s-$/, 'No active sprint window');
-  const sprintNameLabel = sprint.name || (sprint.id ? `Sprint ${sprint.id}` : 'No active sprint');
+    .replace(/^-\s-\s-$/, SPRINT_COPY.noActiveSprintWindow);
+  const sprintNameLabel = sprint.name || (sprint.id ? SPRINT_COPY.sprintNamed(sprint.id) : SPRINT_COPY.noActiveSprintName);
   const sprintNameCompact = sprintNameLabel.length > 40 ? `${sprintNameLabel.slice(0, 40).trimEnd()}...` : sprintNameLabel;
   const sprintIdentityLine = [
     sprintNameCompact,
     sprintDatesLabel,
-    (isHistoricalSprint ? 'Historical snapshot' : ''),
+    (isHistoricalSprint ? SPRINT_COPY.historicalSnapshotShort : ''),
   ].filter(Boolean).join(' | ');
   const hasNoHealthSignals = verdictRiskChips.length === 0;
   const isJustStartedSprint = !isHistoricalSprint && Number(donePercentage || 0) === 0 && hasNoHealthSignals && issuesCount > 0;
@@ -251,8 +253,7 @@ export function renderHeaderBar(data, options = {}) {
   if (generatedAt) {
     const ageMs = Date.now() - generatedAt.getTime();
     const ageMin = Math.max(0, Math.round(ageMs / 60000));
-    const prefix = statusBadge === SPRINT_COPY.statusLive ? 'Live data' : 'Snapshot';
-    freshnessLabel = ageMin < 1 ? `${prefix} - updated just now` : `${prefix} - updated ${ageMin} min ago`;
+    freshnessLabel = formatFreshnessAgeLabel(statusBadge === SPRINT_COPY.statusLive, ageMin);
   }
 
   const hasExportableRows = issuesCount > 0;
@@ -301,7 +302,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-band-main">';
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintIdentityLine)}</span>`;
   html += identityMetricsHtml;
-  html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="Sprint health verdict">';
+  html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
   html += '<span class="sprint-verdict-explain">' + escapeHtml(verdictDisplayLine) + '</span>';
   html += '</div>';
@@ -309,9 +310,9 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-band-actions">';
   html += renderExportButton(true);
   html += '<details class="header-view-drawer">';
-  html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span>Context</span><span data-header-active-filter-value>All work</span></summary>';
+  html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span>' + escapeHtml(SPRINT_COPY.drawerContext) + '</span><span data-header-active-filter-value>' + escapeHtml(SPRINT_COPY.allWorkDefault) + '</span></summary>';
   html += '<div class="header-view-drawer-panel">';
-  html += '<div class="header-view-summary" title="' + escapeHtml(statusSummary) + '"><span class="header-view-summary-label">Status</span><span class="header-view-summary-value">' + escapeHtml(statusBadge === SPRINT_COPY.statusLive ? 'Live' : 'Snapshot') + '</span></div>';
+  html += '<div class="header-view-summary" title="' + escapeHtml(statusSummary) + '"><span class="header-view-summary-label">' + escapeHtml(SPRINT_COPY.drawerStatusLabel) + '</span><span class="header-view-summary-value">' + escapeHtml(statusBadge === SPRINT_COPY.statusLive ? SPRINT_COPY.statusLive : SPRINT_COPY.statusSnapshot) + '</span></div>';
   html += '<div class="header-context-summary-row">';
   html += '<span class="header-drawer-meta-item">' + escapeHtml([selectedProject || 'n/a', boardName || 'Board'].filter(Boolean).join(' | ')) + '</span>';
   html += '<span class="header-drawer-meta-item">' + escapeHtml(freshnessLabel || statusBadge) + '</span>';
@@ -324,47 +325,47 @@ export function renderHeaderBar(data, options = {}) {
   if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
   html += '</div>';
   html += '<div class="header-drawer-meta" title="' + escapeHtml(statusSummary) + '">';
-  html += '<span class="header-hygiene-followup" data-signal="hygiene" title="Time-tracking hygiene (not sprint health)">'
-    + '<span class="header-hygiene-followup-label">Hygiene</span>'
+  html += '<span class="header-hygiene-followup" data-signal="hygiene" title="' + escapeHtml(SPRINT_COPY.drawerHygieneTitle) + '">'
+    + '<span class="header-hygiene-followup-label">' + escapeHtml(SPRINT_COPY.hygieneLabel) + '</span>'
     + '<span class="header-hygiene-followup-value">' + escapeHtml(followUpSummary) + '</span>'
     + '</span>';
   html += '<span class="header-remediation-hint" data-signal="risk-followup" title="' + escapeHtml(verdictInfo.trackingReasons || '') + '">' + escapeHtml(verdictInfo.topRemediation || '') + '</span>';
   html += '</div>';
   if (sectionLinksHtml || isLoadingShell) {
     html += '<div class="header-drawer-section">';
-    html += '<div class="header-drawer-section-label">Jump to</div>';
+    html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.jumpTo) + '</div>';
     html += (sectionLinksHtml || '<div class="sprint-section-links sprint-section-links-compact" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>');
     html += '</div>';
   }
   html += '<div class="header-drawer-evidence">';
   html += '<div class="header-drawer-section">';
-  html += '<div class="header-drawer-section-label">Why this verdict</div>';
+  html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.whyThisVerdict) + '</div>';
   html += renderHealthDashboard(data, { compact: true });
   html += '</div>';
   html += '<div class="header-drawer-section">';
-  html += '<div class="header-drawer-section-label">Switch sprint</div>';
+  html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.switchSprint) + '</div>';
   html += renderSprintCarousel(data);
   html += '</div>';
   html += '</div>';
   html += '<div class="header-drawer-links">';
-  html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">Reset lens</button>';
+  html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">' + escapeHtml(SPRINT_COPY.resetLens) + '</button>';
   if (!isHistoricalSprint) {
-    html += '<button type="button" class="header-follow-up-link" data-header-action="focus-remediation-secondary">Open remediation queue</button>';
+    html += '<button type="button" class="header-follow-up-link" data-header-action="focus-remediation-secondary">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</button>';
   }
   if (!isHistoricalSprint) {
     if (selectedProject && boardName) {
-      html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">Leadership trend</a>';
+      html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">' + escapeHtml(SPRINT_COPY.leadershipTrend) + '</a>';
     }
   }
   const reportHref = boardId
     ? ('/report?boardId=' + encodeURIComponent(String(boardId)) + (sprintId ? '&sprintId=' + encodeURIComponent(String(sprintId)) : '') + (selectedProject ? '&projects=' + encodeURIComponent(String(selectedProject)) : ''))
     : '/report';
-  html += '<a class="header-follow-up-link" href="' + reportHref + '" data-header-action="open-report-context">Open report</a>';
+  html += '<a class="header-follow-up-link" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
   html += '</div>';
   html += '</div>';
   html += '</details>';
   html += '</div>';
-  html += '<div class="header-compact-strip" aria-label="Top sprint summary">';
+  html += '<div class="header-compact-strip" aria-label="' + escapeHtml(SPRINT_COPY.compactStripAria) + '">';
   if (hasPriorityInterventions) {
     const primaryIntervention = interventionItems[0] || {};
     const interventionText = interventionItems
@@ -372,13 +373,13 @@ export function renderHeaderBar(data, options = {}) {
       .filter(Boolean)
       .join(' | ');
     const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
-    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation">Take action</button>';
+    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation">' + escapeHtml(SPRINT_COPY.takeAction) + '</button>';
     if (primaryTags) {
-      html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">Focus: ' + escapeHtml(primaryIntervention.label || 'Risk') + '</button>';
+      html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">' + escapeHtml(SPRINT_COPY.focusRisk(primaryIntervention.label || SPRINT_COPY.focusRiskFallback)) + '</button>';
     }
     html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span></span>';
   } else {
-    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>No urgent intervention</span></span>';
+    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';
   }
   html += '</div>';
   html += headerContextStripHtml;
@@ -577,7 +578,7 @@ export function wireHeaderBarHandlers() {
     } catch (_) {}
   }
 
-  /** Mini collapse: tablets/desktop only (plan todo-mini-header-mobile — avoid empty/churn strip on phones). */
+  /** Mini collapse: tablets/desktop only (plan todo-mini-header-mobile â€” avoid empty/churn strip on phones). */
   function syncMiniMode() {
     const miniStrip = headerBar.querySelector('.header-mini-strip');
     if (window.innerWidth <= 720) {

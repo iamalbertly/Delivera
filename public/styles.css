@@ -4258,6 +4258,14 @@ body .preview-area {
   font-size: 0.9em;
 }
 
+﻿
+/* todo-copy-map-and-tokens: mission header typography tokens (shared with leadership where classes overlap) */
+:root {
+  --header-sprint-name-size: 0.95rem;
+  --header-verdict-line-size: 0.76rem;
+  --header-verdict-pill-size: 0.78rem;
+  --header-export-readiness-size: 0.72rem;
+}
 /* Current-sprint page header: avoid overflow on narrow viewports */
 .current-sprint-header {
   min-width: 0;
@@ -4567,7 +4575,7 @@ body .preview-area {
 }
 .sprint-verdict-line {
   width: auto;
-  font-size: 0.76rem;
+  font-size: var(--header-verdict-line-size);
   margin-bottom: 0;
   margin-right: 8px;
   color: #334155;
@@ -4577,7 +4585,7 @@ body .preview-area {
   flex-wrap: wrap;
 }
 
-/* Health verdict (risk slice): one accent rail — distinct from drawer hygiene (data-signal=hygiene). */
+/* Health verdict (risk slice): one accent rail â€” distinct from drawer hygiene (data-signal=hygiene). */
 .sprint-verdict-line[data-signal="health"] {
   padding-left: 8px;
   border-left: 3px solid transparent;
@@ -4605,7 +4613,7 @@ body .preview-area {
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.7);
   background: #f1f5f9;
-  font-size: 0.78rem;
+  font-size: var(--header-verdict-pill-size);
   cursor: pointer;
 }
 
@@ -4926,7 +4934,7 @@ body .preview-area {
   align-items: center;
   align-self: center;
   white-space: nowrap;
-  font-size: 0.72rem;
+  font-size: var(--header-export-readiness-size);
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -4935,7 +4943,7 @@ body .preview-area {
 }
 
 .header-sprint-name {
-  font-size: 0.95rem;
+  font-size: var(--header-sprint-name-size);
   font-weight: 600;
   color: var(--primary-strong);
   cursor: pointer;
@@ -6623,7 +6631,7 @@ button.health-inline-pill {
 }
 
 .capacity-actions li::before {
-  content: 'ΓåÆ ';
+  content: 'Î“Ã¥Ã† ';
   color: var(--accent);
   font-weight: 600;
   margin-right: 4px;
@@ -7150,18 +7158,18 @@ button.health-inline-pill {
 }
 
 #work-risks-table thead th[data-sort-key]::after {
-  content: ' ↕';
+  content: ' â†•';
   color: #94a3b8;
   font-size: 0.72rem;
 }
 
 #work-risks-table thead th.is-sorted[data-sort-dir="asc"]::after {
-  content: ' ↑';
+  content: ' â†‘';
   color: var(--primary);
 }
 
 #work-risks-table thead th.is-sorted[data-sort-dir="desc"]::after {
-  content: ' ↓';
+  content: ' â†“';
   color: var(--primary);
 }
 
@@ -7180,14 +7188,14 @@ button.health-inline-pill {
   left: 110px;
 }
 
-/* Tech Debt #1: Fix WORK ITEMS4 — .header-metric-link must flex-column so label stacks above value */
+/* Tech Debt #1: Fix WORK ITEMS4 â€” .header-metric-link must flex-column so label stacks above value */
 .header-metric-link {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-/* Tech Debt #3: Live/Snapshot status badge is read-only status — remove interactive pointer affordance */
+/* Tech Debt #3: Live/Snapshot status badge is read-only status â€” remove interactive pointer affordance */
 .status-badge {
   pointer-events: none;
   cursor: default;
@@ -7236,6 +7244,42 @@ body.current-sprint-page .current-sprint-header-bar .header-role-modes-label {
   background: var(--primary);
   color: #ffffff;
   border-color: var(--primary);
+}
+
+/* Role lens strip: neutral filter affordance vs sprint-intervention / Take action CTAs (todo-header-role-strip). */
+body.current-sprint-page .current-sprint-header-bar .header-role-modes-row[data-strip="role-lens"] {
+  border-top-style: dashed;
+  border-top-color: rgba(148, 163, 184, 0.35);
+}
+body.current-sprint-page .current-sprint-header-bar .role-mode-pill {
+  font-weight: 500;
+  color: #475569;
+  background: rgba(248, 250, 252, 0.98);
+  border-color: rgba(148, 163, 184, 0.55);
+  border-style: dashed;
+}
+body.current-sprint-page .current-sprint-header-bar .role-mode-pill:hover {
+  background: #ffffff;
+  border-color: rgba(100, 116, 139, 0.7);
+}
+body.current-sprint-page .current-sprint-header-bar .role-mode-pill:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 2px;
+}
+body.current-sprint-page .current-sprint-header-bar .role-mode-pill-active {
+  border-style: solid;
+  font-weight: 600;
+}
+
+body.current-sprint-page .header-compact-strip .sprint-intervention-item-primary {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: rgba(30, 64, 175, 0.55);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+body.current-sprint-page .header-compact-strip .sprint-intervention-item-primary:hover {
+  filter: brightness(1.04);
 }
 
 .header-intelligence-strip {
@@ -7295,7 +7339,7 @@ body.current-sprint-page .current-sprint-header-bar .header-role-modes-label {
   line-height: 1.35;
 }
 
-/* UX Fix #7: Collapsed "No data" carousel cards — minimal height, muted, no wasted visual space */
+/* UX Fix #7: Collapsed "No data" carousel cards â€” minimal height, muted, no wasted visual space */
 .carousel-tab--no-data {
   opacity: 0.55;
   min-width: 120px !important;
@@ -7532,7 +7576,7 @@ body.notification-dock-visible .export-dashboard-container {
 }
 
 
-/* M9: Sprint loading context — shows board + sprint name above spinner */
+/* M9: Sprint loading context â€” shows board + sprint name above spinner */
 .sprint-loading-context {
   font-size: 0.82rem;
   color: var(--muted);
@@ -7678,12 +7722,12 @@ body.notification-dock-visible .export-dashboard-container {
     bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 }
-/* M7: Notification dock pushes export container further up — account for safe-area too */
+/* M7: Notification dock pushes export container further up â€” account for safe-area too */
 body.notification-dock-visible .export-dashboard-container {
   bottom: calc(86px + env(safe-area-inset-bottom, 0px));
 }
 
-/* M6: Sprint carousel horizontal scroll affordance — right-edge fade + swipe hint */
+/* M6: Sprint carousel horizontal scroll affordance â€” right-edge fade + swipe hint */
 .sprint-carousel::after {
   content: '';
   position: sticky;
@@ -8909,17 +8953,45 @@ body.current-sprint-page .burndown-metric-inline {
     width: 100%;
   }
 
+  /* todo-mini-header-mobile: mission order on narrow viewports â€” identity, verdict, Take action, metrics, then scope actions */
   body.current-sprint-page .header-band {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "main"
-      "actions"
-      "strip";
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
   }
 
-  body.current-sprint-page .header-band-actions {
+  body.current-sprint-page .header-band-main {
+    display: contents;
+  }
+
+  body.current-sprint-page .header-band .header-sprint-name {
+    order: 1;
+  }
+
+  body.current-sprint-page .header-band .sprint-verdict-line {
+    order: 2;
+  }
+
+  body.current-sprint-page .header-band .header-compact-strip {
+    order: 3;
+  }
+
+  body.current-sprint-page .header-band .header-identity-metrics {
+    order: 4;
+  }
+
+  body.current-sprint-page .header-band .header-band-actions {
+    order: 5;
+    width: 100%;
     justify-content: flex-start;
   }
+}
+
+﻿
+/* todo-copy-map-and-tokens: align HUD header title with Current Sprint tokens */
+:root {
+  --header-sprint-name-size: 0.95rem;
 }
 /* Leadership viewport containment */
 #hud-grid,
@@ -9455,7 +9527,7 @@ body.current-sprint-page .burndown-metric-inline {
     word-break: break-word;
   }
   .header-sprint-name {
-    font-size: 0.95rem;
+    font-size: var(--header-sprint-name-size);
   }
 
   .metric-value {
@@ -9491,6 +9563,9 @@ body.current-sprint-page .burndown-metric-inline {
     margin-left: 0;
   }
 }
+
+
+
 
 /* Login page (outcome-first, trust below form) */
 .login-page .login-container {

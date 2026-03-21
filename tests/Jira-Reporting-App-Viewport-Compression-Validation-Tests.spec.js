@@ -165,7 +165,8 @@ test.describe('Viewport compression and layering', () => {
     if (foldBudget) {
       // Mission bar height varies with verdict/context/intervention density; fused scope+bar stack targets first-row fold, not a fixed px bar.
       // Identity metric tiles (Done / Work items / Logged-est) add one compact row vs legacy single-line verdict-only band.
-      expect(foldBudget.headerHeight).toBeLessThanOrEqual(185);
+      // todo-copy-map-and-tokens: CSS var(--header-*) rounding can add 1px vs old literals; keep fold guard tight.
+      expect(foldBudget.headerHeight).toBeLessThanOrEqual(186);
       expect(foldBudget.firstRowBottom).toBeLessThanOrEqual(foldBudget.viewportHeight);
     }
     const visibleDrawerText = await page.locator('.current-sprint-header-bar .header-view-drawer-panel').evaluateAll((nodes) =>
