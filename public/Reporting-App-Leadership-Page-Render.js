@@ -236,6 +236,7 @@ function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd,
           <details class="leadership-export-menu">
             <summary class="btn btn-secondary btn-compact">Export &amp; share</summary>
             <div class="leadership-export-menu-panel">
+              <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-manager-briefing">Copy manager briefing</button>
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-quarterly-story">Copy portfolio summary</button>
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-kpis-csv">Export KPI CSV</button>
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-boards-csv">Export boards CSV</button>
@@ -307,8 +308,9 @@ export function renderLeadershipPage(data) {
     .map((p) => String(p || '').trim())
     .filter(Boolean)
     .join(', ');
+  const generatedAtIso = (data.kpis?.meta?.generatedAt || data.generatedAt || '').trim();
   let html = '<div class="leadership-shell-top">';
-  html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '"></div>';
+  html += '<div class="leadership-meta-attrs" aria-hidden="true" data-range-start="' + escapeHtml(rangeStartAttr) + '" data-range-end="' + escapeHtml(rangeEndAttr) + '" data-projects="' + escapeHtml(projectsAttr) + '" data-projects-label="' + escapeHtml(projectsLabel) + '" data-generated-at="' + escapeHtml(generatedAtIso) + '"></div>';
 
   let outcomeLine = '';
   if (boards.length > 0) {

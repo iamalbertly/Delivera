@@ -72,6 +72,7 @@ test.describe('Hybrid leadership lens and visible sprint sharing', () => {
     await page.click('#tab-btn-trends');
     await expect(page.locator('#leadership-content .leadership-export-menu > summary').first()).toBeVisible();
     await page.locator('#leadership-content .leadership-export-menu > summary').first().click();
+    await expect(page.locator('#leadership-content [data-action="export-leadership-manager-briefing"]').first()).toBeVisible();
     await expect(page.locator('#leadership-content [data-action="export-leadership-quarterly-story"]').first()).toBeVisible();
     await expect(page.locator('#leadership-content [data-action="export-leadership-kpis-csv"]').first()).toBeVisible();
     await expect(page.locator('#leadership-content [data-open-outcome-modal]').first()).toBeVisible();

@@ -47,6 +47,7 @@ test.describe('Overlay, context, and attention SSOT', () => {
     await expect(page.locator('#leadership-content .leadership-kpi-strip')).toBeVisible();
     await expect(page.locator('#leadership-content .leadership-export-menu > summary').first()).toBeVisible();
     await page.locator('#leadership-content .leadership-export-menu > summary').first().click();
+    await expect(page.locator('#leadership-content [data-action="export-leadership-manager-briefing"]').first()).toBeVisible();
     await expect(page.locator('#leadership-content [data-action="export-leadership-quarterly-story"]').first()).toBeVisible();
 
     assertTelemetryClean(telemetry);
@@ -102,6 +103,7 @@ test.describe('Overlay, context, and attention SSOT', () => {
     await expect(page.locator('#leadership-content .attention-queue')).toBeVisible();
     await expect(page.locator('.leadership-export-menu > summary').first()).toBeVisible();
     await page.locator('.leadership-export-menu > summary').first().click();
+    await expect(page.locator('[data-action="export-leadership-manager-briefing"]').first()).toBeVisible();
     await expect(page.locator('[data-action="export-leadership-quarterly-story"]').first()).toBeVisible();
     await expect(page.locator('[data-action="export-leadership-kpis-csv"]').first()).toBeVisible();
 

@@ -101,6 +101,64 @@ export async function exportLeadershipQuarterlyStory(root = document) {
   }
 }
 
+function buildManagerBriefing(root = document) {
+  const container = root.getElementById ? root.getElementById('leadership-content') : document.getElementById('leadership-content');
+  if (!container) return '';
+  const metaEl = container.querySelector('.leadership-meta-attrs');
+  const rangeStart = metaEl?.getAttribute('data-range-start') || '';
+  const rangeEnd = metaEl?.getAttribute('data-range-end') || '';
+  const projectsLabel = (metaEl?.getAttribute('data-projects-label') || '').trim();
+  const generatedAt = metaEl?.getAttribute('data-generated-at') || '';
+  const headline = container.querySelector('.leadership-mission-copy h2')?.textContent?.trim() || 'Leadership snapshot';
+  const trustLine = container.querySelector('.leadership-mission-trust-line')?.textContent?.trim() || '';
+  const topRisks = Array.from(container.querySelectorAll('.leadership-risk-list li')).slice(0, 3).map((li) => li.textContent.replace(/\s+/g, ' ').trim());
+  const attentionItems = Array.from(container.querySelectorAll('.attention-queue-item')).slice(0, 2).map((el) => el.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+  const windowLine = `Window: ${rangeStart} – ${rangeEnd}` + (projectsLabel ? ` | Projects: ${projectsLabel}` : '');
+  let genReadable = '';
+  if (generatedAt) {
+    const d = new Date(generatedAt);
+    genReadable = !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : generatedAt;
+  }
+  const parts = [
+    'MANAGER BRIEFING — Jira portfolio (reporting tool)',
+    '',
+    windowLine,
+    '',
+    `Priority: ${headline}`,
+  ];
+  if (trustLine) parts.push(trustLine);
+  if (topRisks.length) {
+    parts.push('');
+    parts.push('Intervention priority:');
+    topRisks.forEach((r) => parts.push('• ' + r));
+  } else if (attentionItems.length) {
+    parts.push('');
+    parts.push('Signals:');
+    attentionItems.forEach((r) => parts.push('• ' + r));
+  }
+  parts.push('');
+  parts.push(`Manager link: ${origin}/leadership`);
+  if (genReadable) parts.push(`KPI snapshot time: ${genReadable}`);
+  return parts.join('\n');
+}
+
+export async function exportManagerBriefing(root = document) {
+  const text = buildManagerBriefing(root);
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_) {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'manager-briefing.txt';
+    a.click();
+    setTimeout(() => window.URL.revokeObjectURL(url), 500);
+  }
+}
+
 const LEADERSHIP_COL_LABELS = ['Board', 'Projects', 'Sprints', 'Done Stories', 'Done SP', 'SP / Day', 'Stories / Day', 'Indexed Delivery', 'On-time %'];
 
 function updateLeadershipSortIndicator(table, colIndex, dir) {
@@ -145,6 +203,10 @@ export function wireLeadershipContentInteractions(root = document) {
     }
     if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-kpis-csv') {
       exportLeadershipKpisCsv(document);
+      return;
+    }
+    if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-manager-briefing') {
+      exportManagerBriefing(document);
       return;
     }
     if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action') === 'export-leadership-quarterly-story') {
