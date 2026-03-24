@@ -137,11 +137,12 @@ function buildHeaderContextStrip(data, freshnessLabel) {
     : String(meta.projects || '').split(',').map((value) => value.trim()).filter(Boolean).join(', ');
   const start = meta.windowStart || meta.start || '';
   const end = meta.windowEnd || meta.end || '';
+  /* ALB-82: suppress Freshness segment here — same signal lives on drawer summary + status dot (avoids duplicate Context/Freshness rows). */
   const contextPieces = getContextPieces({
     projects: selectedProjects || undefined,
     rangeStart: start,
     rangeEnd: end,
-    freshness: freshnessLabel || (meta.fromSnapshot ? SPRINT_COPY.snapshotViewLong : SPRINT_COPY.liveSprintShort),
+    freshness: '',
     freshnessIsStale: !!meta.fromSnapshot,
   });
   const stripHtml = renderContextSegments(contextPieces, {
@@ -158,10 +159,6 @@ function buildHeaderContextStrip(data, freshnessLabel) {
     + '<span class="header-context-segment">'
     + '<span class="header-context-segment-label">' + escapeHtml(SPRINT_COPY.segmentLabelContext) + '</span>'
     + '<span class="header-context-segment-value">' + escapeHtml(scopeLabel) + '</span>'
-    + '</span>'
-    + '<span class="header-context-segment">'
-    + '<span class="header-context-segment-label">' + escapeHtml(SPRINT_COPY.segmentLabelFreshness) + '</span>'
-    + '<span class="header-context-segment-value">' + escapeHtml(freshnessLabel || (meta.fromSnapshot ? SPRINT_COPY.snapshotViewLong : SPRINT_COPY.liveSprintShort)) + '</span>'
     + '</span>'
     + '</div>';
 }
@@ -343,7 +340,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-context-summary-row">';
   html += '<span class="header-drawer-meta-item">' + escapeHtml([selectedProject || 'n/a', boardName || 'Board'].filter(Boolean).join(' | ')) + '</span>';
   html += '<span class="header-drawer-meta-item">' + escapeHtml(freshnessLabel || statusBadge) + '</span>';
-  html += '<span class="header-drawer-meta-item">' + escapeHtml(verdictInfo.trustLabel) + '</span>';
+  /* ALB-82: trustLabel removed — already on header-compact-strip (header-export-readiness). */
   html += '</div>';
   html += '<div class="header-drawer-risks">';
   verdictRiskChips.slice(0, 4).forEach((chip) => {
