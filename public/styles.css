@@ -8798,8 +8798,42 @@ body.current-sprint-page .insights-manage-grid {
     min-width: 168px;
   }
 
+  /* ALB-83: compress hero stack on mobile — tighter chrome + work table before insights */
+  body.current-sprint-page header {
+    padding: 4px 8px;
+    margin-bottom: 4px;
+  }
+
+  body.current-sprint-page:has(#current-sprint-content .current-sprint-header-bar) header {
+    padding: 4px 8px 5px;
+  }
+
   body.current-sprint-page .current-sprint-header-bar {
     position: sticky;
+    padding: 4px 8px;
+    gap: 3px;
+  }
+
+  body.current-sprint-page .current-sprint-grid-layout {
+    gap: 12px;
+  }
+
+  body.current-sprint-page .current-sprint-grid-layout > .sprint-cards-column.full-width {
+    order: -1;
+  }
+
+  body.current-sprint-page .sprint-cards-row {
+    gap: 12px;
+  }
+
+  body.current-sprint-page .transparency-card {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  body.current-sprint-page .sprint-section-links-compact {
+    margin-top: 2px;
+    margin-bottom: 2px;
   }
 }
 
@@ -8958,7 +8992,7 @@ body.current-sprint-page .burndown-metric-inline {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: 4px;
   }
 
   body.current-sprint-page .header-band-main {
