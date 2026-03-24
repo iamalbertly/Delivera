@@ -13,7 +13,7 @@ function renderChip(chip) {
   return `<${tag}${typeAttr} class="context-summary-chip${tone}"${action}>${text}</${tag}>`;
 }
 
-export function renderContextSummaryStrip({ title = '', chips = [], secondary = '', actions = [], stripAriaLabel = 'Current context' } = {}) {
+export function renderContextSummaryStrip({ title = '', chips = [], secondary = '', actions = [], stripAriaLabel = 'Current performance window' } = {}) {
   const chipHtml = (Array.isArray(chips) ? chips : []).map(renderChip).join('');
   const actionsHtml = (Array.isArray(actions) ? actions : [])
     .map((action) => `<button type="button" class="context-summary-inline-action" data-context-action="${escapeHtml(action.action || '')}">${escapeHtml(action.label || '')}</button>`)

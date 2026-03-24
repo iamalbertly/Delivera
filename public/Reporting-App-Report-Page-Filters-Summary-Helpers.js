@@ -10,7 +10,8 @@ import {
 } from './Reporting-App-Shared-Storage-Keys.js';
 import { isRangeValid, updateRangeHint } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import { reportState } from './Reporting-App-Report-Page-State.js';
-import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
+import { renderContextBar } from './Reporting-App-Shared-ContextBar-Renderer.js';
+import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Reporting-App-Report-Page-ContextBar-Build.js';
 
 const CONTEXT_SEPARATOR = ' | ';
 
@@ -139,18 +140,22 @@ export function updateAppliedFiltersSummary() {
     chipsEl.title = summaryText;
   }
   if (filterStripSummaryEl) {
-    const stripProjects = projects.length ? (projects.length <= 3 ? projects.join(', ') : `${projects.slice(0, 2).join(', ')} +${projects.length - 2}`) : 'projects';
-    const stripRange = compactRangeLabel || 'range';
-    const stripRules = options.length ? `${options.length} rule${options.length !== 1 ? 's' : ''}` : 'default rules';
-    filterStripSummaryEl.innerHTML = renderContextSummaryStrip({
-      title: 'Current context',
-      chips: [
-        { label: 'Projects', value: stripProjects, action: 'open-projects' },
-        { label: 'Range', value: stripRange, action: 'open-range' },
-        { label: 'Rules', value: stripRules, action: 'focus-config', tone: options.length ? 'highlight' : 'muted' },
-      ],
-      secondary: reportState.previewData ? 'Results reflect this exact context.' : 'Run once to turn this context into a live report.',
-    });
+    if (typeof document !== 'undefined' && document.body?.classList.contains('preview-active')) {
+      const rows = Array.isArray(reportState.previewRows) ? reportState.previewRows.length : 0;
+      filterStripSummaryEl.textContent = rows > 0 ? 'Saved views' : 'Filter by: projects, range, rules';
+    } else {
+      const outcomesCount = reportState.previewData != null
+        ? (Array.isArray(reportState.previewRows) ? reportState.previewRows.length : 0)
+        : undefined;
+      const chips = buildUnifiedReportContextChips(
+        typeof outcomesCount === 'number' ? { outcomesCount } : {},
+      );
+      filterStripSummaryEl.innerHTML = renderContextBar({
+        title: REPORT_CONTEXT_BAR_TITLE,
+        chips,
+        secondary: reportState.previewData ? 'Results reflect this exact context.' : 'Run once to turn this context into a live report.',
+      });
+    }
     filterStripSummaryEl.title = summaryText;
   }
   if (rulesSummaryInlineEl) {

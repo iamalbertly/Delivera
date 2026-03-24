@@ -8,6 +8,8 @@ import {
   getContextDisplayString,
   renderSidebarContextCard,
 } from './Reporting-App-Shared-Context-From-Storage.js';
+import { renderContextBar } from './Reporting-App-Shared-ContextBar-Renderer.js';
+import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Reporting-App-Report-Page-ContextBar-Build.js';
 import { scheduleRender } from './Reporting-App-Report-Page-Loading-Steps.js';
 import { updateDateDisplay } from './Reporting-App-Report-Page-DateRange-Controller.js';
 import {
@@ -36,7 +38,7 @@ export function wirePreviewContextActions() {
         const expanded = detailsToggle.getAttribute('aria-expanded') === 'true';
         panel.hidden = expanded;
         detailsToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-        detailsToggle.textContent = expanded ? 'Details' : 'Details ✕';
+        detailsToggle.textContent = expanded ? 'Details' : 'Details x';
       }
       return;
     }
@@ -149,14 +151,28 @@ export function renderPreview() {
   const reportSubtitleEl = document.getElementById('report-subtitle');
   if (reportSubtitleEl) {
     reportSubtitleEl.textContent = rowsCount > 0
-      ? ('You are viewing ' + metaBlock.reportSubtitleText.replace(/^Projects:\s*/i, '') + '. Change the story only when the question changes.')
+      ? ('View: ' + metaBlock.reportSubtitleText.replace(/^Projects:\s*/i, ''))
       : 'History mission control for squads, range, and delivery signals.';
     reportSubtitleEl.style.display = '';
   }
   if (previewMeta) {
+    // Shared SSOT ContextBar: one rail (same chip builder as header strip pre-preview).
+    let contextBarHtml = '';
+    try {
+      const chips = buildUnifiedReportContextChips({ outcomesCount: rowsCount });
+      const secondary = rowsCount > 0
+        ? `${rowsCount} stor${rowsCount === 1 ? 'y' : 'ies'} | ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} | ${boardsCount} board${boardsCount === 1 ? '' : 's'}`
+        : 'Run preview to see outcome stories, sprints, and boards.';
+      contextBarHtml = renderContextBar({
+        title: REPORT_CONTEXT_BAR_TITLE,
+        chips,
+        secondary,
+      });
+    } catch (_) {
+      contextBarHtml = '';
+    }
     previewMeta.innerHTML = `
-      <div class="preview-header-story">${metaBlock.outcomeLineHTML}</div>
-      ${metaBlock.attentionQueueHtml || ''}
+      ${contextBarHtml}
       ${metaBlock.previewMetaHTML}
     `;
   }
@@ -166,6 +182,10 @@ export function renderPreview() {
     reportContextLine.style.display = 'none';
   }
   if (oneClickWrap) oneClickWrap.style.display = rowsCount > 0 ? 'none' : '';
+  const filterStripSummary = document.getElementById('report-filter-strip-summary');
+  if (filterStripSummary) {
+    filterStripSummary.textContent = rowsCount > 0 ? 'Saved views' : 'Filter by: projects, range, rules';
+  }
   if (previewBtn && rowsCount > 0) {
     previewBtn.classList.remove('btn-primary');
     previewBtn.classList.add('btn-secondary');
@@ -294,19 +314,19 @@ export function renderPreview() {
       if (labelEl) labelEl.textContent = finalText;
       else btn.textContent = finalText;
     }
-    setTabLabel(tabBoards, 'Overview (' + boardsCountForTab + ')', '📊 ' + boardsCountForTab);
-    setTabLabel(tabSprints, 'Sprints (' + sprintsCountForTab + ')', '📅 ' + sprintsCountForTab);
+    setTabLabel(tabBoards, 'Overview (' + boardsCountForTab + ')', 'Overview ' + boardsCountForTab);
+    setTabLabel(tabSprints, 'Sprints (' + sprintsCountForTab + ')', 'Sprints ' + sprintsCountForTab);
     if (tabDoneStories) {
       const totalDoneStories = Array.isArray(reportState.previewRows) ? reportState.previewRows.length : rowsCount;
       const baseLabel = totalDoneStories === 0 ? 'Outcomes (0)' : ('Outcomes (Total: ' + totalDoneStories + ')');
-      setTabLabel(tabDoneStories, baseLabel, '✅ ' + totalDoneStories);
+      setTabLabel(tabDoneStories, baseLabel, 'Outcomes ' + totalDoneStories);
       tabDoneStories.title = totalDoneStories === 0
         ? 'No done stories in this window; check dates or Jira hygiene.'
         : (meta.partial ? 'Partial preview: count reflects loaded outcomes only.' : 'Total done stories in the selected window.');
     }
-    setTabLabel(tabUnusable, 'Repair center (' + unusableCountForTab + ')', '⛔ ' + unusableCountForTab);
+    setTabLabel(tabUnusable, 'Repair center (' + unusableCountForTab + ')', 'Repair ' + unusableCountForTab);
     const tabTrends = document.getElementById('tab-btn-trends');
-    setTabLabel(tabTrends, 'Leadership HUD →', '👥');
+    setTabLabel(tabTrends, 'Leadership HUD ->', 'Leadership');
     const hash = window.location && window.location.hash ? window.location.hash : '';
     if (hash === '#trends') {
       const trendsBtn = document.getElementById('tab-btn-trends');
