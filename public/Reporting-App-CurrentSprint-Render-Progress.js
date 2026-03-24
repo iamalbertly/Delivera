@@ -2,9 +2,10 @@ import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escap
 import { formatDate, formatDayLabel, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
 import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
-import { buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
 import { hasOutcomeLabel, isOutcomeStoryLike } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
 import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
+import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -98,11 +99,15 @@ export function renderBurndown(data) {
   const stories = data.stories || [];
   const daily = data?.dailyCompletions?.stories || [];
   const sprintEnded = daysMeta.daysRemainingCalendar != null && daysMeta.daysRemainingCalendar <= 0;
+  const remainingDays = daysMeta.daysRemainingWorking != null ? daysMeta.daysRemainingWorking : daysMeta.daysRemainingCalendar;
   const summary = data.summary || {};
   const summaryTotalSP = Number(summary.totalSP || 0);
   const summaryTotalAllSP = Number(summary.totalAllSP || 0);
   const completedAfterEnd = Number(summary.completedAfterSprintEndCount || 0);
   const hasMultiSpFields = Array.isArray(summary.storyPointsFieldCandidates) && summary.storyPointsFieldCandidates.length > 1;
+  const verdictInfo = deriveSprintVerdict(data);
+  const sprintState = String(data?.sprint?.state || '').toLowerCase();
+  const collapseBurndown = sprintState !== 'active' || verdictInfo.trackingHealth === 'Weak';
 
   if (!remaining.length) {
     return '<div class="transparency-card" id="burndown-card"><h2>Flow over time</h2><p class="meta-row"><small>Burndown will appear when story points and resolutions are available.</small></p></div>';
@@ -158,18 +163,24 @@ export function renderBurndown(data) {
   const burstDelivery = remaining.length >= 2 && doneSP > 0 && lastRemaining === 0 && (remaining[remaining.length - 2].remainingSP || 0) > 0;
 
   let html = '<div class="transparency-card" id="burndown-card">';
-  html += '<h2>Flow over time</h2>';
+  html += '<div class="section-inline-header section-inline-header-compact">';
+  html += '<div><h2>Flow over time</h2></div>';
+  html += '<div class="section-inline-stats">';
+  html += '<span>SP complete ' + formatNumber(doneSP, 1, '-') + '</span>';
+  html += '<span>SP remaining ' + formatNumber(lastRemaining, 1, '-') + '</span>';
+  if (remainingDays != null) html += '<span>' + escapeHtml(getTimeLabel(remainingDays, sprintEnded)) + '</span>';
+  html += '</div>';
+  html += '</div>';
 
   if (sprintJustStarted) {
     html += '<p class="burndown-status-card burndown-status-info">Sprint just started. Burndown will update as work is completed.</p>';
-    html += '<p><strong>0%</strong> complete (0 SP done of ' + formatNumber(totalSP, 1, '-') + ' SP).</p>';
   } else if (noWorkDone && remaining.length > 2) {
     html += '<div class="burndown-status-card burndown-status-empty">';
     html += '<p><strong>No story points completed.</strong> ' + formatNumber(lastRemaining, 1, '-') + ' SP remaining.' + (sprintEnded ? ' Sprint ended.' : '') + '</p>';
     html += '<a href="#stories-card" class="btn btn-secondary btn-compact">View work items</a>';
     html += '</div>';
   } else {
-    html += '<p><strong>' + pct + '%</strong> complete | ' + formatNumber(lastRemaining, 1, '-') + ' SP remaining</p>';
+    html += '<p class="burndown-metric-inline"><strong>' + pct + '%</strong> complete</p>';
     const health = burndownHealth(remaining, ideal, totalSP);
     if (health.label) html += '<p class="burndown-health ' + health.class + '"><span class="burndown-health-label">' + escapeHtml(health.label) + '</span></p>';
     if (hasMultiSpFields) {
@@ -179,11 +190,18 @@ export function renderBurndown(data) {
       html += '<p class="burndown-annotation"><small>' + escapeHtml(String(completedAfterEnd)) + ' stor' + (completedAfterEnd === 1 ? 'y' : 'ies') + ' completed after sprint end; burndown shows sprint-only completion.</small></p>';
     }
     if (burstDelivery) html += '<p class="burndown-annotation"><small>Burst delivery: work completed on final day.</small></p>';
-    html += buildBurndownChart(remaining, ideal, 'Remaining SP');
+    if (collapseBurndown) {
+      html += '<details class="burndown-summary-drawer" data-mobile-collapse="true">';
+      html += '<summary class="btn btn-secondary btn-compact">Open flow details</summary>';
+      html += buildBurndownChart(remaining, ideal, 'Remaining SP');
+      html += '</details>';
+    } else {
+      html += buildBurndownChart(remaining, ideal, 'Remaining SP');
+    }
   }
 
-  html += '<details class="burndown-details-drawer">';
-  html += '<summary class="btn btn-secondary btn-compact">Open full burndown</summary>';
+  html += '<details class="burndown-details-drawer"' + (collapseBurndown ? '' : '') + '>';
+  html += '<summary class="btn btn-secondary btn-compact">View burndown table</summary>';
   html += '<table class="data-table" id="burndown-table">';
   html += '<thead><tr><th>Date</th><th>Remaining SP</th><th>Ideal Remaining</th></tr></thead><tbody>';
   for (let i = 0; i < remaining.length; i++) {
@@ -202,8 +220,18 @@ export function renderBurndown(data) {
   return html;
 }
 
+function getTimeLabel(remainingDays, sprintEnded) {
+  if (remainingDays == null) return 'Window unknown';
+  if (sprintEnded || remainingDays <= 0) return 'Ended';
+  if (remainingDays < 1) return 'Ends today';
+  return remainingDays + 'd left';
+}
+
 export function renderStories(data) {
   const stories = data.stories || [];
+  const sprintState = String(data?.sprint?.state || '').toLowerCase();
+  const isHistoricalSprint = sprintState && sprintState !== 'active';
+  const verdictInfo = deriveSprintVerdict(data);
   const scopeChanges = data.scopeChanges || [];
   const mergedRiskRows = buildMergedWorkRiskRows(data);
   const unifiedRiskCounts = getUnifiedRiskCounts(data);
@@ -222,12 +250,23 @@ export function renderStories(data) {
       .filter(Boolean)
   );
   const scopeKeys = new Set((scopeChanges || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
+  const filterViews = buildDistinctSprintFilterViews(data, verdictInfo);
+  const storyRiskTagMap = filterViews.storyTagMap || new Map();
 
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
+  if (stories.length > 0) {
+    html += '<div class="stories-desktop-table-region">';
+    html += '<div class="stories-primary-sticky">';
+  }
   html += '<div class="section-inline-header">';
-  html += '<div><h2>Mission-critical work</h2></div>';
-  html += '<div class="section-inline-stats"><span>' + stories.length + ' issues</span><span>' + blockerKeys.size + ' blockers</span><span>' + parentUnassigned + ' unowned</span></div>';
+  html += '<div><h2>Mission-critical work <span class="section-inline-count">· ' + stories.length + ' issues</span></h2></div>';
+  const storyStatChips = [];
+  if (blockerKeys.size > 0) storyStatChips.push('<span>' + blockerKeys.size + ' blockers</span>');
+  if (parentUnassigned > 0) storyStatChips.push('<span>' + parentUnassigned + ' unowned</span>');
+  if (storyStatChips.length) {
+    html += '<div class="section-inline-stats">' + storyStatChips.join('') + '</div>';
+  }
   html += '</div>';
   html += renderWorkRisksMerged(data);
 
@@ -241,7 +280,7 @@ export function renderStories(data) {
       } catch (_) {}
     });
     const dayKeys = Array.from(dayKeysSet).sort();
-    if (dayKeys.length > 0) {
+    if (!isHistoricalSprint && dayKeys.length > 1) {
       html += '<div class="daily-completion-timeline" aria-label="Filter issues by completion day">';
       html += '<button type="button" class="daily-timeline-chip daily-timeline-chip-active" data-day-key="">Flow</button>';
       dayKeys.forEach((key) => {
@@ -252,18 +291,22 @@ export function renderStories(data) {
     }
   }
 
+  if (stories.length > 0) {
+    html += '</div>';
+  }
+
   function renderStoryRow(row) {
     const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
     const parentKey = String(row.issueKey || row.key || '').toUpperCase();
     const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
-    const rowTags = [];
     const rowKey = String(row.issueKey || row.key || '').toUpperCase();
-    if (blockerKeys.has(rowKey)) rowTags.push('blocker');
-    if (scopeKeys.has(rowKey)) rowTags.push('scope');
-    if (unownedOutcomeKeys.has(rowKey)) rowTags.push('unassigned');
+    const rowTags = Array.from(new Set(storyRiskTagMap.get(rowKey) || []));
     const outcomeLabels = Array.isArray(row.labels) ? row.labels : [];
     const isOutcome = isOutcomeStoryLike({ labels: outcomeLabels, epicKey: row.epicKey }) || hasOutcomeLabel(outcomeLabels);
-    let rowHtml = '<tr class="story-parent-row" data-parent-key="' + escapeHtml(parentKey) + '"' + (subtasks.length ? ' data-has-children="true" aria-expanded="false"' : '') + '';
+    const parentStatus = String(row.status || '').toLowerCase();
+    const parentRowClasses = ['story-parent-row'];
+    if (parentStatus.includes('done')) parentRowClasses.push('story-parent-row-done');
+    let rowHtml = '<tr class="' + parentRowClasses.join(' ') + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (subtasks.length ? ' data-has-children="true" aria-expanded="false"' : '') + '';
     if (completedDayKey) {
       rowHtml += ' data-completed-day="' + escapeHtml(completedDayKey) + '"';
     }
@@ -294,10 +337,15 @@ export function renderStories(data) {
     rowHtml += '<td class="story-resolved-cell">' + escapeHtml(formatDate(row.resolved)) + '</td>';
     rowHtml += '<td class="story-risks-cell">';
     if (rowTags.length) {
-      rowTags.forEach((tag) => {
-        const label = tag === 'blocker' ? 'Blocker' : (tag === 'scope' ? 'Scope' : (tag === 'unassigned' ? 'Unowned' : tag));
-        rowHtml += '<span class="story-risk-pill story-risk-pill-' + escapeHtml(tag) + '">' + escapeHtml(label) + '</span>';
-      });
+      const labels = rowTags.map((tag) => tag === 'blocker'
+        ? 'Blocker'
+        : (tag === 'scope'
+          ? 'Scope'
+          : (tag === 'unassigned'
+            ? 'Unowned'
+            : (tag === 'no-log' ? 'No log' : (tag === 'missing-estimate' ? 'No estimate' : tag)))));
+      const compactLabel = labels.length === 1 ? labels[0] : (labels.length + ' risks');
+      rowHtml += '<span class="story-risk-pill story-risk-pill-compact" title="' + escapeHtml(labels.join(', ')) + '">' + escapeHtml(compactLabel) + '</span>';
     } else {
       rowHtml += '<span class="story-risk-pill-empty" aria-hidden="true">-</span>';
     }
@@ -368,13 +416,8 @@ export function renderStories(data) {
     const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
     const parentKey = String(row.issueKey || row.key || '').toUpperCase();
     const completedDayKey = row && row.resolved ? new Date(row.resolved).toISOString().slice(0, 10) : '';
-    const rowTags = [];
     const rowKey = String(row.issueKey || row.key || '').toUpperCase();
-    if (blockerKeys.has(rowKey)) rowTags.push('blocker');
-    if (scopeKeys.has(rowKey)) rowTags.push('scope');
-    if (unownedOutcomeKeys.has(rowKey)) rowTags.push('unassigned');
-    if (Number(row.subtaskEstimateHours || 0) > 0 && !(Number(row.subtaskLoggedHours || 0) > 0)) rowTags.push('no-log');
-    if (!(Number(row.subtaskEstimateHours || 0) > 0) && Number(row.subtaskLoggedHours || 0) > 0) rowTags.push('missing-estimate');
+    const rowTags = Array.from(new Set(storyRiskTagMap.get(rowKey) || []));
     const outcomeLabels = Array.isArray(row.labels) ? row.labels : [];
     const isOutcome = isOutcomeStoryLike({ labels: outcomeLabels, epicKey: row.epicKey }) || hasOutcomeLabel(outcomeLabels);
     const status = String(row.status || '-');
@@ -398,17 +441,15 @@ export function renderStories(data) {
     htmlCard += '<p class="story-mobile-summary">' + escapeHtml(row.summary || '-') + (isOutcome ? '<span class="story-row-flag story-row-flag-icon" title="Outcome-linked work" aria-label="Outcome-linked work">O</span>' : '') + '</p>';
     htmlCard += '<div class="story-mobile-meta"><span>' + escapeHtml(assignee) + '</span><span>SP ' + sp + '</span><span>Log/Est ' + log + 'h/' + est + 'h</span></div>';
     if (rowTags.length) {
+      const labels = rowTags.map((tag) => tag === 'blocker'
+        ? 'Blocker'
+        : (tag === 'scope'
+          ? 'Scope'
+          : (tag === 'unassigned'
+            ? 'Unowned'
+            : (tag === 'no-log' ? 'No log' : (tag === 'missing-estimate' ? 'No est' : tag)))));
       htmlCard += '<div class="story-mobile-risk-chips">';
-      rowTags.forEach((tag) => {
-        const label = tag === 'blocker'
-          ? 'Blocker'
-          : (tag === 'scope'
-            ? 'Scope'
-            : (tag === 'unassigned'
-              ? 'Unowned'
-              : (tag === 'no-log' ? 'No log' : (tag === 'missing-estimate' ? 'No est' : tag))));
-        htmlCard += '<span class="story-risk-pill story-risk-pill-' + escapeHtml(tag) + '">' + escapeHtml(label) + '</span>';
-      });
+      htmlCard += '<span class="story-risk-pill story-risk-pill-compact" title="' + escapeHtml(labels.join(', ')) + '">' + escapeHtml(labels.length === 1 ? labels[0] : (labels.length + ' risks')) + '</span>';
       htmlCard += '</div>';
     }
     htmlCard += '</button>';
@@ -450,7 +491,7 @@ export function renderStories(data) {
       html += '<p class="meta-row"><small>Large sprint. Highest-signal work first.</small></p>';
     }
 
-    html += '<div class="data-table-scroll-wrap stories-table-scroll-wrap' + (largeBoardMode ? ' stories-table-scroll-wrap-compact' : '') + '">';
+    html += '<div class="data-table-scroll-wrap stories-table-scroll-wrap' + (largeBoardMode ? ' stories-table-scroll-wrap-compact' : '') + '" id="work-risks-table">';
     html += '<table class="data-table" id="stories-table"><thead><tr>'
       + '<th title="Issue key and expand subtasks">Issue</th>'
       + '<th>Type</th>'
@@ -470,6 +511,7 @@ export function renderStories(data) {
       html += renderSubtaskRows(row);
     }
     html += '</tbody></table>';
+    html += '</div>';
     html += '</div>';
     html += '<div class="stories-mobile-card-list" id="stories-mobile-card-list">';
     for (const row of toShow) {
@@ -629,7 +671,8 @@ export function wireDailyCompletionTimelineHandlers() {
         const dayKey = chip.getAttribute('data-day-key') || '';
         applyDayFilter(dayKey);
         try {
-          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(card);
+          else card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (_) {}
       });
     }

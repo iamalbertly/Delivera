@@ -6976,6 +6976,57 @@ button.health-inline-pill {
   overflow: auto;
 }
 
+/* ALB-78: long-queue desktop — sticky title/filters row + bounded scroll so thead stays visible */
+@media (min-width: 769px) {
+  body.current-sprint-page #stories-card .stories-desktop-table-region {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  body.current-sprint-page #stories-card .stories-primary-sticky {
+    position: sticky;
+    top: var(--sticky-global-nav-top, 56px);
+    z-index: 4;
+    background: var(--card);
+    padding-bottom: 8px;
+    margin-bottom: -2px;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+  }
+
+  body.current-sprint-page #stories-card .stories-table-scroll-wrap {
+    max-height: min(62vh, 680px);
+    min-height: 200px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card-muted);
+  }
+
+  body.current-sprint-page #stories-card #stories-table thead th {
+    top: 0;
+    z-index: 3;
+    box-shadow: 0 1px 0 rgba(148, 163, 184, 0.45);
+  }
+}
+
+@media (max-width: 768px) {
+  body.current-sprint-page #stories-card .stories-desktop-table-region {
+    display: contents;
+  }
+
+  body.current-sprint-page #stories-card .stories-primary-sticky {
+    position: static;
+    z-index: auto;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
 .stories-mobile-card-list {
   display: none;
 }
