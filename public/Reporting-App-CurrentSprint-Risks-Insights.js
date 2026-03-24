@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * Risks & Insights Component
  * Consolidates blocker context, learnings, and risk notes into one actionable card.
  */
@@ -29,114 +29,80 @@ function buildOutcomePrefill(text, reasonLabel) {
 export function renderRisksAndInsights(data) {
   const notes = data.notes || { dependencies: [], learnings: [], updatedAt: null };
   const assumptions = data.assumptions || [];
-  const scopeChanges = data.scopeChanges || [];
 
   const dependencies = notes.dependencies || [];
-  const blockersText = [];
-  if (dependencies.length > 0) {
-    blockersText.push(...dependencies);
-  }
+  const blockersText = dependencies.length > 0 ? [...dependencies] : [];
   const learnings = notes.learnings || [];
-  const hasAssumptions = assumptions.length > 0;
   const riskCounts = getUnifiedRiskCounts(data);
   const ownedBlockerCount = Number(riskCounts.blockersOwned || 0);
-  const lightweightMode = blockersText.length === 0 && learnings.length === 0 && assumptions.length <= 1;
+  /** SSOT: same as work queue — never show 0 blockers in UI when signals say >0 */
+  const blockerChipCount = Math.max(blockersText.length, ownedBlockerCount);
+  const summaryItems = [
+    ...blockersText.map((text) => ({ kind: 'Blocker', text })),
+    ...assumptions.map((text) => ({ kind: 'Risk', text })),
+    ...learnings.map((text) => ({ kind: 'Learning', text })),
+  ];
+  const topItems = summaryItems.slice(0, 1);
+  const blockerNotesLabel = blockersText.length === 1 ? '1 note' : `${blockersText.length} notes`;
+  const oneLineSummary = blockerChipCount > 0
+    ? `${blockerChipCount} blocker${blockerChipCount === 1 ? '' : 's'} in sprint signals (queue SSOT)${blockersText.length > 0 ? ` · ${blockerNotesLabel} below` : ''}`
+    : (assumptions.length > 0
+      ? `${assumptions.length} active risk${assumptions.length === 1 ? '' : 's'} in this sprint (team notes)`
+      : (learnings.length > 0
+        ? `${learnings.length} learning${learnings.length === 1 ? '' : 's'} captured`
+        : 'No active risks need immediate review'));
 
   let html = '<div class="transparency-card risks-insights-card" id="risks-insights-card">';
   html += '<h2>Risks & Insights</h2>';
-
-  if (lightweightMode) {
-    const summaryLabel = assumptions.length > 0
-      ? assumptions.length + ' risk' + (assumptions.length === 1 ? '' : 's') + ' need review'
-      : 'No blockers or learnings captured yet';
-    html += '<div class="insight-empty insight-empty-compact"><p>' + escapeHtml(summaryLabel) + '</p>';
-    html += '<div class="insights-actions-bar">';
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create an outcome from risks and insights for this sprint.">Create outcome</button>';
-    html += '</div></div></div>';
-    return html;
-  }
-
-  html += '<div class="insights-tabs" role="tablist" aria-label="Sprint insights">';
-  html += '<button class="insights-tab active" role="tab" aria-selected="true" data-tab="blockers" aria-controls="blockers-panel">Blockers<span class="insights-tab-badge">' + blockersText.length + '</span></button>';
-  html += '<button class="insights-tab" role="tab" aria-selected="false" data-tab="learnings" aria-controls="learnings-panel">Learnings<span class="insights-tab-badge">' + learnings.length + '</span></button>';
-  html += '<button class="insights-tab" role="tab" aria-selected="false" data-tab="assumptions" aria-controls="assumptions-panel">Risks<span class="insights-tab-badge">' + assumptions.length + '</span></button>';
+  html += '<p class="insights-summary-copy">' + escapeHtml(oneLineSummary) + '</p>';
+  html += '<div class="insights-summary-strip">';
+  html += '<span class="insights-summary-chip" title="Blockers: sprint risk signals and work queue (same SSOT); count is max of signals and saved dependency notes.">' + blockerChipCount + ' blockers</span>';
+  html += '<span class="insights-summary-chip" title="Risks: team-entered notes in this card (not the same as signal tags in the queue).">' + assumptions.length + ' risks</span>';
+  html += '<span class="insights-summary-chip" title="Learnings: team notes captured below.">' + learnings.length + ' learnings</span>';
   html += '</div>';
-
-  html += '<div id="blockers-panel" class="insights-panel active" role="tabpanel" aria-labelledby="blockers-tab">';
-  if (blockersText.length > 0) {
-    html += '<div class="insights-content">';
-    blockersText.forEach((item) => {
-      html += '<div class="insight-item blocker-item">';
-      html += '<span class="insight-icon" aria-hidden="true">!</span>';
-      html += '<div class="insight-text">' + escapeHtml(item) + '</div>';
-      html += '<button type="button" class="link-style insight-promote-link" data-open-outcome-modal data-outcome-context="Promote this sprint blocker into an outcome." data-outcome-prefill="' + escapeHtml(buildOutcomePrefill(item, 'Sprint blocker')) + '">Promote to outcome</button>';
+  if (topItems.length > 0) {
+    html += '<div class="insights-summary-list">';
+    topItems.forEach((item) => {
+      const itemClass = item.kind === 'Blocker' ? 'blocker-item' : (item.kind === 'Learning' ? 'learning-item' : 'assumption-item');
+      html += '<div class="insight-item ' + itemClass + '">';
+      html += '<span class="insight-icon" aria-hidden="true">' + (item.kind === 'Learning' ? 'i' : '!') + '</span>';
+      html += '<div class="insight-text"><strong>' + escapeHtml(item.kind) + ':</strong> ' + escapeHtml(item.text) + '</div>';
       html += '</div>';
     });
-    html += '</div>';
-    html += '<div class="insight-actions">';
-    html += '<p class="insight-hint">Add recommended unblock actions:</p>';
-    html += '<div class="insight-input-grid">';
-    html += '<label class="insight-label" for="blockers-action-type">Action type</label>';
-    html += '<select id="blockers-action-type" class="insight-action-type" aria-label="Action type"><option value="">- Action type -</option><option value="Escalate">Escalate</option><option value="Reassign">Reassign</option><option value="Defer">Defer</option><option value="Custom">Custom</option></select>';
-    html += '<label class="insight-label" for="blockers-owner">Owner</label>';
-    html += '<input id="blockers-owner" class="insight-inline-input" type="text" maxlength="80" placeholder="e.g., Scrum Master" />';
-    html += '<label class="insight-label" for="blockers-effective-at">Action time</label>';
-    html += '<input id="blockers-effective-at" class="insight-inline-input" type="datetime-local" value="' + toLocalIsoMinute() + '" />';
-    html += '</div>';
-    html += '<textarea id="blockers-mitigation" rows="4" maxlength="1000" placeholder="e.g., Escalate to architecture team, schedule review meeting" class="insight-input" aria-describedby="blockers-char-count"></textarea>';
-    html += '<span id="blockers-char-count" class="insight-char-count" aria-live="polite">0 / 1000</span>';
     html += '</div>';
   } else {
     const blockerMessage = ownedBlockerCount > 0
       ? ownedBlockerCount + ' blocker' + (ownedBlockerCount === 1 ? '' : 's') + ' detected in sprint risk signals. Review the work queue below.'
-      : 'No blockers detected from notes or unified sprint risk signals.';
+      : 'No blockers or documented risks need immediate review.';
     html += '<div class="insight-empty"><p>' + escapeHtml(blockerMessage) + '</p></div>';
   }
-  html += '</div>';
 
-  html += '<div id="learnings-panel" class="insights-panel" role="tabpanel" aria-labelledby="learnings-tab">';
-  if (learnings.length > 0) {
-    html += '<div class="insights-content">';
-    learnings.forEach((item) => {
-      html += '<div class="insight-item learning-item">';
-      html += '<span class="insight-icon" aria-hidden="true">i</span>';
-      html += '<div class="insight-text">' + escapeHtml(item) + '</div>';
-      html += '<button type="button" class="link-style insight-promote-link" data-open-outcome-modal data-outcome-context="Promote this sprint learning into an outcome." data-outcome-prefill="' + escapeHtml(buildOutcomePrefill(item, 'Sprint learning')) + '">Promote to outcome</button>';
-      html += '</div>';
-    });
-    html += '</div>';
-    html += '<div class="insight-actions">';
-    html += '<p class="insight-hint">Add new learnings:</p>';
-    html += '<textarea id="learnings-new" rows="4" maxlength="1000" placeholder="e.g., API integration easier than expected" class="insight-input" aria-describedby="learnings-char-count"></textarea>';
-    html += '<span id="learnings-char-count" class="insight-char-count" aria-live="polite">0 / 1000</span>';
-    html += '</div>';
-  } else {
-    html += '<div class="insight-empty"><p>No learnings captured yet. Document discoveries and improvements.</p></div>';
-  }
+  html += '<details class="insights-manage-drawer" data-mobile-collapse="true">';
+  html += '<summary class="btn btn-secondary btn-compact">Manage notes</summary>';
+  html += '<div class="insights-manage-grid">';
+  html += '<div class="insight-actions">';
+  html += '<p class="insight-hint">Add recommended unblock actions:</p>';
+  html += '<div class="insight-input-grid">';
+  html += '<label class="insight-label" for="blockers-action-type">Action type</label>';
+  html += '<select id="blockers-action-type" class="insight-action-type" aria-label="Action type"><option value="">- Action type -</option><option value="Escalate">Escalate</option><option value="Reassign">Reassign</option><option value="Defer">Defer</option><option value="Custom">Custom</option></select>';
+  html += '<label class="insight-label" for="blockers-owner">Owner</label>';
+  html += '<input id="blockers-owner" class="insight-inline-input" type="text" maxlength="80" placeholder="e.g., Scrum Master" />';
+  html += '<label class="insight-label" for="blockers-effective-at">Action time</label>';
+  html += '<input id="blockers-effective-at" class="insight-inline-input" type="datetime-local" value="' + toLocalIsoMinute() + '" />';
   html += '</div>';
-
-  html += '<div id="assumptions-panel" class="insights-panel" role="tabpanel" aria-labelledby="assumptions-tab">';
-  if (hasAssumptions) {
-    html += '<div class="insights-content">';
-    assumptions.forEach((item) => {
-      html += '<div class="insight-item assumption-item">';
-      html += '<span class="insight-icon" aria-hidden="true">!</span>';
-      html += '<div class="insight-text">' + escapeHtml(item) + '</div>';
-      html += '<span class="risk-level" title="Risk level: Assumed low">Low</span>';
-      html += '<button type="button" class="link-style insight-promote-link" data-open-outcome-modal data-outcome-context="Promote this sprint risk into an outcome." data-outcome-prefill="' + escapeHtml(buildOutcomePrefill(item, 'Sprint risk')) + '">Promote to outcome</button>';
-      html += '</div>';
-    });
-    html += '</div>';
-  } else {
-    html += '<div class="insight-empty"><p>No assumptions documented. Consider what could go wrong.</p></div>';
-  }
+  html += '<textarea id="blockers-mitigation" rows="4" maxlength="1000" placeholder="e.g., Escalate to architecture team, schedule review meeting" class="insight-input" aria-describedby="blockers-char-count"></textarea>';
+  html += '<span id="blockers-char-count" class="insight-char-count" aria-live="polite">0 / 1000</span>';
+  html += '</div>';
+  html += '<div class="insight-actions">';
+  html += '<p class="insight-hint">Add new learnings:</p>';
+  html += '<textarea id="learnings-new" rows="3" maxlength="1000" placeholder="e.g., API integration easier than expected" class="insight-input" aria-describedby="learnings-char-count"></textarea>';
+  html += '<span id="learnings-char-count" class="insight-char-count" aria-live="polite">0 / 1000</span>';
+  html += '</div>';
   html += '<div class="insight-actions">';
   html += '<p class="insight-hint">Add risks and mitigation strategies:</p>';
-  html += '<textarea id="assumptions-new" rows="4" maxlength="1000" placeholder="e.g., Risk: Third-party API downtime. Mitigation: fallback caching" class="insight-input" aria-describedby="assumptions-char-count"></textarea>';
+  html += '<textarea id="assumptions-new" rows="3" maxlength="1000" placeholder="e.g., Risk: Third-party API downtime. Mitigation: fallback caching" class="insight-input" aria-describedby="assumptions-char-count"></textarea>';
   html += '<span id="assumptions-char-count" class="insight-char-count" aria-live="polite">0 / 1000</span>';
   html += '</div>';
-  html += '</div>';
-
   html += '<div class="insights-actions-bar">';
   html += '<button id="insights-save" class="btn btn-primary btn-compact" type="button">Save All Insights</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create an outcome from risks and insights for this sprint.">Create outcome</button>';
@@ -149,7 +115,8 @@ export function renderRisksAndInsights(data) {
     : '';
   html += '<p class="insights-updated" id="insights-saved-ago"' + (savedAgoText ? '' : ' style="display: none;"') + '>Saved ' + (savedAgoText || 'just now') + '</p>';
   html += '</div>';
-
+  html += '</div>';
+  html += '</details>';
   html += '</div>';
   return html;
 }
@@ -179,43 +146,6 @@ function setInsightsStatus(card, text, cssVarName) {
 export function wireRisksAndInsightsHandlers() {
   const card = document.querySelector('.risks-insights-card');
   if (!card) return;
-
-  const tabs = card.querySelectorAll('.insights-tab');
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      card.querySelectorAll('.insights-tab').forEach((t) => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      card.querySelectorAll('.insights-panel').forEach((p) => {
-        p.classList.remove('active');
-      });
-
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      const tabName = tab.dataset.tab;
-      const panel = card.querySelector('#' + tabName + '-panel');
-      if (panel) panel.classList.add('active');
-    });
-
-    tab.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        const nextTab = tab.nextElementSibling;
-        if (nextTab?.classList.contains('insights-tab')) {
-          nextTab.click();
-          nextTab.focus();
-        }
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        const prevTab = tab.previousElementSibling;
-        if (prevTab?.classList.contains('insights-tab')) {
-          prevTab.click();
-          prevTab.focus();
-        }
-      }
-    });
-  });
 
   wireCharCount(card, '#blockers-mitigation', '#blockers-char-count', INSIGHT_MAX_LEN);
   wireCharCount(card, '#learnings-new', '#learnings-char-count', INSIGHT_MAX_LEN);
