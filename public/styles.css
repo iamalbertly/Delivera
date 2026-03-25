@@ -1566,7 +1566,7 @@ body.report-page .preview-active .tab-hint {
   font-weight: 500;
   margin-bottom: 10px;
   position: sticky;
-  top: var(--sticky-summary-top, 72px);
+  top: 72px;
   z-index: 92;
   background: var(--bg);
   padding: 6px 0 8px;
@@ -1739,7 +1739,7 @@ body.report-page .preview-active .tab-hint {
   margin-bottom: 12px;
   flex-wrap: wrap;
   position: sticky;
-  top: var(--sticky-summary-top, 72px);
+  top: 72px;
   z-index: 95;
   background: var(--card);
   padding: 8px 0;
@@ -2581,7 +2581,7 @@ body.report-page .preview-active .tab-hint {
 .app-notification-toggle {
   position: fixed;
   left: 16px;
-  top: var(--sticky-global-nav-top, 56px);
+  top: 82px;
   background: var(--card-muted);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -2589,6 +2589,10 @@ body.report-page .preview-active .tab-hint {
   color: var(--muted);
   cursor: pointer;
   z-index: 1000;
+}
+
+body.notification-dock-visible .container {
+  padding-left: 300px;
 }
 
 .app-notification-badge {
@@ -2756,16 +2760,12 @@ body.report-page .preview-active .tab-hint {
 
 /* M8: Sticky tab bar — stays visible while scrolling through long table content */
 .tabs {
-  /* Base layout; sticky behavior is controlled by the shared sticky-rail policy. */
+  position: sticky;
+  top: 72px;
+  z-index: 89;
   background: var(--bg);
   padding-top: 4px;
   padding-bottom: 4px;
-}
-
-body[data-sticky-rail="tabs"] .tabs {
-  position: sticky;
-  top: var(--sticky-summary-top, 72px);
-  z-index: 89;
 }
 
 body.keyboard-open .tabs,
@@ -3038,7 +3038,7 @@ body.report-page .report-header-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -3099,8 +3099,8 @@ body.report-page .report-filter-strip {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  padding: 4px 8px;
-  margin-top: 4px;
+  padding: 5px 9px;
+  margin-top: 6px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
@@ -3114,7 +3114,7 @@ body.report-page .report-filter-strip #report-named-views {
 body.report-page .report-filter-strip-summary {
   min-width: 0;
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -3213,39 +3213,6 @@ body.report-page .boards-table-load-more-wrap {
 
 body.report-page .date-range-custom-wrap label + label {
   margin-top: 0;
-}
-
-body.report-page .preview-header {
-  gap: 8px;
-}
-
-body.report-page .preview-context-bar {
-  gap: 6px;
-}
-
-body.report-page .attention-queue--compact {
-  margin-top: 6px;
-}
-
-body.report-page .attention-queue--compact .attention-queue-list {
-  gap: 6px;
-}
-
-body.report-page .report-outcome-intake-hint-compact {
-  margin: 0 0 6px;
-  font-size: 0.78rem;
-}
-
-body.report-page .global-outcome-modal .modal-body {
-  max-height: min(74vh, 680px);
-  overflow: auto;
-}
-
-body.report-page .report-outcome-intake-actions-sticky {
-  position: sticky;
-  bottom: 0;
-  padding-top: 8px;
-  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.96) 28%, rgba(255,255,255,1));
 }
 
 body.report-page .date-display[hidden] {
@@ -3626,6 +3593,22 @@ body.report-page .preview-status-strip[data-state="fresh"] {
   body.report-page.preview-active .report-filters-status-bar,
   body.report-page.preview-active #report-context-line {
     display: none !important;
+  }
+}
+
+/* ALB-29: Narrow + preview-active - single visible hero; clip redundant page h1 when preview context shows */
+@media (max-width: 720px) {
+  body.report-page.preview-active header .header-row > div:first-child > h1 {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
   }
 }
 
@@ -4258,7 +4241,7 @@ body .preview-area {
   font-size: 0.9em;
 }
 
-﻿
+
 /* todo-copy-map-and-tokens: mission header typography tokens (shared with leadership where classes overlap) */
 :root {
   --header-sprint-name-size: 0.95rem;
@@ -6976,60 +6959,6 @@ button.health-inline-pill {
   overflow: auto;
 }
 
-/* ALB-78: long-queue desktop — sticky title/filters row + bounded scroll so thead stays visible */
-@media (min-width: 769px) {
-  body.current-sprint-page #stories-card .stories-desktop-table-region {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  body.current-sprint-page #stories-card .stories-primary-sticky {
-    position: sticky;
-    top: var(--sticky-global-nav-top, 56px);
-    z-index: 4;
-    background: var(--card);
-    padding-bottom: 8px;
-    margin-bottom: -2px;
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
-  }
-
-  body.current-sprint-page #stories-card .stories-table-scroll-wrap {
-    max-height: min(62vh, 680px);
-    min-height: 200px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--card-muted);
-  }
-
-  /* ALB-84: thead above tbody rows while scrolling long queues inside .stories-table-scroll-wrap */
-  body.current-sprint-page #stories-card #stories-table thead th {
-    top: 0;
-    z-index: 5;
-    position: sticky;
-    background: #eef3fa;
-    box-shadow: 0 1px 0 rgba(148, 163, 184, 0.45);
-  }
-}
-
-@media (max-width: 768px) {
-  body.current-sprint-page #stories-card .stories-desktop-table-region {
-    display: contents;
-  }
-
-  body.current-sprint-page #stories-card .stories-primary-sticky {
-    position: static;
-    z-index: auto;
-    padding-bottom: 0;
-    margin-bottom: 0;
-    border-bottom: 0;
-    box-shadow: none;
-    background: transparent;
-  }
-}
-
 .stories-mobile-card-list {
   display: none;
 }
@@ -8256,6 +8185,11 @@ body.notification-dock-visible .export-dashboard-container {
     gap: 6px;
   }
 
+  /* ALB-76: Freshness duplicates status/tooltip signals on phones; keep strip to Projects + Range for stable scroll height. */
+  .current-sprint-header-bar ul.header-context-strip > li:has([data-context-segment-label="Freshness"]) {
+    display: none;
+  }
+
   .header-context-segment {
     max-width: 100%;
   }
@@ -8852,134 +8786,8 @@ body.current-sprint-page .insights-manage-grid {
     min-width: 168px;
   }
 
-  /* ALB-83: compress hero stack on mobile — tighter chrome + work table before insights */
-  body.current-sprint-page header {
-    padding: 4px 8px;
-    margin-bottom: 4px;
-  }
-
-  body.current-sprint-page:has(#current-sprint-content .current-sprint-header-bar) header {
-    padding: 4px 8px 5px;
-  }
-
   body.current-sprint-page .current-sprint-header-bar {
     position: sticky;
-    padding: 4px 8px;
-    gap: 3px;
-  }
-
-  body.current-sprint-page .current-sprint-grid-layout {
-    gap: 12px;
-  }
-
-  body.current-sprint-page .current-sprint-grid-layout > .sprint-cards-column.full-width {
-    order: -1;
-  }
-
-  body.current-sprint-page .sprint-cards-row {
-    gap: 12px;
-  }
-
-  body.current-sprint-page .transparency-card {
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  body.current-sprint-page .sprint-section-links-compact {
-    margin-top: 2px;
-    margin-bottom: 2px;
-  }
-
-  /* ALB-77: compress Current Sprint hero stack (mobile) - tighter bands without new scroll */
-  body.current-sprint-page .header-band {
-    gap: 2px;
-  }
-
-  body.current-sprint-page .header-sprint-name {
-    font-size: 0.88rem;
-    line-height: 1.22;
-  }
-
-  body.current-sprint-page .header-band .sprint-verdict-line {
-    padding-left: 6px;
-    gap: 4px;
-    font-size: 0.82rem;
-    margin-right: 0;
-  }
-
-  body.current-sprint-page .header-band .sprint-verdict-line strong {
-    font-size: 0.92em;
-  }
-
-  body.current-sprint-page .header-band .sprint-verdict-explain {
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  body.current-sprint-page .header-identity-metrics {
-    gap: 2px;
-    margin-top: 0;
-  }
-
-  body.current-sprint-page .header-identity-metrics .header-metric-tile {
-    padding: 3px 5px;
-    border-radius: 6px;
-  }
-
-  body.current-sprint-page .header-identity-metrics .metric-label {
-    font-size: 0.66rem;
-  }
-
-  body.current-sprint-page .header-identity-metrics .metric-value {
-    font-size: 0.74rem;
-  }
-
-  body.current-sprint-page .header-compact-strip {
-    padding-top: 2px;
-    gap: 3px;
-  }
-
-  body.current-sprint-page .current-sprint-header-bar .header-role-modes-row {
-    margin-top: 2px;
-    padding-top: 4px;
-    gap: 4px;
-  }
-
-  body.current-sprint-page .current-sprint-header-bar .header-role-modes-label {
-    font-size: 0.68rem;
-  }
-
-  body.current-sprint-page .current-sprint-header-bar .role-mode-pill {
-    padding: 2px 6px;
-    font-size: 0.66rem;
-  }
-
-  body.current-sprint-page .current-sprint-header-bar .header-context-strip {
-    gap: 4px;
-    row-gap: 3px;
-  }
-
-  body.current-sprint-page .header-context-segment {
-    padding: 2px 6px;
-    gap: 4px;
-  }
-
-  body.current-sprint-page .header-context-segment-label {
-    font-size: 0.6rem;
-    letter-spacing: 0.03em;
-  }
-
-  body.current-sprint-page .header-context-segment-value {
-    font-size: 0.7rem;
-    max-width: min(56ch, 100%);
-  }
-
-  body.current-sprint-page .header-view-drawer summary {
-    font-size: 0.78rem;
-    padding: 2px 4px;
   }
 }
 
@@ -9138,7 +8946,7 @@ body.current-sprint-page .burndown-metric-inline {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 4px;
+    gap: 6px;
   }
 
   body.current-sprint-page .header-band-main {
