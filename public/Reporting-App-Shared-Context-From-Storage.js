@@ -194,7 +194,7 @@ export function renderContextSegments(pieces, options = {}) {
       ? ' type="button" data-context-action="' + escapeHtml(actionName) + '"'
       : '';
     if (listSemantics) html += '<li>';
-    html += '<' + tagName + ' class="' + escapeHtml(segmentClass + stateClass + (isActionable ? ' is-actionable' : '')) + '"' + extraAttrs + '>';
+    html += '<' + tagName + ' class="' + escapeHtml(segmentClass + stateClass + (isActionable ? ' is-actionable' : '')) + '" data-context-segment-label="' + escapeHtml(part.label) + '"' + extraAttrs + '>';
     html += '<span class="' + escapeHtml(segmentClass + '-label') + '">' + escapeHtml(part.label) + '</span>';
     html += '<span class="' + escapeHtml(segmentClass + '-value') + '">' + escapeHtml(part.value) + '</span>';
     html += '</' + tagName + '>';

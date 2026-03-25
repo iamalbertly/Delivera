@@ -137,12 +137,12 @@ function buildHeaderContextStrip(data, freshnessLabel) {
     : String(meta.projects || '').split(',').map((value) => value.trim()).filter(Boolean).join(', ');
   const start = meta.windowStart || meta.start || '';
   const end = meta.windowEnd || meta.end || '';
-  /* ALB-82: suppress Freshness segment here — same signal lives on drawer summary + status dot (avoids duplicate Context/Freshness rows). */
+  /* ALB-76: scope + freshness live on the persistent context strip; drawer keeps board-only line (no duplicate project/freshness row). */
   const contextPieces = getContextPieces({
     projects: selectedProjects || undefined,
     rangeStart: start,
     rangeEnd: end,
-    freshness: '',
+    freshness: freshnessLabel || '',
     freshnessIsStale: !!meta.fromSnapshot,
   });
   const stripHtml = renderContextSegments(contextPieces, {
@@ -337,10 +337,9 @@ export function renderHeaderBar(data, options = {}) {
   html += '<summary><span class="header-status-dot ' + escapeHtml(statusClass) + '" aria-hidden="true"></span><span>' + escapeHtml(SPRINT_COPY.drawerContext) + '</span><span data-header-active-filter-value>' + escapeHtml(SPRINT_COPY.allWorkDefault) + '</span></summary>';
   html += '<div class="header-view-drawer-panel">';
   html += '<div class="header-view-summary" title="' + escapeHtml(statusSummary) + '"><span class="header-view-summary-label">' + escapeHtml(SPRINT_COPY.drawerStatusLabel) + '</span><span class="header-view-summary-value">' + escapeHtml(statusBadge === SPRINT_COPY.statusLive ? SPRINT_COPY.statusLive : SPRINT_COPY.statusSnapshot) + '</span></div>';
-  html += '<div class="header-context-summary-row">';
-  html += '<span class="header-drawer-meta-item">' + escapeHtml([selectedProject || 'n/a', boardName || 'Board'].filter(Boolean).join(' | ')) + '</span>';
-  html += '<span class="header-drawer-meta-item">' + escapeHtml(freshnessLabel || statusBadge) + '</span>';
-  /* ALB-82: trustLabel removed — already on header-compact-strip (header-export-readiness). */
+  const drawerBoardLine = boardName || selectedProject || SPRINT_COPY.boardFallback;
+  html += '<div class="header-context-summary-row" data-header-drawer-board-scope="true" aria-label="' + escapeHtml(SPRINT_COPY.drawerBoardScopeAria) + '">';
+  html += '<span class="header-drawer-meta-item">' + escapeHtml(drawerBoardLine) + '</span>';
   html += '</div>';
   html += '<div class="header-drawer-risks">';
   verdictRiskChips.slice(0, 4).forEach((chip) => {

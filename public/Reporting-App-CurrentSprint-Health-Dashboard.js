@@ -2,7 +2,7 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
 import { formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
 import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
 
-function buildEvidenceLine({
+export function buildEvidenceLine({
   verdict,
   stuckCount,
   missingEstimates,

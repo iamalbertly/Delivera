@@ -283,12 +283,16 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
 
   test('Header context strip is compressed into one deduplicated scope line', async ({ page }) => {
     await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
-    const strip = page.locator('.current-sprint-header-bar .header-context-summary-row').first();
+    const strip = page.locator('.current-sprint-header-bar .header-context-strip').first();
     await expect(strip).toBeVisible();
     const text = (await strip.textContent().catch(() => '')) || '';
     expect(text.trim().length).toBeGreaterThan(12);
-    expect(/MPSA|board|snapshot|live|weak|strong/i.test(text)).toBeTruthy();
+    expect(/MPSA|Projects|Range|Live|Snapshot|Updated|Freshness|board/i.test(text)).toBeTruthy();
     expect(/from report cache/i.test(text)).toBeFalsy();
+    const boardRow = page.locator('.current-sprint-header-bar .header-context-summary-row').first();
+    await expect(boardRow).toBeVisible();
+    const boardText = ((await boardRow.textContent().catch(() => '')) || '').trim();
+    expect(boardText.length).toBeGreaterThan(0);
   });
 
   test('Mission header exposes role lens strip with View as label when role presets exist', async ({ page }) => {

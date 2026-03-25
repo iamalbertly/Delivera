@@ -1,4 +1,4 @@
-﻿
+
 /* todo-copy-map-and-tokens: mission header typography tokens (shared with leadership where classes overlap) */
 :root {
   --header-sprint-name-size: 0.95rem;
@@ -3940,6 +3940,11 @@ body.notification-dock-visible .export-dashboard-container {
 
   .header-context-strip {
     gap: 6px;
+  }
+
+  /* ALB-76: Freshness duplicates status/tooltip signals on phones; keep strip to Projects + Range for stable scroll height. */
+  .current-sprint-header-bar ul.header-context-strip > li:has([data-context-segment-label="Freshness"]) {
+    display: none;
   }
 
   .header-context-segment {

@@ -64,6 +64,7 @@ export const SPRINT_COPY = {
 
   ariaSprintHealthVerdict: 'Sprint health verdict',
   drawerContext: 'Context',
+  drawerBoardScopeAria: 'Active board for this sprint',
   drawerStatusLabel: 'Status',
   drawerHygieneTitle: 'Time-tracking hygiene (not sprint health)',
   hygieneLabel: 'Hygiene',
