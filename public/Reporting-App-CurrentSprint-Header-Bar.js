@@ -271,11 +271,28 @@ export function renderHeaderBar(data, options = {}) {
   const headerContextStripHtml = buildHeaderContextStrip(data, freshnessLabel);
   const interventionItems = Array.isArray(distinctViews?.distinctRiskViews) ? distinctViews.distinctRiskViews.slice(0, 3) : [];
   const distinctRoleViews = Array.isArray(distinctViews?.distinctRoleViews) ? distinctViews.distinctRoleViews : [];
+  /* ALB-31: distinctRiskViews can be empty while owned blockers exist (role lenses only). Still surface Take action + blocker chip in the sticky compact strip. */
+  const usingBlockerCompactFallback =
+    !isHistoricalSprint
+    && stuckCount > 0
+    && interventionItems.length === 0;
+  const compactStripInterventions = usingBlockerCompactFallback
+    ? [{
+      riskTags: ['blocker'],
+      label: SPRINT_COPY.blockersCount(stuckCount),
+      matchedKeys: [],
+      setKey: '__alb31_blocker_compact_fallback__',
+    }]
+    : interventionItems;
   const headerRoleViews = !isHistoricalSprint
-    ? distinctRoleViews.filter((item) => !interventionItems.some((riskView) => riskView.setKey === item.setKey))
+    ? distinctRoleViews.filter((item) => {
+        if (interventionItems.some((riskView) => riskView.setKey === item.setKey)) return false;
+        if (usingBlockerCompactFallback && item.roleMode === 'scrum-master') return false;
+        return true;
+      })
     : [];
-  const hasPriorityInterventions = interventionItems.length > 0;
-  const defaultRiskTags = hasPriorityInterventions ? (interventionItems[0].riskTags || []) : [];
+  const hasPriorityInterventions = compactStripInterventions.length > 0;
+  const defaultRiskTags = hasPriorityInterventions ? (compactStripInterventions[0].riskTags || []) : [];
   const compactSummaryBits = [
     `${donePercentage}% done`,
     `${issuesCount} Work items`,
@@ -393,9 +410,13 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-compact-strip" aria-label="' + escapeHtml(SPRINT_COPY.compactStripAria) + '">';
   html += reportLinkHtml;
   if (hasPriorityInterventions) {
-    const primaryIntervention = interventionItems[0] || {};
-    const interventionText = interventionItems
-      .map((item) => (item.label || '') + ' ' + String((item.matchedKeys || []).length || 0))
+    const primaryIntervention = compactStripInterventions[0] || {};
+    const interventionText = compactStripInterventions
+      .map((item) => {
+        const mk = (item.matchedKeys || []).length;
+        if (mk > 0) return `${item.label || ''} ${String(mk)}`.trim();
+        return String(item.label || '').trim();
+      })
       .filter(Boolean)
       .join(' | ');
     const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
@@ -449,9 +470,9 @@ export function wireHeaderBarHandlers() {
         }));
       } catch (_) {}
       try {
-        const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
-        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
-        else stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        const scrollTarget = document.getElementById('stuck-card') || document.getElementById('stories-card');
+        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(scrollTarget);
+        else scrollTarget?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } catch (_) {}
       return;
     }
@@ -472,9 +493,9 @@ export function wireHeaderBarHandlers() {
       }));
     } catch (_) {}
     try {
-      const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
-      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
-      else stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      const scrollTarget = document.getElementById('stuck-card') || document.getElementById('stories-card');
+      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(scrollTarget);
+      else scrollTarget?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     } catch (_) {}
   }
 
@@ -513,9 +534,9 @@ export function wireHeaderBarHandlers() {
       window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'header-verdict' } }));
     } catch (_) {}
     try {
-      const stories = document.getElementById('stories-card') || document.getElementById('stuck-card');
-      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(stories);
-      else stories?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      const scrollTarget = document.getElementById('stuck-card') || document.getElementById('stories-card');
+      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(scrollTarget);
+      else scrollTarget?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     } catch (_) {}
     return true;
   }

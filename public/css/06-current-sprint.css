@@ -4123,6 +4123,18 @@ body.current-sprint-page .header-compact-strip .header-chrome-history-report {
   line-height: 1.2;
 }
 
+/* ALB-31: Keep mission-critical header + remediation shortcuts visible while scrolling the stories table (HUD offset matches sprint header bar stack). */
+body.current-sprint-page #stories-card .stories-primary-sticky {
+  position: sticky;
+  z-index: 40;
+  top: calc(var(--sticky-global-nav-top, 56px) + var(--current-sprint-hud-below-nav, 132px));
+  background: var(--bg, #f8fafc);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
 body.current-sprint-page .header-view-drawer {
   position: relative;
 }
