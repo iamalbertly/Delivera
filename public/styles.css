@@ -8354,8 +8354,16 @@ body.current-sprint-page .header-compact-strip {
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-  padding-top: 3px;
+  padding-top: 2px;
   border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+/* ALB-30: History report before squad intervention chrome in the sticky strip */
+body.current-sprint-page .header-compact-strip .header-chrome-history-report {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  margin-right: 4px;
+  line-height: 1.2;
 }
 
 body.current-sprint-page .header-view-drawer {

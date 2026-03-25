@@ -321,6 +321,11 @@ export function renderHeaderBar(data, options = {}) {
     delta: doneDelta,
   });
 
+  const reportHref = boardId
+    ? ('/report?boardId=' + encodeURIComponent(String(boardId)) + (sprintId ? '&sprintId=' + encodeURIComponent(String(sprintId)) : '') + (selectedProject ? '&projects=' + encodeURIComponent(String(selectedProject)) : ''))
+    : '/report';
+  const reportLinkHtml = '<a class="header-follow-up-link header-chrome-history-report" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
+
   let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
@@ -371,6 +376,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += '</div>';
   html += '<div class="header-drawer-links">';
+  html += reportLinkHtml;
   html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">' + escapeHtml(SPRINT_COPY.resetLens) + '</button>';
   if (!isHistoricalSprint) {
     html += '<button type="button" class="header-follow-up-link" data-header-action="focus-remediation-secondary">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</button>';
@@ -380,15 +386,12 @@ export function renderHeaderBar(data, options = {}) {
       html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">' + escapeHtml(SPRINT_COPY.leadershipTrend) + '</a>';
     }
   }
-  const reportHref = boardId
-    ? ('/report?boardId=' + encodeURIComponent(String(boardId)) + (sprintId ? '&sprintId=' + encodeURIComponent(String(sprintId)) : '') + (selectedProject ? '&projects=' + encodeURIComponent(String(selectedProject)) : ''))
-    : '/report';
-  html += '<a class="header-follow-up-link" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
   html += '</div>';
   html += '</div>';
   html += '</details>';
   html += '</div>';
   html += '<div class="header-compact-strip" aria-label="' + escapeHtml(SPRINT_COPY.compactStripAria) + '">';
+  html += reportLinkHtml;
   if (hasPriorityInterventions) {
     const primaryIntervention = interventionItems[0] || {};
     const interventionText = interventionItems
