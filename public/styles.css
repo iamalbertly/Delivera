@@ -8886,6 +8886,98 @@ body.current-sprint-page .insights-manage-grid {
     margin-top: 2px;
     margin-bottom: 2px;
   }
+
+  /* ALB-77: compress Current Sprint hero stack (mobile) - tighter bands without new scroll */
+  body.current-sprint-page .header-band {
+    gap: 2px;
+  }
+
+  body.current-sprint-page .header-sprint-name {
+    font-size: 0.88rem;
+    line-height: 1.22;
+  }
+
+  body.current-sprint-page .header-band .sprint-verdict-line {
+    padding-left: 6px;
+    gap: 4px;
+    font-size: 0.82rem;
+    margin-right: 0;
+  }
+
+  body.current-sprint-page .header-band .sprint-verdict-line strong {
+    font-size: 0.92em;
+  }
+
+  body.current-sprint-page .header-band .sprint-verdict-explain {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.current-sprint-page .header-identity-metrics {
+    gap: 2px;
+    margin-top: 0;
+  }
+
+  body.current-sprint-page .header-identity-metrics .header-metric-tile {
+    padding: 3px 5px;
+    border-radius: 6px;
+  }
+
+  body.current-sprint-page .header-identity-metrics .metric-label {
+    font-size: 0.66rem;
+  }
+
+  body.current-sprint-page .header-identity-metrics .metric-value {
+    font-size: 0.74rem;
+  }
+
+  body.current-sprint-page .header-compact-strip {
+    padding-top: 2px;
+    gap: 3px;
+  }
+
+  body.current-sprint-page .current-sprint-header-bar .header-role-modes-row {
+    margin-top: 2px;
+    padding-top: 4px;
+    gap: 4px;
+  }
+
+  body.current-sprint-page .current-sprint-header-bar .header-role-modes-label {
+    font-size: 0.68rem;
+  }
+
+  body.current-sprint-page .current-sprint-header-bar .role-mode-pill {
+    padding: 2px 6px;
+    font-size: 0.66rem;
+  }
+
+  body.current-sprint-page .current-sprint-header-bar .header-context-strip {
+    gap: 4px;
+    row-gap: 3px;
+  }
+
+  body.current-sprint-page .header-context-segment {
+    padding: 2px 6px;
+    gap: 4px;
+  }
+
+  body.current-sprint-page .header-context-segment-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.03em;
+  }
+
+  body.current-sprint-page .header-context-segment-value {
+    font-size: 0.7rem;
+    max-width: min(56ch, 100%);
+  }
+
+  body.current-sprint-page .header-view-drawer summary {
+    font-size: 0.78rem;
+    padding: 2px 4px;
+  }
 }
 
 body.current-sprint-page .stories-evidence-inline {
