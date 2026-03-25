@@ -7004,9 +7004,12 @@ button.health-inline-pill {
     background: var(--card-muted);
   }
 
+  /* ALB-84: thead above tbody rows while scrolling long queues inside .stories-table-scroll-wrap */
   body.current-sprint-page #stories-card #stories-table thead th {
     top: 0;
-    z-index: 3;
+    z-index: 5;
+    position: sticky;
+    background: #eef3fa;
     box-shadow: 0 1px 0 rgba(148, 163, 184, 0.45);
   }
 }

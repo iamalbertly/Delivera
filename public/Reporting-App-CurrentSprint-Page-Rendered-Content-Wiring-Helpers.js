@@ -25,6 +25,34 @@ function collapseMobileDetailsSections() {
   } catch (_) {}
 }
 
+/**
+ * ALB-84: include sprint HUD bar +, when scrolling within Mission-critical work, the sticky primary
+ * controls strip (.stories-primary-sticky) so table/anchors land under the full sticky stack.
+ */
+function getStickyHeaderOffset(targetEl) {
+  const header = document.querySelector('.current-sprint-header-bar');
+  const navTop = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-global-nav-top') || '56') || 56;
+  const headerHeight = header ? header.getBoundingClientRect().height : 0;
+  let primaryStrip = 0;
+  if (targetEl && typeof targetEl.closest === 'function' && targetEl.closest('#stories-card')) {
+    const primary = document.querySelector('#stories-card .stories-primary-sticky');
+    if (primary) {
+      const pos = getComputedStyle(primary).position;
+      if (pos === 'sticky' || pos === '-webkit-sticky') {
+        primaryStrip = Math.ceil(primary.getBoundingClientRect().height);
+      }
+    }
+  }
+  return Math.max(96, Math.ceil(navTop + headerHeight + primaryStrip + 12));
+}
+
+function scrollToCurrentSprintTarget(target) {
+  if (!target) return;
+  const stickyOffset = getStickyHeaderOffset(target);
+  const top = window.scrollY + target.getBoundingClientRect().top - stickyOffset;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+
 function applyInitialHashFocus() {
   try {
     const hash = window.location && window.location.hash ? window.location.hash : '';
@@ -32,9 +60,7 @@ function applyInitialHashFocus() {
     const target = document.querySelector(hash);
     if (!target) return;
     window.setTimeout(() => {
-      const stickyOffset = 120;
-      const top = window.scrollY + target.getBoundingClientRect().top - stickyOffset;
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      scrollToCurrentSprintTarget(target);
     }, 60);
   } catch (_) {}
 }
@@ -72,9 +98,7 @@ function wireSectionLinks() {
       const target = document.querySelector(href);
       if (target) {
         event.preventDefault();
-        const stickyOffset = 120;
-        const top = window.scrollY + target.getBoundingClientRect().top - stickyOffset;
-        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        scrollToCurrentSprintTarget(target);
       }
       if (menu) {
         menu.hidden = true;
@@ -84,9 +108,9 @@ function wireSectionLinks() {
     });
   });
   const syncActiveLink = () => {
-    const offset = 180;
     let activeHref = '';
     targets.forEach((entry) => {
+      const offset = getStickyHeaderOffset(entry.target);
       const top = entry.target.getBoundingClientRect().top;
       if (top - offset <= 0) activeHref = entry.link.getAttribute('href') || activeHref;
     });
@@ -114,7 +138,7 @@ function wireAttentionQueueHandlers() {
             detail: { riskTags: tags, source: action },
           }));
         } catch (_) {}
-        document.getElementById('stories-card')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        scrollToCurrentSprintTarget(document.getElementById('stories-card'));
       }
     });
   });
@@ -133,6 +157,9 @@ export function appendCurrentSprintLoginLink(errorEl) {
 }
 
 function wireRenderedContent(data, onSelectSprintById) {
+  try {
+    window.currentSprintScrollToTarget = scrollToCurrentSprintTarget;
+  } catch (_) {}
   const summary = updateNotificationStore(data);
   renderNotificationDock({ summary, pageContext: 'current-sprint' });
   wireDynamicHandlers(data);
@@ -177,7 +204,7 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById, optio
     wireRenderedContent(data, onSelectSprintById);
     const anchor = document.querySelector('.current-sprint-header-bar, .sprint-jump-rail');
     if (anchor && window.scrollY > 120) {
-      anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrollToCurrentSprintTarget(anchor);
     }
     markPerf('current-sprint', 'fullRenderComplete');
   });

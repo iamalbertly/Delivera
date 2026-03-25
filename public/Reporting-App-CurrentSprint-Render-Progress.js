@@ -493,18 +493,18 @@ export function renderStories(data) {
 
     html += '<div class="data-table-scroll-wrap stories-table-scroll-wrap' + (largeBoardMode ? ' stories-table-scroll-wrap-compact' : '') + '" id="work-risks-table">';
     html += '<table class="data-table" id="stories-table"><thead><tr>'
-      + '<th title="Issue key and expand subtasks">Issue</th>'
-      + '<th>Type</th>'
-      + '<th class="cell-wrap">Summary</th>'
-      + '<th>Status</th>'
-      + '<th>Reporter</th>'
-      + '<th>Assignee</th>'
-      + '<th title="Parent story points">Story Points</th>'
-      + '<th title="Sum of subtask estimated hours">Est Hrs</th>'
-      + '<th title="Sum of subtask logged hours">Logged Hrs</th>'
-      + '<th>Created</th>'
-      + '<th>Resolved</th>'
-      + '<th title="Risk tags for this story">Risks</th>'
+      + '<th scope="col" title="Issue key and expand subtasks">Issue</th>'
+      + '<th scope="col">Type</th>'
+      + '<th scope="col" class="cell-wrap">Summary</th>'
+      + '<th scope="col">Status</th>'
+      + '<th scope="col">Reporter</th>'
+      + '<th scope="col">Assignee</th>'
+      + '<th scope="col" title="Parent story points">Story Points</th>'
+      + '<th scope="col" title="Sum of subtask estimated hours">Est Hrs</th>'
+      + '<th scope="col" title="Sum of subtask logged hours">Logged Hrs</th>'
+      + '<th scope="col">Created</th>'
+      + '<th scope="col">Resolved</th>'
+      + '<th scope="col" title="Risk tags for this story">Risks</th>'
       + '</tr></thead><tbody>';
     for (const row of toShow) {
       html += renderStoryRow(row);
