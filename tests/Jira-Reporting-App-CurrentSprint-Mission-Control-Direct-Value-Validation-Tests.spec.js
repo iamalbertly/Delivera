@@ -339,6 +339,9 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       return;
     }
     await expect(header.locator('.header-mini-strip')).toBeVisible();
+    const reportInMini = header.locator('.header-mini-strip .header-chrome-history-report').first();
+    await expect(reportInMini).toBeVisible();
+    await expect(reportInMini).toHaveText(/^Open report$/i);
   });
 
   test('Mobile viewport keeps full mission header (no mini-mode collapse)', async ({ page }) => {

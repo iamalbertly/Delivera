@@ -3812,6 +3812,27 @@ body.notification-dock-visible .export-dashboard-container {
   gap: 8px;
   width: 100%;
   padding-top: 2px;
+  flex-wrap: wrap;
+}
+
+/* ALB-30: History report before squad identity when header collapses (mini mode). */
+.header-mini-strip-report-priority {
+  flex: 0 0 auto;
+}
+
+.header-mini-strip-report-priority .header-chrome-history-report {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.header-mini-strip-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-end;
 }
 
 .header-mini-strip-name {

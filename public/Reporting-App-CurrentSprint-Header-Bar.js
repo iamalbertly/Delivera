@@ -431,10 +431,14 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += headerContextStripHtml;
   html += renderHeaderRoleModesRow(headerRoleViews);
+  /* ALB-30: Mini mode hides the full compact strip; surface History report first so it is not demoted below squad identity. */
   html += '<div class="header-mini-strip" aria-hidden="true">';
+  html += '<div class="header-mini-strip-report-priority">' + reportLinkHtml + '</div>';
+  html += '<div class="header-mini-strip-identity">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
   html += `<span class="header-mini-strip-days">${escapeHtml(remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
+  html += '</div>';
   html += '</div>';
   html += '</div>';
   html += '</div>';
