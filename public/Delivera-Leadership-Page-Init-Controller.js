@@ -1,7 +1,7 @@
-import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
-import { initLeadershipDefaults, initLeadershipFilters, tryAutoRunPreviewOnce, renderLeadershipLoading } from './Reporting-App-Leadership-Page-Data-Loader.js';
-import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
-import { wireLeadershipContentInteractions } from './Reporting-App-Leadership-Shared-Actions.js';
+import { renderNotificationDock } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { initLeadershipDefaults, initLeadershipFilters, tryAutoRunPreviewOnce, renderLeadershipLoading } from './Delivera-Leadership-Page-Data-Loader.js';
+import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { wireLeadershipContentInteractions } from './Delivera-Leadership-Shared-Actions.js';
 
 function initLeadershipPage() {
   renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
@@ -10,6 +10,7 @@ function initLeadershipPage() {
       const projectsSelect = document.getElementById('leadership-projects');
       return String(projectsSelect?.value || '').split(',').map((value) => value.trim()).filter(Boolean);
     },
+    getOutcomeDraftContext: () => ({ boardId: null, quarterHint: '' }),
   });
   initLeadershipDefaults();
   initLeadershipFilters();

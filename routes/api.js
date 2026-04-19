@@ -1,27 +1,30 @@
 
 import express from 'express';
 import { requireAuth } from '../lib/middleware.js';
-import { logger, buildRequestLogContext } from '../lib/Jira-Reporting-App-Server-Logging-Utility.js';
+import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
 import { streamCSV, CSV_COLUMNS } from '../lib/csv.js';
 import { generateExcelWorkbook, generateExcelFilename, formatDateRangeForFilename } from '../lib/excel.js';
-import { getQuarterLabelAndPeriod, getQuartersUpToCurrent } from '../lib/Jira-Reporting-App-Data-VodacomQuarters-01Bounds.js';
-import { DEFAULT_WINDOW_START, DEFAULT_WINDOW_END } from '../lib/Jira-Reporting-App-Config-DefaultWindow.js';
+import { getQuarterLabelAndPeriod, getQuartersUpToCurrent } from '../lib/Delivera-Data-VodacomQuarters-01Bounds.js';
+import { DEFAULT_WINDOW_START, DEFAULT_WINDOW_END } from '../lib/Delivera-Config-DefaultWindow.js';
 import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resolveJiraHostFromEnv } from '../lib/server-utils.js';
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
-import { getUnifiedRiskCounts } from '../public/Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
-import { appEnvConfig } from '../lib/Jira-Reporting-App-Config-Env-Services-Core-SSOT.js';
+import { getUnifiedRiskCounts } from '../public/Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import { appEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 import {
     readReportContextFromSession,
     writeReportContextToSession,
     normalizeReportContext,
-} from '../lib/Jira-Reporting-App-User-Context-SSOT.js';
-import { parseOutcomeIntake } from '../public/Reporting-App-Shared-Outcome-Intake-Parser.js';
-import { buildQuarterlyKPIForProjects } from '../lib/Jira-Reporting-App-Data-QuarterlyKPI-Calculator.js';
+} from '../lib/Delivera-User-Context-SSOT.js';
+import { parseOutcomeIntake } from '../public/Delivera-Shared-Outcome-Intake-Parser.js';
+import { jaccardSimilarity } from '../lib/Delivera-Outcome-Similarity-01Core.js';
+import { buildBoardStyleProfile } from '../lib/Delivera-Outcome-Board-Style-Profile.js';
+import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
+import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -30,8 +33,10 @@ import { mkdir, appendFile } from 'fs/promises';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const FEEDBACK_DIR = join(__dirname, '..', 'data');
-const FEEDBACK_FILE = join(FEEDBACK_DIR, 'JiraReporting-Feedback-UserInput-Submission-Log.jsonl');
-const OUTCOME_INTAKE_LOG_FILE = join(FEEDBACK_DIR, 'JiraReporting-Outcome-Intake-Log.jsonl');
+const FEEDBACK_FILE = join(FEEDBACK_DIR, 'Delivera-Feedback-UserInput-Submission-Log.jsonl');
+const LEGACY_FEEDBACK_FILE = join(FEEDBACK_DIR, 'JiraReporting-Feedback-UserInput-Submission-Log.jsonl');
+const OUTCOME_INTAKE_LOG_FILE = join(FEEDBACK_DIR, 'Delivera-Outcome-Intake-Log.jsonl');
+const LEGACY_OUTCOME_INTAKE_LOG_FILE = join(FEEDBACK_DIR, 'JiraReporting-Outcome-Intake-Log.jsonl');
 const OUTCOME_CREATE_META_TTL = 20 * 60 * 1000;
 
 const router = express.Router();
@@ -380,7 +385,12 @@ function resolveOutcomeIssueType(projectMeta, options = {}) {
 
 async function appendOutcomeIntakeLog(entry) {
     await mkdir(FEEDBACK_DIR, { recursive: true });
-    await appendFile(OUTCOME_INTAKE_LOG_FILE, `${JSON.stringify(entry)}\n`, 'utf-8');
+    const line = `${JSON.stringify(entry)}\n`;
+    // Migration edge case: keep writing the legacy log file so older local tools keep working.
+    await Promise.all([
+        appendFile(OUTCOME_INTAKE_LOG_FILE, line, 'utf-8'),
+        appendFile(LEGACY_OUTCOME_INTAKE_LOG_FILE, line, 'utf-8'),
+    ]);
 }
 
 function buildIssueUrl(host, issueKey) {
@@ -569,30 +579,6 @@ async function verifyOutcomeCreationAndBacklog({
     return verification;
 }
 
-function tokenizeForSimilarity(value) {
-    return new Set(
-        String(value || '')
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .split(/\s+/)
-            .map((w) => w.trim())
-            .filter((w) => w.length >= 3)
-    );
-}
-
-function jaccardSimilarity(a, b) {
-    const as = tokenizeForSimilarity(a);
-    const bs = tokenizeForSimilarity(b);
-    if (!as.size && !bs.size) return 1;
-    if (!as.size || !bs.size) return 0;
-    let intersection = 0;
-    as.forEach((token) => {
-        if (bs.has(token)) intersection += 1;
-    });
-    const union = new Set([...as, ...bs]).size || 1;
-    return intersection / union;
-}
-
 router.get('/api/csv-columns', requireAuth, (req, res) => {
     res.json({ columns: CSV_COLUMNS });
 });
@@ -654,6 +640,58 @@ router.get('/api/boards.json', requireAuth, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch boards', message: error.message });
     }
 });
+
+// Backward-compatible endpoints expected by smoke checks and older clients.
+const getSprintsHandler = async (req, res) => {
+    try {
+        const boardIdParam = req.query.boardId;
+        const projectsParam = req.query.projects;
+        const selectedProjects = projectsParam != null
+            ? Array.from(new Set(String(projectsParam).split(',').map((p) => p.trim()).filter(Boolean)))
+            : ['MPSA', 'MAS'];
+        if (!selectedProjects.length) {
+            return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+        }
+
+        const agileClient = createAgileClient();
+        const boards = await discoverBoardsWithCache(selectedProjects, agileClient);
+        const boardId = boardIdParam != null ? Number(boardIdParam) : null;
+        const selectedBoard = boardId != null && !Number.isNaN(boardId)
+            ? boards.find((board) => Number(board.id) === boardId)
+            : boards[0];
+
+        if (!selectedBoard?.id) {
+            return res.status(404).json({ error: 'Board not found', code: 'BOARD_NOT_FOUND' });
+        }
+
+        const sprints = await fetchSprintsForBoard(selectedBoard.id, agileClient);
+        const list = (Array.isArray(sprints) ? sprints : []).map((sprint) => ({
+            id: sprint.id,
+            name: sprint.name,
+            state: sprint.state,
+            startDate: sprint.startDate || null,
+            endDate: sprint.endDate || null,
+            completeDate: sprint.completeDate || null,
+            goal: sprint.goal || '',
+            boardId: selectedBoard.id,
+            boardName: selectedBoard.name || '',
+        }));
+
+        return res.json({
+            board: {
+                id: selectedBoard.id,
+                name: selectedBoard.name || '',
+                projectKey: selectedBoard.location?.projectKey || null,
+            },
+            sprints: list,
+        });
+    } catch (error) {
+        logger.error('Error fetching sprints', error);
+        return res.status(500).json({ error: 'Failed to fetch sprints', message: error?.message || 'Unexpected error' });
+    }
+};
+router.get('/api/sprints', requireAuth, getSprintsHandler);
+router.get('/api/sprints.json', requireAuth, getSprintsHandler);
 
 router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
     try {
@@ -882,6 +920,59 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
     }
 });
 
+router.post('/api/outcome-draft', requireAuth, async (req, res) => {
+    try {
+        const rawNarrative = (req.body && typeof req.body.narrative === 'string') ? req.body.narrative.trim() : '';
+        const rawProjectKey = (req.body && typeof req.body.projectKey === 'string') ? req.body.projectKey.trim() : '';
+        const selectedProjects = Array.isArray(req.body?.selectedProjects)
+            ? req.body.selectedProjects.map((p) => String(p || '').trim().toUpperCase()).filter(Boolean)
+            : [];
+        const boardId = req.body?.boardId != null ? Number(req.body.boardId) : null;
+        const inputMode = ['mixed', 'quarterly', 'support'].includes(String(req.body?.inputMode || '').toLowerCase())
+            ? String(req.body.inputMode).toLowerCase()
+            : 'mixed';
+        const quarterHint = typeof req.body?.quarterHint === 'string' ? req.body.quarterHint.trim() : '';
+        const refreshProfile = req.body?.refreshProfile === true;
+        if (!rawNarrative) {
+            return res.status(400).json({ error: 'Narrative text is required', code: 'MISSING_NARRATIVE' });
+        }
+        let projectKey = rawProjectKey ? rawProjectKey.toUpperCase() : '';
+        if (!projectKey && selectedProjects.length === 1) {
+            projectKey = selectedProjects[0];
+        }
+        if (!projectKey) {
+            return res.status(400).json({ error: 'Primary project key is required', code: 'MISSING_PROJECT_KEY' });
+        }
+        const version3Client = createVersion3Client();
+        const host = resolvedJiraHost();
+        let profile = null;
+        try {
+            profile = await buildBoardStyleProfile({
+                version3Client,
+                projectKey,
+                boardId: Number.isFinite(boardId) ? boardId : null,
+                refresh: refreshProfile,
+            });
+        } catch (error) {
+            logger.warn('outcome-draft profile skipped', { error: error?.message });
+        }
+        const draft = await buildOutcomeDraft({
+            rawNarrative,
+            projectKey,
+            boardId: Number.isFinite(boardId) ? boardId : null,
+            inputMode,
+            quarterHint,
+            version3Client,
+            host,
+            profile,
+        });
+        return res.json(draft);
+    } catch (error) {
+        logger.error('outcome-draft failed', { error: error?.message });
+        return res.status(500).json({ error: 'Draft generation failed', code: 'OUTCOME_DRAFT_FAILED' });
+    }
+});
+
 router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
     try {
         const rawNarrative = (req.body && typeof req.body.narrative === 'string') ? req.body.narrative.trim() : '';
@@ -903,6 +994,27 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Primary project key is required to create an outcome story', code: 'MISSING_PROJECT_KEY' });
         }
         const parsedIntake = parseOutcomeIntake(rawNarrative);
+        const commitChildIndices = Array.isArray(req.body?.commitChildIndices)
+            ? req.body.commitChildIndices.map((n) => Number(n)).filter((n) => Number.isInteger(n) && n >= 0)
+            : [];
+        if (commitChildIndices.length) {
+            const want = new Set(commitChildIndices);
+            if (parsedIntake.structureMode === 'EPIC_WITH_STORIES' || parsedIntake.structureMode === 'STORY_WITH_SUBTASKS') {
+                parsedIntake.items = parsedIntake.items.filter((_, i) => want.has(i));
+                if (Array.isArray(parsedIntake.previewRows) && parsedIntake.previewRows.length > 1) {
+                    const parentRow = parsedIntake.previewRows[0];
+                    const childRows = parsedIntake.previewRows.slice(1).filter((_, i) => want.has(i));
+                    parsedIntake.previewRows = [parentRow, ...childRows];
+                }
+            } else if (parsedIntake.structureMode === 'MULTIPLE_EPICS' || parsedIntake.structureMode === 'TABLE_ISSUES') {
+                parsedIntake.items = parsedIntake.items.filter((_, i) => want.has(i));
+                parsedIntake.previewRows = (parsedIntake.previewRows || []).filter((_, i) => want.has(i));
+            }
+        }
+        const parentSummaryOverride = typeof req.body?.parentSummaryOverride === 'string' ? req.body.parentSummaryOverride.trim() : '';
+        if (parentSummaryOverride && parsedIntake.epic) {
+            parsedIntake.epic.title = parentSummaryOverride;
+        }
         const structureMode = parsedIntake.structureMode;
         const embeddedIssueKey = extractFirstNarrativeIssueKey(rawNarrative);
         if (embeddedIssueKey && structureMode === 'SINGLE_ISSUE') {
@@ -1445,7 +1557,12 @@ router.post('/feedback', async (req, res) => {
             ip,
             user: (req.session && req.session.user) ? { id: req.session.user.id } : null,
         };
-        await appendFile(FEEDBACK_FILE, `${JSON.stringify(feedbackEntry)}\n`, 'utf-8');
+        const line = `${JSON.stringify(feedbackEntry)}\n`;
+        // Migration edge case: dual-write while some jobs still read the legacy filename.
+        await Promise.all([
+            appendFile(FEEDBACK_FILE, line, 'utf-8'),
+            appendFile(LEGACY_FEEDBACK_FILE, line, 'utf-8'),
+        ]);
         res.json({ ok: true });
     } catch (error) {
         logger.error('Failed to save feedback', { error: error.message });

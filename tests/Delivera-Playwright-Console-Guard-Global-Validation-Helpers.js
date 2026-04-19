@@ -1,8 +1,8 @@
 import { test as base, expect } from '@playwright/test';
-import { IGNORE_CONSOLE_ERRORS } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { IGNORE_CONSOLE_ERRORS } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 /**
- * Global console + pageerror guard for Jira Reporting App Playwright tests.
+ * Global console + pageerror guard for Delivera Playwright tests.
  * Fails the current test (and, via --max-failures=1 in orchestration, the run)
  * on any browser console warning/error or uncaught page error.
  */
@@ -30,6 +30,10 @@ export const test = base.extend({
         url.includes('/api/outcome-from-narrative') &&
         /status of (409|422)\b/i.test(text || '');
       if (isExpectedOutcomeConflict) return;
+      const isExpectedOutcomeDraftClientError =
+        url.includes('/api/outcome-draft') &&
+        (/status of 400\b/i.test(text || '') || /400 \(Bad Request\)/i.test(text || ''));
+      if (isExpectedOutcomeDraftClientError) return;
       const isExpectedPreviewHttpRecovery =
         /preview\.json/i.test(url || text || '') &&
         /status of (401|403|429)\b/i.test(text || '');

@@ -2385,6 +2385,125 @@ body.keyboard-open .leadership-context-sticky {
   flex-wrap: wrap;
 }
 
+/* Outcome draft assistant (modal) — compact review, minimal scroll */
+.report-outcome-input-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 8px 0 6px;
+  font-size: 0.86rem;
+}
+
+.report-outcome-input-mode-label {
+  font-weight: 600;
+  color: var(--text-muted, #5a6b7d);
+}
+
+.report-outcome-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.global-outcome-modal .report-outcome-draft-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #d8e0ea);
+  border-radius: 10px;
+  background: var(--card-muted, #f4f7fb);
+  max-height: min(48vh, 420px);
+  overflow: auto;
+}
+
+.report-outcome-draft-precheck {
+  font-size: 0.88rem;
+  color: var(--text-muted, #5a6b7d);
+  margin-bottom: 8px;
+}
+
+.report-outcome-readiness-list {
+  margin: 0 0 10px 1rem;
+  padding: 0;
+  font-size: 0.82rem;
+  color: #6a4c00;
+}
+
+.report-outcome-draft-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.report-outcome-parent-label {
+  margin-top: 4px;
+}
+
+.report-outcome-parent-summary-override {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 6px;
+}
+
+.report-outcome-draft-table-wrap {
+  overflow-x: auto;
+}
+
+.report-outcome-draft-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.report-outcome-draft-table th,
+.report-outcome-draft-table td {
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-outcome-draft-table tr.has-warning {
+  background: rgba(255, 193, 7, 0.08);
+}
+
+.report-outcome-draft-title {
+  font-weight: 600;
+}
+
+.report-outcome-draft-notes .dup-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted, #5a6b7d);
+}
+
+.report-outcome-draft-notes .warn-sub {
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.report-outcome-draft-detail-cell {
+  font-size: 0.82rem;
+  padding: 8px 12px;
+  background: var(--bg-accent, #eef4fc);
+}
+
+.report-outcome-intake-actions-split {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.report-outcome-intake-actions-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 body.report-page .report-header-actions {
   display: flex;
   align-items: center;

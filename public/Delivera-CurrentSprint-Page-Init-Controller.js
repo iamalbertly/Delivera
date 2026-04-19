@@ -1,12 +1,12 @@
-import { currentSprintDom, currentSprintKeys } from './Reporting-App-CurrentSprint-Page-Context.js';
-import { showLoading, showError, clearError } from './Reporting-App-CurrentSprint-Page-Status.js';
-import { loadBoards, loadCurrentSprint } from './Reporting-App-CurrentSprint-Page-Data-Loaders.js';
-import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Reporting-App-CurrentSprint-Page-Storage.js';
-import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
-import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Reporting-App-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
-import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
-import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprintSnapshot } from './Reporting-App-CurrentSprint-Page-Snapshot.js';
-import { markPerf, resetPerfMarks } from './Reporting-App-Shared-Perf-Marks.js';
+import { currentSprintDom, currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
+import { showLoading, showError, clearError } from './Delivera-CurrentSprint-Page-Status.js';
+import { loadBoards, loadCurrentSprint } from './Delivera-CurrentSprint-Page-Data-Loaders.js';
+import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Delivera-CurrentSprint-Page-Storage.js';
+import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
+import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Delivera-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
+import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprintSnapshot } from './Delivera-CurrentSprint-Page-Snapshot.js';
+import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -347,6 +347,12 @@ function init() {
     getSelectedProjects: () => {
       const selected = (getStoredProjects() || getProjectsParam() || '').split(',').map((value) => value.trim()).filter(Boolean);
       return selected.length ? selected : ['MPSA'];
+    },
+    getOutcomeDraftContext: () => {
+      const { boardSelect } = currentSprintDom;
+      const raw = boardSelect?.value || '';
+      const n = Number(raw);
+      return { boardId: Number.isFinite(n) ? n : null, quarterHint: '' };
     },
   });
   initHandlers.refreshBoards(preferredId, preferredSprintId)

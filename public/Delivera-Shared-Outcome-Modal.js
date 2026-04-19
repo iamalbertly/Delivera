@@ -1,6 +1,6 @@
-import { createModalBehavior } from './Reporting-App-Core-UI-02Primitives-Modal.js';
-import { isJiraIssueKey } from './Reporting-App-Report-Utils-Jira-Helpers.js';
-import { OUTCOME_STRUCTURE_MODE, parseOutcomeIntake } from './Reporting-App-Shared-Outcome-Intake-Parser.js';
+import { createModalBehavior } from './Delivera-Core-UI-02Primitives-Modal.js';
+import { isJiraIssueKey } from './Delivera-Report-Utils-Jira-Helpers.js';
+import { OUTCOME_STRUCTURE_MODE, parseOutcomeIntake } from './Delivera-Shared-Outcome-Intake-Parser.js';
 
 let modalController = null;
 let currentConfig = {};
@@ -11,7 +11,10 @@ const outcomeComposerState = {
   issueTypeName: '',
   childIssueTypeName: '',
   showAdvanced: false,
+  inputMode: 'mixed',
 };
+/** @type {{ payload: object|null, warningsOnly: boolean }} */
+let outcomeDraftState = { payload: null, warningsOnly: false };
 
 function escapeHtml(value) {
   return String(value == null ? '' : value)
@@ -73,12 +76,33 @@ function ensureOutcomeModal() {
     + '<p id="global-outcome-project-picker-hint" class="report-outcome-intake-hint"></p>'
     + '</div>'
     + '<textarea id="report-outcome-text" class="report-outcome-text" rows="5" placeholder="Goal: ... As a ... I want ... So that ... Acceptance criteria: ..." aria-label="Outcome story narrative"></textarea>'
+    + '<div class="report-outcome-input-mode-row" role="group" aria-label="Input kind">'
+    + '<span class="report-outcome-input-mode-label">Input:</span>'
+    + '<label class="report-outcome-mode-chip"><input type="radio" name="report-outcome-input-mode" value="mixed" checked> Mixed notes</label>'
+    + '<label class="report-outcome-mode-chip"><input type="radio" name="report-outcome-input-mode" value="quarterly"> Quarterly</label>'
+    + '<label class="report-outcome-mode-chip"><input type="radio" name="report-outcome-input-mode" value="support"> Support</label>'
+    + '</div>'
     + '<div id="report-outcome-overrides" class="report-outcome-overrides" hidden></div>'
     + '<div id="report-outcome-parse-summary" class="report-outcome-parse-summary" hidden></div>'
-    + '<div class="report-outcome-intake-actions">'
-    + '<span id="report-outcome-intake-status" class="report-outcome-intake-status" aria-live="polite"></span>'
-    + '<button type="button" id="report-outcome-intake-create" class="btn btn-compact report-outcome-intake-create-btn" disabled>Create Jira work from this narrative</button>'
+    + '<div id="report-outcome-draft-panel" class="report-outcome-draft-panel" hidden>'
+    + '<div id="report-outcome-draft-precheck" class="report-outcome-draft-precheck" role="status"></div>'
+    + '<div id="report-outcome-readiness" class="report-outcome-readiness" hidden></div>'
+    + '<label class="insight-label report-outcome-parent-label" for="report-outcome-parent-summary-override">Parent / epic title override</label>'
+    + '<input type="text" id="report-outcome-parent-summary-override" class="insight-inline-input report-outcome-parent-summary-override" placeholder="Leave blank to use server suggestion" />'
+    + '<div class="report-outcome-draft-bulk">'
+    + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-accept-safe">Accept all safe</button>'
+    + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-review-warnings">Review warnings only</button>'
+    + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-cancel-draft">Cancel draft</button>'
     + '</div>'
+    + '<div class="report-outcome-draft-table-wrap"><table class="report-outcome-draft-table" id="report-outcome-draft-table" aria-label="Draft rows"><thead><tr><th></th><th>Title</th><th>Confidence</th><th>Notes</th><th></th></tr></thead><tbody id="report-outcome-draft-tbody"></tbody></table></div>'
+    + '</div>'
+    + '<div class="report-outcome-intake-actions report-outcome-intake-actions-split">'
+    + '<span id="report-outcome-intake-status" class="report-outcome-intake-status" aria-live="polite"></span>'
+    + '<div class="report-outcome-intake-actions-buttons">'
+    + '<button type="button" id="report-outcome-generate-draft" class="btn btn-secondary btn-compact" disabled>Generate draft</button>'
+    + '<button type="button" id="report-outcome-commit-selected" class="btn btn-compact report-outcome-intake-create-btn" disabled hidden>Create selected</button>'
+    + '<button type="button" id="report-outcome-intake-create" class="btn btn-compact report-outcome-intake-create-btn" disabled>Create Jira work</button>'
+    + '</div></div>'
     + '</div>'
     + '</div>'
     + '</div>';
@@ -86,13 +110,80 @@ function ensureOutcomeModal() {
   return modal;
 }
 
+function patchLegacyOutcomeModalDom(modal) {
+  if (!modal || modal.dataset.outcomeDraftPatched === '1') return;
+  if (modal.querySelector('#report-outcome-draft-panel')) {
+    modal.dataset.outcomeDraftPatched = '1';
+    return;
+  }
+  const ta = modal.querySelector('#report-outcome-text');
+  if (ta && !modal.querySelector('.report-outcome-input-mode-row')) {
+    ta.insertAdjacentHTML('afterend', ''
+      + '<div class="report-outcome-input-mode-row" role="group" aria-label="Input kind">'
+      + '<span class="report-outcome-input-mode-label">Input:</span>'
+      + '<label class="report-outcome-mode-chip"><input type="radio" name="report-outcome-input-mode" value="mixed" checked> Mixed</label>'
+      + '<label class="report-outcome-mode-chip"><input type="radio" name="report-outcome-input-mode" value="quarterly"> Quarterly</label>'
+      + '<label class="report-outcome-mode-chip"><input type="radio" name="report-outcome-input-mode" value="support"> Support</label>'
+      + '</div>');
+  }
+  const summary = modal.querySelector('#report-outcome-parse-summary');
+  if (summary && !modal.querySelector('#report-outcome-draft-panel')) {
+    summary.insertAdjacentHTML('afterend', ''
+      + '<div id="report-outcome-draft-panel" class="report-outcome-draft-panel" hidden>'
+      + '<div id="report-outcome-draft-precheck" class="report-outcome-draft-precheck" role="status"></div>'
+      + '<div id="report-outcome-readiness" class="report-outcome-readiness" hidden></div>'
+      + '<label class="insight-label report-outcome-parent-label" for="report-outcome-parent-summary-override">Parent / epic title override</label>'
+      + '<input type="text" id="report-outcome-parent-summary-override" class="insight-inline-input report-outcome-parent-summary-override" placeholder="Optional" />'
+      + '<div class="report-outcome-draft-bulk">'
+      + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-accept-safe">Accept all safe</button>'
+      + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-review-warnings">Review warnings only</button>'
+      + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-cancel-draft">Cancel draft</button>'
+      + '</div>'
+      + '<div class="report-outcome-draft-table-wrap"><table class="report-outcome-draft-table" id="report-outcome-draft-table" aria-label="Draft rows"><thead><tr><th></th><th>Title</th><th>Confidence</th><th>Notes</th><th></th></tr></thead><tbody id="report-outcome-draft-tbody"></tbody></table></div>'
+      + '</div>');
+  }
+  const actions = modal.querySelector('.report-outcome-intake-actions');
+  const createBtn = modal.querySelector('#report-outcome-intake-create');
+  if (actions && createBtn && !modal.querySelector('#report-outcome-generate-draft')) {
+    actions.classList.add('report-outcome-intake-actions-split');
+    const genBtn = document.createElement('button');
+    genBtn.type = 'button';
+    genBtn.id = 'report-outcome-generate-draft';
+    genBtn.className = 'btn btn-secondary btn-compact';
+    genBtn.textContent = 'Generate draft';
+    genBtn.disabled = true;
+    const commitSel = document.createElement('button');
+    commitSel.type = 'button';
+    commitSel.id = 'report-outcome-commit-selected';
+    commitSel.className = 'btn btn-compact report-outcome-intake-create-btn';
+    commitSel.textContent = 'Create selected';
+    commitSel.disabled = true;
+    commitSel.hidden = true;
+    const wrap = document.createElement('div');
+    wrap.className = 'report-outcome-intake-actions-buttons';
+    wrap.appendChild(genBtn);
+    wrap.appendChild(commitSel);
+    wrap.appendChild(createBtn);
+    actions.appendChild(wrap);
+  }
+  modal.dataset.outcomeDraftPatched = '1';
+}
+
 function getElements() {
   const modal = ensureOutcomeModal();
+  patchLegacyOutcomeModalDom(modal);
   return {
     modal,
     textarea: modal.querySelector('#report-outcome-text'),
     statusEl: modal.querySelector('#report-outcome-intake-status'),
     createBtn: modal.querySelector('#report-outcome-intake-create'),
+    generateDraftBtn: modal.querySelector('#report-outcome-generate-draft'),
+    commitSelectedBtn: modal.querySelector('#report-outcome-commit-selected'),
+    draftPanel: modal.querySelector('#report-outcome-draft-panel'),
+    draftPrecheck: modal.querySelector('#report-outcome-draft-precheck'),
+    readinessEl: modal.querySelector('#report-outcome-readiness'),
+    draftTbody: modal.querySelector('#report-outcome-draft-tbody'),
+    parentSummaryOverride: modal.querySelector('#report-outcome-parent-summary-override'),
     contextEl: modal.querySelector('#global-outcome-modal-context'),
     projectsLineEl: modal.querySelector('#global-outcome-projects-line'),
     projectPickerWrap: modal.querySelector('#global-outcome-project-picker-wrap'),
@@ -119,7 +210,221 @@ function setStatus(statusEl, message, isHtml = false) {
 function setButtonState(button, disabled, label) {
   if (!button) return;
   button.disabled = !!disabled;
-  button.textContent = label || 'Create Jira work from this narrative';
+  button.textContent = label || 'Create Jira work';
+}
+
+function getDraftContextFromConfig() {
+  const fn = currentConfig.getOutcomeDraftContext;
+  if (typeof fn !== 'function') return { boardId: null, quarterHint: '' };
+  try {
+    const ctx = fn() || {};
+    return {
+      boardId: ctx.boardId != null ? Number(ctx.boardId) : null,
+      quarterHint: String(ctx.quarterHint || ctx.quarterLabel || '').trim(),
+    };
+  } catch (_) {
+    return { boardId: null, quarterHint: '' };
+  }
+}
+
+function syncInputModeRadios() {
+  const modal = document.getElementById('global-outcome-modal');
+  if (!modal) return;
+  modal.querySelectorAll('input[name="report-outcome-input-mode"]').forEach((el) => {
+    if (el instanceof HTMLInputElement) el.checked = el.value === outcomeComposerState.inputMode;
+  });
+}
+
+function hideDraftPanel() {
+  const el = getElements();
+  outcomeDraftState = { payload: null, warningsOnly: false };
+  if (el.draftPanel) el.draftPanel.hidden = true;
+  if (el.commitSelectedBtn) {
+    el.commitSelectedBtn.hidden = true;
+    el.commitSelectedBtn.disabled = true;
+  }
+  if (el.draftPrecheck) el.draftPrecheck.textContent = '';
+  if (el.readinessEl) {
+    el.readinessEl.hidden = true;
+    el.readinessEl.innerHTML = '';
+  }
+  if (el.draftTbody) el.draftTbody.innerHTML = '';
+  if (el.parentSummaryOverride) el.parentSummaryOverride.value = '';
+}
+
+function renderDraftPanel(payload) {
+  const el = getElements();
+  if (!el.draftPanel || !payload) return;
+  outcomeDraftState.payload = payload;
+  outcomeDraftState.warningsOnly = false;
+  el.draftPanel.hidden = false;
+  if (el.commitSelectedBtn) {
+    el.commitSelectedBtn.hidden = false;
+    el.commitSelectedBtn.disabled = false;
+  }
+  if (el.draftPrecheck) {
+    el.draftPrecheck.textContent = payload.precheck?.message || '';
+  }
+  if (el.readinessEl) {
+    const rw = Array.isArray(payload.readinessWarnings) ? payload.readinessWarnings : [];
+    if (rw.length) {
+      el.readinessEl.hidden = false;
+      el.readinessEl.innerHTML = '<ul class="report-outcome-readiness-list">'
+        + rw.map((w) => '<li>' + escapeHtml(w.message || w.code || '') + '</li>').join('')
+        + '</ul>';
+    } else {
+      el.readinessEl.hidden = true;
+      el.readinessEl.innerHTML = '';
+    }
+  }
+  if (el.parentSummaryOverride && payload.epicHintDefault) {
+    el.parentSummaryOverride.placeholder = payload.epicHintDefault;
+  }
+  renderDraftTableRows();
+}
+
+function rowHasWarning(row) {
+  return Array.isArray(row.warnings) && row.warnings.length > 0;
+}
+
+function renderDraftTableRows() {
+  const el = getElements();
+  const payload = outcomeDraftState.payload;
+  if (!el.draftTbody || !payload?.rows) return;
+  const onlyWarn = outcomeDraftState.warningsOnly;
+  el.draftTbody.innerHTML = (payload.rows || []).map((row) => {
+    if (onlyWarn && !rowHasWarning(row)) return '';
+    const warnShort = rowHasWarning(row)
+      ? escapeHtml((row.warnings[0] && row.warnings[0].message) || 'Warning')
+      : '—';
+    const dup = row.duplicate?.suggestedAction || 'createNew';
+    const canCheck = row.childItemIndex !== null && row.childItemIndex !== undefined;
+    const checked = row.selected !== false ? ' checked' : '';
+    const chk = canCheck
+      ? '<input type="checkbox" class="report-outcome-draft-chk" data-draft-idx="' + row.childItemIndex + '"' + checked + ' />'
+      : '';
+    const exp = '<button type="button" class="link-style report-outcome-draft-expand" data-expand-draft="' + escapeHtml(row.id) + '">Details</button>';
+    return '<tr data-draft-row-id="' + escapeHtml(row.id) + '" class="' + (rowHasWarning(row) ? 'has-warning' : '') + '">'
+      + '<td>' + chk + '</td>'
+      + '<td class="report-outcome-draft-title">' + escapeHtml(row.title) + '</td>'
+      + '<td>' + escapeHtml(String(row.confidenceLabel || '')) + '</td>'
+      + '<td class="report-outcome-draft-notes"><span class="dup-hint">' + escapeHtml(dup) + '</span><div class="warn-sub">' + warnShort + '</div></td>'
+      + '<td>' + exp + '</td>'
+      + '</tr>';
+  }).filter(Boolean).join('');
+}
+
+async function runGenerateDraft(prefill = {}) {
+  const { textarea, statusEl, generateDraftBtn, commitSelectedBtn } = getElements();
+  const narrative = String(textarea.value || '').trim();
+  const projects = getAllowedProjects(prefill);
+  const { projectPickerWrap, projectPicker } = getElements();
+  const projectKey = projectPickerWrap.hidden ? (projects[0] || '') : String(projectPicker.value || '').trim().toUpperCase();
+  if (!narrative || !projectKey) {
+    updateUi(prefill);
+    return;
+  }
+  const { boardId, quarterHint } = getDraftContextFromConfig();
+  if (generateDraftBtn) {
+    generateDraftBtn.disabled = true;
+    generateDraftBtn.textContent = 'Drafting…';
+  }
+  setStatus(statusEl, '');
+  try {
+    const res = await fetch('/api/outcome-draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        narrative,
+        projectKey,
+        selectedProjects: projects,
+        boardId: Number.isFinite(boardId) ? boardId : null,
+        inputMode: outcomeComposerState.inputMode,
+        quarterHint,
+      }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setStatus(statusEl, json.message || json.error || 'Draft failed');
+      return;
+    }
+    renderDraftPanel(json);
+    setStatus(statusEl, 'Draft ready — review warnings, then create selected or create all.');
+  } catch (err) {
+    setStatus(statusEl, 'Draft request failed: ' + (err?.message || 'network'));
+  } finally {
+    if (generateDraftBtn) {
+      generateDraftBtn.disabled = false;
+      generateDraftBtn.textContent = 'Generate draft';
+    }
+    updateUi(prefill);
+    if (outcomeDraftState.payload) {
+      setStatus(statusEl, 'Draft ready — review warnings, then create selected or create all.');
+    }
+  }
+}
+
+async function submitDraftSelection(prefill = {}) {
+  const payload = outcomeDraftState.payload;
+  if (!payload?.rows?.length) return;
+  const { textarea, statusEl, createBtn, commitSelectedBtn, projectPickerWrap, projectPicker, draftTbody, parentSummaryOverride } = getElements();
+  const narrative = String(textarea.value || '').trim();
+  const projects = getAllowedProjects(prefill);
+  const projectKey = projectPickerWrap.hidden ? (projects[0] || '') : String(projectPicker.value || '').trim().toUpperCase();
+  const parsed = getParsedNarrative(narrative);
+  const indices = [];
+  if (draftTbody) {
+    draftTbody.querySelectorAll('.report-outcome-draft-chk').forEach((box) => {
+      if (box instanceof HTMLInputElement && box.checked) {
+        const n = Number(box.getAttribute('data-draft-idx'));
+        if (Number.isInteger(n) && n >= 0) indices.push(n);
+      }
+    });
+  }
+  const parentOverride = String(parentSummaryOverride?.value || '').trim();
+  saveLastOutcomeProject(projectKey);
+  if (commitSelectedBtn) {
+    commitSelectedBtn.disabled = true;
+    commitSelectedBtn.textContent = 'Creating…';
+  }
+  setButtonState(createBtn, true);
+  setStatus(statusEl, '');
+  try {
+    const res = await fetch('/api/outcome-from-narrative', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        narrative,
+        projectKey: projectKey || null,
+        selectedProjects: projects,
+        structureMode: parsed.structureMode,
+        confidenceScore: parsed.confidenceScore,
+        issueTypeName: outcomeComposerState.issueTypeName || null,
+        childIssueTypeName: outcomeComposerState.childIssueTypeName || null,
+        commitChildIndices: indices.length ? indices : undefined,
+        parentSummaryOverride: parentOverride || undefined,
+      }),
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setStatus(statusEl, json.message || json.error || 'Create failed');
+      return;
+    }
+    const json = await res.json().catch(() => ({}));
+    if (json?.summaryHtml) setStatus(statusEl, json.summaryHtml, true);
+    else setStatus(statusEl, 'Created selected Jira work.', false);
+    textarea.value = '';
+    hideDraftPanel();
+    resetComposerAfterSubmit();
+  } catch (err) {
+    setStatus(statusEl, 'Failed: ' + (err?.message || 'network'));
+  } finally {
+    if (commitSelectedBtn) {
+      commitSelectedBtn.disabled = false;
+      commitSelectedBtn.textContent = 'Create selected';
+    }
+    updateUi(prefill);
+  }
 }
 
 function resetOutcomeComposerState() {
@@ -128,6 +433,7 @@ function resetOutcomeComposerState() {
   outcomeComposerState.issueTypeName = '';
   outcomeComposerState.childIssueTypeName = '';
   outcomeComposerState.showAdvanced = false;
+  outcomeComposerState.inputMode = 'mixed';
 }
 
 function getEffectiveStructureMode() {
@@ -219,6 +525,7 @@ function renderOverrides(overridesEl, parsed) {
 function resetComposerAfterSubmit() {
   const { createBtn, overridesEl, parseSummaryEl } = getElements();
   resetOutcomeComposerState();
+  hideDraftPanel();
   if (overridesEl) {
     overridesEl.hidden = true;
     overridesEl.innerHTML = '';
@@ -227,7 +534,7 @@ function resetComposerAfterSubmit() {
     parseSummaryEl.hidden = true;
     parseSummaryEl.innerHTML = '';
   }
-  setButtonState(createBtn, true, 'Create Jira work from this narrative');
+  setButtonState(createBtn, true, 'Create Jira work');
 }
 
 function updateProjectPicker(prefill = {}) {
@@ -299,34 +606,57 @@ function renderParseSummary(parseSummaryEl, parsed, selectedProject) {
 }
 
 function updateUi(prefill = {}) {
-  const { textarea, statusEl, createBtn, projectPickerWrap, projectPicker, overridesEl, parseSummaryEl } = getElements();
+  const {
+    textarea, statusEl, createBtn, generateDraftBtn, commitSelectedBtn, draftPanel,
+    projectPickerWrap, projectPicker, overridesEl, parseSummaryEl,
+  } = getElements();
   const narrative = String(textarea.value || '').trim();
   const projects = getAllowedProjects(prefill);
   const selectedProject = projectPickerWrap.hidden ? (projects[0] || '') : String(projectPicker.value || '').trim().toUpperCase();
   const parsed = getParsedNarrative(narrative);
   const jiraKey = parsed.structureMode === 'SINGLE_ISSUE' ? findFirstJiraKey(narrative) : '';
+  const skipStatus = () => !!(outcomeDraftState.payload && draftPanel && !draftPanel.hidden);
+
+  syncInputModeRadios();
+
+  if (!narrative) {
+    hideDraftPanel();
+    setStatus(statusEl, '');
+    setButtonState(createBtn, true);
+    if (generateDraftBtn) {
+      generateDraftBtn.disabled = true;
+      generateDraftBtn.textContent = 'Generate draft';
+    }
+    return;
+  }
 
   renderOverrides(overridesEl, parsed);
   renderParseSummary(parseSummaryEl, parsed, selectedProject);
 
-  if (!narrative) {
-    setStatus(statusEl, '');
+  const disableBoth = () => {
     setButtonState(createBtn, true);
-    return;
-  }
+    if (generateDraftBtn) {
+      generateDraftBtn.disabled = true;
+      generateDraftBtn.textContent = 'Generate draft';
+    }
+    if (commitSelectedBtn) {
+      commitSelectedBtn.disabled = true;
+    }
+  };
+
   if (jiraKey) {
-    setStatus(statusEl, 'This already has a Jira issue: ' + jiraKey + ' - use it.');
-    setButtonState(createBtn, true);
+    if (!skipStatus()) setStatus(statusEl, 'This already has a Jira issue: ' + jiraKey + ' - use it.');
+    disableBoth();
     return;
   }
   if (projects.length > 1 && !selectedProject) {
-    setStatus(statusEl, 'Choose a primary project from the current context.');
-    setButtonState(createBtn, true);
+    if (!skipStatus()) setStatus(statusEl, 'Choose a primary project from the current context.');
+    disableBoth();
     return;
   }
   if (selectedProject && projects.length && !projects.includes(selectedProject)) {
-    setStatus(statusEl, 'Project key not in active context. Choose one of: ' + projects.join(', '));
-    setButtonState(createBtn, true);
+    if (!skipStatus()) setStatus(statusEl, 'Project key not in active context. Choose one of: ' + projects.join(', '));
+    disableBoth();
     return;
   }
   if (parsed.structureMode !== 'EMPTY') {
@@ -341,12 +671,20 @@ function updateUi(prefill = {}) {
     };
     const statusBits = [parsed.rationale];
     if (existingLinks.length) statusBits.push(existingLinks.length + ' existing Jira issue' + (existingLinks.length === 1 ? '' : 's') + ' will link instead of duplicate.');
-    setStatus(statusEl, statusBits.join(' '));
+    if (!skipStatus()) setStatus(statusEl, statusBits.join(' '));
     setButtonState(createBtn, false, buttonLabelMap[parsed.structureMode] || 'Create Jira issue');
+    if (generateDraftBtn) {
+      generateDraftBtn.disabled = false;
+      generateDraftBtn.textContent = 'Generate draft';
+    }
     return;
   }
-  setStatus(statusEl, 'No Jira key detected. Create Jira issue from this narrative.');
+  if (!skipStatus()) setStatus(statusEl, 'No Jira key detected. Create Jira issue from this narrative.');
   setButtonState(createBtn, false, 'Create Jira issue');
+  if (generateDraftBtn) {
+    generateDraftBtn.disabled = false;
+    generateDraftBtn.textContent = 'Generate draft';
+  }
 }
 
 async function submit(prefill = {}) {
@@ -459,6 +797,7 @@ async function submit(prefill = {}) {
 export function openGlobalOutcomeModal(prefill = {}) {
   const elements = getElements();
   resetOutcomeComposerState();
+  hideDraftPanel();
   elements.modal.__outcomePrefill = prefill;
   updateProjectPicker(prefill);
   elements.contextEl.textContent = prefill.contextLabel || 'Promote a narrative, risk, or board signal into trackable Jira work.';
@@ -482,9 +821,61 @@ export function initGlobalOutcomeModal(config = {}) {
   elements.modal.dataset.outcomeModalBound = '1';
 
   elements.textarea.addEventListener('input', () => updateUi(elements.modal.__outcomePrefill || {}));
+  elements.textarea.addEventListener('keydown', (ev) => {
+    if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+      const g = elements.generateDraftBtn;
+      if (g && !g.disabled) {
+        ev.preventDefault();
+        runGenerateDraft(elements.modal.__outcomePrefill || {});
+      }
+    }
+  });
   elements.projectPicker.addEventListener('change', () => updateUi(elements.modal.__outcomePrefill || {}));
   elements.createBtn.addEventListener('click', () => submit(elements.modal.__outcomePrefill || {}));
+  elements.generateDraftBtn?.addEventListener('click', () => runGenerateDraft(elements.modal.__outcomePrefill || {}));
+  elements.commitSelectedBtn?.addEventListener('click', () => submitDraftSelection(elements.modal.__outcomePrefill || {}));
+  elements.modal.querySelector('#report-outcome-accept-safe')?.addEventListener('click', () => {
+    if (!outcomeDraftState.payload?.rows) return;
+    outcomeDraftState.payload.rows.forEach((row) => {
+      row.selected = !rowHasWarning(row);
+    });
+    outcomeDraftState.warningsOnly = false;
+    renderDraftTableRows();
+    elements.modal.querySelectorAll('#report-outcome-draft-tbody .report-outcome-draft-chk').forEach((box) => {
+      if (box instanceof HTMLInputElement) {
+        const idx = Number(box.getAttribute('data-draft-idx'));
+        const row = outcomeDraftState.payload.rows.find((r) => r.childItemIndex === idx);
+        if (row) box.checked = !!row.selected;
+      }
+    });
+  });
+  elements.modal.querySelector('#report-outcome-review-warnings')?.addEventListener('click', () => {
+    outcomeDraftState.warningsOnly = true;
+    renderDraftTableRows();
+  });
+  elements.modal.querySelector('#report-outcome-cancel-draft')?.addEventListener('click', () => {
+    hideDraftPanel();
+    updateUi(elements.modal.__outcomePrefill || {});
+  });
   elements.modal.addEventListener('click', (event) => {
+    const exp = event.target?.closest?.('[data-expand-draft]');
+    if (exp) {
+      const id = exp.getAttribute('data-expand-draft');
+      const tr = exp.closest('tr');
+      const next = tr?.nextElementSibling;
+      if (next && next.classList.contains('report-outcome-draft-detail-tr')) {
+        next.remove();
+        return;
+      }
+      const row = outcomeDraftState.payload?.rows?.find((r) => r.id === id);
+      if (!tr || !row) return;
+      const detail = document.createElement('tr');
+      detail.className = 'report-outcome-draft-detail-tr';
+      const full = (row.warnings || []).map((w) => escapeHtml(w.message || '')).join('<br/>') || 'No extra detail.';
+      detail.innerHTML = '<td colspan="5" class="report-outcome-draft-detail-cell">' + full + '</td>';
+      tr.insertAdjacentElement('afterend', detail);
+      return;
+    }
     const structureBtn = event.target?.closest?.('[data-outcome-structure]');
     if (structureBtn) {
       outcomeComposerState.structureMode = structureBtn.getAttribute('data-outcome-structure') || 'AUTO';
@@ -508,6 +899,17 @@ export function initGlobalOutcomeModal(config = {}) {
     }
   });
   elements.modal.addEventListener('change', (event) => {
+    const t0 = event.target;
+    if (t0 instanceof HTMLInputElement && t0.name === 'report-outcome-input-mode') {
+      outcomeComposerState.inputMode = t0.value || 'mixed';
+      return;
+    }
+    if (t0 instanceof HTMLInputElement && t0.classList.contains('report-outcome-draft-chk')) {
+      const idx = Number(t0.getAttribute('data-draft-idx'));
+      const row = outcomeDraftState.payload?.rows?.find((r) => r.childItemIndex === idx);
+      if (row) row.selected = t0.checked;
+      return;
+    }
     const target = event.target;
     if (!(target instanceof HTMLSelectElement)) return;
     if (target.id === 'report-outcome-issue-type') {

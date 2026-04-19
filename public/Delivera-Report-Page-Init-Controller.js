@@ -1,14 +1,14 @@
 
-import { initFeedbackPanel } from './Reporting-App-Report-UI-Feedback.js';
-import { initTabs } from './Reporting-App-Report-UI-Tabs.js';
-import { initProjectSelection, getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
-import { initDateRangeControls } from './Reporting-App-Report-Page-DateRange-Controller.js';
-import { initPreviewFlow, clearPreviewOnFilterChange, restoreLastPreviewFromStorage } from './Reporting-App-Report-Page-Preview-Flow.js';
-import { wirePreviewContextActions } from './Reporting-App-Report-Page-Render-Preview.js';
-import { initSearchClearButtons } from './Reporting-App-Report-Page-Search-Clear.js';
-import { initFilters } from './Reporting-App-Report-Page-Filters-Pills-Manager.js';
-import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
-import { getValidLastQuery, getContextDisplayString } from './Reporting-App-Shared-Context-From-Storage.js';
+import { initFeedbackPanel } from './Delivera-Report-UI-Feedback.js';
+import { initTabs } from './Delivera-Report-UI-Tabs.js';
+import { initProjectSelection, getSelectedProjects } from './Delivera-Report-Page-Selections-Manager.js';
+import { initDateRangeControls } from './Delivera-Report-Page-DateRange-Controller.js';
+import { initPreviewFlow, clearPreviewOnFilterChange, restoreLastPreviewFromStorage } from './Delivera-Report-Page-Preview-Flow.js';
+import { wirePreviewContextActions } from './Delivera-Report-Page-Render-Preview.js';
+import { initSearchClearButtons } from './Delivera-Report-Page-Search-Clear.js';
+import { initFilters } from './Delivera-Report-Page-Filters-Pills-Manager.js';
+import { renderNotificationDock } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { getValidLastQuery, getContextDisplayString } from './Delivera-Shared-Context-From-Storage.js';
 import {
   REPORT_FILTERS_COLLAPSED_KEY,
   SHARED_DATE_RANGE_KEY,
@@ -17,20 +17,20 @@ import {
   REPORT_FILTERS_STALE_KEY,
   REPORT_FILTERS_STALE_REASON_KEY,
   REPORT_CONTEXT_KEY,
-} from './Reporting-App-Shared-Storage-Keys.js';
-import { DEFAULT_WINDOW_START_LOCAL, DEFAULT_WINDOW_END_LOCAL } from './Reporting-App-Report-Config-Constants.js';
-import { AUTO_PREVIEW_DELAY_MS } from './Reporting-App-Shared-AutoPreview-Config.js';
-import { applyDoneStoriesOptionalColumnsPreference } from './Reporting-App-Report-Page-DoneStories-Column-Preference.js';
-import { collectFilterParams } from './Reporting-App-Report-Page-Filter-Params.js';
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { initExportMenu as initReportExportMenu } from './Reporting-App-Report-Page-Export-Menu.js';
-import { getCurrentSelectionComplexity, shouldAutoPreviewOnInit, refreshPreviewButtonLabel, updateAppliedFiltersSummary, hydrateFromLastQuery } from './Reporting-App-Report-Page-Filters-Summary-Helpers.js';
-import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Reporting-App-Shared-Page-Identity-Scroll-Helpers.js';
-import { initReportFiltersPanelState } from './Reporting-App-Report-Page-Init-Filters-Panel-State-Helpers.js';
-import { initGlobalOutcomeModal } from './Reporting-App-Shared-Outcome-Modal.js';
-import { renderReportNamedViewsBar, wireReportNamedViews } from './Reporting-App-Report-Page-Named-Views.js';
-import { initOverlayManager } from './Reporting-App-Shared-Overlay-Manager.js';
-import { wireLeadershipContentInteractions } from './Reporting-App-Leadership-Shared-Actions.js';
+} from './Delivera-Shared-Storage-Keys.js';
+import { DEFAULT_WINDOW_START_LOCAL, DEFAULT_WINDOW_END_LOCAL } from './Delivera-Report-Config-Constants.js';
+import { AUTO_PREVIEW_DELAY_MS } from './Delivera-Shared-AutoPreview-Config.js';
+import { applyDoneStoriesOptionalColumnsPreference } from './Delivera-Report-Page-DoneStories-Column-Preference.js';
+import { collectFilterParams } from './Delivera-Report-Page-Filter-Params.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { initExportMenu as initReportExportMenu } from './Delivera-Report-Page-Export-Menu.js';
+import { getCurrentSelectionComplexity, shouldAutoPreviewOnInit, refreshPreviewButtonLabel, updateAppliedFiltersSummary, hydrateFromLastQuery } from './Delivera-Report-Page-Filters-Summary-Helpers.js';
+import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
+import { initReportFiltersPanelState } from './Delivera-Report-Page-Init-Filters-Panel-State-Helpers.js';
+import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { renderReportNamedViewsBar, wireReportNamedViews } from './Delivera-Report-Page-Named-Views.js';
+import { initOverlayManager } from './Delivera-Shared-Overlay-Manager.js';
+import { wireLeadershipContentInteractions } from './Delivera-Leadership-Shared-Actions.js';
 
 const LEADERSHIP_HASH = '#trends';
 
@@ -187,6 +187,19 @@ function initReportPage() {
     if (!wrap) return;
     initGlobalOutcomeModal({
       getSelectedProjects,
+      getOutcomeDraftContext: () => {
+        try {
+          const raw = localStorage.getItem(REPORT_CONTEXT_KEY);
+          const parsed = raw ? JSON.parse(raw) : {};
+          const bid = parsed?.boardId != null ? Number(parsed.boardId) : null;
+          return {
+            boardId: Number.isFinite(bid) ? bid : null,
+            quarterHint: '',
+          };
+        } catch (_) {
+          return { boardId: null, quarterHint: '' };
+        }
+      },
     });
     let currentSprintHref = '/current-sprint';
     try {
