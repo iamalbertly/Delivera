@@ -4,11 +4,11 @@
  * nav and filters present. Uses captureBrowserTelemetry and assertTelemetryClean per step.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import path from 'path';
 import { existsSync, statSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { captureBrowserTelemetry, assertTelemetryClean, skipIfRedirectedToLogin, getViewportClippingReport } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { captureBrowserTelemetry, assertTelemetryClean, skipIfRedirectedToLogin, getViewportClippingReport } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, '..');
@@ -130,7 +130,9 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('#report-header-actions [data-action="toggle-filters"]').first()).toBeVisible();
+    await expect(page.locator('#report-header-preview-btn')).toBeVisible();
+    await page.locator('#report-header-actions details.report-header-more-menu summary').click();
+    await expect(page.locator('.report-header-more-panel [data-action="toggle-filters"]').first()).toBeVisible();
     const collapsedBarVisible = await page.locator('#filters-panel-collapsed-bar').isVisible().catch(() => false);
     expect(collapsedBarVisible).toBe(false);
     assertTelemetryClean(telemetry);

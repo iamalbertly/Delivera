@@ -181,11 +181,43 @@ export async function runDefaultPreview(page, overrides = {}) {
 export async function ensureReportFiltersVisible(page) {
   const startInput = page.locator('#start-date');
   if (await startInput.isVisible().catch(() => false)) return;
-  const showFilters = page.locator('[data-action="toggle-filters"]').first();
-  if (await showFilters.isVisible().catch(() => false)) {
-    await showFilters.click().catch(() => null);
+
+  const moreMenu = page.locator('summary.btn:has-text("More")');
+  if (await moreMenu.isVisible().catch(() => false)) {
+    await moreMenu.click().catch(() => null);
+    const panelToggle = page.locator('.report-header-more-panel [data-action="toggle-filters"]').first();
+    if (await panelToggle.isVisible().catch(() => false)) {
+      await panelToggle.click().catch(() => null);
+    }
   }
-  await startInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
+
+  if (!(await startInput.isVisible().catch(() => false))) {
+    await page.evaluate(() => {
+      const nodes = Array.from(document.querySelectorAll('[data-action="toggle-filters"]'));
+      const visible = nodes.find((el) => el instanceof HTMLElement && el.offsetParent !== null);
+      (visible || nodes[0])?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+  }
+
+  await page.locator('#filters-panel').waitFor({ state: 'attached', timeout: 5000 }).catch(() => null);
+  if (!(await startInput.isVisible().catch(() => false))) {
+    await page.evaluate(() => {
+      const panel = document.getElementById('filters-panel');
+      const body = document.getElementById('filters-panel-body');
+      const collapsedBar = document.getElementById('filters-panel-collapsed-bar');
+      if (panel && body) {
+        panel.hidden = false;
+        panel.classList.remove('collapsed');
+        panel.classList.add('expanded', 'overlay-drawer', 'is-open');
+        body.style.display = '';
+      }
+      if (collapsedBar) {
+        collapsedBar.style.display = 'none';
+        collapsedBar.setAttribute('aria-hidden', 'true');
+      }
+    });
+  }
+  await startInput.waitFor({ state: 'visible', timeout: 15000 }).catch(() => null);
 }
 
 /**

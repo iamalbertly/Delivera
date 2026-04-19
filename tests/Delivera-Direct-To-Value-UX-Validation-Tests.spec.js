@@ -4,15 +4,15 @@
  * Validates plan implementation; uses captureBrowserTelemetry and assertTelemetryClean.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   skipIfRedirectedToLogin,
   selectFirstBoard,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-test.describe('Jira Reporting App - Direct-To-Value UX Validation', () => {
+test.describe('Delivera - Direct-To-Value UX Validation', () => {
   test('current-sprint: stories card is first content block after header', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/current-sprint');
@@ -91,13 +91,12 @@ test.describe('Jira Reporting App - Direct-To-Value UX Validation', () => {
     const duplicateRoleFilter = page.locator('.work-risks-role-filters');
     const count = await duplicateRoleFilter.count();
     expect(count).toBe(0);
-    // Stuck card is now an explainer-only surface; it should not host a risks data table.
-    const stuckTables = await page.locator('#stuck-card table, #work-risks-table').count();
-    expect(stuckTables).toBe(0);
+    // Stuck card is an explainer-only surface; it should not host a risks data table (Work risks table lives below stories).
+    const stuckCardTables = await page.locator('#stuck-card table').count();
+    expect(stuckCardTables).toBe(0);
     const stuckCard = page.locator('#stuck-card');
     if (await stuckCard.isVisible().catch(() => false)) {
-      const useHeaderHint = page.getByText(/Use header|View as.*filter.*Work risks/i).first();
-      await expect(useHeaderHint).toBeVisible();
+      await expect(stuckCard).toContainText(/Remediation queue/i);
     }
     assertTelemetryClean(telemetry);
   });

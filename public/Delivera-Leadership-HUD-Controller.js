@@ -1,11 +1,12 @@
 /**
- * Reporting-App-Leadership-HUD-Controller.js
+ * Delivera-Leadership-HUD-Controller.js
  * Leadership mission-control controller.
  */
 
-import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
-import { renderKPICard, KPI_TREND_VISIBILITY_HINT } from './Reporting-App-Shared-KPI-Card-Renderer.js';
-import { buildTrustBadge, formatCostPerSPDisplay, buildUtilizationDisplay } from './Reporting-App-Shared-Cost-Capacity-Calc.js';
+import { getContextPieces, renderContextSegments } from './Delivera-Shared-Context-From-Storage.js';
+import { renderKPICard, KPI_TREND_VISIBILITY_HINT } from './Delivera-Shared-KPI-Card-Renderer.js';
+import { buildTrustBadge, formatCostPerSPDisplay, buildUtilizationDisplay } from './Delivera-Shared-Cost-Capacity-Calc.js';
+import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
 const STALE_THRESHOLD_MS = 15 * 60 * 1000;
@@ -88,11 +89,27 @@ function renderContextHeader(data) {
     : 'Delivery trend and risk signals will appear here once data loads.';
 }
 
+function leadershipSummaryQueryFromStorage() {
+  try {
+    const keys = (window.localStorage.getItem(PROJECTS_SSOT_KEY) || '')
+      .split(',')
+      .map((k) => String(k || '').trim())
+      .filter(Boolean);
+    if (!keys.length) return '';
+    const params = new URLSearchParams();
+    params.set('projects', keys.join(','));
+    return params.toString();
+  } catch (_) {
+    return '';
+  }
+}
+
 async function fetchHudData() {
   updateHeaderStatus('Syncing...', 'hud-status-pill');
 
   try {
-    const res = await fetch('/api/leadership-summary.json');
+    const qs = leadershipSummaryQueryFromStorage();
+    const res = await fetch(qs ? `/api/leadership-summary.json?${qs}` : '/api/leadership-summary.json');
     if (res.status === 401) {
       window.location.href = '/login?redirect=/leadership';
       return;

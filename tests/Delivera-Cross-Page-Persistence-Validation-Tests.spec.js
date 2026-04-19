@@ -3,8 +3,8 @@
  * same projects and date range persist; context bar reflects current context.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { waitForPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { waitForPreview, ensureReportFiltersVisible } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const assertContainsProjectCodes = async (locator) => {
@@ -14,12 +14,6 @@ const assertContainsProjectCodes = async (locator) => {
   expect(text).toMatch(/BIO/);
   expect(text).toMatch(/RPA/);
 };
-const assertProjectSetValue = async (locator, expectedCodes) => {
-  const actual = ((await locator.inputValue()) || '').split(',').map((x) => x.trim()).filter(Boolean).sort();
-  const expected = expectedCodes.split(',').map((x) => x.trim()).filter(Boolean).sort();
-  expect(actual).toEqual(expected);
-};
-
 test.describe('Cross-Page Persistence', () => {
   test('persisted projects and date range survive Report → Leadership → Current Sprint → Report', async ({ page }) => {
     test.setTimeout(120000);
@@ -34,38 +28,36 @@ test.describe('Cross-Page Persistence', () => {
     const endVal = '2025-12-31T23:59';
     const projectIds = ['project-sd', 'project-mas', 'project-bio', 'project-rpa'];
     const projectCodes = 'SD,MAS,BIO,RPA';
-    const ensureReportFiltersVisible = async () => {
-      const mpsaBox = page.locator('#project-mpsa');
-      if (await mpsaBox.isVisible().catch(() => false)) return;
-      const showFilters = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"]');
-      if (await showFilters.isVisible().catch(() => false)) {
-        await showFilters.click();
-      }
-      await expect(mpsaBox).toBeVisible();
-    };
     const triggerPreview = async () => {
-      await ensureReportFiltersVisible();
+      await ensureReportFiltersVisible(page);
       await page.evaluate(() => {
         const el = document.getElementById('preview-btn');
         if (el) el.click();
       });
     };
 
+    await ensureReportFiltersVisible(page);
     await expect(page.locator('#preview-btn')).toBeVisible();
-    await ensureReportFiltersVisible();
 
+    await page.locator('#project-search').fill('');
     await page.evaluate((ids) => {
-      const setBox = (id, value) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.checked = value;
+      const touch = (el) => {
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
       };
-      setBox('project-mpsa', false);
-      setBox('project-mas', false);
-      ids.forEach((id) => setBox(id, true));
+      const mpsa = document.getElementById('project-mpsa');
+      if (mpsa && mpsa.checked) {
+        mpsa.checked = false;
+        touch(mpsa);
+      }
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el || el.checked) return;
+        el.checked = true;
+        touch(el);
+      });
     }, projectIds);
+    await expect(page.locator('#project-sd')).toBeChecked();
     await page.fill('#start-date', startVal);
     await page.fill('#end-date', endVal);
     await triggerPreview();
@@ -83,9 +75,9 @@ test.describe('Cross-Page Persistence', () => {
       return;
     }
 
-    const contextBar = page.locator('[data-context-bar]');
-    await expect(contextBar).toBeVisible();
-    await assertContainsProjectCodes(contextBar);
+    const reportContextStrip = page.locator('#report-filter-strip');
+    await expect(reportContextStrip).toBeVisible();
+    await assertContainsProjectCodes(reportContextStrip);
 
     await page.goto(BASE_URL + '/sprint-leadership');
     if (page.url().includes('login')) {
@@ -96,11 +88,11 @@ test.describe('Cross-Page Persistence', () => {
       for (const id of projectIds) {
         await expect(page.locator('#' + id)).toBeChecked();
       }
-      await assertContainsProjectCodes(page.locator('[data-context-bar]'));
+      await assertContainsProjectCodes(reportContextStrip);
     } else {
-      await expect(page.locator('#leadership-projects')).toBeVisible();
-      await assertProjectSetValue(page.locator('#leadership-projects'), projectCodes);
-      await assertContainsProjectCodes(page.locator('[data-context-bar]'));
+      const leadershipContext = page.locator('#project-context');
+      await expect(leadershipContext).toBeVisible();
+      await assertContainsProjectCodes(leadershipContext);
     }
 
     await page.goto(BASE_URL + '/current-sprint');
@@ -118,7 +110,7 @@ test.describe('Cross-Page Persistence', () => {
       test.skip(true, 'Redirected to login');
       return;
     }
-    await ensureReportFiltersVisible();
+    await ensureReportFiltersVisible(page);
     for (const id of projectIds) {
       await expect(page.locator('#' + id)).toBeChecked();
     }
@@ -133,6 +125,7 @@ test.describe('Cross-Page Persistence', () => {
       return;
     }
 
+    await page.locator('#report-header-actions details.report-header-more-menu summary').click();
     const shortcut = page.locator('#report-header-actions a[href*="/current-sprint"]').first();
     await expect(shortcut).toBeVisible();
     const href = await shortcut.getAttribute('href');

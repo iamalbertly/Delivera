@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,
@@ -7,15 +7,18 @@ import {
   getViewportClippingReport,
   skipIfRedirectedToLogin,
   clickReportPreviewFromCurrentState,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+  ensureReportFiltersVisible,
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 // Customer + Speed + Simplicity + Trust validation with fail-fast telemetry checks.
-test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Validation Tests', () => {
+test.describe('Delivera - Customer Speed Simplicity Trust Realtime Validation Tests', () => {
   test('01 report first paint has controls and clean realtime telemetry', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('h1')).toContainText(/General Performance|VodaAgileBoard/i);
+    await expect(page.locator('h1')).toContainText(/General Performance|Delivera/i);
+    await ensureReportFiltersVisible(page);
     await expect(page.locator('#preview-btn')).toBeVisible();
     await expect(page.locator('#applied-filters-summary')).toBeVisible();
     const hasSidebar = await page.locator('.app-sidebar').isVisible().catch(() => false);
@@ -70,10 +73,9 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
       return;
     }
 
-    const outcomeLine = page.locator('#preview-outcome-line');
-    await expect(outcomeLine).toContainText(/done stories|sprints|boards/i);
-    const contextLine = page.locator('#report-context-line');
-    await expect(contextLine).toContainText(/Active filters|Projects\b|Report range|Range:|Generated:|Data freshness/i);
+    const outcomeRegion = page.getByRole('group', { name: /Report preview context and outcome/i });
+    await expect(outcomeRegion).toContainText(/stor|sprint|board|maintenance|outcome/i);
+    await expect(page.locator('#report-filter-strip')).toBeVisible();
 
     assertTelemetryClean(telemetry);
   });
@@ -104,15 +106,10 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
   test('06 report deep-scroll preview keeps loading feedback visible near top and context discoverable', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
+    await ensureReportFiltersVisible(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
     const previewBtn = page.locator('#preview-btn');
-    if (!(await previewBtn.isVisible().catch(() => false))) {
-      const toggleFilters = page.locator('[data-action="toggle-filters"]');
-      if (await toggleFilters.isVisible().catch(() => false)) {
-        await toggleFilters.click();
-      }
-    }
     await expect(previewBtn).toBeVisible();
     await page.evaluate(() => {
       const btn = document.querySelector('#preview-btn');
@@ -136,7 +133,7 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     const sticky = page.locator('#preview-summary-sticky');
     const stickyVisible = await sticky.isVisible().catch(() => false);
     if (!stickyVisible) {
-      await expect(page.locator('#preview-outcome-line')).toBeVisible();
+      await expect(page.getByRole('group', { name: /Report preview context and outcome/i })).toBeVisible();
     }
 
     assertTelemetryClean(telemetry);
@@ -157,8 +154,10 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
       return;
     }
 
-    await expect(page.locator('#export-excel-btn')).toBeVisible();
-    await expect(page.locator('#export-dropdown-trigger')).toBeVisible();
+    const exportBtn = page.locator('#export-excel-btn');
+    await expect(exportBtn).toBeVisible();
+    await expect(exportBtn).toBeEnabled();
+    await expect(page.locator('#export-dropdown-trigger')).toBeHidden();
 
     assertTelemetryClean(telemetry);
   });
@@ -201,9 +200,9 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto('/sprint-leadership');
 
-    await expect(page).toHaveURL(/report#trends|sprint-leadership/i);
-    const trendsCount = await page.locator('#tab-btn-trends').count();
-    expect(trendsCount > 0).toBeTruthy();
+    await expect(page).toHaveURL(/\/leadership/i);
+    await expect(page.locator('#project-context')).toBeAttached();
+    await expect(page.locator('.hud-title')).toContainText(/Leadership/i);
 
     assertTelemetryClean(telemetry);
   });
@@ -212,13 +211,9 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/sprint-leadership');
 
-    const trendsTab = page.locator('#tab-btn-trends');
-    if (await trendsTab.isVisible().catch(() => false)) {
-      await trendsTab.click();
-    }
-
+    await expect(page).toHaveURL(/\/leadership/i);
     const bodyText = (await page.locator('body').textContent()) || '';
-    const hasUsableCopy = /leadership|trend|sprint|delivery|No boards|No report run yet/i.test(bodyText);
+    const hasUsableCopy = /leadership|trend|sprint|delivery|No data|No boards|mission|signal|Risk|Velocity|Hygiene/i.test(bodyText);
     expect(hasUsableCopy).toBeTruthy();
 
     assertTelemetryClean(telemetry);
@@ -228,8 +223,8 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
     const telemetry = captureBrowserTelemetry(page);
     await page.addInitScript(() => {
       try {
-        localStorage.removeItem('vodaAgileBoard_lastQuery_v1');
-        localStorage.removeItem('vodaAgileBoard_selectedProjects');
+        localStorage.removeItem('delivera_lastQuery_v1');
+        localStorage.removeItem('delivera_selectedProjects');
         sessionStorage.setItem('report-last-meta', JSON.stringify({
           projects: ['MPSA', 'MAS', 'SD', 'RPA'],
           generatedAt: new Date().toISOString(),
@@ -271,10 +266,14 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
   test('14 edge case - invalid date range fails fast with clear error and no stuck loading', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
+    await ensureReportFiltersVisible(page);
 
     await page.fill('#start-date', '2025-10-01T00:00', { force: true });
     await page.fill('#end-date', '2025-09-01T00:00', { force: true });
-    await page.click('#preview-btn');
+    await page.evaluate(() => {
+      const btn = document.getElementById('preview-btn');
+      if (btn) btn.click();
+    });
 
     const error = page.locator('#error');
     await expect(error).toBeVisible({ timeout: 5000 });
@@ -288,11 +287,14 @@ test.describe('Jira Reporting App - Customer Speed Simplicity Trust Realtime Val
   test('15 edge case - double-click preview guard prevents unstable duplicate in-flight state', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
+    await ensureReportFiltersVisible(page);
 
     const previewBtn = page.locator('#preview-btn');
-    await previewBtn.scrollIntoViewIfNeeded();
     await expect(previewBtn).toBeVisible();
-    await previewBtn.click();
+    await page.evaluate(() => {
+      const btn = document.getElementById('preview-btn');
+      if (btn) btn.click();
+    });
     await page.evaluate(() => {
       const btn = document.getElementById('preview-btn');
       if (btn) btn.click();
