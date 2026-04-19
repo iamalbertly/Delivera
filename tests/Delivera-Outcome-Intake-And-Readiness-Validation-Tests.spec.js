@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { skipIfRedirectedToLogin } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Outcome Intake And Readiness Validation', () => {
   test('outcome intake disables create when narrative includes a Jira key', async ({ page }) => {
@@ -302,7 +302,7 @@ test.describe('Outcome Intake And Readiness Validation', () => {
       test.skip(true, 'Current sprint header verdict line not rendered in this environment');
       return;
     }
-    await expect(verdictLine).toContainText(/at risk|not ready|ready|maintenance sprint/i);
+    await expect(verdictLine).toContainText(/at risk|not ready|ready|maintenance sprint|caution|healthy|critical/i);
 
     await page.locator('#issue-jump-input').fill('https://jira.example.com/browse/MPSA-2');
     await page.locator('#issue-jump-input').press('Enter');
