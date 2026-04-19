@@ -103,6 +103,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report',
   },
+  'tests/Delivera-Outcome-First-Direct-Value-IA-Validation-Tests.spec.js': {
+    journey: 'journey.outcome-intake',
+    layer: 'page-ux',
+    page: '/report',
+  },
   'tests/Delivera-Outcome-Context-Trust-Validation-Tests.spec.js': {
     journey: 'journey.outcome-intake',
     layer: 'page-ux',

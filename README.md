@@ -13,6 +13,8 @@ This README is the SSOT for usage and validation. Supplemental planning document
 - The filter strip keeps the full context bar when the preview layout is active (no more “Saved views” placeholder that hid live scope).
 - Project filters use one **Projects** list; Core/Other squad framing and inline squad tier tags are removed from the report UI.
 - Status vocabulary is calmer across the report strip, preview banners, cache freshness, and leadership nav hints (for example **Sprint data** instead of “Repair center”, **In sync** / **Refresh to load** instead of all-caps preview warnings).
+- **Create work** outcome modal: structure choices (Auto / Single / Parent + children / Multiple) appear as soon as the narrative looks multi-item or low-confidence—no extra **Adjust** click. Parse summary and draft rows show a **0.00–1.00 score** (tabular numerals) like model confidence, with the text label as secondary context.
+- Narrow viewports: draft table **Notes** tucks away (details still in each row’s **Details** expander) so mobile users see title + numeric score first with less horizontal noise.
 
 **Rename note:** This project was renamed from **Jira** to **Delivera**. Product-facing naming should use Delivera, while integration references to Jira remain where they describe Atlassian APIs and data sources.
 

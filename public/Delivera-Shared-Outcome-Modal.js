@@ -24,6 +24,13 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+/** Model-style confidence in [0, 1] for display (two decimals). */
+function formatOutcomeConfidence01(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return '—';
+  return (Math.round(Math.min(1, n) * 100) / 100).toFixed(2);
+}
+
 function findFirstJiraKey(text) {
   if (!text || typeof text !== 'string') return '';
   const tokens = text.split(/[\s,;()\[\]{}<>]+/);
@@ -94,7 +101,7 @@ function ensureOutcomeModal() {
     + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-review-warnings">Review warnings only</button>'
     + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-cancel-draft">Cancel draft</button>'
     + '</div>'
-    + '<div class="report-outcome-draft-table-wrap"><table class="report-outcome-draft-table" id="report-outcome-draft-table" aria-label="Draft rows"><thead><tr><th></th><th>Title</th><th>Confidence</th><th>Notes</th><th></th></tr></thead><tbody id="report-outcome-draft-tbody"></tbody></table></div>'
+    + '<div class="report-outcome-draft-table-wrap"><table class="report-outcome-draft-table" id="report-outcome-draft-table" aria-label="Draft rows"><thead><tr><th></th><th>Title</th><th scope="col" class="report-outcome-draft-col-score" title="Confidence score from 0 (uncertain) to 1 (strong)">Score</th><th class="report-outcome-draft-col-notes">Notes</th><th class="report-outcome-draft-col-actions"> </th></tr></thead><tbody id="report-outcome-draft-tbody"></tbody></table></div>'
     + '</div>'
     + '<div class="report-outcome-intake-actions report-outcome-intake-actions-split">'
     + '<span id="report-outcome-intake-status" class="report-outcome-intake-status" aria-live="polite"></span>'
@@ -139,7 +146,7 @@ function patchLegacyOutcomeModalDom(modal) {
       + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-review-warnings">Review warnings only</button>'
       + '<button type="button" class="btn btn-secondary btn-compact" id="report-outcome-cancel-draft">Cancel draft</button>'
       + '</div>'
-      + '<div class="report-outcome-draft-table-wrap"><table class="report-outcome-draft-table" id="report-outcome-draft-table" aria-label="Draft rows"><thead><tr><th></th><th>Title</th><th>Confidence</th><th>Notes</th><th></th></tr></thead><tbody id="report-outcome-draft-tbody"></tbody></table></div>'
+      + '<div class="report-outcome-draft-table-wrap"><table class="report-outcome-draft-table" id="report-outcome-draft-table" aria-label="Draft rows"><thead><tr><th></th><th>Title</th><th scope="col" class="report-outcome-draft-col-score" title="Confidence score from 0 (uncertain) to 1 (strong)">Score</th><th class="report-outcome-draft-col-notes">Notes</th><th class="report-outcome-draft-col-actions"> </th></tr></thead><tbody id="report-outcome-draft-tbody"></tbody></table></div>'
       + '</div>');
   }
   const actions = modal.querySelector('.report-outcome-intake-actions');
@@ -304,12 +311,17 @@ function renderDraftTableRows() {
       ? '<input type="checkbox" class="report-outcome-draft-chk" data-draft-idx="' + row.childItemIndex + '"' + checked + ' />'
       : '';
     const exp = '<button type="button" class="link-style report-outcome-draft-expand" data-expand-draft="' + escapeHtml(row.id) + '">Details</button>';
+    const score01 = formatOutcomeConfidence01(row.confidence);
+    const labelSub = row.confidenceLabel
+      ? '<span class="outcome-confidence-label-sub" aria-hidden="true"> · ' + escapeHtml(String(row.confidenceLabel)) + '</span>'
+      : '';
+    const scoreTitle = 'Confidence 0–1' + (row.confidenceLabel ? ' (' + String(row.confidenceLabel) + ')' : '');
     return '<tr data-draft-row-id="' + escapeHtml(row.id) + '" class="' + (rowHasWarning(row) ? 'has-warning' : '') + '">'
       + '<td>' + chk + '</td>'
       + '<td class="report-outcome-draft-title">' + escapeHtml(row.title) + '</td>'
-      + '<td>' + escapeHtml(String(row.confidenceLabel || '')) + '</td>'
+      + '<td class="report-outcome-draft-confidence"><span class="outcome-confidence-score" title="' + escapeHtml(scoreTitle) + '">' + escapeHtml(score01) + '</span>' + labelSub + '</td>'
       + '<td class="report-outcome-draft-notes"><span class="dup-hint">' + escapeHtml(dup) + '</span><div class="warn-sub">' + warnShort + '</div></td>'
-      + '<td>' + exp + '</td>'
+      + '<td class="report-outcome-draft-actions">' + exp + '</td>'
       + '</tr>';
   }).filter(Boolean).join('');
 }
@@ -486,9 +498,11 @@ function renderOverrides(overridesEl, parsed) {
   const typeOptions = getTypeOptions(parsed);
   const inferredLabel = String(parsed?.inferredStructureMode || parsed?.structureMode || '').replace(/_/g, ' ').toLowerCase();
   const showTypeControls = outcomeComposerState.showAdvanced && (outcomeComposerState.structureMode !== 'AUTO' || lowConfidence);
+  const showStructureButtons = outcomeComposerState.showAdvanced || !!parsed?.hasMultipleItems || lowConfidence;
+  const scoreLine = formatOutcomeConfidence01(parsed?.confidenceScore);
   let html = '<div class="report-outcome-overrides-panel">';
-  html += '<div class="report-outcome-overrides-head"><strong>Structure</strong><span>Auto picked ' + escapeHtml(inferredLabel || 'single issue') + '.</span><button type="button" class="link-style" data-outcome-toggle-advanced="' + (outcomeComposerState.showAdvanced ? 'collapse' : 'expand') + '">' + (outcomeComposerState.showAdvanced ? 'Hide options' : 'Adjust') + '</button></div>';
-  if (outcomeComposerState.showAdvanced) {
+  html += '<div class="report-outcome-overrides-head"><strong>Structure</strong><span>Auto picked ' + escapeHtml(inferredLabel || 'single issue') + ' · score ' + escapeHtml(scoreLine) + '</span><button type="button" class="link-style" data-outcome-toggle-advanced="' + (outcomeComposerState.showAdvanced ? 'collapse' : 'expand') + '">' + (outcomeComposerState.showAdvanced ? 'Hide options' : 'Adjust') + '</button></div>';
+  if (showStructureButtons) {
     html += '<div class="report-outcome-structure-toggle report-outcome-structure-toggle-compact" role="group" aria-label="Choose work structure">';
     html += structureButtons.map((item) => {
       const active = outcomeComposerState.structureMode === item.key;
@@ -601,7 +615,7 @@ function renderParseSummary(parseSummaryEl, parsed, selectedProject) {
   parseSummaryEl.hidden = false;
   parseSummaryEl.innerHTML = ''
     + '<div class="report-outcome-parse-head">' + summary + '</div>'
-    + '<div class="report-outcome-parse-mode">Mode: ' + escapeHtml(parsed.structureMode.replace(/_/g, ' ').toLowerCase()) + ' (' + escapeHtml(parsed.confidenceLabel) + ')</div>'
+    + '<div class="report-outcome-parse-mode">Mode: ' + escapeHtml(parsed.structureMode.replace(/_/g, ' ').toLowerCase()) + ' · score ' + escapeHtml(formatOutcomeConfidence01(parsed.confidenceScore)) + ' <span class="outcome-confidence-label-sub">(' + escapeHtml(parsed.confidenceLabel || '') + ')</span></div>'
     + '<ol class="report-outcome-preview-list">' + previewItems.join('') + '</ol>';
 }
 

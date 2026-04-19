@@ -76,6 +76,8 @@ test.describe('Delivera Outcome Draft Assistant Direct Value Logcat Realtime Val
       await expect(page.locator('#report-outcome-readiness')).toBeVisible();
       await expect(page.locator('#report-outcome-readiness')).toContainText(/quarter/i);
       await expect(page.locator('#report-outcome-draft-tbody tr')).toHaveCount(2);
+      await expect(page.locator('.outcome-confidence-score').first()).toHaveText('0.70');
+      await expect(page.locator('.outcome-confidence-score').nth(1)).toHaveText('0.70');
       assertTelemetryClean(telemetry);
     });
 
