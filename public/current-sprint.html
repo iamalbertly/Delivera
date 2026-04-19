@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Performance - Current Sprint - VodaAgileBoard</title>
+  <title>Performance - Current Sprint - Delivera</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* Compact page header: scope is a ribbon, not a card */
@@ -151,6 +151,16 @@
         flex-wrap: wrap;
       }
     }
+    @media (max-width: 720px) {
+      .current-sprint-jump-inline {
+        min-width: 0;
+        flex: 1 1 100%;
+      }
+      .board-select-wrap {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+    }
   </style>
 </head>
 <body class="current-sprint-page">
@@ -202,9 +212,10 @@
       <div id="current-sprint-content"></div>
     </main>
   </div>
-  <script type="module" src="Reporting-App-Shared-Global-Nav.js"></script>
-  <script type="module" src="Reporting-App-Shared-UI-Header-Nav-Renderer.js"></script>
-  <script type="module" src="Reporting-App-CurrentSprint-Page-Init-Controller.js"></script>
+  <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
+  <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
+  <script type="module" src="Delivera-Shared-UI-Header-Nav-Renderer.js"></script>
+  <script type="module" src="Delivera-CurrentSprint-Page-Init-Controller.js"></script>
 </body>
 </html>
 

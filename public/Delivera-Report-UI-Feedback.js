@@ -10,7 +10,7 @@ function toggleFeedbackPanel(panelEl, statusEl, show) {
   if (shouldShow) {
     panelEl.style.display = 'block';
     setFeedbackStatus(statusEl, '');
-    requestAnimationFrame(() => panelEl.classList.add('feedback-panel-open'));
+    panelEl.classList.add('feedback-panel-open');
   } else {
     panelEl.classList.remove('feedback-panel-open');
     setTimeout(() => { panelEl.style.display = 'none'; }, 250);
@@ -28,6 +28,10 @@ export function initFeedbackPanel() {
   const feedbackSubmit = document.getElementById('feedback-submit');
   const feedbackCancel = document.getElementById('feedback-cancel');
   const feedbackStatus = document.getElementById('feedback-status');
+
+  if (!feedbackPanel) {
+    return;
+  }
 
   if (feedbackToggle) {
     feedbackToggle.addEventListener('click', () => toggleFeedbackPanel(feedbackPanel, feedbackStatus));

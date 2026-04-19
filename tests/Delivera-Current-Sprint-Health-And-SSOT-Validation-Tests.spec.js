@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { captureBrowserTelemetry, assertTelemetryClean, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { captureBrowserTelemetry, assertTelemetryClean, skipIfRedirectedToLogin } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Current Sprint Health & SSOT UX Validation', () => {
   test('current sprint loading copy when no board selected', async ({ page }) => {
@@ -57,7 +57,7 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
       return;
     }
 
-    expect(bodyText).toMatch(/showing last completed sprint|Pick a recent sprint|Pick a board|previous sprint/i);
+    expect(bodyText).toMatch(/showing last completed sprint|Pick a recent sprint|Pick a board|Create work|previous sprint/i);
   });
 
   test('projects SSOT sync applies silently and normalizes to one project for current sprint', async ({ page }) => {
@@ -66,7 +66,7 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
 
     // Simulate Report updating the shared projects SSOT key
     await page.evaluate(() => {
-      const key = 'vodaAgileBoard_selectedProjects';
+      const key = 'delivera_selectedProjects';
       localStorage.setItem(key, 'MPSA,MAS');
       window.dispatchEvent(new StorageEvent('storage', { key, newValue: 'MPSA,MAS' }));
     });
@@ -86,7 +86,7 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
       return;
     }
     const text = (await footerChip.textContent().catch(() => '')) || '';
-    expect(text).toMatch(/Logging alerts:\s*\d+/i);
+    expect(text).toMatch(/(Logging alerts:\s*\d|Alerts —)/i);
   });
 
   test('sprint header bar stays visible when scrolling', async ({ page }) => {

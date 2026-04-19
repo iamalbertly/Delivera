@@ -3,12 +3,11 @@
 :root {
   --header-sprint-name-size: 0.95rem;
 }
-/* Leadership viewport containment */
+/* Leadership viewport: avoid clipping card text; rely on wrapping + min-width:0 */
 #hud-grid,
 .hud-grid {
   min-width: 0;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 .leadership-onboarding-empty {
@@ -608,6 +607,55 @@
   }
 }
 
+/* Leadership HUD (/leadership): context strip + KPI values readable on wide/narrow desktop */
+body.hud-mode #project-context {
+  width: 100%;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+body.hud-mode #project-context .header-context-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+body.hud-mode #project-context .header-context-segment {
+  max-width: 100%;
+  align-items: flex-start;
+}
+
+body.hud-mode #project-context .header-context-segment-value {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+body.hud-mode .hud-grid .hud-card {
+  min-width: 0;
+}
+
+body.hud-mode .hud-grid .hud-card .metric-value {
+  font-size: clamp(1.2rem, 0.9rem + 1.4vw, 2rem);
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+body.hud-mode .hud-status-pill,
+body.hud-mode .hud-freshness-pill {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+body.hud-mode .hud-summary-line {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 
 

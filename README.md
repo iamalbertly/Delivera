@@ -59,6 +59,7 @@ This README is the SSOT for usage and validation. Supplemental planning document
   - If a saved sprint is closed and an active sprint exists, Current Sprint auto-switches to the active sprint (unless URL explicitly pins a sprint).
   - Header freshness now uses generated timestamps and consistent live/snapshot wording.
   - Header now shows multi-active sprint indicator (`Active: N sprints · Viewing ...`) and inline `vs last sprint` summary.
+  - When there is no active sprint for the selected board, the empty state includes **Create work** (same global outcome modal as elsewhere) pre-scoped to the current project keys when available, so leaders can log the next piece of work without leaving the page.
 - Current Sprint mobile readability fix:
   - Issues-in-sprint now renders a mobile card list (`#stories-mobile-card-list`) with expandable details/subtasks instead of forcing horizontal table scanning.
   - Existing day-filter and risk-filter behavior now applies to both desktop table rows and mobile story cards.
@@ -90,6 +91,8 @@ This README is the SSOT for usage and validation. Supplemental planning document
   - `Performance - Current Sprint` (`/current-sprint`)
   - `Performance - Leadership HUD` (leadership surface)
 - Leadership HUD (`Delivera-Leadership-HUD-Controller.js`) calls `GET /api/leadership-summary.json` with `?projects=` built from the same localStorage project SSOT as Report (`delivera_selectedProjects`), so the HUD header matches the portfolio you last used on Performance - History without extra clicks.
+- Leadership HUD layout: portfolio context chips and KPI metric values wrap with responsive font scaling so wide desktop grids do not clip unreadable text (see `public/css/07-leadership.css` + `leadership.html` HUD tokens).
+- Report **Feedback** panel: the toggle is injected with the mission-control header (`Delivera-Report-Page-Init-Controller.js`); `initFeedbackPanel()` runs only after that markup exists so listeners attach once (the shared header script no longer calls `initFeedbackPanel` early, which previously blocked wiring).
 - New focused validation spec added and wired into orchestration:
   - `tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js`
   - Run standalone: `npm run test:outcome-intake-readiness`

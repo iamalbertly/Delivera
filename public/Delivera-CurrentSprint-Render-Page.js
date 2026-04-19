@@ -1,8 +1,8 @@
-import { updateHeader } from './Reporting-App-CurrentSprint-Render-Overview.js';
-import { renderBurndown, renderStories } from './Reporting-App-CurrentSprint-Render-Progress.js';
-import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoActiveSprintEmptyState, renderNoIssuesForContextEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
-import { renderHeaderBar } from './Reporting-App-CurrentSprint-Header-Bar.js';
-import { renderRisksAndInsights } from './Reporting-App-CurrentSprint-Risks-Insights.js';
+import { updateHeader } from './Delivera-CurrentSprint-Render-Overview.js';
+import { renderBurndown, renderStories } from './Delivera-CurrentSprint-Render-Progress.js';
+import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoActiveSprintEmptyState, renderNoIssuesForContextEmptyState, renderNoProjectsSelectedEmptyState } from './Delivera-Shared-Empty-State-Helpers.js';
+import { renderHeaderBar } from './Delivera-CurrentSprint-Header-Bar.js';
+import { renderRisksAndInsights } from './Delivera-CurrentSprint-Risks-Insights.js';
 
 export function renderCurrentSprintPage(data) {
   const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
@@ -12,9 +12,10 @@ export function renderCurrentSprintPage(data) {
   }
   if (!data.sprint) {
     updateHeader(null);
+    const projectsCsv = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
     return (
       '<div class="transparency-card">' +
-      renderNoActiveSprintEmptyState() +
+      renderNoActiveSprintEmptyState(projectsCsv) +
       '</div>'
     );
   }

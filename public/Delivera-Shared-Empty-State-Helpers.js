@@ -1,4 +1,4 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 /**
  * Returns HTML for a consistent empty-state block (title, message, optional hint, optional CTA).
@@ -7,12 +7,13 @@ import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
  * @param {string} message - Main message
  * @param {string} [hint] - Optional hint text
  * @param {string} [ctaLabel] - Optional CTA button label (e.g. "Adjust filters"); renders button with data-action="adjust-filters" or link if ctaHref provided
- * @param {{ href?: string }} [options] - Optional: href for CTA to render as link instead of button
+ * @param {{ href?: string, extraHtml?: string }} [options] - Optional: href for CTA link; extraHtml for secondary actions (trusted HTML from this module only)
  * @returns {string} Safe HTML fragment for the empty-state div
  */
 export function renderEmptyStateHtml(title, message, hint = '', ctaLabel = '', options = {}) {
   const hintHtml = (hint && String(hint).trim()) ? `<p><small>${escapeHtml(hint)}</small></p>` : '';
   const href = options && options.href;
+  const extraHtml = options && options.extraHtml ? String(options.extraHtml) : '';
   const ctaHtml = (ctaLabel && String(ctaLabel).trim())
     ? href
       ? `<p><a href="${escapeHtml(href)}" class="btn btn-primary btn-compact">${escapeHtml(ctaLabel)}</a></p>`
@@ -24,16 +25,28 @@ export function renderEmptyStateHtml(title, message, hint = '', ctaLabel = '', o
     '<p>' + escapeHtml(message) + '</p>' +
     hintHtml +
     ctaHtml +
+    extraHtml +
     '</div>'
   );
 }
 
-export function renderNoActiveSprintEmptyState() {
+export function renderNoActiveSprintEmptyState(projectsCsv = '') {
+  const projects = String(projectsCsv || '').trim();
+  const outcomeProjectsAttr = projects ? ` data-outcome-projects="${escapeHtml(projects)}"` : '';
+  const extraHtml = (
+    '<p class="empty-state-secondary-actions">'
+    + '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal'
+    + ' data-outcome-context="No active sprint — capture the next piece of work to track."'
+    + outcomeProjectsAttr
+    + '>Create work</button>'
+    + '</p>'
+  );
   return renderEmptyStateHtml(
     'No active sprint',
     'No active sprint for this board.',
     'Pick a recent sprint or start work in Jira.',
     'Pick a board',
+    { extraHtml },
   );
 }
 

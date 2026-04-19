@@ -1,7 +1,8 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { ensureReportFiltersVisible } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import path from 'path';
 
-test.describe('Jira Reporting App - Feedback & Date Display Tests', () => {
+test.describe('Delivera - Feedback & Date Display Tests', () => {
   test('feedback panel toggles and submits', async ({ page }) => {
     await page.goto('/report');
     const hasLogin = await page.locator('#username').isVisible().catch(() => false);
@@ -40,7 +41,7 @@ test.describe('Jira Reporting App - Feedback & Date Display Tests', () => {
     await expect(page.locator('#feedback-status')).toContainText('Thanks');
 
     // Verify feedback was persisted to the server-side log file
-    const feedbackFilePath = path.join(process.cwd(), 'data', 'JiraReporting-Feedback-UserInput-Submission-Log.jsonl');
+    const feedbackFilePath = path.join(process.cwd(), 'data', 'Delivera-Feedback-UserInput-Submission-Log.jsonl');
     const { readFileSync, existsSync } = await import('fs');
 
     expect(existsSync(feedbackFilePath)).toBeTruthy();
@@ -68,6 +69,7 @@ test.describe('Jira Reporting App - Feedback & Date Display Tests', () => {
       test.skip(true, 'Auth enabled - date display test requires report access');
       return;
     }
+    await ensureReportFiltersVisible(page);
     await page.fill('#start-date', '2025-07-01T00:00');
     await page.fill('#end-date', '2025-09-30T23:59');
 

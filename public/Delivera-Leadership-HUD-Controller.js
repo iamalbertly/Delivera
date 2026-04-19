@@ -105,7 +105,7 @@ function leadershipSummaryQueryFromStorage() {
 }
 
 async function fetchHudData() {
-  updateHeaderStatus('Syncing...', 'hud-status-pill');
+  updateHeaderStatus('Syncing...', '');
 
   try {
     const qs = leadershipSummaryQueryFromStorage();

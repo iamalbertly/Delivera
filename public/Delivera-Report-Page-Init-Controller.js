@@ -57,6 +57,9 @@ function initReportPage() {
   function scheduleAutoPreview(delayMs = AUTO_PREVIEW_DELAY_MS) {
     const previewBtn = document.getElementById('preview-btn');
     if (!previewBtn) return;
+    try {
+      if (window.__DELIVERA_TEST_DISABLE_AUTO_PREVIEW) return;
+    } catch (_) {}
     if (autoPreviewTimer) clearTimeout(autoPreviewTimer);
     if (delayMs === 0) {
       if (autoPreviewInProgress || previewBtn.disabled) return;
@@ -76,7 +79,6 @@ function initReportPage() {
     }, delayMs);
   }
 
-  initFeedbackPanel();
   try {
     const params = new URLSearchParams(window.location.search);
     const boardId = params.get('boardId') || '';
@@ -220,6 +222,7 @@ function initReportPage() {
       + '</div>';
     wrap.innerHTML += ''
       + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact">Export</button>'
+      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>'
       + '<details class="report-header-more-menu">'
       + '<summary class="btn btn-secondary btn-compact">More</summary>'
       + '<div class="report-header-more-panel">'
@@ -457,6 +460,7 @@ function initReportPage() {
   } catch (_) { }
 
   initOutcomeIntake();
+  initFeedbackPanel();
 }
 
 // M2: Scroll-aware page identity — inject compact page name into sticky header when H1 scrolls away (X.com pattern)

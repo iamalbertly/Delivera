@@ -105,8 +105,9 @@ export async function waitForPreview(page, options = {}) {
   // If loading is visible, wait for it to hide but with a shorter cap
   const loadingVisible = await page.locator('#loading').isVisible().catch(() => false);
   if (loadingVisible) {
+    const loadingHideMs = Math.min(Math.max(timeout - 5000, 60000), 110000);
     try {
-      await page.waitForSelector('#loading', { state: 'hidden', timeout: 45000 });
+      await page.waitForSelector('#loading', { state: 'hidden', timeout: loadingHideMs });
     } catch (err) {
       // If loading remained visible beyond our cap, bail out so tests don't hang
       // Instead, we'll return to the caller which can decide to skip or assert.
@@ -180,7 +181,8 @@ export async function runDefaultPreview(page, overrides = {}) {
  */
 export async function ensureReportFiltersVisible(page) {
   const startInput = page.locator('#start-date');
-  if (await startInput.isVisible().catch(() => false)) return;
+  const previewBtn = page.locator('#preview-btn');
+  if (await startInput.isVisible().catch(() => false) && await previewBtn.isVisible().catch(() => false)) return;
 
   const moreMenu = page.locator('summary.btn:has-text("More")');
   if (await moreMenu.isVisible().catch(() => false)) {
@@ -200,7 +202,7 @@ export async function ensureReportFiltersVisible(page) {
   }
 
   await page.locator('#filters-panel').waitFor({ state: 'attached', timeout: 5000 }).catch(() => null);
-  if (!(await startInput.isVisible().catch(() => false))) {
+  if (!(await startInput.isVisible().catch(() => false)) || !(await previewBtn.isVisible().catch(() => false))) {
     await page.evaluate(() => {
       const panel = document.getElementById('filters-panel');
       const body = document.getElementById('filters-panel-body');
@@ -210,6 +212,9 @@ export async function ensureReportFiltersVisible(page) {
         panel.classList.remove('collapsed');
         panel.classList.add('expanded', 'overlay-drawer', 'is-open');
         body.style.display = '';
+        panel.style.opacity = '1';
+        panel.style.pointerEvents = 'auto';
+        panel.style.transform = 'translateY(0)';
       }
       if (collapsedBar) {
         collapsedBar.style.display = 'none';
@@ -217,7 +222,8 @@ export async function ensureReportFiltersVisible(page) {
       }
     });
   }
-  await startInput.waitFor({ state: 'visible', timeout: 15000 }).catch(() => null);
+  await startInput.waitFor({ state: 'visible', timeout: 20000 });
+  await previewBtn.waitFor({ state: 'visible', timeout: 20000 });
 }
 
 /**
@@ -225,10 +231,8 @@ export async function ensureReportFiltersVisible(page) {
  * @param {import('@playwright/test').Page} page
  */
 export async function clickReportPreviewFromCurrentState(page) {
+  await ensureReportFiltersVisible(page);
   const previewBtn = page.locator('#preview-btn');
-  if (!(await previewBtn.isVisible().catch(() => false))) {
-    await ensureReportFiltersVisible(page);
-  }
   await previewBtn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
   await previewBtn.waitFor({ state: 'attached', timeout: 10000 }).catch(() => null);
   const enabled = await previewBtn.isEnabled().catch(() => false);

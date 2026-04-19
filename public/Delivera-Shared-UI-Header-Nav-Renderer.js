@@ -1,9 +1,8 @@
 /* Shared Header Renderer
- * Ensures consistent header layout and wires feedback FAB and toggle into header.
+ * Ensures consistent header layout and shared context bar (report wires feedback after header actions are built).
  */
-import { initFeedbackPanel } from './Reporting-App-Report-UI-Feedback.js';
-import { getContextDisplayString, getLastMetaFreshnessInfo } from './Reporting-App-Shared-Context-From-Storage.js';
-import { REPORT_LAST_META_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { getContextDisplayString, getLastMetaFreshnessInfo } from './Delivera-Shared-Context-From-Storage.js';
+import { REPORT_LAST_META_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 function getContextStateBadge() {
   try {
@@ -124,7 +123,6 @@ export function ensureSharedHeader() {
     };
 
     document.getElementById('feedback-corner')?.remove();
-    initFeedbackPanel();
 
     // Mark header as unified for styling hooks
     header.setAttribute('data-shared-header', 'true');

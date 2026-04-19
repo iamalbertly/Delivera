@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Performance - Leadership trends | VodaAgileBoard</title>
+  <title>Performance - Leadership trends | Delivera</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     body.hud-mode {
@@ -66,7 +66,9 @@
       background: rgba(255,255,255,0.9);
       font-size: 0.78rem;
       color: #334155;
-      white-space: nowrap;
+      max-width: 100%;
+      white-space: normal;
+      text-align: left;
     }
     .hud-status-pill.is-live {
       color: #166534;
@@ -110,10 +112,12 @@
       margin-bottom: 8px;
     }
     .metric-value {
-      font-size: 2.1rem;
+      font-size: clamp(1.2rem, 0.9rem + 1.4vw, 2rem);
       font-weight: 700;
       color: #10243e;
-      line-height: 1.05;
+      line-height: 1.12;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .metric-unit {
       font-size: 0.95rem;
@@ -181,6 +185,7 @@
     </main>
   </div>
 
-  <script type="module" src="Reporting-App-Leadership-HUD-Controller.js"></script>
+  <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
+  <script type="module" src="Delivera-Leadership-HUD-Controller.js"></script>
 </body>
 </html>

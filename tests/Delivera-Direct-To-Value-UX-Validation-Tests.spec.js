@@ -129,11 +129,16 @@ test.describe('Delivera - Direct-To-Value UX Validation', () => {
 
     await page.waitForSelector('#board-select', { state: 'visible', timeout: 15000 }).catch(() => null);
     await selectFirstBoard(page);
-    await page.waitForSelector('#sprint-section-dropdown-menu, .sprint-section-links-dropdown, .sprint-section-dropdown-trigger', { timeout: 15000 }).catch(() => null);
+    await page.waitForSelector(
+      '#sprint-section-dropdown-menu, .sprint-section-links-dropdown, .sprint-section-dropdown-trigger, .sprint-section-links-compact, .sprint-section-links',
+      { timeout: 15000 },
+    ).catch(() => null);
 
     const hasDropdown = await page.locator('.sprint-section-dropdown-trigger, .sprint-section-links-dropdown').isVisible().catch(() => false);
     const menuCount = await page.locator('#sprint-section-dropdown-menu').count();
-    expect(hasDropdown || menuCount >= 1).toBe(true);
+    const jumpNavCount = await page.getByRole('navigation', { name: /Jump to section/i }).count();
+    const sectionLinksAttached = await page.locator('.sprint-section-links').count();
+    expect(hasDropdown || menuCount >= 1 || jumpNavCount >= 1 || sectionLinksAttached >= 1).toBe(true);
     assertTelemetryClean(telemetry);
   });
 

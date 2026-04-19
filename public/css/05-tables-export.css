@@ -447,3 +447,11 @@ body .preview-area {
   font-size: 0.9em;
 }
 
+.empty-state-secondary-actions {
+  margin-top: 6px;
+}
+
+.empty-state-secondary-actions .btn {
+  margin: 4px 4px 0;
+}
+
