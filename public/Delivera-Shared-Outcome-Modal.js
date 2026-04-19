@@ -405,17 +405,10 @@ async function submitDraftSelection(prefill = {}) {
     const res = await fetch('/api/outcome-from-narrative', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        narrative,
-        projectKey: projectKey || null,
-        selectedProjects: projects,
-        structureMode: parsed.structureMode,
-        confidenceScore: parsed.confidenceScore,
-        issueTypeName: outcomeComposerState.issueTypeName || null,
-        childIssueTypeName: outcomeComposerState.childIssueTypeName || null,
-        commitChildIndices: indices.length ? indices : undefined,
+      body: JSON.stringify(buildOutcomeFromNarrativeBody(parsed, narrative, projectKey, projects, {
+        commitChildIndices: indices,
         parentSummaryOverride: parentOverride || undefined,
-      }),
+      })),
     });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -465,6 +458,36 @@ function getParsedNarrative(narrative) {
     structureMode: getEffectiveStructureMode(),
     parentIndex: outcomeComposerState.parentIndex,
   });
+}
+
+/** Single JSON shape for POST /api/outcome-from-narrative (direct create + draft commit). */
+function buildOutcomeFromNarrativeBody(parsed, narrative, projectKey, projects, extras = {}) {
+  const body = {
+    narrative,
+    projectKey: projectKey || null,
+    selectedProjects: projects,
+    structureMode: parsed.structureMode,
+    confidenceScore: parsed.confidenceScore,
+    issueTypeName: outcomeComposerState.issueTypeName || null,
+    childIssueTypeName: outcomeComposerState.childIssueTypeName || null,
+  };
+  if (Object.prototype.hasOwnProperty.call(extras, 'createAnyway')) {
+    body.createAnyway = !!extras.createAnyway;
+  }
+  if (Array.isArray(extras.commitChildIndices) && extras.commitChildIndices.length) {
+    body.commitChildIndices = extras.commitChildIndices;
+  }
+  if (extras.parentSummaryOverride) body.parentSummaryOverride = extras.parentSummaryOverride;
+  return body;
+}
+
+function focusFirstDraftWarningAction() {
+  const { draftTbody } = getElements();
+  if (!draftTbody) return;
+  const btn = draftTbody.querySelector('tr.has-warning .report-outcome-draft-expand');
+  if (btn instanceof HTMLElement) {
+    btn.focus();
+  }
 }
 
 function getTypeOptions(parsed) {
@@ -719,16 +742,9 @@ async function submit(prefill = {}) {
   const createRequest = async (createAnyway = false) => fetch('/api/outcome-from-narrative', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      narrative,
-      projectKey: projectKey || null,
-      selectedProjects: projects,
-      structureMode: parsed.structureMode,
-      confidenceScore: parsed.confidenceScore,
-      issueTypeName: outcomeComposerState.issueTypeName || null,
-      childIssueTypeName: outcomeComposerState.childIssueTypeName || null,
-      createAnyway: !!createAnyway,
-    }),
+    body: JSON.stringify(buildOutcomeFromNarrativeBody(parsed, narrative, projectKey, projects, {
+      createAnyway,
+    })),
   });
 
   try {
@@ -836,12 +852,32 @@ export function initGlobalOutcomeModal(config = {}) {
 
   elements.textarea.addEventListener('input', () => updateUi(elements.modal.__outcomePrefill || {}));
   elements.textarea.addEventListener('keydown', (ev) => {
-    if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
-      const g = elements.generateDraftBtn;
-      if (g && !g.disabled) {
-        ev.preventDefault();
-        runGenerateDraft(elements.modal.__outcomePrefill || {});
-      }
+    if (!(ev.ctrlKey || ev.metaKey) || ev.key !== 'Enter') return;
+    const prefill = elements.modal.__outcomePrefill || {};
+    const fresh = getElements();
+    const narrative = String(fresh.textarea.value || '').trim();
+    const projects = getAllowedProjects(prefill);
+    const projectKey = fresh.projectPickerWrap.hidden ? (projects[0] || '') : String(fresh.projectPicker.value || '').trim().toUpperCase();
+    if (!narrative) return;
+    if (projects.length > 1 && !projectKey) return;
+
+    const commitBtn = fresh.commitSelectedBtn;
+    const commitReady = commitBtn && !commitBtn.disabled && !commitBtn.hidden;
+    if (commitReady) {
+      ev.preventDefault();
+      submitDraftSelection(prefill);
+      return;
+    }
+    const g = fresh.generateDraftBtn;
+    if (g && !g.disabled) {
+      ev.preventDefault();
+      runGenerateDraft(prefill);
+      return;
+    }
+    const c = fresh.createBtn;
+    if (c && !c.disabled) {
+      ev.preventDefault();
+      submit(prefill);
     }
   });
   elements.projectPicker.addEventListener('change', () => updateUi(elements.modal.__outcomePrefill || {}));
@@ -866,6 +902,7 @@ export function initGlobalOutcomeModal(config = {}) {
   elements.modal.querySelector('#report-outcome-review-warnings')?.addEventListener('click', () => {
     outcomeDraftState.warningsOnly = true;
     renderDraftTableRows();
+    requestAnimationFrame(() => focusFirstDraftWarningAction());
   });
   elements.modal.querySelector('#report-outcome-cancel-draft')?.addEventListener('click', () => {
     hideDraftPanel();

@@ -15,6 +15,7 @@ This README is the SSOT for usage and validation. Supplemental planning document
 - Status vocabulary is calmer across the report strip, preview banners, cache freshness, and leadership nav hints (for example **Sprint data** instead of “Repair center”, **In sync** / **Refresh to load** instead of all-caps preview warnings).
 - **Create work** outcome modal: structure choices (Auto / Single / Parent + children / Multiple) appear as soon as the narrative looks multi-item or low-confidence—no extra **Adjust** click. Parse summary and draft rows show a **0.00–1.00 score** (tabular numerals) like model confidence, with the text label as secondary context.
 - Narrow viewports: draft table **Notes** tucks away (details still in each row’s **Details** expander) so mobile users see title + numeric score first with less horizontal noise.
+- **Keyboard:** In the outcome modal, **Ctrl+Enter** (or **Cmd+Enter** on macOS) runs **Create selected** when the draft panel is active and that button is enabled; otherwise **Generate draft** when enabled; otherwise **Create Jira work** when the primary create control is enabled—only when narrative text is present and a primary project is chosen when multiple projects are in context. **Review warnings only** moves focus to the first warning row’s **Details** control so keyboard users avoid an extra hunt.
 
 **Rename note:** This project was renamed from **Jira** to **Delivera**. Product-facing naming should use Delivera, while integration references to Jira remain where they describe Atlassian APIs and data sources.
 

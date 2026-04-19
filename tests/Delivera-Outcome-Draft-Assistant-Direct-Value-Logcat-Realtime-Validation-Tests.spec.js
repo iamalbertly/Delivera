@@ -81,10 +81,13 @@ test.describe('Delivera Outcome Draft Assistant Direct Value Logcat Realtime Val
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage 03: bulk Review warnings only filters table', async () => {
+    await test.step('Stage 03: Review warnings only filters table and focuses first warning Details', async () => {
       await page.locator('#report-outcome-review-warnings').click();
       await expect(page.locator('#report-outcome-draft-tbody tr')).toHaveCount(1);
       await expect(page.locator('#report-outcome-draft-tbody')).toContainText(/Child backlog item/i);
+      const warnDetails = page.locator('#report-outcome-draft-tbody tr.has-warning .report-outcome-draft-expand').first();
+      await expect(warnDetails).toBeVisible();
+      await expect(warnDetails).toBeFocused();
       assertTelemetryClean(telemetry);
     });
 
