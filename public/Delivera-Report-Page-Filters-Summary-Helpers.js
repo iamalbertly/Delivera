@@ -1,6 +1,11 @@
 import { classifyPreviewComplexity } from './Delivera-Report-Page-Preview-Complexity-Config.js';
 import { getSelectedProjects } from './Delivera-Report-Page-Selections-Manager.js';
-import { getValidLastQuery, buildCompactReportRangeLabel, getContextDisplayString } from './Delivera-Shared-Context-From-Storage.js';
+import {
+  getValidLastQuery,
+  buildCompactReportRangeLabel,
+  getContextDisplayString,
+  renderSidebarContextCard,
+} from './Delivera-Shared-Context-From-Storage.js';
 import {
   PROJECTS_SSOT_KEY,
   REPORT_LAST_META_KEY,
@@ -207,6 +212,12 @@ export function updateAppliedFiltersSummary() {
   const reportContextLine = document.getElementById('report-context-line');
   if (reportContextLine && projects.length === 0) {
     reportContextLine.textContent = getContextDisplayString();
+  }
+
+  if (typeof document !== 'undefined' && document.body?.classList?.contains('report-page')) {
+    try {
+      renderSidebarContextCard();
+    } catch (_) {}
   }
 }
 

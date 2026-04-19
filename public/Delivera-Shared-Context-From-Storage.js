@@ -176,24 +176,29 @@ export function buildContextSegmentList(pieces) {
   return parts.sort((a, b) => CONTEXT_LABEL_ORDER.indexOf(a.label) - CONTEXT_LABEL_ORDER.indexOf(b.label));
 }
 
-export function renderContextSegments(pieces, options = {}) {
+/**
+ * Render a pre-built segment list (same markup as {@link renderContextSegments}).
+ * Use when the segment set is not derived from {@link buildContextSegmentList}.
+ */
+export function renderContextPartList(parts, options = {}) {
+  const list = Array.isArray(parts) ? parts : [];
+  if (!list.length) return '';
+
   const className = options.className || 'context-segments';
   const segmentClass = options.segmentClass || 'context-segment';
   const refreshAction = options.refreshAction || 'refresh-context';
   const actionsByLabel = options.actionsByLabel || {};
   const listSemantics = options.listSemantics === true;
   const stripAriaLabel = typeof options.stripAriaLabel === 'string' ? options.stripAriaLabel : 'Report and sprint context';
-  const parts = buildContextSegmentList(pieces);
-
-  if (!parts.length) return '';
+  const containerAriaLabel = typeof options.containerAriaLabel === 'string' ? options.containerAriaLabel : 'Context';
 
   const outerOpen = listSemantics
     ? '<ul class="' + escapeHtml(className) + '" role="list" aria-label="' + escapeHtml(stripAriaLabel) + '">'
-    : '<div class="' + escapeHtml(className) + '" aria-label="Context">';
+    : '<div class="' + escapeHtml(className) + '" aria-label="' + escapeHtml(containerAriaLabel) + '">';
   const outerClose = listSemantics ? '</ul>' : '</div>';
 
   let html = outerOpen;
-  parts.forEach((part) => {
+  list.forEach((part) => {
     const stateClass = typeof part.stateClass === 'string' ? part.stateClass : '';
     const actionName = part.isAction
       ? refreshAction
@@ -212,6 +217,11 @@ export function renderContextSegments(pieces, options = {}) {
   });
   html += outerClose;
   return html;
+}
+
+export function renderContextSegments(pieces, options = {}) {
+  const parts = buildContextSegmentList(pieces);
+  return renderContextPartList(parts, options);
 }
 
 /**
@@ -279,18 +289,52 @@ export function getContextDisplayString() {
 export function getContextCardHtml() {
   const pieces = getContextPieces();
   const isReportPage = typeof document !== 'undefined' && document.body?.classList?.contains('report-page');
-  let html = '<div class="context-card"><h3 class="context-card-title">Context</h3>';
-  html += renderContextSegments(pieces, {
-    className: 'context-card-segments',
-    segmentClass: 'context-card-segment',
-    actionsByLabel: isReportPage
-      ? {
-        Projects: 'open-project-filters',
-        Range: 'open-range-filters',
-        Freshness: 'explain-freshness',
-      }
-      : {},
-  }) || '<p class="context-card-line">No report run yet</p>';
+  const previewActive = isReportPage && typeof document !== 'undefined' && document.body?.classList?.contains('preview-active');
+
+  let html = '<div class="context-card' + (previewActive ? ' context-card--report-preview-compact' : '') + '"><h3 class="context-card-title">Context</h3>';
+
+  if (previewActive) {
+    const compactParts = [];
+    if (pieces.filtersStale) {
+      compactParts.push({
+        label: 'Context',
+        value: pieces.filtersStaleLabel || 'Selection changed — tap Refresh when ready',
+        stateClass: ' is-warning',
+        isAction: true,
+      });
+    }
+    if (pieces.freshness) {
+      compactParts.push({
+        label: 'Freshness',
+        value: pieces.freshness,
+        stateClass: pieces.freshnessIsStale ? ' is-stale' : ' is-fresh',
+      });
+    }
+    const hint = '<p class="context-card-hint context-card-hint--compact" role="note">'
+      + escapeHtml('Scope and dates match the summary under the title. Use the Performance history row for outcomes; open Details for timing and cache info.')
+      + '</p>';
+    const segHtml = renderContextPartList(compactParts, {
+      className: 'context-card-segments context-card-segments--report-preview',
+      segmentClass: 'context-card-segment',
+      actionsByLabel: isReportPage ? { Freshness: 'explain-freshness' } : {},
+      containerAriaLabel: 'Trust signals',
+      stripAriaLabel: 'Trust signals',
+    });
+    const fallback = '<p class="context-card-line">Preview loaded — open Filters to adjust scope.</p>';
+    html += hint + (segHtml || fallback);
+  } else {
+    html += renderContextSegments(pieces, {
+      className: 'context-card-segments',
+      segmentClass: 'context-card-segment',
+      actionsByLabel: isReportPage
+        ? {
+          Projects: 'open-project-filters',
+          Range: 'open-range-filters',
+          Freshness: 'explain-freshness',
+        }
+        : {},
+    }) || '<p class="context-card-line">No report run yet</p>';
+  }
   html += '</div>';
   return html;
 }

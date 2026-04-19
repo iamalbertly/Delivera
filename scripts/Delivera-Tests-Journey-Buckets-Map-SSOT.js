@@ -220,6 +220,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report,/current-sprint,/leadership',
   },
+  'tests/Delivera-Report-Chrome-Direct-Value-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/report',
+  },
 
   // API + data integrity, exports, contracts
   'tests/Delivera-API-Integration-Tests.spec.js': {

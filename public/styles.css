@@ -461,6 +461,21 @@ button.context-card-segment {
   margin: 4px 0;
   color: var(--text);
 }
+
+.context-card-hint {
+  margin: 0 0 10px 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.context-card--report-preview-compact .context-card-hint--compact {
+  margin-bottom: 8px;
+}
+
+.context-card-segments--report-preview {
+  gap: 6px;
+}
 .context-card-range { color: var(--muted); font-size: 0.8em; }
 .context-freshness-ok { color: var(--accent); }
 .context-freshness-stale { color: var(--warning); }
