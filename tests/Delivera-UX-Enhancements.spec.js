@@ -1,7 +1,7 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, skipIfRedirectedToLogin } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-test.describe('Jira Reporting App - UX Enhancements', () => {
+test.describe('Delivera - UX Enhancements', () => {
   test('report filters: search, select all/none, advanced options, export hint', async ({ page }) => {
     await page.goto('/report');
     if (page.url().includes('login')) {
@@ -147,7 +147,7 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
     expect(body).not.toContain('�');
     expect(body).not.toMatch(/â|Ã|ðŸ/);
     if (page.url().includes('/login')) {
-      await expect(page.locator('h1')).toContainText(/VodaAgileBoard|Sign in/i);
+      await expect(page.locator('h1')).toContainText(/Delivera|Sign in/i);
       await expect(page.locator('body')).toContainText(/Sprint insights from Jira|sign in/i);
     }
   });
@@ -171,7 +171,7 @@ test.describe('Jira Reporting App - UX Enhancements', () => {
 
     const trendsTab = page.locator('#tab-btn-trends');
     if (await trendsTab.count()) {
-      await expect(trendsTab).toContainText('Leadership HUD ->');
+      await expect(trendsTab).toContainText(/Leadership trends|Trends/);
       await trendsTab.click();
       await expect(page.locator('#tab-trends')).toBeVisible();
       await expect(page.locator('#tab-trends')).toContainText(/Strong|Solid|Mixed|Weak|Critical|Insufficient data/i);

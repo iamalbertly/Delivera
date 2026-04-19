@@ -433,15 +433,6 @@ body.report-page .report-filter-strip {
   margin-top: 6px;
 }
 
-body.report-page .report-filter-strip-summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-  min-height: 28px;
-  overflow-x: auto;
-}
-
 body.report-page .transparency-card,
 body.report-page .preview-area,
 body.current-sprint-page .transparency-card {
@@ -1942,6 +1933,21 @@ body.report-page .preview-active .tab-hint {
   z-index: 1000;
 }
 
+/* Report: keep bell off the filter/context strip (was overlapping #preview-meta / strip). */
+body.report-page .app-notification-toggle {
+  top: auto;
+  bottom: 18px;
+  left: 16px;
+  z-index: 850;
+}
+
+body.report-page .app-notification-dock:not(.is-collapsed) {
+  top: auto;
+  bottom: 56px;
+  left: 16px;
+  z-index: 860;
+}
+
 body.notification-dock-visible .container {
   padding-left: 300px;
 }
@@ -2640,13 +2646,29 @@ body.report-page .report-filter-strip #report-named-views {
 
 body.report-page .report-filter-strip-summary {
   min-width: 0;
+  flex: 1 1 auto;
   color: var(--muted);
   font-size: 0.78rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  min-height: 28px;
+  overflow-x: visible;
+}
+
+body.report-page .report-filter-strip-summary .app-context-bar {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+body.report-page .report-filter-strip-summary .context-summary-strip {
+  min-width: 0;
+}
+
+body.report-page .report-filter-strip-summary .context-summary-title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 body.report-page .report-filter-strip-chip {
@@ -3130,6 +3152,64 @@ body.report-page .preview-status-strip[data-state="fresh"] {
     clip-path: inset(50%) !important;
     white-space: nowrap !important;
     border: 0 !important;
+  }
+}
+
+/* Key metrics jump rail (Rework / Predictability / Epic TTM) — layout was missing, labels ran together. */
+.performance-signals-rail {
+  margin: 10px 0 14px;
+}
+
+.performance-signals-rail-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+}
+
+a.signals-rail-tile {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 7.5rem;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+a.signals-rail-tile:hover {
+  border-color: rgba(11, 87, 163, 0.35);
+  background: rgba(219, 234, 254, 0.35);
+}
+
+.signals-rail-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.signals-rail-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--primary);
+  line-height: 1.25;
+}
+
+.preview-context-chip-scope--combined {
+  max-width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+
+@media (max-width: 720px) {
+  body.report-page.preview-active .outcome-digest-strip {
+    display: none;
   }
 }
 

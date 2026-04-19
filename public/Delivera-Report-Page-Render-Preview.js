@@ -2,14 +2,7 @@ import { reportDom } from './Delivera-Report-Page-Context.js';
 import { reportState } from './Delivera-Report-Page-State.js';
 import { getSafeMeta } from './Delivera-Report-Page-Render-Helpers.js';
 import { buildPreviewMetaAndStatus } from './Delivera-Report-Page-Render-Preview-01Meta.js';
-import {
-  buildActiveFiltersContextLabel,
-  buildReportRangeLabel,
-  getContextDisplayString,
-  renderSidebarContextCard,
-} from './Delivera-Shared-Context-From-Storage.js';
-import { renderContextBar } from './Delivera-Shared-ContextBar-Renderer.js';
-import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Delivera-Report-Page-ContextBar-Build.js';
+import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
 import { updateDateDisplay } from './Delivera-Report-Page-DateRange-Controller.js';
 import {
@@ -25,6 +18,7 @@ import {
 import { applyDoneStoriesOptionalColumnsPreference } from './Delivera-Report-Page-DoneStories-Column-Preference.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { emitTelemetry } from './Delivera-Shared-Telemetry.js';
+import { updateAppliedFiltersSummary } from './Delivera-Report-Page-Filters-Summary-Helpers.js';
 
 export function wirePreviewContextActions() {
   if (typeof document === 'undefined' || document.body?.dataset.previewContextActionsBound === '1') return;
@@ -149,7 +143,15 @@ export function renderPreview() {
   const unusableCount = previewData.sprintsUnusable?.length || 0;
   const partial = meta.partial === true;
 
-  const metaBlock = buildPreviewMetaAndStatus({ meta, previewRows, boardsCount, sprintsCount, rowsCount, unusableCount });
+  const metaBlock = buildPreviewMetaAndStatus({
+    meta,
+    previewRows,
+    boardsCount,
+    sprintsCount,
+    rowsCount,
+    unusableCount,
+    compactOutcomeScope: true,
+  });
   const reportSubtitleEl = document.getElementById('report-subtitle');
   if (reportSubtitleEl) {
     reportSubtitleEl.textContent = rowsCount > 0
@@ -158,23 +160,8 @@ export function renderPreview() {
     reportSubtitleEl.style.display = '';
   }
   if (previewMeta) {
-    // Shared SSOT ContextBar: one rail (same chip builder as header strip pre-preview).
-    let contextBarHtml = '';
-    try {
-      const chips = buildUnifiedReportContextChips({ outcomesCount: rowsCount });
-      const secondary = rowsCount > 0
-        ? `${rowsCount} stor${rowsCount === 1 ? 'y' : 'ies'} | ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} | ${boardsCount} board${boardsCount === 1 ? '' : 's'}`
-        : 'Run preview to see outcome stories, sprints, and boards.';
-      contextBarHtml = renderContextBar({
-        title: REPORT_CONTEXT_BAR_TITLE,
-        chips,
-        secondary,
-      });
-    } catch (_) {
-      contextBarHtml = '';
-    }
+    // Context chips live only in #report-filter-strip-summary (updateAppliedFiltersSummary) to avoid stacked duplicates.
     previewMeta.innerHTML = `
-      ${contextBarHtml}
       ${metaBlock.outcomeLineHTML || ''}
       ${metaBlock.attentionQueueHtml || ''}
       ${metaBlock.previewMetaHTML}
@@ -186,10 +173,7 @@ export function renderPreview() {
     reportContextLine.style.display = 'none';
   }
   if (oneClickWrap) oneClickWrap.style.display = rowsCount > 0 ? 'none' : '';
-  const filterStripSummary = document.getElementById('report-filter-strip-summary');
-  if (filterStripSummary) {
-    filterStripSummary.textContent = rowsCount > 0 ? 'Saved views' : 'Filter by: projects, range, rules';
-  }
+  updateAppliedFiltersSummary();
   if (previewBtn && rowsCount > 0) {
     previewBtn.classList.remove('btn-primary');
     previewBtn.classList.add('btn-secondary');
@@ -345,7 +329,10 @@ export function renderPreview() {
     }
     setTabLabel(tabUnusable, 'Sprint data (' + unusableCountForTab + ')', 'Data ' + unusableCountForTab);
     const tabTrends = document.getElementById('tab-btn-trends');
-    setTabLabel(tabTrends, 'Leadership HUD ->', 'Leadership');
+    setTabLabel(tabTrends, 'Leadership trends', 'Trends');
+    if (tabTrends) {
+      tabTrends.title = 'Predictability, rework, epic time-to-market, and quarterly KPIs for this window.';
+    }
     const hash = window.location && window.location.hash ? window.location.hash : '';
     if (hash === '#trends') {
       const trendsBtn = document.getElementById('tab-btn-trends');

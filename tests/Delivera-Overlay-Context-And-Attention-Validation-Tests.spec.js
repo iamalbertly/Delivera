@@ -1,11 +1,11 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   waitForPreview,
   selectFirstBoard,
   skipIfRedirectedToLogin,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Overlay, context, and attention SSOT', () => {
   test('report uses one context strip, a real overlay drawer, named views, and the shared leadership lens', async ({ page }) => {
@@ -15,7 +15,7 @@ test.describe('Overlay, context, and attention SSOT', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#report-filter-strip .context-summary-strip, #preview-meta .preview-context-bar').first()).toBeVisible();
+    await expect(page.locator('#report-filter-strip .context-summary-strip').first()).toBeVisible();
 
     const namedViews = page.locator('#report-named-views .named-views-bar');
     await expect(namedViews).toBeVisible();
@@ -41,6 +41,8 @@ test.describe('Overlay, context, and attention SSOT', () => {
     }
 
     await expect(page.locator('#preview-meta .attention-queue')).toBeVisible();
+    await expect(page.locator('#preview-meta .app-context-bar')).toHaveCount(0);
+    await expect(page.locator('#report-filter-strip-summary .app-context-bar')).toHaveCount(1);
     await page.click('#tab-btn-trends');
     await expect(page.locator('#leadership-content .leadership-shell-top')).toBeVisible();
     await expect(page.locator('#leadership-content .leadership-mission-strip')).toBeVisible();

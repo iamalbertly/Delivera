@@ -37,7 +37,15 @@ function buildGeneratedLabels(generatedAt) {
 }
 
 export function buildPreviewMetaAndStatus(params) {
-  const { meta, previewRows = [], boardsCount, sprintsCount, rowsCount, unusableCount } = params;
+  const {
+    meta,
+    previewRows = [],
+    boardsCount,
+    sprintsCount,
+    rowsCount,
+    unusableCount,
+    compactOutcomeScope = false,
+  } = params;
   let chipProjects = Array.isArray(meta.selectedProjects) ? meta.selectedProjects : [];
   let chipWindowStart = meta.windowStart;
   let chipWindowEnd = meta.windowEnd;
@@ -199,11 +207,16 @@ export function buildPreviewMetaAndStatus(params) {
   const healthRisk = blockersOwned > 0 || unownedOutcomes > 0;
   const healthChipExtra = healthRisk ? ' preview-context-chip-health--risk' : '';
 
+  const scopeOpenTitle = 'Projects: ' + projectSummary.full + ' | Range: ' + compactRangeLabel;
+  const scopeChipCompact =
+    '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope preview-context-chip-scope--combined" data-preview-context-action="open-projects" title="' + escapeHtml(scopeOpenTitle) + '" aria-label="Open filters to change projects or dates">Scope: ' + escapeHtml(projectSummary.label) + ' · ' + escapeHtml(compactRangeLabel) + '<span class="visually-hidden"> Full project list: ' + escapeHtml(projectSummary.full) + '</span></button>';
+  const scopeChipsFull =
+    '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '<span class="visually-hidden"> Projects full list: ' + escapeHtml(projectSummary.full) + '</span></button>' +
+    '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>';
   const outcomeLineHTML =
-    '<div class="preview-context-bar" data-context-bar="true" role="group" aria-label="Report preview context and outcome">' +
+    '<div class="preview-context-bar' + (compactOutcomeScope ? ' preview-context-bar--compact-scope' : '') + '" data-context-bar="true" role="group" aria-label="Report preview context and outcome">' +
       '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Performance history</span>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '<span class="visually-hidden"> Projects full list: ' + escapeHtml(projectSummary.full) + '</span></button>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>' +
+      (compactOutcomeScope ? scopeChipCompact : scopeChipsFull) +
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
       '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>' +
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Details</button>' +

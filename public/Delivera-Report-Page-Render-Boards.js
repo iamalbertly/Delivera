@@ -1,21 +1,21 @@
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { buildBoardSummaries } from './Reporting-App-Shared-Boards-Summary-Builder.js';
-import { renderEmptyState, getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoBoardsForRangeEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDateForDisplay, formatPercent, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { buildBoardSummaries } from './Delivera-Shared-Boards-Summary-Builder.js';
+import { renderEmptyState, getSafeMeta } from './Delivera-Report-Page-Render-Helpers.js';
+import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoBoardsForRangeEmptyState } from './Delivera-Shared-Empty-State-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDateForDisplay, formatPercent, formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
 import {
   computeBoardRowFromSummary,
   computeBoardsSummaryRow,
   deriveDeliveryGrade,
   DELIVERY_GRADE_TOOLTIP,
-} from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Reporting-App-Report-Page-Render-Epic-Helpers.js';
-import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
-import { getLeadershipIndexedDeliveryHint } from './Reporting-App-Leadership-Page-Render.js';
-import { KPI_TREND_VISIBILITY_HINT } from './Reporting-App-Shared-KPI-Card-Renderer.js';
-import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
-import { wireShowMoreHandler } from './Reporting-App-Shared-ShowMore-Handlers.js';
+} from './Delivera-Report-Page-Render-Boards-Summary-Helpers.js';
+import { buildPredictabilityTableHeaderHtml, buildEpicTtmSectionHtml } from './Delivera-Report-Page-Render-Epic-Helpers.js';
+import { buildDataTableHtml } from './Delivera-Shared-Table-Renderer.js';
+import { getLeadershipIndexedDeliveryHint } from './Delivera-Leadership-Page-Render.js';
+import { KPI_TREND_VISIBILITY_HINT } from './Delivera-Shared-KPI-Card-Renderer.js';
+import { resolveResponsiveRowLimit } from './Delivera-Shared-Responsive-Helpers.js';
+import { wireShowMoreHandler } from './Delivera-Shared-ShowMore-Handlers.js';
 
 const BOARD_TABLE_COLUMN_ORDER = [
   'Board', 'Projects', 'Sprints', 'Sprint Days', 'Avg Sprint Days', 'Done Stories', 'Throughput Stories', 'Registered Work Hours', 'Estimated Work Hours', 'Done SP', 'Throughput SP',
@@ -125,7 +125,8 @@ function buildSignalsRailHtml(metrics, meta) {
 
   const epicTTMRows = Array.isArray(metrics.epicTTM) ? metrics.epicTTM : [];
   const epicHygiene = meta?.epicHygiene;
-  if (metrics.epicTTM || epicTTMRows.length === 0) {
+  const hasEpicTtmSignal = metrics.epicTTM != null || epicTTMRows.length > 0 || (epicHygiene && epicHygiene.ok === false);
+  if (hasEpicTtmSignal) {
     let label = '';
     if (epicHygiene && epicHygiene.ok === false) {
       label = 'Hidden (hygiene)';
@@ -289,11 +290,17 @@ function buildOverviewActionSummaryHtml(boards, boardSummaries, previewRows, met
   const dataGap = !meta?.discoveredFields?.storyPointsFieldId
     ? 'Story points unavailable'
     : (!meta?.discoveredFields?.epicLinkFieldId ? 'Epic rollups unavailable' : '');
+  const sprintWindowCount = new Set(rows.map((row) => row.sprintId).filter(Boolean)).size;
+  const sprintWindowsDetail = !rows.length
+    ? ''
+    : (sprintWindowCount === 0
+      ? 'Sprint attribution is missing on some rows; scope still reflects shipped outcomes.'
+      : (sprintWindowCount === 1 ? 'Delivered across 1 sprint window.' : `Delivered across ${sprintWindowCount} sprint windows.`));
   const cards = [
     {
       title: 'What changed',
       value: rows.length ? rows.length + ' shipped outcomes' : 'No shipped outcomes',
-      detail: rows.length ? 'Delivered across ' + new Set(rows.map((row) => row.sprintId).filter(Boolean)).size + ' sprint windows.' : 'This range is maintenance-heavy or too narrow.',
+      detail: rows.length ? sprintWindowsDetail : 'This range is maintenance-heavy or too narrow.',
     },
     {
       title: 'What needs attention',
@@ -602,5 +609,5 @@ export function renderProjectEpicLevelTab(boards, metrics) {
   applyBoardsColumnVisibility();
   wireShowMoreHandler('.boards-show-more', 'boards-more-template', '#boards-table tbody');
   // Add hover titles for truncated headers/cells for better discoverability (dynamic import)
-  try { import('./Reporting-App-Shared-Dom-Escape-Helpers.js').then(({ addTitleForTruncatedCells }) => addTitleForTruncatedCells('#project-epic-level-content table.data-table th, #project-epic-level-content table.data-table td')).catch(() => {}); } catch (e) {}
+  try { import('./Delivera-Shared-Dom-Escape-Helpers.js').then(({ addTitleForTruncatedCells }) => addTitleForTruncatedCells('#project-epic-level-content table.data-table th, #project-epic-level-content table.data-table td')).catch(() => {}); } catch (e) {}
 }
