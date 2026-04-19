@@ -1,17 +1,17 @@
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { buildPreviewMetaAndStatus } from './Reporting-App-Report-Page-Render-Preview-01Meta.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { getSafeMeta } from './Delivera-Report-Page-Render-Helpers.js';
+import { buildPreviewMetaAndStatus } from './Delivera-Report-Page-Render-Preview-01Meta.js';
 import {
   buildActiveFiltersContextLabel,
   buildReportRangeLabel,
   getContextDisplayString,
   renderSidebarContextCard,
-} from './Reporting-App-Shared-Context-From-Storage.js';
-import { renderContextBar } from './Reporting-App-Shared-ContextBar-Renderer.js';
-import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Reporting-App-Report-Page-ContextBar-Build.js';
-import { scheduleRender } from './Reporting-App-Report-Page-Loading-Steps.js';
-import { updateDateDisplay } from './Reporting-App-Report-Page-DateRange-Controller.js';
+} from './Delivera-Shared-Context-From-Storage.js';
+import { renderContextBar } from './Delivera-Shared-ContextBar-Renderer.js';
+import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Delivera-Report-Page-ContextBar-Build.js';
+import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
+import { updateDateDisplay } from './Delivera-Report-Page-DateRange-Controller.js';
 import {
   populateBoardsPills,
   populateSprintsPills,
@@ -21,8 +21,10 @@ import {
   renderUnusableSprintsTab,
   renderTrendsTab,
   updateExportFilteredState,
-} from './Reporting-App-Report-Page-Render-Registry.js';
-import { applyDoneStoriesOptionalColumnsPreference } from './Reporting-App-Report-Page-DoneStories-Column-Preference.js';
+} from './Delivera-Report-Page-Render-Registry.js';
+import { applyDoneStoriesOptionalColumnsPreference } from './Delivera-Report-Page-DoneStories-Column-Preference.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { emitTelemetry } from './Delivera-Shared-Telemetry.js';
 
 export function wirePreviewContextActions() {
   if (typeof document === 'undefined' || document.body?.dataset.previewContextActionsBound === '1') return;
@@ -173,6 +175,8 @@ export function renderPreview() {
     }
     previewMeta.innerHTML = `
       ${contextBarHtml}
+      ${metaBlock.outcomeLineHTML || ''}
+      ${metaBlock.attentionQueueHtml || ''}
       ${metaBlock.previewMetaHTML}
     `;
   }
@@ -223,10 +227,25 @@ export function renderPreview() {
   }
   const statusStripEl = document.getElementById('preview-status-strip');
   if (statusStripEl) {
-    const hasAlertState = partial || meta.reducedScope;
-    statusStripEl.textContent = partial ? 'Results: partial data' : (meta.reducedScope ? 'Results: closest match' : '');
-    statusStripEl.setAttribute('data-state', partial ? 'partial' : (meta.reducedScope ? 'closest' : 'fresh'));
-    statusStripEl.style.display = hasAlertState ? '' : 'none';
+    const jiraProjErr = Array.isArray(meta.jiraProjectErrors) && meta.jiraProjectErrors.length > 0;
+    if (jiraProjErr) {
+      const keys = meta.jiraProjectErrors.map((e) => escapeHtml(String(e.projectKey || '?'))).join(', ');
+      statusStripEl.textContent =
+        `Jira could not load project(s): ${keys}. The report shows other projects only. Deselect failing keys or fix Jira access.`;
+      statusStripEl.setAttribute('data-state', 'warning');
+      statusStripEl.style.display = '';
+      try {
+        emitTelemetry('boards.warning', {
+          projectKeys: meta.jiraProjectErrors.map((e) => e.projectKey),
+          codes: meta.jiraProjectErrors.map((e) => e.code),
+        });
+      } catch (_) {}
+    } else {
+      const hasAlertState = partial || meta.reducedScope;
+      statusStripEl.textContent = partial ? 'Results: partial data' : (meta.reducedScope ? 'Results: closest match' : '');
+      statusStripEl.setAttribute('data-state', partial ? 'partial' : (meta.reducedScope ? 'closest' : 'fresh'));
+      statusStripEl.style.display = hasAlertState ? '' : 'none';
+    }
   }
 
   const hasRows = rowsCount > 0;

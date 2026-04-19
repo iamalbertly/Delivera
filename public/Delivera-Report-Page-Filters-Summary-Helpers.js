@@ -1,17 +1,17 @@
-import { classifyPreviewComplexity } from './Reporting-App-Report-Page-Preview-Complexity-Config.js';
-import { getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
-import { getValidLastQuery, buildCompactReportRangeLabel, getContextDisplayString } from './Reporting-App-Shared-Context-From-Storage.js';
+import { classifyPreviewComplexity } from './Delivera-Report-Page-Preview-Complexity-Config.js';
+import { getSelectedProjects } from './Delivera-Report-Page-Selections-Manager.js';
+import { getValidLastQuery, buildCompactReportRangeLabel, getContextDisplayString } from './Delivera-Shared-Context-From-Storage.js';
 import {
   PROJECTS_SSOT_KEY,
   REPORT_LAST_META_KEY,
   REPORT_FILTERS_STALE_KEY,
   REPORT_HAS_RUN_PREVIEW_KEY,
   REPORT_FILTERS_STALE_REASON_KEY,
-} from './Reporting-App-Shared-Storage-Keys.js';
-import { isRangeValid, updateRangeHint } from './Reporting-App-Report-Page-DateRange-Controller.js';
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { renderContextBar } from './Reporting-App-Shared-ContextBar-Renderer.js';
-import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Reporting-App-Report-Page-ContextBar-Build.js';
+} from './Delivera-Shared-Storage-Keys.js';
+import { isRangeValid, updateRangeHint } from './Delivera-Report-Page-DateRange-Controller.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { renderContextBar } from './Delivera-Shared-ContextBar-Renderer.js';
+import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Delivera-Report-Page-ContextBar-Build.js';
 
 const CONTEXT_SEPARATOR = ' | ';
 
@@ -168,18 +168,32 @@ export function updateAppliedFiltersSummary() {
 
   const statusStripEl = document.getElementById('preview-status-strip');
   if (statusStripEl) {
-    const state = getStatusStripSemantics({
-      projects,
-      startVal,
-      endVal,
-      projectLabel,
-      rangeLabel,
-    });
-    statusStripEl.textContent = state.state === 'fresh'
-      ? 'UP TO DATE'
-      : (state.state === 'heavy' ? 'HEAVY RANGE' : 'PREVIEW REQUIRED');
-    statusStripEl.setAttribute('data-state', state.state);
-    statusStripEl.title = state.label;
+    let filtersStaleForStrip = false;
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        filtersStaleForStrip = sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1';
+      }
+    } catch (_) {}
+    const rawMeta = reportState.previewData?.meta;
+    const stripOwnedByPreview = !filtersStaleForStrip && rawMeta && (
+      (Array.isArray(rawMeta.jiraProjectErrors) && rawMeta.jiraProjectErrors.length > 0)
+      || rawMeta.partial === true
+      || rawMeta.reducedScope === true
+    );
+    if (!stripOwnedByPreview) {
+      const state = getStatusStripSemantics({
+        projects,
+        startVal,
+        endVal,
+        projectLabel,
+        rangeLabel,
+      });
+      statusStripEl.textContent = state.state === 'fresh'
+        ? 'UP TO DATE'
+        : (state.state === 'heavy' ? 'HEAVY RANGE' : 'PREVIEW REQUIRED');
+      statusStripEl.setAttribute('data-state', state.state);
+      statusStripEl.title = state.label;
+    }
   }
 
   refreshPreviewButtonLabel();

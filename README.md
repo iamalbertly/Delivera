@@ -1,8 +1,14 @@
-# VodaAgileBoard
+# Delivera
 
-VodaAgileBoard is the tool for scrum masters and leaders: a Node.js web application for generating sprint reports from Jira for MPSA and MAS projects. It provides a preview-first workflow where you configure filters, preview data in a tabbed interface, and export CSV or Excel without re-fetching from Jira.
+Delivera is a delivery intelligence platform for scrum teams and leaders. It transforms Jira data into real-time sprint transparency, time-normalized delivery insights, backlog intake and alignment, and decision-ready reporting. Delivera is not a Jira replacement; it is a layer that makes delivery work visible, reliable, and actionable.
 
-This README is the SSOT for usage and validation. Supplemental documents (e.g. `Jira-Reporting-Gap-Analysis-Plan.md`) provide planning context only and do not supersede this guide.
+This Node.js web app includes a preview-first workflow: configure filters, preview data in a tabbed interface, and export CSV or Excel without re-fetching from Jira (MPSA & MAS are first-class in the default setup).
+
+This README is the SSOT for usage and validation. Supplemental planning documents provide context only and do not supersede this guide.
+
+**Rename note:** This project was renamed from **Jira** to **Delivera**. Product-facing naming should use Delivera, while integration references to Jira remain where they describe Atlassian APIs and data sources.
+
+**Repository:** Canonical repository is `https://github.com/iamalbertly/Delivera`. Existing clones should use `git remote set-url origin https://github.com/iamalbertly/Delivera.git` if their origin still points to the legacy slug.
 
 ## Latest Reliability and UX Updates (2026-03-06)
 
@@ -38,7 +44,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 ## Latest Reliability and UX Updates (2026-03-04)
 
 - Current Sprint data-integrity and friction fixes:
-  - Saved sprint selection now expires after 12 hours (`vodaAgileBoard_lastSprintSelectedAt`) to prevent stale closed sprint lock-in.
+  - Saved sprint selection now expires after 12 hours (`delivera_lastSprintSelectedAt`) to prevent stale closed sprint lock-in.
   - If a saved sprint is closed and an active sprint exists, Current Sprint auto-switches to the active sprint (unless URL explicitly pins a sprint).
   - Header freshness now uses generated timestamps and consistent live/snapshot wording.
   - Header now shows multi-active sprint indicator (`Active: N sprints · Viewing ...`) and inline `vs last sprint` summary.
@@ -73,7 +79,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - `Performance - Current Sprint` (`/current-sprint`)
   - `Performance - Leadership HUD` (leadership surface)
 - New focused validation spec added and wired into orchestration:
-  - `tests/Jira-Reporting-App-Outcome-Intake-And-Readiness-Validation-Tests.spec.js`
+  - `tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js`
   - Run standalone: `npm run test:outcome-intake-readiness`
   - Full suite: `npm run test:all`
 
@@ -89,9 +95,9 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - Sidebar footer can now surface a single **Logging alerts: N** chip (or healthy state) and jump directly to Current Sprint Work risks, reducing split attention across nav + floating controls.
   - Leadership HUD placeholders no longer rely on raw `--`; empty states now direct users to **Open Report Trends**.
 - Test and orchestration hardening (same date):
-  - Added `tests/Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js` for report outcomes truthfulness and current-sprint header/table/API coherence checks.
+  - Added `tests/Delivera-Data-Integrity-Coherence-Contracts.spec.js` for report outcomes truthfulness and current-sprint header/table/API coherence checks.
   - Added/updated E2E journey assertions for truthful Outcomes tab labeling and a cross-page “exec in a hurry” path (Report → Current Sprint → Take action → Copy summary).
-  - `scripts/Jira-Reporting-App-Test-Orchestration-Runner.js` now also enforces serial Playwright workers (`--workers=1`) when absent and emits a periodic heartbeat while long steps run, improving realtime visibility when a step stalls.
+  - `scripts/Delivera-Test-Orchestration-Runner.js` now also enforces serial Playwright workers (`--workers=1`) when absent and emits a periodic heartbeat while long steps run, improving realtime visibility when a step stalls.
   - Added focused npm scripts: `npm run test:data-integrity-coherence` and `npm run test:exec-journey`.
 - Current Sprint direct-to-value pass (incremental, no new screens):
   - Header **Take action** is now an action (not only a jump): it applies the highest-value available risk focus (blockers first, with safe fallbacks) and moves the user directly to the first actionable Work risks row.
@@ -160,9 +166,9 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
     - Report context line and shared sidebar context card now include a compact “Filters changed; context from last run” hint when filters change without a new preview.
     - This stale badge is stored in sessionStorage so Current Sprint and Leadership chips can reflect that state without any extra user action.
   - Focused validation suites:
-    - `tests/Jira-Reporting-App-Current-Sprint-Work-Risks-Hierarchy-Validation-Tests.spec.js` validates parent/subtask grouping, accordion behaviour, and unified blocker counts.
-    - `tests/Jira-Reporting-App-Current-Sprint-Burndown-Truthfulness-Validation-Tests.spec.js` validates SP configuration copy and SP vs story-count burndown paths.
-    - `tests/Jira-Reporting-App-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js` validates stale-context hints and excluded-parent blocker messaging.
+    - `tests/Delivera-Current-Sprint-Work-Risks-Hierarchy-Validation-Tests.spec.js` validates parent/subtask grouping, accordion behaviour, and unified blocker counts.
+    - `tests/Delivera-Current-Sprint-Burndown-Truthfulness-Validation-Tests.spec.js` validates SP configuration copy and SP vs story-count burndown paths.
+    - `tests/Delivera-Current-Sprint-Edge-Semantics-Validation-Tests.spec.js` validates stale-context hints and excluded-parent blocker messaging.
   - Growth/velocity experimental spec (`tests/DeleteThisFile_growth_velocity.spec.js`) is now explicitly skipped so it no longer gates full Playwright runs; the file remains prefixed with `DeleteThisFile_` as a clear deletion marker.
 
 ## Latest Reliability and UX Updates (2026-02-18)
@@ -185,7 +191,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - Detailed export text is grouped under a clear separator line (`--- More detail below ---`) into sections for **Recent activity & time logging**, **Blockers**, **Not started**, **Scope added mid-sprint**, and **Work breakdown (stories with subtasks)**, reducing wall-of-text fatigue while preserving auditor detail.
   - Movement/logging copy now handles realistic edge cases (no data yet, all work logged but no recent movement, estimates without logs, logs without estimates) so the story stays factually consistent with `subtaskTracking` and summary hours.
   - Blockers, not started, unassigned, and scope counts in the summary line are wired directly to the same SSOT collections used in Work risks and sprint stories, so headline and tables always reconcile.
-  - Added `tests/Jira-Reporting-App-Current-Sprint-Summary-UX-Validation-Tests.spec.js` and wired it into `npm run test:all` to assert the four-line contract, presence of the `--- More detail below ---` separator, grouped detail sections, and clean browser telemetry for the summary/export path.
+  - Added `tests/Delivera-Current-Sprint-Summary-UX-Validation-Tests.spec.js` and wired it into `npm run test:all` to assert the four-line contract, presence of the `--- More detail below ---` separator, grouped detail sections, and clean browser telemetry for the summary/export path.
 - Report and Current Sprint direct-to-value UI deduplication:
   - **Report:** Preview meta shows a single outcome line (Window coverage: Boards N | Sprints N + data-state badge). Range and projects live only in `#report-context-line` to avoid repeated eye-travel and duplicate sentences.
   - **Current Sprint:** Removed duplicate "Board: X" line from the header; board name stays in the context chip (Active: project | Board name). Work risks card heading shortened to "Work risks"; blocker strip label changed from "Blockers now: N" to "Blocker issues" with a one-line dedupe hint ("Each issue is counted once as a blocker...") above the table. When there are no blockers, the card shows "No blocker issues in this sprint." Product Owner summary block shows "No scope additions" / "Scope stable." when scope or unestimated counts are zero.
@@ -228,32 +234,32 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
   - `/report` Done Stories now resolves Jira host from `jiraHostResolved` SSOT and renders safe unlinked fallback text when host is missing.
   - Current Sprint export primary action now keeps one-click copy and also opens menu for zero-friction follow-up export actions.
 - Added focused fail-fast validation suite:
-  - `tests/Jira-Reporting-App-Current-Sprint-Blockers-Snapshot-Direct-Value-Validation-Tests.spec.js`
+  - `tests/Delivera-Current-Sprint-Blockers-Snapshot-Direct-Value-Validation-Tests.spec.js`
   - Covers 13 direct UX/reliability validations + 3 realistic edge-case checks for blockers/snapshot behavior.
 - Orchestration update:
-  - Added the new direct-value sprint validation spec into `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`.
+  - Added the new direct-value sprint validation spec into `scripts/Delivera-Test-Orchestration-Steps.js`.
 - Validation status:
   - `npm run test:all` passed end-to-end (`45/45` selected steps, fail-fast mode, headless, parallel workers).
 
 - Refactored duplicated page bootstrap behaviors into shared SSOT helpers:
-  - `public/Reporting-App-Shared-Page-Identity-Scroll-Helpers.js`
-  - `public/Reporting-App-Report-Page-Init-Filters-Panel-State-Helpers.js`
-  - `public/Reporting-App-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js`
+  - `public/Delivera-Shared-Page-Identity-Scroll-Helpers.js`
+  - `public/Delivera-Report-Page-Init-Filters-Panel-State-Helpers.js`
+  - `public/Delivera-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js`
 - Reduced large init controllers to stay under the file-size guardrail while preserving behavior:
-  - `public/Reporting-App-Report-Page-Init-Controller.js` → 283 lines
-  - `public/Reporting-App-CurrentSprint-Page-Init-Controller.js` → 299 lines
+  - `public/Delivera-Report-Page-Init-Controller.js` → 283 lines
+  - `public/Delivera-CurrentSprint-Page-Init-Controller.js` → 299 lines
 - Fixed current sprint desktop overflow by removing forced non-wrapping top-row cards in `public/css/06-current-sprint.css` and rebuilding `public/styles.css`.
 - Hardened fail-fast Playwright journeys against valid collapsed-filter and no-exportable-row states:
-  - `tests/Jira-Reporting-App-Preview-Retry.spec.js`
-  - `tests/Jira-Reporting-App-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js`
-  - `tests/Jira-Reporting-App-UX-Trust-And-Export-Validation-Tests.spec.js`
-  - `tests/Jira-Reporting-App-General-Performance-Quarters-UI-Validation-Tests.spec.js`
-  - `tests/Jira-Reporting-App-Report-GrowthVelocity-Validation-Tests.spec.js`
+  - `tests/Delivera-Preview-Retry.spec.js`
+  - `tests/Delivera-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js`
+  - `tests/Delivera-UX-Trust-And-Export-Validation-Tests.spec.js`
+  - `tests/Delivera-General-Performance-Quarters-UI-Validation-Tests.spec.js`
+  - `tests/Delivera-Report-GrowthVelocity-Validation-Tests.spec.js`
 - Added shared Playwright SSOT helpers to remove duplicated test logic:
   - `clickReportPreviewFromCurrentState(page)` for collapsed-filter safe preview clicks
   - `ensureReportFiltersVisible(page)` for deterministic filter interaction
   - `getReportExportButtonState(page)` for normalized export-state checks
-  - Implemented in `tests/JiraReporting-Tests-Shared-PreviewExport-Helpers.js`
+  - Implemented in `tests/Delivera-Tests-Shared-PreviewExport-Helpers.js`
 - Added repository ignores for generated local test artifacts in `.gitignore` (`.playwright-cli/`, `output/`, orchestration temp state files).
 - Validation status:
   - Targeted fail-fast suites above pass locally after fixes.
@@ -287,7 +293,7 @@ This README is the SSOT for usage and validation. Supplemental documents (e.g. `
 - **Runtime Discovery**: Automatically discovers boards and field IDs from your Jira instance
 - **Error Handling**: Robust error handling with user-friendly messages and retry logic
 - **Feedback Capture**: In-app feedback form for users to submit issues and suggestions
-- **Project/Board SSOT**: Selected projects are shared across Report, Leadership, and Current Sprint via `vodaAgileBoard_selectedProjects` in localStorage. Report persists project checkboxes on change; Leadership reads and writes the same key; Current Sprint reads the same key but **normalizes to one project** for sprint-level accuracy and loads boards for that one project (fallback `MPSA`).
+- **Project/Board SSOT**: Selected projects are shared across Report, Leadership, and Current Sprint via `delivera_selectedProjects` in localStorage. Report persists project checkboxes on change; Leadership reads and writes the same key; Current Sprint reads the same key but **normalizes to one project** for sprint-level accuracy and loads boards for that one project (fallback `MPSA`).
 - **Filter Persistence**: Report search inputs (Boards/Sprints/Stories) persist between visits. Report and Leadership share the same date-range storage.
 - **Current Sprint Transparency**: Squad view at `/current-sprint` - sprint header with name/ID, summary strip (work items, SP, % done) with a **stuck prompt** when any issue is in progress >24h (link to follow up), status chips, a **Project** selector synchronized from shared SSOT but enforced to one project in this page, single **sub-task summary** line in the summary card (logged h; missing estimate / no log; stuck >24h count) linking to the full Sub-task time tracking card, daily completion (with SP), burndown with ideal line + axis labels, scope changes (including reporter/assignee and merged risk rows), **Work items in sprint** table with **Type**, **Reporter**, **Assignee**, and merged subtask estimate/logged-hour columns, sub-task time tracking (estimate/logged/remaining plus status age), assignee or reporter notification message generator for missing sub-task time, dependencies/learnings, stuck tasks card (in progress >24h) with status-change hint, snapshot freshness badge (Live vs Snapshot timestamp), previous/next sprint snippet, and sprint tabs (latest to oldest by end date). Export menu now provides **Copy as Text**, **Markdown**, **Copy link**, and **Email**.
 - **Persistent Notification Dock**: A fixed left-side alert dock appears across pages when time-tracking alerts exist. On Report and Leadership it stays compact and points users to **Open Current Sprint**; on Current Sprint it expands to show board/sprint details and missing estimate/log counts. It can be minimized or hidden after review, with a quick toggle to restore it.
@@ -345,7 +351,7 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
 
 ### Quickstart for Scrum Masters & Leaders
 
-1. Get the live VodaAgileBoard URL from your admin (for example, `https://voda-agile-board.onrender.com`).
+1. Get the live Delivera URL from your admin (for example, `https://delivera.onrender.com`).
 2. Sign in with the credentials shared by your admin.
 3. On the General Performance (Report) screen, keep both MPSA and MAS selected for a combined view, or choose a single project for a focused view.
 4. Leave the default quarter dates or adjust them to your sprint window. Preview auto-runs after filter changes (manual **Preview** is still available).
@@ -485,7 +491,7 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
 - **Tests:** Four Projects Q4 and Preview timeout specs force filters panel expanded (or use `force: true` for date fill) so date inputs are actionable; E2E "no projects" tests are skipped until flaky run is resolved.
 - **Visual refresh without flow changes:** Existing pages now use a more modern, higher-contrast theme (lighter gradients, clearer hierarchy for sidebar/nav, stronger active states, and improved table/header readability) to reduce "plain" appearance while preserving the same workflows and controls.
 - **Text encoding cleanup:** Fixed mojibake in core report/leadership rendering strings (for example timeline separators and grade fallback labels) to keep customer-facing copy trustworthy and readable.
-- **Realtime fail-fast validation suite:** Added `tests/Jira-Reporting-App-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js` and orchestration wiring so `npm run test:all` now includes 16 fail-fast checks covering report/current-sprint/leadership UI geometry, deduped throughput rendering, hydration behavior, and realtime telemetry ("logcat-equivalent") guardrails.
+- **Realtime fail-fast validation suite:** Added `tests/Delivera-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js` and orchestration wiring so `npm run test:all` now includes 16 fail-fast checks covering report/current-sprint/leadership UI geometry, deduped throughput rendering, hydration behavior, and realtime telemetry ("logcat-equivalent") guardrails.
 - **Current Sprint scope dedup (2026-02-12):** Removed the separate Scope indicator card/modal and merged scope-change insight directly into existing SSOT views: Work risks table + Risks & Insights blockers narrative.
 - **Work risks table enrichment (2026-02-12):** Added `Type` and `SP` columns to merged Work risks so scope/stuck/sub-task/sprint issues keep decision-grade detail in one place.
 - **Current Sprint layout simplification (2026-02-12):** Rebalanced card rows so Work risks and Burndown are side-by-side, with Risks & Insights + Countdown in the secondary row; this removes duplicate visual blocks and reduces wide empty-space dead zones.
@@ -524,11 +530,11 @@ This runs `npm run build:css` first (prestart), then starts the server. The serv
   - Partial previews include a **Force full refresh** action which re-runs the request with cache bypass.
 - **User feedback capture**:
   - Click **Give Feedback** at the top of the report to submit your email and detailed feedback.
-  - Submissions are stored on the server in `data/JiraReporting-Feedback-UserInput-Submission-Log.jsonl`.
+  - Submissions are stored on the server in `data/Delivera-Feedback-UserInput-Submission-Log.jsonl`.
 - **Preview client-side timeout**
   - The report preview request has a client-side timeout (typically 60-90 seconds depending on date range and options). If the request exceeds this, the client aborts it.
   - On timeout, the error box shows a concise message: "Preview ran longer than Xs. We kept your last full results on-screen; try a smaller date range or fewer projects." with **Retry now**, **Retry with smaller date range**, and **Force full refresh** buttons. The error box is never left empty.
-  - A dedicated Playwright spec (`Jira-Reporting-App-Preview-Timeout-Error-UI-Validation-Tests.spec.js`) validates that the error UI is visible, non-empty, and includes retry actions when a preview fails.
+  - A dedicated Playwright spec (`Delivera-Preview-Timeout-Error-UI-Validation-Tests.spec.js`) validates that the error UI is visible, non-empty, and includes retry actions when a preview fails.
 - **Partial previews**:
   - If the backend has to stop early (for example due to time budget or pagination limits), the response is marked as partial.
   - The UI shows a short warning banner near the preview summary and a matching hint near the export buttons, explaining that export matches exactly what is on-screen and recommending narrower ranges for full history. CSV exports will only contain the currently loaded data in this case.
@@ -563,7 +569,7 @@ Returns a list of boards for the given projects (for the current-sprint board se
 **Query Parameters:**
 - `projects` (required): Comma-separated project keys (e.g., `MPSA,MAS`)
 
-**Response:** `{ boards: Array<{ id: number, name: string, ... }> }`. Returns 400 with code `NO_PROJECTS` when `projects` is missing or empty.
+**Response (200):** `{ projects: string[], boards: Array<{ id, name, type, projectKey }>, jiraErrors?: Array<{ projectKey, code, message, detail }> }`. When at least one project succeeds, `boards` lists merged unique boards and `jiraErrors` (if present) describes per-project Jira failures (e.g. `JIRA_UNAUTHORIZED`). When **every** selected project fails with auth/forbidden, returns **502** with `code: JIRA_UNAUTHORIZED`, `jiraErrors`, and `boards: []`. Returns 400 with code `NO_PROJECTS` when `projects` is missing or empty.
 
 ### GET /api/current-sprint.json
 Returns the current-sprint transparency payload for a board (snapshot-first; use `live=true` to bypass cache). Optional `sprintId` loads a specific sprint for tab navigation.
@@ -689,7 +695,7 @@ This runs the test orchestration script which:
 14. Runs UX Trust and Export Validation tests (report, current-sprint, leadership, export; telemetry + UI)
 15. Runs Current Sprint UX and SSOT Validation tests (board pre-select, burndown summary, empty states, leadership empty preview)
 16. Terminates on first error
-17. Shows all steps in foreground with live output from each test command and elapsed step timing. Step definitions live in `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`.
+17. Shows all steps in foreground with live output from each test command and elapsed step timing. Step definitions live in `scripts/Delivera-Test-Orchestration-Steps.js`.
 
 ### Run Specific Test Suites
 ```bash
@@ -738,15 +744,15 @@ npm run test:e2e:full
 - **Manual Enrichment**: Excel exports include blank columns for teams to fill in: Epic ID (Manual), Epic Name (Manual), Is Rework (Manual), Is Bug (Manual), and Team Notes.
 - **CSV Validation**: Client-side validation ensures required columns (issueKey, issueType, issueStatus) are present before export. CSV exports include Epic Key, Epic Title, and Epic Summary when available.
 - **Export UX**: Export buttons show loading state ("Exporting..." or "Generating Excel...") and are disabled during export to prevent duplicate exports. Buttons are visible after async rendering completes.
-- **Excel export (Report page)**: Export to Excel is available on the General Performance (Report) page after preview has data. It is validated by `Jira-Reporting-App-Excel-Export-Tests.spec.js` and by the UX Trust And Export Validation tests.
+- **Excel export (Report page)**: Export to Excel is available on the General Performance (Report) page after preview has data. It is validated by `Delivera-Excel-Export-Tests.spec.js` and by the UX Trust And Export Validation tests.
 - **Current Sprint Work risks**: The Work risks table (Scope, Flow, Subtask, Sprint) shows issue summary and status from Jira when the API provides them; scope-change rows include summary and status from the server.
 
 ### Test Orchestration & Playwright
 
-- The test orchestration script (`npm run test:all`) runs `npm install`, then (when the server is up) calls `POST /api/test/clear-cache` so no test reads stale in-memory cache. The clear-cache endpoint is available only when `NODE_ENV=test` or `ALLOW_TEST_CACHE_CLEAR=1`. The ordered list of steps is in `scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`. It runs a sequence of Playwright specs (API integration, Server Errors and Export Validation, Login Security Deploy, E2E user journey, UX Reliability, UX Critical Fixes, UX Customer Simplicity Trust Full, Feedback, Column Tooltips, Validation Plan, Excel Export, Refactor SSOT, Boards Summary Filters Export, Current Sprint and Leadership View, UX Trust Validation, Current Sprint UX and SSOT Validation, Linkification and Empty-state UI Validation, Server Feedback Endpoint, Growth Velocity, and others) with `--max-failures=1` (headless, parallel workers; fail-fast on first failure). Steps include CSS Build And Mobile Responsive (viewport containment, headers, nav/filters). Spec files in `tests/` follow the naming convention `Jira-Reporting-App-*-Validation-Tests.spec.js` (or similar); obsolete files may be prefixed with `DeleteThisFile_`.
+- The test orchestration script (`npm run test:all`) runs `npm install`, then (when the server is up) calls `POST /api/test/clear-cache` so no test reads stale in-memory cache. The clear-cache endpoint is available only when `NODE_ENV=test` or `ALLOW_TEST_CACHE_CLEAR=1`. The ordered list of steps is in `scripts/Delivera-Test-Orchestration-Steps.js`. It runs a sequence of Playwright specs (API integration, Server Errors and Export Validation, Login Security Deploy, E2E user journey, UX Reliability, UX Critical Fixes, UX Customer Simplicity Trust Full, Feedback, Column Tooltips, Validation Plan, Excel Export, Refactor SSOT, Boards Summary Filters Export, Current Sprint and Leadership View, UX Trust Validation, Current Sprint UX and SSOT Validation, Linkification and Empty-state UI Validation, Server Feedback Endpoint, Growth Velocity, and others) with `--max-failures=1` (headless, parallel workers; fail-fast on first failure). Steps include CSS Build And Mobile Responsive (viewport containment, headers, nav/filters). Spec files in `tests/` follow the naming convention `Delivera-*-Validation-Tests.spec.js` (or similar); obsolete files may be prefixed with `DeleteThisFile_`.
 - Specs in `tests/` use `captureBrowserTelemetry(page)` (console errors, page errors, failed requests) and UI assertions so a step fails if the UI is wrong or the browser reports errors.
-- **Issue key linkification:** Report Done Stories and Epic TTM use Jira links for issue keys; Current Sprint (Stories, Scope changes, Items stuck, Sub-task tracking) uses shared `renderIssueKeyLink(issueKey, issueUrl)` from `Reporting-App-Shared-Dom-Escape-Helpers.js`. Backend sends `issueKey` and `issueUrl`; optional `meta.jiraHost` in current-sprint response allows client fallback when URL is missing.
-- **Empty-state SSOT:** `Reporting-App-Shared-Empty-State-Helpers.js` exports `renderEmptyStateHtml(title, message, hint)`; Report, Current Sprint, and Leadership use it for consistent "no data" messaging.
+- **Issue key linkification:** Report Done Stories and Epic TTM use Jira links for issue keys; Current Sprint (Stories, Scope changes, Items stuck, Sub-task tracking) uses shared `renderIssueKeyLink(issueKey, issueUrl)` from `Delivera-Shared-Dom-Escape-Helpers.js`. Backend sends `issueKey` and `issueUrl`; optional `meta.jiraHost` in current-sprint response allows client fallback when URL is missing.
+- **Empty-state SSOT:** `Delivera-Shared-Empty-State-Helpers.js` exports `renderEmptyStateHtml(title, message, hint)`; Report, Current Sprint, and Leadership use it for consistent "no data" messaging.
 - Playwright is configured (via `playwright.config.js`) to:
   - Use `http://localhost:3000` as the default `baseURL` (configurable via `BASE_URL` for remote runs).
   - Optionally manage the application lifecycle with `webServer` (set `SKIP_WEBSERVER=true` to run against an already running server, e.g. when `BASE_URL` points to a deployed instance).
@@ -780,35 +786,35 @@ The backend cache is now unified in `lib/cache.js` with:
 |   |-- excel.js              # Excel generation utilities
 |   |-- columnMapping.js      # Business-friendly column name mapping
 |   |-- kpiCalculations.js   # KPI calculation functions
-|   |-- Jira-Reporting-App-Data-CurrentSprint-Notes-IO.js
-|   |-- Jira-Reporting-App-Data-IssueType-Classification.js
-|   |-- Jira-Reporting-App-Data-CurrentSprint-Burndown-Resolve.js
-|   |-- Jira-Reporting-App-Data-Issues-Pagination-Fields.js
-|   |-- Jira-Reporting-App-Data-Issues-DrillDown-Row.js
-|   |-- Jira-Reporting-App-Data-Issues-Subtask-Time-Totals.js
-|   `-- Jira-Reporting-App-Server-Logging-Utility.js  # Structured logging
+|   |-- Delivera-Data-CurrentSprint-Notes-IO.js
+|   |-- Delivera-Data-IssueType-Classification.js
+|   |-- Delivera-Data-CurrentSprint-Burndown-Resolve.js
+|   |-- Delivera-Data-Issues-Pagination-Fields.js
+|   |-- Delivera-Data-Issues-DrillDown-Row.js
+|   |-- Delivera-Data-Issues-Subtask-Time-Totals.js
+|   `-- Delivera-Server-Logging-Utility.js  # Structured logging
 |-- public/
 |   |-- report.html           # General Performance report UI (modular entrypoint)
-|   |-- Reporting-App-Report-Page-Init-Controller.js  # Report page init/controller (SSOT)
-|   |-- Reporting-App-Report-Page-*.js               # Report page modules (state, filters, preview, renderers, exports)
-|   |-- Reporting-App-Report-Page-Preview-Complexity-Config.js  # Preview complexity and timeout config
-|   |-- Reporting-App-Shared-*.js                     # Shared helpers (DOM escape, formatting, boards summary, notifications, quarters)
+|   |-- Delivera-Report-Page-Init-Controller.js  # Report page init/controller (SSOT)
+|   |-- Delivera-Report-Page-*.js               # Report page modules (state, filters, preview, renderers, exports)
+|   |-- Delivera-Report-Page-Preview-Complexity-Config.js  # Preview complexity and timeout config
+|   |-- Delivera-Shared-*.js                     # Shared helpers (DOM escape, formatting, boards summary, notifications, quarters)
 |   |-- css/                  # CSS source partials (01-reset-vars through 08-modals-misc); run `npm run build:css` to output styles.css
 |   `-- styles.css            # Built stylesheet (do not edit; generated from public/css/). Viewport containment (no horizontal overflow) and mobile responsiveness are validated by Mobile Responsive UX and CSS Build And Mobile Responsive validation specs.
 |-- tests/
-|   |-- JiraReporting-Tests-Shared-PreviewExport-Helpers.js  # SSOT for runDefaultPreview, waitForPreview, captureBrowserTelemetry
-|   |-- Jira-Reporting-App-E2E-User-Journey-Tests.spec.js
-|   |-- Jira-Reporting-App-API-Integration-Tests.spec.js
-|   |-- Jira-Reporting-App-UX-Trust-And-Export-Validation-Tests.spec.js  # SSOT for report/current-sprint/leadership/export
-|   |-- Jira-Reporting-App-UX-Reliability-Fixes-Tests.spec.js
-|   |-- Jira-Reporting-App-UX-Critical-Fixes-Tests.spec.js
-|   |-- Jira-Reporting-App-Excel-Export-Tests.spec.js
-|   |-- Jira-Reporting-App-RED-LINE-ITEMS-KPI-Tests.spec.js
-|   |-- Jira-Reporting-App-Current-Sprint-Leadership-View-Tests.spec.js
+|   |-- Delivera-Tests-Shared-PreviewExport-Helpers.js  # SSOT for runDefaultPreview, waitForPreview, captureBrowserTelemetry
+|   |-- Delivera-E2E-User-Journey-Tests.spec.js
+|   |-- Delivera-API-Integration-Tests.spec.js
+|   |-- Delivera-UX-Trust-And-Export-Validation-Tests.spec.js  # SSOT for report/current-sprint/leadership/export
+|   |-- Delivera-UX-Reliability-Fixes-Tests.spec.js
+|   |-- Delivera-UX-Critical-Fixes-Tests.spec.js
+|   |-- Delivera-Excel-Export-Tests.spec.js
+|   |-- Delivera-RED-LINE-ITEMS-KPI-Tests.spec.js
+|   |-- Delivera-Current-Sprint-Leadership-View-Tests.spec.js
 |   `-- (other .spec.js files)
 `-- scripts/
-    |-- Jira-Reporting-App-Test-Orchestration-Runner.js  # Runs steps; clear-cache, server start optional
-    `-- Jira-Reporting-App-Test-Orchestration-Steps.js   # Step definitions (getSteps(projectRoot))
+    |-- Delivera-Test-Orchestration-Runner.js  # Runs steps; clear-cache, server start optional
+    `-- Delivera-Test-Orchestration-Steps.js   # Step definitions (getSteps(projectRoot))
 ```
 
 ## Reality-check and UX backlog (Customer, Simplicity, Trust)
@@ -824,7 +830,7 @@ The backend cache is now unified in `lib/cache.js` with:
 5. **Background prefetch (later)** – Scheduled job or low-priority worker that warms cache for squads not yet searched, so next visit the landing can show something useful for every squad. No change to current flows; add only when resource allows.
 6. **Login outcome line** – Keep and emphasize the existing “Sprint risks and delivery in under 30 seconds” (and trust line) on the login page so the outcome is clear before sign-in.
 
-**Codebase health (Simplicity, SSOT):** Duplicate “skip if redirected to login” logic across many specs is consolidated into `skipIfRedirectedToLogin(page, test, options)` in `JiraReporting-Tests-Shared-PreviewExport-Helpers.js`. Further: merge duplicate logic in large files (e.g. `Reporting-App-Report-Page-Preview-Flow.js` is SIZE-EXEMPT; `lib/currentSprint.js` >300 lines — split by logical blocks when touching). Enforce ≤300 lines per file and single source of truth for routes, components, and tests; no parallel implementations.
+**Codebase health (Simplicity, SSOT):** Duplicate “skip if redirected to login” logic across many specs is consolidated into `skipIfRedirectedToLogin(page, test, options)` in `Delivera-Tests-Shared-PreviewExport-Helpers.js`. Further: merge duplicate logic in large files (e.g. `Delivera-Report-Page-Preview-Flow.js` is SIZE-EXEMPT; `lib/currentSprint.js` >300 lines — split by logical blocks when touching). Enforce ≤300 lines per file and single source of truth for routes, components, and tests; no parallel implementations.
 
 ## Metric guide and governance
 
@@ -914,6 +920,11 @@ Use metrics with explicit assumptions. Every view should make clear what is meas
 - Verify your `.env` file is in the project root (not in a subdirectory)
 - Check server startup logs for credential loading confirmation
 
+### Jira 401 / 403 vs Delivera “session expired”
+- **Delivera session expired:** Browser requests to `/preview.json` or `/api/*` return **HTTP 401** from this app’s auth middleware; the report UI says “Session expired” and points to sign-in.
+- **Jira API rejected the server token:** The server uses `JIRA_HOST` / `JIRA_EMAIL` / `JIRA_API_TOKEN` to call Jira. Failures surface as **HTTP 502** with JSON `code: JIRA_UNAUTHORIZED` (or partial **200** on `/api/boards.json` with `jiraErrors` for only the bad project keys). Fix the token, host, or project permissions—not the end-user’s browser session.
+- **Multi-project:** If one key (e.g. `SD`) fails but others succeed, boards and preview can still load for the good projects; deselect failing keys in Report filters or restore Jira access for that project.
+
 ### "Rate limited" Error
 - The app automatically retries with exponential backoff
 - Wait a moment and try again
@@ -935,7 +946,7 @@ Use metrics with explicit assumptions. Every view should make clear what is meas
 
 ## Environment Modes
 
-VodaAgileBoard behaves slightly differently depending on which environment variables you set:
+Delivera behaves slightly differently depending on which environment variables you set:
 
 - **Local development (no auth, default)**:
   - Set Jira variables and (optionally) `PORT`, but **do not** set `SESSION_SECRET` or any `APP_LOGIN_*` values.
@@ -958,6 +969,8 @@ VodaAgileBoard behaves slightly differently depending on which environment varia
 
 ## Environment Variables
 
+- **Where `.env` is read:** On startup, variables are loaded from **`<repository-root>/.env`** first (the folder that contains `package.json`), then `dotenv` merges the current working directory’s `.env` if you run the server from elsewhere. Values are **trimmed** (leading BOM and surrounding whitespace removed) so accidental spaces in `JIRA_*` lines do not break auth. After editing `.env`, restart the Node process. To verify Jira credentials without opening the browser, run: `npm run validate:jira-env`.
+- **Preview cache scope (memory vs Redis):** With the default `CACHE_BACKEND=memory`, preview and sprint-issue caches live in **one Node process** only—restarts, multiple instances, or deploys do not share entries, so repeat visitors may still wait on Jira more often than expected. For **shared** preview reuse across sessions and instances, set `CACHE_BACKEND=redis` and a reachable `REDIS_URL` (see env table below); this is the recommended production default when more than one user or replica hits the same Jira project set.
 - `JIRA_HOST`: Your Jira instance URL (e.g., `https://your-domain.atlassian.net`)
 - `JIRA_EMAIL`: Your Jira account email
 - `JIRA_API_TOKEN`: Your Jira API token
@@ -982,7 +995,7 @@ VodaAgileBoard behaves slightly differently depending on which environment varia
 
 ## Deployment
 
-VodaAgileBoard can be deployed to [Render](https://render.com), Vercel, or any Node host.
+Delivera can be deployed to [Render](https://render.com), Vercel, or any Node host.
 
 ### Vercel (Node server)
 
@@ -1013,7 +1026,7 @@ When deploying to Vercel as a Node server (using `server.js` as the entrypoint t
 
 ### Live instance
 
-After the first deploy succeeds, your app will be available at a URL like `https://voda-agile-board.onrender.com` or a Vercel URL such as `https://vodaagileboard.vercel.app`. Update this README with your actual live URL.
+After the first deploy succeeds, your app will be available at a URL like `https://delivera.onrender.com` or a Vercel URL such as `https://vodaagileboard.vercel.app`. Update this README with your actual live URL.
 
 ### CI/CD
 

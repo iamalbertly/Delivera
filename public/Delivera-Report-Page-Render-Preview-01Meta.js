@@ -1,13 +1,13 @@
 /**
  * Report preview meta and status HTML builder. SSOT for buildPreviewMetaAndStatus.
  */
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { buildJiraIssueUrl } from './Reporting-App-Report-Utils-Jira-Helpers.js';
-import { REPORT_LAST_RUN_KEY } from './Reporting-App-Shared-Storage-Keys.js';
-import { buildCompactReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
-import { deriveOutcomeRiskFromPreviewRows } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
-import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDateForDisplay } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { buildJiraIssueUrl } from './Delivera-Report-Utils-Jira-Helpers.js';
+import { REPORT_LAST_RUN_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { buildCompactReportRangeLabel } from './Delivera-Shared-Context-From-Storage.js';
+import { deriveOutcomeRiskFromPreviewRows } from './Delivera-Shared-Outcome-Risk-Semantics.js';
+import { renderAttentionQueue } from './Delivera-Shared-Attention-Queue.js';
 
 function summarizeProjectsList(projects) {
   const list = Array.isArray(projects)
@@ -55,6 +55,24 @@ export function buildPreviewMetaAndStatus(params) {
   const detailsLines = [];
   if (elapsedMs != null) detailsLines.push(`Elapsed: ~${Math.round(elapsedMs / 1000)}s`);
   if (fromCache && meta.cacheAgeMinutes !== undefined) detailsLines.push(`Cache age: ${meta.cacheAgeMinutes} min`);
+  if (fromCache && typeof meta.clientBudgetMsEcho === 'number') {
+    detailsLines.push(`Server time budget: ~${Math.round(meta.clientBudgetMsEcho / 1000)}s`);
+  }
+  if (fromCache && meta.cachedKeyUsed) {
+    detailsLines.push(`Cache key used: ${escapeHtml(String(meta.cachedKeyUsed))}`);
+  }
+  if (fromCache && meta.cachedFromBestAvailableSubset) {
+    detailsLines.push('Cache match: best available (not an exact key hit for this filter set).');
+  }
+  if (fromCache && meta.cacheMatchType === 'wider-window-filtered') {
+    detailsLines.push('Rows were filtered to your requested range from a wider cached preview.');
+  }
+  if (fromCache && meta.cacheMatchType === 'narrower-window') {
+    detailsLines.push('Cached window is narrower than the range you selected; some dates may have no rows yet.');
+  }
+  if (meta.kpisDeferred) {
+    detailsLines.push(`Quarterly KPI block deferred${meta.kpisDeferredReason ? ` (${escapeHtml(String(meta.kpisDeferredReason))})` : ''}.`);
+  }
   if (cachedElapsedMs != null) detailsLines.push(`Original run: ~${Math.round(cachedElapsedMs / 1000)}s`);
   if (previewMode && previewMode !== 'normal') {
     const modeLabel = previewMode === 'recent-only'

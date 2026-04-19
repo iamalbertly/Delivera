@@ -9,7 +9,10 @@ export function setErrorOnEl(el, msg) {
 
 export function setActionErrorOnEl(el, options = {}) {
   if (!el) return;
-  const title = options.title || 'Something went wrong';
+  const hasExplicitTitle = Object.prototype.hasOwnProperty.call(options, 'title');
+  const title = hasExplicitTitle && options.title !== null && options.title !== undefined
+    ? String(options.title)
+    : 'Something went wrong';
   const message = options.message || 'Please try again.';
   const primaryLabel = options.primaryLabel || 'Retry';
   const primaryAction = options.primaryAction || 'retry-last-intent';
@@ -33,9 +36,10 @@ export function setActionErrorOnEl(el, options = {}) {
   const dismissHtml = dismissible
     ? '<button type="button" class="error-close" data-action="dismiss-error" aria-label="Dismiss">x</button>'
     : '';
+  const titleHtml = title === '' ? '' : `<strong>${String(title)}</strong> `;
   el.innerHTML = `
     <div class="status-banner warning">
-      <div class="status-banner-message"><strong>${String(title)}</strong> ${String(message)}</div>
+      <div class="status-banner-message">${titleHtml}${String(message)}</div>
       <div class="status-banner-actions">
         ${primaryHtml}
         ${secondaryActionHtml}

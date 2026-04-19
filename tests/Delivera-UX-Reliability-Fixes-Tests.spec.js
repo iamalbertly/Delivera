@@ -1,5 +1,10 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import {
+  runDefaultPreview,
+  captureBrowserTelemetry,
+  assertTelemetryClean,
+  skipIfRedirectedToLogin,
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=2025-09-30T23:59:59.999Z';
 
@@ -27,7 +32,7 @@ async function openProjectEpicTabIfVisible(page) {
 test.describe('UX Reliability & Technical Debt Fixes', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivera|General Performance|Performance History/);
   });
 
   test('refreshing preview keeps previous results visible while loading', async ({ page }) => {
@@ -317,7 +322,7 @@ test.describe('UX Reliability & Technical Debt Fixes', () => {
       return;
     }
 
-    const { generateCSVClient } = await import('../public/Reporting-App-Report-Utils-Data-Helpers.js');
+    const { generateCSVClient } = await import('../public/Delivera-Report-Utils-Data-Helpers.js');
     const columns = Object.keys(rows[0]);
     const csv = generateCSVClient(columns, rows.slice(0, 10));
     const lines = csv.split('\n').filter(line => line.trim());
@@ -897,6 +902,79 @@ test.describe('Mobile-First UX Decisions M1-M12', () => {
       return;
     }
     await expect(summary.locator('.data-availability-source').first()).toBeVisible();
+  });
+
+  test('stubbed fromCache preview: details show cache provenance and preview.complete has cacheLayer', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.addInitScript(() => {
+      window.__DELIVERA_TEST_DISABLE_AUTO_PREVIEW = true;
+    });
+    await page.route(/\/preview\.json(\?|$)/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          meta: {
+            selectedProjects: ['MPSA'],
+            windowStart: '2025-07-01T00:00:00.000Z',
+            windowEnd: '2025-09-30T23:59:59.999Z',
+            generatedAt: new Date().toISOString(),
+            fromCache: true,
+            cachedFromBestAvailableSubset: true,
+            cachedKeyUsed: 'preview:v2:test-demo-key',
+            clientBudgetMsEcho: 75000,
+            cacheMatchType: 'narrower-window',
+            partial: false,
+          },
+          boards: [{ id: 1, name: 'Board A' }],
+          rows: [{
+            issueKey: 'MPSA-1',
+            issueSummary: 'Demo',
+            projectKey: 'MPSA',
+            resolutionDate: '2025-08-01T12:00:00.000Z',
+            sprintStartDate: '2025-07-01T00:00:00.000Z',
+            sprintEndDate: '2025-07-15T00:00:00.000Z',
+            sprintId: 1,
+            sprintName: 'S1',
+            sprintState: 'closed',
+            boardId: 1,
+            boardName: 'Board A',
+          }],
+          metrics: {},
+          kpis: null,
+          sprintsIncluded: [],
+          sprintsUnusable: [],
+        }),
+      });
+    });
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    const showFilters = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"]').first();
+    if (await showFilters.isVisible().catch(() => false)) {
+      await showFilters.click({ force: true }).catch(() => null);
+    }
+    const previewBtn = page.locator('#preview-btn');
+    await previewBtn.waitFor({ state: 'attached', timeout: 15000 }).catch(() => null);
+    if (await previewBtn.isDisabled().catch(() => true)) {
+      test.skip(true, 'Preview disabled');
+      return;
+    }
+    await page.evaluate(() => {
+      const b = document.getElementById('preview-btn');
+      if (b) b.click();
+    });
+    await expect(page.locator('#preview-content')).toBeVisible({ timeout: 15000 });
+    const detailsBtn = page.locator('#preview-content').getByRole('button', { name: 'Details' });
+    await expect(detailsBtn).toBeVisible({ timeout: 15000 });
+    await detailsBtn.click();
+    const details = page.locator('#preview-meta-details');
+    await expect(details).toBeVisible();
+    await expect(details).toContainText(/Cache key used/i);
+    await expect(details).toContainText(/best available/i);
+    const completes = await page.evaluate(() => (window.__telemetryEvents || []).filter((e) => e.name === 'preview.complete'));
+    expect(completes.length).toBeGreaterThan(0);
+    expect(completes[completes.length - 1].meta?.cacheLayer).toBe('subset');
+    assertTelemetryClean(telemetry);
   });
 
   // M3: Loading context bar exists in report page DOM

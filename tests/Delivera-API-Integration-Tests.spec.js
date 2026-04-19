@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { CSV_COLUMNS as SERVER_CSV_COLUMNS } from '../lib/csv.js';
 
 const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=2025-09-30T23:59:59.999Z';
@@ -12,7 +12,7 @@ async function safePost(request, url, data, timeoutMs = 10000) {
   }
 }
 
-test.describe('Jira Reporting App - API Integration Tests', () => {
+test.describe('Delivera - API Integration Tests', () => {
   test('GET /api/csv-columns returns server SSOT and matches lib/csv.js', async ({ request }) => {
     const response = await request.get('/api/csv-columns');
     if (response.status() === 401) {
@@ -78,7 +78,7 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('text/html');
     const body = await response.text();
-    expect(body).toContain('VodaAgileBoard');
+    expect(body).toContain('Delivera');
     expect(body).toContain('MPSA');
     expect(body).toContain('MAS');
   });
@@ -133,7 +133,7 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     }
     expect(response.status()).toBe(200);
     const body = await response.text();
-    expect(body).toContain('VodaAgileBoard');
+    expect(body).toContain('Delivera');
   });
 
   test('GET /preview.json should accept valid parameters', async ({ request }) => {
@@ -278,6 +278,22 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     }
   });
 
+  test('GET /preview.json bypassCache=true forces live path (fromCache false) when response is 200', async ({ request }) => {
+    test.setTimeout(180000);
+    const url = `${DEFAULT_PREVIEW_URL}&preferCache=true&bypassCache=true`;
+    let response;
+    try {
+      response = await request.get(url, { timeout: 120000 });
+    } catch (error) {
+      test.skip(`Preview bypass request: ${error.message}`);
+      return;
+    }
+    if (response.status() !== 200) return;
+    const json = await response.json();
+    expect(json.meta.fromCache).toBe(false);
+    expect(typeof json.meta.clientBudgetMsEcho).toBe('number');
+  });
+
   test('GET /preview.json should preserve date-range metadata and expose cache diagnostics', async ({ request }) => {
     test.setTimeout(180000);
 
@@ -412,6 +428,18 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     expect(json.code).toBe('NO_PROJECTS');
   });
 
+  test('GET /api/sprints is registered (not Express bare 404)', async ({ request }) => {
+    const response = await request.get('/api/sprints');
+    if (response.status() === 401) {
+      test.skip('Auth required');
+      return;
+    }
+    expect(response.status()).not.toBe(404);
+    const body = await response.text();
+    expect(body).not.toMatch(/Cannot GET\s+\/api\/sprints/i);
+    expect(response.headers()['content-type'] || '').toMatch(/application\/json/i);
+  });
+
   test('GET /api/current-sprint.json should require boardId', async ({ request }) => {
     const response = await request.get('/api/current-sprint.json?projects=MPSA,MAS');
     if (response.status() === 401) {
@@ -468,7 +496,7 @@ test.describe('Jira Reporting App - API Integration Tests', () => {
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('text/html');
     const body = await response.text();
-    expect(body).toMatch(/High-Level Performance|General Performance|VodaAgileBoard/);
+    expect(body).toMatch(/High-Level Performance|General Performance|Delivera/);
   });
 
   test.skip('GET /preview.json should handle all filter options', async ({ request }) => {

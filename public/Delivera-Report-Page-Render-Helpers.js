@@ -1,5 +1,5 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { renderEmptyStateHtml } from './Delivera-Shared-Empty-State-Helpers.js';
 
 export function renderEmptyState(targetElement, title, message, hint, ctaLabel) {
   if (!targetElement) return;
@@ -34,6 +34,24 @@ export function getSafeMeta(preview) {
     fieldInventory: raw.fieldInventory || null,
     requireResolvedBySprintEnd: !!raw.requireResolvedBySprintEnd,
     epicTTMFallbackCount: raw.epicTTMFallbackCount || 0,
+    includePredictability: !!raw.includePredictability,
+    reducedScope: raw.reducedScope === true,
+    reducedScopeReason: raw.reducedScopeReason || '',
+    previewMode: raw.previewMode || 'normal',
+    timedOut: raw.timedOut === true,
+    recentSplitDays: typeof raw.recentSplitDays === 'number' ? raw.recentSplitDays : null,
+    recentCutoffDate: raw.recentCutoffDate || null,
+    clientBudgetMsEcho: typeof raw.clientBudgetMsEcho === 'number' ? raw.clientBudgetMsEcho : null,
+    cachedKeyUsed: raw.cachedKeyUsed,
+    cachedFromBestAvailableSubset: raw.cachedFromBestAvailableSubset === true,
+    cacheMatchType: raw.cacheMatchType,
+    cachedSourceWindowStart: raw.cachedSourceWindowStart,
+    cachedSourceWindowEnd: raw.cachedSourceWindowEnd,
+    kpisDeferred: raw.kpisDeferred === true,
+    kpisDeferredReason: raw.kpisDeferredReason,
+    jiraHost: raw.jiraHost,
+    jiraHostResolved: raw.jiraHostResolved,
+    jiraProjectErrors: Array.isArray(raw.jiraProjectErrors) ? raw.jiraProjectErrors : undefined,
   };
 }
 

@@ -1,6 +1,6 @@
 /**
  * Preview complexity and timeout config for report preview flow.
- * SSOT for classifyPreviewComplexity and client budget constants. Used by Reporting-App-Report-Page-Preview-Flow.js.
+ * SSOT for classifyPreviewComplexity and client budget constants. Used by Delivera-Report-Page-Preview-Flow.js.
  */
 
 export const RECENT_SPLIT_DEFAULT_DAYS = 14;
@@ -53,17 +53,55 @@ export function classifyPreviewComplexity({
 }
 
 /**
- * Client-side timeout (ms) for preview request from previewMode and optional rangeDays
+ * Base client/server budget (ms). MUST match lib/Delivera-Preview-Client-Budget-SSOT.js derivePreviewClientBudgetMs.
  * @param {string} previewMode - 'normal' | 'recent-first' | 'recent-only'
- * @param {number|null} rangeDays - optional; used when previewMode is 'normal' to pick heavy timeout
+ * @param {number|null} rangeDays
+ * @param {number|undefined} clientBudgetMsOverride - echo from prior response or NaN to ignore
  * @returns {number}
  */
-export function getClientBudgetMs(previewMode, rangeDays = null) {
+export function derivePreviewClientBudgetMs({ previewMode, rangeDays = null, clientBudgetMsOverride } = {}) {
+  const fromQuery = Number(clientBudgetMsOverride);
+  if (!Number.isNaN(fromQuery) && fromQuery > 0) return fromQuery;
   if (previewMode === 'recent-only') {
     return PREVIEW_TIMEOUT_VERY_HEAVY_MS;
   }
-  if (previewMode === 'recent-first' || (rangeDays != null && rangeDays > RECENT_SPLIT_DEFAULT_DAYS)) {
+  if (previewMode === 'recent-first') {
+    return PREVIEW_TIMEOUT_HEAVY_MS;
+  }
+  if (typeof rangeDays === 'number' && rangeDays > 60) {
     return PREVIEW_TIMEOUT_HEAVY_MS;
   }
   return PREVIEW_TIMEOUT_LIGHT_MS;
+}
+
+/**
+ * @param {string} previewMode
+ * @param {number|null} rangeDays
+ * @returns {number}
+ */
+export function getClientBudgetMs(previewMode, rangeDays = null) {
+  return derivePreviewClientBudgetMs({ previewMode, rangeDays, clientBudgetMsOverride: NaN });
+}
+
+/** Abort timeout for fetch: base budget + optional slack when preferCache and a prior preview exists. */
+export function getPreviewFetchAbortMs({
+  previewMode,
+  rangeDays,
+  clientBudgetMsOverride,
+  preferCache,
+  hasExistingPreview,
+} = {}) {
+  const base = derivePreviewClientBudgetMs({ previewMode, rangeDays, clientBudgetMsOverride });
+  const slack = preferCache && hasExistingPreview ? 8000 : 0;
+  return Math.min(90000, base + slack);
+}
+
+/** Title is empty so the error banner does not repeat a headline before the body. */
+export function buildPreviewAbortErrorCopy(seconds, hasExistingPreview) {
+  return {
+    title: '',
+    message: hasExistingPreview
+      ? `After ${seconds}s the refresh did not finish. Your previous results stay below. Try fewer projects or a shorter range for a faster answer.`
+      : `After ${seconds}s the preview did not finish before results were ready. Try fewer projects or a shorter range.`,
+  };
 }

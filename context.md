@@ -2,10 +2,12 @@
 
 ### Modules & Dependencies
 
+- **Environment SSOT (`lib/Delivera-Config-Env-Services-Core-SSOT.js`)** – Loads `<repo>/.env` from disk (path derived from this file’s location, not only `process.cwd()`), then `dotenv.config()` for cwd overlay. `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` are **trimmed** (UTF-8 BOM stripped). Startup summary includes `jiraDotenvPath`, `jiraApiTokenLength`, and masked `jiraEmailPrefix`. Use `npm run validate:jira-env` to call Jira `/myself` with the same config.
 - **Server (`server.js`)**
   - Depends on `express`, `dotenv`, `jira.js`, and internal libs:
     - `lib/jiraClients.js` – Jira client creation
-    - `lib/discovery.js` – boards/fields discovery (uses `lib/Delivera-Data-JiraAPI-Pagination-Helper.js`); now also returns `storyPointsFieldCandidates: Array<{ id, name }>` alongside `storyPointsFieldId` when multiple SP-like fields exist.
+    - `lib/discovery.js` – boards/fields discovery (uses `lib/Delivera-Data-JiraAPI-Pagination-Helper.js`). `discoverBoardsForProjects` returns `{ boards, projectErrors }` (per-project fault isolation; `extractJiraHttpStatus` / `classifyJiraHttpError` for stable `JIRA_*` codes). Field discovery unchanged; still returns `storyPointsFieldCandidates` when multiple SP-like fields exist.
+    - `lib/server-utils.js` – `discoverBoardsWithCache` returns `{ boards, projectErrors }`; skips aggregate discovery cache when `projectErrors.length > 0` (per-project board cache still applies for successes). Re-exports `classifyJiraHttpError` / `extractJiraHttpStatus` from discovery.
     - `lib/sprints.js` – sprint fetching, overlap filtering, `getActiveSprintForBoard`, `getRecentClosedSprintForBoard` (uses pagination helper)
     - `lib/currentSprint.js` – current-sprint transparency: `buildCurrentSprintPayload` (observed window, daily completions, scope changes, burndown context); imports from `lib/Delivera-Data-CurrentSprint-Notes-IO.js`, `lib/Delivera-Data-IssueType-Classification.js`, `lib/Delivera-Data-CurrentSprint-Burndown-Resolve.js`. Enriches `subtaskTracking.subtasks[]` with `parentKey`, `parentSummary`, and `parentUrl` for Work risks hierarchy. Summary now includes:
       - `stuckExcludedParentsWithActiveSubtasks: number` – parents with active subtasks that are explicitly excluded from blockers.
@@ -15,10 +17,11 @@
     - `lib/issues.js` – issue fetching, `fetchSprintIssuesForTransparency`, `buildDrillDownRow` (re-export); imports from `lib/Delivera-Data-Issues-Pagination-Fields.js`, `lib/Delivera-Data-Issues-DrillDown-Row.js`, `lib/Delivera-Data-Issues-Subtask-Time-Totals.js`
     - `lib/metrics.js` – throughput, done comparison, rework, predictability (with planned carryover / unplanned spillover), epic TTM (uses `calculateWorkDays` from `lib/kpiCalculations.js`)
     - `lib/csv.js` – CSV column list and escaping (SSOT); CSV streaming for `/export`
-    - `lib/cache.js` – TTL cache for preview responses
+    - `lib/cache.js` – TTL cache for preview responses (memory default; optional Redis when `CACHE_BACKEND=redis` + `REDIS_URL` — see `README.md`). Preview reuse is per-process with memory-only backends.
+    - `lib/Delivera-Preview-Client-Budget-SSOT.js` – shared formula for `derivePreviewClientBudgetMs` (mirrored in `public/Delivera-Report-Page-Preview-Complexity-Config.js`; parity covered by `tests/Delivera-Preview-Budget-Parity-Validation-Tests.spec.js`).
     - `lib/Delivera-Server-Logging-Utility.js` – structured logging
     - **Outcome draft assistant (Jira-only, no LLM v1):** `lib/Delivera-Outcome-Similarity-01Core.js` (Jaccard/Dice SSOT for dedupe), `lib/Delivera-Outcome-Precheck-Messages.js` (non-blocking precheck copy), `lib/Delivera-Outcome-Board-Style-Profile.js` (bounded JQL style profile, cache namespace `outcomeProfile`), `lib/Delivera-Outcome-Draft-Builder.js` (server-authoritative draft rows, readiness warnings, three-level duplicate hints). `POST /api/outcome-draft` returns draft JSON (no Jira writes). `POST /api/outcome-from-narrative` accepts optional `commitChildIndices` (filter child/standalone rows) and `parentSummaryOverride`.
-  - **Public API:** `GET /api/csv-columns` – returns `{ columns: CSV_COLUMNS }` (SSOT for client CSV column order). `GET /api/boards.json` – list boards for projects (for current-sprint board selector). `GET /api/sprints` and `GET /api/sprints.json` – sprints for the resolved board (`boardId` optional; `projects` query like boards); JSON `{ board, sprints[] }`. **Middleware order:** `apiRoutes` mount precedes `express.static('public')` so `/api/*` cannot be shadowed by static files. `GET /api/current-sprint.json` – current-sprint transparency payload per board (snapshot-first; query `boardId`, optional `projects`, `live=true`). Payload includes `stuckCandidates[]` (issues in progress >24h), `previousSprint: { name, id, doneSP, doneStories } | null`, and `summary` fields described above (including `completedAfterSprintEndCount`, `storyPointsFieldCandidates`, and `storyPointsFieldWarning`). `GET /api/date-range?quarter=Q1|Q2|Q3|Q4` – latest completed Vodacom quarter range `{ start, end }` (UTC). `GET /api/quarters-list?count=8` – last N Vodacom quarters up to current `{ quarters: [{ start, end, label, period, isCurrent }, ...] }`; implemented via `getQuartersUpToCurrent` in `lib/Delivera-Data-VodacomQuarters-01Bounds.js`. `GET /api/format-date-range?start=...&end=...` – date range label for filenames (Qn-YYYY or start_to_end). `GET /api/default-window` – default report date window `{ start, end }` (SSOT from config). **Test-only:** `POST /api/test/clear-cache` – clears in-memory caches (preview, boards, fields, in-flight, rate limit); available only when `NODE_ENV=test` or `ALLOW_TEST_CACHE_CLEAR=1`; returns `{ ok: true }`.
+  - **Public API:** `GET /api/csv-columns` – returns `{ columns: CSV_COLUMNS }` (SSOT for client CSV column order). `GET /api/boards.json` – list boards for projects (current-sprint selector): **200** `{ projects, boards, jiraErrors? }` on partial Jira failure; **502** + `code: JIRA_UNAUTHORIZED` when every project fails auth/forbidden. `GET /api/sprints` and `GET /api/sprints.json` – sprints for the resolved board (`boardId` optional; `projects` query like boards); JSON `{ board, sprints[] }`. **Middleware order:** `apiRoutes` mount precedes `express.static('public')` so `/api/*` cannot be shadowed by static files. `GET /api/current-sprint.json` – current-sprint transparency payload per board (snapshot-first; query `boardId`, optional `projects`, `live=true`). Payload includes `stuckCandidates[]` (issues in progress >24h), `previousSprint: { name, id, doneSP, doneStories } | null`, and `summary` fields described above (including `completedAfterSprintEndCount`, `storyPointsFieldCandidates`, and `storyPointsFieldWarning`). `GET /api/date-range?quarter=Q1|Q2|Q3|Q4` – latest completed Vodacom quarter range `{ start, end }` (UTC). `GET /api/quarters-list?count=8` – last N Vodacom quarters up to current `{ quarters: [{ start, end, label, period, isCurrent }, ...] }`; implemented via `getQuartersUpToCurrent` in `lib/Delivera-Data-VodacomQuarters-01Bounds.js`. `GET /api/format-date-range?start=...&end=...` – date range label for filenames (Qn-YYYY or start_to_end). `GET /api/default-window` – default report date window `{ start, end }` (SSOT from config). **Test-only:** `POST /api/test/clear-cache` – clears in-memory caches (preview, boards, fields, in-flight, rate limit); available only when `NODE_ENV=test` or `ALLOW_TEST_CACHE_CLEAR=1`; returns `{ ok: true }`.
   - **Routes:** `GET /report`, `GET /current-sprint` (squad transparency), `GET /sprint-leadership` (leadership view).
   - **Default window SSOT:** `lib/Delivera-Config-DefaultWindow.js` exports `DEFAULT_WINDOW_START`, `DEFAULT_WINDOW_END`; server and `GET /api/default-window` use it.
   - **Vodacom quarters SSOT:** `lib/Delivera-Data-VodacomQuarters-01Bounds.js` – quarter bounds, `getLatestCompletedQuarter(q)`, and `getQuartersUpToCurrent(count)`; `lib/excel.js` uses `getQuarterLabelForRange` for filename labels.
@@ -84,9 +87,15 @@
   - `timedOut: boolean` **(true when the preview stopped early because the time budget was reached)**
   - `usedCacheForOlder: boolean` **(true when older sprints were served purely from cache during a split window)**
   - `clientBudgetMs: number` **(the budget honoured for this request, after clamping)**
+  - `clientBudgetMsEcho: number` **(same budget the server used for this response; UI Details and telemetry may reference it)**
+  - `previewCacheSemantics: object` **(boolean flags used for safe best-cache reuse; written on live previews)**
+  - `cachedFromBestAvailableSubset: boolean`, `cachedKeyUsed: string`, `cacheMatchType?: "narrower-window" | "wider-window-filtered"` **(subset cache trust flags)**
+  - `cachedSourceWindowStart?: string`, `cachedSourceWindowEnd?: string` **(when serving from a widened/narrowed cache window)**
+  - `kpisDeferred?: boolean`, `kpisDeferredReason?: string` **(when quarterly KPI enrichment is skipped to protect time budget)**
   - `serverMaxPreviewMs: number` **(hard server-side ceiling for preview processing)**
   - `epicHygiene: { ok: boolean, pctWithoutEpic: number, epicsSpanningOverN: number, message: string | null }` **(gates Epic TTM display)**
   - `phaseLog: Array<{ phase: string; at: string; ... }>`
+  - `jiraProjectErrors?: Array<{ projectKey: string; code: string; message: string; detail?: string }>` **(set when board discovery succeeded for some projects but Jira failed for others)**
 - **Preview response:** `boards[].indexedDelivery: { currentSPPerDay, rollingAvgSPPerDay, sprintCount, index }`; `sprintsIncluded[]` include `sprintCalendarDays`, `sprintWorkDays`, `spPerSprintDay`, `storiesPerSprintDay`. Predictability `perSprint` includes `plannedCarryoverStories`, `plannedCarryoverSP`, `unplannedSpilloverStories`, `unplannedSpilloverSP`, `plannedCarryoverPct`, `unplannedSpilloverPct`.
 
 ### Typed Error Path – `/preview.json`
@@ -94,7 +103,9 @@
 - Introduced a small typed error wrapper:
   - `class PreviewError extends Error { code: string; httpStatus: number }`
   - Currently used for:
-    - Jira client initialisation failures → `code: "AUTH_ERROR"`, `httpStatus: 500`
+    - Missing/invalid Jira env at client creation → `code: "JIRA_UNAUTHORIZED"`, `httpStatus: 502`
+    - All selected projects fail board discovery with auth/forbidden → `code: "JIRA_UNAUTHORIZED"`, `httpStatus: 502`
+    - All projects fail discovery for non-auth reasons → `code: "BOARD_FETCH_ERROR"`, `httpStatus: 502`
   - Catch block for `/preview.json` now:
     - Detects `instanceof PreviewError`
     - Returns JSON with:

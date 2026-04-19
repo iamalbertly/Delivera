@@ -257,6 +257,11 @@ export const specMetadata = {
     layer: 'data-contract',
     page: '/report',
   },
+  'tests/Delivera-Preview-Budget-Parity-Validation-Tests.spec.js': {
+    journey: 'journey.data-integrity',
+    layer: 'data-contract',
+    page: '/report',
+  },
   'tests/Delivera-Throughput-Merge.spec.js': {
     journey: 'journey.data-integrity',
     layer: 'data-contract',

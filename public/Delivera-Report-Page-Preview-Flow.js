@@ -2,30 +2,41 @@
  * Report page preview flow: init, event handlers, fetch, and apply payload.
  * SIZE-EXEMPT: Cohesive preview flow (DOM events, fetch, AbortController, applyPayload, timeout UI)
  * kept in one module to avoid scattering and duplicate state handling; complexity config split to
- * Reporting-App-Report-Page-Preview-Complexity-Config.js.
+ * Delivera-Report-Page-Preview-Complexity-Config.js.
  */
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { persistDoneStoriesOptionalColumnsPreference } from './Reporting-App-Report-Page-DoneStories-Column-Preference.js';
-import { triggerExcelExport } from './Reporting-App-Report-Page-Export-Menu.js';
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { collectFilterParams } from './Reporting-App-Report-Page-Filter-Params.js';
-import { LAST_QUERY_KEY, REPORT_HAS_RUN_PREVIEW_KEY, REPORT_LAST_RUN_KEY, REPORT_LAST_META_KEY, REPORT_FILTERS_STALE_KEY, REPORT_LAST_PREVIEW_KEY } from './Reporting-App-Shared-Storage-Keys.js';
-import { updateLoadingMessage, clearLoadingSteps, readResponseJson, hideLoadingIfVisible, setLoadingVisible, setLoadingStage, startTheaterGathering, stopTheaterGathering, resetLoadingBarToZero } from './Reporting-App-Report-Page-Loading-Steps.js';
-import { emitTelemetry } from './Reporting-App-Shared-Telemetry.js';
-import { renderPreview } from './Reporting-App-Report-Page-Render-Preview.js';
-import { updateExportFilteredState, updateExportHint } from './Reporting-App-Report-Page-Export-Menu.js';
-import { updateRangeHint } from './Reporting-App-Report-Page-DateRange-Controller.js';
-import { sortSprintsLatestFirst } from './Reporting-App-Report-Page-Sorting.js';
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
-import { resetPerfMarks, markPerf } from './Reporting-App-Shared-Perf-Marks.js';
-import { warmCurrentSprintJourney } from './Reporting-App-Shared-Journey-Warmup.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { persistDoneStoriesOptionalColumnsPreference } from './Delivera-Report-Page-DoneStories-Column-Preference.js';
+import { triggerExcelExport } from './Delivera-Report-Page-Export-Menu.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { collectFilterParams } from './Delivera-Report-Page-Filter-Params.js';
+import {
+  LAST_QUERY_KEY,
+  REPORT_HAS_RUN_PREVIEW_KEY,
+  REPORT_LAST_RUN_KEY,
+  REPORT_LAST_META_KEY,
+  REPORT_FILTERS_STALE_KEY,
+  REPORT_LAST_PREVIEW_KEY,
+  REPORT_LAST_PREVIEW_SCHEMA_VERSION,
+  REPORT_LAST_PREVIEW_MAX_JSON_CHARS,
+} from './Delivera-Shared-Storage-Keys.js';
+import { updateLoadingMessage, clearLoadingSteps, readResponseJson, hideLoadingIfVisible, setLoadingVisible, setLoadingStage, startTheaterGathering, stopTheaterGathering, resetLoadingBarToZero } from './Delivera-Report-Page-Loading-Steps.js';
+import { emitTelemetry } from './Delivera-Shared-Telemetry.js';
+import { renderPreview } from './Delivera-Report-Page-Render-Preview.js';
+import { updateExportFilteredState, updateExportHint } from './Delivera-Report-Page-Export-Menu.js';
+import { updateRangeHint } from './Delivera-Report-Page-DateRange-Controller.js';
+import { sortSprintsLatestFirst } from './Delivera-Report-Page-Sorting.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { setActionErrorOnEl } from './Delivera-Shared-Status-Helpers.js';
+import { resetPerfMarks, markPerf } from './Delivera-Shared-Perf-Marks.js';
+import { warmCurrentSprintJourney } from './Delivera-Shared-Journey-Warmup.js';
 import {
   RECENT_SPLIT_DEFAULT_DAYS,
   PREVIEW_TIMEOUT_LIGHT_MS,
   classifyPreviewComplexity,
   getClientBudgetMs,
-} from './Reporting-App-Report-Page-Preview-Complexity-Config.js';
+  getPreviewFetchAbortMs,
+  buildPreviewAbortErrorCopy,
+} from './Delivera-Report-Page-Preview-Complexity-Config.js';
 
 function setQuickRangeButtonsDisabled(disabled) {
   document.querySelectorAll('.quick-range-btn[data-quarter], .quarter-pill').forEach((button) => {
@@ -90,7 +101,13 @@ export function restoreLastPreviewFromStorage() {
     resetPerfMarks('report');
     const raw = localStorage.getItem(REPORT_LAST_PREVIEW_KEY);
     if (!raw) return false;
-    const payload = JSON.parse(raw);
+    if (raw.length > REPORT_LAST_PREVIEW_MAX_JSON_CHARS) return false;
+    const parsed = JSON.parse(raw);
+    let payload = parsed;
+    if (parsed && typeof parsed === 'object' && parsed.payload != null && parsed.schemaVersion != null) {
+      if (Number(parsed.schemaVersion) !== REPORT_LAST_PREVIEW_SCHEMA_VERSION) return false;
+      payload = parsed.payload;
+    }
     if (!payload || typeof payload !== 'object' || !Array.isArray(payload.rows)) return false;
     if (!payload.meta || typeof payload.meta !== 'object') payload.meta = {};
     payload.meta.fromCache = true;
@@ -489,6 +506,13 @@ export function initPreviewFlow() {
     params.previewMode = previewMode;
     const clientBudgetMs = getClientBudgetMs(previewMode, rangeDays);
     params.clientBudgetMs = clientBudgetMs;
+    const abortMs = getPreviewFetchAbortMs({
+      previewMode,
+      rangeDays,
+      clientBudgetMsOverride: Number.NaN,
+      preferCache: true,
+      hasExistingPreview,
+    });
     // Prefer serving any usable cached preview first so users see value faster,
     // especially on heavy ranges, while the server refreshes in the background.
     params.preferCache = 'true';
@@ -524,6 +548,13 @@ export function initPreviewFlow() {
       }
 
       try {
+        const echo = payload.meta && typeof payload.meta.clientBudgetMsEcho === 'number'
+          ? payload.meta.clientBudgetMsEcho
+          : null;
+        reportState.lastClientBudgetMsEcho = echo;
+      } catch (_) {}
+
+      try {
         sessionStorage.setItem(REPORT_HAS_RUN_PREVIEW_KEY, '1');
         const prev = reportState.previewData;
         if (prev && (prev.rows || []).length >= 0) {
@@ -556,7 +587,15 @@ export function initPreviewFlow() {
       reportState.visibleSprintRows = sortSprintsLatestFirst(sprintsIncluded);
       reportState.previewHasRows = reportState.previewRows.length > 0;
       try {
-        localStorage.setItem(REPORT_LAST_PREVIEW_KEY, JSON.stringify(payload));
+        const envelope = {
+          schemaVersion: REPORT_LAST_PREVIEW_SCHEMA_VERSION,
+          savedAt: Date.now(),
+          payload,
+        };
+        const raw = JSON.stringify(envelope);
+        if (raw.length <= REPORT_LAST_PREVIEW_MAX_JSON_CHARS) {
+          localStorage.setItem(REPORT_LAST_PREVIEW_KEY, raw);
+        }
       } catch (_) {}
 
       try {
@@ -616,9 +655,7 @@ export function initPreviewFlow() {
 
       const controller = new AbortController();
       currentPreviewController = controller;
-      timeoutMs = typeof clientBudgetMs === 'number' && clientBudgetMs > 0
-        ? clientBudgetMs
-        : PREVIEW_TIMEOUT_LIGHT_MS;
+      timeoutMs = typeof abortMs === 'number' && abortMs > 0 ? abortMs : clientBudgetMs;
       timeoutId = setTimeout(() => {
         try { emitTelemetry('preview.timeout', { timeoutMs }); } catch (_) {}
         controller.abort();
@@ -643,9 +680,21 @@ export function initPreviewFlow() {
         const is401 = response.status === 401;
         const is403 = response.status === 403;
         const is429 = response.status === 429;
+        const jiraAuthish =
+          errorCode === 'JIRA_UNAUTHORIZED' ||
+          errorCode === 'JIRA_FORBIDDEN' ||
+          errorCode === 'AUTH_ERROR';
+        const legacyJira401 =
+          !jiraAuthish &&
+          (response.status === 500 || response.status === 502) &&
+          /status code\s*401|status code\s*403/i.test(String(errorMsg));
 
         let displayMessage = errorMsg;
-        if (is401) {
+        if (jiraAuthish || legacyJira401) {
+          displayMessage =
+            'Jira rejected the server API token or blocked access to a project. Verify JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN, and that each selected project is reachable.';
+          showReportRibbon('Jira access issue: check server Jira credentials and project keys.', 'warning');
+        } else if (is401) {
           displayMessage = 'Session expired. Sign in again to continue.';
           showReportRibbon('Session expired. Sign in again to restore your report context.', 'warning');
         } else if (is403) {
@@ -660,8 +709,6 @@ export function initPreviewFlow() {
           displayMessage = 'Invalid date format. Please ensure dates are properly formatted.';
         } else if (errorCode === 'INVALID_DATE_RANGE') {
           displayMessage = 'Invalid date range. The start date must be before the end date.';
-        } else if (errorCode === 'AUTH_ERROR') {
-          displayMessage = 'Authentication failed. Please check your Jira credentials in the server configuration.';
         } else if (errorCode === 'BOARD_FETCH_ERROR') {
           displayMessage = 'Unable to fetch sprint history for one or more boards. Retry preview or use a smaller date range.';
         } else if (errorCode === 'RATE_LIMIT_ERROR') {
@@ -673,9 +720,11 @@ export function initPreviewFlow() {
           displayMessage = 'Network error. Please check your connection and try again.';
         }
 
-        try { emitTelemetry('preview.error', { code: errorCode, message: displayMessage }); } catch (_) {}
+        try {
+          emitTelemetry('preview.error', { code: errorCode, message: displayMessage });
+        } catch (_) {}
         const err = new Error(displayMessage);
-        if (is401) err.sessionExpired = true;
+        if (is401 && !jiraAuthish && !legacyJira401) err.sessionExpired = true;
         throw err;
       }
 
@@ -689,7 +738,9 @@ export function initPreviewFlow() {
       showReportRibbon('', 'fresh');
 
       setLoadingStage(4, 'Final checks…');
-      if (runIdForThisRequest === previewRunId) applyPreviewPayload(responseJson);
+      if (runIdForThisRequest === previewRunId) {
+        applyPreviewPayload(responseJson);
+      }
       try {
         warmCurrentSprintJourney(responseJson?.meta?.selectedProjects || []);
       } catch (_) {}
@@ -712,12 +763,25 @@ export function initPreviewFlow() {
         }
       } catch (_) {}
       const boards = responseJson?.boards || [];
-      try { emitTelemetry('preview.complete', { rows: reportState.previewRows.length || 0, boards: (boards || []).length || 0 }); } catch (_) {}
+      const rm = responseJson?.meta || {};
+      let cacheLayer = 'miss';
+      if (rm.fromCache) cacheLayer = rm.cachedFromBestAvailableSubset ? 'subset' : 'exact';
+      try {
+        emitTelemetry('preview.complete', {
+          rows: reportState.previewRows.length || 0,
+          boards: (boards || []).length || 0,
+          cacheLayer,
+          clientBudgetMsEcho: typeof rm.clientBudgetMsEcho === 'number' ? rm.clientBudgetMsEcho : null,
+        });
+      } catch (_) {}
     } catch (error) {
       if (timeoutId) clearTimeout(timeoutId);
       stopTheaterGathering();
       resetLoadingBarToZero();
       currentPreviewController = null;
+      try {
+        showReportRibbon('', 'fresh');
+      } catch (_) {}
 
       if (loadingEl) {
         loadingEl.style.display = 'none';
@@ -726,20 +790,20 @@ export function initPreviewFlow() {
       if (errorEl) errorEl.style.display = 'block';
 
       let errorMsg = (error && error.message) ? String(error.message) : 'Failed to fetch preview. Please try again.';
+      let abortTitle;
       if (error && error.name === 'AbortError') {
         const seconds = (typeof timeoutMs === 'number' && timeoutMs > 0) ? Math.round(timeoutMs / 1000) : 60;
-        if (hasExistingPreview) {
-          errorMsg = `Preview timed out after ${seconds}s. Your previous results are still shown below. For a faster answer, use a smaller date window or fewer projects.`;
-        } else {
-          errorMsg = `Preview timed out after ${seconds}s before any results were ready. Try a smaller date window or fewer projects.`;
-        }
+        const copy = buildPreviewAbortErrorCopy(seconds, hasExistingPreview);
+        errorMsg = copy.message;
+        abortTitle = copy.title;
       }
 
       try { emitTelemetry('preview.failure', { message: errorMsg || String(error) }); } catch (_) {}
 
       let shortText = 'Server error';
       if (error && error.sessionExpired) shortText = 'Session expired';
-      else if (error && error.name === 'AbortError') shortText = 'Preview timed out';
+      else if (error && error.name === 'AbortError') shortText = '';
+      else if (/jira rejected|jira access issue|jira api token/i.test(errorMsg || '')) shortText = 'Jira access';
       else if (/access changed|reconnect jira|no longer accessible/i.test(errorMsg || '')) shortText = 'Jira access changed';
       else if (/fetch|network|failed to fetch/i.test(errorMsg || '')) shortText = 'Request failed';
 
@@ -758,12 +822,12 @@ export function initPreviewFlow() {
             });
           } else {
             setActionErrorOnEl(errorEl, {
-              title: shortText,
+              title: error && error.name === 'AbortError' ? String(abortTitle !== undefined ? abortTitle : '') : shortText,
               message: errorMsg,
-              primaryLabel: 'Try smaller date range',
-              primaryAction: 'retry-with-smaller-range',
-              secondaryActionLabel: 'Retry preview',
-              secondaryAction: 'retry-preview',
+              primaryLabel: 'Retry preview',
+              primaryAction: 'retry-preview',
+              secondaryActionLabel: 'Try smaller date range',
+              secondaryAction: 'retry-with-smaller-range',
               dismissible: true,
             });
             const details = document.createElement('div');
@@ -771,6 +835,13 @@ export function initPreviewFlow() {
             details.style.display = 'none';
             details.textContent = errorMsg;
             errorEl.appendChild(details);
+            try {
+              const focusBtn =
+                errorEl.querySelector('button[data-action="retry-preview"]') ||
+                errorEl.querySelector('button.status-close') ||
+                errorEl.querySelector('button');
+              if (focusBtn && typeof focusBtn.focus === 'function') focusBtn.focus();
+            } catch (_) {}
           }
         } catch (innerErr) {
           console.error('Error rendering preview error UI', innerErr);
