@@ -1,5 +1,5 @@
-import { renderEmptyState } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { renderEmptyState } from './Delivera-Report-Page-Render-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 function getReasonGuidance(reason) {
   const lower = String(reason || '').toLowerCase();
@@ -40,12 +40,12 @@ export function renderUnusableSprintsTab(unusable) {
   }
 
   let html = '<div class="unusable-sprints-summary">';
-  html += '<p><strong>' + total + ' sprint' + (total === 1 ? '' : 's') + ' excluded from metrics.</strong> Fix these first to restore complete report trust.</p>';
+  html += '<p><strong>' + total + ' sprint' + (total === 1 ? '' : 's') + ' excluded from metrics.</strong> Updating sprint dates or metadata in Jira brings them back into rollups.</p>';
   if (byReason.size > 0) {
-    html += '<ul aria-label="Repair priorities">';
+    html += '<ul aria-label="Sprint cleanup priorities">';
     for (const [reason, count] of byReason.entries()) {
       const guidance = getReasonGuidance(reason);
-      html += '<li><strong>' + count + '</strong> with reason "' + escapeHtml(reason) + '" — Fix in Jira: ' + escapeHtml(guidance) + ' — affects history, trends, and outcome trust.</li>';
+      html += '<li><strong>' + count + '</strong> with reason "' + escapeHtml(reason) + '" — In Jira: ' + escapeHtml(guidance) + ' — affects history, trends, and outcome rollups until fixed.</li>';
     }
     html += '</ul>';
   }

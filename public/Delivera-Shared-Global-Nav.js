@@ -1,5 +1,10 @@
-import { renderSidebarContextCard } from './Reporting-App-Shared-Context-From-Storage.js';
-import { readNotificationSummary } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
+import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
+import {
+  readNotificationSummary,
+  effectiveNotificationTotal,
+  getTimeTrackingTotal,
+  getRuntimeAlertCount,
+} from './Delivera-Shared-Notifications-Dock-Manager.js';
 
 const PAGE_REPORT = 'report';
 const PAGE_SPRINT = 'current-sprint';
@@ -52,7 +57,7 @@ function getNavItems(current) {
 function buildSidebarHTML() {
   const current = getCurrentPage();
   const items = getNavItems(current);
-  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">VA</span><span class="sidebar-brand-text">VodaAgileBoard</span></div>';
+  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Delivery intelligence · Built on your Jira data</span></div>';
   html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
   for (const item of items) {
     const className = 'sidebar-link' + (item.active ? ' active current' : '');
@@ -350,10 +355,17 @@ function updateSidebarAlertFooterFromStore() {
     const el = document.getElementById('sidebar-data-pulse');
     if (!el) return;
     const summary = readNotificationSummary();
-    if (!summary || typeof summary.total === 'undefined') return;
-    const total = Number(summary.total || 0);
-    updateBottomNavBadge(PAGE_SPRINT, total > 0 ? String(total) : '', total > 0 ? (total + ' sprint blockers') : '');
-    el.innerHTML = '<button type="button" class="sidebar-alert-footer-chip' + (total <= 0 ? ' is-healthy' : '') + '" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Issues in this sprint">Logging alerts: ' + total + (total <= 0 ? ' · Healthy' : '') + '</button>';
+    if (!summary) return;
+    if (typeof summary.total === 'undefined' && !Array.isArray(summary.runtimeAlerts)) return;
+    const tt = getTimeTrackingTotal(summary);
+    const rt = getRuntimeAlertCount(summary);
+    const eff = effectiveNotificationTotal(summary);
+    updateBottomNavBadge(PAGE_SPRINT, eff > 0 ? String(eff) : '', eff > 0 ? (eff + ' alerts (sprint and/or console)') : '');
+    const healthy = tt <= 0 && rt <= 0;
+    const label = healthy
+      ? 'Logging alerts: 0 · Healthy'
+      : ('Alerts — ' + (tt > 0 ? 'Sprint: ' + tt : '') + (tt > 0 && rt > 0 ? ' · ' : '') + (rt > 0 ? 'Console/runtime: ' + rt : ''));
+    el.innerHTML = '<button type="button" class="sidebar-alert-footer-chip' + (healthy ? ' is-healthy' : '') + '" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Issues in this sprint">' + label + '</button>';
     const btn = el.querySelector('[data-sidebar-alert-jump]');
     btn?.addEventListener('click', () => {
       const path = window.location.pathname || '';
@@ -369,7 +381,7 @@ function updateSidebarAlertFooterFromStore() {
 function updateLeadershipBadgeFromPageState() {
   try {
     const hasCritical = document.querySelector('.board-severity-pill.critical, .leadership-board-card-grade.critical');
-    updateBottomNavBadge(PAGE_LEADERSHIP, hasCritical ? '!' : '', hasCritical ? 'Leadership attention required' : '');
+    updateBottomNavBadge(PAGE_LEADERSHIP, hasCritical ? '!' : '', hasCritical ? 'Leadership: review priorities' : '');
   } catch (_) {}
 }
 

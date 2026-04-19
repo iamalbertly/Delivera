@@ -5,20 +5,20 @@
  * Rationale: Customer - Context always visible. Simplicity - Eliminates duplication. Trust - Countdown builds urgency awareness.
  */
 
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { renderExportButton } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
-import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
-import { readNotificationSummary } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
-import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
-import { renderSprintCarousel } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
-import { renderHealthDashboard, buildEvidenceLine } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
-import { getContextPieces, renderContextSegments } from './Reporting-App-Shared-Context-From-Storage.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDate } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { renderExportButton } from './Delivera-CurrentSprint-Export-Dashboard.js';
+import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
+import { readNotificationSummary } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import { renderSprintCarousel } from './Delivera-CurrentSprint-Navigation-Carousel.js';
+import { renderHealthDashboard, buildEvidenceLine } from './Delivera-CurrentSprint-Health-Dashboard.js';
+import { getContextPieces, renderContextSegments } from './Delivera-Shared-Context-From-Storage.js';
 import {
   SPRINT_COPY,
   formatSprintRemainingLabel,
   formatFreshnessAgeLabel,
-} from './Reporting-App-CurrentSprint-Copy.js';
+} from './Delivera-CurrentSprint-Copy.js';
 
 const headerFilterUiState = {
   roleMode: 'all',
@@ -431,7 +431,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += headerContextStripHtml;
   html += renderHeaderRoleModesRow(headerRoleViews);
-  /* ALB-30: Mini mode hides the full compact strip; surface History report first so it is not demoted below squad identity. */
+  /* ALB-30: Mini mode hides the full compact strip; surface History report first so it stays above squad identity. */
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += '<div class="header-mini-strip-report-priority">' + reportLinkHtml + '</div>';
   html += '<div class="header-mini-strip-identity">';

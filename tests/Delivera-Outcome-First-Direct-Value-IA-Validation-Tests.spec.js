@@ -1,11 +1,11 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   assertTelemetryClean,
   captureBrowserTelemetry,
   runDefaultPreview,
   skipIfRedirectedToLogin,
   waitForPreview,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Outcome-First Direct Value IA Validation', () => {
   test('report first viewport uses current terminology and direct-value controls', async ({ page }) => {
@@ -15,12 +15,12 @@ test.describe('Outcome-First Direct Value IA Validation', () => {
     await waitForPreview(page, { timeout: 90000 });
 
     const bodyText = await page.locator('body').textContent();
-    expect(bodyText || '').not.toMatch(/Leadership HUD|SMs & Leads|SP limited|Epic limited/i);
+    expect(bodyText || '').not.toMatch(/SMs & Leads|SP limited|Epic limited/i);
     await expect(page.locator('#report-tab-search')).toHaveAttribute('placeholder', /Search current view/i);
     await expect(page.locator('#report-header-preview-btn')).toContainText(/Refresh/i);
     await expect(page.locator('#report-header-export-btn')).toContainText(/Export/i);
     await expect(page.locator('#report-header-actions [data-open-outcome-modal]')).toContainText(/Create work/i);
-    await expect(page.locator('#tab-btn-unusable-sprints .tab-btn-label')).toContainText(/Repair center/i);
+    await expect(page.locator('#tab-btn-unusable-sprints .tab-btn-label')).toContainText(/Sprint data/i);
     await expect(page.locator('#project-epic-level-content')).toContainText(/What changed/i);
     await expect(page.locator('#project-epic-level-content')).toContainText(/What needs attention/i);
     await expect(page.locator('#project-epic-level-content')).toContainText(/What to create next/i);

@@ -4,7 +4,8 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay } from './Delivera-Shared-Format-DateNumber-Helpers.js';
 import { buildJiraIssueUrl } from './Delivera-Report-Utils-Jira-Helpers.js';
-import { REPORT_LAST_RUN_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { REPORT_LAST_RUN_KEY, REPORT_FILTERS_STALE_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Params.js';
 import { buildCompactReportRangeLabel } from './Delivera-Shared-Context-From-Storage.js';
 import { deriveOutcomeRiskFromPreviewRows } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 import { renderAttentionQueue } from './Delivera-Shared-Attention-Queue.js';
@@ -37,8 +38,24 @@ function buildGeneratedLabels(generatedAt) {
 
 export function buildPreviewMetaAndStatus(params) {
   const { meta, previewRows = [], boardsCount, sprintsCount, rowsCount, unusableCount } = params;
-  const windowStartLocal = formatDateForDisplay(meta.windowStart);
-  const windowEndLocal = formatDateForDisplay(meta.windowEnd);
+  let chipProjects = Array.isArray(meta.selectedProjects) ? meta.selectedProjects : [];
+  let chipWindowStart = meta.windowStart;
+  let chipWindowEnd = meta.windowEnd;
+  try {
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1') {
+      const live = getLiveReportFilterSnapshot();
+      if (live?.projectsCsv) {
+        chipProjects = live.projectsCsv.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+      if (live?.startIso && live?.endIso) {
+        chipWindowStart = live.startIso;
+        chipWindowEnd = live.endIso;
+      }
+    }
+  } catch (_) {}
+
+  const windowStartLocal = formatDateForDisplay(chipWindowStart);
+  const windowEndLocal = formatDateForDisplay(chipWindowEnd);
   const windowStartUtc = meta.windowStart ? new Date(meta.windowStart).toUTCString() : '';
   const windowEndUtc = meta.windowEnd ? new Date(meta.windowEnd).toUTCString() : '';
   const fromCache = meta.fromCache === true;
@@ -97,9 +114,9 @@ export function buildPreviewMetaAndStatus(params) {
     ? '<br><span class="partial-warning">Partial data: this preview hit a time limit. Export shows exactly what you see; try a smaller range for full history.</span>'
     : '';
 
-  const selectedProjectsLabel = meta.selectedProjects?.length > 0 ? meta.selectedProjects.join(', ') : 'None';
-  const projectSummary = summarizeProjectsList(meta.selectedProjects);
-  const compactRangeLabel = buildCompactReportRangeLabel(meta.windowStart, meta.windowEnd);
+  const selectedProjectsLabel = chipProjects?.length > 0 ? chipProjects.join(', ') : 'None';
+  const projectSummary = summarizeProjectsList(chipProjects);
+  const compactRangeLabel = buildCompactReportRangeLabel(chipWindowStart, chipWindowEnd);
   const sampleRow = previewRows && previewRows.length > 0 ? previewRows[0] : null;
   let sampleLabel = 'None';
   if (sampleRow) {
@@ -149,7 +166,7 @@ export function buildPreviewMetaAndStatus(params) {
       dataStateLabel = `Updated ${ageMin} min ago`;
       dataStateKind = 'cached';
     } else {
-      dataStateLabel = 'Stale - refresh recommended';
+      dataStateLabel = 'Older snapshot — refresh when ready';
       dataStateKind = 'stale';
     }
   }
@@ -197,7 +214,7 @@ export function buildPreviewMetaAndStatus(params) {
     items: [
       blockersOwned > 0 ? { label: `${blockersOwned} blockers owned by the team`, detail: 'Open outcomes', tone: 'danger', action: 'open-owned-blockers' } : null,
       unownedOutcomes > 0 ? { label: `${unownedOutcomes} outcomes without clear ownership`, detail: 'Fix ownership', tone: 'warning', action: 'open-unowned-outcomes' } : null,
-      unusableCount > 0 ? { label: `${unusableCount} excluded sprints reducing trust`, detail: 'Repair data', tone: 'warning', action: 'open-unusable-sprints' } : null,
+      unusableCount > 0 ? { label: `${unusableCount} sprints excluded from rollups`, detail: 'Review sprint dates', tone: 'warning', action: 'open-unusable-sprints' } : null,
       rowsCount === 0 ? { label: 'No outcome stories in this window', detail: 'Adjust scope or open outcomes', tone: 'muted', action: 'open-done-stories' } : null,
     ].filter(Boolean),
   });
@@ -229,10 +246,10 @@ export function buildPreviewMetaAndStatus(params) {
 
   const stickyText = `Preview: ${selectedProjectsLabel} | ${compactRangeLabel}${generated.stickySuffix}`;
   let statusStripText = '';
-  if (partial) statusStripText = 'UNAVAILABLE';
-  else if (reducedScope) statusStripText = 'CLOSEST MATCH';
-  else if (previewMode !== 'normal') statusStripText = 'FAST MODE';
-  else statusStripText = 'UP TO DATE';
+  if (partial) statusStripText = 'Partial';
+  else if (reducedScope) statusStripText = 'Closest match';
+  else if (previewMode !== 'normal') statusStripText = 'Faster load';
+  else statusStripText = 'In sync';
 
   let statusHTML = '';
   let statusDisplay = 'none';

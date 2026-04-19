@@ -124,7 +124,7 @@ export function restoreLastPreviewFromStorage() {
     if (reportDom.previewContent) reportDom.previewContent.style.display = 'block';
     const statusEl = document.getElementById('preview-status');
     if (statusEl) {
-      statusEl.innerHTML = '<div class="status-banner warning">Stale - refresh recommended<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
+      statusEl.innerHTML = '<div class="status-banner warning">Older snapshot — tap Preview for latest<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
       statusEl.style.display = 'block';
     }
     return true;
@@ -483,7 +483,7 @@ export function initPreviewFlow() {
         rangeHintEl.textContent = 'Medium range — expect 30–60s; recent data returns first.';
       } else {
         rangeHintEl.style.display = 'block';
-        rangeHintEl.textContent = 'Heavy range — 60–90s; latest 2 weeks first, then history.';
+        rangeHintEl.textContent = 'Wide range — about 60–90s; recent weeks load first, then older history.';
       }
     }
 

@@ -140,22 +140,22 @@ export function updateAppliedFiltersSummary() {
     chipsEl.title = summaryText;
   }
   if (filterStripSummaryEl) {
-    if (typeof document !== 'undefined' && document.body?.classList.contains('preview-active')) {
-      const rows = Array.isArray(reportState.previewRows) ? reportState.previewRows.length : 0;
-      filterStripSummaryEl.textContent = rows > 0 ? 'Saved views' : 'Filter by: projects, range, rules';
-    } else {
-      const outcomesCount = reportState.previewData != null
-        ? (Array.isArray(reportState.previewRows) ? reportState.previewRows.length : 0)
-        : undefined;
-      const chips = buildUnifiedReportContextChips(
-        typeof outcomesCount === 'number' ? { outcomesCount } : {},
-      );
-      filterStripSummaryEl.innerHTML = renderContextBar({
-        title: REPORT_CONTEXT_BAR_TITLE,
-        chips,
-        secondary: reportState.previewData ? 'Results reflect this exact context.' : 'Run once to turn this context into a live report.',
-      });
-    }
+    const outcomesCount = reportState.previewData != null
+      ? (Array.isArray(reportState.previewRows) ? reportState.previewRows.length : 0)
+      : undefined;
+    const chips = buildUnifiedReportContextChips(
+      typeof outcomesCount === 'number' ? { outcomesCount } : {},
+    );
+    const secondary = reportState.previewData
+      ? (document.body?.classList.contains('preview-active')
+        ? 'Preview is open — chips match your current filter picks.'
+        : 'Results reflect the last preview for this scope.')
+      : 'Run preview once to load numbers for the scope in the chips.';
+    filterStripSummaryEl.innerHTML = renderContextBar({
+      title: REPORT_CONTEXT_BAR_TITLE,
+      chips,
+      secondary,
+    });
     filterStripSummaryEl.title = summaryText;
   }
   if (rulesSummaryInlineEl) {
@@ -189,8 +189,8 @@ export function updateAppliedFiltersSummary() {
         rangeLabel,
       });
       statusStripEl.textContent = state.state === 'fresh'
-        ? 'UP TO DATE'
-        : (state.state === 'heavy' ? 'HEAVY RANGE' : 'PREVIEW REQUIRED');
+        ? 'In sync'
+        : (state.state === 'heavy' ? 'Large range' : 'Refresh to load');
       statusStripEl.setAttribute('data-state', state.state);
       statusStripEl.title = state.label;
     }
@@ -237,20 +237,20 @@ export function getStatusStripSemantics(input) {
 
   if (!hasProjects || !hasRange) {
     state = 'needs-preview';
-    label = 'PREVIEW REQUIRED – choose projects and dates.';
+    label = 'Choose projects and dates, then run preview.';
   } else if (complexity.isHeavy) {
     state = 'heavy';
-    label = 'HEAVY RANGE – manual preview only.';
+    label = 'Large date range — run preview when you are ready (not auto-loaded).';
   } else if (!hasRunPreview || filtersStale) {
     state = 'needs-preview';
     if (staleReason === 'storage-event') {
-      label = 'PREVIEW REQUIRED – filters changed in another tab.';
+      label = 'Filters changed in another tab — run preview to sync.';
     } else {
-      label = 'PREVIEW REQUIRED – filters changed.';
+      label = 'Filters changed — run preview to refresh the numbers.';
     }
   } else {
     state = 'fresh';
-    label = 'UP TO DATE – preview matches current filters.';
+    label = 'Preview matches your current filters.';
   }
 
   return { state, label, context: { projects, startVal, endVal, projectLabel, rangeLabel, filtersStale, hasRunPreview } };

@@ -29,10 +29,38 @@ async function openProjectEpicTabIfVisible(page) {
   return true;
 }
 
+async function ensureReportFiltersExpanded(page) {
+  const startDate = page.locator('#start-date');
+  if (await startDate.isVisible().catch(() => false)) return;
+  const showFiltersBtn = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"]').first();
+  if (await showFiltersBtn.isVisible().catch(() => false)) {
+    await showFiltersBtn.click({ force: true }).catch(() => null);
+  }
+  await startDate.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
+}
+
 test.describe('UX Reliability & Technical Debt Fixes', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
     await expect(page.locator('h1')).toContainText(/Delivera|General Performance|Performance History/);
+  });
+
+  test('report context strip Projects chip matches live checkbox selection', async ({ page }) => {
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await ensureReportFiltersExpanded(page);
+    await page.evaluate(() => {
+      const fire = (id, checked) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.checked = checked;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      fire('project-mpsa', false);
+      fire('project-mas', false);
+      fire('project-sd', true);
+    });
+    const strip = page.locator('#report-filter-strip-summary');
+    await expect(strip).toContainText(/Projects:\s*SD/, { timeout: 10000 });
   });
 
   test('refreshing preview keeps previous results visible while loading', async ({ page }) => {

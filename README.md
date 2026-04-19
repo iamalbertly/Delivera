@@ -6,6 +6,14 @@ This Node.js web app includes a preview-first workflow: configure filters, previ
 
 This README is the SSOT for usage and validation. Supplemental planning documents provide context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-04-19)
+
+- Report **Current performance window** chips read the live project and date inputs on `/report`, so changing scope (for example switching to SD only) updates the strip immediately instead of lagging behind `localStorage` last-query text.
+- When filters are stale, **Performance history** project and range chips follow the same live selection so the header row and preview context row stay aligned; counts still describe the last preview until you run preview again.
+- The filter strip keeps the full context bar when the preview layout is active (no more “Saved views” placeholder that hid live scope).
+- Project filters use one **Projects** list; Core/Other squad framing and inline squad tier tags are removed from the report UI.
+- Status vocabulary is calmer across the report strip, preview banners, cache freshness, and leadership nav hints (for example **Sprint data** instead of “Repair center”, **In sync** / **Refresh to load** instead of all-caps preview warnings).
+
 **Rename note:** This project was renamed from **Jira** to **Delivera**. Product-facing naming should use Delivera, while integration references to Jira remain where they describe Atlassian APIs and data sources.
 
 **Repository:** Canonical repository is `https://github.com/iamalbertly/Delivera`. Existing clones should use `git remote set-url origin https://github.com/iamalbertly/Delivera.git` if their origin still points to the legacy slug.

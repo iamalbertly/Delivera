@@ -9,7 +9,9 @@ import {
   REPORT_LAST_RUN_KEY,
   REPORT_LAST_META_KEY,
   REPORT_FILTERS_STALE_KEY,
-} from './Reporting-App-Shared-Storage-Keys.js';
+} from './Delivera-Shared-Storage-Keys.js';
+import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Params.js';
+import { reportState } from './Delivera-Report-Page-State.js';
 
 const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
 const CONTEXT_SEPARATOR = ' | ';
@@ -120,14 +122,22 @@ export function getContextPieces(overrides = {}) {
   const ctx = getValidLastQuery() || getFallbackContext();
   const freshnessInfo = getLastMetaFreshnessInfo();
   const filtersStale = getFiltersStaleFlag();
+  const live = getLiveReportFilterSnapshot();
 
   const projects = typeof overrides.projects === 'string'
     ? overrides.projects.trim()
-    : (ctx?.projects || '');
-  const rangeStart = overrides.rangeStart || ctx?.start || '';
-  const rangeEnd = overrides.rangeEnd || ctx?.end || '';
+    : (live?.projectsCsv || ctx?.projects || '');
+  const rangeStart = overrides.rangeStart || live?.startIso || ctx?.start || '';
+  const rangeEnd = overrides.rangeEnd || live?.endIso || ctx?.end || '';
   const last = overrides.lastRun === undefined ? getLastRunSummary() : overrides.lastRun;
   const freshness = overrides.freshness === undefined ? freshnessInfo.label : overrides.freshness;
+
+  let filtersStaleLabel = 'Selection changed — tap Refresh when ready';
+  try {
+    if (document.body?.classList?.contains('report-page') && reportState.previewInProgress && filtersStale) {
+      filtersStaleLabel = 'Updating preview…';
+    }
+  } catch (_) {}
 
   return {
     last,
@@ -135,7 +145,7 @@ export function getContextPieces(overrides = {}) {
     range: rangeStart && rangeEnd ? buildCompactReportRangeLabel(rangeStart, rangeEnd) : '',
     freshness,
     filtersStale,
-    filtersStaleLabel: 'Filters changed since last run - Refresh',
+    filtersStaleLabel,
     freshnessIsStale: overrides.freshnessIsStale === undefined ? freshnessInfo.isStale : !!overrides.freshnessIsStale,
   };
 }
@@ -157,7 +167,7 @@ export function buildContextSegmentList(pieces) {
   if (safePieces.filtersStale) {
     parts.push({
       label: 'Context',
-      value: safePieces.filtersStaleLabel || 'Filters changed since last run - Refresh',
+      value: safePieces.filtersStaleLabel || 'Selection changed — tap Refresh when ready',
       stateClass: ' is-warning',
       isAction: true,
     });
@@ -245,7 +255,7 @@ export function getLastMetaFreshnessInfo() {
     const minutes = Math.round(diffMs / 60000);
     if (minutes < 60) return { label: `Updated ${minutes} min ago`, isStale };
     const hours = Math.round(minutes / 60);
-    return { label: isStale ? 'Stale - refresh recommended' : `Updated ${hours}h ago`, isStale };
+    return { label: isStale ? 'Older snapshot — refresh when ready' : `Updated ${hours}h ago`, isStale };
   } catch (_) {
     return { label: null, isStale: false };
   }

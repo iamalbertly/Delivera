@@ -302,7 +302,7 @@ export function renderPreview() {
   try {
     const ageMs = meta.cacheAgeMs ?? 0;
     const ageMins = Math.round(ageMs / 60000);
-    const freshLabel = ageMins < 1 ? 'Just updated' : (ageMins < 60 ? 'Updated ' + ageMins + ' min ago' : 'Stale - refresh recommended');
+    const freshLabel = ageMins < 1 ? 'Just updated' : (ageMins < 60 ? 'Updated ' + ageMins + ' min ago' : 'Older snapshot — refresh when ready');
     const freshState = ageMins > 30 ? 'stale' : 'live';
     window.dispatchEvent(new CustomEvent('app:data-freshness', { detail: { label: freshLabel, state: freshState } }));
   } catch (_) {}
@@ -343,7 +343,7 @@ export function renderPreview() {
         ? 'No done stories in this window; check dates or Jira hygiene.'
         : (meta.partial ? 'Partial preview: count reflects loaded outcomes only.' : 'Total done stories in the selected window.');
     }
-    setTabLabel(tabUnusable, 'Repair center (' + unusableCountForTab + ')', 'Repair ' + unusableCountForTab);
+    setTabLabel(tabUnusable, 'Sprint data (' + unusableCountForTab + ')', 'Data ' + unusableCountForTab);
     const tabTrends = document.getElementById('tab-btn-trends');
     setTabLabel(tabTrends, 'Leadership HUD ->', 'Leadership');
     const hash = window.location && window.location.hash ? window.location.hash : '';
@@ -366,7 +366,7 @@ export function renderPreview() {
   if (statusStripElAfter && !statusStripElAfter.textContent) {
     const ageMs = Number(meta.cacheAgeMs || 0);
     const ageMins = Math.round(ageMs / 60000);
-    statusStripElAfter.textContent = ageMins > 30 ? 'Stale - refresh recommended' : 'Just updated';
+    statusStripElAfter.textContent = ageMins > 30 ? 'Older snapshot — refresh when ready' : 'Just updated';
     statusStripElAfter.setAttribute('data-state', ageMins > 30 ? 'stale' : 'fresh');
     statusStripElAfter.style.display = '';
   }

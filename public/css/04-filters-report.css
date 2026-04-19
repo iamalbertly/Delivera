@@ -2635,13 +2635,7 @@ body.report-page .project-group-label {
 }
 
 body.report-page .project-inline-tag {
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  font-size: 0.72rem;
-  color: var(--muted);
-  background: #f8fafc;
+  display: none;
 }
 
 body.report-page .checkbox-label {

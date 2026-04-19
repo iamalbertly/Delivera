@@ -3,9 +3,63 @@ import {
   DEFAULT_WINDOW_END_LOCAL,
   DEFAULT_WINDOW_START,
   DEFAULT_WINDOW_START_LOCAL,
-} from './Reporting-App-Report-Config-Constants.js';
-import { toUtcIsoFromLocalInput } from './Reporting-App-Report-Utils-Data-Helpers.js';
-import { getSelectedProjects } from './Reporting-App-Report-Page-Selections-Manager.js';
+} from './Delivera-Report-Config-Constants.js';
+import { toUtcIsoFromLocalInput } from './Delivera-Report-Utils-Data-Helpers.js';
+import { getSelectedProjects } from './Delivera-Report-Page-Selections-Manager.js';
+
+/**
+ * Non-throwing snapshot of the report filter form for context chips (must match collectFilterParams semantics).
+ * Returns null when not on the report page or when no project is selected.
+ */
+export function getLiveReportFilterSnapshot() {
+  if (typeof document === 'undefined') return null;
+  if (!document.body?.classList?.contains('report-page')) return null;
+  try {
+    const projects = getSelectedProjects();
+    if (!projects.length) return null;
+
+    const startDate = document.getElementById('start-date')?.value || '';
+    const endDate = document.getElementById('end-date')?.value || '';
+
+    let startISO;
+    let endISO;
+    if (startDate) {
+      startISO = toUtcIsoFromLocalInput(startDate);
+      if (!startISO) return null;
+    } else {
+      const startInput = document.getElementById('start-date');
+      if (startInput && !startInput.value) {
+        startInput.value = DEFAULT_WINDOW_START_LOCAL;
+      }
+      startISO = DEFAULT_WINDOW_START;
+    }
+
+    if (endDate) {
+      endISO = toUtcIsoFromLocalInput(endDate, true);
+      if (!endISO) return null;
+    } else {
+      const endInput = document.getElementById('end-date');
+      if (endInput && !endInput.value) {
+        endInput.value = DEFAULT_WINDOW_END_LOCAL;
+      }
+      endISO = DEFAULT_WINDOW_END;
+    }
+
+    const startTime = new Date(startISO).getTime();
+    const endTime = new Date(endISO).getTime();
+    if (!Number.isNaN(startTime) && !Number.isNaN(endTime) && startTime >= endTime) {
+      return null;
+    }
+
+    return {
+      projectsCsv: projects.join(','),
+      startIso: startISO,
+      endIso: endISO,
+    };
+  } catch (_) {
+    return null;
+  }
+}
 
 export function collectFilterParams() {
   const projects = getSelectedProjects();

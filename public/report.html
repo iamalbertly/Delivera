@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VodaAgileBoard - Performance - History (General Performance)</title>
+  <title>Delivera - Performance - History (General Performance)</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -52,80 +52,67 @@
                 <div id="projects-no-match" class="selection-status" style="display: none;">No projects match your search.
                 </div>
               </div>
-              <p class="project-group-label"><small>Core squads</small></p>
+              <p class="project-group-label"><small>Projects</small></p>
               <label class="checkbox-label">
                 <input type="checkbox" id="project-mpsa" class="project-checkbox" data-project="MPSA" checked>
                 <span class="project-code">MPSA</span>
                 <span class="project-desc">M-SQUAD</span>
-                <span class="project-inline-tag">Core</span>
               </label>
               <label class="checkbox-label">
                 <input type="checkbox" id="project-mas" class="project-checkbox" data-project="MAS" checked>
                 <span class="project-code">MAS</span>
                 <span class="project-desc">Mini - Apps Squad</span>
-                <span class="project-inline-tag">Core</span>
               </label>
-              <p class="project-group-label"><small>Other squads</small></p>
               <div id="other-squads-group">
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-rpa" class="project-checkbox" data-project="RPA">
                   <span class="project-code">RPA</span>
                   <span class="project-desc">Robotics Process Automation (RPA)</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-mva" class="project-checkbox" data-project="MVA">
                   <span class="project-code">MVA</span>
                   <span class="project-desc">Digital Squad</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-asg" class="project-checkbox" data-project="ASG">
                   <span class="project-code">ASG</span>
                   <span class="project-desc">Agile and Security Guild</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-fin" class="project-checkbox" data-project="FIN">
                   <span class="project-code">FIN</span>
                   <span class="project-desc">Finance Squad</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-sd" class="project-checkbox" data-project="SD">
                   <span class="project-code">SD</span>
                   <span class="project-desc">DMS Squad (Kilimanjaro Legends)</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-mpsa2" class="project-checkbox" data-project="MPSA2">
                   <span class="project-code">MPSA2</span>
                   <span class="project-desc">TRANSFORMERS</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-trs" class="project-checkbox" data-project="TRS">
                   <span class="project-code">TRS</span>
                   <span class="project-desc">T-Squad</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-vb" class="project-checkbox" data-project="VB">
                   <span class="project-code">VB</span>
                   <span class="project-desc">Vodacom Business</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-ams2" class="project-checkbox" data-project="AMS2">
                   <span class="project-code">AMS2</span>
                   <span class="project-desc">AMS Squad (Tachyons)</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="project-bio" class="project-checkbox" data-project="BIO">
                   <span class="project-code">BIO</span>
                   <span class="project-desc">Bio metric KYC &amp; KYA</span>
-                  <span class="project-inline-tag">Other</span>
                 </label>
               </div>
             </div>
@@ -274,7 +261,7 @@
           </button>
           <button id="tab-btn-unusable-sprints" class="tab-btn" data-tab="unusable-sprints" role="tab"
             aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">
-            <span class="tab-btn-label">Repair center</span>
+            <span class="tab-btn-label">Sprint data</span>
           </button>
         </div>
         <div class="report-unified-tab-search">
@@ -353,10 +340,11 @@
 
   <div id="loading-status-chip" class="loading-status-chip" aria-live="polite" style="display: none;"></div>
   <div id="tooltip-popover" class="tooltip-popover" role="tooltip" aria-hidden="true"></div>
-  <script type="module" src="Reporting-App-Report-Page-Feedback-Panel-Inject.js"></script>
-  <script type="module" src="Reporting-App-Shared-Global-Nav.js"></script>
-  <script type="module" src="Reporting-App-Shared-UI-Header-Nav-Renderer.js"></script>
-  <script type="module" src="Reporting-App-Report-Page-Init-Controller.js"></script>
+  <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
+  <script type="module" src="Delivera-Report-Page-Feedback-Panel-Inject.js"></script>
+  <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
+  <script type="module" src="Delivera-Shared-UI-Header-Nav-Renderer.js"></script>
+  <script type="module" src="Delivera-Report-Page-Init-Controller.js"></script>
 </body>
 
 </html>
