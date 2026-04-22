@@ -712,6 +712,18 @@ This runs the test orchestration script which:
 16. Terminates on first error
 17. Shows all steps in foreground with live output from each test command and elapsed step timing. Step definitions live in `scripts/Delivera-Test-Orchestration-Steps.js`.
 
+For deterministic full regression runs during refactors:
+
+```bash
+FULL=1 DISABLE_LAST_FAILED=1 npm run test:all
+```
+
+When running against an already running target instead of managed webServer:
+
+```bash
+SKIP_WEBSERVER=true BASE_URL=http://localhost:3000 npm run test:all
+```
+
 ### Run Specific Test Suites
 ```bash
 # Fast smoke slice (cross-journey health check)

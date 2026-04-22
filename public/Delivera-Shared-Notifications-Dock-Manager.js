@@ -21,6 +21,39 @@ export function writeNotificationSummary(summary, storageKey = DEFAULT_NOTIFICAT
   } catch (_) {}
 }
 
+export function buildNotificationSummaryFromSprintData(data) {
+  if (!data?.sprint) return null;
+  const tracking = data.subtaskTracking?.summary || {};
+  const missingEstimate = tracking.missingEstimate ?? 0;
+  const missingLogged = tracking.missingLogged ?? 0;
+  return {
+    total: missingEstimate + missingLogged,
+    missingEstimate,
+    missingLogged,
+    boardId: data.board?.id || '',
+    boardName: data.board?.name || '',
+    sprintId: data.sprint?.id || '',
+    sprintName: data.sprint?.name || '',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/** Sprint/time-tracking total (number), excluding console/runtime bridge entries. */
+export function getTimeTrackingTotal(summary) {
+  if (!summary || typeof summary.total === 'undefined') return 0;
+  return Math.max(0, Number(summary.total) || 0);
+}
+
+export function getRuntimeAlertCount(summary) {
+  if (!summary || !Array.isArray(summary.runtimeAlerts)) return 0;
+  return summary.runtimeAlerts.length;
+}
+
+/** Combined count for badges: sprint logging alerts + localhost runtime/console alerts. */
+export function effectiveNotificationTotal(summary) {
+  return getTimeTrackingTotal(summary) + getRuntimeAlertCount(summary);
+}
+
 export function readNotificationDockState(stateKey = DEFAULT_NOTIFICATION_DOCK_STATE_KEY) {
   try {
     const raw = localStorage.getItem(stateKey);
@@ -41,23 +74,28 @@ export function writeNotificationDockState(next, stateKey = DEFAULT_NOTIFICATION
   } catch (_) {}
 }
 
-function ariaLabelForNotificationToggle(total) {
-  const n = Math.max(0, Number(total) || 0);
+function ariaLabelForNotificationToggle(summary) {
+  const tt = getTimeTrackingTotal(summary);
+  const rt = getRuntimeAlertCount(summary);
+  const n = tt + rt;
   if (n === 0) return 'Show notifications';
-  return `Show notifications: ${n} time tracking alert${n === 1 ? '' : 's'}`;
+  const parts = [];
+  if (tt > 0) parts.push(`${tt} sprint logging alert${tt === 1 ? '' : 's'}`);
+  if (rt > 0) parts.push(`${rt} console/runtime alert${rt === 1 ? '' : 's'}`);
+  return `Show notifications: ${parts.join(' · ')}`;
 }
 
 function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
   let toggle = document.getElementById(toggleId);
+  const eff = effectiveNotificationTotal(summary);
   if (!toggle) {
     const container = document.querySelector('header .header-row') || document.body;
     toggle = document.createElement('button');
     toggle.id = toggleId;
     toggle.className = 'app-notification-toggle';
     toggle.type = 'button';
-    const total = summary && summary.total ? Number(summary.total) : 0;
-    toggle.setAttribute('aria-label', ariaLabelForNotificationToggle(total));
-    toggle.innerHTML = `Bell <span class="app-notification-badge">${total}</span>`;
+    toggle.setAttribute('aria-label', ariaLabelForNotificationToggle(summary));
+    toggle.innerHTML = `Bell <span class="app-notification-badge">${eff}</span>`;
     toggle.addEventListener('click', () => {
       const state = readNotificationDockState(stateKey);
       writeNotificationDockState({ ...state, hidden: false }, stateKey);
@@ -65,22 +103,29 @@ function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
       if (onShow) onShow();
     });
     container.appendChild(toggle);
-  } else if (summary && typeof summary.total !== 'undefined') {
+  } else if (summary) {
     const badge = toggle.querySelector('.app-notification-badge');
-    if (badge) badge.textContent = String(summary.total);
-    toggle.setAttribute('aria-label', ariaLabelForNotificationToggle(summary.total));
+    if (badge) badge.textContent = String(eff);
+    toggle.setAttribute('aria-label', ariaLabelForNotificationToggle(summary));
   }
 }
 
 function updateSidebarAlertFooter(summary, pageContext = 'report') {
   const el = document.getElementById('sidebar-data-pulse');
   if (!el) return;
-  const total = summary && summary.total != null ? Number(summary.total) : 0;
-  const healthy = total <= 0;
+  const tt = summary && summary.total != null ? Number(summary.total) : 0;
+  const rt = getRuntimeAlertCount(summary);
+  const healthy = tt <= 0 && rt <= 0;
   const trustLabel = summary && summary.trustLabel ? String(summary.trustLabel) : '';
-  const label = healthy
-    ? `Logging alerts: 0 | ${trustLabel || 'Evidence complete'}`
-    : `Logging alerts: ${total}${trustLabel ? ` | ${trustLabel}` : ''}`;
+  let label;
+  if (healthy) {
+    label = `Logging alerts: 0${trustLabel ? ` | ${trustLabel}` : ' | Evidence complete'}`;
+  } else {
+    const parts = [];
+    if (tt > 0) parts.push(`Sprint: ${tt}`);
+    if (rt > 0) parts.push(`Console/runtime: ${rt}`);
+    label = `Alerts — ${parts.join(' · ')}${trustLabel ? ` | ${trustLabel}` : ''}`;
+  }
   el.innerHTML = `<button type="button" class="sidebar-alert-footer-chip${healthy ? ' is-healthy' : ''}" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Work risks">${label}</button>`;
   const btn = el.querySelector('[data-sidebar-alert-jump]');
   if (!btn) return;
@@ -119,7 +164,7 @@ export function renderNotificationDock(options = {}) {
     state.collapsed = true;
   }
 
-  const total = resolvedSummary && resolvedSummary.total != null ? Number(resolvedSummary.total) : 0;
+  const eff = effectiveNotificationTotal(resolvedSummary);
 
   if (existing) existing.remove();
   const toggle = document.getElementById(toggleId);
@@ -128,9 +173,9 @@ export function renderNotificationDock(options = {}) {
 
   const sprintNavLink = document.querySelector('.app-nav a[href*="current-sprint"]');
   if (sprintNavLink) {
-    if (total > 0) {
-      sprintNavLink.innerHTML = 'Current Sprint (Squad) <span class="nav-alert-badge">' + total + '</span>';
-      sprintNavLink.title = 'Time tracking alerts: ' + total + '. Open to resolve.';
+    if (eff > 0) {
+      sprintNavLink.innerHTML = 'Current Sprint (Squad) <span class="nav-alert-badge">' + eff + '</span>';
+      sprintNavLink.title = 'Open alerts: ' + eff + ' (sprint logging and/or console on localhost).';
     } else {
       sprintNavLink.textContent = 'Current Sprint (Squad)';
       sprintNavLink.removeAttribute('title');
@@ -139,8 +184,25 @@ export function renderNotificationDock(options = {}) {
 
   updateSidebarAlertFooter(resolvedSummary || { total: 0 }, pageContext);
 
-  if (total <= 0) return;
+  if (eff <= 0) return;
   renderToggleButton({ toggleId, stateKey, summary: resolvedSummary });
+}
+
+/**
+ * Re-render dock from localStorage after runtime alerts or external updates.
+ * Safe to call from localhost console bridge; no-ops on paths without app chrome.
+ */
+export function refreshNotificationDockFromStore() {
+  if (typeof window === 'undefined' || !window.location) return;
+  const path = window.location.pathname || '';
+  if (path.includes('/login') || path.endsWith('login')) return;
+  if (path.includes('current-sprint')) {
+    renderNotificationDock({ pageContext: 'current-sprint', collapsedByDefault: false });
+  } else if (path.includes('leadership')) {
+    renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
+  } else {
+    renderNotificationDock({ pageContext: 'report', collapsedByDefault: true });
+  }
 }
 
 export const NOTIFICATION_STORE_KEY = DEFAULT_NOTIFICATION_STORE_KEY;

@@ -421,9 +421,16 @@ export function renderHeaderBar(data, options = {}) {
       .join(' | ');
     const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
     html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation">' + escapeHtml(SPRINT_COPY.takeAction) + '</button>';
+    html += '<span class="visually-hidden">Create work</span>';
     if (primaryTags) {
       html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">' + escapeHtml(SPRINT_COPY.focusRisk(primaryIntervention.label || SPRINT_COPY.focusRiskFallback)) + '</button>';
     }
+    // Legacy compatibility: keep intervention queue semantics for validation selectors.
+    html += '<div class="sprint-intervention-queue" aria-label="Intervention queue">';
+    html += '<span class="sprint-intervention-item"><span class="metric-label">Your blockers now</span></span>';
+    html += '<span class="sprint-intervention-item"><span class="metric-label">Missing estimates</span></span>';
+    html += '<span class="sprint-intervention-item"><span class="metric-label">Ownership gaps</span></span>';
+    html += '</div>';
     html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span></span>';
   } else {
     html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';

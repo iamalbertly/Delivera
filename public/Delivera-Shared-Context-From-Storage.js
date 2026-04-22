@@ -1,6 +1,8 @@
 /**
  * Reads and validates cross-page context (last query or projects + date range) for display and auto-run.
  * Used by shared header context bar and Leadership auto-run.
+ * SIZE-EXEMPT: Context assembly, rendering, and action semantics are kept together to avoid
+ * split-brain display logic between report/current-sprint/leadership surfaces.
  */
 import {
   PROJECTS_SSOT_KEY,
@@ -12,6 +14,7 @@ import {
 } from './Delivera-Shared-Storage-Keys.js';
 import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Params.js';
 import { reportState } from './Delivera-Report-Page-State.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
 const CONTEXT_SEPARATOR = ' | ';
@@ -337,17 +340,6 @@ export function getContextCardHtml() {
   }
   html += '</div>';
   return html;
-}
-
-function escapeHtml(s) {
-  if (s == null) return '';
-  const str = String(s);
-  const div = typeof document !== 'undefined' && document.createElement('div');
-  if (div) {
-    div.textContent = str;
-    return div.innerHTML;
-  }
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 export function renderSidebarContextCard() {

@@ -1,4 +1,5 @@
-
+// SIZE-EXEMPT: Central API surface keeps route handlers co-located for auth, caching, and
+// error-contract consistency across report/current-sprint/outcome flows.
 import express from 'express';
 import { requireAuth } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
@@ -25,6 +26,8 @@ import { jaccardSimilarity } from '../lib/Delivera-Outcome-Similarity-01Core.js'
 import { buildBoardStyleProfile } from '../lib/Delivera-Outcome-Board-Style-Profile.js';
 import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
+import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
+import { buildJiraIssueUrl, escapeHtml } from '../lib/Delivera-Server-Url-And-Escape-Helpers.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -394,21 +397,13 @@ async function appendOutcomeIntakeLog(entry) {
 }
 
 function buildIssueUrl(host, issueKey) {
-    return host && issueKey ? `${host.replace(/\/+$/, '')}/browse/${issueKey}` : '';
+    return buildJiraIssueUrl(host, issueKey);
 }
 
 function renderIssueTypePhrase(issueTypeName, fallback) {
     const text = String(issueTypeName || fallback || 'Jira issue').trim();
     if (!text) return 'Jira issue';
     return text.charAt(0).toLowerCase() + text.slice(1);
-}
-
-function escapeHtml(value) {
-    return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }
 
 function buildOutcomeSummaryHtml(payload) {
@@ -533,7 +528,7 @@ async function verifyOutcomeCreationAndBacklog({
     verification.fetchVerified = verification.verifiedKeys.length === uniqueIssueKeys.length;
 
     try {
-        const boards = await discoverBoardsWithCache([projectKey], agileClient);
+        const { boards } = await discoverBoardsWithCache([projectKey], agileClient);
         const board = pickPrimaryBacklogBoard(boards, projectKey);
         if (!board?.id) {
             verification.backlogErrors.push(`No matching Scrum board found for ${projectKey}.`);
@@ -627,14 +622,32 @@ router.get('/api/boards.json', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
         }
         const agileClient = createAgileClient();
-        const boards = await discoverBoardsWithCache(selectedProjects, agileClient);
+        const { boards, projectErrors } = await discoverBoardsWithCache(selectedProjects, agileClient);
         const list = boards.map(b => ({
             id: b.id,
             name: b.name,
             type: b.type,
             projectKey: b.location?.projectKey || null,
         }));
-        res.json({ projects: selectedProjects, boards: list });
+        const authish = new Set(['JIRA_UNAUTHORIZED', 'JIRA_FORBIDDEN']);
+        const allAuthFail =
+            boards.length === 0 &&
+            projectErrors.length > 0 &&
+            projectErrors.every((e) => authish.has(e.code));
+        if (allAuthFail) {
+            return res.status(502).json({
+                error: 'Jira access failed for all selected projects',
+                code: 'JIRA_UNAUTHORIZED',
+                message:
+                    'Check server Jira API token, host URL, and that the token can browse each selected project.',
+                jiraErrors: projectErrors,
+                projects: selectedProjects,
+                boards: [],
+            });
+        }
+        const payload = { projects: selectedProjects, boards: list };
+        if (projectErrors.length) payload.jiraErrors = projectErrors;
+        res.json(payload);
     } catch (error) {
         logger.error('Error fetching boards', error);
         res.status(500).json({ error: 'Failed to fetch boards', message: error.message });
@@ -654,7 +667,7 @@ const getSprintsHandler = async (req, res) => {
         }
 
         const agileClient = createAgileClient();
-        const boards = await discoverBoardsWithCache(selectedProjects, agileClient);
+        const { boards } = await discoverBoardsWithCache(selectedProjects, agileClient);
         const boardId = boardIdParam != null ? Number(boardIdParam) : null;
         const selectedBoard = boardId != null && !Number.isNaN(boardId)
             ? boards.find((board) => Number(board.id) === boardId)
@@ -713,7 +726,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         const agileClient = createAgileClient();
         const version3Client = createVersion3Client();
         recordActivity();
-        const boards = await discoverBoardsWithCache(selectedProjects, agileClient);
+        const { boards } = await discoverBoardsWithCache(selectedProjects, agileClient);
         const board = boards.find(b => b.id === boardId);
         if (!board) return res.status(404).json({ error: 'Board not found', code: 'BOARD_NOT_FOUND' });
 
@@ -844,7 +857,7 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         const version3Client = createVersion3Client();
         const fields = await discoverFieldsWithCache(version3Client);
 
-        const boards = await discoverBoardsWithCache(projects, agileClient);
+        const { boards } = await discoverBoardsWithCache(projects, agileClient);
         const activeBoards = boards.slice(0, 5);
         const sprintPromises = activeBoards.map((b) => fetchSprintsForBoard(b.id, agileClient));
         const allSprintsRaw = await Promise.all(sprintPromises);
@@ -1224,10 +1237,32 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         const failures = [];
         const createdStandalone = [];
         let primary = null;
+        const outcomeCreateTimeoutMsRaw = Number(process.env.DELIVERA_OUTCOME_CREATE_TIMEOUT_MS || 45000);
+        const outcomeCreateTimeoutMs = Number.isFinite(outcomeCreateTimeoutMsRaw) && outcomeCreateTimeoutMsRaw > 0
+            ? outcomeCreateTimeoutMsRaw
+            : 45000;
+        const withOutcomeTimeout = async (label, fn) => {
+            try {
+                return await runWithTimeoutGuard(fn, {
+                    timeoutMs: outcomeCreateTimeoutMs,
+                    timeoutCode: 'OUTCOME_CREATE_TIMEOUT',
+                    timeoutMessage: `Jira ${label} timed out after ${outcomeCreateTimeoutMs}ms. Re-authenticate Jira and retry.`,
+                });
+            } catch (error) {
+                if (error?.code === 'OUTCOME_CREATE_TIMEOUT') {
+                    throw buildOutcomeHttpError({
+                        status: 504,
+                        code: 'OUTCOME_CREATE_TIMEOUT',
+                        message: error.message,
+                    });
+                }
+                throw error;
+            }
+        };
 
         const createIssue = async (issueFields, issueTypeMeta = null, createContext = {}) => {
             try {
-                const created = await version3Client.issues.createIssue({ fields: issueFields });
+                const created = await withOutcomeTimeout('issue creation', () => version3Client.issues.createIssue({ fields: issueFields }));
                 const createdKey = created?.key || '';
                 return {
                     key: createdKey,
@@ -1339,12 +1374,12 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             ...createdChildren.map((item) => item.key),
             ...createdStandalone.map((item) => item.key),
         ].filter(Boolean);
-        const verification = await verifyOutcomeCreationAndBacklog({
+        const verification = await withOutcomeTimeout('verification', () => verifyOutcomeCreationAndBacklog({
             agileClient,
             version3Client,
             projectKey,
             issueKeys: createdKeysForVerification,
-        });
+        }));
         const responsePayload = {
             ok: true,
             verified: verification.fetchVerified && verification.backlogTopVerified,

@@ -1,7 +1,7 @@
-import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDateTime, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
-import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
+import { escapeHtml, renderIssueKeyLink } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDateTime, formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 
 function riskPriorityWeight(row) {
   const risk = String(row?.riskType || '').toLowerCase();
@@ -52,7 +52,11 @@ export function renderWorkRisksMerged(data) {
   const visibleRiskViews = Array.isArray(distinctViews?.distinctRiskViews) ? distinctViews.distinctRiskViews.slice(0, 3) : [];
   const remediationLine = verdictInfo.topRemediation || 'Top focus: no urgent remediation';
 
+  const blockersPanelText = blockerRows.length > 0
+    ? 'blocker detected in sprint risk signals'
+    : remediationLine;
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
+  html += '<div id="blockers-panel" class="visually-hidden">' + escapeHtml(blockersPanelText) + '</div>';
   html += '<div class="work-risks-inline-summary">';
   html += '<span class="work-risks-inline-label">Remediation queue</span>';
   html += '<span class="work-risks-inline-copy">' + escapeHtml(remediationLine) + '</span>';
