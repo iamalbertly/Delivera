@@ -50,6 +50,15 @@ function initReportPage() {
     if (headerBtn) headerBtn.hidden = !show;
   }
 
+  function setReportContextLineText(contextText) {
+    const reportContextLine = document.getElementById('report-context-line');
+    if (!reportContextLine) return;
+    const nextText = String(contextText || '').trim() || 'No report run yet';
+    reportContextLine.textContent = nextText;
+    reportContextLine.classList.remove('visually-hidden');
+    reportContextLine.removeAttribute('aria-hidden');
+  }
+
   try {
     window.__reportSyncHeaderLoadLatestVisibility = syncHeaderLoadLatestVisibility;
   } catch (_) {}
@@ -150,11 +159,8 @@ function initReportPage() {
     if (!getCurrentSelectionComplexity().isHeavy) scheduleAutoPreview(AUTO_PREVIEW_DELAY_MS);
   }, () => { refreshPreviewButtonLabel(); });
   hydrateFromLastQuery();
-  const reportContextLine = document.getElementById('report-context-line');
   const hasProjects = getSelectedProjects().length > 0;
-  if (reportContextLine) {
-    reportContextLine.textContent = getContextDisplayString();
-  }
+  setReportContextLineText(getContextDisplayString());
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
   const loadLatestBtn = document.getElementById('report-load-latest-btn');
   if (hasProjects && getContextDisplayString() === 'No report run yet' && loadLatestWrap) {
@@ -216,6 +222,7 @@ function initReportPage() {
     } catch (_) {}
     wrap.innerHTML = ''
       + '<button type="button" id="report-header-preview-btn" class="btn btn-primary btn-compact">Refresh</button>'
+      + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-action="load-latest-preview" hidden>Load latest</button>'
       + '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'
       + '<button type="button" class="btn btn-compact report-outcome-intake-create-btn" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
@@ -228,7 +235,6 @@ function initReportPage() {
       + '<div class="report-header-more-panel">'
       + '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Edit filters</button>'
       + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Current sprint</a>'
-      + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-action="load-latest-preview" hidden>Load latest</button>'
       + '<button type="button" class="btn btn-secondary btn-compact" data-action="reset-filters">Reset scope</button>'
       + '</div>'
       + '</details>';
@@ -282,10 +288,7 @@ function initReportPage() {
           sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
           sessionStorage.setItem(REPORT_FILTERS_STALE_REASON_KEY, 'storage-event');
         }
-        const reportContextLine = document.getElementById('report-context-line');
-        if (reportContextLine) {
-          reportContextLine.textContent = getContextDisplayString();
-        }
+        setReportContextLineText(getContextDisplayString());
       } catch (_) {}
       if (!reportState.previewInProgress && !getCurrentSelectionComplexity().isHeavy) {
         scheduleAutoPreview(250);
@@ -326,10 +329,7 @@ function initReportPage() {
     updateAppliedFiltersSummary();
     filterPanelState.refreshCollapsedSummary();
     try {
-      const reportContextLine = document.getElementById('report-context-line');
-      if (reportContextLine) {
-        reportContextLine.textContent = getContextDisplayString();
-      }
+      setReportContextLineText(getContextDisplayString());
     } catch (_) {}
     syncHeaderLoadLatestVisibility(getSelectedProjects().length > 0 && getContextDisplayString() === 'No report run yet');
     clearPreviewOnFilterChange();

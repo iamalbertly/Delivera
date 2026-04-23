@@ -135,7 +135,7 @@ export function getContextPieces(overrides = {}) {
   const last = overrides.lastRun === undefined ? getLastRunSummary() : overrides.lastRun;
   const freshness = overrides.freshness === undefined ? freshnessInfo.label : overrides.freshness;
 
-  let filtersStaleLabel = 'Selection changed — tap Refresh when ready';
+  let filtersStaleLabel = 'Filters changed since last run — tap Refresh when ready';
   try {
     if (document.body?.classList?.contains('report-page') && reportState.previewInProgress && filtersStale) {
       filtersStaleLabel = 'Updating preview…';
@@ -282,6 +282,22 @@ export function getLastMetaFreshnessInfo() {
 export function getContextDisplayString() {
   const parts = buildContextSegmentList(getContextPieces()).map((segment) => `${segment.label}: ${segment.value}`);
   if (parts.length) return parts.join(CONTEXT_SEPARATOR);
+  try {
+    const selectedProjects = Array.from(document.querySelectorAll('.project-checkbox[data-project]:checked'))
+      .map((el) => String(el.getAttribute('data-project') || '').trim())
+      .filter(Boolean);
+    const startVal = String(document.getElementById('start-date')?.value || '').trim();
+    const endVal = String(document.getElementById('end-date')?.value || '').trim();
+    if (selectedProjects.length || (startVal && endVal)) {
+      const rangeLabel = startVal && endVal
+        ? `${startVal.slice(0, 10)}${DATE_RANGE_SEPARATOR}${endVal.slice(0, 10)}`
+        : '';
+      const fallbackBits = [];
+      if (selectedProjects.length) fallbackBits.push(`Projects: ${selectedProjects.join(', ')}`);
+      if (rangeLabel) fallbackBits.push(`Report range: ${rangeLabel}`);
+      if (fallbackBits.length) return fallbackBits.join(CONTEXT_SEPARATOR);
+    }
+  } catch (_) {}
   return 'No report run yet';
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Test Orchestration Runner for Jira Reporting App
+ * Test Orchestration Runner for Delivera
  * Runs all tests in sequence, shows steps in foreground, terminates on first error
  */
 
@@ -10,15 +10,15 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
 import net from 'net';
-import { getSteps } from './Jira-Reporting-App-Test-Orchestration-Steps.js';
-import { getSpecPathFromStep, selectStepsForRun } from './Jira-Reporting-App-Test-Selection-Helper.js';
+import { getSteps } from './Delivera-Test-Orchestration-Steps.js';
+import { getSpecPathFromStep, selectStepsForRun } from './Delivera-Test-Selection-Helper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 const steps = getSteps(projectRoot);
-const stateFilePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Orchestration-State.json');
-const cancelFilePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Orchestration-Cancel.json');
+const stateFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-State.json');
+const cancelFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-Cancel.json');
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 const resolvedPort = (() => {
   try {
@@ -166,7 +166,7 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
 
 function loadLastFailedSpecs() {
   try {
-    const filePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Last-Failed.json');
+    const filePath = join(projectRoot, 'scripts', 'Delivera-Test-Last-Failed.json');
     if (!fs.existsSync(filePath)) return [];
     const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw);
@@ -213,7 +213,7 @@ function resolveMergeBaseRef(targetRef) {
 
 function saveLastFailedSpecs(specPaths) {
   try {
-    const filePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Last-Failed.json');
+    const filePath = join(projectRoot, 'scripts', 'Delivera-Test-Last-Failed.json');
     const unique = Array.from(new Set((Array.isArray(specPaths) ? specPaths : []).filter((v) => typeof v === 'string')));
     fs.writeFileSync(filePath, JSON.stringify(unique, null, 2), 'utf8');
   } catch {
@@ -223,7 +223,7 @@ function saveLastFailedSpecs(specPaths) {
 
 async function runAllTests() {
   console.log('\n' + '='.repeat(60));
-  console.log('Jira Reporting App - Test Orchestration');
+  console.log('Delivera - Test Orchestration');
   console.log('='.repeat(60));
   console.log(`Total Steps (available): ${steps.length}`);
   console.log('Terminating on first error\n');
@@ -293,12 +293,13 @@ async function runAllTests() {
   }
 
   const smokeSpecPaths = [
-    'tests/Jira-Reporting-App-API-Integration-Tests.spec.js',
-    'tests/Jira-Reporting-App-Login-Security-Deploy-Validation-Tests.spec.js',
-    'tests/Jira-Reporting-App-E2E-User-Journey-Tests.spec.js',
-    'tests/Jira-Reporting-App-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js',
-    'tests/Jira-Reporting-App-Data-Integrity-Coherence-Contracts.spec.js',
-    'tests/Jira-Reporting-App-UX-Customer-Simplicity-Trust-Full-Validation-Tests.spec.js',
+    'tests/Delivera-API-Integration-Tests.spec.js',
+    'tests/Delivera-Login-Security-Deploy-Validation-Tests.spec.js',
+    'tests/Delivera-E2E-User-Journey-Tests.spec.js',
+    'tests/Delivera-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js',
+    'tests/Delivera-Outcome-Validation-Screen-And-Epic-Level-Tests.spec.js',
+    'tests/Delivera-Data-Integrity-Coherence-Contracts.spec.js',
+    'tests/Delivera-UX-Customer-Simplicity-Trust-Full-Validation-Tests.spec.js',
   ];
 
   const lastFailedSpecs = disableLastFailed ? [] : loadLastFailedSpecs();

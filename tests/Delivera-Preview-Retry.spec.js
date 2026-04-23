@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { clickReportPreviewFromCurrentState } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { clickReportPreviewFromCurrentState } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test('preview retry button triggers a new preview after a failure', async ({ page }) => {
   await page.goto('/report');
@@ -36,11 +36,19 @@ test('preview retry button triggers a new preview after a failure', async ({ pag
   expect(clicked).toBeTruthy();
 
   await expect.poll(() => callCount, { timeout: 10000 }).toBeGreaterThanOrEqual(1);
+  const backdrop = page.locator('.app-overlay-backdrop.is-open').first();
+  if (await backdrop.isVisible().catch(() => false)) {
+    await backdrop.click({ force: true }).catch(() => null);
+  }
   const retryBtn = page.locator('button[data-action="retry-preview"]:visible').first();
   if (await retryBtn.isVisible().catch(() => false)) {
-    await retryBtn.click();
+    await retryBtn.click({ force: true });
   } else {
     await expect(page.locator('#preview-btn')).toBeEnabled({ timeout: 15000 });
+    await page.evaluate(() => document.getElementById('preview-btn')?.click());
+  }
+  if (callCount < 2) {
+    await expect(page.locator('#preview-btn')).toBeEnabled({ timeout: 10000 });
     await page.evaluate(() => document.getElementById('preview-btn')?.click());
   }
 

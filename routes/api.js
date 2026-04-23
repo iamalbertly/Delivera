@@ -103,6 +103,25 @@ function normalizeNarrativeText(value) {
     return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
+function normalizeOutcomeTitle(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[–—]/g, '-')
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function buildOutcomeItemHash(text) {
+    const input = normalizeOutcomeTitle(text).slice(0, 180);
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i += 1) {
+        hash ^= input.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return Math.abs(hash >>> 0).toString(16).slice(0, 8);
+}
+
 function buildOutcomeDuplicateHashJql(projectKey, hashLabel) {
     return `project = ${projectKey} AND labels = "${hashLabel}" ORDER BY created DESC`;
 }
@@ -1123,22 +1142,28 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                 const issueSummary = String(issue?.fields?.summary || '');
                 const issueText = `${issueSummary} ${asPlainText(issue?.fields?.description).slice(0, 400)}`;
                 const hasHash = Array.isArray(issue?.fields?.labels) && issue.fields.labels.includes(hashLabel);
+                const normalizedIssueSummary = normalizeOutcomeTitle(issueSummary);
+                const itemTitles = (parsedIntake?.items || []).map((item) => String(item?.title || '')).filter(Boolean);
+                const itemSimilarity = itemTitles.reduce((best, title) => Math.max(best, jaccardSimilarity(title, issueSummary)), 0);
+                const exactItemMatch = itemTitles.some((title) => normalizeOutcomeTitle(title) === normalizedIssueSummary);
                 const similarity = hasHash
                     ? 1
                     : Math.max(
                         jaccardSimilarity(summaryBase, issueSummary),
+                        itemSimilarity,
                         jaccardSimilarity(narrativeFragment, issueText)
                     );
                 return {
                     key: issue?.key || '',
                     summary: issueSummary,
                     similarity,
+                    exactItemMatch,
                 };
             })
             .filter((item) => item.key)
             .sort((a, b) => b.similarity - a.similarity)[0] || null;
 
-        if (match && match.similarity >= 0.8 && !createAnyway) {
+        if (match && (match.similarity >= 0.8 || match.exactItemMatch) && !createAnyway) {
             const existingUrl = host ? `${host.replace(/\/+$/, '')}/browse/${match.key}` : '';
             return res.status(409).json({
                 code: 'POSSIBLE_DUPLICATE_OUTCOME',
@@ -1323,19 +1348,47 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             }, selectedParentType, { role: 'single' });
             if (primary?.key) expectedLevelsByKey[primary.key] = 'single';
         } else if (structureMode === 'MULTIPLE_EPICS' || structureMode === 'TABLE_ISSUES') {
+            const duplicateTitleSeen = new Set();
+            const candidateByNormalizedSummary = new Map(
+                candidates
+                    .map((issue) => ({
+                        key: String(issue?.key || '').trim(),
+                        summary: String(issue?.fields?.summary || '').trim(),
+                    }))
+                    .filter((entry) => entry.key && entry.summary)
+                    .map((entry) => [normalizeOutcomeTitle(entry.summary), entry])
+            );
             for (const item of parsedIntake.items) {
+                const normalizedTitle = normalizeOutcomeTitle(item.title);
+                if (!normalizedTitle) continue;
+                if (duplicateTitleSeen.has(normalizedTitle)) {
+                    warnings.push(`Skipped duplicate line in narrative: ${item.title}`);
+                    continue;
+                }
+                duplicateTitleSeen.add(normalizedTitle);
                 const existingKey = Array.isArray(item.jiraKeys) && item.jiraKeys.length ? item.jiraKeys[0] : '';
                 if (existingKey) {
                     linkedExisting.push({ key: existingKey, url: buildIssueUrl(host, existingKey), title: item.title });
                     continue;
                 }
+                const directCandidate = candidateByNormalizedSummary.get(normalizedTitle);
+                if (directCandidate && !createAnyway) {
+                    linkedExisting.push({
+                        key: directCandidate.key,
+                        url: buildIssueUrl(host, directCandidate.key),
+                        title: item.title,
+                        reason: 'existing-summary-match',
+                    });
+                    continue;
+                }
                 try {
+                    const itemHashLabel = `OutcomeItemHash_${buildOutcomeItemHash(item.title)}`;
                     const createdItem = await createIssue({
                         summary: capSummary(item.title),
                         description: item.description || item.title,
                         project: { key: projectKey },
                         issuetype: { name: standaloneIssueTypeName },
-                        labels: ensureLabels(item.labels, projectKey),
+                        labels: ensureLabels([...(item.labels || []), itemHashLabel], projectKey),
                     }, selectedStandaloneType, { role: 'standalone', title: item.title });
                     createdStandalone.push({ ...createdItem, title: item.title });
                     if (createdItem?.key) expectedLevelsByKey[createdItem.key] = 'standalone';

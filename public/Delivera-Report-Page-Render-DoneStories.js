@@ -1,13 +1,13 @@
 
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { getCurrentSelectionComplexity } from './Reporting-App-Report-Page-Filters-Summary-Helpers.js';
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { getSafeMeta, renderEmptyState } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { formatDateForDisplay } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Reporting-App-Report-Utils-Jira-Helpers.js';
-import { VirtualScroller } from './Reporting-App-Shared-Virtual-Scroller.js';
-import { parseIssueLabels, isOutcomeStoryLike, isFlowStatus } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { getCurrentSelectionComplexity } from './Delivera-Report-Page-Filters-Summary-Helpers.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { getSafeMeta, renderEmptyState } from './Delivera-Report-Page-Render-Helpers.js';
+import { formatDateForDisplay } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { resolveJiraIssueUrl } from './Delivera-Report-Utils-Jira-Helpers.js';
+import { VirtualScroller } from './Delivera-Shared-Virtual-Scroller.js';
+import { parseIssueLabels, isOutcomeStoryLike, isFlowStatus } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 
 const VIRTUALIZATION_ROW_THRESHOLD = 250;
 
@@ -20,6 +20,28 @@ function deriveDoneStoryRiskTags(row) {
   if (labels.includes('blocker') && hasOwner && isFlowStatus(row?.issueStatus)) tags.push('blocker');
   if (isOutcome) tags.push('outcome');
   return Array.from(new Set(tags));
+}
+
+function normalizeSummaryForDuplicateScan(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[–—]/g, '-')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function detectDuplicateDoneStorySummaries(rows) {
+  const groups = new Map();
+  (rows || []).forEach((row) => {
+    const normalized = normalizeSummaryForDuplicateScan(row.issueSummary);
+    if (!normalized) return;
+    const scope = `${row.projectKey || ''}|${row.sprintId || ''}|${normalized}`;
+    const current = groups.get(scope) || [];
+    current.push(row);
+    groups.set(scope, current);
+  });
+  return Array.from(groups.values()).filter((items) => items.length > 1);
 }
 
 function applyDoneStoriesRiskFilter(root, activeTags) {
@@ -64,10 +86,10 @@ export function renderDoneStoriesTab(rows) {
   const tabBtn = document.getElementById('tab-btn-done-stories');
   const quarterToggleBtn = document.getElementById('done-stories-quarter-review-toggle');
   const meta = getSafeMeta(reportState.previewData);
-  const jiraHost = getResolvedJiraHostFromMeta(meta);
   const totalRows = Array.isArray(reportState.previewRows) ? reportState.previewRows.length : (Array.isArray(rows) ? rows.length : 0);
   const visibleRows = Array.isArray(rows) ? rows.length : 0;
   const totalSP = (rows || []).reduce((sum, r) => sum + (Number(r.storyPoints) || 0), 0);
+  const duplicateSummaryGroups = detectDuplicateDoneStorySummaries(rows);
   const isPartial = meta?.partial === true;
   const strictEnabled = meta?.requireResolvedBySprintEnd === true;
 
@@ -87,6 +109,7 @@ export function renderDoneStoriesTab(rows) {
       `<span><strong>${totalRows}</strong> total in window</span>`,
       sprintCount > 0 ? `<span><strong>${sprintCount}</strong> sprint${sprintCount === 1 ? '' : 's'}</span>` : '',
       totalSP > 0 ? `<span><strong>${totalSP.toFixed(0)}</strong> SP done</span>` : '',
+      duplicateSummaryGroups.length ? `<span class="totals-bar-note totals-bar-warning"><strong>${duplicateSummaryGroups.length}</strong> duplicate summary group${duplicateSummaryGroups.length === 1 ? '' : 's'} detected</span>` : '',
       isPartial ? '<span class="totals-bar-note">Partial preview</span>' : '',
     ].filter(Boolean).join('<span aria-hidden="true">·</span>');
   }
@@ -183,7 +206,7 @@ export function renderDoneStoriesTab(rows) {
           target.dataset.scrollerInitialized = 'true';
           if (group.rows.length < VIRTUALIZATION_ROW_THRESHOLD) {
             target.style.height = 'auto';
-              target.innerHTML = renderTableHtml(group.rows, meta, jiraHost);
+              target.innerHTML = renderTableHtml(group.rows, meta);
           } else {
             // Virtual Path
             target.innerHTML = `
@@ -193,7 +216,7 @@ export function renderDoneStoriesTab(rows) {
                 <div class="virtual-body-container" style="height: 400px; overflow-y: auto;"></div>
              `;
             const bodyContainer = target.querySelector('.virtual-body-container');
-            new VirtualScroller(bodyContainer, group.rows, (row) => renderRowHtml(row, meta, jiraHost), { rowHeight: 40 });
+            new VirtualScroller(bodyContainer, group.rows, (row) => renderRowHtml(row, meta), { rowHeight: 40 });
           }
         }
       } else {
@@ -272,7 +295,7 @@ function renderTableHeader(meta) {
   </div>`;
 }
 
-function renderTableHtml(rows, meta, jiraHost) {
+function renderTableHtml(rows, meta) {
   return `<table class="data-table">
     <thead>
        <tr>
@@ -284,12 +307,12 @@ function renderTableHtml(rows, meta, jiraHost) {
        <th>Assignee</th>
        </tr>
     </thead>
-    <tbody>${rows.map(r => renderRowHtmlAsTr(r, meta, jiraHost)).join('')}</tbody>
+    <tbody>${rows.map(r => renderRowHtmlAsTr(r, meta)).join('')}</tbody>
   </table>`;
 }
 
-function renderRowHtml(row, meta, jiraHost) {
-  const issueUrl = buildJiraIssueUrl(jiraHost, row.issueKey);
+function renderRowHtml(row, meta) {
+  const issueUrl = resolveJiraIssueUrl(meta, row.issueKey, row.issueUrl);
   const issueKeyHtml = issueUrl
     ? `<a href="${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.issueKey || '')}</a>`
     : `<span class="issue-key-unlinked">${escapeHtml(row.issueKey || '')}</span>`;
@@ -305,8 +328,8 @@ function renderRowHtml(row, meta, jiraHost) {
   </div>`;
 }
 
-function renderRowHtmlAsTr(row, meta, jiraHost) {
-  const issueUrl = buildJiraIssueUrl(jiraHost, row.issueKey);
+function renderRowHtmlAsTr(row, meta) {
+  const issueUrl = resolveJiraIssueUrl(meta, row.issueKey, row.issueUrl);
   const issueKeyHtml = issueUrl
     ? `<a href="${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.issueKey || '')}</a>`
     : `<span class="issue-key-unlinked">${escapeHtml(row.issueKey || '')}</span>`;

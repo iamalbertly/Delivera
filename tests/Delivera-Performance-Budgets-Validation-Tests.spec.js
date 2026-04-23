@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
@@ -6,7 +6,7 @@ import {
   skipIfRedirectedToLogin,
   selectFirstBoard,
   assertPreviewOrSkip,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function readPerf(page, key) {
   return page.evaluate((routeKey) => {
@@ -15,7 +15,7 @@ async function readPerf(page, key) {
   }, key);
 }
 
-test.describe('Jira Reporting App - Performance Budgets Validation', () => {
+test.describe('Delivera - Performance Budgets Validation', () => {
   test('report exposes perf marks and direct-to-value content inside budget', async ({ page }) => {
     test.setTimeout(90000);
     const telemetry = captureBrowserTelemetry(page);
@@ -31,7 +31,7 @@ test.describe('Jira Reporting App - Performance Budgets Validation', () => {
 
     await assertPreviewOrSkip(page, test, { timeout: 20000 });
     await expect(page.locator('#preview-content')).toBeVisible();
-    await expect(page.locator('#preview-meta .preview-header-story')).toBeVisible();
+    await expect(page.locator('#preview-meta .preview-context-bar')).toBeVisible();
     await expect(page.locator('#preview-status-strip')).toHaveCount(1);
 
     const perf = await readPerf(page, 'report');

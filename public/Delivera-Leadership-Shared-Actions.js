@@ -67,6 +67,10 @@ function buildLeadershipQuarterlyStory(root = document) {
     return `- ${text}`;
   });
   const trust = container.querySelector('.leadership-trust-card')?.textContent?.replace(/\s+/g, ' ')?.trim() || 'Trust details unavailable.';
+  const priorityList = Array.from(container.querySelectorAll('.leadership-risk-list li')).slice(0, 4).map((li) => li.textContent.replace(/\s+/g, ' ').trim());
+  const caution = priorityList.length
+    ? priorityList.map((line) => `- ${line}`)
+    : ['- No intervention priorities were flagged for this window.'];
   return [
     '# Quarterly leadership story',
     '',
@@ -79,6 +83,9 @@ function buildLeadershipQuarterlyStory(root = document) {
     '',
     '## Observations',
     ...(outliers.length ? outliers : ['- No delivery outliers crossed the active thresholds in this window.']),
+    '',
+    '## Priority actions',
+    ...caution,
     '',
     '## Trust and assumptions',
     `- ${trust}`,
@@ -113,6 +120,12 @@ function buildManagerBriefing(root = document) {
   const trustLine = container.querySelector('.leadership-mission-trust-line')?.textContent?.trim() || '';
   const topRisks = Array.from(container.querySelectorAll('.leadership-risk-list li')).slice(0, 3).map((li) => li.textContent.replace(/\s+/g, ' ').trim());
   const attentionItems = Array.from(container.querySelectorAll('.attention-queue-item')).slice(0, 2).map((el) => el.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const metricCards = Array.from(container.querySelectorAll('.leadership-kpi-project-card')).slice(0, 3).map((card) => {
+    const project = card.querySelector('h3')?.textContent?.trim() || 'Project';
+    const rows = Array.from(card.querySelectorAll('dt,dd')).map((el) => el.textContent.trim()).filter(Boolean);
+    return `${project}: ${rows.slice(0, 6).join(' | ')}`;
+  });
+  const trustBand = (container.querySelector('.leadership-trust-card h3')?.textContent || '').trim();
   const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
   const windowLine = `Window: ${rangeStart} – ${rangeEnd}` + (projectsLabel ? ` | Projects: ${projectsLabel}` : '');
   let genReadable = '';
@@ -136,6 +149,15 @@ function buildManagerBriefing(root = document) {
     parts.push('');
     parts.push('Signals:');
     attentionItems.forEach((r) => parts.push('• ' + r));
+  }
+  if (metricCards.length) {
+    parts.push('');
+    parts.push('Evidence (top KPI cards):');
+    metricCards.forEach((line) => parts.push('• ' + line));
+  }
+  if (trustBand) {
+    parts.push('');
+    parts.push(`Trust band: ${trustBand}`);
   }
   parts.push('');
   parts.push(`Manager link: ${origin}/leadership`);

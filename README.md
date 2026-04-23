@@ -95,6 +95,8 @@ This README is the SSOT for usage and validation. Supplemental planning document
 - Report **Feedback** panel: the toggle is injected with the mission-control header (`Delivera-Report-Page-Init-Controller.js`); `initFeedbackPanel()` runs only after that markup exists so listeners attach once (the shared header script no longer calls `initFeedbackPanel` early, which previously blocked wiring).
 - New focused validation spec added and wired into orchestration:
   - `tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js`
+  - `tests/Delivera-Outcome-Validation-Screen-And-Epic-Level-Tests.spec.js` (verifies top-level epic parsing for quarterly narrative batches, post-submit validation screen checks, hierarchy mismatch handling, and backlog rank edge cases).
+  - Outcome create responses now expose normalized `createdIssues` plus verification hierarchy fields (`hierarchyVerified`, `hierarchyMismatches`) used by the modal validation screen.
   - Run standalone: `npm run test:outcome-intake-readiness`
   - Full suite: `npm run test:all`
 

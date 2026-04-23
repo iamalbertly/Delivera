@@ -1,6 +1,6 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDateForDisplay, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { buildJiraIssueUrl, getEpicStoryItems, getResolvedJiraHostFromMeta, getJiraLinkAvailability, hasResolvedJiraHost, isJiraIssueKey } from './Reporting-App-Report-Utils-Jira-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDateForDisplay, formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { buildJiraIssueUrl, getEpicStoryItems, getResolvedJiraHostFromMeta, getJiraLinkAvailability, hasResolvedJiraHost, isJiraIssueKey, resolveJiraIssueUrl } from './Delivera-Report-Utils-Jira-Helpers.js';
 
 export function buildPredictabilityTableHeaderHtml() {
   return '<table class="data-table"><thead><tr>' +
@@ -87,13 +87,12 @@ export function renderEpicTitleCell(epic) {
 }
 
 export function renderEpicStoryList(epic, meta, rows) {
-  const host = getResolvedJiraHostFromMeta(meta);
   const items = getEpicStoryItems(epic, rows);
   if (!items || items.length === 0) return '-';
   const pills = items.map(item => {
     const issueKey = String(item?.key || '').trim();
     if (!issueKey) return '<span class="story-pill story-pill--unlinked" title="Jira link unavailable">Jira link unavailable</span>';
-    const url = buildJiraIssueUrl(host, item.key);
+    const url = resolveJiraIssueUrl(meta, item.key, item.issueUrl);
     const label = escapeHtml(issueKey);
     const summary = escapeHtml(item.summary || '');
     const titleText = summary ? `Open in Jira: ${issueKey} — ${summary}` : `Open in Jira: ${issueKey}`;

@@ -4,6 +4,7 @@ import {
   getValidLastQuery,
   buildCompactReportRangeLabel,
   getContextDisplayString,
+  buildActiveFiltersContextLabel,
   renderSidebarContextCard,
 } from './Delivera-Shared-Context-From-Storage.js';
 import {
@@ -210,8 +211,26 @@ export function updateAppliedFiltersSummary() {
     else if (loadLatestWrap) loadLatestWrap.style.display = 'none';
   }
   const reportContextLine = document.getElementById('report-context-line');
-  if (reportContextLine && projects.length === 0) {
-    reportContextLine.textContent = getContextDisplayString();
+  if (reportContextLine) {
+    const hiddenForPreview = reportContextLine.getAttribute('aria-hidden') === 'true'
+      || reportContextLine.style.display === 'none';
+    if (hiddenForPreview) {
+      reportContextLine.textContent = '';
+      return;
+    }
+    const startValContext = document.getElementById('start-date')?.value || '';
+    const endValContext = document.getElementById('end-date')?.value || '';
+    const projectsCsv = projects.join(',');
+    const contextText = getContextDisplayString();
+    const previewActive = document.body?.classList?.contains('preview-visible') || document.body?.classList?.contains('preview-active');
+    const hasActiveFilterContext = !!projectsCsv || (!!startValContext && !!endValContext);
+    const fallbackActive = hasActiveFilterContext
+      ? buildActiveFiltersContextLabel(projectsCsv, startValContext, endValContext)
+      : 'No report run yet';
+    reportContextLine.textContent = (contextText === 'No report run yet' && !previewActive) ? fallbackActive : contextText;
+  }
+  if (reportContextLine && !String(reportContextLine.textContent || '').trim()) {
+    reportContextLine.textContent = 'No report run yet';
   }
 
   if (typeof document !== 'undefined' && document.body?.classList?.contains('report-page')) {

@@ -32,6 +32,13 @@ export function buildJiraIssueUrl(host, issueKey) {
   return `${normalizeJiraHost(host)}/browse/${issueKey}`;
 }
 
+export function resolveJiraIssueUrl(meta, issueKey, issueUrlCandidate = '') {
+  const fromRow = String(issueUrlCandidate || '').trim();
+  if (fromRow && /^https?:\/\//i.test(fromRow)) return fromRow;
+  const host = getResolvedJiraHostFromMeta(meta);
+  return buildJiraIssueUrl(host, issueKey);
+}
+
 /** Returns true if the key looks like a real Jira issue key (e.g. PROJECT-123), not a synthetic label like AD-HOC or *-ad-hoc. */
 export function isJiraIssueKey(key) {
   if (!key || typeof key !== 'string') return false;
@@ -52,6 +59,7 @@ export function getEpicStoryItems(epic, rows) {
       summary: row.issueSummary,
       type: row.issueType,
       status: row.issueStatus,
+      issueUrl: row.issueUrl,
       storyPoints: row.storyPoints,
       created: row.created,
       resolved: row.resolutionDate,

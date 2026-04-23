@@ -132,5 +132,52 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
     await page.locator('#report-outcome-intake-create').click();
     await expect(page.locator('#report-outcome-validation-screen')).toContainText(/Not top-ranked yet/i);
   });
+
+  test('draft API duplicate-line warning edge case is rendered', async ({ page }) => {
+    await page.route('**/api/outcome-draft', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          structureMode: 'MULTIPLE_EPICS',
+          precheck: { key: 'quarterly_epic_batch', message: 'Quarterly epic batch detected — each line is treated as a top-level epic.' },
+          rows: [
+            {
+              id: 'r0',
+              index: 0,
+              childItemIndex: 0,
+              kind: 'EPIC',
+              title: 'FY27 Q1 - DMS - NBA - Territory Daily Report',
+              confidence: 0.9,
+              confidenceLabel: 'high confidence',
+              duplicate: { suggestedAction: 'createNew' },
+              warnings: [],
+              selected: true,
+            },
+            {
+              id: 'r1',
+              index: 1,
+              childItemIndex: 1,
+              kind: 'EPIC',
+              title: 'FY27 Q1 - DMS - NBA - Territory Daily Report',
+              confidence: 0.9,
+              confidenceLabel: 'high confidence',
+              duplicate: { suggestedAction: 'createNew' },
+              warnings: [{ code: 'DUPLICATE_LINE_IN_INPUT', message: 'This line duplicates another line in your draft and will be unselected by default.' }],
+              selected: false,
+            },
+          ],
+        }),
+      });
+    });
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.locator('[data-open-outcome-modal]').first().click();
+    await page.locator('#report-outcome-text').fill(QUARTERLY_EPIC_LINES);
+    await page.locator('#report-outcome-generate-draft').click();
+    await expect(page.locator('#report-outcome-draft-precheck')).toContainText(/Quarterly epic batch detected/i);
+    await expect(page.locator('#report-outcome-draft-tbody')).toContainText(/duplicates another line/i);
+  });
 });
 
