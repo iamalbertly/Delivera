@@ -263,7 +263,7 @@ Journey membership is implemented in `scripts/Delivera-Tests-Journey-Buckets-Map
   - No duplicate storage keys introduced.
   - No parallel URL/escape implementations added in touched modules.
 - **Public API surface impact:**
-  - No request/response shape changes in `/api/current-sprint.json`, `/api/outcome-from-narrative`, or other API endpoints.
+  - `/api/outcome-from-narrative` response now includes `createdIssues` (normalized created key/url list for modal follow-up) and enriched `verification` hierarchy fields (`hierarchyVerified`, `hierarchyMismatches`) for post-submit validation UI.
 - **Cross-module file move / naming change events:**
   - Added one cross-module helper file: `lib/Delivera-Server-Url-And-Escape-Helpers.js`.
   - Naming follows existing project prefix convention and avoids folder-implied filler segments.

@@ -1,10 +1,12 @@
 import { createModalBehavior } from './Delivera-Core-UI-02Primitives-Modal.js';
 import { isJiraIssueKey } from './Delivera-Report-Utils-Jira-Helpers.js';
 import { OUTCOME_STRUCTURE_MODE, parseOutcomeIntake } from './Delivera-Shared-Outcome-Intake-Parser.js';
+import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 let modalController = null;
 let currentConfig = {};
 const LAST_OUTCOME_PROJECT_KEY = 'report_last_outcome_project_v1';
+const OUTCOME_SUBMIT_TIMEOUT_MS = 45000;
 const outcomeComposerState = {
   structureMode: 'AUTO',
   parentIndex: 0,
@@ -110,6 +112,8 @@ function ensureOutcomeModal() {
     + '<button type="button" id="report-outcome-commit-selected" class="btn btn-compact report-outcome-intake-create-btn" disabled hidden>Create selected</button>'
     + '<button type="button" id="report-outcome-intake-create" class="btn btn-compact report-outcome-intake-create-btn" disabled>Create Jira work</button>'
     + '</div></div>'
+    + '<div id="report-outcome-follow-up" class="report-outcome-follow-up" hidden></div>'
+    + '<div id="report-outcome-validation-screen" class="report-outcome-validation-screen" hidden></div>'
     + '</div>'
     + '</div>'
     + '</div>';
@@ -183,6 +187,8 @@ function getElements() {
     modal,
     textarea: modal.querySelector('#report-outcome-text'),
     statusEl: modal.querySelector('#report-outcome-intake-status'),
+    followUpEl: modal.querySelector('#report-outcome-follow-up'),
+    validationEl: modal.querySelector('#report-outcome-validation-screen'),
     createBtn: modal.querySelector('#report-outcome-intake-create'),
     generateDraftBtn: modal.querySelector('#report-outcome-generate-draft'),
     commitSelectedBtn: modal.querySelector('#report-outcome-commit-selected'),
@@ -201,6 +207,77 @@ function getElements() {
   };
 }
 
+function readProjectContextCsv() {
+  try {
+    return String(window.localStorage.getItem(PROJECTS_SSOT_KEY) || '').trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+function extractCreatedIssues(payload) {
+  if (!payload || typeof payload !== 'object') return [];
+  const fromList = Array.isArray(payload.createdIssues)
+    ? payload.createdIssues
+    : (Array.isArray(payload.issues) ? payload.issues : []);
+  const list = [];
+  fromList.forEach((item) => {
+    const key = String(item?.key || item?.issueKey || '').trim();
+    const url = String(item?.url || item?.issueUrl || '').trim();
+    if (key || url) list.push({ key, url });
+  });
+  const fallbackKey = String(payload.key || payload.issueKey || '').trim();
+  const fallbackUrl = String(payload.url || payload.issueUrl || '').trim();
+  if (fallbackKey || fallbackUrl) list.push({ key: fallbackKey, url: fallbackUrl });
+  const dedupe = new Set();
+  return list.filter((item) => {
+    const sig = `${item.key}|${item.url}`;
+    if (dedupe.has(sig)) return false;
+    dedupe.add(sig);
+    return true;
+  });
+}
+
+function persistOutcomeActivity(payload, projectKey) {
+  try {
+    const created = extractCreatedIssues(payload);
+    if (!created.length) return;
+    const logRaw = window.localStorage.getItem(OUTCOME_ACTIVITY_LOG_KEY);
+    const parsed = JSON.parse(logRaw || '[]');
+    const current = Array.isArray(parsed) ? parsed : [];
+    const entry = {
+      at: new Date().toISOString(),
+      projectKey: String(projectKey || '').trim().toUpperCase(),
+      contextProjects: readProjectContextCsv(),
+      created,
+    };
+    const next = [entry, ...current].slice(0, 20);
+    window.localStorage.setItem(OUTCOME_ACTIVITY_LOG_KEY, JSON.stringify(next));
+  } catch (_) {}
+}
+
+function renderOutcomeFollowUp(payload, projectKey, followUpEl) {
+  if (!followUpEl) return;
+  const created = extractCreatedIssues(payload);
+  if (!created.length) {
+    followUpEl.hidden = true;
+    followUpEl.innerHTML = '';
+    return;
+  }
+  const links = created.map((item) => {
+    const label = escapeHtml(item.key || 'Open Jira issue');
+    if (!item.url) return `<li>${label}</li>`;
+    return `<li><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${label}</a></li>`;
+  }).join('');
+  const selected = String(projectKey || '').trim().toUpperCase();
+  const projectNote = selected ? `Primary project updated: ${escapeHtml(selected)}` : 'Context updated from current selection.';
+  followUpEl.hidden = false;
+  followUpEl.innerHTML = ''
+    + `<p class="report-outcome-follow-up-title">Created ${created.length} Jira item${created.length === 1 ? '' : 's'}</p>`
+    + `<ul class="report-outcome-follow-up-links">${links}</ul>`
+    + `<p class="report-outcome-follow-up-note">${projectNote} Future creation defaults now include this context.</p>`;
+}
+
 function getAllowedProjects(prefill = {}) {
   const selected = typeof currentConfig.getSelectedProjects === 'function' ? currentConfig.getSelectedProjects() : [];
   return Array.from(new Set([...(selected || []), ...(prefill.contextProjects || [])]
@@ -214,10 +291,116 @@ function setStatus(statusEl, message, isHtml = false) {
   else statusEl.textContent = message || '';
 }
 
+function inferIssueLevel(issueTypeName) {
+  const typeName = String(issueTypeName || '').toLowerCase();
+  if (typeName.includes('sub-task') || typeName.includes('subtask')) return 'subtask';
+  if (typeName.includes('epic') || typeName.includes('initiative') || typeName.includes('theme')) return 'epic';
+  return 'story';
+}
+
+function renderValidationScreen(payload, projectKey, targetEl) {
+  if (!targetEl) return;
+  const verification = payload?.verification || {};
+  const expected = Number(payload?.expectedCreateCount || 0);
+  const created = Number(payload?.createdCount || 0);
+  const boardName = String(verification?.boardName || '').trim();
+  const hierarchyMismatches = Array.isArray(verification?.hierarchyMismatches) ? verification.hierarchyMismatches : [];
+  const checks = [
+    {
+      label: 'Created expected count',
+      pass: expected <= 0 ? created > 0 : created === expected,
+      detail: `${created}/${expected || created} items`,
+    },
+    {
+      label: 'Fetched in Jira',
+      pass: verification?.fetchVerified === true,
+      detail: verification?.fetchVerified ? 'All created items fetched' : `Missing: ${(verification?.missingKeys || []).join(', ') || 'unknown'}`,
+    },
+    {
+      label: 'Visible in target backlog',
+      pass: Array.isArray(verification?.backlogVisibleKeys) && verification.backlogVisibleKeys.length > 0,
+      detail: boardName ? `${(verification.backlogVisibleKeys || []).length} visible in ${boardName}` : 'No board verification',
+    },
+    {
+      label: 'Pinned near top',
+      pass: verification?.backlogTopVerified === true,
+      detail: verification?.backlogTopVerified ? 'Confirmed at top' : 'Not top-ranked yet',
+    },
+    {
+      label: 'Hierarchy level validated',
+      pass: verification?.hierarchyVerified !== false && hierarchyMismatches.length === 0,
+      detail: hierarchyMismatches.length ? `${hierarchyMismatches.length} mismatches` : 'Issue levels match expected',
+    },
+    {
+      label: 'Project scope matched',
+      pass: (verification?.issueChecks || []).every((item) => !projectKey || String(item?.projectKey || '').toUpperCase() === String(projectKey || '').toUpperCase()),
+      detail: projectKey ? `Target project ${projectKey}` : 'No project lock',
+    },
+  ];
+  const passCount = checks.filter((check) => check.pass).length;
+  const headerTone = passCount === checks.length ? 'is-pass' : (passCount >= Math.ceil(checks.length * 0.6) ? 'is-warn' : 'is-fail');
+  const rows = checks.map((check) => ''
+    + '<li class="report-outcome-validation-item ' + (check.pass ? 'is-pass' : 'is-fail') + '">'
+    + '<span class="report-outcome-validation-mark">' + (check.pass ? 'PASS' : 'FAIL') + '</span>'
+    + '<span class="report-outcome-validation-copy"><strong>' + escapeHtml(check.label) + '</strong><small>' + escapeHtml(check.detail) + '</small></span>'
+    + '</li>').join('');
+  const mismatchRows = hierarchyMismatches.map((item) => ''
+    + '<li><strong>' + escapeHtml(item.key || '') + '</strong>: expected '
+    + escapeHtml(item.expectedLevel || '') + ', got '
+    + escapeHtml(item.actualLevel || inferIssueLevel(item.issueType || '')) + '</li>').join('');
+  targetEl.hidden = false;
+  targetEl.innerHTML = ''
+    + '<div class="report-outcome-validation-head ' + headerTone + '">'
+    + '<strong>Submission validation</strong>'
+    + '<span>' + passCount + '/' + checks.length + ' checks passed</span>'
+    + '</div>'
+    + '<ul class="report-outcome-validation-list">' + rows + '</ul>'
+    + (mismatchRows ? '<details class="report-outcome-validation-details"><summary>Hierarchy mismatches</summary><ul>' + mismatchRows + '</ul></details>' : '');
+}
+
 function setButtonState(button, disabled, label) {
   if (!button) return;
   button.disabled = !!disabled;
   button.textContent = label || 'Create Jira work';
+}
+
+async function postOutcomeWithTimeout(url, payload) {
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), OUTCOME_SUBMIT_TIMEOUT_MS);
+  try {
+    return await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`Request timed out after ${OUTCOME_SUBMIT_TIMEOUT_MS / 1000}s. Re-authenticate Jira and retry.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+}
+
+function setOutcomeFollowUpFailure(followUpEl) {
+  if (!followUpEl) return;
+  followUpEl.hidden = false;
+  followUpEl.textContent = 'Processing failed. Review network/runtime logs and retry.';
+}
+
+function applyOutcomeCreateSuccess({ json, projectKey, statusEl, followUpEl, validationEl, textarea, resetAfterCreate }) {
+  const key = json?.key || json?.issueKey || '';
+  const url = json?.url || json?.issueUrl || '';
+  if (json?.summaryHtml) setStatus(statusEl, json.summaryHtml, true);
+  else if (key && url) setStatus(statusEl, 'Created Jira issue <a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(key) + '</a>.', true);
+  else setStatus(statusEl, key ? 'Created Jira issue ' + key + '.' : 'Created Jira issue from narrative.');
+  persistOutcomeActivity(json, projectKey);
+  renderOutcomeFollowUp(json, projectKey, followUpEl);
+  renderValidationScreen(json, projectKey, validationEl);
+  if (textarea) textarea.value = '';
+  if (typeof resetAfterCreate === 'function') resetAfterCreate();
 }
 
 function getDraftContextFromConfig() {
@@ -379,7 +562,7 @@ async function runGenerateDraft(prefill = {}) {
 async function submitDraftSelection(prefill = {}) {
   const payload = outcomeDraftState.payload;
   if (!payload?.rows?.length) return;
-  const { textarea, statusEl, createBtn, commitSelectedBtn, projectPickerWrap, projectPicker, draftTbody, parentSummaryOverride } = getElements();
+  const { textarea, statusEl, followUpEl, validationEl, createBtn, commitSelectedBtn, projectPickerWrap, projectPicker, draftTbody, parentSummaryOverride } = getElements();
   const narrative = String(textarea.value || '').trim();
   const projects = getAllowedProjects(prefill);
   const projectKey = projectPickerWrap.hidden ? (projects[0] || '') : String(projectPicker.value || '').trim().toUpperCase();
@@ -401,28 +584,40 @@ async function submitDraftSelection(prefill = {}) {
   }
   setButtonState(createBtn, true);
   setStatus(statusEl, '');
+  if (followUpEl) {
+    followUpEl.hidden = false;
+    followUpEl.textContent = 'Processing Jira submissions...';
+  }
   try {
-    const res = await fetch('/api/outcome-from-narrative', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildOutcomeFromNarrativeBody(parsed, narrative, projectKey, projects, {
+    const res = await postOutcomeWithTimeout('/api/outcome-from-narrative', buildOutcomeFromNarrativeBody(parsed, narrative, projectKey, projects, {
         commitChildIndices: indices,
         parentSummaryOverride: parentOverride || undefined,
-      })),
-    });
+      }));
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
       setStatus(statusEl, json.message || json.error || 'Create failed');
       return;
     }
     const json = await res.json().catch(() => ({}));
-    if (json?.summaryHtml) setStatus(statusEl, json.summaryHtml, true);
-    else setStatus(statusEl, 'Created selected Jira work.', false);
-    textarea.value = '';
-    hideDraftPanel();
-    resetComposerAfterSubmit();
+    applyOutcomeCreateSuccess({
+      json,
+      projectKey,
+      statusEl,
+      followUpEl,
+      validationEl,
+      textarea,
+      resetAfterCreate: () => {
+        hideDraftPanel();
+        resetComposerAfterSubmit();
+      },
+    });
   } catch (err) {
     setStatus(statusEl, 'Failed: ' + (err?.message || 'network'));
+    setOutcomeFollowUpFailure(followUpEl);
+    if (validationEl) {
+      validationEl.hidden = false;
+      validationEl.innerHTML = '<div class="report-outcome-validation-head is-fail"><strong>Submission validation</strong><span>Failed before verification completed</span></div>';
+    }
   } finally {
     if (commitSelectedBtn) {
       commitSelectedBtn.disabled = false;
@@ -577,8 +772,10 @@ function resetComposerAfterSubmit() {
 function updateProjectPicker(prefill = {}) {
   const { projectPickerWrap, projectPicker, projectPickerHint, projectsLineEl } = getElements();
   const projects = getAllowedProjects(prefill);
+  const draftCtx = getDraftContextFromConfig();
+  const boardHint = Number.isFinite(draftCtx.boardId) && draftCtx.boardId > 0 ? ` | Board ${draftCtx.boardId}` : '';
   projectsLineEl.textContent = projects.length
-    ? 'Projects in context: ' + projects.join(', ')
+    ? 'Projects in context: ' + projects.join(', ') + boardHint
     : 'Projects in context: none selected yet.';
   if (projects.length <= 1) {
     projectPickerWrap.hidden = true;
@@ -629,7 +826,7 @@ function renderParseSummary(parseSummaryEl, parsed, selectedProject) {
   } else if (parsed.structureMode === 'STORY_WITH_SUBTASKS') {
     summary = 'Will create 1 parent issue plus ' + Math.max(0, createCount - 1) + ' child items in project ' + escapeHtml(selectedProject || 'current project') + '.';
   } else if (parsed.structureMode === 'MULTIPLE_EPICS') {
-    summary = 'Will create ' + createCount + ' top-level Jira items in project ' + escapeHtml(selectedProject || 'current project') + '.';
+    summary = 'Will create ' + createCount + ' top-level epics in project ' + escapeHtml(selectedProject || 'current project') + '.';
   } else if (parsed.structureMode === 'TABLE_ISSUES') {
     summary = 'Detected table input - will create ' + createCount + ' issues with descriptions in project ' + escapeHtml(selectedProject || 'current project') + '.';
   } else if (parsed.structureMode === 'SINGLE_ISSUE') {
@@ -644,7 +841,7 @@ function renderParseSummary(parseSummaryEl, parsed, selectedProject) {
 
 function updateUi(prefill = {}) {
   const {
-    textarea, statusEl, createBtn, generateDraftBtn, commitSelectedBtn, draftPanel,
+    textarea, statusEl, followUpEl, createBtn, generateDraftBtn, commitSelectedBtn, draftPanel,
     projectPickerWrap, projectPicker, overridesEl, parseSummaryEl,
   } = getElements();
   const narrative = String(textarea.value || '').trim();
@@ -659,6 +856,10 @@ function updateUi(prefill = {}) {
   if (!narrative) {
     hideDraftPanel();
     setStatus(statusEl, '');
+    if (followUpEl && !followUpEl.textContent.trim()) {
+      followUpEl.hidden = true;
+      followUpEl.innerHTML = '';
+    }
     setButtonState(createBtn, true);
     if (generateDraftBtn) {
       generateDraftBtn.disabled = true;
@@ -702,11 +903,15 @@ function updateUi(prefill = {}) {
     const buttonLabelMap = {
       EPIC_WITH_STORIES: 'Create ' + creatable.length + ' Jira issues from this list',
       STORY_WITH_SUBTASKS: 'Create parent + child items',
-      MULTIPLE_EPICS: 'Create ' + creatable.length + ' Jira items',
+      MULTIPLE_EPICS: 'Create ' + creatable.length + ' top-level epics',
       TABLE_ISSUES: 'Create ' + creatable.length + ' Jira issues',
       SINGLE_ISSUE: 'Create 1 Jira issue',
     };
     const statusBits = [parsed.rationale];
+    const draftCtx = getDraftContextFromConfig();
+    if (!Number.isFinite(draftCtx.boardId) || draftCtx.boardId <= 0) {
+      statusBits.push('Board not pinned from context - backlog validation will run with project-default board.');
+    }
     if (existingLinks.length) statusBits.push(existingLinks.length + ' existing Jira issue' + (existingLinks.length === 1 ? '' : 's') + ' will link instead of duplicate.');
     if (!skipStatus()) setStatus(statusEl, statusBits.join(' '));
     setButtonState(createBtn, false, buttonLabelMap[parsed.structureMode] || 'Create Jira issue');
@@ -725,7 +930,7 @@ function updateUi(prefill = {}) {
 }
 
 async function submit(prefill = {}) {
-  const { textarea, statusEl, createBtn, projectPickerWrap, projectPicker } = getElements();
+  const { textarea, statusEl, followUpEl, validationEl, createBtn, projectPickerWrap, projectPicker } = getElements();
   const narrative = String(textarea.value || '').trim();
   const projects = getAllowedProjects(prefill);
   const projectKey = projectPickerWrap.hidden ? (projects[0] || '') : String(projectPicker.value || '').trim().toUpperCase();
@@ -738,14 +943,14 @@ async function submit(prefill = {}) {
   saveLastOutcomeProject(projectKey);
   setButtonState(createBtn, true, 'Creating...');
   setStatus(statusEl, '');
+  if (followUpEl) {
+    followUpEl.hidden = false;
+    followUpEl.textContent = 'Processing Jira submissions...';
+  }
 
-  const createRequest = async (createAnyway = false) => fetch('/api/outcome-from-narrative', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildOutcomeFromNarrativeBody(parsed, narrative, projectKey, projects, {
+  const createRequest = async (createAnyway = false) => postOutcomeWithTimeout('/api/outcome-from-narrative', buildOutcomeFromNarrativeBody(parsed, narrative, projectKey, projects, {
       createAnyway,
-    })),
-  });
+    }));
 
   try {
     const res = await createRequest(false);
@@ -776,15 +981,18 @@ async function submit(prefill = {}) {
           try {
             const forced = await createRequest(true);
             const json = await forced.json().catch(() => ({}));
-            const key = json?.key || json?.issueKey || '';
-            const url = json?.url || json?.issueUrl || '';
-            if (json?.summaryHtml) setStatus(statusEl, json.summaryHtml, true);
-            else if (key && url) setStatus(statusEl, 'Created Jira issue <a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(key) + '</a>.', true);
-            else setStatus(statusEl, key ? 'Created Jira issue ' + key + '.' : 'Created Jira issue from narrative.');
-            textarea.value = '';
-            resetComposerAfterSubmit();
+            applyOutcomeCreateSuccess({
+              json,
+              projectKey,
+              statusEl,
+              followUpEl,
+              validationEl,
+              textarea,
+              resetAfterCreate: resetComposerAfterSubmit,
+            });
           } catch (error) {
             setStatus(statusEl, 'Failed to create Jira issue: ' + (error?.message || 'Network error'));
+            setOutcomeFollowUpFailure(followUpEl);
             updateUi(prefill);
           } finally {
             if (textarea.value) setButtonState(createBtn, false);
@@ -810,15 +1018,22 @@ async function submit(prefill = {}) {
       return;
     }
     const json = await res.json().catch(() => ({}));
-    const key = json?.key || json?.issueKey || '';
-    const url = json?.url || json?.issueUrl || '';
-    if (json?.summaryHtml) setStatus(statusEl, json.summaryHtml, true);
-    else if (key && url) setStatus(statusEl, 'Created Jira issue <a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(key) + '</a>.', true);
-    else setStatus(statusEl, key ? 'Created Jira issue ' + key + '.' : 'Created Jira issue from narrative.');
-    textarea.value = '';
-    resetComposerAfterSubmit();
+    applyOutcomeCreateSuccess({
+      json,
+      projectKey,
+      statusEl,
+      followUpEl,
+      validationEl,
+      textarea,
+      resetAfterCreate: resetComposerAfterSubmit,
+    });
   } catch (error) {
     setStatus(statusEl, 'Failed to create Jira issue: ' + (error?.message || 'Network error'));
+    setOutcomeFollowUpFailure(followUpEl);
+    if (validationEl) {
+      validationEl.hidden = false;
+      validationEl.innerHTML = '<div class="report-outcome-validation-head is-fail"><strong>Submission validation</strong><span>Failed before verification completed</span></div>';
+    }
     setButtonState(createBtn, false);
     updateUi(prefill);
   }
@@ -833,6 +1048,14 @@ export function openGlobalOutcomeModal(prefill = {}) {
   elements.contextEl.textContent = prefill.contextLabel || 'Promote a narrative, risk, or board signal into trackable Jira work.';
   elements.textarea.value = String(prefill.narrative || '').trim();
   setStatus(elements.statusEl, '');
+  if (elements.followUpEl) {
+    elements.followUpEl.hidden = true;
+    elements.followUpEl.innerHTML = '';
+  }
+  if (elements.validationEl) {
+    elements.validationEl.hidden = true;
+    elements.validationEl.innerHTML = '';
+  }
   updateUi(prefill);
   if (!modalController) {
     modalController = createModalBehavior('#global-outcome-modal', {

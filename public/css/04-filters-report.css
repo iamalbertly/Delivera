@@ -88,8 +88,10 @@ body.report-page .filters-panel.overlay-drawer {
   z-index: 1400;
 }
 
-body.report-page .filters-panel.overlay-drawer.collapsed {
-  visibility: hidden;
+@media (max-width: 1200px) {
+  body.report-page .filters-panel.overlay-drawer.collapsed {
+    visibility: hidden;
+  }
 }
 
 @media (min-width: 1025px) {
@@ -2329,6 +2331,33 @@ body.keyboard-open .leadership-context-sticky {
   min-width: 0;
 }
 
+.report-outcome-follow-up {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid #d6e3f1;
+  border-radius: 10px;
+  background: #f8fbff;
+  font-size: 0.82rem;
+  color: #24405e;
+}
+
+.report-outcome-follow-up-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.report-outcome-follow-up-links {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 2px;
+}
+
+.report-outcome-follow-up-note {
+  margin: 6px 0 0;
+  color: #4a657f;
+}
+
 /* Base reset for intake button (shared across all 3 states) */
 .report-outcome-intake-create-btn {
   width: auto;
@@ -2551,6 +2580,82 @@ body.keyboard-open .leadership-context-sticky {
   font-size: 0.82rem;
   padding: 8px 12px;
   background: var(--bg-accent, #eef4fc);
+}
+
+.report-outcome-validation-screen {
+  margin-top: 10px;
+  border: 1px solid var(--border, #d8e0ea);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.report-outcome-validation-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border, #d8e0ea);
+  font-size: 0.84rem;
+}
+
+.report-outcome-validation-head.is-pass { background: rgba(22, 163, 74, 0.08); }
+.report-outcome-validation-head.is-warn { background: rgba(245, 158, 11, 0.12); }
+.report-outcome-validation-head.is-fail { background: rgba(239, 68, 68, 0.12); }
+
+.report-outcome-validation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.report-outcome-validation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.report-outcome-validation-item:last-child { border-bottom: 0; }
+
+.report-outcome-validation-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  border: 1px solid var(--border, #d8e0ea);
+  padding: 2px 6px;
+}
+
+.report-outcome-validation-item.is-pass .report-outcome-validation-mark {
+  color: #166534;
+  border-color: rgba(22, 163, 74, 0.35);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.report-outcome-validation-item.is-fail .report-outcome-validation-mark {
+  color: #991b1b;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.report-outcome-validation-copy {
+  display: grid;
+  gap: 2px;
+  font-size: 0.82rem;
+}
+
+.report-outcome-validation-copy small {
+  color: var(--text-muted, #5a6b7d);
+}
+
+.report-outcome-validation-details {
+  padding: 8px 10px 10px;
+  font-size: 0.8rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.4);
 }
 
 .report-outcome-intake-actions-split {
@@ -2952,6 +3057,15 @@ body.report-page .preview-status-strip[data-state="fresh"] {
 }
 
 @media (min-width: 1025px) {
+  body.report-page #filters-panel[hidden] {
+    display: block !important;
+    height: auto;
+  }
+
+  body.report-page #filters-panel.collapsed #filters-panel-body {
+    display: flex !important;
+  }
+
   body.report-page #report-filter-strip > .btn[data-action="toggle-filters"] {
     display: none;
   }
@@ -3128,13 +3242,7 @@ body.report-page .preview-status-strip[data-state="fresh"] {
 }
 
 @media (min-width: 1025px) {
-  body.report-page.preview-active .filters-panel.collapsed {
-    display: none;
-  }
-
-  body.report-page.preview-active .filters-actions,
-  body.report-page.preview-active .report-filters-status-bar,
-  body.report-page.preview-active #report-context-line {
+  body.report-page.preview-active .report-filters-status-bar {
     display: none !important;
   }
 }

@@ -5,6 +5,7 @@ const ACTION_WORD_RE = /\b(add|fix|update|wire|send|display|enable|filter|create
 const STARTS_WITH_ACTION_WORD_RE = /^(add|fix|update|wire|send|display|enable|filter|create|build|implement|validate|show|hide|refactor|split|link|copy|export|notify)\b/i;
 const THEME_WORD_RE = /\b(users?|experience|platform|strategy|planning|feedback|journey|system|flow|initiative|improve|quarter|quarterly|customer|capability)\b/i;
 const USER_STORY_RE = /\bas a\b.+\bi want\b.+\bso that\b/i;
+const QUARTER_EPIC_LINE_RE = /\bfy\s*\d{2}\s*q[1-4]\b/i;
 
 export const OUTCOME_STRUCTURE_MODE = Object.freeze({
   EMPTY: 'EMPTY',
@@ -189,6 +190,17 @@ function decideStructureMode(rows, inputKind) {
     || first.signals.startsWithAction
     || (first.signals.actionLike && first.signals.words <= 6 && !first.signals.themeLike);
   const allBroad = rows.every((row) => row.signals.themeLike && !row.signals.startsWithAction && row.signals.words >= 3);
+  const quarterlyEpicBatch = rows.length >= 3
+    && rows.every((row) => QUARTER_EPIC_LINE_RE.test(row.clean))
+    && rows.every((row) => !row.signals.startsWithAction);
+
+  if (quarterlyEpicBatch) {
+    return {
+      structureMode: OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS,
+      confidenceScore: 0.9,
+      rationale: 'Detected quarter-stamped initiative lines, so each line is treated as a top-level epic.',
+    };
+  }
 
   if (allBroad) {
     return {

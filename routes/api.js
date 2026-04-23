@@ -426,6 +426,11 @@ function buildOutcomeSummaryHtml(payload) {
         } else if (verification.createdIssueCount > 0) {
             verificationBits.push('backlog placement could not be verified');
         }
+        if (verification.hierarchyVerified === false && verification.hierarchyMismatches?.length) {
+            verificationBits.push(`hierarchy mismatch on ${verification.hierarchyMismatches.map((item) => escapeHtml(item.key)).join(', ')}`);
+        } else if (verification.fetchVerified) {
+            verificationBits.push('hierarchy level verified');
+        }
     }
     const verificationSuffix = verificationBits.length ? ` ${verificationBits.join(' and ')}.` : '';
     if (payload.structureMode === 'STORY_WITH_SUBTASKS' && payload.primary?.key) {
@@ -483,6 +488,7 @@ async function verifyOutcomeCreationAndBacklog({
     version3Client,
     projectKey,
     issueKeys,
+    expectedLevelsByKey,
 }) {
     const uniqueIssueKeys = Array.from(new Set((issueKeys || []).map((key) => String(key || '').trim().toUpperCase()).filter(Boolean)));
     const verification = {
@@ -499,6 +505,8 @@ async function verifyOutcomeCreationAndBacklog({
         backlogTopVerified: false,
         backlogErrors: [],
         issueChecks: [],
+        hierarchyVerified: true,
+        hierarchyMismatches: [],
     };
     if (!uniqueIssueKeys.length) return verification;
 
@@ -516,6 +524,26 @@ async function verifyOutcomeCreationAndBacklog({
                 issueType: issue?.fields?.issuetype?.name || '',
                 status: issue?.fields?.status?.name || '',
             });
+            const expectedLevel = expectedLevelsByKey && expectedLevelsByKey[issueKey];
+            if (expectedLevel) {
+                const issueTypeName = String(issue?.fields?.issuetype?.name || '').toLowerCase();
+                const actualLevel = issueTypeName.includes('sub-task') || issueTypeName.includes('subtask')
+                    ? 'subtask'
+                    : (issueTypeName.includes('epic') || issueTypeName.includes('initiative') || issueTypeName.includes('theme') ? 'epic' : 'story');
+                const levelOk = expectedLevel === actualLevel
+                    || (expectedLevel === 'parent' && (actualLevel === 'epic' || actualLevel === 'story'))
+                    || (expectedLevel === 'child' && (actualLevel === 'story' || actualLevel === 'subtask'))
+                    || (expectedLevel === 'standalone' && (actualLevel === 'epic' || actualLevel === 'story'));
+                if (!levelOk) {
+                    verification.hierarchyVerified = false;
+                    verification.hierarchyMismatches.push({
+                        key: issueKey,
+                        expectedLevel,
+                        actualLevel,
+                        issueType: issue?.fields?.issuetype?.name || '',
+                    });
+                }
+            }
         } catch (error) {
             verification.missingKeys.push(issueKey);
             verification.issueChecks.push({
@@ -1236,6 +1264,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         const warnings = [];
         const failures = [];
         const createdStandalone = [];
+        const expectedLevelsByKey = {};
         let primary = null;
         const outcomeCreateTimeoutMsRaw = Number(process.env.DELIVERA_OUTCOME_CREATE_TIMEOUT_MS || 45000);
         const outcomeCreateTimeoutMs = Number.isFinite(outcomeCreateTimeoutMsRaw) && outcomeCreateTimeoutMsRaw > 0
@@ -1292,6 +1321,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                 issuetype: { name: parentIssueTypeName },
                 labels,
             }, selectedParentType, { role: 'single' });
+            if (primary?.key) expectedLevelsByKey[primary.key] = 'single';
         } else if (structureMode === 'MULTIPLE_EPICS' || structureMode === 'TABLE_ISSUES') {
             for (const item of parsedIntake.items) {
                 const existingKey = Array.isArray(item.jiraKeys) && item.jiraKeys.length ? item.jiraKeys[0] : '';
@@ -1308,6 +1338,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                         labels: ensureLabels(item.labels, projectKey),
                     }, selectedStandaloneType, { role: 'standalone', title: item.title });
                     createdStandalone.push({ ...createdItem, title: item.title });
+                    if (createdItem?.key) expectedLevelsByKey[createdItem.key] = 'standalone';
                 } catch (error) {
                     failures.push({ title: item.title, reason: formatJiraValidationMessage(error) });
                 }
@@ -1320,6 +1351,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                 issuetype: { name: parentIssueTypeName },
                 labels,
             }, selectedParentType, { role: 'parent' });
+            if (primary?.key) expectedLevelsByKey[primary.key] = 'parent';
             for (const item of parsedIntake.items) {
                 const itemLabels = ensureLabels(
                     [...labels, ...(Array.isArray(item.labels) ? item.labels : [])].filter((label) => !/^OutcomeHash_/i.test(label)),
@@ -1359,6 +1391,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                         linkMode: childLinkMode,
                     });
                     createdChildren.push({ ...createdItem, title: item.title });
+                    if (createdItem?.key) expectedLevelsByKey[createdItem.key] = 'child';
                 } catch (error) {
                     failures.push({ title: item.title, reason: formatJiraValidationMessage(error) });
                 }
@@ -1379,6 +1412,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             version3Client,
             projectKey,
             issueKeys: createdKeysForVerification,
+            expectedLevelsByKey,
         }));
         const responsePayload = {
             ok: true,
@@ -1403,6 +1437,11 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             failures,
             warnings,
             verification,
+            createdIssues: [
+                ...(primary?.key ? [{ key: primary.key, url: primary.url || '' }] : []),
+                ...createdChildren.map((item) => ({ key: item.key, url: item.url || '' })),
+                ...createdStandalone.map((item) => ({ key: item.key, url: item.url || '' })),
+            ],
             summaryHtml: buildOutcomeSummaryHtml({
                 structureMode,
                 primary,
