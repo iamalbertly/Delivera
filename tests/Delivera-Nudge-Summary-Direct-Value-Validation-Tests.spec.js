@@ -36,7 +36,8 @@ test.describe('Delivera - Nudge and Summary direct-value bridge', () => {
     expect(result.context.topAction).toContain('Assign owner');
     expect(result.context.boardName).toBe('DMS board');
     expect(result.context.sprintName).toBe('FY26DMS21');
-    expect(result.nudge).toContain('[System nudge] SD-4768');
+    expect(result.nudge).toContain('[System guided nudge]');
+    expect(result.nudge).toContain('SD-4768');
     expect(result.nudge).toContain('Health signal');
     expect(result.nudge).toContain('Risk signal');
     expect(result.nudge).toContain('Recommended action now');
@@ -69,7 +70,7 @@ test.describe('Delivera - Nudge and Summary direct-value bridge', () => {
     expect(result.context.scope).toBe('');
     expect(result.context.capacity).toBe('');
     expect(result.context.topAction.length).toBeGreaterThan(5);
-    expect(result.fallbackNudge).toContain('[System nudge]');
+    expect(result.fallbackNudge).toContain('[System guided nudge]');
     expect(result.fallbackNudge).toContain('Please review');
     expect(result.fallbackNudge).toContain('status unknown');
   });

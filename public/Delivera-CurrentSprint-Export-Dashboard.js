@@ -197,6 +197,7 @@ export async function buildSprintSummaryModel(data, options = {}) {
     ? 'Limited history / low-confidence signals'
     : (justStarting ? 'Sprint just starting / evidence not formed yet' : (verdictInfo.verdict || 'Sprint'));
   const hasTrackableSignals = totalStories > 0 || trackingRows.length > 0 || estHrs > 0 || logHrs > 0 || scopeChanges.length > 0 || stuck.length > 0;
+  const hasRiskEvidence = blockersCount > 0 || inProgressLike(stuck).length > 0 || unownedOutcomes > 0 || missingEstimate > 0 || missingLogged > 0;
 
   const headerParts = ['Current Sprint', boardName, sprintName];
   if (dateRangeLabel) headerParts.push(dateRangeLabel);
@@ -213,9 +214,12 @@ export async function buildSprintSummaryModel(data, options = {}) {
       `Historical snapshot - read only${dateRangeLabel ? ` (${dateRangeLabel})` : ''}. ${pctDone}% done, ${doneStories}/${totalStories} stories.`,
     );
   } else if (justStarting) {
+    const justStartedHealth = hasRiskEvidence
+      ? `Early risk detected while sprint evidence is still forming${remainingDays != null && remainingDays > 0 ? ` (next check in ${remainingDays}d)` : ''}.`
+      : `Sprint just started - no risks yet, next check-in ${remainingDays != null && remainingDays > 0 ? `in ${remainingDays}d` : 'soon'}.`;
     pushSummaryLine(
       model.sections.health,
-      `Sprint just started - no risks yet, next check-in ${remainingDays != null && remainingDays > 0 ? `in ${remainingDays}d` : 'soon'}.`,
+      justStartedHealth,
       { isBold: true },
     );
   } else {
@@ -348,6 +352,13 @@ export async function buildSprintSummaryModel(data, options = {}) {
   };
 
   return model;
+}
+
+function inProgressLike(stuckRows = []) {
+  return (Array.isArray(stuckRows) ? stuckRows : []).filter((item) => {
+    const status = String(item?.status || '').toLowerCase();
+    return status && status !== 'to do' && status !== 'open' && status !== 'backlog';
+  });
 }
 
 function renderSummaryModelToClipboard(model, options = {}) {

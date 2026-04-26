@@ -6,6 +6,7 @@ import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows, getUnifiedRisk
 import { hasOutcomeLabel, isOutcomeStoryLike } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 import { renderWorkRisksMerged } from './Delivera-CurrentSprint-Render-Subtasks.js';
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
+import { buildGuidedNudgeText, getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -285,6 +286,7 @@ export function renderStories(data) {
   html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="missing-estimate" title="Focus work missing estimate baseline">Estimate gaps (' + missingEstimateKeys.size + ')</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="unassigned" title="Focus unowned work">Ownership gaps (' + parentUnassigned + ')</button>';
   html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="scope" title="Focus scope added mid-sprint">Scope changes (' + scopeAddedKeys.size + ')</button>';
+  html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="copy-top-guided-nudge" title="Copy guided nudge for top visible risk without opening drawers">Copy top guided nudge</button>';
   html += '</div>';
   html += renderWorkRisksMerged(data);
 
@@ -705,6 +707,38 @@ export function wireDailyCompletionTimelineHandlers() {
           window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'stories-risk-bar' } }));
         } catch (_) {}
       }
+    });
+
+    card.addEventListener('click', async (event) => {
+      const quickNudge = event.target.closest('[data-action="copy-top-guided-nudge"]');
+      if (!quickNudge || !card.contains(quickNudge)) return;
+      event.preventDefault();
+      const candidateRows = getRows().filter((row) => {
+        const style = window.getComputedStyle(row);
+        return style.display !== 'none' && !row.hasAttribute('hidden') && row.classList.contains('story-parent-row');
+      });
+      const topRow = candidateRows.find((row) => {
+        const tags = String(row.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+        return tags.length > 0;
+      }) || candidateRows[0];
+      if (!topRow) return;
+      const key = (topRow.querySelector('a[href*="/browse/"]')?.textContent || '').trim();
+      const summary = (topRow.querySelector('.story-summary-cell')?.textContent || '').trim();
+      const status = (topRow.querySelector('.story-status-cell')?.textContent || '').trim();
+      const url = topRow.querySelector('a[href*="/browse/"]')?.href || '';
+      const text = buildGuidedNudgeText({
+        issueKey: key,
+        issueSummary: summary,
+        issueStatus: status,
+        issueUrl: url,
+        summaryContext: getCurrentSprintSummaryContext(),
+      });
+      try {
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+        const original = quickNudge.textContent;
+        quickNudge.textContent = 'Copied';
+        window.setTimeout(() => { quickNudge.textContent = original; }, 1200);
+      } catch (_) {}
     });
 
     card.addEventListener('click', (event) => {

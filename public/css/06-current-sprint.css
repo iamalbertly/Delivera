@@ -3707,6 +3707,18 @@ body.notification-dock-visible .export-dashboard-container {
   border-radius: 999px;
 }
 
+.work-risks-direct-value-strip .stories-direct-nudge {
+  margin-left: auto;
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  .work-risks-direct-value-strip .stories-direct-nudge {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 /* Mission-control tokens and shared segmented context grammar */
 :root {
   --mission-header-gap: 8px;

@@ -169,8 +169,14 @@ export function wireIssuePreviewHandlers() {
     if (action === 'copy-link') {
       text = url;
     } else if (action === 'copy-nudge') {
+      const roleMode = String(getCurrentSprintSummaryContext()?.roleMode || 'all').trim().toLowerCase();
+      const roleLabel = roleMode === 'scrum-master'
+        ? 'Scrum Master'
+        : (roleMode === 'developer'
+          ? 'Developer'
+          : (roleMode === 'product-owner' ? 'Product Owner' : (roleMode === 'line-manager' ? 'Line Manager' : 'Team')));
       text = key
-        ? `[System nudge] ${key}: ${summary || 'Please review'} (${status || 'status unknown'}). Please update Jira status/time today to keep team visibility accurate. ${url}`
+        ? `[System basic nudge][${roleLabel}] ${key}: ${summary || 'Please review'} (${status || 'status unknown'}). Action now: set owner, set next unblock step, and update Jira status/time today. ${url}`
         : url;
     } else if (action === 'copy-guided-nudge') {
       text = buildGuidedNudgeText({
