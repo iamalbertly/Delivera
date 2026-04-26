@@ -1,19 +1,20 @@
-import { renderNotificationDock } from './Reporting-App-Shared-Notifications-Dock-Manager.js';
-import { updateNotificationStore } from './Reporting-App-CurrentSprint-Notifications-Helpers.js';
-import { showContent } from './Reporting-App-CurrentSprint-Page-Status.js';
-import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Reporting-App-CurrentSprint-Render-Page.js';
-import { wireDynamicHandlers } from './Reporting-App-CurrentSprint-Page-Handlers.js';
-import { wireHeaderBarHandlers } from './Reporting-App-CurrentSprint-Header-Bar.js';
-import { wireHealthDashboardHandlers } from './Reporting-App-CurrentSprint-Health-Dashboard.js';
-import { wireRisksAndInsightsHandlers } from './Reporting-App-CurrentSprint-Risks-Insights.js';
-import { wireSprintCarouselHandlers } from './Reporting-App-CurrentSprint-Navigation-Carousel.js';
-import { wireCountdownTimerHandlers } from './Reporting-App-CurrentSprint-Countdown-Timer.js';
-import { wireSubtasksShowMoreHandlers } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
-import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers } from './Reporting-App-CurrentSprint-Render-Progress.js';
-import { wireExportHandlers } from './Reporting-App-CurrentSprint-Export-Dashboard.js';
-import { wireIssuePreviewHandlers } from './Reporting-App-CurrentSprint-Issue-Preview.js';
-import { scheduleRender } from './Reporting-App-Report-Page-Loading-Steps.js';
-import { markPerf } from './Reporting-App-Shared-Perf-Marks.js';
+import { renderNotificationDock } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { updateNotificationStore } from './Delivera-CurrentSprint-Notifications-Helpers.js';
+import { showContent } from './Delivera-CurrentSprint-Page-Status.js';
+import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Delivera-CurrentSprint-Render-Page.js';
+import { wireDynamicHandlers } from './Delivera-CurrentSprint-Page-Handlers.js';
+import { wireHeaderBarHandlers } from './Delivera-CurrentSprint-Header-Bar.js';
+import { wireHealthDashboardHandlers } from './Delivera-CurrentSprint-Health-Dashboard.js';
+import { wireRisksAndInsightsHandlers } from './Delivera-CurrentSprint-Risks-Insights.js';
+import { wireSprintCarouselHandlers } from './Delivera-CurrentSprint-Navigation-Carousel.js';
+import { wireCountdownTimerHandlers } from './Delivera-CurrentSprint-Countdown-Timer.js';
+import { wireSubtasksShowMoreHandlers } from './Delivera-CurrentSprint-Render-Subtasks.js';
+import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers } from './Delivera-CurrentSprint-Render-Progress.js';
+import { wireExportHandlers } from './Delivera-CurrentSprint-Export-Dashboard.js';
+import { wireIssuePreviewHandlers } from './Delivera-CurrentSprint-Issue-Preview.js';
+import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
+import { markPerf } from './Delivera-Shared-Perf-Marks.js';
+import { getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
 
 function collapseMobileDetailsSections() {
   try {
@@ -144,6 +145,32 @@ function wireAttentionQueueHandlers() {
   });
 }
 
+function wireSummaryActionBridge() {
+  if (window.__currentSprintSummaryActionBridgeBound) return;
+  window.__currentSprintSummaryActionBridgeBound = true;
+  const ribbon = document.getElementById('current-sprint-ribbon');
+  if (!ribbon) return;
+
+  function renderRibbonFromContext(context) {
+    if (!context) return;
+    const action = String(context.topAction || context.next || '').trim();
+    const headline = String(context.header || 'Summary copied').trim();
+    if (!action && !headline) return;
+    const text = [headline, action ? `Next: ${action}` : ''].filter(Boolean).join(' | ');
+    ribbon.textContent = text;
+    ribbon.style.display = '';
+    ribbon.setAttribute('data-state', 'fresh');
+  }
+
+  window.addEventListener('currentSprint:summaryCopied', (event) => {
+    const context = event?.detail?.context || getCurrentSprintSummaryContext();
+    renderRibbonFromContext(context);
+  });
+
+  const cached = getCurrentSprintSummaryContext();
+  if (cached) renderRibbonFromContext(cached);
+}
+
 export function appendCurrentSprintLoginLink(errorEl) {
   if (!errorEl || errorEl.querySelector('a.nav-link')) return;
   const link = document.createElement('a');
@@ -173,6 +200,7 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireSprintCarouselHandlers((sprintId) => onSelectSprintById(sprintId));
   wireExportHandlers(data);
   wireIssuePreviewHandlers();
+  wireSummaryActionBridge();
   wireAttentionQueueHandlers();
   wireSectionLinks();
   collapseMobileDetailsSections();
@@ -180,7 +208,7 @@ function wireRenderedContent(data, onSelectSprintById) {
 }
 
 export function showCurrentSprintRenderedContent(data, onSelectSprintById, options = {}) {
-  const useProgressive = options.progressive !== false;
+  const useProgressive = options.progressive === true;
   if (!useProgressive) {
     showContent(renderCurrentSprintPage(data));
     wireRenderedContent(data, onSelectSprintById);

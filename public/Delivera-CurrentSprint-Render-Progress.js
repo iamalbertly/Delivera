@@ -1,11 +1,11 @@
-import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDate, formatDayLabel, formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { renderEmptyStateHtml } from './Reporting-App-Shared-Empty-State-Helpers.js';
-import { resolveResponsiveRowLimit } from './Reporting-App-Shared-Responsive-Helpers.js';
-import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
-import { hasOutcomeLabel, isOutcomeStoryLike } from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
-import { renderWorkRisksMerged } from './Reporting-App-CurrentSprint-Render-Subtasks.js';
-import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
+import { escapeHtml, renderIssueKeyLink } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDate, formatDayLabel, formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { renderEmptyStateHtml } from './Delivera-Shared-Empty-State-Helpers.js';
+import { resolveResponsiveRowLimit } from './Delivera-Shared-Responsive-Helpers.js';
+import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import { hasOutcomeLabel, isOutcomeStoryLike } from './Delivera-Shared-Outcome-Risk-Semantics.js';
+import { renderWorkRisksMerged } from './Delivera-CurrentSprint-Render-Subtasks.js';
+import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -250,6 +250,17 @@ export function renderStories(data) {
       .filter(Boolean)
   );
   const scopeKeys = new Set((scopeChanges || []).map((s) => String(s?.issueKey || s?.key || '').toUpperCase()).filter(Boolean));
+  const noLogKeys = new Set();
+  const missingEstimateKeys = new Set();
+  const scopeAddedKeys = new Set();
+  for (const row of mergedRiskRows) {
+    const key = String(row?.issueKey || row?.key || '').toUpperCase();
+    if (!key) continue;
+    const tags = Array.isArray(row?.riskTags) ? row.riskTags : [];
+    if (tags.includes('no-log')) noLogKeys.add(key);
+    if (tags.includes('missing-estimate')) missingEstimateKeys.add(key);
+    if (tags.includes('scope')) scopeAddedKeys.add(key);
+  }
   const filterViews = buildDistinctSprintFilterViews(data, verdictInfo);
   const storyRiskTagMap = filterViews.storyTagMap || new Map();
 
@@ -260,13 +271,20 @@ export function renderStories(data) {
     html += '<div class="stories-primary-sticky">';
   }
   html += '<div class="section-inline-header">';
-  html += '<div><h2>Mission-critical work <span class="section-inline-count">· ' + stories.length + ' issues</span></h2></div>';
+  html += '<div><h2>Sprint work <span class="section-inline-count">· ' + stories.length + ' issues</span></h2></div>';
   const storyStatChips = [];
   if (blockerKeys.size > 0) storyStatChips.push('<span>' + blockerKeys.size + ' blockers</span>');
   if (parentUnassigned > 0) storyStatChips.push('<span>' + parentUnassigned + ' unowned</span>');
   if (storyStatChips.length) {
     html += '<div class="section-inline-stats">' + storyStatChips.join('') + '</div>';
   }
+  html += '</div>';
+  html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action shortcuts">';
+  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="blocker" title="Focus active blockers now">Unblock now (' + blockerKeys.size + ')</button>';
+  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="no-log" title="Focus estimated work with no logs">Logging gaps (' + noLogKeys.size + ')</button>';
+  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="missing-estimate" title="Focus work missing estimate baseline">Estimate gaps (' + missingEstimateKeys.size + ')</button>';
+  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="unassigned" title="Focus unowned work">Ownership gaps (' + parentUnassigned + ')</button>';
+  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="scope" title="Focus scope added mid-sprint">Scope changes (' + scopeAddedKeys.size + ')</button>';
   html += '</div>';
   html += renderWorkRisksMerged(data);
 
@@ -499,7 +517,7 @@ export function renderStories(data) {
       + '<th scope="col">Status</th>'
       + '<th scope="col">Reporter</th>'
       + '<th scope="col">Assignee</th>'
-      + '<th scope="col" title="Parent story points">Story Points</th>'
+      + '<th scope="col" title="Parent story points">SP</th>'
       + '<th scope="col" title="Sum of subtask estimated hours">Est Hrs</th>'
       + '<th scope="col" title="Sum of subtask logged hours">Logged Hrs</th>'
       + '<th scope="col">Created</th>'

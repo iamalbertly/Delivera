@@ -3,14 +3,26 @@
  * Leadership mission-control controller.
  */
 
-import { getContextPieces, renderContextSegments } from './Delivera-Shared-Context-From-Storage.js';
+import { buildContextSegmentList, getContextPieces, renderContextPartList } from './Delivera-Shared-Context-From-Storage.js';
 import { renderKPICard, KPI_TREND_VISIBILITY_HINT } from './Delivera-Shared-KPI-Card-Renderer.js';
 import { buildTrustBadge, formatCostPerSPDisplay, buildUtilizationDisplay } from './Delivera-Shared-Cost-Capacity-Calc.js';
 import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
 const STALE_THRESHOLD_MS = 15 * 60 * 1000;
 let lastFetchTime = 0;
+
+function readSelectedProjects() {
+  try {
+    return (window.localStorage.getItem(PROJECTS_SSOT_KEY) || '')
+      .split(',')
+      .map((k) => String(k || '').trim())
+      .filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
 
 function formatNumber(num, decimals = 0) {
   if (num === null || num === undefined || Number.isNaN(Number(num))) return 'No data';
@@ -31,9 +43,18 @@ function updateHeaderStatus(text, stateClass) {
   statusEl.className = `hud-status-pill ${stateClass || ''}`.trim();
 }
 
+function demoteHudCardClass(cardHtml, index = 0) {
+  let html = String(cardHtml || '').replace(/class="hud-card\b/g, 'class="hud-metric-card');
+  if (index > 0) {
+    html = html.replace(/\bmetric-value\b/g, 'metric-value-inline');
+  }
+  return html;
+}
+
 function renderContextHeader(data) {
   const contextEl = document.getElementById('project-context');
   const summaryEl = document.getElementById('leadership-summary');
+  const confidenceEl = document.getElementById('leadership-confidence-strip');
   if (!contextEl || !summaryEl) return;
 
   const projectContext = (data?.projectContext || '')
@@ -58,10 +79,7 @@ function renderContextHeader(data) {
     freshness,
     freshnessIsStale,
   });
-  contextEl.innerHTML = renderContextSegments(segments, {
-    className: 'header-context-strip',
-    segmentClass: 'header-context-segment',
-  }) || '<div class="header-context-strip"><span class="header-context-segment"><span class="header-context-segment-label">Projects</span><span class="header-context-segment-value">All projects</span></span></div>';
+  const segmentParts = buildContextSegmentList(segments);
 
   try {
     const url = new URL(window.location.href);
@@ -72,9 +90,16 @@ function renderContextHeader(data) {
     const focusProject = queryProject || storageFocus?.project || '';
     const focusBoard = queryBoard || storageFocus?.board || '';
     if (focusProject || focusBoard) {
-      contextEl.innerHTML += '<div class="header-context-strip"><span class="header-context-segment"><span class="header-context-segment-label">Focus</span><span class="header-context-segment-value">' + [focusProject, focusBoard].filter(Boolean).join(' - ') + '</span></span></div>';
+      segmentParts.push({
+        label: 'Focus',
+        value: [focusProject, focusBoard].filter(Boolean).join(' - '),
+      });
     }
   } catch (_) {}
+  contextEl.innerHTML = renderContextPartList(segmentParts, {
+    className: 'header-context-strip',
+    segmentClass: 'header-context-segment',
+  }) || '<div class="header-context-strip"><span class="header-context-segment"><span class="header-context-segment-label">Projects</span><span class="header-context-segment-value">All projects</span></span></div>';
 
   const risk = data?.risk || {};
   const limitedHistory = Number(data?.limitedHistoryBoards || 0);
@@ -84,17 +109,28 @@ function renderContextHeader(data) {
   if (risk.dataQualityRisk != null) parts.push(`Hygiene ${formatNumber(risk.dataQualityRisk, 0)}%`);
   if (limitedHistory > 0) parts.push(`${limitedHistory} low-confidence boards`);
   if (data?.kpis?.dataQuality?.trustBand) parts.push(`Trust ${data.kpis.dataQuality.trustBand}`);
+  const ownedBlockers = Number(risk?.blockersOwned || 0);
+  const unownedOutcomes = Number(risk?.unownedOutcomes || 0);
+  const nextAction = ownedBlockers > 0
+    ? `Next: unblock ${ownedBlockers} blocker${ownedBlockers === 1 ? '' : 's'} in Sprint`
+    : (unownedOutcomes > 0
+      ? `Next: assign ${unownedOutcomes} unowned outcome${unownedOutcomes === 1 ? '' : 's'}`
+      : 'Next: verify trend confidence and keep delivery rhythm');
   summaryEl.textContent = parts.length
-    ? parts.join(' - ') + ' - ' + KPI_TREND_VISIBILITY_HINT
+    ? parts.join(' - ') + ' - ' + nextAction + ' - ' + KPI_TREND_VISIBILITY_HINT
     : 'Delivery trend and risk signals will appear here once data loads.';
+  if (confidenceEl) {
+    const trustBand = data?.kpis?.dataQuality?.trustBand || 'Unknown';
+    const partial = data?.meta?.partial === true;
+    confidenceEl.textContent = partial
+      ? 'State: Partial - verify before export/action.'
+      : `State: Live - Trust ${trustBand}`;
+  }
 }
 
 function leadershipSummaryQueryFromStorage() {
   try {
-    const keys = (window.localStorage.getItem(PROJECTS_SSOT_KEY) || '')
-      .split(',')
-      .map((k) => String(k || '').trim())
-      .filter(Boolean);
+    const keys = readSelectedProjects();
     if (!keys.length) return '';
     const params = new URLSearchParams();
     params.set('projects', keys.join(','));
@@ -104,8 +140,24 @@ function leadershipSummaryQueryFromStorage() {
   }
 }
 
+function initLeadershipHeaderActions() {
+  const refreshBtn = document.getElementById('leadership-refresh-btn');
+  if (refreshBtn && refreshBtn.dataset.bound !== '1') {
+    refreshBtn.dataset.bound = '1';
+    refreshBtn.addEventListener('click', () => fetchHudData());
+  }
+
+  initGlobalOutcomeModal({
+    getSelectedProjects: () => {
+      const selected = readSelectedProjects();
+      return selected.length ? selected : ['MPSA'];
+    },
+    getOutcomeDraftContext: () => ({ boardId: null, quarterHint: '' }),
+  });
+}
+
 async function fetchHudData() {
-  updateHeaderStatus('Syncing...', '');
+  updateHeaderStatus('Updated...', '');
 
   try {
     const qs = leadershipSummaryQueryFromStorage();
@@ -170,8 +222,8 @@ function renderHud(data) {
     grid.innerHTML = `
       <div class="hud-card" style="grid-column:1/-1;">
         <div class="metric-label">No data yet</div>
-        <div class="metric-value" style="font-size:1.25rem">Open Report, choose a range, run Preview, then reopen Leadership.</div>
-        <div class="metric-trend"><a href="/leadership" style="color:#0f4c81;text-decoration:underline;">Open Leadership HUD</a></div>
+        <div class="metric-value" style="font-size:1.25rem">Open Reports, choose a range, then refresh Leadership.</div>
+        <div class="metric-trend"><a href="/report" style="color:#0f4c81;text-decoration:underline;">Open Reports</a></div>
       </div>
     `;
     return;
@@ -181,7 +233,6 @@ function renderHud(data) {
     `<span class="trend-neutral">Delivery risk: ${formatNumber(risk?.deliveryRisk, 0)}%</span>`,
     `<span class="trend-neutral">Hygiene risk: ${formatNumber(risk?.dataQualityRisk, 0)}%</span>`,
     `<span class="trend-neutral">${formatNumber(risk?.blockersOwned, 0)} blockers - ${formatNumber(risk?.unownedOutcomes, 0)} unowned outcomes</span>`,
-    '<span class="trend-neutral"><a href="/report" style="color:#0f4c81">Open Performance - History</a> - <a href="/current-sprint" style="color:#0f4c81">Open Performance - Current Sprint</a></span>',
   ].join('');
 
   const projectKpis = kpis?.projectKPIs || {};
@@ -284,7 +335,14 @@ function renderHud(data) {
     }));
   }
 
-  grid.innerHTML = cards.join('');
+  grid.innerHTML = `
+    <div class="hud-card hud-card-shell" style="grid-column:1/-1;">
+      <div class="metric-label">Leadership signals</div>
+      <div class="hud-metric-grid">
+        ${cards.map((card, index) => demoteHudCardClass(card, index)).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function updateTimeAgo() {
@@ -296,6 +354,7 @@ function updateTimeAgo() {
 }
 
 function init() {
+  initLeadershipHeaderActions();
   fetchHudData();
   setInterval(fetchHudData, REFRESH_INTERVAL_MS);
   window.addEventListener('focus', () => {

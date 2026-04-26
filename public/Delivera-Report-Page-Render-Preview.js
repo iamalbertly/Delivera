@@ -20,6 +20,29 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { emitTelemetry } from './Delivera-Shared-Telemetry.js';
 import { updateAppliedFiltersSummary } from './Delivera-Report-Page-Filters-Summary-Helpers.js';
 
+/**
+ * Aligns `body.preview-active` with whether the preview shell is actually shown and has payload.
+ * Keeps sidebar compact/trust card from sticking when preview is hidden or cleared.
+ */
+export function syncReportPreviewActiveFromDom() {
+  try {
+    if (typeof document === 'undefined' || !document.body?.classList.contains('report-page')) return;
+    const pc = document.getElementById('preview-content');
+    const display = pc ? String(pc.style.display || '').trim() : 'none';
+    const notHidden = display !== 'none';
+    const laidOut = !!pc && pc.offsetParent !== null;
+    const should = notHidden && laidOut && !!reportState.previewData;
+    document.body.classList.toggle('preview-active', should);
+    renderSidebarContextCard();
+  } catch (_) {}
+}
+
+try {
+  if (typeof window !== 'undefined' && window.__DELIVERA_TEST_DISABLE_AUTO_PREVIEW) {
+    window.__DELIVERA_SYNC_PREVIEW_ACTIVE_FOR_TESTS = syncReportPreviewActiveFromDom;
+  }
+} catch (_) {}
+
 export function wirePreviewContextActions() {
   if (typeof document === 'undefined' || document.body?.dataset.previewContextActionsBound === '1') return;
   document.body.dataset.previewContextActionsBound = '1';
@@ -41,45 +64,9 @@ export function wirePreviewContextActions() {
     const trigger = event.target.closest('[data-preview-context-action], [data-attention-action]');
     if (!trigger) return;
     const action = trigger.getAttribute('data-preview-context-action') || trigger.getAttribute('data-attention-action') || '';
-    const filtersPanel = document.getElementById('filters-panel');
-    const filtersToggle = document.querySelector('[data-action="toggle-filters"]');
-    const openFiltersPanel = () => {
-      if (filtersPanel?.classList.contains('collapsed') && filtersToggle) {
-        filtersToggle.click();
-      }
-    };
-    if (action === 'open-projects') {
+    const sharedHandler = typeof window !== 'undefined' ? window.__deliveraHandleReportChromeAction : null;
+    if (typeof sharedHandler === 'function' && sharedHandler(action)) {
       event.preventDefault();
-      openFiltersPanel();
-      document.getElementById('project-search')?.focus();
-      return;
-    }
-    if (action === 'open-range') {
-      event.preventDefault();
-      openFiltersPanel();
-      document.getElementById('start-date')?.focus();
-      return;
-    }
-    if (action === 'focus-config') {
-      event.preventDefault();
-      openFiltersPanel();
-      const rulesTile = document.getElementById('report-rules-tile');
-      const advanced = document.getElementById('advanced-options-toggle');
-      if (rulesTile && !rulesTile.open) rulesTile.open = true;
-      advanced?.focus();
-      return;
-    }
-    const tabMap = {
-      'open-boards': 'tab-btn-project-epic-level',
-      'open-sprints': 'tab-btn-sprints',
-      'open-done-stories': 'tab-btn-done-stories',
-      'open-unusable-sprints': 'tab-btn-unusable-sprints',
-      'open-owned-blockers': 'tab-btn-done-stories',
-      'open-unowned-outcomes': 'tab-btn-done-stories',
-    };
-    if (tabMap[action]) {
-      event.preventDefault();
-      document.getElementById(tabMap[action])?.click();
       if (action === 'open-owned-blockers' || action === 'open-unowned-outcomes') {
         const riskTags = action === 'open-owned-blockers' ? ['blocker'] : ['unassigned'];
         window.setTimeout(() => {
@@ -96,9 +83,25 @@ export function wirePreviewContextActions() {
             history.replaceState(null, '', '/report#tab-done-stories');
           }
         } catch (_) {}
+      }
+      return;
+    }
+    const tabMap = {
+      'open-sprints': 'tab-btn-sprints',
+      'open-owned-blockers': 'tab-btn-done-stories',
+      'open-unowned-outcomes': 'tab-btn-done-stories',
+    };
+    if (tabMap[action]) {
+      event.preventDefault();
+      document.getElementById(tabMap[action])?.click();
+      if (action === 'open-owned-blockers' || action === 'open-unowned-outcomes') {
+        const riskTags = action === 'open-owned-blockers' ? ['blocker'] : ['unassigned'];
         window.setTimeout(() => {
-          const firstSprintHeader = document.querySelector('#done-stories-content .sprint-header');
-          firstSprintHeader?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+          try {
+            window.dispatchEvent(new CustomEvent('report:applyOutcomeRiskFilter', {
+              detail: { riskTags, source: action },
+            }));
+          } catch (_) {}
         }, 80);
       }
     }
@@ -108,7 +111,10 @@ export function wirePreviewContextActions() {
 export function renderPreview() {
   const { previewData, previewRows, visibleRows, visibleBoardRows, visibleSprintRows } = reportState;
   const { errorEl, previewContent, previewMeta, exportExcelBtn, exportDropdownTrigger } = reportDom;
-  if (!previewData) return;
+  if (!previewData) {
+    syncReportPreviewActiveFromDom();
+    return;
+  }
 
   const reportContextLine = document.getElementById('report-context-line');
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
@@ -134,6 +140,7 @@ export function renderPreview() {
     if (previewContent) previewContent.style.display = 'none';
     if (exportExcelBtn) exportExcelBtn.disabled = true;
     if (exportDropdownTrigger) exportDropdownTrigger.disabled = true;
+    syncReportPreviewActiveFromDom();
     return;
   }
 
@@ -156,12 +163,13 @@ export function renderPreview() {
   if (reportSubtitleEl) {
     reportSubtitleEl.textContent = rowsCount > 0
       ? ('View: ' + metaBlock.reportSubtitleText.replace(/^Projects:\s*/i, ''))
-      : 'History mission control for squads, range, and delivery signals.';
+      : 'Outcomes, delivery trend, and data trust.';
     reportSubtitleEl.style.display = '';
   }
   if (previewMeta) {
     // Context chips live only in #report-filter-strip-summary (updateAppliedFiltersSummary) to avoid stacked duplicates.
     previewMeta.innerHTML = `
+      ${metaBlock.previewHeaderStoryHtml || ''}
       ${metaBlock.outcomeLineHTML || ''}
       ${metaBlock.attentionQueueHtml || ''}
       ${metaBlock.previewMetaHTML}
@@ -182,10 +190,10 @@ export function renderPreview() {
   }
   const stickyEl = document.getElementById('preview-summary-sticky');
   if (stickyEl) {
-    stickyEl.textContent = '';
-    stickyEl.setAttribute('aria-hidden', 'true');
-    // M4: Add body class so mobile CSS can hide duplicate applied-filters-summary
-    document.body.classList.add('preview-active');
+    stickyEl.textContent = metaBlock.previewHeaderStoryHtml
+      ? String(metaBlock.previewHeaderStoryHtml).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      : `Preview: ${metaBlock.reportSubtitleText}`;
+    stickyEl.setAttribute('aria-hidden', 'false');
   }
   const filtersPanel = document.getElementById('filters-panel');
   const filtersPanelBody = document.getElementById('filters-panel-body');
@@ -226,15 +234,26 @@ export function renderPreview() {
       } catch (_) {}
     } else {
       const hasAlertState = partial || meta.reducedScope;
-      statusStripEl.textContent = partial ? 'Results: partial data' : (meta.reducedScope ? 'Results: closest match' : '');
+      const stateLabel = partial ? 'Results: partial data' : (meta.reducedScope ? 'Results: closest match' : 'Results: direct-to-value actions available');
+      const sprintHref = '/current-sprint';
+      statusStripEl.innerHTML = hasAlertState
+        ? escapeHtml(stateLabel)
+        : `${escapeHtml(stateLabel)} <a class="preview-status-inline-link" href="${escapeHtml(sprintHref)}">Open sprint actions</a>`;
       statusStripEl.setAttribute('data-state', partial ? 'partial' : (meta.reducedScope ? 'closest' : 'fresh'));
-      statusStripEl.style.display = hasAlertState ? '' : 'none';
+      statusStripEl.style.display = '';
     }
   }
 
   const hasRows = rowsCount > 0;
-  if (exportDropdownTrigger) exportDropdownTrigger.disabled = !hasRows;
-  if (exportExcelBtn) exportExcelBtn.disabled = !hasRows;
+  const allowPrimaryExport = hasRows && meta.restoredFromLastSuccess !== true;
+  if (exportDropdownTrigger) {
+    exportDropdownTrigger.disabled = !hasRows;
+    exportDropdownTrigger.hidden = true;
+  }
+  if (exportExcelBtn) {
+    exportExcelBtn.disabled = !hasRows;
+    exportExcelBtn.hidden = !allowPrimaryExport;
+  }
 
   const exportHint = document.getElementById('export-hint');
   if (exportHint) {
@@ -347,13 +366,19 @@ export function renderPreview() {
     }
 
     updateExportFilteredState();
+
+    // Keep the report shell stable after preview render. Users asked for less
+    // surprise scrolling; explicit chips and tabs still perform targeted jumps.
   });
+
+  syncReportPreviewActiveFromDom();
 
   const statusStripElAfter = document.getElementById('preview-status-strip');
   if (statusStripElAfter && !statusStripElAfter.textContent) {
     const ageMs = Number(meta.cacheAgeMs || 0);
     const ageMins = Math.round(ageMs / 60000);
-    statusStripElAfter.textContent = ageMins > 30 ? 'Older snapshot — refresh when ready' : 'Just updated';
+    const statusText = ageMins > 30 ? 'Older snapshot - refresh when ready' : 'Just updated';
+    statusStripElAfter.innerHTML = `${escapeHtml(statusText)} <a class="preview-status-inline-link" href="/current-sprint">Open sprint actions</a>`;
     statusStripElAfter.setAttribute('data-state', ageMins > 30 ? 'stale' : 'fresh');
     statusStripElAfter.style.display = '';
   }

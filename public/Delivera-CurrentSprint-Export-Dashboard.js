@@ -2,11 +2,15 @@
  * Export Dashboard Component
  * Copy as Text, Markdown, PNG snapshot, Share URL, Email options
  */
-import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { exportRisksInsightsAsMarkdown } from './Reporting-App-CurrentSprint-Risks-Insights.js';
-import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
-import { buildReportRangeLabel } from './Reporting-App-Shared-Context-From-Storage.js';
-import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { formatDate } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { exportRisksInsightsAsMarkdown } from './Delivera-CurrentSprint-Risks-Insights.js';
+import { setActionErrorOnEl } from './Delivera-Shared-Status-Helpers.js';
+import { buildReportRangeLabel } from './Delivera-Shared-Context-From-Storage.js';
+import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import {
+  buildSummaryContext,
+  persistCurrentSprintSummaryContext,
+} from './Delivera-CurrentSprint-Action-Bridge.js';
 
 const SUMMARY_SECTION_KEYS = [
   'summary',
@@ -82,6 +86,31 @@ function normalizeBulletText(text) {
     .trim();
 }
 
+function formatHoursCompact(value) {
+  const hours = Number(value || 0);
+  if (!Number.isFinite(hours)) return '0h';
+  return `${hours % 1 === 0 ? hours.toFixed(0) : hours.toFixed(1)}h`;
+}
+
+function getStoryLevelTimeRisk(stories = []) {
+  const riskyStories = (Array.isArray(stories) ? stories : []).filter((story) => {
+    const subtasks = Array.isArray(story?.subtasks) ? story.subtasks : [];
+    const estimateHours = Number(story?.estimateHours || 0);
+    const loggedHours = Number(story?.loggedHours || 0);
+    return subtasks.length === 0 && (estimateHours > 0 || loggedHours > 0);
+  });
+
+  return riskyStories.reduce((acc, story) => ({
+    count: acc.count + 1,
+    estimateHours: acc.estimateHours + (Number(story?.estimateHours || 0) || 0),
+    loggedHours: acc.loggedHours + (Number(story?.loggedHours || 0) || 0),
+  }), {
+    count: 0,
+    estimateHours: 0,
+    loggedHours: 0,
+  });
+}
+
 function renderClipboardLine(line, index, mode) {
   if (!line || !line.text) return '';
   if (mode !== 'markdownEnhanced') return line.text;
@@ -125,6 +154,7 @@ export async function buildSprintSummaryModel(data, options = {}) {
   const trackingSummary = data?.subtaskTracking?.summary || {};
   const trackingRows = Array.isArray(data?.subtaskTracking?.subtasks) ? data.subtaskTracking.subtasks : [];
   const scopeChanges = Array.isArray(data?.scopeChanges) ? data.scopeChanges : [];
+  const stories = Array.isArray(data?.stories) ? data.stories : [];
   const meta = data?.meta || {};
 
   const doneStories = Number(summary.doneStories || 0);
@@ -148,13 +178,16 @@ export async function buildSprintSummaryModel(data, options = {}) {
       .filter(Boolean),
   ).size;
 
-  const { deriveSprintVerdict } = await import('./Reporting-App-CurrentSprint-Alert-Banner.js');
+  const { deriveSprintVerdict } = await import('./Delivera-CurrentSprint-Alert-Banner.js');
   const verdictInfo = deriveSprintVerdict(data);
   const unifiedRiskCounts = getUnifiedRiskCounts(data);
   const blockersCount = Number(unifiedRiskCounts.blockersOwned || 0);
   const unownedOutcomes = Number(unifiedRiskCounts.unownedOutcomes || 0);
   const missingEstimate = Number(summary.subtaskMissingEstimate || 0);
   const missingLogged = Number(summary.subtaskMissingLogged || 0);
+  const estimatedNoLogSubtasks = trackingRows.filter((row) => Number(row?.estimateHours || 0) > 0 && Number(row?.loggedHours || 0) === 0);
+  const loggedNoEstimateSubtasks = trackingRows.filter((row) => Number(row?.loggedHours || 0) > 0 && Number(row?.estimateHours || 0) === 0);
+  const storyLevelTimeRisk = getStoryLevelTimeRisk(stories);
   const closedSprintCount = Number(board.closedSprintCount || meta.closedSprintCount || meta.closedSprintTotal || 0);
   const limitedHistory = closedSprintCount > 0 && closedSprintCount < 3;
   const justStarting = totalStories <= 1 || (pctDone === 0 && recentSubtaskMovement === 0 && logHrs === 0);
@@ -216,6 +249,24 @@ export async function buildSprintSummaryModel(data, options = {}) {
     if (flowBits.length) {
       pushSummaryLine(model.sections.flowLogging, flowBits.join(SUMMARY_SEPARATOR));
     }
+    if (storyLevelTimeRisk.count > 0) {
+      pushSummaryLine(
+        model.sections.flowLogging,
+        `${storyLevelTimeRisk.count} stor${storyLevelTimeRisk.count === 1 ? 'y still carries' : 'ies still carry'} ${formatHoursCompact(storyLevelTimeRisk.estimateHours)} estimated / ${formatHoursCompact(storyLevelTimeRisk.loggedHours)} logged at parent level with no subtasks. Leadership hours stay distorted until those hours move into subtasks.`,
+      );
+    }
+    if (estimatedNoLogSubtasks.length > 0) {
+      pushSummaryLine(
+        model.sections.flowLogging,
+        `${estimatedNoLogSubtasks.length} estimated subtask${estimatedNoLogSubtasks.length === 1 ? '' : 's'} still show 0h logged.`,
+      );
+    }
+    if (loggedNoEstimateSubtasks.length > 0) {
+      pushSummaryLine(
+        model.sections.flowLogging,
+        `${loggedNoEstimateSubtasks.length} subtask${loggedNoEstimateSubtasks.length === 1 ? '' : 's'} logged time without an estimate baseline.`,
+      );
+    }
     if (logHrs === 0 && estHrs > 0) {
       pushSummaryLine(model.sections.flowLogging, 'Estimated work exists, but time logging has not started.');
     } else if (trackingRows.length > 0 && estHrs === 0 && logHrs === 0) {
@@ -265,6 +316,9 @@ export async function buildSprintSummaryModel(data, options = {}) {
 
   const actions = [];
   if (!isHistorical) {
+    if (storyLevelTimeRisk.count > 0) actions.push(`Create a delivery subtask for ${storyLevelTimeRisk.count} stor${storyLevelTimeRisk.count === 1 ? 'y' : 'ies'} still carrying parent-level hours so leadership rollups stay truthful.`);
+    if (estimatedNoLogSubtasks.length > 0) actions.push(`Get ${estimatedNoLogSubtasks.length} estimated subtask${estimatedNoLogSubtasks.length === 1 ? '' : 's'} to log time before stand-up, review, or leadership reporting.`);
+    if (loggedNoEstimateSubtasks.length > 0) actions.push(`Backfill estimate baselines on ${loggedNoEstimateSubtasks.length} subtask${loggedNoEstimateSubtasks.length === 1 ? '' : 's'} already logging effort.`);
     if (logHrs === 0 && estHrs > 0) actions.push(`Start time logging against ${estHrs}h of estimated work.`);
     if (recentSubtaskMovement > 0 && logHrs === 0) actions.push('Send one shared logging nudge while work is actively moving.');
     if (Math.max(blockersCount, inProgressStuck.length) > 0) actions.push(`Unblock ${Math.max(blockersCount, inProgressStuck.length)} active blocker${Math.max(blockersCount, inProgressStuck.length) === 1 ? '' : 's'}.`);
@@ -321,7 +375,7 @@ function renderSummaryModelToClipboard(model, options = {}) {
   return linesOut.join('\n').trim();
 }
 
-function renderSummaryModelToQuickClipboard(model) {
+export function renderSummaryModelToQuickClipboard(model) {
   const lines = [];
   const meta = model?.meta || {};
   const headerLine = String(meta.headerLine || '').trim();
@@ -330,12 +384,15 @@ function renderSummaryModelToQuickClipboard(model) {
   const healthLine = normalizeBulletText(model?.sections?.health?.[0]?.text || '');
   if (healthLine) lines.push(`Health: ${healthLine}`);
 
+  const flowLoggingLines = Array.isArray(model?.sections?.flowLogging) ? model.sections.flowLogging : [];
+  const capacityLine = normalizeBulletText(
+    (flowLoggingLines.find((line) => /parent level|0h logged|estimate baseline/i.test(line?.text || '')) || flowLoggingLines[0] || {}).text || ''
+  );
   const scopeLine = normalizeBulletText(model?.sections?.scope?.[0]?.text || '');
-  const capacityLine = normalizeBulletText(model?.sections?.flowLogging?.[0]?.text || '');
-  if (scopeLine) {
-    lines.push(`Scope: ${scopeLine}`);
-  } else if (capacityLine) {
+  if (capacityLine) {
     lines.push(`Capacity: ${capacityLine}`);
+  } else if (scopeLine) {
+    lines.push(`Scope: ${scopeLine}`);
   }
 
   const blockersLine = normalizeBulletText(model?.sections?.blockers?.[0]?.text || '');
@@ -344,6 +401,8 @@ function renderSummaryModelToQuickClipboard(model) {
     lines.push(`Risks: ${blockersLine}`);
   } else if (actionLine) {
     lines.push(`Next: ${actionLine}`);
+  } else if (scopeLine && !capacityLine) {
+    lines.push(`Scope: ${scopeLine}`);
   }
 
   return lines.filter(Boolean).slice(0, 4).join('\n').trim();
@@ -450,6 +509,8 @@ export function renderExportButton(inline = false) {
   html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary" aria-live="polite">Copy summary</button>';
   if (!inline) {
     html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
+  } else {
+    html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary export-dashboard-secondary-inline" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
   }
   html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">&#9662;</button>';
   html += '</span>';
@@ -477,8 +538,12 @@ function setButtonStatus(btn, text, originalText, disabled = false, resetAfterMs
 }
 async function writeTextToClipboardWithFallback(text) {
   if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (_) {
+      // Fall through to the document-level copy path when browser permissions block async clipboard access.
+    }
   }
   const ta = document.createElement('textarea');
   ta.value = text;
@@ -492,6 +557,13 @@ async function writeTextToClipboardWithFallback(text) {
   const ok = document.execCommand('copy');
   document.body.removeChild(ta);
   if (!ok) throw new Error('Clipboard copy unavailable');
+}
+
+function rememberCurrentSprintExportArtifact(key, value) {
+  try {
+    if (typeof window === 'undefined') return;
+    window[key] = String(value || '');
+  } catch (_) {}
 }
 
 async function writeRichClipboardWithFallback(html, text) {
@@ -668,6 +740,7 @@ async function copyDashboardAsText(data, btn) {
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
     const text = renderSummaryModelToClipboard(model, { mode: 'plain' });
     const html = renderSummaryModelToClipboardHtml(model);
+    rememberCurrentSprintExportArtifact('__currentSprintLastCopiedDetail', text);
     await writeRichClipboardWithFallback(html, text);
     setButtonStatus(btn, 'Copied!', originalText);
     setLastExportStatus('Copy detail', 'Detailed sprint text copied');
@@ -684,9 +757,24 @@ async function copyDashboardSummary(data, btn) {
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
     const text = renderSummaryModelToQuickClipboard(model);
     const html = renderSummaryModelToQuickClipboardHtml(model);
+    const primaryAction = (Array.isArray(model?.sections?.actions) && model.sections.actions[0]?.text)
+      ? String(model.sections.actions[0].text)
+      : '';
+    const context = buildSummaryContext({
+      summaryText: text,
+      modelMeta: model?.meta || {},
+      primaryAction,
+    });
+    persistCurrentSprintSummaryContext(context);
+    rememberCurrentSprintExportArtifact('__currentSprintLastCopiedSummary', text);
     await writeRichClipboardWithFallback(html, text);
+    try {
+      window.dispatchEvent(new CustomEvent('currentSprint:summaryCopied', {
+        detail: { summaryText: text, context },
+      }));
+    } catch (_) {}
     setButtonStatus(btn, 'Copied!', originalText);
-    setLastExportStatus('Copy summary', 'Executive sprint summary copied');
+    setLastExportStatus('Copy summary', 'Sprint summary copied for stand-up, review, and leadership updates');
   } catch (error) {
     console.error('Copy summary error:', error);
     setButtonStatus(btn, 'Copy failed', originalText);
@@ -725,6 +813,7 @@ async function copyDashboardAsStandup(data, btn) {
   try {
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
     const text = renderSummaryModelToStandupScript(model);
+    rememberCurrentSprintExportArtifact('__currentSprintLastStandupSummary', text);
     await writeTextToClipboardWithFallback(text);
     setButtonStatus(btn, 'Copied!', originalText);
     setLastExportStatus('Stand-up script', text);
@@ -739,6 +828,7 @@ async function exportDashboardAsMarkdown(data, btn) {
   try {
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
     const markdown = renderSummaryModelToMarkdown(model, data);
+    rememberCurrentSprintExportArtifact('__currentSprintLastMarkdownSummary', markdown);
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -764,6 +854,7 @@ async function copyDashboardLink(data, btn) {
     if (boardId) {
       url += '?boardId=' + encodeURIComponent(boardId) + '&sprintId=' + encodeURIComponent(String(sprint.id || ''));
     }
+    rememberCurrentSprintExportArtifact('__currentSprintLastCopiedLink', url);
     await writeTextToClipboardWithFallback(url);
     setButtonStatus(btn, 'Link copied!', originalText);
     setLastExportStatus('Copy link', url);

@@ -1,4 +1,5 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { buildGuidedNudgeText, getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
 
 function ensurePreviewContainer() {
   let container = document.getElementById('current-sprint-issue-preview');
@@ -32,6 +33,7 @@ function buildPreviewHtml(targetRow, options = {}) {
   const reporter = reporterCell ? (reporterCell.textContent || '').trim() : '';
   const logged = hoursCell ? (hoursCell.textContent || '').trim() : '';
   const updated = updatedCell ? (updatedCell.textContent || '').trim() : '';
+  const summaryContext = getCurrentSprintSummaryContext();
   const riskTags = (targetRow.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
   const riskReasons = [];
   if (riskTags.includes('blocker')) riskReasons.push('Blocked or stalled flow');
@@ -52,6 +54,12 @@ function buildPreviewHtml(targetRow, options = {}) {
   html += '<button type="button" class="issue-preview-close" aria-label="Close issue details">x</button>';
   html += '</div>';
   if (summary) html += '<p class="issue-preview-summary">' + escapeHtml(summary) + '</p>';
+  if (summaryContext?.header || summaryContext?.topAction) {
+    html += '<p class="issue-preview-risk-why"><strong>Summary context:</strong> ' + escapeHtml(summaryContext?.header || 'Current sprint context available') + '</p>';
+    if (summaryContext?.topAction) {
+      html += '<p class="issue-preview-risk-why"><strong>Best next step:</strong> ' + escapeHtml(summaryContext.topAction) + '</p>';
+    }
+  }
   if (riskWhy) html += '<p class="issue-preview-risk-why"><strong>Why this is risky:</strong> ' + escapeHtml(riskWhy) + '</p>';
   html += '<div class="issue-preview-inline-actions">';
   html += '<button type="button" class="issue-preview-back-link" data-issue-preview-action="back-to-table">Back to table</button>';
@@ -67,7 +75,8 @@ function buildPreviewHtml(targetRow, options = {}) {
     html += '<div class="issue-preview-actions">';
     html += '<a class="btn btn-secondary btn-compact" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Open in Jira</a>';
     html += '<button type="button" class="btn btn-secondary btn-compact" data-issue-preview-action="copy-link" data-url="' + escapeHtml(url) + '">Copy link</button>';
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-issue-preview-action="copy-nudge" data-url="' + escapeHtml(url) + '" data-key="' + escapeHtml(key) + '" data-summary="' + escapeHtml(summary) + '" data-status="' + escapeHtml(status) + '">Copy nudge</button>';
+    html += '<button type="button" class="btn btn-secondary btn-compact" data-issue-preview-action="copy-nudge" data-url="' + escapeHtml(url) + '" data-key="' + escapeHtml(key) + '" data-summary="' + escapeHtml(summary) + '" data-status="' + escapeHtml(status) + '">Copy basic nudge</button>';
+    html += '<button type="button" class="btn btn-primary btn-compact" data-issue-preview-action="copy-guided-nudge" data-url="' + escapeHtml(url) + '" data-key="' + escapeHtml(key) + '" data-summary="' + escapeHtml(summary) + '" data-status="' + escapeHtml(status) + '">Copy guided nudge</button>';
     html += '</div>';
   }
   html += '</div>';
@@ -163,6 +172,14 @@ export function wireIssuePreviewHandlers() {
       text = key
         ? `[System nudge] ${key}: ${summary || 'Please review'} (${status || 'status unknown'}). Please update Jira status/time today to keep team visibility accurate. ${url}`
         : url;
+    } else if (action === 'copy-guided-nudge') {
+      text = buildGuidedNudgeText({
+        issueKey: key,
+        issueSummary: summary,
+        issueStatus: status,
+        issueUrl: url,
+        summaryContext: getCurrentSprintSummaryContext(),
+      });
     } else {
       return;
     }
