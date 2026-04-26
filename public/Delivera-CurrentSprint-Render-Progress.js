@@ -7,6 +7,14 @@ import { hasOutcomeLabel, isOutcomeStoryLike } from './Delivera-Shared-Outcome-R
 import { renderWorkRisksMerged } from './Delivera-CurrentSprint-Render-Subtasks.js';
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 import { buildGuidedNudgeText, getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
+import {
+  buildDeliveredImpactBullets,
+  deriveBusinessOutcome,
+  deriveBusinessValueTag,
+  deriveLinkedKpi,
+  deriveStoryDescription,
+  deriveStoryGroup,
+} from './Delivera-CurrentSprint-Value-Helpers.js';
 
 function buildBurndownChart(remaining, ideal, yAxisLabel = 'Remaining SP') {
   if (!remaining || remaining.length === 0) return '';
@@ -264,6 +272,19 @@ export function renderStories(data) {
   }
   const filterViews = buildDistinctSprintFilterViews(data, verdictInfo);
   const storyRiskTagMap = filterViews.storyTagMap || new Map();
+  const groupedStories = { value: [], enabler: [], blocked: [] };
+  stories.forEach((story) => {
+    const storyKey = String(story?.issueKey || story?.key || '').toUpperCase();
+    const group = deriveStoryGroup(story, storyRiskTagMap.get(storyKey) || []);
+    groupedStories[group]?.push(story);
+  });
+  const deliveredBullets = buildDeliveredImpactBullets(stories, storyRiskTagMap);
+  const valueDoneCount = groupedStories.value.filter((story) => String(story?.status || '').toLowerCase().includes('done')).length;
+  const spilloverCount = Math.max(0, stories.length - Number(data?.summary?.doneStories || 0));
+  const spilloverPct = stories.length > 0 ? Math.round((spilloverCount / stories.length) * 100) : 0;
+  const blockerPanelRows = mergedRiskRows
+    .filter((row) => Array.isArray(row?.riskTags) && row.riskTags.some((tag) => ['blocker', 'unassigned', 'missing-estimate', 'no-log'].includes(tag)))
+    .slice(0, 6);
 
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
@@ -289,6 +310,117 @@ export function renderStories(data) {
   html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="copy-top-guided-nudge" title="Copy guided nudge for top visible risk without opening drawers">Copy top guided nudge</button>';
   html += '</div>';
   html += renderWorkRisksMerged(data);
+
+  function mapRiskTagLabel(tag) {
+    if (tag === 'blocker') return 'Blocked';
+    if (tag === 'scope') return 'Scope change';
+    if (tag === 'unassigned') return 'No owner';
+    if (tag === 'no-log') return 'No log';
+    if (tag === 'missing-estimate') return 'No estimate';
+    return tag;
+  }
+
+  function renderStorySignalCard(label, value, copy, progress = null, tone = '') {
+    const toneClass = tone ? ' ' + tone : '';
+    let cardHtml = '<article class="sprint-story-signal-card' + toneClass + '">';
+    cardHtml += '<p class="sprint-story-signal-label">' + escapeHtml(label) + '</p>';
+    cardHtml += '<strong>' + escapeHtml(value) + '</strong>';
+    cardHtml += '<p>' + escapeHtml(copy) + '</p>';
+    if (progress != null) {
+      const width = Math.max(0, Math.min(100, Number(progress) || 0));
+      cardHtml += '<div class="sprint-story-signal-bar"><span style="width:' + width + '%;"></span></div>';
+    }
+    cardHtml += '</article>';
+    return cardHtml;
+  }
+
+  function renderBlockersPanel() {
+    if (!blockerPanelRows.length) {
+      return '<article class="sprint-blockers-panel"><div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>No hidden blockers</h3></div></div><p class="sprint-group-copy">No active blockers are hidden right now. Ownership and estimate gaps will appear here the moment they become a delivery risk.</p></article>';
+    }
+    let panelHtml = '<article class="sprint-blockers-panel">';
+    panelHtml += '<div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>No hidden blockers</h3></div><span class="sprint-group-count">' + blockerPanelRows.length + ' visible</span></div>';
+    panelHtml += '<div class="sprint-blockers-list">';
+    blockerPanelRows.forEach((row) => {
+      const owner = row.owner || row.assignee || row.reporter || 'Owner needed';
+      const ageLabel = Number(row.hoursInStatus || 0) > 0 ? Math.round(Number(row.hoursInStatus || 0)) + 'h blocked' : 'Needs review now';
+      const blockerCopy = row.riskType || 'Delivery risk requires intervention';
+      panelHtml += '<article class="sprint-blocker-row">';
+      panelHtml += '<div class="sprint-blocker-top"><strong>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + ' ' + escapeHtml(row.summary || '') + '</strong><span class="story-risk-pill story-risk-pill-compact">' + escapeHtml(blockerCopy) + '</span></div>';
+      panelHtml += '<p>' + escapeHtml(blockerCopy) + '</p>';
+      panelHtml += '<div class="sprint-blocker-meta"><span>Owner: ' + escapeHtml(owner) + '</span><span>' + escapeHtml(ageLabel) + '</span></div>';
+      panelHtml += '</article>';
+    });
+    panelHtml += '</div></article>';
+    return panelHtml;
+  }
+
+  function renderDeliveredSection() {
+    const bullets = deliveredBullets.length
+      ? deliveredBullets
+      : ['Delivered sprint outcomes will be translated into business language here as soon as work reaches Done.'];
+    return '<article class="sprint-delivered-panel"><div class="sprint-group-header"><div><p class="sprint-group-kicker">What Was Delivered This Sprint</p><h3>Leadership-ready outcome summary</h3></div></div><ul class="sprint-delivered-list">' + bullets.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></article>';
+  }
+
+  function renderStoryValueCard(story) {
+    const storyKey = String(story?.issueKey || story?.key || '').toUpperCase();
+    const riskTags = Array.from(new Set(storyRiskTagMap.get(storyKey) || []));
+    const riskSummary = riskTags.length ? riskTags.map(mapRiskTagLabel).join(' | ') : 'No active blocker';
+    let cardHtml = '<article class="story-value-card" data-parent-key="' + escapeHtml(storyKey) + '"';
+    if (riskTags.length) cardHtml += ' data-risk-tags="' + escapeHtml(riskTags.join(' ')) + '"';
+    cardHtml += '>';
+    cardHtml += '<div class="story-value-card-top">';
+    cardHtml += '<div><p class="story-value-card-key">' + renderIssueKeyLink(story.issueKey || story.key, story.issueUrl) + '</p><h4>' + escapeHtml(story.summary || '-') + '</h4></div>';
+    cardHtml += '<span class="story-value-tag">' + escapeHtml(deriveBusinessValueTag(story)) + '</span>';
+    cardHtml += '</div>';
+    cardHtml += '<p class="story-value-description">' + escapeHtml(deriveStoryDescription(story)) + '</p>';
+    cardHtml += '<dl class="story-value-details">';
+    cardHtml += '<div><dt>Business outcome</dt><dd>' + escapeHtml(deriveBusinessOutcome(story)) + '</dd></div>';
+    cardHtml += '<div><dt>Linked KPI</dt><dd>' + escapeHtml(deriveLinkedKpi(story)) + '</dd></div>';
+    cardHtml += '<div><dt>Owner</dt><dd>' + escapeHtml(story.assignee || story.reporter || 'Owner needed') + '</dd></div>';
+    cardHtml += '<div><dt>Status</dt><dd>' + escapeHtml(story.status || '-') + '</dd></div>';
+    cardHtml += '<div><dt>Blockers</dt><dd>' + escapeHtml(riskSummary) + '</dd></div>';
+    cardHtml += '</dl>';
+    cardHtml += '</article>';
+    return cardHtml;
+  }
+
+  function renderStoryGroupSection(groupKey, title, copy, actionRisk = '') {
+    const items = groupedStories[groupKey] || [];
+    let sectionHtml = '<section class="story-group-section story-group-section-' + escapeHtml(groupKey) + '">';
+    sectionHtml += '<div class="sprint-group-header"><div><p class="sprint-group-kicker">' + escapeHtml(title) + '</p><h3>' + items.length + ' stories</h3></div>';
+    if (actionRisk) {
+      sectionHtml += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="' + escapeHtml(actionRisk) + '">Focus</button>';
+    }
+    sectionHtml += '</div>';
+    sectionHtml += '<p class="sprint-group-copy">' + escapeHtml(copy) + '</p>';
+    if (!items.length) {
+      sectionHtml += '<div class="decision-empty-card">No stories are currently grouped here.</div>';
+    } else {
+      sectionHtml += '<div class="story-group-card-list">';
+      items.forEach((story) => {
+        sectionHtml += renderStoryValueCard(story);
+      });
+      sectionHtml += '</div>';
+    }
+    sectionHtml += '</section>';
+    return sectionHtml;
+  }
+
+  html += '<section class="sprint-story-signals-row" aria-label="Value-first sprint signals">';
+  html += renderStorySignalCard('Delivery Progress', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', 'Focus on delivered value, not raw activity.', Number(data?.summary?.percentDone || 0));
+  html += renderStorySignalCard('Value Delivered', valueDoneCount + '/' + groupedStories.value.length + ' value stories', 'User-facing change completed this sprint.', groupedStories.value.length > 0 ? (valueDoneCount / groupedStories.value.length) * 100 : 0);
+  html += renderStorySignalCard('Spillover Tracker', spilloverCount + ' stories', spilloverPct + '% of sprint scope is still open.', spilloverPct, spilloverPct > 35 ? ' is-warning' : '');
+  html += '</section>';
+  html += '<section class="sprint-visibility-grid">';
+  html += renderDeliveredSection();
+  html += renderBlockersPanel();
+  html += '</section>';
+  html += '<section class="story-groups-grid" aria-label="Grouped sprint stories">';
+  html += renderStoryGroupSection('value', 'Value Delivery', 'User-facing work and KPI movement that the business can recognise immediately.');
+  html += renderStoryGroupSection('enabler', 'Enablers', 'Technical work that protects speed, trust, and the ability to keep delivering value.');
+  html += renderStoryGroupSection('blocked', 'Blocked / At Risk', 'Stories that need intervention because ownership, flow, estimate, or blocker signals are present.', 'blocker');
+  html += '</section>';
 
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();
@@ -499,6 +631,8 @@ export function renderStories(data) {
   if (!stories.length) {
     html += renderEmptyStateHtml('No work items', 'No work items in this sprint.', '');
   } else {
+    html += '<details class="sprint-evidence-drawer" open>';
+    html += '<summary class="sprint-evidence-summary">Open Jira evidence and work table</summary>';
     // Prevent rendering all rows to avoid large initial DOM
     const largeBoardMode = stories.length >= 18;
     const initialLimit = largeBoardMode
@@ -553,6 +687,7 @@ export function renderStories(data) {
       }
       html += '</template>';
     }
+    html += '</details>';
   }
   html += '</div>';
   return html;

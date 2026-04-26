@@ -6,11 +6,12 @@ import {
   getRuntimeAlertCount,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 
-const PAGE_HOME = 'home';
-const PAGE_BACKLOG = 'backlog-intake';
+const PAGE_DASHBOARD = 'dashboard';
+const PAGE_PI = 'program-increment';
 const PAGE_REPORT = 'report';
-const PAGE_ROADMAP = 'roadmap';
-const PAGE_SPRINT = 'current-sprint';
+const PAGE_SPRINTS = 'sprints';
+const PAGE_VALUE = 'value-delivery';
+const PAGE_RISKS = 'risks-blockers';
 const PAGE_LEADERSHIP = 'leadership';
 const PAGE_TEAMS = 'teams';
 const PAGE_SETTINGS = 'settings';
@@ -20,34 +21,34 @@ const LEADERSHIP_HASH = '#trends';
 
 const NAV_ITEMS = [
   {
-    key: PAGE_HOME,
-    label: 'Home',
-    href: '/home',
+    key: PAGE_DASHBOARD,
+    label: 'Dashboard',
+    href: '/dashboard',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 10.2V21h6.7v-6.1h4.6V21H21V10.2z"/></svg>',
   },
   {
-    key: PAGE_SPRINT,
-    label: 'Current Sprint',
+    key: PAGE_PI,
+    label: 'Program Increment (PI)',
+    href: '/program-increment',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v4H4zm0 5h10v4H4zm0 5h16v4H4z"/></svg>',
+  },
+  {
+    key: PAGE_SPRINTS,
+    label: 'Sprints',
     href: '/current-sprint',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM7 3h2v4H7zm8 0h2v4h-2z"/></svg>',
   },
   {
-    key: PAGE_BACKLOG,
-    label: 'Backlog Intake',
-    href: '/backlog-intake',
+    key: PAGE_VALUE,
+    label: 'Value Delivery',
+    href: '/value-delivery',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2H7zm-2 4h14v2H5zm0 5h14v2H5zm0 5h10v2H5z"/></svg>',
   },
   {
-    key: PAGE_REPORT,
-    label: 'Reports',
-    href: '/report',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
-  },
-  {
-    key: PAGE_ROADMAP,
-    label: 'Roadmap',
-    href: '/roadmap',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10l2 3h4v7h-9l-2-3H4z"/></svg>',
+    key: PAGE_RISKS,
+    label: 'Risks & Blockers',
+    href: '/risks-blockers',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4ZM11 9h2v5h-2Zm0 6.5h2v2h-2Z"/></svg>',
   },
   {
     key: PAGE_LEADERSHIP,
@@ -60,6 +61,12 @@ const NAV_ITEMS = [
     label: 'Teams',
     href: '/teams',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11.5a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm9 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3ZM3 20v-1.2A4.8 4.8 0 0 1 7.8 14h-.6A4.8 4.8 0 0 1 12 18.8V20Zm9 0v-1.2A4.8 4.8 0 0 1 16.8 14h-.6A4.8 4.8 0 0 1 21 18.8V20Z"/></svg>',
+  },
+  {
+    key: PAGE_REPORT,
+    label: 'Reports',
+    href: '/report',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
   },
   {
     key: PAGE_SETTINGS,
@@ -78,12 +85,13 @@ function getPathState() {
 function getCurrentPage() {
   const { path, hash } = getPathState();
   if (path === '/login' || path.endsWith('/login')) return PAGE_LOGIN;
-  if (path === '/home' || path.endsWith('/home')) return PAGE_HOME;
-  if (path === '/backlog-intake' || path.endsWith('/backlog-intake')) return PAGE_BACKLOG;
+  if (path === '/dashboard' || path.endsWith('/dashboard') || path === '/home' || path.endsWith('/home')) return PAGE_DASHBOARD;
+  if (path === '/program-increment' || path.endsWith('/program-increment') || path === '/roadmap' || path.endsWith('/roadmap')) return PAGE_PI;
   if ((path === '/report' || path.endsWith('/report')) && hash === LEADERSHIP_HASH) return PAGE_REPORT;
   if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
-  if (path === '/roadmap' || path.endsWith('/roadmap')) return PAGE_ROADMAP;
-  if (path === '/current-sprint' || path.endsWith('/current-sprint')) return PAGE_SPRINT;
+  if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
+  if (path === '/value-delivery' || path.endsWith('/value-delivery') || path === '/backlog-intake' || path.endsWith('/backlog-intake')) return PAGE_VALUE;
+  if (path === '/risks-blockers' || path.endsWith('/risks-blockers')) return PAGE_RISKS;
   if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_LEADERSHIP;
   if (path === '/teams' || path.endsWith('/teams')) return PAGE_TEAMS;
   if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
@@ -196,14 +204,14 @@ function navigateTo(itemKey, itemHref) {
 
 function buildBottomNavHTML() {
   const current = getCurrentPage();
-  const items = getNavItems(current).filter((item) => [PAGE_HOME, PAGE_REPORT, PAGE_SPRINT, PAGE_LEADERSHIP].includes(item.key));
+  const items = getNavItems(current).filter((item) => [PAGE_DASHBOARD, PAGE_SPRINTS, PAGE_RISKS, PAGE_REPORT].includes(item.key));
   let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
   for (const item of items) {
     const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');
     let shortLabel = 'Reports';
-    if (item.key === PAGE_HOME) shortLabel = 'Home';
-    else if (item.key === PAGE_SPRINT) shortLabel = 'Sprint';
-    else if (item.key === PAGE_LEADERSHIP) shortLabel = 'Leadership';
+    if (item.key === PAGE_DASHBOARD) shortLabel = 'Dashboard';
+    else if (item.key === PAGE_SPRINTS) shortLabel = 'Sprints';
+    else if (item.key === PAGE_RISKS) shortLabel = 'Risks';
     html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">';
     html += '<span class="mobile-bottom-nav-icon" aria-hidden="true">' + item.icon + '</span>';
     html += '<span class="mobile-bottom-nav-label">' + shortLabel + '</span>';
@@ -390,7 +398,7 @@ function updateDataPulse(label, state) {
   if (el.querySelector('[data-sidebar-alert-jump]')) return;
   const dotClass = state === 'live' ? 'pulse-live' : (state === 'stale' ? 'pulse-stale' : 'pulse-idle');
   el.innerHTML = '<span class="pulse-dot ' + dotClass + '" aria-hidden="true"></span> ' + (label || '');
-    updateBottomNavBadge(PAGE_REPORT, state === 'stale' ? '!' : '', state === 'stale' ? 'Report data may be stale' : '');
+  updateBottomNavBadge(PAGE_REPORT, state === 'stale' ? '!' : '', state === 'stale' ? 'Report data may be stale' : '');
 }
 
 function updateSidebarAlertFooterFromStore() {
@@ -403,7 +411,7 @@ function updateSidebarAlertFooterFromStore() {
     const tt = getTimeTrackingTotal(summary);
     const rt = getRuntimeAlertCount(summary);
     const eff = effectiveNotificationTotal(summary);
-    updateBottomNavBadge(PAGE_SPRINT, eff > 0 ? String(eff) : '', eff > 0 ? (eff + ' alerts (sprint and/or console)') : '');
+    updateBottomNavBadge(PAGE_SPRINTS, eff > 0 ? String(eff) : '', eff > 0 ? (eff + ' alerts (sprint and/or console)') : '');
     const healthy = tt <= 0 && rt <= 0;
     const label = healthy
       ? 'Logging alerts: 0 · Healthy'

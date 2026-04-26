@@ -5,23 +5,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Delivera - Performance - History (General Performance)</title>
+  <title>Reports - Delivera</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
   <div class="container">
-    <header>
-      <div class="header-row">
-        <div>
-          <h1>General Performance</h1>
-          <p id="report-subtitle" class="subtitle">History mission control for squads, range, and delivery signals.</p>
+    <header class="report-shell-top">
+      <div class="header-row report-shell-top-row">
+        <div class="report-shell-title-block">
+          <h1>Reports</h1>
+          <p id="report-subtitle" class="subtitle">Portfolio delivery intelligence across teams, sprints, and outcomes.</p>
         </div>
-        <div id="report-header-actions" class="report-header-actions">
+        <div id="report-header-actions" class="report-header-actions report-shared-header-actions">
           <button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Edit filters</button>
         </div>
       </div>
-      <div id="report-filter-strip" class="report-filter-strip" data-context-bar="true" aria-live="polite">
+      <div id="report-filter-strip" class="report-filter-strip report-mission-strip" data-context-bar="true" aria-live="polite">
         <div id="report-filter-strip-summary" class="report-filter-strip-summary">Filter by: projects, range, rules</div>
       </div>
       <div id="feedback-panel" class="feedback-panel" style="display: none;"></div>
@@ -219,7 +219,7 @@
           <div id="preview-meta"></div>
           <div class="preview-header-export-wrap"><button type="button" id="export-excel-btn" class="btn btn-secondary btn-compact"
               data-action="trigger-export-excel" title="Share or export this report." disabled
-              aria-label="Share or export report">Export options</button>
+              aria-label="Share or export report" hidden>Export options</button>
             <button id="export-dropdown-trigger" class="btn btn-secondary btn-compact export-dropdown-trigger"
               aria-haspopup="true" aria-expanded="false" aria-controls="export-dropdown-menu"
               aria-label="More export options" title="More export options: filtered view and CSV" disabled hidden>&#9662;</button>
@@ -250,19 +250,19 @@
           </button>
           <button id="tab-btn-trends" class="tab-btn" data-tab="trends" role="tab" aria-selected="false"
             aria-controls="tab-trends" tabindex="-1">
-            <span class="tab-btn-label">Leadership trends</span>
+            <span class="tab-btn-label">Leadership</span>
           </button>
           <button id="tab-btn-sprints" class="tab-btn" data-tab="sprints" role="tab" aria-selected="false"
             aria-controls="tab-sprints" tabindex="-1">
-            <span class="tab-btn-label">Sprints</span>
+            <span class="tab-btn-label">Sprint delivery</span>
           </button>
           <button id="tab-btn-done-stories" class="tab-btn" data-tab="done-stories" role="tab"
             aria-selected="false" aria-controls="tab-done-stories" tabindex="-1">
-            <span class="tab-btn-label">Outcomes</span>
+            <span class="tab-btn-label">Value delivery</span>
           </button>
           <button id="tab-btn-unusable-sprints" class="tab-btn" data-tab="unusable-sprints" role="tab"
             aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">
-            <span class="tab-btn-label">Sprint data</span>
+            <span class="tab-btn-label">Data trust</span>
           </button>
         </div>
         <div class="report-unified-tab-search">

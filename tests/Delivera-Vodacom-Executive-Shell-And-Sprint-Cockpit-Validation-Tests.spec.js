@@ -252,19 +252,20 @@ async function stubSprintPage(page, payload) {
 test.describe('Vodacom executive shell and sprint cockpit', () => {
   test('home page exposes the full executive navigation shell', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    await page.goto('/home');
+    await page.goto('/dashboard');
     if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
     await expect(page.locator('.app-sidebar')).toBeVisible();
     const nav = page.locator('.app-sidebar .sidebar-link');
-    await expect(nav).toHaveCount(8);
+    await expect(nav).toHaveCount(9);
+    await expect(page.locator('.app-sidebar')).toContainText(/Dashboard|Program Increment \(PI\)|Sprints|Value Delivery|Risks & Blockers|Teams|Reports|Settings/i);
     await expect(page.locator('.sidebar-brand-tagline')).toContainText(/Grow my Impact/i);
-    await expect(page.locator('h1')).toContainText(/Delivery intelligence home/i);
+    await expect(page.locator('h1')).toContainText(/Delivery intelligence dashboard/i);
     assertTelemetryClean(telemetry);
   });
 
   test('executive placeholder pages are live and decision-oriented', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    for (const path of ['/backlog-intake', '/roadmap', '/teams', '/settings']) {
+    for (const path of ['/program-increment', '/value-delivery', '/risks-blockers', '/teams', '/settings']) {
       await page.goto(path);
       if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
       await expect(page.locator('h1')).toBeVisible();
@@ -279,12 +280,28 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await stubSprintPage(page, buildStubSprintPayload());
     await page.goto('/current-sprint');
     await page.waitForSelector('.decision-cockpit-shell', { timeout: 30000 });
+    await expect(page.locator('.decision-summary-strip')).toContainText(/Delivery score|Business impact|Risk/i);
     await expect(page.locator('.decision-health-card')).toContainText(/On Track/i);
     await expect(page.locator('.decision-action-card')).toContainText(/SD-5139/i);
     await expect(page.locator('.decision-signals-card')).toContainText(/Blockers|Scope changes|Recent completion/i);
     await expect(page.locator('.decision-metrics-row .decision-metric-card')).toHaveCount(5);
     await expect(page.locator('.decision-rail-card')).toHaveCount(3);
     await expect(page.locator('.decision-insights-row .decision-insight-card')).toHaveCount(4);
+    await expect(page.locator('#stories-card')).toContainText(/Value Delivery|Enablers|Blocked \/ At Risk|What Was Delivered This Sprint|Blockers Panel/i);
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report and leadership first views stay business-oriented instead of tool-oriented', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
+    await expect(page.locator('h1')).toContainText(/Reports/i);
+    await expect(page.locator('#tab-btn-trends')).toContainText(/Leadership/i);
+    await expect(page.locator('#tab-btn-sprints')).toContainText(/Sprint delivery/i);
+    await expect(page.locator('#tab-btn-done-stories')).toContainText(/Value delivery/i);
+    await page.goto('/leadership');
+    await expect(page.locator('.hud-title')).toContainText(/Leadership/i);
+    await expect(page.locator('#leadership-summary')).toContainText(/Loading the portfolio story|Risk index|delivery/i);
     assertTelemetryClean(telemetry);
   });
 

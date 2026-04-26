@@ -1,5 +1,6 @@
 import { escapeHtml, renderIssueKeyLink } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { formatDayLabel, formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { buildDeliveredImpactBullets, deriveSprintGoal } from './Delivera-CurrentSprint-Value-Helpers.js';
 
 function getToneClass(tone) {
   if (tone === 'critical') return 'is-critical';
@@ -190,6 +191,44 @@ function renderInsights(insights = {}) {
   }).join('');
 }
 
+function buildSummaryStrip(data, cockpit) {
+  const sprint = data?.sprint || {};
+  const summary = data?.summary || {};
+  const health = cockpit?.health || {};
+  const totalStories = Number(summary.totalStories || 0);
+  const doneStories = Number(summary.doneStories || 0);
+  const completedPct = totalStories > 0 ? Math.round((doneStories / totalStories) * 100) : 0;
+  const spilloverPct = totalStories > 0 ? Math.max(0, Math.round(((totalStories - doneStories) / totalStories) * 100)) : 0;
+  const impacts = buildDeliveredImpactBullets(Array.isArray(data?.stories) ? data.stories : [], new Map()).slice(0, 3);
+  const fallbackImpact = impacts.length ? impacts : [deriveSprintGoal(data)];
+  const toneClass = getToneClass(health.tone);
+
+  return ''
+    + `<section class="decision-summary-strip ${toneClass}" aria-label="Sprint value summary">`
+    + '<div class="decision-summary-cell decision-summary-cell-primary">'
+    + '<span class="decision-summary-label">Sprint</span>'
+    + `<strong>${escapeHtml(sprint.name || 'Current sprint')}</strong>`
+    + `<p>${escapeHtml(deriveSprintGoal(data))}</p>`
+    + '</div>'
+    + '<div class="decision-summary-cell">'
+    + '<span class="decision-summary-label">Delivery score</span>'
+    + `<strong>${completedPct}% complete</strong>`
+    + `<p>${spilloverPct}% spillover risk</p>`
+    + '</div>'
+    + '<div class="decision-summary-cell decision-summary-cell-impact">'
+    + '<span class="decision-summary-label">Business impact</span>'
+    + '<div class="decision-impact-chip-row">'
+    + fallbackImpact.map((item) => `<span class="decision-impact-chip">${escapeHtml(item)}</span>`).join('')
+    + '</div>'
+    + '</div>'
+    + '<div class="decision-summary-cell">'
+    + '<span class="decision-summary-label">Risk</span>'
+    + `<strong class="decision-risk-indicator ${toneClass}">${escapeHtml(health.status || 'On Track')}</strong>`
+    + '<p>Answers one question: are we delivering value this sprint?</p>'
+    + '</div>'
+    + '</section>';
+}
+
 export function renderDecisionCockpit(data) {
   const cockpit = data?.decisionCockpit || {};
   const health = cockpit.health || {};
@@ -207,6 +246,7 @@ export function renderDecisionCockpit(data) {
 
   return ''
     + '<section class="decision-cockpit-shell">'
+    + buildSummaryStrip(data, cockpit)
     + '<div class="decision-cockpit-header">'
     + '<div>'
     + '<p class="decision-cockpit-eyebrow">Current Sprint</p>'

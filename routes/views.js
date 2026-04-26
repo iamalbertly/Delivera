@@ -84,12 +84,28 @@ router.get('/home', requireAuth, (req, res) => {
     res.sendFile('home.html', { root: './public' });
 });
 
+router.get('/dashboard', requireAuth, (req, res) => {
+    res.sendFile('home.html', { root: './public' });
+});
+
 router.get('/backlog-intake', requireAuth, (req, res) => {
-    res.sendFile('backlog-intake.html', { root: './public' });
+    res.redirect('/value-delivery');
 });
 
 router.get('/roadmap', requireAuth, (req, res) => {
-    res.sendFile('roadmap.html', { root: './public' });
+    res.redirect('/program-increment');
+});
+
+router.get('/program-increment', requireAuth, (req, res) => {
+    res.sendFile('program-increment.html', { root: './public' });
+});
+
+router.get('/value-delivery', requireAuth, (req, res) => {
+    res.sendFile('value-delivery.html', { root: './public' });
+});
+
+router.get('/risks-blockers', requireAuth, (req, res) => {
+    res.sendFile('risks-blockers.html', { root: './public' });
 });
 
 router.get('/teams', requireAuth, (req, res) => {
@@ -113,6 +129,10 @@ router.get('/reports', requireAuth, (req, res) => {
  */
 router.get('/current-sprint', requireAuth, (req, res) => {
     res.sendFile('current-sprint.html', { root: './public' });
+});
+
+router.get('/sprints', requireAuth, (req, res) => {
+    res.redirect('/current-sprint');
 });
 
 /**

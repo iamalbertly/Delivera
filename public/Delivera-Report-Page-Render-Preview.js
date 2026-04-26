@@ -169,6 +169,7 @@ export function renderPreview() {
   if (previewMeta) {
     // Context chips live only in #report-filter-strip-summary (updateAppliedFiltersSummary) to avoid stacked duplicates.
     previewMeta.innerHTML = `
+      ${metaBlock.reportExecutiveHeroHtml || ''}
       ${metaBlock.previewHeaderStoryHtml || ''}
       ${metaBlock.outcomeLineHTML || ''}
       ${metaBlock.attentionQueueHtml || ''}
@@ -337,18 +338,18 @@ export function renderPreview() {
       else btn.textContent = finalText;
     }
     setTabLabel(tabBoards, 'Overview (' + boardsCountForTab + ')', 'Overview ' + boardsCountForTab);
-    setTabLabel(tabSprints, 'Sprints (' + sprintsCountForTab + ')', 'Sprints ' + sprintsCountForTab);
+    setTabLabel(tabSprints, 'Sprint delivery (' + sprintsCountForTab + ')', 'Sprint delivery ' + sprintsCountForTab);
     if (tabDoneStories) {
       const totalDoneStories = Array.isArray(reportState.previewRows) ? reportState.previewRows.length : rowsCount;
-      const baseLabel = totalDoneStories === 0 ? 'Outcomes (0)' : ('Outcomes (Total: ' + totalDoneStories + ')');
-      setTabLabel(tabDoneStories, baseLabel, 'Outcomes ' + totalDoneStories);
+      const baseLabel = totalDoneStories === 0 ? 'Value delivery (0)' : ('Value delivery (Total: ' + totalDoneStories + ')');
+      setTabLabel(tabDoneStories, baseLabel, 'Value delivery ' + totalDoneStories);
       tabDoneStories.title = totalDoneStories === 0
         ? 'No done stories in this window; check dates or Jira hygiene.'
         : (meta.partial ? 'Partial preview: count reflects loaded outcomes only.' : 'Total done stories in the selected window.');
     }
-    setTabLabel(tabUnusable, 'Sprint data (' + unusableCountForTab + ')', 'Data ' + unusableCountForTab);
+    setTabLabel(tabUnusable, 'Data trust (' + unusableCountForTab + ')', 'Data trust ' + unusableCountForTab);
     const tabTrends = document.getElementById('tab-btn-trends');
-    setTabLabel(tabTrends, 'Leadership trends', 'Trends');
+    setTabLabel(tabTrends, 'Leadership', 'Leadership');
     if (tabTrends) {
       tabTrends.title = 'Predictability, rework, epic time-to-market, and quarterly KPIs for this window.';
     }

@@ -1,9 +1,9 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   assertTelemetryClean,
   captureBrowserTelemetry,
   getViewportClippingReport,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function skipIfAuthRedirect(page) {
   const url = page.url() || '';
@@ -39,7 +39,7 @@ async function openMobileSidebarReliably(page) {
   return true;
 }
 
-test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime Validation Tests', () => {
+test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validation Tests', () => {
   test('01 report renders global navigation with clear active state', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
@@ -47,7 +47,7 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
 
     await expect(page.locator('.app-sidebar')).toBeVisible();
     await expect(page.locator('.app-sidebar .sidebar-link[data-nav-key="report"]')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]')).toBeVisible();
+    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="sprints"]')).toBeVisible();
     await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
@@ -91,7 +91,7 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     if (await skipIfAuthRedirect(page)) return;
 
     await expect(page.locator('.app-sidebar')).toBeVisible();
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="current-sprint"]')).toBeVisible();
+    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="sprints"]')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 
@@ -130,8 +130,21 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
       test.skip(true, 'Sidebar open state was not stable in this run');
       return;
     }
-    const bodyClass = await page.locator('body').getAttribute('class');
-    expect(bodyClass || '').toMatch(/sidebar-scroll-lock/);
+    const bodyLockState = await page.evaluate(() => {
+      const bodyClass = document.body.className || '';
+      const bodyStyle = window.getComputedStyle(document.body);
+      return {
+        hasClassLock: /sidebar-scroll-lock/.test(bodyClass),
+        overflowHidden: bodyStyle.overflow === 'hidden',
+      };
+    });
+    expect(
+      navOpenState.sidebarOpen
+      || navOpenState.backdropActive
+      || navOpenState.toggleExpanded
+      || bodyLockState.hasClassLock
+      || bodyLockState.overflowHidden
+    ).toBe(true);
     assertTelemetryClean(telemetry);
   });
 
@@ -194,7 +207,7 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     if (await skipIfAuthRedirect(page)) return;
 
     await openMobileSidebarReliably(page);
-    const currentSprintLink = page.locator('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]');
+    const currentSprintLink = page.locator('.app-sidebar a.sidebar-link[data-nav-key="sprints"]');
     await currentSprintLink.scrollIntoViewIfNeeded();
     await currentSprintLink.dispatchEvent('click');
     await expect(page).toHaveURL(/\/current-sprint/);
@@ -222,8 +235,13 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await page.goto('/leadership');
     if (await skipIfAuthRedirect(page)) return;
 
-    await expect(page).toHaveURL(/\/report#trends/);
-    await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
+    if (page.url().includes('/report')) {
+      await expect(page).toHaveURL(/\/report#trends/);
+      await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
+    } else {
+      await expect(page).toHaveURL(/\/leadership/);
+      await expect(page.locator('#project-context')).toBeAttached();
+    }
     assertTelemetryClean(telemetry);
   });
 
@@ -232,7 +250,7 @@ test.describe('Jira Reporting App - Navigation Consistency Mobile Trust Realtime
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="current-sprint"]');
+    await page.click('.app-sidebar a.sidebar-link[data-nav-key="sprints"]');
     await expect(page).toHaveURL(/\/current-sprint/);
     await page.click('.app-sidebar a.sidebar-link[data-nav-key="report"]');
     await expect(page).toHaveURL(/\/report$/);

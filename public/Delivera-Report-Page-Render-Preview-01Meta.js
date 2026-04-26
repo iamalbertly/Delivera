@@ -3,7 +3,7 @@
  */
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { formatDateForDisplay } from './Delivera-Shared-Format-DateNumber-Helpers.js';
-import { buildJiraIssueUrl } from './Delivera-Report-Utils-Jira-Helpers.js';
+import { resolveJiraIssueUrl } from './Delivera-Report-Utils-Jira-Helpers.js';
 import { REPORT_LAST_RUN_KEY, REPORT_FILTERS_STALE_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Params.js';
 import { buildCompactReportRangeLabel } from './Delivera-Shared-Context-From-Storage.js';
@@ -128,10 +128,9 @@ export function buildPreviewMetaAndStatus(params) {
   const sampleRow = previewRows && previewRows.length > 0 ? previewRows[0] : null;
   let sampleLabel = 'None';
   if (sampleRow) {
-    const host = meta.jiraHost || meta.host || '';
     const sampleKey = sampleRow.issueKey || '';
     const sampleSummary = sampleRow.issueSummary || '';
-    const url = buildJiraIssueUrl(host, sampleKey);
+    const url = resolveJiraIssueUrl(meta, sampleKey, sampleRow.issueUrl);
     const keyText = escapeHtml(sampleKey);
     const summaryText = escapeHtml(sampleSummary);
     sampleLabel = url
@@ -182,12 +181,25 @@ export function buildPreviewMetaAndStatus(params) {
   const riskCounts = deriveOutcomeRiskFromPreviewRows(previewRows);
   const blockersOwned = Number(riskCounts.blockersOwned || 0);
   const unownedOutcomes = Number(riskCounts.unownedOutcomes || 0);
+  const doneRows = previewRows.filter((row) => {
+    const status = String(row?.issueStatus || '').toLowerCase();
+    return status.includes('done') || status.includes('closed') || status.includes('resolved');
+  });
+  const deliveryScore = rowsCount > 0 ? Math.round((doneRows.length / rowsCount) * 100) : 0;
+  const valueStoriesDone = `${doneRows.length} / ${rowsCount || 0}`;
+  const deliveredExamples = doneRows
+    .slice(0, 3)
+    .map((row) => String(row?.issueSummary || row?.issueKey || '').trim())
+    .filter(Boolean);
   const exportLabel = rowsCount > 0 ? 'Export ready' : 'No data yet';
+  const healthRisk = blockersOwned > 0 || unownedOutcomes > 0;
 
   let healthSentence;
+  let headerStoryText;
   let zeroOutcomeHint = '';
   if (rowsCount === 0) {
     healthSentence = 'No outcome stories in this window (maintenance-only work)';
+    headerStoryText = 'No outcome stories matched this scope yet. Adjust projects or dates to recover signal.';
     zeroOutcomeHint = '<p class="preview-context-zero-hint">Define outcome labels or epic links in Jira to see outcome metrics here.</p>';
   } else {
     const riskParts = [];
@@ -195,6 +207,9 @@ export function buildPreviewMetaAndStatus(params) {
     if (unownedOutcomes > 0) riskParts.push(`${unownedOutcomes} unowned`);
     healthSentence = `${rowsCount} stor${rowsCount === 1 ? 'y' : 'ies'} | ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} | ${boardsCount} board${boardsCount === 1 ? '' : 's'}`
       + (riskParts.length ? ' | ' + riskParts.join(' | ') : '');
+    headerStoryText = healthRisk
+      ? `${rowsCount} outcome stories across ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} with active delivery risk to review now.`
+      : `${rowsCount} outcome stories across ${sprintsCount} sprint${sprintsCount === 1 ? '' : 's'} with clean delivery signal in the current scope.`;
   }
 
   const detailsHintParts = [];
@@ -204,7 +219,6 @@ export function buildPreviewMetaAndStatus(params) {
   if (prevRunText) detailsHintParts.push(prevRunText);
   if (!rowsCount) detailsHintParts.push(exportLabel);
   const detailsHint = detailsHintParts.join(' | ');
-  const healthRisk = blockersOwned > 0 || unownedOutcomes > 0;
   const healthChipExtra = healthRisk ? ' preview-context-chip-health--risk' : '';
 
   const scopeOpenTitle = 'Projects: ' + projectSummary.full + ' | Range: ' + compactRangeLabel;
@@ -222,6 +236,33 @@ export function buildPreviewMetaAndStatus(params) {
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Details</button>' +
     '</div>' +
     zeroOutcomeHint;
+  const reportExecutiveHeroHtml = rowsCount > 0
+    ? '<section class="report-executive-hero" aria-label="Portfolio delivery summary">'
+      + '<article class="report-executive-card report-executive-card-primary">'
+      + '<p class="report-executive-label">Delivery score</p>'
+      + `<h3>${escapeHtml(String(deliveryScore))}%</h3>`
+      + `<p>${escapeHtml(healthSentence)}</p>`
+      + '</article>'
+      + '<article class="report-executive-card">'
+      + '<p class="report-executive-label">Value stories done</p>'
+      + `<h3>${escapeHtml(valueStoriesDone)}</h3>`
+      + '<p>Outcome work completed in the selected scope.</p>'
+      + '</article>'
+      + '<article class="report-executive-card">'
+      + '<p class="report-executive-label">Blockers</p>'
+      + `<h3>${escapeHtml(String(blockersOwned))}</h3>`
+      + '<p>Owned blockers still affecting delivery confidence.</p>'
+      + '</article>'
+      + '<article class="report-executive-card">'
+      + '<p class="report-executive-label">Business value</p>'
+      + '<div class="report-executive-chip-row">'
+      + (deliveredExamples.length
+        ? deliveredExamples.map((item) => `<span class="report-executive-chip">${escapeHtml(item)}</span>`).join('')
+        : '<span class="report-executive-chip">Outcome examples appear once work is delivered.</span>')
+      + '</div>'
+      + '</article>'
+      + '</section>'
+    : '';
   const attentionQueueHtml = renderAttentionQueue({
     title: 'Attention queue',
     items: [
@@ -256,6 +297,7 @@ export function buildPreviewMetaAndStatus(params) {
       ${partialNotice}
     </div>
   `;
+  const previewHeaderStoryHtml = `<p class="preview-header-story">${escapeHtml(headerStoryText || healthSentence)}</p>`;
 
   const stickyText = `Preview: ${selectedProjectsLabel} | ${compactRangeLabel}${generated.stickySuffix}`;
   let statusStripText = '';
@@ -291,7 +333,9 @@ export function buildPreviewMetaAndStatus(params) {
 
   return {
     reportSubtitleText,
+    reportExecutiveHeroHtml,
     appliedFiltersText,
+    previewHeaderStoryHtml,
     outcomeLineHTML,
     attentionQueueHtml,
     previewMetaHTML,
