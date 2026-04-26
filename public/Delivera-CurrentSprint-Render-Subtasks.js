@@ -56,23 +56,26 @@ export function renderWorkRisksMerged(data) {
     ? 'blocker detected in sprint risk signals'
     : remediationLine;
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
-  html += '<div id="blockers-panel" class="visually-hidden">' + escapeHtml(blockersPanelText) + '</div>';
+  html += '<div id="blockers-panel-legacy-summary" class="visually-hidden">' + escapeHtml(blockersPanelText) + '</div>';
   html += '<div class="work-risks-inline-summary">';
-  html += '<span class="work-risks-inline-label">Remediation queue</span>';
+  html += '<span class="work-risks-inline-label">Work risks<span class="visually-hidden"> Remediation queue</span></span>';
   html += '<span class="work-risks-inline-copy">' + escapeHtml(remediationLine) + '</span>';
   if (scopeChanges.length > 0 || excludedParents > 0) {
     const metaParts = [];
     if (scopeChanges.length > 0) metaParts.push('+' + scopeChanges.length + ' scope (' + formatNumber(scopeSP, 1, '0') + ' SP)');
     if (excludedParents > 0) metaParts.push(excludedParents + ' parent' + (excludedParents > 1 ? 's' : '') + ' via subtasks');
-    html += '<span class="work-risks-shortcut-meta">' + escapeHtml(metaParts.join(' | ')) + '</span>';
+    html += '<span class="work-risks-shortcut-meta meta-row">' + escapeHtml(metaParts.join(' | ')) + '</span>';
   }
-  if (visibleRiskViews.length > 0) {
+  const hasPrimaryStoriesStrip = !!document.getElementById('stories-card');
+  if (visibleRiskViews.length > 0 && !hasPrimaryStoriesStrip) {
     html += '<div class="work-risks-shortcut-chips" data-work-risk-inline-details aria-label="Jump to stories filtered by risk">';
     html += '<button type="button" class="btn btn-tertiary btn-compact" data-work-risk-shortcut data-risk-tags="">All</button>';
     visibleRiskViews.forEach((item) => {
       html += '<button type="button" class="btn btn-secondary btn-compact" data-work-risk-shortcut data-risk-tags="' + escapeHtml((item.riskTags || []).join(' ')) + '">' + escapeHtml(item.label) + '</button>';
     });
     html += '</div>';
+  } else if (visibleRiskViews.length > 0 && hasPrimaryStoriesStrip) {
+    html += '<span class="work-risks-shortcut-meta">Risk shortcuts are pinned in Sprint work for faster action.</span>';
   }
   html += '</div>';
   html += '</div>';

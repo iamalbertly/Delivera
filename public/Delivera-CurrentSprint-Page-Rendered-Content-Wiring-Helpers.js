@@ -171,6 +171,56 @@ function wireSummaryActionBridge() {
   if (cached) renderRibbonFromContext(cached);
 }
 
+function wireNoClickJourneys() {
+  if (window.__currentSprintNoClickJourneysBound) return;
+  window.__currentSprintNoClickJourneysBound = true;
+
+  function openTopRiskPreviewIfNeeded() {
+    try {
+      const alreadyOpened = sessionStorage.getItem('delivera.currentSprint.topRiskPreviewOpened.v1') === '1';
+      if (alreadyOpened) return;
+      const row = document.querySelector('#work-risks-table tbody tr[data-risk-tags], #stories-table tbody tr[data-risk-tags]');
+      if (!row) return;
+      sessionStorage.setItem('delivera.currentSprint.topRiskPreviewOpened.v1', '1');
+      window.dispatchEvent(new CustomEvent('currentSprint:openIssuePreviewForRow', { detail: { row } }));
+    } catch (_) {}
+  }
+
+  function wireKeyboardShortcuts() {
+    if (window.__currentSprintKeyboardShortcutsBound) return;
+    window.__currentSprintKeyboardShortcutsBound = true;
+    document.addEventListener('keydown', (event) => {
+      if (event.defaultPrevented) return;
+      const target = event.target;
+      const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (isTyping) return;
+      if (event.key === 's' || event.key === 'S') {
+        const copySummaryBtn = document.querySelector('.export-dashboard-btn.export-default-action');
+        if (copySummaryBtn) {
+          event.preventDefault();
+          copySummaryBtn.click();
+        }
+      } else if (event.key === 'g' || event.key === 'G') {
+        const quickNudgeBtn = document.querySelector('[data-action="copy-top-guided-nudge"]');
+        if (quickNudgeBtn) {
+          event.preventDefault();
+          quickNudgeBtn.click();
+        }
+      } else if (event.key === '/') {
+        const filterInput = document.getElementById('issue-jump-input');
+        if (filterInput) {
+          event.preventDefault();
+          filterInput.focus();
+          filterInput.select?.();
+        }
+      }
+    });
+  }
+
+  window.setTimeout(openTopRiskPreviewIfNeeded, 260);
+  wireKeyboardShortcuts();
+}
+
 export function appendCurrentSprintLoginLink(errorEl) {
   if (!errorEl || errorEl.querySelector('a.nav-link')) return;
   const link = document.createElement('a');
@@ -201,6 +251,7 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireExportHandlers(data);
   wireIssuePreviewHandlers();
   wireSummaryActionBridge();
+  wireNoClickJourneys();
   wireAttentionQueueHandlers();
   wireSectionLinks();
   collapseMobileDetailsSections();

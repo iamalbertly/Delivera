@@ -20,8 +20,8 @@ test.describe('Delivera - Adaptive nudge role and edge-case validation', () => {
       });
     });
     expect(output).toContain('[Scrum Master]');
-    expect(output).toContain('Recommended action now');
-    expect(output).toContain('Confidence:');
+    expect(output).toMatch(/Do now:|Recommended action now/i);
+    expect(output).toMatch(/Confidence:|Trust:/i);
   });
 
   test('role mapping: developer context changes action hint wording', async ({ page }) => {
@@ -178,7 +178,7 @@ test.describe('Delivera - Adaptive nudge role and edge-case validation', () => {
         summaryContext: ctx,
       });
     });
-    expect(output).toContain('Done criteria:');
+    expect(output).toMatch(/Done criteria:|Done:/i);
     expect(output).not.toContain('undefined');
   });
 });

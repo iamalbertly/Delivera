@@ -39,6 +39,7 @@
     "test:report-current-shell": "npm run test:journey:shell-direct-value",
     "test:journey:nudge-summary-bridge": "playwright test tests/Delivera-Nudge-Summary-Direct-Value-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
     "test:journey:adaptive-nudges": "playwright test tests/Delivera-Adaptive-Nudge-Role-EdgeCases-Realtime-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
+    "test:journey:no-click-coaching": "playwright test tests/Delivera-NoClick-Adaptive-Coaching-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
     "test:current-sprint-ux-ssot": "npm run test:journey:current-sprint",
     "test:current-sprint-redesign": "npm run test:journey:current-sprint",
     "test:e2e": "npm run test:e2e:full"

@@ -1,5 +1,5 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { buildGuidedNudgeText, getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
+import { buildBasicNudgeText, buildGuidedNudgeText, getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
 
 function ensurePreviewContainer() {
   let container = document.getElementById('current-sprint-issue-preview');
@@ -169,15 +169,13 @@ export function wireIssuePreviewHandlers() {
     if (action === 'copy-link') {
       text = url;
     } else if (action === 'copy-nudge') {
-      const roleMode = String(getCurrentSprintSummaryContext()?.roleMode || 'all').trim().toLowerCase();
-      const roleLabel = roleMode === 'scrum-master'
-        ? 'Scrum Master'
-        : (roleMode === 'developer'
-          ? 'Developer'
-          : (roleMode === 'product-owner' ? 'Product Owner' : (roleMode === 'line-manager' ? 'Line Manager' : 'Team')));
-      text = key
-        ? `[System basic nudge][${roleLabel}] ${key}: ${summary || 'Please review'} (${status || 'status unknown'}). Action now: set owner, set next unblock step, and update Jira status/time today. ${url}`
-        : url;
+      text = buildBasicNudgeText({
+        issueKey: key,
+        issueSummary: summary,
+        issueStatus: status,
+        issueUrl: url,
+        summaryContext: getCurrentSprintSummaryContext(),
+      });
     } else if (action === 'copy-guided-nudge') {
       text = buildGuidedNudgeText({
         issueKey: key,

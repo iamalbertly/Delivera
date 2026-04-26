@@ -1,5 +1,7 @@
 const SUMMARY_CONTEXT_KEY = 'delivera.currentSprint.summaryContext.v1';
 const NUDGE_RATE_LIMIT_PREFIX = 'delivera.currentSprint.nudgeRateLimit.v1.';
+const SIMPLE_ENGLISH_KEY = 'delivera.simpleEnglishMode.v1';
+const COACHING_LEVEL_KEY = 'delivera.coachingLevel.v1';
 
 function asText(value) {
   return String(value == null ? '' : value).trim();
@@ -21,6 +23,24 @@ function truncate(text, max = 220) {
   const value = asText(text);
   if (value.length <= max) return value;
   return `${value.slice(0, Math.max(0, max - 1)).trimEnd()}...`;
+}
+
+function readSimpleEnglishMode() {
+  try {
+    const value = window.localStorage.getItem(SIMPLE_ENGLISH_KEY);
+    if (value == null) return true;
+    return String(value).trim().toLowerCase() !== 'false';
+  } catch (_) {
+    return true;
+  }
+}
+
+function readCoachingLevel() {
+  try {
+    const raw = String(window.localStorage.getItem(COACHING_LEVEL_KEY) || '').trim().toLowerCase();
+    if (raw === 'guide' || raw === 'assist' || raw === 'concise') return raw;
+  } catch (_) {}
+  return 'assist';
 }
 
 function deriveTopAction(summaryText, fallbackAction = '') {
@@ -57,6 +77,30 @@ function roleActionHint(roleMode) {
   if (roleMode === 'product-owner') return 'Confirm scope impact and decide keep, split, or defer.';
   if (roleMode === 'line-manager') return 'Close ownership gaps and align staffing for stuck work.';
   return 'Resolve the top risk with one clear owner and next step.';
+}
+
+function shortenIssueSummary(summaryText) {
+  const summary = asText(summaryText);
+  if (!summary) return 'Please review this issue';
+  const agileTemplatePattern = /^as a .*? i should be able to\s*/i;
+  const stripped = summary.replace(agileTemplatePattern, '');
+  const compact = stripped
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\(to do\)\s*/ig, ' ')
+    .trim();
+  return truncate(compact || summary, 140);
+}
+
+function simplifyLine(line, simpleEnglishMode) {
+  const text = asText(line);
+  if (!text || !simpleEnglishMode) return text;
+  return text
+    .replace(/validate[d]?\s+after\s+action/ig, 'check after action')
+    .replace(/recommended action now/ig, 'Do now')
+    .replace(/confidence:/ig, 'Trust:')
+    .replace(/historical snapshot/ig, 'old data snapshot')
+    .replace(/insufficient/ig, 'not enough')
+    .replace(/ownership/ig, 'owner');
 }
 
 function deriveEvidenceBand({ health, risks, capacity }) {
@@ -124,6 +168,8 @@ export function buildSummaryContext({
     generatedAt: new Date().toISOString(),
     roleMode,
     roleLabel: roleLabel(roleMode),
+    simpleEnglishMode: readSimpleEnglishMode(),
+    coachingLevel: readCoachingLevel(),
   });
   normalized.evidenceBand = deriveEvidenceBand(normalized);
   return normalized;
@@ -165,18 +211,22 @@ export function buildGuidedNudgeText({
   summaryContext = null,
 } = {}) {
   const key = asText(issueKey);
-  const summary = asText(issueSummary) || 'Please review';
+  const summary = shortenIssueSummary(issueSummary);
   const status = asText(issueStatus) || 'status unknown';
   const url = asText(issueUrl);
   const context = summaryContext && typeof summaryContext === 'object' ? summaryContext : null;
   const roleMode = asText(context?.roleMode || '').toLowerCase() || readRoleMode();
   const roleName = roleLabel(roleMode);
-  const contextHeader = context?.header ? `Sprint context: ${truncate(context.header, 240)}` : '';
-  const contextHealth = context?.health ? `Health signal: ${truncate(context.health, 220)}` : '';
-  const contextRisk = context?.risks ? `Risk signal: ${truncate(context.risks, 220)}` : '';
-  const contextScope = context?.scope ? `Scope signal: ${truncate(context.scope, 200)}` : '';
-  const contextCapacity = context?.capacity ? `Capacity signal: ${truncate(context.capacity, 200)}` : '';
-  const action = context?.topAction ? `Recommended action now: ${truncate(context.topAction, 220)}` : `Recommended action now: ${roleActionHint(roleMode)}`;
+  const simpleEnglishMode = context?.simpleEnglishMode !== false;
+  const coachingLevel = asText(context?.coachingLevel || '').toLowerCase() || 'assist';
+  const contextHeader = context?.header ? simplifyLine(`Sprint context: ${truncate(context.header, 240)}`, simpleEnglishMode) : '';
+  const contextHealth = context?.health ? simplifyLine(`Health signal: ${truncate(context.health, 220)}`, simpleEnglishMode) : '';
+  const contextRisk = context?.risks ? simplifyLine(`Risk signal: ${truncate(context.risks, 220)}`, simpleEnglishMode) : '';
+  const contextScope = context?.scope ? simplifyLine(`Scope signal: ${truncate(context.scope, 200)}`, simpleEnglishMode) : '';
+  const contextCapacity = context?.capacity ? simplifyLine(`Capacity signal: ${truncate(context.capacity, 200)}`, simpleEnglishMode) : '';
+  const action = context?.topAction
+    ? simplifyLine(`Recommended action now: ${truncate(context.topAction, 220)}`, simpleEnglishMode)
+    : simplifyLine(`Recommended action now: ${roleActionHint(roleMode)}`, simpleEnglishMode);
   const evidenceBand = asText(context?.evidenceBand || '');
   const confidence = evidenceBand === 'actionable'
     ? 'Confidence: High'
@@ -188,17 +238,48 @@ export function buildGuidedNudgeText({
     : `[System guided nudge][${roleName}] ${summary} (${status}).`;
   const suppress = shouldSuppressNudge(key, context?.topAction || action);
   const antiSpamNote = suppress ? 'Duplicate nudge suppressed recently; send only if ownership changed.' : '';
-  return [
+  const doneCriteriaDetailed = simpleEnglishMode
+    ? 'Done: set owner + add next unblock step + update Jira state/time + check trend after action.'
+    : 'Done criteria: set owner + set next unblock step + update Jira state/time so trend can be validated after action.';
+  const doneCriteriaConcise = 'Done: owner set, next step set, Jira updated.';
+  const doneCriteria = coachingLevel === 'concise' ? doneCriteriaConcise : doneCriteriaDetailed;
+  const bodyParts = [
     opening,
-    contextHeader,
-    contextHealth,
-    contextRisk,
-    contextScope,
-    contextCapacity,
     confidence,
     action,
-    'Done criteria: set owner + set next unblock step + update Jira state/time so trend can be validated after action.',
+    coachingLevel === 'guide' ? contextHeader : '',
+    coachingLevel !== 'concise' ? contextHealth : '',
+    coachingLevel !== 'concise' ? contextRisk : '',
+    coachingLevel === 'guide' ? contextScope : '',
+    coachingLevel === 'guide' ? contextCapacity : '',
+    doneCriteria,
     antiSpamNote,
     url,
-  ].filter(Boolean).join(' ');
+  ];
+  return bodyParts.filter(Boolean).join(' ');
+}
+
+export function buildBasicNudgeText({
+  issueKey = '',
+  issueSummary = '',
+  issueStatus = '',
+  issueUrl = '',
+  summaryContext = null,
+} = {}) {
+  const key = asText(issueKey);
+  const summary = shortenIssueSummary(issueSummary);
+  const status = asText(issueStatus) || 'status unknown';
+  const context = summaryContext && typeof summaryContext === 'object' ? summaryContext : {};
+  const roleName = roleLabel(asText(context.roleMode || '').toLowerCase() || readRoleMode());
+  const simpleEnglishMode = context.simpleEnglishMode !== false;
+  const action = context?.topAction
+    ? truncate(context.topAction, 120)
+    : roleActionHint(asText(context.roleMode || '').toLowerCase() || readRoleMode());
+  const actionLine = simpleEnglishMode
+    ? `Do now: ${action}.`
+    : `Action now: ${action}.`;
+  const opening = key
+    ? `[System basic nudge][${roleName}] ${key}: ${summary} (${status}).`
+    : `[System basic nudge][${roleName}] ${summary} (${status}).`;
+  return [opening, actionLine, asText(issueUrl)].filter(Boolean).join(' ');
 }
