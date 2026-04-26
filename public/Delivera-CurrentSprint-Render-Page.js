@@ -3,6 +3,18 @@ import { renderBurndown, renderStories } from './Delivera-CurrentSprint-Render-P
 import { renderDataAvailabilitySummaryHtml, renderEmptyStateHtml, renderNoActiveSprintEmptyState, renderNoIssuesForContextEmptyState, renderNoProjectsSelectedEmptyState } from './Delivera-Shared-Empty-State-Helpers.js';
 import { renderHeaderBar } from './Delivera-CurrentSprint-Header-Bar.js';
 import { renderRisksAndInsights } from './Delivera-CurrentSprint-Risks-Insights.js';
+import { renderSprintCarousel } from './Delivera-CurrentSprint-Navigation-Carousel.js';
+import { renderCountdownTimer } from './Delivera-CurrentSprint-Countdown-Timer.js';
+import { renderDecisionCockpit } from './Delivera-CurrentSprint-Decision-Cockpit.js';
+
+function renderSprintSwitcher(data) {
+  if (!Array.isArray(data.recentSprints) || data.recentSprints.length <= 1) return '';
+  return ''
+    + '<section class="sprint-switcher-card sprint-switcher-card-inline" aria-label="Switch sprint" open>'
+    + '<div class="header-drawer-section-label">Switch sprint</div>'
+    + renderSprintCarousel(data)
+    + '</section>';
+}
 
 export function renderCurrentSprintPage(data) {
   const hasProjectContext = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim();
@@ -34,14 +46,28 @@ export function renderCurrentSprintPage(data) {
   if (!hasBurndownData) availabilityGaps.push({ source: hasBurndownSeries ? 'Workflow' : 'Data', label: 'Burndown hidden', reason: hasBurndownSeries ? 'No planned story points for this sprint.' : 'No story-point history available.' });
 
   const jumpLinks = [];
-  if (hasStories) jumpLinks.push('<a href="#stories-card">Work & flow</a>');
-  if (hasBurndownData) jumpLinks.push('<a href="#burndown-card">Flow over time</a>');
+  jumpLinks.push(
+    hasStories
+      ? '<a href="#stories-card">Work & flow</a>'
+      : '<span class="sprint-section-inline-link is-disabled" aria-disabled="true">Work & flow</span>'
+  );
+  jumpLinks.push(
+    hasBurndownData
+      ? '<a href="#burndown-card">Flow over time</a>'
+      : '<span class="sprint-section-inline-link is-disabled" aria-disabled="true">Flow over time</span>'
+  );
   jumpLinks.push('<a href="#risks-insights-card">Insights</a>');
   const sectionLinksHtml = '<div class="sprint-section-links sprint-section-links-compact" role="navigation" aria-label="Jump to section">'
     + jumpLinks.join('')
+    + '<div class="sprint-section-inline-actions">'
+    + renderCountdownTimer(data, { compact: true, inlineHeader: true })
+    + '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint risks and progress.">Create work</button>'
+    + '</div>'
     + '</div>';
 
+  html += renderDecisionCockpit(data);
   html += renderHeaderBar(data, { sectionLinksHtml });
+  html += renderSprintSwitcher(data);
   if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
     html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
   }
@@ -116,6 +142,7 @@ export function renderCurrentSprintPageParts(data) {
 
   const initialHtml = ''
     + renderHeaderBar(data, { isLoadingShell: true })
+    + renderSprintSwitcher(data)
     + '<div class="current-sprint-grid-layout current-sprint-grid-layout-phased">'
     + '<div class="transparency-card sprint-progressive-shell" data-progressive-shell="deferred">'
     + '<h2>Loading sprint work</h2>'

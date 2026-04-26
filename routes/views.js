@@ -1,8 +1,8 @@
 
 import express from 'express';
 import { requireAuth, authEnabled, legacyAuthEnabled, superTokensEnabled, APP_LOGIN_USER, APP_LOGIN_PASSWORD } from '../lib/middleware.js';
-import { logger } from '../lib/Jira-Reporting-App-Server-Logging-Utility.js';
-import { buildReportUrlFromContext, readReportContextFromSession } from '../lib/Jira-Reporting-App-User-Context-SSOT.js';
+import { logger } from '../lib/Delivera-Server-Logging-Utility.js';
+import { buildReportUrlFromContext, readReportContextFromSession } from '../lib/Delivera-User-Context-SSOT.js';
 
 const router = express.Router();
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
@@ -78,6 +78,26 @@ router.post('/logout', (req, res) => {
  */
 router.get('/report', requireAuth, (req, res) => {
     res.sendFile('report.html', { root: './public' });
+});
+
+router.get('/home', requireAuth, (req, res) => {
+    res.sendFile('home.html', { root: './public' });
+});
+
+router.get('/backlog-intake', requireAuth, (req, res) => {
+    res.sendFile('backlog-intake.html', { root: './public' });
+});
+
+router.get('/roadmap', requireAuth, (req, res) => {
+    res.sendFile('roadmap.html', { root: './public' });
+});
+
+router.get('/teams', requireAuth, (req, res) => {
+    res.sendFile('teams.html', { root: './public' });
+});
+
+router.get('/settings', requireAuth, (req, res) => {
+    res.sendFile('settings.html', { root: './public' });
 });
 
 /**

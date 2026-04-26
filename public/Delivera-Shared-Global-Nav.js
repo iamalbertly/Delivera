@@ -6,31 +6,66 @@ import {
   getRuntimeAlertCount,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 
+const PAGE_HOME = 'home';
+const PAGE_BACKLOG = 'backlog-intake';
 const PAGE_REPORT = 'report';
+const PAGE_ROADMAP = 'roadmap';
 const PAGE_SPRINT = 'current-sprint';
 const PAGE_LEADERSHIP = 'leadership';
+const PAGE_TEAMS = 'teams';
+const PAGE_SETTINGS = 'settings';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
 
 const NAV_ITEMS = [
   {
-    key: PAGE_REPORT,
-    label: 'Performance - History (Report)',
-    href: '/report',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
+    key: PAGE_HOME,
+    label: 'Home',
+    href: '/home',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 10.2V21h6.7v-6.1h4.6V21H21V10.2z"/></svg>',
   },
   {
     key: PAGE_SPRINT,
-    label: 'Performance - Current Sprint (Squad)',
+    label: 'Current Sprint',
     href: '/current-sprint',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM7 3h2v4H7zm8 0h2v4h-2z"/></svg>',
   },
   {
+    key: PAGE_BACKLOG,
+    label: 'Backlog Intake',
+    href: '/backlog-intake',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2H7zm-2 4h14v2H5zm0 5h14v2H5zm0 5h10v2H5z"/></svg>',
+  },
+  {
+    key: PAGE_REPORT,
+    label: 'Reports',
+    href: '/report',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
+  },
+  {
+    key: PAGE_ROADMAP,
+    label: 'Roadmap',
+    href: '/roadmap',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10l2 3h4v7h-9l-2-3H4z"/></svg>',
+  },
+  {
     key: PAGE_LEADERSHIP,
-    label: 'Leadership HUD',
+    label: 'Leadership',
     href: '/leadership',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7 4a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7-8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
+  },
+  {
+    key: PAGE_TEAMS,
+    label: 'Teams',
+    href: '/teams',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11.5a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm9 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3ZM3 20v-1.2A4.8 4.8 0 0 1 7.8 14h-.6A4.8 4.8 0 0 1 12 18.8V20Zm9 0v-1.2A4.8 4.8 0 0 1 16.8 14h-.6A4.8 4.8 0 0 1 21 18.8V20Z"/></svg>',
+  },
+  {
+    key: PAGE_SETTINGS,
+    label: 'Settings',
+    href: '/settings',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m19.4 13 .1-2-1.8-.7a5.6 5.6 0 0 0-.4-1l.8-1.8-1.4-1.4-1.8.8a5.6 5.6 0 0 0-1-.4L13 3h-2l-.7 1.8a5.6 5.6 0 0 0-1 .4l-1.8-.8-1.4 1.4.8 1.8a5.6 5.6 0 0 0-.4 1L3 11v2l1.8.7a5.6 5.6 0 0 0 .4 1l-.8 1.8 1.4 1.4 1.8-.8a5.6 5.6 0 0 0 1 .4L11 21h2l.7-1.8a5.6 5.6 0 0 0 1-.4l1.8.8 1.4-1.4-.8-1.8a5.6 5.6 0 0 0 .4-1ZM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5Z"/></svg>',
   },
 ];
 
@@ -43,10 +78,15 @@ function getPathState() {
 function getCurrentPage() {
   const { path, hash } = getPathState();
   if (path === '/login' || path.endsWith('/login')) return PAGE_LOGIN;
+  if (path === '/home' || path.endsWith('/home')) return PAGE_HOME;
+  if (path === '/backlog-intake' || path.endsWith('/backlog-intake')) return PAGE_BACKLOG;
   if ((path === '/report' || path.endsWith('/report')) && hash === LEADERSHIP_HASH) return PAGE_REPORT;
   if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
+  if (path === '/roadmap' || path.endsWith('/roadmap')) return PAGE_ROADMAP;
   if (path === '/current-sprint' || path.endsWith('/current-sprint')) return PAGE_SPRINT;
   if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_LEADERSHIP;
+  if (path === '/teams' || path.endsWith('/teams')) return PAGE_TEAMS;
+  if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
   return PAGE_REPORT;
 }
 
@@ -57,7 +97,7 @@ function getNavItems(current) {
 function buildSidebarHTML() {
   const current = getCurrentPage();
   const items = getNavItems(current);
-  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Delivery intelligence · Built on your Jira data</span></div>';
+  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span><span class="sidebar-brand-subtag">Delivery intelligence for customer clarity, simplicity, and growth.</span></div>';
   html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
   for (const item of items) {
     const className = 'sidebar-link' + (item.active ? ' active current' : '');
@@ -156,11 +196,14 @@ function navigateTo(itemKey, itemHref) {
 
 function buildBottomNavHTML() {
   const current = getCurrentPage();
-  const items = getNavItems(current);
+  const items = getNavItems(current).filter((item) => [PAGE_HOME, PAGE_REPORT, PAGE_SPRINT, PAGE_LEADERSHIP].includes(item.key));
   let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
   for (const item of items) {
     const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');
-    const shortLabel = item.key === PAGE_SPRINT ? 'Sprint' : (item.key === PAGE_LEADERSHIP ? 'Leadership' : 'Reports');
+    let shortLabel = 'Reports';
+    if (item.key === PAGE_HOME) shortLabel = 'Home';
+    else if (item.key === PAGE_SPRINT) shortLabel = 'Sprint';
+    else if (item.key === PAGE_LEADERSHIP) shortLabel = 'Leadership';
     html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">';
     html += '<span class="mobile-bottom-nav-icon" aria-hidden="true">' + item.icon + '</span>';
     html += '<span class="mobile-bottom-nav-label">' + shortLabel + '</span>';
@@ -347,7 +390,7 @@ function updateDataPulse(label, state) {
   if (el.querySelector('[data-sidebar-alert-jump]')) return;
   const dotClass = state === 'live' ? 'pulse-live' : (state === 'stale' ? 'pulse-stale' : 'pulse-idle');
   el.innerHTML = '<span class="pulse-dot ' + dotClass + '" aria-hidden="true"></span> ' + (label || '');
-  updateBottomNavBadge(PAGE_REPORT, state === 'stale' ? '!' : '', state === 'stale' ? 'Report data may be stale' : '');
+    updateBottomNavBadge(PAGE_REPORT, state === 'stale' ? '!' : '', state === 'stale' ? 'Report data may be stale' : '');
 }
 
 function updateSidebarAlertFooterFromStore() {

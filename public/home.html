@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home - Delivera</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="executive-surface-page" data-surface-name="Home">
+  <div class="container">
+    <main id="main-content" class="executive-surface-shell">
+      <section class="surface-hero-card">
+        <p class="surface-eyebrow">Grow my Impact</p>
+        <h1>Delivery intelligence home</h1>
+        <p class="surface-lead">One executive entry point for sprint health, portfolio direction, backlog readiness, and team follow-through.</p>
+        <div id="surface-context-bar"></div>
+        <p id="surface-summary-line" class="surface-summary-line"></p>
+        <div class="surface-hero-actions">
+          <button type="button" class="btn btn-primary" data-surface-nav="/current-sprint">Open Current Sprint</button>
+          <button type="button" class="btn btn-secondary" data-surface-nav="/report">Open Reports</button>
+          <button type="button" class="btn btn-secondary" data-open-outcome-modal data-outcome-context="Structure leadership or sprint actions from the Delivera home cockpit.">Paste tasks -> we structure them</button>
+        </div>
+      </section>
+
+      <section class="surface-grid surface-grid-three">
+        <article class="surface-card">
+          <p class="surface-card-kicker">Customer</p>
+          <h2>Outcome-first command path</h2>
+          <p>Jump directly into the sprint or portfolio conversation with the least context switching possible.</p>
+          <ul class="surface-list">
+            <li>Current Sprint for immediate execution risk</li>
+            <li>Reports for historical proof and export</li>
+            <li>Leadership for portfolio-level prioritisation</li>
+          </ul>
+        </article>
+        <article class="surface-card">
+          <p class="surface-card-kicker">Realism &amp; Simplicity</p>
+          <h2>Signals over noise</h2>
+          <p>Keep the work visible in a way that supports real conversations, not a Jira-style inventory dump.</p>
+          <ul class="surface-list">
+            <li>Decision-ready cards with plain language</li>
+            <li>Risk-focused CTAs instead of long activity logs</li>
+            <li>Shared context across pages</li>
+          </ul>
+        </article>
+        <article class="surface-card">
+          <p class="surface-card-kicker">Speed &amp; Trust</p>
+          <h2>Faster follow-through</h2>
+          <p>Every surface keeps a clear next move, visible confidence level, and a path back to Jira-backed detail.</p>
+          <ul class="surface-list">
+            <li>Outcome modal available from every executive surface</li>
+            <li>Consistent navigation and data context</li>
+            <li>Explicit risk and freshness cues</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
+  <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
+  <script type="module" src="Delivera-Executive-Surface-Init.js"></script>
+</body>
+</html>

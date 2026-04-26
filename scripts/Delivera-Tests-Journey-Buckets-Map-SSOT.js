@@ -69,6 +69,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/current-sprint',
   },
+  'tests/Delivera-Vodacom-Executive-Shell-And-Sprint-Cockpit-Validation-Tests.spec.js': {
+    journey: 'journey.current-sprint',
+    layer: 'page-ux',
+    page: '/home,/backlog-intake,/roadmap,/teams,/settings,/current-sprint',
+  },
 
   // Leadership journeys (leadership page + leadership-flavoured current sprint)
   'tests/Delivera-Current-Sprint-Leadership-View-Tests.spec.js': {
@@ -306,6 +311,11 @@ export const specMetadata = {
     journey: 'journey.data-integrity',
     layer: 'data-contract',
     page: '/report,/current-sprint,/sprint-leadership',
+  },
+  'tests/Delivera-Vodacom-Executive-Api-Contract-Validation-Tests.spec.js': {
+    journey: 'journey.data-integrity',
+    layer: 'api-contract',
+    page: '/api/current-sprint.json',
   },
 
   // Reliability, errors, preview, cross-page behaviour

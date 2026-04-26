@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     body.hud-mode {
-      background: linear-gradient(180deg, #f6f9fc 0%, #eef4f9 100%);
-      color: #10243e;
+      background: linear-gradient(180deg, #fffdfd 0%, #f6f2f1 100%);
+      color: #231717;
       margin: 0;
       min-height: 100vh;
     }
@@ -25,11 +25,12 @@
       gap: 10px;
       padding: 14px 16px;
       margin-bottom: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.24);
+      border: 1px solid rgba(157, 114, 114, 0.24);
       border-radius: 18px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
-      backdrop-filter: blur(10px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,246,246,0.96));
+      box-shadow: 0 12px 28px rgba(72, 22, 22, 0.08);
+      backdrop-filter: none;
+      isolation: isolate;
     }
     .hud-header-top {
       display: flex;
@@ -42,12 +43,12 @@
       margin: 0;
       font-size: 1.2rem;
       line-height: 1.1;
-      letter-spacing: -0.02em;
+      letter-spacing: 0;
     }
     .hud-subtitle {
       margin: 4px 0 0;
       font-size: 0.84rem;
-      color: #526277;
+      color: #6d5757;
     }
     .hud-status-row {
       display: inline-flex;
@@ -62,28 +63,28 @@
       gap: 6px;
       padding: 5px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.28);
+      border: 1px solid rgba(157, 114, 114, 0.28);
       background: rgba(255,255,255,0.9);
       font-size: 0.78rem;
-      color: #334155;
+      color: #5d4444;
       max-width: 100%;
       white-space: normal;
       text-align: left;
     }
     .hud-status-pill.is-live {
-      color: #166534;
-      border-color: rgba(34, 197, 94, 0.35);
+      color: #187a53;
+      border-color: rgba(24, 122, 83, 0.35);
       background: rgba(240, 253, 244, 0.96);
     }
     .hud-status-pill.is-offline {
-      color: #991b1b;
-      border-color: rgba(239, 68, 68, 0.3);
+      color: #b20000;
+      border-color: rgba(230, 0, 0, 0.3);
       background: rgba(254, 242, 242, 0.96);
     }
     .hud-summary-line {
       margin: 0;
       font-size: 0.84rem;
-      color: #24364d;
+      color: #3c2e2e;
     }
     .hud-grid {
       display: grid;
@@ -92,20 +93,36 @@
       align-content: start;
     }
     .hud-card {
-      background: rgba(255,255,255,0.92);
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(157, 114, 114, 0.18);
       border-radius: 16px;
       padding: 16px;
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+      box-shadow: 0 8px 20px rgba(72, 22, 22, 0.05);
       transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
     .hud-card:hover {
       transform: translateY(-1px);
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 12px 24px rgba(72, 22, 22, 0.08);
+    }
+    .hud-card-shell {
+      display: grid;
+      gap: 14px;
+    }
+    .hud-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .hud-metric-card {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(157, 114, 114, 0.18);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
     }
     .metric-label {
       font-size: 0.76rem;
-      color: #64748b;
+      color: #7c6666;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       font-weight: 700;
@@ -114,14 +131,22 @@
     .metric-value {
       font-size: clamp(1.2rem, 0.9rem + 1.4vw, 2rem);
       font-weight: 700;
-      color: #10243e;
+      color: #231717;
       line-height: 1.12;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .metric-value-inline {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #231717;
+      line-height: 1.2;
       overflow-wrap: anywhere;
       word-break: break-word;
     }
     .metric-unit {
       font-size: 0.95rem;
-      color: #64748b;
+      color: #7c6666;
       font-weight: 500;
       margin-left: 4px;
     }
@@ -131,9 +156,9 @@
       display: grid;
       gap: 4px;
     }
-    .trend-up { color: #166534; }
-    .trend-down { color: #991b1b; }
-    .trend-neutral { color: #526277; }
+    .trend-up { color: #187a53; }
+    .trend-down { color: #b20000; }
+    .trend-neutral { color: #6d5757; }
     .loading-pulse {
       animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
@@ -154,6 +179,9 @@
       .metric-value {
         font-size: 1.7rem;
       }
+      .hud-metric-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -163,18 +191,25 @@
       <div class="hud-header-top">
         <div>
           <h1 class="hud-title">Performance - Leadership trends</h1>
-          <p class="hud-subtitle">Leadership mission control - delivery trend, risk pressure, and data hygiene.</p>
+          <p class="hud-subtitle">Portfolio risk, trend, and trust signals.</p>
         </div>
         <div class="hud-status-row">
           <span id="connection-status" class="hud-status-pill is-live">Live</span>
           <span id="last-updated" class="hud-freshness-pill">Updating...</span>
         </div>
       </div>
+      <div id="leadership-header-actions" class="hud-actions-row" role="group" aria-label="Leadership quick actions">
+        <button type="button" id="leadership-refresh-btn" class="btn btn-primary btn-compact">Refresh</button>
+        <button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from leadership risk and trend signals.">Create work</button>
+        <a href="/report" class="btn btn-secondary btn-compact">Reports</a>
+        <a href="/current-sprint" class="btn btn-secondary btn-compact">Sprint</a>
+      </div>
       <div id="project-context" data-context-bar="true"></div>
+      <p id="leadership-confidence-strip" class="hud-summary-line">State: Updated - loading confidence signals...</p>
       <p id="leadership-summary" class="hud-summary-line">Loading leadership signals...</p>
     </header>
 
-    <main class="hud-grid" id="hud-grid">
+    <main class="hud-grid" id="hud-grid" role="main">
       <div class="hud-card loading-pulse" style="grid-column:1/-1;">
         <div>
           <div class="metric-label">Leadership signals</div>
@@ -186,6 +221,8 @@
   </div>
 
   <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
+  <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
+  <script type="module" src="Delivera-Shared-UI-Header-Nav-Renderer.js"></script>
   <script type="module" src="Delivera-Leadership-HUD-Controller.js"></script>
 </body>
 </html>

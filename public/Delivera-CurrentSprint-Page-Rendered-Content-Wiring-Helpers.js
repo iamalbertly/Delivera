@@ -12,6 +12,7 @@ import { wireSubtasksShowMoreHandlers } from './Delivera-CurrentSprint-Render-Su
 import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers } from './Delivera-CurrentSprint-Render-Progress.js';
 import { wireExportHandlers } from './Delivera-CurrentSprint-Export-Dashboard.js';
 import { wireIssuePreviewHandlers } from './Delivera-CurrentSprint-Issue-Preview.js';
+import { wireDecisionCockpitHandlers } from './Delivera-CurrentSprint-Decision-Cockpit.js';
 import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
 import { markPerf } from './Delivera-Shared-Perf-Marks.js';
 import { getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
@@ -250,6 +251,7 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireSprintCarouselHandlers((sprintId) => onSelectSprintById(sprintId));
   wireExportHandlers(data);
   wireIssuePreviewHandlers();
+  wireDecisionCockpitHandlers();
   wireSummaryActionBridge();
   wireNoClickJourneys();
   wireAttentionQueueHandlers();
