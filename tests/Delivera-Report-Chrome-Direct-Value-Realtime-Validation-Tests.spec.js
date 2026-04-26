@@ -9,30 +9,8 @@ import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   skipIfRedirectedToLogin,
+  ensureReportFiltersVisible,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
-
-async function ensureReportFiltersExpanded(page) {
-  const startDate = page.locator('#start-date');
-  if (await startDate.isVisible().catch(() => false)) return;
-
-  const moreMenu = page.locator('summary.btn:has-text("More")');
-  if (await moreMenu.isVisible().catch(() => false)) {
-    await moreMenu.click().catch(() => null);
-    const panelToggle = page.locator('.report-header-more-panel [data-action="toggle-filters"]').first();
-    if (await panelToggle.isVisible().catch(() => false)) {
-      await panelToggle.click().catch(() => null);
-    }
-  }
-
-  await page.evaluate(() => {
-    const nodes = Array.from(document.querySelectorAll('[data-action="toggle-filters"]'));
-    const visible = nodes.find((el) => el instanceof HTMLElement && el.offsetParent !== null);
-    (visible || nodes[0])?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-  });
-
-  await expect(page.locator('#filters-panel')).toHaveClass(/overlay-drawer|expanded/, { timeout: 12000 }).catch(() => null);
-  await startDate.waitFor({ state: 'visible', timeout: 15000 }).catch(() => null);
-}
 
 function stubPreviewBody() {
   return JSON.stringify({
@@ -98,14 +76,14 @@ test.describe('Report chrome direct value realtime validation', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await test.step('01 load report shell', async () => {
-      await expect(page.locator('h1')).toContainText(/General Performance|Delivera/i);
-      await ensureReportFiltersExpanded(page);
+      await expect(page.locator('h1')).toContainText(/Delivery/i);
+      await ensureReportFiltersVisible(page);
       await expect(page.locator('#preview-btn')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
     await test.step('02 trigger stubbed preview', async () => {
-      await ensureReportFiltersExpanded(page);
+      await ensureReportFiltersVisible(page);
       await page.check('#project-mpsa').catch(() => null);
       await page.fill('#start-date', '2025-07-01T00:00').catch(() => null);
       await page.fill('#end-date', '2025-09-30T23:59').catch(() => null);
@@ -154,9 +132,9 @@ test.describe('Report chrome direct value realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('07 performance history row and compact scope', async () => {
+    await test.step('07 value view row and compact scope', async () => {
       await expect(page.locator('#preview-meta .preview-context-bar')).toBeVisible();
-      await expect(page.locator('#preview-meta')).toContainText(/Performance history/i);
+      await expect(page.locator('#preview-meta')).toContainText(/Value view/i);
       await expect(page.locator('#preview-meta .preview-context-bar--compact-scope')).toHaveCount(1);
       await expect(page.locator('#preview-meta .preview-context-chip-scope--combined')).toBeVisible();
       assertTelemetryClean(telemetry);
@@ -187,7 +165,7 @@ test.describe('Report chrome direct value realtime validation', () => {
 
     await test.step('10 Leadership tab reads as in-page trends not external HUD', async () => {
       const trends = page.locator('#tab-btn-trends .tab-btn-label');
-      await expect(trends).toContainText(/Leadership trends|Trends/);
+      await expect(trends).toContainText(/Leaders/i);
       const full = (await trends.textContent()) || '';
       expect(full).not.toMatch(/->|â†’/);
       assertTelemetryClean(telemetry);
@@ -226,6 +204,23 @@ test.describe('Report chrome direct value realtime validation', () => {
       }
       assertTelemetryClean(telemetry);
     });
+
+    await test.step('15 preview-active class follows visible preview shell (no sticky compact drift)', async () => {
+      await expect(page.locator('body')).toHaveClass(/preview-active/);
+      await page.evaluate(() => {
+        const pc = document.getElementById('preview-content');
+        if (pc) pc.style.display = 'none';
+        window.__DELIVERA_SYNC_PREVIEW_ACTIVE_FOR_TESTS?.();
+      });
+      await expect(page.locator('body')).not.toHaveClass(/preview-active/);
+      await page.evaluate(() => {
+        const pc = document.getElementById('preview-content');
+        if (pc) pc.style.display = 'block';
+        window.__DELIVERA_SYNC_PREVIEW_ACTIVE_FOR_TESTS?.();
+      });
+      await expect(page.locator('body')).toHaveClass(/preview-active/);
+      assertTelemetryClean(telemetry);
+    });
   });
 
   test('mobile viewport: no horizontal overflow on report after stub preview', async ({ page }) => {
@@ -242,7 +237,7 @@ test.describe('Report chrome direct value realtime validation', () => {
     });
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await ensureReportFiltersExpanded(page);
+    await ensureReportFiltersVisible(page);
     await page.check('#project-mpsa').catch(() => null);
     await page.fill('#start-date', '2025-07-01T00:00').catch(() => null);
     await page.fill('#end-date', '2025-09-30T23:59').catch(() => null);

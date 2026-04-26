@@ -138,7 +138,7 @@ export function buildPreviewMetaAndStatus(params) {
       : `${keyText} - ${summaryText}`;
   }
 
-  const reportSubtitleText = `Projects: ${selectedProjectsLabel} | ${windowStartLocal} to ${windowEndLocal}`;
+  const reportSubtitleText = `Scope: ${selectedProjectsLabel} | ${windowStartLocal} to ${windowEndLocal}`;
   const opts = [];
   if (meta.requireResolvedBySprintEnd) opts.push('Require resolved by sprint end');
   if (meta.includePredictability) opts.push('Include Predictability');
@@ -229,32 +229,32 @@ export function buildPreviewMetaAndStatus(params) {
     '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>';
   const outcomeLineHTML =
     '<div class="preview-context-bar' + (compactOutcomeScope ? ' preview-context-bar--compact-scope' : '') + '" data-context-bar="true" role="group" aria-label="Report preview context and outcome">' +
-      '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Performance history</span>' +
+      '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Value view</span>' +
       (compactOutcomeScope ? scopeChipCompact : scopeChipsFull) +
       '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
       '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Details</button>' +
+      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Trust details</button>' +
     '</div>' +
     zeroOutcomeHint;
   const reportExecutiveHeroHtml = rowsCount > 0
     ? '<section class="report-executive-hero" aria-label="Portfolio delivery summary">'
       + '<article class="report-executive-card report-executive-card-primary">'
-      + '<p class="report-executive-label">Delivery score</p>'
+      + '<p class="report-executive-label">Value done</p>'
       + `<h3>${escapeHtml(String(deliveryScore))}%</h3>`
       + `<p>${escapeHtml(healthSentence)}</p>`
       + '</article>'
       + '<article class="report-executive-card">'
-      + '<p class="report-executive-label">Value stories done</p>'
+      + '<p class="report-executive-label">Outcomes</p>'
       + `<h3>${escapeHtml(valueStoriesDone)}</h3>`
       + '<p>Outcome work completed in the selected scope.</p>'
       + '</article>'
       + '<article class="report-executive-card">'
-      + '<p class="report-executive-label">Blockers</p>'
+      + '<p class="report-executive-label">Risk</p>'
       + `<h3>${escapeHtml(String(blockersOwned))}</h3>`
       + '<p>Owned blockers still affecting delivery confidence.</p>'
       + '</article>'
       + '<article class="report-executive-card">'
-      + '<p class="report-executive-label">Business value</p>'
+      + '<p class="report-executive-label">Customer impact</p>'
       + '<div class="report-executive-chip-row">'
       + (deliveredExamples.length
         ? deliveredExamples.map((item) => `<span class="report-executive-chip">${escapeHtml(item)}</span>`).join('')

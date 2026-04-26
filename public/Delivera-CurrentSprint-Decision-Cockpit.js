@@ -41,6 +41,16 @@ function renderSparkline(points = [], tone = 'neutral') {
     + '</svg>';
 }
 
+function normalizeActionLabel(label = '') {
+  return String(label || '')
+    .replace(/^Unblock issues$/i, 'Need unblock')
+    .replace(/^Add estimates$/i, 'Need estimate')
+    .replace(/^Review scope changes$/i, 'Added work')
+    .replace(/^Assign owners$/i, 'Need owner')
+    .replace(/^Balance workload$/i, 'Balance load')
+    .trim() || 'Review';
+}
+
 function aggregateScopeByDay(scopeChanges = []) {
   const map = new Map();
   scopeChanges.forEach((change) => {
@@ -137,29 +147,33 @@ function renderWorkMovementChart(data) {
 
 function renderTopRisks(topRisks = []) {
   if (!topRisks.length) {
-    return '<div class="decision-empty-card">No material top risks are active right now.</div>';
+    return '<div class="decision-empty-card">No hidden blockers. Keep sprint value moving.</div>';
   }
-  return topRisks.map((risk) => {
+  return topRisks.slice(0, 3).map((risk) => {
     const severityClass = risk.severity === 'High' ? 'is-critical' : (risk.severity === 'Medium' ? 'is-warning' : '');
     return ''
-      + `<article class="decision-risk-card ${severityClass}">`
+      + `<article class="decision-risk-card ${severityClass}" data-cockpit-risk-tags="${escapeHtml((risk.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">`
       + `<div class="decision-risk-head">`
       + `<div>${renderIssueKeyLink(risk.issueKey, risk.issueUrl)} <strong>${escapeHtml(risk.summary || '')}</strong></div>`
       + `<span class="decision-severity-badge">${escapeHtml(risk.severity || 'Review')}</span>`
       + '</div>'
       + `<p class="decision-risk-meta">${escapeHtml(risk.reason || '')}</p>`
       + `<div class="decision-risk-tags">${(risk.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>`
-      + `<button type="button" class="btn btn-secondary btn-compact" data-cockpit-risk-tags="${escapeHtml((risk.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">Focus in work list</button>`
       + '</article>';
   }).join('');
 }
 
 function renderQuickActions(actions = []) {
-  return actions.map((action) => ''
-    + `<button type="button" class="decision-quick-action" data-cockpit-risk-tags="${escapeHtml((action.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">`
-    + `<span>${escapeHtml(action.label || '')}</span>`
+  if (!actions.length) {
+    return '<p class="decision-action-empty">No urgent cleanup queue.</p>';
+  }
+  return '<ul class="decision-action-queue" aria-label="Action queue">'
+    + actions.slice(0, 4).map((action) => ''
+    + `<li data-cockpit-risk-tags="${escapeHtml((action.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">`
+    + `<span>${escapeHtml(normalizeActionLabel(action.label || ''))}</span>`
     + `<strong>${escapeHtml(String(action.count || 0))}</strong>`
-    + '</button>').join('');
+    + '</li>').join('')
+    + '</ul>';
 }
 
 function renderInsights(insights = {}) {
@@ -206,17 +220,17 @@ function buildSummaryStrip(data, cockpit) {
   return ''
     + `<section class="decision-summary-strip ${toneClass}" aria-label="Sprint value summary">`
     + '<div class="decision-summary-cell decision-summary-cell-primary">'
-    + '<span class="decision-summary-label">Sprint</span>'
+    + '<span class="decision-summary-label">Value answer</span>'
     + `<strong>${escapeHtml(sprint.name || 'Current sprint')}</strong>`
     + `<p>${escapeHtml(deriveSprintGoal(data))}</p>`
     + '</div>'
     + '<div class="decision-summary-cell">'
-    + '<span class="decision-summary-label">Delivery score</span>'
+    + '<span class="decision-summary-label">Done</span>'
     + `<strong>${completedPct}% complete</strong>`
-    + `<p>${spilloverPct}% spillover risk</p>`
+    + `<p>${spilloverPct}% may spill over</p>`
     + '</div>'
     + '<div class="decision-summary-cell decision-summary-cell-impact">'
-    + '<span class="decision-summary-label">Business impact</span>'
+    + '<span class="decision-summary-label">Customer impact</span>'
     + '<div class="decision-impact-chip-row">'
     + fallbackImpact.map((item) => `<span class="decision-impact-chip">${escapeHtml(item)}</span>`).join('')
     + '</div>'
@@ -224,7 +238,7 @@ function buildSummaryStrip(data, cockpit) {
     + '<div class="decision-summary-cell">'
     + '<span class="decision-summary-label">Risk</span>'
     + `<strong class="decision-risk-indicator ${toneClass}">${escapeHtml(health.status || 'On Track')}</strong>`
-    + '<p>Answers one question: are we delivering value this sprint?</p>'
+    + '<p>Are we delivering value this sprint?</p>'
     + '</div>'
     + '</section>';
 }
@@ -242,77 +256,65 @@ export function renderDecisionCockpit(data) {
   const remainingDaysLabel = metrics?.daysRemaining == null ? 'Window unknown' : `${metrics.daysRemaining} days left`;
   const completedSignal = keySignals?.completedRecent?.storyPoints > 0
     ? `+${formatNumber(keySignals.completedRecent.storyPoints, 1, '0')} SP recently`
-    : `+${keySignals?.completedRecent?.count || 0} tasks completed`;
+    : `+${keySignals?.completedRecent?.count || 0} done`;
+  const totalStories = Number(data?.summary?.totalStories || 0);
+  const doneStories = Number(data?.summary?.doneStories || 0);
+  const valueDoneLabel = totalStories > 0 ? `${doneStories}/${totalStories} value stories` : 'Value stories loading';
+  const riskQueueTotal = topRisks.length + quickActions.reduce((sum, item) => sum + Number(item?.count || 0), 0);
+  const trustLabel = data?.meta?.partialPermissions ? 'Limited' : (metrics?.timeLogged?.ratioPct === 0 ? 'Needs evidence' : 'Usable');
 
   return ''
     + '<section class="decision-cockpit-shell">'
     + buildSummaryStrip(data, cockpit)
-    + '<div class="decision-cockpit-header">'
-    + '<div>'
-    + '<p class="decision-cockpit-eyebrow">Current Sprint</p>'
-    + `<h1>${escapeHtml(sprint.name || 'Sprint')}</h1>`
     + `<p class="decision-cockpit-subtitle">${escapeHtml(dateLabel)} <span>•</span> ${escapeHtml(remainingDaysLabel)}</p>`
-    + '</div>'
-    + '<div class="decision-cockpit-status">'
-    + `<span class="decision-health-pill ${getToneClass(health.tone)}">${escapeHtml(health.status || 'On Track')}</span>`
-    + '<span class="decision-health-caption">Outcome-focused sprint cockpit</span>'
-    + '</div>'
-    + '</div>'
     + '<div class="decision-cockpit-grid">'
-    + `<article class="decision-health-card ${getToneClass(health.tone)}">`
-    + '<div class="decision-card-icon">~</div>'
+    + `<article class="decision-answer-card decision-health-card ${getToneClass(health.tone)}">`
+    + '<div class="decision-card-icon" aria-hidden="true">~</div>'
     + '<div>'
-    + '<p class="decision-card-label">Sprint Health</p>'
+    + '<p class="decision-card-label">Sprint answer</p>'
     + `<h2>${escapeHtml(health.status || 'On Track')}</h2>`
-    + `<p>${escapeHtml(health.message || '')}</p>`
+    + `<p>${escapeHtml(health.message || 'Keep customer value moving and remove blockers quickly.')}</p>`
+    + `<p class="decision-plain-line">${escapeHtml(dateLabel)} | ${escapeHtml(remainingDaysLabel)} | ${escapeHtml(valueDoneLabel)}</p>`
     + '</div>'
     + '</article>'
     + '<article class="decision-action-card">'
-    + '<p class="decision-card-label">Next Best Action</p>'
+    + '<p class="decision-card-label">Next action</p>'
     + `<h2>${nextBestAction.issueKey ? escapeHtml(nextBestAction.issueKey) + ' - ' : ''}${escapeHtml(nextBestAction.summary || '')}</h2>`
     + `<p>${escapeHtml(nextBestAction.reason || '')}</p>`
-    + '<div class="decision-action-row">'
-    + `<button type="button" class="btn btn-primary" data-cockpit-risk-tags="${escapeHtml((nextBestAction.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">${escapeHtml(nextBestAction.ctaLabel || 'Take Action')}</button>`
-    + '<button type="button" class="btn btn-secondary" data-open-outcome-modal data-outcome-context="Create structured work from the sprint next-best-action and top risks.">Create work</button>'
-    + '</div>'
+    + `<a href="#stories-card" class="decision-primary-link" data-cockpit-risk-tags="${escapeHtml((nextBestAction.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">${escapeHtml(nextBestAction.ctaLabel || 'Review work')}</a>`
     + '</article>'
     + '<article class="decision-signals-card">'
-    + '<p class="decision-card-label">Key Signals</p>'
+    + '<p class="decision-card-label">Signals</p>'
     + '<div class="decision-signal-list">'
-    + `<div><span class="signal-dot positive"></span><strong>${escapeHtml(completedSignal)}</strong><small>Recent completion</small></div>`
+    + `<div><span class="signal-dot positive"></span><strong>${escapeHtml(completedSignal)}</strong><small>Done now</small></div>`
     + `<div><span class="signal-dot critical"></span><strong>${escapeHtml(String(keySignals.blockers || 0))}</strong><small>Blockers</small></div>`
-    + `<div><span class="signal-dot warning"></span><strong>${escapeHtml(String(keySignals.scopeChanges || 0))}</strong><small>Scope changes</small></div>`
+    + `<div><span class="signal-dot warning"></span><strong>${escapeHtml(String(keySignals.scopeChanges || 0))}</strong><small>Added work</small></div>`
     + `<div><span class="signal-dot ${(keySignals.inactivity ? 'critical' : 'positive')}"></span><strong>${keySignals.inactivity ? 'Inactive' : 'Moving'}</strong><small>Last 24h</small></div>`
     + '</div>'
     + '</article>'
     + '<aside class="decision-rail">'
     + '<section class="decision-rail-card">'
-    + '<div class="decision-rail-header"><h2>Top Risks</h2></div>'
+    + '<div class="decision-rail-header"><h2>Risk queue</h2><span>No hidden blockers</span></div>'
     + renderTopRisks(topRisks)
-    + '</section>'
-    + '<section class="decision-rail-card">'
-    + '<div class="decision-rail-header"><h2>Quick Actions</h2></div>'
     + renderQuickActions(quickActions)
     + '</section>'
-    + '<section class="decision-rail-card decision-automation-card">'
-    + '<p class="decision-card-label">Automation</p>'
-    + '<h2>Paste tasks -> we structure them</h2>'
+    + '<details class="decision-rail-card decision-automation-card">'
+    + '<summary>Paste tasks -> structure work</summary>'
     + '<p>Turn notes into clean Jira-ready work aligned to outcomes, owners, and next actions.</p>'
-    + '<button type="button" class="btn btn-primary" data-open-outcome-modal data-outcome-context="Structure sprint notes into realistic Jira work for this squad.">Try it now</button>'
-    + '</section>'
+    + '<button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Structure sprint notes into realistic Jira work for this squad.">Structure now</button>'
+    + '</details>'
     + '</aside>'
     + '</div>'
     + '<div class="decision-metrics-row">'
-    + renderMetricCard('Progress %', `${metrics?.progressPct?.value ?? 0}%`, metrics?.progressPct?.deltaVsPrior != null ? `${formatNumber(metrics.progressPct.deltaVsPrior, 1, '0')} SP vs prior sprint` : 'Sprint progress', metrics?.progressPct?.value ?? 0)
-    + renderMetricCard('Story Points', `${formatNumber(metrics?.storyPoints?.completed || 0, 1, '0')} / ${formatNumber(metrics?.storyPoints?.planned || 0, 1, '0')}`, metrics?.storyPoints?.variance != null ? `${formatNumber(metrics.storyPoints.variance, 1, '0')} SP variance` : '', metrics?.storyPoints?.planned > 0 ? ((metrics.storyPoints.completed / metrics.storyPoints.planned) * 100) : 0)
-    + renderMetricCard('Work Items', `${metrics?.workItems?.done || 0} / ${metrics?.workItems?.total || 0}`, `${metrics?.workItems?.remaining || 0} remaining`, metrics?.workItems?.total > 0 ? ((metrics.workItems.done / metrics.workItems.total) * 100) : 0)
-    + renderMetricCard('Logged vs Estimate', `${formatNumber(metrics?.timeLogged?.logged || 0, 1, '0')}h / ${formatNumber(metrics?.timeLogged?.estimated || 0, 1, '0')}h`, `${metrics?.timeLogged?.ratioPct || 0}% of estimate`, metrics?.timeLogged?.ratioPct || 0, metrics?.timeLogged?.ratioPct > 110 ? ' is-warning' : '')
-    + renderMetricCard('Scope Delta', `${formatNumber(metrics?.scopeDelta?.storyPoints || 0, 1, '0')} SP`, `${metrics?.scopeDelta?.count || 0} changes | ${metrics?.scopeDelta?.percent || 0}% of plan`, metrics?.scopeDelta?.percent || 0, metrics?.scopeDelta?.storyPoints > 0 ? ' is-warning' : '')
+    + renderMetricCard('Value done', valueDoneLabel, `${metrics?.progressPct?.value ?? 0}% complete`, metrics?.progressPct?.value ?? 0)
+    + renderMetricCard('Work left', `${metrics?.workItems?.remaining || 0}`, `${metrics?.workItems?.done || 0}/${metrics?.workItems?.total || 0} done`, metrics?.workItems?.total > 0 ? ((metrics.workItems.done / metrics.workItems.total) * 100) : 0)
+    + renderMetricCard('Risk queue', `${riskQueueTotal}`, `${topRisks.length} top risks | ${keySignals.blockers || 0} blockers`, Math.min(100, riskQueueTotal * 12), riskQueueTotal > 0 ? ' is-warning' : '')
+    + renderMetricCard('Trust', trustLabel, `${metrics?.timeLogged?.ratioPct || 0}% estimate evidence`, metrics?.timeLogged?.ratioPct || 0, data?.meta?.partialPermissions ? ' is-warning' : '')
     + '</div>'
     + '<section class="decision-workmovement-card">'
     + '<div class="decision-card-heading">'
-    + '<div><p class="decision-card-label">Work Movement</p><h2>Completed vs added story points over time</h2></div>'
-    + '<p>Use this to explain sprint movement, scope pressure, and where delivery confidence changed.</p>'
+    + '<div><p class="decision-card-label">Value progress</p><h2>Done vs added work</h2></div>'
+    + '<p>One evidence chart for movement, added work, and confidence change.</p>'
     + '</div>'
     + renderWorkMovementChart(data)
     + '</section>'

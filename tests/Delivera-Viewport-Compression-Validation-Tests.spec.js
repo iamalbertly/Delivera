@@ -1,10 +1,10 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   assertTelemetryClean,
   captureBrowserTelemetry,
   runDefaultPreview,
   skipIfRedirectedToLogin,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Viewport compression and layering', () => {
   test.describe.configure({ retries: 0 });
@@ -24,7 +24,7 @@ test.describe('Viewport compression and layering', () => {
     await expect(page.locator('.tab-hint')).toBeHidden();
     await expect(page.locator('#report-filter-strip')).toBeVisible();
     await expect(page.locator('#report-filter-strip .context-summary-strip')).toBeVisible();
-    await expect(page.locator('.preview-context-bar')).toBeVisible();
+    await expect(page.locator('#preview-content .preview-context-bar[role="group"]').first()).toBeVisible();
 
     const bodyText = await page.locator('body').textContent().catch(() => '');
     expect(bodyText).not.toMatch(/\bcache\./i);
@@ -50,10 +50,10 @@ test.describe('Viewport compression and layering', () => {
     }
 
     await expect(page.locator('.preview-context-chip-outcomes-shortcut')).toHaveCount(0);
-    const chipCount = await page.locator('.preview-context-bar .preview-context-chip').count();
+    const chipCount = await page.locator('#preview-content .preview-context-bar[role="group"] .preview-context-chip').count();
     expect(chipCount).toBeLessThanOrEqual(6);
 
-    const wrapState = await page.locator('.preview-context-bar').evaluate((node) => getComputedStyle(node).flexWrap);
+    const wrapState = await page.locator('#preview-content .preview-context-bar[role="group"]').first().evaluate((node) => getComputedStyle(node).flexWrap);
     expect(wrapState).toBe('nowrap');
 
     assertTelemetryClean(telemetry);
@@ -103,71 +103,37 @@ test.describe('Viewport compression and layering', () => {
       return;
     }
 
-    await page.waitForSelector('.current-sprint-header-bar, .sprint-jump-rail', { timeout: 45000 }).catch(() => null);
-    const exportReady = await page.locator('.header-band-actions .export-dashboard-btn').first()
+    const cockpitReady = await page.locator('.decision-cockpit-shell').first()
       .waitFor({ state: 'visible', timeout: 60000 })
       .then(() => true)
       .catch(() => false);
-    if (!exportReady) {
-      test.skip(true, 'Export controls not visible for current sprint dataset');
+    if (!cockpitReady) {
+      test.skip(true, 'Decision cockpit not visible for current sprint dataset');
       return;
     }
-    await expect(page.locator('.header-intelligence-strip')).toHaveCount(0);
+    await expect(page.locator('body.current-sprint-has-live-content header')).toBeHidden();
+    await expect(page.locator('.current-sprint-advanced-controls')).toBeVisible();
+    await expect(page.locator('.current-sprint-advanced-controls')).not.toHaveAttribute('open', /./);
+    await expect(page.locator('.decision-metrics-row .decision-metric-card')).toHaveCount(4);
     await expect(page.locator('.sprint-hud-carousel-inline')).toHaveCount(0);
     await expect(page.locator('.mobile-secondary-details')).toHaveCount(0);
-    const interventionCount = await page.locator('.current-sprint-header-bar .sprint-intervention-item').count();
-    expect(interventionCount).toBeLessThanOrEqual(3);
+    const interventionCount = await page.locator('.decision-action-queue li').count();
+    expect(interventionCount).toBeLessThanOrEqual(5);
     await expect(page.locator('.current-sprint-grid-layout > .sprint-jump-rail')).toHaveCount(0);
 
-    const headerText = await page.locator('.current-sprint-header-bar').textContent().catch(() => '');
-    const visibleActionLabels = await page.locator('.header-band-actions button, .header-band-actions summary').evaluateAll((nodes) =>
-      nodes
-        .filter((node) => {
-          const style = window.getComputedStyle(node);
-          const rect = node.getBoundingClientRect();
-          return style.display !== 'none'
-            && style.visibility !== 'hidden'
-            && rect.width > 0
-            && rect.height > 0
-            && node.offsetParent !== null;
-        })
-        .map((node) => (node.textContent || '').trim())
-        .filter(Boolean)
-    );
-    expect(headerText || '').not.toMatch(/Focus risk work|View historical risks|Refresh/i);
-    expect(visibleActionLabels.join(' | ')).toMatch(/Copy summary/i);
-    const exportGeometry = await page.evaluate(() => {
-      const container = document.querySelector('.header-band-actions .header-export-inline');
-      if (!container) return null;
-      const rect = container.getBoundingClientRect();
-      const style = window.getComputedStyle(container);
-      return {
-        position: style.position,
-        top: Math.round(rect.top),
-        right: Math.round(window.innerWidth - rect.right),
-      };
-    });
-    if (exportGeometry) {
-      expect(exportGeometry.position).toBe('relative');
-      expect(exportGeometry.top).toBeLessThanOrEqual(180);
-      expect(exportGeometry.right).toBeGreaterThanOrEqual(0);
-    }
     const foldBudget = await page.evaluate(() => {
-      const header = document.querySelector('.current-sprint-header-bar');
-      const firstRow = document.querySelector('#stories-table tbody tr');
-      if (!header || !firstRow) return null;
+      const summary = document.querySelector('.decision-summary-strip');
+      const metrics = document.querySelector('.decision-metrics-row');
+      if (!summary || !metrics) return null;
+      const summaryTop = summary.getBoundingClientRect().top;
+      const metricsBottom = metrics.getBoundingClientRect().bottom;
       return {
-        headerHeight: Math.round(header.getBoundingClientRect().height),
-        firstRowBottom: Math.round(firstRow.getBoundingClientRect().bottom),
+        answerHeight: Math.round(metricsBottom - summaryTop),
         viewportHeight: window.innerHeight,
       };
     });
     if (foldBudget) {
-      // Mission bar height varies with verdict/context/intervention density; fused scope+bar stack targets first-row fold, not a fixed px bar.
-      // Identity metric tiles (Done / Work items / Logged-est) add one compact row vs legacy single-line verdict-only band.
-      // todo-copy-map-and-tokens: CSS var(--header-*) rounding can add 1px vs old literals; keep fold guard tight.
-      expect(foldBudget.headerHeight).toBeLessThanOrEqual(186);
-      expect(foldBudget.firstRowBottom).toBeLessThanOrEqual(foldBudget.viewportHeight);
+      expect(foldBudget.answerHeight).toBeLessThanOrEqual(760);
     }
     const visibleDrawerText = await page.locator('.current-sprint-header-bar .header-view-drawer-panel').evaluateAll((nodes) =>
       nodes
@@ -188,10 +154,14 @@ test.describe('Viewport compression and layering', () => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
-    await page.waitForSelector('#current-sprint-projects', { state: 'visible', timeout: 15000 }).catch(() => null);
+    await page.waitForSelector('#current-sprint-projects', { timeout: 15000 }).catch(() => null);
+    const advancedControls = page.locator('.current-sprint-advanced-controls');
+    if (await advancedControls.isVisible().catch(() => false)) {
+      await advancedControls.locator('> summary').click();
+    }
     const compactRow = page.locator('.current-sprint-scope-row--compact');
-    await expect(compactRow).toBeVisible();
-    await expect(compactRow.locator('#issue-jump-input')).toBeVisible();
+    await expect(compactRow).toBeHidden();
+    await expect(page.locator('.current-sprint-advanced-controls .current-sprint-header-bar')).toBeVisible();
     await expect(page.locator('.current-sprint-scope-stack .current-sprint-jump-inline')).toHaveCount(1);
 
     assertTelemetryClean(telemetry);
@@ -215,4 +185,3 @@ test.describe('Viewport compression and layering', () => {
     assertTelemetryClean(telemetry);
   });
 });
-

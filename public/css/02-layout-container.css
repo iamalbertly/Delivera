@@ -189,6 +189,62 @@ body.executive-surface-page .container {
   margin: 8px 0 14px;
 }
 
+body.report-page .report-shell-top {
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(230, 0, 0, 0.1);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+body.report-page .report-shell-title-block h1 {
+  color: var(--text);
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+body.report-page .report-filter-strip {
+  margin-top: 8px;
+  border-color: rgba(230, 0, 0, 0.16);
+  background: #fff8f8;
+}
+
+body.report-page .report-executive-hero {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body.report-page .report-executive-card {
+  border-color: rgba(230, 0, 0, 0.12);
+  background: #fff;
+}
+
+body.report-page .report-executive-card-primary {
+  background: linear-gradient(135deg, rgba(230,0,0,0.08), #fff 58%);
+}
+
+body.report-page .tabs {
+  padding: 4px;
+  background: #fff;
+  border: 1px solid rgba(230, 0, 0, 0.12);
+  border-radius: 999px;
+}
+
+body.report-page .tab-btn {
+  min-width: auto;
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  body.report-page .report-executive-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body.report-page .report-executive-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
 .report-executive-card {
   display: grid;
   gap: 8px;

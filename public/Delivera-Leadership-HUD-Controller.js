@@ -229,10 +229,16 @@ function renderHud(data) {
     return;
   }
 
+  const blockersOwned = Number(risk?.blockersOwned || 0);
+  const unownedOutcomes = Number(risk?.unownedOutcomes || 0);
+  const trustBand = kpis?.dataQuality?.trustBand || 'Mixed';
+  const leadershipVerdict = blockersOwned > 0 || unownedOutcomes > 0
+    ? 'Needs attention'
+    : (trustBand === 'Weak' ? 'Trust weak' : 'Readable');
   const riskNarrative = [
     `<span class="trend-neutral">Delivery risk: ${formatNumber(risk?.deliveryRisk, 0)}%</span>`,
-    `<span class="trend-neutral">Hygiene risk: ${formatNumber(risk?.dataQualityRisk, 0)}%</span>`,
-    `<span class="trend-neutral">${formatNumber(risk?.blockersOwned, 0)} blockers - ${formatNumber(risk?.unownedOutcomes, 0)} unowned outcomes</span>`,
+    `<span class="trend-neutral">Trust risk: ${formatNumber(risk?.dataQualityRisk, 0)}%</span>`,
+    `<span class="trend-neutral">${formatNumber(blockersOwned, 0)} blockers - ${formatNumber(unownedOutcomes, 0)} no owner</span>`,
   ].join('');
 
   const projectKpis = kpis?.projectKPIs || {};
@@ -242,36 +248,32 @@ function renderHud(data) {
   const cards = [];
 
   cards.push(renderKPICard({
-    label: 'Velocity (Last 3)',
+    label: 'Speed',
     value: velocity?.avg != null ? formatNumber(velocity.avg, 0) : null,
     unit: 'SP',
     trendHtml: getTrendHtml(velocity.trend),
-    detailHref: '/leadership',
   }));
 
   cards.push(renderKPICard({
-    label: 'Risk Index',
+    label: 'Risk',
     value: risk?.score != null ? formatNumber(risk.score, 0) : null,
     unit: '%',
     trendHtml: riskNarrative,
     status: risk?.score > 20 ? 'below-target' : 'on-target',
-    detailHref: '/current-sprint',
   }));
 
   cards.push(renderKPICard({
-    label: 'Rework Ratio',
+    label: 'Rework',
     value: quality?.reworkPct != null ? formatNumber(quality.reworkPct, 1) : null,
     unit: '%',
     trendHtml: getTrendHtml(quality.trend),
-    detailHref: '/leadership',
   }));
 
   cards.push(renderKPICard({
-    label: 'Predictability',
+    label: 'Trust trend',
     value: predictability?.avg != null ? formatNumber(predictability.avg, 0) : null,
     unit: '%',
     trendHtml: getTrendHtml(predictability.trend),
-    detailHref: '/report',
   }));
 
   if (projectKpi) {
@@ -284,7 +286,6 @@ function renderHud(data) {
         value: formatCostPerSPDisplay(projectKpi),
         unit: '',
         status: projectKpi.costPerSPStatus || 'no-data',
-        detailHref: '/leadership',
         trustBadge,
       }));
     }
@@ -295,7 +296,6 @@ function renderHud(data) {
         value: Number(projectKpi.avgOverheadPct).toFixed(1),
         unit: '%',
         status: projectKpi.avgOverheadStatus || 'no-data',
-        detailHref: '/leadership',
         trustBadge,
       }));
     }
@@ -305,7 +305,6 @@ function renderHud(data) {
       value: utilization.text,
       unit: '',
       status: projectKpi.utilizationPct != null ? 'on-target' : 'no-data',
-      detailHref: '/leadership',
       trustBadge,
     }));
   }
@@ -316,7 +315,6 @@ function renderHud(data) {
       value: kpis.dataQuality.trustBand || 'Weak',
       unit: '',
       trendHtml: `<span class="trend-neutral">SP ${(kpis.dataQuality.spCoverage * 100).toFixed(0)}% · Dates ${(kpis.dataQuality.dateCoverage * 100).toFixed(0)}% · Timesheets ${(kpis.dataQuality.timesheetCoverage * 100).toFixed(0)}%</span>`,
-      detailHref: '/leadership',
       trustBadge: buildTrustBadge(kpis.dataQuality),
     }));
   }
@@ -329,15 +327,31 @@ function renderHud(data) {
       label: 'Top outlier',
       value: primaryOutlier.label,
       unit: '',
-      detailHref: '/leadership',
       status: 'below-target',
       trendHtml: `<span class="trend-neutral">${primaryOutlier.metric}: ${formatNumber(primaryOutlier.value, 0)}</span><span class="trend-neutral">${primaryOutlier.rcaHint || ''}</span>`,
     }));
   }
 
   grid.innerHTML = `
+    <section class="hud-answer-row" style="grid-column:1/-1;" aria-label="Leadership answer">
+      <article class="hud-answer-card">
+        <span>Portfolio answer</span>
+        <strong>${leadershipVerdict}</strong>
+        <p>Customer value needs ${blockersOwned > 0 ? 'blocker removal' : 'steady delivery'} and simple evidence.</p>
+      </article>
+      <article class="hud-answer-card">
+        <span>Risk</span>
+        <strong>${risk?.score != null ? `${formatNumber(risk.score, 0)}%` : 'No data'}</strong>
+        <p>${formatNumber(blockersOwned, 0)} blockers | ${formatNumber(unownedOutcomes, 0)} no owner</p>
+      </article>
+      <article class="hud-answer-card">
+        <span>Trust</span>
+        <strong>${trustBand}</strong>
+        <p>Use for decisions, not team ranking.</p>
+      </article>
+    </section>
     <div class="hud-card hud-card-shell" style="grid-column:1/-1;">
-      <div class="metric-label">Leadership signals</div>
+      <div class="metric-label">Evidence</div>
       <div class="hud-metric-grid">
         ${cards.map((card, index) => demoteHudCardClass(card, index)).join('')}
       </div>

@@ -18,6 +18,25 @@ const PAGE_SETTINGS = 'settings';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
+const PRIMARY_NAV_KEYS = [PAGE_DASHBOARD, PAGE_SPRINTS, PAGE_REPORT, PAGE_RISKS, PAGE_TEAMS];
+const MORE_NAV_KEYS = [PAGE_LEADERSHIP, PAGE_PI, PAGE_VALUE, PAGE_SETTINGS];
+const NAV_LABELS = {
+  [PAGE_DASHBOARD]: 'Today',
+  [PAGE_SPRINTS]: 'Sprint',
+  [PAGE_REPORT]: 'Delivery',
+  [PAGE_RISKS]: 'Risks',
+  [PAGE_TEAMS]: 'Teams',
+  [PAGE_LEADERSHIP]: 'Leaders',
+  [PAGE_PI]: 'PI Goals',
+  [PAGE_VALUE]: 'Value Archive',
+  [PAGE_SETTINGS]: 'Settings',
+};
+const MOBILE_LABELS = {
+  [PAGE_DASHBOARD]: 'Today',
+  [PAGE_SPRINTS]: 'Sprint',
+  [PAGE_RISKS]: 'Risk',
+  [PAGE_REPORT]: 'Value',
+};
 
 const NAV_ITEMS = [
   {
@@ -99,21 +118,42 @@ function getCurrentPage() {
 }
 
 function getNavItems(current) {
-  return NAV_ITEMS.map((item) => ({ ...item, active: current === item.key }));
+  return NAV_ITEMS.map((item) => ({
+    ...item,
+    label: NAV_LABELS[item.key] || item.label,
+    active: current === item.key,
+  }));
 }
 
 function buildSidebarHTML() {
   const current = getCurrentPage();
   const items = getNavItems(current);
-  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span><span class="sidebar-brand-subtag">Delivery intelligence for customer clarity, simplicity, and growth.</span></div>';
+  const primaryItems = items.filter((item) => PRIMARY_NAV_KEYS.includes(item.key));
+  const moreItems = items.filter((item) => MORE_NAV_KEYS.includes(item.key));
+  const moreIsActive = moreItems.some((item) => item.active);
+  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span><span class="sidebar-brand-subtag">Value, risk, action.</span></div>';
   html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
-  for (const item of items) {
+  for (const item of primaryItems) {
     const className = 'sidebar-link' + (item.active ? ' active current' : '');
     if (item.active) {
       html += '<span class="' + className + '" aria-current="page" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></span>';
     } else {
       html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></a>';
     }
+  }
+  if (moreItems.length) {
+    html += '<details class="sidebar-more" ' + (moreIsActive ? 'open' : '') + '>';
+    html += '<summary class="sidebar-more-summary' + (moreIsActive ? ' active' : '') + '"><span class="sidebar-more-dot" aria-hidden="true">+</span><span>More</span></summary>';
+    html += '<div class="sidebar-more-panel">';
+    for (const item of moreItems) {
+      const className = 'sidebar-more-link' + (item.active ? ' active current' : '');
+      if (item.active) {
+        html += '<span class="' + className + '" aria-current="page" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></span>';
+      } else {
+        html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></a>';
+      }
+    }
+    html += '</div></details>';
   }
   html += '</nav>';
   html += '<div id="sidebar-context-card" class="sidebar-context-card" aria-live="polite"></div>';
@@ -208,10 +248,7 @@ function buildBottomNavHTML() {
   let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
   for (const item of items) {
     const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');
-    let shortLabel = 'Reports';
-    if (item.key === PAGE_DASHBOARD) shortLabel = 'Dashboard';
-    else if (item.key === PAGE_SPRINTS) shortLabel = 'Sprints';
-    else if (item.key === PAGE_RISKS) shortLabel = 'Risks';
+    const shortLabel = MOBILE_LABELS[item.key] || item.label;
     html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">';
     html += '<span class="mobile-bottom-nav-icon" aria-hidden="true">' + item.icon + '</span>';
     html += '<span class="mobile-bottom-nav-label">' + shortLabel + '</span>';

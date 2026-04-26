@@ -4,13 +4,13 @@
    To change styles: edit a partial, then run: npm run build:css
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  --bg: #f6f2f1;
-  --bg-accent: #f2dfdf;
+  --bg: #fff8f8;
+  --bg-accent: #ffe8e8;
   --card: #ffffff;
   --card-muted: #fbf5f5;
-  --border: #e5d4d4;
-  --text: #231717;
-  --muted: #6d5757;
+  --border: #ead2d2;
+  --text: #1e1212;
+  --muted: #5d4646;
   --primary: #e60000;
   --primary-strong: #b20000;
   --accent: #187a53;
@@ -245,6 +245,62 @@ body.executive-surface-page .container {
   grid-template-columns: minmax(0, 1.05fr) repeat(3, minmax(0, 0.8fr));
   gap: 12px;
   margin: 8px 0 14px;
+}
+
+body.report-page .report-shell-top {
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(230, 0, 0, 0.1);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+body.report-page .report-shell-title-block h1 {
+  color: var(--text);
+  font-size: clamp(1.5rem, 2vw, 2rem);
+}
+
+body.report-page .report-filter-strip {
+  margin-top: 8px;
+  border-color: rgba(230, 0, 0, 0.16);
+  background: #fff8f8;
+}
+
+body.report-page .report-executive-hero {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body.report-page .report-executive-card {
+  border-color: rgba(230, 0, 0, 0.12);
+  background: #fff;
+}
+
+body.report-page .report-executive-card-primary {
+  background: linear-gradient(135deg, rgba(230,0,0,0.08), #fff 58%);
+}
+
+body.report-page .tabs {
+  padding: 4px;
+  background: #fff;
+  border: 1px solid rgba(230, 0, 0, 0.12);
+  border-radius: 999px;
+}
+
+body.report-page .tab-btn {
+  min-width: auto;
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  body.report-page .report-executive-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body.report-page .report-executive-hero {
+    grid-template-columns: 1fr;
+  }
 }
 
 .report-executive-card {
@@ -733,6 +789,69 @@ header .subtitle {
   background: var(--primary);
 }
 
+.sidebar-more {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sidebar-more-summary,
+.sidebar-more-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.sidebar-more-summary {
+  cursor: pointer;
+  list-style: none;
+  border: 1px dashed rgba(230, 0, 0, 0.18);
+}
+
+.sidebar-more-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-more-summary.active,
+.sidebar-more-link.active,
+.sidebar-more-link.current,
+.sidebar-more-link:hover {
+  color: var(--primary);
+  background: #fff3f3;
+}
+
+.sidebar-more-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--primary);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.sidebar-more-panel {
+  display: grid;
+  gap: 2px;
+  padding-left: 8px;
+}
+
+.sidebar-more-link svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
 .sidebar-context-card {
   padding: 10px 12px;
   border-top: 1px solid var(--border);
@@ -928,6 +1047,14 @@ body.sidebar-scroll-lock {
     transition: transform 0.22s ease;
   }
 
+  .app-sidebar:not(.open) .sidebar-link,
+  .app-sidebar:not(.open) .sidebar-more,
+  .app-sidebar:not(.open) .sidebar-context-card,
+  .app-sidebar:not(.open) .sidebar-footer {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .app-sidebar.open {
     transform: translateX(0);
   }
@@ -964,7 +1091,7 @@ body.sidebar-scroll-lock {
   }
   .mobile-bottom-nav {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
   }
   .mobile-bottom-nav-item {
@@ -10808,6 +10935,148 @@ body.current-sprint-page .burndown-metric-inline {
   }
 }
 
+body.current-sprint-page.current-sprint-has-live-content > .container > header {
+  display: none;
+}
+
+.current-sprint-advanced-controls {
+  margin: 10px 0 14px;
+  border: 1px solid rgba(230, 0, 0, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.current-sprint-advanced-controls > summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  color: var(--primary);
+  font-size: 0.86rem;
+  font-weight: 800;
+  list-style: none;
+}
+
+.current-sprint-advanced-controls > summary::-webkit-details-marker {
+  display: none;
+}
+
+.current-sprint-advanced-controls .current-sprint-header-bar,
+.current-sprint-advanced-controls .sprint-switcher-card {
+  margin: 0;
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.decision-cockpit-shell > .decision-cockpit-subtitle {
+  display: none;
+}
+
+.decision-answer-card {
+  background:
+    linear-gradient(135deg, rgba(230, 0, 0, 0.08), rgba(255,255,255,0.96) 46%),
+    #fff;
+}
+
+.decision-plain-line {
+  margin-top: 8px !important;
+  color: var(--text) !important;
+  font-weight: 700;
+}
+
+.decision-primary-link,
+.leadership-next-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 38px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--primary);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 10px 20px rgba(230, 0, 0, 0.16);
+}
+
+.decision-rail-header span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.decision-risk-card[data-cockpit-target],
+.decision-action-queue li {
+  cursor: pointer;
+}
+
+.decision-action-queue {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.decision-action-queue li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(230, 0, 0, 0.12);
+  border-radius: 10px;
+  background: #fff8f8;
+  color: var(--text);
+  font-weight: 750;
+}
+
+.decision-action-queue strong {
+  display: inline-flex;
+  min-width: 26px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--primary);
+  background: #fff;
+  border: 1px solid rgba(230, 0, 0, 0.18);
+}
+
+.decision-automation-card summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.decision-automation-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.decision-impact-chip-row {
+  max-height: 58px;
+  overflow: hidden;
+}
+
+.decision-risk-card {
+  padding: 10px 12px;
+}
+
+.decision-risk-meta {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.decision-rail-card:first-child {
+  max-height: 420px;
+  overflow: auto;
+}
+
 
 /* todo-copy-map-and-tokens: align HUD header title with Current Sprint tokens */
 :root {
@@ -10879,6 +11148,50 @@ body.current-sprint-page .burndown-metric-inline {
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,248,252,0.98));
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.leadership-direct-answer {
+  display: grid;
+  grid-template-columns: 1.3fr repeat(2, minmax(0, 0.75fr));
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.leadership-direct-answer article {
+  padding: 14px;
+  border: 1px solid rgba(230, 0, 0, 0.12);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.leadership-direct-answer span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.leadership-direct-answer strong {
+  display: block;
+  color: var(--primary);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  line-height: 1.1;
+}
+
+.leadership-direct-answer p {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.leadership-next-link-button {
+  border: 0;
+  cursor: pointer;
 }
 
 .leadership-mission-strip .context-summary-strip {
@@ -11165,6 +11478,10 @@ body.current-sprint-page .burndown-metric-inline {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
+  .leadership-direct-answer {
+    grid-template-columns: 1fr;
+  }
+
   .current-sprint-header-bar {
     flex-direction: column;
     align-items: flex-start;

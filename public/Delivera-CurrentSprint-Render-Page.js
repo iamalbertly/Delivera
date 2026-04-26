@@ -66,8 +66,11 @@ export function renderCurrentSprintPage(data) {
     + '</div>';
 
   html += renderDecisionCockpit(data);
+  html += '<details class="current-sprint-advanced-controls" data-mobile-collapse="true">';
+  html += '<summary>Change scope or view evidence controls</summary>';
   html += renderHeaderBar(data, { sectionLinksHtml });
   html += renderSprintSwitcher(data);
+  html += '</details>';
   if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
     html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
   }

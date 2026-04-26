@@ -1,13 +1,13 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
-import { formatNumber, formatDateShort, parseISO, addMonths } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { renderEmptyStateHtml, renderNoBoardsForRangeEmptyState, renderNoProjectsSelectedEmptyState } from './Reporting-App-Shared-Empty-State-Helpers.js';
-import { buildDataTableHtml } from './Reporting-App-Shared-Table-Renderer.js';
-import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Reporting-App-Report-Page-Render-Boards-Summary-Helpers.js';
-import { buildTrustBadge, formatCostPerSPDisplay, formatOverheadDisplay, buildUtilizationDisplay } from './Reporting-App-Shared-Cost-Capacity-Calc.js';
-import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
-import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
-import { KPI_TREND_VISIBILITY_HINT } from './Reporting-App-Shared-KPI-Card-Renderer.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { SPRINT_COPY } from './Delivera-CurrentSprint-Copy.js';
+import { formatNumber, formatDateShort, parseISO, addMonths } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { renderEmptyStateHtml, renderNoBoardsForRangeEmptyState, renderNoProjectsSelectedEmptyState } from './Delivera-Shared-Empty-State-Helpers.js';
+import { buildDataTableHtml } from './Delivera-Shared-Table-Renderer.js';
+import { deriveDeliveryGrade, DELIVERY_GRADE_TOOLTIP } from './Delivera-Report-Page-Render-Boards-Summary-Helpers.js';
+import { buildTrustBadge, formatCostPerSPDisplay, formatOverheadDisplay, buildUtilizationDisplay } from './Delivera-Shared-Cost-Capacity-Calc.js';
+import { renderContextSummaryStrip } from './Delivera-Shared-Context-Summary-Strip.js';
+import { renderAttentionQueue } from './Delivera-Shared-Attention-Queue.js';
+import { KPI_TREND_VISIBILITY_HINT } from './Delivera-Shared-KPI-Card-Renderer.js';
 
 export function getLeadershipTrendVisibilityHint() {
   return KPI_TREND_VISIBILITY_HINT;
@@ -216,9 +216,9 @@ function renderLeadershipAttentionQueue(data) {
 
 function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd, outcomeLine) {
   const recommendation = buildLeadershipRecommendation(data);
-  let repairActionHtml = '<a class="btn btn-secondary btn-compact" href="/current-sprint">Open current sprint</a>';
+  let repairActionHtml = '<a class="leadership-next-link" href="/current-sprint">Open sprint risk</a>';
   if (recommendation.repairAction === 'fix-excluded-sprints') {
-    repairActionHtml = '<button type="button" class="btn btn-secondary btn-compact" data-preview-context-action="open-unusable-sprints">Fix excluded sprints</button>';
+    repairActionHtml = '<button type="button" class="leadership-next-link leadership-next-link-button" data-preview-context-action="open-unusable-sprints">Fix data trust</button>';
   }
   const trustBand = data?.kpis?.dataQuality?.trustBand || 'Mixed';
   return `
@@ -231,10 +231,9 @@ function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd,
           <p class="leadership-mission-trust-line">${escapeHtml(SPRINT_COPY.segmentLabelTrust)}: ${escapeHtml(trustBand)}${outcomeLine ? ' | ' + escapeHtml(outcomeLine) : ''}</p>
         </div>
         <div class="leadership-mission-actions">
-          <button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="${escapeHtml(recommendation.headline)}" data-outcome-projects="${escapeHtml((projectsLabel || '').replace(/\s+/g, ''))}">Create work from insight</button>
           ${repairActionHtml}
           <details class="leadership-export-menu">
-            <summary class="btn btn-secondary btn-compact">Export &amp; share</summary>
+            <summary class="btn btn-secondary btn-compact">Share</summary>
             <div class="leadership-export-menu-panel">
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-manager-briefing">Copy manager briefing</button>
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-quarterly-story">Copy portfolio summary</button>
@@ -245,6 +244,34 @@ function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd,
         </div>
       </div>
       ${renderLeadershipAttentionQueue(data)}
+    </section>
+  `;
+}
+
+function renderLeadershipDirectAnswer(data, outcomeLine) {
+  const risk = data?.risk || {};
+  const trustBand = data?.kpis?.dataQuality?.trustBand || 'Mixed';
+  const blockers = Number(risk?.blockersOwned || 0);
+  const unowned = Number(risk?.unownedOutcomes || 0);
+  const riskScore = risk?.score != null ? `${formatNumber(risk.score, 0)}%` : 'No data';
+  const verdict = blockers > 0 || unowned > 0 ? 'Needs attention' : (trustBand === 'Weak' ? 'Trust weak' : 'Readable');
+  return `
+    <section class="leadership-direct-answer" aria-label="Leadership answer">
+      <article>
+        <span>Portfolio answer</span>
+        <strong>${escapeHtml(verdict)}</strong>
+        <p>${escapeHtml(outcomeLine || 'Open sprint risk to see the next intervention.')}</p>
+      </article>
+      <article>
+        <span>Risk</span>
+        <strong>${escapeHtml(riskScore)}</strong>
+        <p>${escapeHtml(`${blockers} blockers | ${unowned} no owner`)}</p>
+      </article>
+      <article>
+        <span>Trust</span>
+        <strong>${escapeHtml(trustBand)}</strong>
+        <p>Use as decision support, not a team ranking.</p>
+      </article>
     </section>
   `;
 }
@@ -362,6 +389,7 @@ export function renderLeadershipPage(data) {
   if (outcomeLine) {
     outcomeLine = outcomeLine.split('|').slice(0, 3).join(' | ').trim();
   }
+  html += renderLeadershipDirectAnswer(data, outcomeLine);
   html += renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd, outcomeLine);
   html += '</div>';
   html += renderLeadershipKpiStrip(data);

@@ -256,8 +256,8 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
     await expect(page.locator('.app-sidebar')).toBeVisible();
     const nav = page.locator('.app-sidebar .sidebar-link');
-    await expect(nav).toHaveCount(9);
-    await expect(page.locator('.app-sidebar')).toContainText(/Dashboard|Program Increment \(PI\)|Sprints|Value Delivery|Risks & Blockers|Teams|Reports|Settings/i);
+    await expect(nav).toHaveCount(5);
+    await expect(page.locator('.app-sidebar')).toContainText(/Today|Sprint|Delivery|Risks|Teams|More/i);
     await expect(page.locator('.sidebar-brand-tagline')).toContainText(/Grow my Impact/i);
     await expect(page.locator('h1')).toContainText(/Delivery intelligence dashboard/i);
     assertTelemetryClean(telemetry);
@@ -280,12 +280,12 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await stubSprintPage(page, buildStubSprintPayload());
     await page.goto('/current-sprint');
     await page.waitForSelector('.decision-cockpit-shell', { timeout: 30000 });
-    await expect(page.locator('.decision-summary-strip')).toContainText(/Delivery score|Business impact|Risk/i);
+    await expect(page.locator('.decision-summary-strip')).toContainText(/Value answer|Customer impact|Risk/i);
     await expect(page.locator('.decision-health-card')).toContainText(/On Track/i);
     await expect(page.locator('.decision-action-card')).toContainText(/SD-5139/i);
-    await expect(page.locator('.decision-signals-card')).toContainText(/Blockers|Scope changes|Recent completion/i);
-    await expect(page.locator('.decision-metrics-row .decision-metric-card')).toHaveCount(5);
-    await expect(page.locator('.decision-rail-card')).toHaveCount(3);
+    await expect(page.locator('.decision-signals-card')).toContainText(/Blockers|Added work|Done now/i);
+    await expect(page.locator('.decision-metrics-row .decision-metric-card')).toHaveCount(4);
+    await expect(page.locator('.decision-rail-card')).toHaveCount(2);
     await expect(page.locator('.decision-insights-row .decision-insight-card')).toHaveCount(4);
     await expect(page.locator('#stories-card')).toContainText(/Value Delivery|Enablers|Blocked \/ At Risk|What Was Delivered This Sprint|Blockers Panel/i);
     assertTelemetryClean(telemetry);
@@ -295,10 +295,10 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
-    await expect(page.locator('h1')).toContainText(/Reports/i);
-    await expect(page.locator('#tab-btn-trends')).toContainText(/Leadership/i);
-    await expect(page.locator('#tab-btn-sprints')).toContainText(/Sprint delivery/i);
-    await expect(page.locator('#tab-btn-done-stories')).toContainText(/Value delivery/i);
+    await expect(page.locator('h1')).toContainText(/Delivery/i);
+    await expect(page.locator('#tab-btn-trends')).toContainText(/Leaders/i);
+    await expect(page.locator('#tab-btn-sprints')).toContainText(/Flow/i);
+    await expect(page.locator('#tab-btn-done-stories')).toContainText(/Outcomes/i);
     await page.goto('/leadership');
     await expect(page.locator('.hud-title')).toContainText(/Leadership/i);
     await expect(page.locator('#leadership-summary')).toContainText(/Loading the portfolio story|Risk index|delivery/i);
@@ -310,7 +310,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await stubSprintPage(page, buildStubSprintPayload());
     await page.goto('/current-sprint');
     await page.waitForSelector('.decision-cockpit-shell', { timeout: 30000 });
-    await page.locator('.decision-action-card .btn.btn-primary').click();
+    await page.locator('.decision-action-card .decision-primary-link').click();
     await expect(page.locator('[data-header-active-filter-value]')).toContainText(/blocker/i);
     assertTelemetryClean(telemetry);
   });
@@ -321,7 +321,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await page.goto('/current-sprint');
     const firstRisk = page.locator('.decision-risk-card').first();
     await expect(firstRisk).toContainText(/High|No assignee|No movement 24h/i);
-    await firstRisk.locator('button').click();
+    await firstRisk.click();
     await expect(page.locator('#stories-card')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
@@ -356,7 +356,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await stubSprintPage(page, payload);
     await page.goto('/current-sprint');
     await expect(page.locator('.decision-action-card')).toContainText(/No critical Jira issue/i);
-    await page.locator('.decision-action-card .btn.btn-primary').click();
+    await page.locator('.decision-action-card .decision-primary-link').click();
     await expect(page.locator('#stories-card')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
@@ -400,7 +400,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await stubSprintPage(page, payload);
     await page.goto('/current-sprint');
     await expect(page.locator('.decision-health-card')).toContainText(/Limited View/i);
-    await expect(page.locator('.current-sprint-header-bar')).toBeVisible();
+    await expect(page.locator('.current-sprint-advanced-controls')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 });

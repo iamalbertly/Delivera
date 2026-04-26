@@ -104,6 +104,60 @@
       transform: translateY(-1px);
       box-shadow: 0 12px 24px rgba(72, 22, 22, 0.08);
     }
+    .leadership-header-more {
+      position: relative;
+    }
+    .leadership-header-more summary {
+      list-style: none;
+    }
+    .leadership-header-more summary::-webkit-details-marker {
+      display: none;
+    }
+    .leadership-header-more-panel {
+      display: grid;
+      gap: 6px;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 50;
+      min-width: 150px;
+      padding: 8px;
+      border: 1px solid rgba(157, 114, 114, 0.24);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 14px 30px rgba(72, 22, 22, 0.14);
+    }
+    .hud-answer-row {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(2, minmax(0, 0.8fr));
+      gap: 10px;
+    }
+    .hud-answer-card {
+      padding: 14px;
+      border: 1px solid rgba(230, 0, 0, 0.12);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .hud-answer-card span {
+      display: block;
+      margin-bottom: 5px;
+      color: #6d5757;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .hud-answer-card strong {
+      display: block;
+      color: #e60000;
+      font-size: 1.45rem;
+      line-height: 1.1;
+    }
+    .hud-answer-card p {
+      margin: 6px 0 0;
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
     .hud-card-shell {
       display: grid;
       gap: 14px;
@@ -182,6 +236,9 @@
       .hud-metric-grid {
         grid-template-columns: 1fr;
       }
+      .hud-answer-row {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -199,11 +256,16 @@
         </div>
       </div>
       <div id="leadership-header-actions" class="hud-actions-row" role="group" aria-label="Leadership quick actions">
-        <button type="button" id="leadership-refresh-btn" class="btn btn-primary btn-compact">Refresh data</button>
-        <button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from leadership risk and trend signals.">Create work</button>
-        <a href="/dashboard" class="btn btn-secondary btn-compact">Dashboard</a>
-        <a href="/report" class="btn btn-secondary btn-compact">Reports</a>
-        <a href="/current-sprint" class="btn btn-secondary btn-compact">Sprints</a>
+        <button type="button" id="leadership-refresh-btn" class="btn btn-primary btn-compact">Refresh</button>
+        <a href="/current-sprint" class="btn btn-secondary btn-compact">Open sprint risk</a>
+        <details class="leadership-header-more">
+          <summary class="btn btn-secondary btn-compact">More</summary>
+          <div class="leadership-header-more-panel">
+            <a href="/dashboard" class="btn btn-secondary btn-compact">Today</a>
+            <a href="/report" class="btn btn-secondary btn-compact">Delivery</a>
+            <button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from leadership risk and trend signals.">Create work</button>
+          </div>
+        </details>
       </div>
       <div id="project-context" data-context-bar="true"></div>
       <p id="leadership-confidence-strip" class="hud-summary-line">State: Updated - loading confidence and data trust...</p>
