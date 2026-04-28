@@ -1,50 +1,148 @@
 /* Shared Header Renderer
  * Ensures consistent header layout and shared context bar (report wires feedback after header actions are built).
  */
-import { getContextDisplayString, getLastMetaFreshnessInfo } from './Delivera-Shared-Context-From-Storage.js';
-import { REPORT_LAST_META_KEY } from './Delivera-Shared-Storage-Keys.js';
+import {
+  getContextDisplayString,
+  getLastMetaFreshnessInfo,
+  getContextStateBadgeInfo,
+} from './Delivera-Shared-Context-From-Storage.js';
 
-function getContextStateBadge() {
+function getPathnameSafe() {
   try {
-    if (typeof sessionStorage === 'undefined') return null;
-    const raw = sessionStorage.getItem(REPORT_LAST_META_KEY);
-    if (!raw || !raw.trim()) return null;
-    const meta = JSON.parse(raw);
-    const isPartial = meta?.partial === true;
-    const isClosest = meta?.reducedScope === true;
-    const isCached = meta?.fromCache === true && !isPartial && !isClosest;
-    const isLive = !isCached && !isPartial && !isClosest;
-    if (isPartial) return { label: 'Partial', kind: 'partial' };
-    if (isClosest) return { label: 'Closest', kind: 'closest' };
-    if (isCached) return { label: 'Cached', kind: 'cached' };
-    if (isLive) return { label: 'Live', kind: 'live' };
-    return null;
+    return window.location && window.location.pathname ? window.location.pathname : '';
   } catch (_) {
-    return null;
+    return '';
   }
+}
+
+function ensureExecutiveHeader(path) {
+  if (path === '/login' || path.endsWith('/login')) return;
+  if (document.querySelector('header')) return;
+  if (!document.body?.classList?.contains('executive-surface-page')) return;
+  const container = document.querySelector('.container');
+  if (!container) return;
+  const main = container.querySelector('main');
+  const pageTitle = document.body.getAttribute('data-surface-name') || 'Delivery';
+  const header = document.createElement('header');
+  header.className = 'executive-shared-header';
+  header.innerHTML = ''
+    + '<div class="header-row executive-shared-header-row">'
+    + '<div class="executive-shared-header-title-block">'
+    + `<h1>${pageTitle}</h1>`
+    + '<p class="subtitle">Consistent context and direct actions across pages.</p>'
+    + '</div>'
+    + '<div id="executive-shared-header-actions" class="report-header-actions" role="group" aria-label="Page actions">'
+    + '<button type="button" class="btn btn-primary btn-compact" data-shared-action="refresh-page">Refresh</button>'
+    + `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from ${pageTitle} context.">Create work</button>`
+    + '<details class="report-header-more-menu">'
+    + '<summary class="btn btn-secondary btn-compact">More</summary>'
+    + '<div class="report-header-more-panel">'
+    + '<a href="/report" class="btn btn-secondary btn-compact">Delivery</a>'
+    + '<a href="/current-sprint" class="btn btn-secondary btn-compact">Current sprint</a>'
+    + '<a href="/leadership" class="btn btn-secondary btn-compact">Leadership</a>'
+    + '</div>'
+    + '</details>'
+    + '</div>'
+    + '</div>';
+  if (main) container.insertBefore(header, main);
+  else container.prepend(header);
+}
+
+function hasDedicatedContextSurface(path) {
+  return path === '/report'
+    || path.endsWith('/report')
+    || path === '/current-sprint'
+    || path.endsWith('/current-sprint')
+    || path === '/leadership'
+    || path.endsWith('/leadership')
+    || path === '/sprint-leadership'
+    || path.endsWith('/sprint-leadership');
+}
+
+function getContextActionTarget(path) {
+  if (path === '/report' || path.endsWith('/report')) return 'report';
+  if (path === '/current-sprint' || path.endsWith('/current-sprint')) return 'current-sprint';
+  return 'none';
+}
+
+function findHeaderRow(header) {
+  if (!header) return null;
+  return header.querySelector('.header-row, .report-shell-top-row, .hud-header-top');
+}
+
+function ensureHeaderContract(header) {
+  const row = findHeaderRow(header);
+  header.classList.add('app-header', 'app-header-shell', 'app-mission-control-header');
+  if (!row) return null;
+  row.classList.add('app-header-row');
+  const titleBlock = row.querySelector('.report-shell-title-block')
+    || row.querySelector(':scope > div:first-child');
+  if (titleBlock) {
+    titleBlock.classList.add('app-header-title-block');
+    titleBlock.setAttribute('data-header-slot', 'title');
+  }
+  const actionBlock = header.querySelector('#report-header-actions, #leadership-header-actions, .report-header-actions, .hud-actions-row');
+  if (actionBlock) {
+    actionBlock.classList.add('app-header-actions');
+    actionBlock.setAttribute('data-header-slot', 'actions');
+    actionBlock.setAttribute('role', actionBlock.getAttribute('role') || 'group');
+  }
+  header.setAttribute('data-shared-header-contract', 'true');
+  return row;
+}
+
+function attachStaleHint(container, info, contextTarget) {
+  const existing = container.querySelector('.context-stale-hint');
+  existing?.remove();
+  if (!info || !info.isStale || contextTarget === 'none') return;
+  const hint = document.createElement('button');
+  hint.type = 'button';
+  hint.className = 'context-stale-hint';
+  hint.textContent = 'Context may be stale - click to refresh';
+  hint.addEventListener('click', () => {
+    try {
+      if (contextTarget === 'report') {
+        const previewBtn = document.getElementById('preview-btn');
+        if (previewBtn && !previewBtn.disabled) previewBtn.click();
+      } else if (contextTarget === 'current-sprint') {
+        document.dispatchEvent(new Event('refreshSprint'));
+      }
+    } catch (_) {}
+  });
+  container.appendChild(hint);
+}
+
+function renderContextBar(bar, contextTarget) {
+  if (!bar) return;
+  const text = getContextDisplayString();
+  const state = getContextStateBadgeInfo();
+  const freshnessInfo = getLastMetaFreshnessInfo();
+  bar.innerHTML = '';
+  const textSpan = document.createElement('span');
+  textSpan.className = 'shared-context-bar-text';
+  textSpan.textContent = text;
+  bar.appendChild(textSpan);
+  if (state) {
+    const badge = document.createElement('span');
+    badge.setAttribute('data-context-state-badge', 'true');
+    badge.className = 'context-state-badge context-state-badge--' + state.kind;
+    badge.textContent = ` ${state.label}`;
+    bar.appendChild(badge);
+  }
+  attachStaleHint(bar, freshnessInfo, contextTarget);
 }
 
 export function ensureSharedHeader() {
   try {
-    // Ensure header has expected structure and classes
+    const path = getPathnameSafe();
+    ensureExecutiveHeader(path);
     const header = document.querySelector('header');
     if (!header) return;
 
-    header.classList.add('app-header');
+    ensureHeaderContract(header);
+    const suppressContextBar = hasDedicatedContextSurface(path);
+    const contextTarget = getContextActionTarget(path);
 
-    const path = (() => {
-      try {
-        return window.location && window.location.pathname ? window.location.pathname : '';
-      } catch (_) {
-        return '';
-      }
-    })();
-    const suppressContextBar = path === '/report'
-      || path.endsWith('/report')
-      || path === '/current-sprint'
-      || path.endsWith('/current-sprint');
-
-    // Context bar: keep only on pages that do not already have a dedicated context strip/card.
     let contextBar = header.querySelector('.shared-context-bar[data-context-bar]');
     if (suppressContextBar) {
       contextBar?.remove();
@@ -52,51 +150,12 @@ export function ensureSharedHeader() {
       contextBar = document.createElement('div');
       contextBar.setAttribute('data-context-bar', 'true');
       contextBar.className = 'subtitle shared-context-bar';
-      contextBar.style.cssText = 'margin: 0.35rem 0 0; font-size: 0.9rem; font-weight: 600;';
-      const row = header.querySelector('.header-row');
+      const row = findHeaderRow(header);
       if (row) row.after(contextBar);
       else header.appendChild(contextBar);
     }
     if (contextBar) {
-      const contextText = getContextDisplayString();
-      const state = getContextStateBadge();
-      const freshnessInfo = getLastMetaFreshnessInfo();
-      contextBar.innerHTML = '';
-      const textSpan = document.createElement('span');
-      textSpan.className = 'shared-context-bar-text';
-      textSpan.textContent = contextText;
-      contextBar.appendChild(textSpan);
-      if (state) {
-        const badge = document.createElement('span');
-        badge.setAttribute('data-context-state-badge', 'true');
-        badge.className = 'context-state-badge context-state-badge--' + state.kind;
-        badge.textContent = ` ${state.label}`;
-        contextBar.appendChild(badge);
-      }
-      attachStaleHint(contextBar, freshnessInfo);
-    }
-
-    /**
-     * Call after persisting last query (e.g. after successful preview) to update the bar without reload.
-     */
-    function attachStaleHint(container, info) {
-      if (!info || !info.isStale) return;
-      const hint = document.createElement('button');
-      hint.type = 'button';
-      hint.className = 'context-stale-hint';
-      hint.textContent = 'Context may be stale - click to refresh';
-      hint.addEventListener('click', () => {
-        try {
-          const path = window.location && window.location.pathname;
-          if (path === '/report' || (path || '').endsWith('/report')) {
-            const previewBtn = document.getElementById('preview-btn');
-            if (previewBtn && !previewBtn.disabled) previewBtn.click();
-          } else if (path === '/current-sprint' || (path || '').endsWith('/current-sprint')) {
-            document.dispatchEvent(new Event('refreshSprint'));
-          }
-        } catch (_) {}
-      });
-      container.appendChild(hint);
+      renderContextBar(contextBar, contextTarget);
     }
 
     window.__refreshReportingContextBar = function refreshContextBar() {
@@ -104,28 +163,24 @@ export function ensureSharedHeader() {
       if (!headerEl) return;
       const bar = headerEl.querySelector('.shared-context-bar[data-context-bar]');
       if (!bar || suppressContextBar) return;
-      const text = getContextDisplayString();
-      const state = getContextStateBadge();
-      const info = getLastMetaFreshnessInfo();
-      bar.innerHTML = '';
-      const textSpanInner = document.createElement('span');
-      textSpanInner.className = 'shared-context-bar-text';
-      textSpanInner.textContent = text;
-      bar.appendChild(textSpanInner);
-      if (state) {
-        const badgeInner = document.createElement('span');
-        badgeInner.setAttribute('data-context-state-badge', 'true');
-        badgeInner.className = 'context-state-badge context-state-badge--' + state.kind;
-        badgeInner.textContent = ` ${state.label}`;
-        bar.appendChild(badgeInner);
-      }
-      attachStaleHint(bar, info);
+      renderContextBar(bar, contextTarget);
     };
 
-    document.getElementById('feedback-corner')?.remove();
-
-    // Mark header as unified for styling hooks
     header.setAttribute('data-shared-header', 'true');
+    header.style.setProperty('--shared-header-top', '0px');
+    document.getElementById('feedback-corner')?.remove();
+    if (!window.__sharedHeaderActionsBound) {
+      window.__sharedHeaderActionsBound = true;
+      document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-shared-action]');
+        if (!trigger) return;
+        const action = trigger.getAttribute('data-shared-action');
+        if (action === 'refresh-page') {
+          event.preventDefault();
+          window.location.reload();
+        }
+      });
+    }
   } catch (e) {
     // ignore; header enhancements are progressive
   }
@@ -137,3 +192,19 @@ if (document.readyState === 'loading') {
 } else {
   ensureSharedHeader();
 }
+
+window.addEventListener('storage', () => {
+  if (typeof window.__refreshReportingContextBar === 'function') {
+    window.__refreshReportingContextBar();
+  }
+});
+
+window.addEventListener('hashchange', () => {
+  ensureSharedHeader();
+});
+
+window.addEventListener('report-preview-shown', () => {
+  if (typeof window.__refreshReportingContextBar === 'function') {
+    window.__refreshReportingContextBar();
+  }
+});

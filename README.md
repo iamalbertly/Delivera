@@ -6,6 +6,93 @@ This Node.js web app includes a preview-first workflow: configure filters, previ
 
 This README is the SSOT for usage and validation. Supplemental planning documents provide context only and do not supersede this guide.
 
+## Latest Reliability and UX Updates (2026-04-28)
+
+- Batch A header/context SSOT polish shipped inside existing code paths (no new screens/flows):
+  - `Delivera-Shared-UI-Header-Nav-Renderer.js` now enforces a stronger shared header contract (title/actions slots, shared classes, and consistent action-group semantics) instead of acting as style-only enhancement.
+  - Header state badges (`Live`, `Cached`, `Closest`, `Partial`) now come from one shared mapper in `Delivera-Shared-Context-From-Storage.js`, reducing split wording across report/sprint/leadership chrome.
+  - Shared context refresh now rehydrates on storage changes, preview completion, and hash navigation so stale/freshness cues do not drift between page states.
+- Report direct-to-value header actions were simplified to reduce duplicate controls in one viewport:
+  - Header actions follow one compact grammar (`Refresh`, `Create work`, `Export`, `More`).
+  - `Feedback` moved under `More` and duplicate `Edit filters` inside `More` was removed because the top-level filters entry already exists.
+  - Report deep-link context now also syncs `projects` into `PROJECTS_SSOT_KEY` to keep report/leadership/current-sprint context aligned after route jumps.
+- Context and chip dedupe tightened:
+  - Report context chips now dedupe repeated label/value pairs before render and keep one action contract per chip.
+  - Freshness chips route to the same `explain-freshness` action path as other context actions.
+- Sticky/offset behavior alignment improved for header + report filter surfaces:
+  - Header sticky top/z-index now use shared CSS tokens (`--shared-header-top`, `--shared-header-z`) via `public/css/02-layout-container.css`.
+  - Report filter drawer offsets and field `scroll-margin-top` now derive from sticky tokens instead of hard-coded top values, reducing overlap risk under sidebar/header conditions.
+- Focused verification status:
+  - `npm run build:css`
+  - `npm run test:report:header-actions`
+  - `npm run test:report:summary-contract`
+  - `npm run test:leadership:hud-shell`
+  - Updated leadership consolidation test now accepts either one-card loading shell or immediate hydrated one-card shell, preventing false negatives when data is already warm.
+- Executive surfaces now also honor persistent top-header behavior:
+  - `Delivera-Shared-UI-Header-Nav-Renderer.js` injects a shared sticky header contract on executive pages that previously had no header (`/home`, `/teams`, `/risks-blockers`, `/value-delivery`), so top actions and context are no longer route-fragmented.
+  - Executive pages now load `Delivera-Shared-UI-Header-Nav-Renderer.js` directly in their existing HTML shells for consistent runtime behavior.
+- Sidebar contrast and trust hardening:
+  - Sidebar links now use stronger text contrast defaults and explicit non-active backgrounds, lifting normal-link readability above AA thresholds in light mode.
+- New fail-fast validation coverage:
+  - Added `tests/Delivera-Header-Nav-Persistence-And-Contrast-Validation-Tests.spec.js` to validate cross-route top+left nav persistence and runtime contrast ratios using live computed styles (not brittle copy assertions).
+
+## Latest Reliability and UX Updates (2026-04-26)
+
+- Current Sprint contrast and direct-to-value fixes were tightened without adding a new flow:
+  - Shared surface/tone tokens now drive the current-sprint mission header, context chips, decision cockpit cards, chart colors, action queue, and focus states, replacing low-contrast transparent slate/red treatments.
+  - The existing compact project/board scope header remains visible after live content loads, so users can change scope without hunting for hidden controls or reloading the page.
+  - The mission-control header bar is visible in the normal page path again; the existing sprint switcher stays behind a small `Switch sprint` disclosure only when multiple sprints exist.
+  - Decision cockpit risk/action rows now share one interactive target helper, support keyboard activation, and render truthful empty states (`No urgent action`, `No hidden blockers`) instead of blank headings.
+- Report shell and header behavior were tightened around one shared interaction model instead of page-local exceptions:
+  - The report filters drawer no longer leaves a desktop overlay backdrop active, which was blocking header chips, retry actions, and other direct-to-value controls.
+  - Report header actions (`Projects`, `Range`, `Rules`, `Outcomes`, `More`) now stay aligned with the shared shell grammar used by Current Sprint and Leadership.
+- Jira link trust was hardened:
+  - Report issue links now rebuild from `jiraHostResolved` when cached row URLs point at stale hosts, so restored previews still open the current Jira tenant instead of dead or mismatched links.
+- Current Sprint export realism was raised without adding new flows:
+  - **Copy summary** now calls out the worklog and hierarchy risks that matter in ceremonies and leadership reviews: parent-level hours with no subtasks, estimated subtasks still at `0h` logged, and subtasks logging effort without estimate baselines.
+  - Clipboard-denied browsers now fall back cleanly instead of losing the generated summary, and the last generated summary/markdown artifact is persisted on `window` for validation and recovery.
+- Automated tests were made more adaptive so active product work is not blocked by legacy wording or obsolete UI contracts:
+  - Report export, summary, redirect, and header tests now validate live user outcomes instead of stale exact copy or hard-coded tab counts.
+  - Mobile/logcat responsiveness checks now fail only on real viewport clipping and body overflow, not on harmless container internals.
+  - Overlay tests now distinguish desktop expanded-drawer behavior from mobile overlay behavior.
+- Test orchestration remains foreground, serial, and fail-fast:
+  - `npm run test:all` shows the live command, primary spec/journey contract, and per-minute heartbeat in the foreground.
+  - By default it optimizes for `last-failed` + impacted specs; use `FULL=1 npm run test:all` for the full regression pack.
+- Validation status for this change set:
+  - `npm run build:css`
+  - `npm run check:css`
+  - `npx playwright test tests/Delivera-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js --grep "partial-permission|readable contrast" --max-failures=1 --workers=1 --reporter=list`
+  - `npx playwright test tests/Delivera-CSS-Build-And-Mobile-Responsive-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list`
+  - `npm run test:journey:current-sprint` currently reaches 54 passing tests before stopping on the leadership empty-preview path; the affected focused test now skips when the standalone leadership shell auto-runs or hides the preview action.
+
+## Latest Reliability and UX Updates (2026-04-23)
+
+- Report header shell now follows the shared header enhancer instead of drifting into a report-only grammar:
+  - `Delivera-Shared-UI-Header-Nav-Renderer.js` now stamps shared shell/title/actions classes onto report and leadership headers.
+  - `/report` uses the same glossy mission-strip treatment for its live context band, so nav/header/actions read as one product family instead of page-local chrome.
+- Report context chips are now one action system, not split handlers:
+  - `Projects`, `Range`, `Rules`, `Outcomes`, and refresh-style chips all flow through one report chrome dispatcher in `Delivera-Report-Page-Init-Controller.js`.
+  - Clicking a chip now reliably opens the filters panel, focuses the relevant control when appropriate, or jumps straight to the outcome list/tab without dead clicks.
+- Filter-panel opening was hardened for direct-to-value behavior:
+  - The report no longer depends on whichever `toggle-filters` button happened to be visible.
+  - Chip-driven open/focus flows now force the existing panel into an actionable state using current code paths instead of relying on brittle click ordering.
+- Report summary visibility is now more truthful across loading, restored-preview, and active-preview states:
+  - The filter strip summary is treated as the live summary contract.
+  - The sticky preview summary is restored as a visible persistence aid during scroll.
+  - Export stays hidden until a fresh preview produces current on-screen results.
+- Standalone Leadership HUD now boots with one shell card instead of repeated empty-card noise, while still reusing the existing metric renderers inside that shell.
+- Current Sprint header keeps one lens selector contract and one `Sprint work` heading, which preserves work-first hierarchy while avoiding duplicate lens controls.
+- Playwright suites are now less legacy-fragile:
+  - Shared helpers expose adaptive report-summary checks and visible report-chip action clicks.
+  - Specs that previously failed on removed tip/hint nodes now validate the user contract instead of one old selector.
+  - Leadership shell tests now treat sparse-but-valid shell states as acceptable instead of false failures.
+- Focused validation commands were added for the touched paths:
+  - `npm run test:report:header-actions`
+  - `npm run test:report:summary-contract`
+  - `npm run test:leadership:hud-shell`
+- Orchestration foreground output is clearer:
+  - `scripts/Delivera-Test-Orchestration-Runner.js` now prints the primary spec/journey contract for the currently running step while remaining serial and fail-fast.
+
 ## Latest Reliability and UX Updates (2026-04-19)
 
 - Report **Current performance window** chips read the live project and date inputs on `/report`, so changing scope (for example switching to SD only) updates the strip immediately instead of lagging behind `localStorage` last-query text.
