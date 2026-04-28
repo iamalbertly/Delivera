@@ -23,6 +23,7 @@ function ensureExecutiveHeader(path) {
   if (!container) return;
   const main = container.querySelector('main');
   const pageTitle = document.body.getAttribute('data-surface-name') || 'Delivery';
+  const hasInlineCreateWork = !!document.querySelector('[data-open-outcome-modal]');
   const header = document.createElement('header');
   header.className = 'executive-shared-header';
   header.innerHTML = ''
@@ -33,9 +34,9 @@ function ensureExecutiveHeader(path) {
     + '</div>'
     + '<div id="executive-shared-header-actions" class="report-header-actions" role="group" aria-label="Page actions">'
     + '<button type="button" class="btn btn-primary btn-compact" data-shared-action="refresh-page">Refresh</button>'
-    + `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from ${pageTitle} context.">Create work</button>`
+    + (hasInlineCreateWork ? '' : `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from ${pageTitle} context.">Create work</button>`)
     + '<details class="report-header-more-menu">'
-    + '<summary class="btn btn-secondary btn-compact">More</summary>'
+    + '<summary class="btn btn-secondary btn-compact">Actions</summary>'
     + '<div class="report-header-more-panel">'
     + '<a href="/report" class="btn btn-secondary btn-compact">Delivery</a>'
     + '<a href="/current-sprint" class="btn btn-secondary btn-compact">Current sprint</a>'

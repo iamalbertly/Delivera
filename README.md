@@ -35,6 +35,17 @@ This README is the SSOT for usage and validation. Supplemental planning document
   - Sidebar links now use stronger text contrast defaults and explicit non-active backgrounds, lifting normal-link readability above AA thresholds in light mode.
 - New fail-fast validation coverage:
   - Added `tests/Delivera-Header-Nav-Persistence-And-Contrast-Validation-Tests.spec.js` to validate cross-route top+left nav persistence and runtime contrast ratios using live computed styles (not brittle copy assertions).
+- Additional contrast + duplication hardening shipped for executive and sprint surfaces:
+  - Accent cards now include a solid dark fallback color behind gradients in `public/css/02-layout-container.css`, preventing white-on-white failures when gradient paint is unavailable or delayed.
+  - Accent-card headline/body copy now includes a subtle readability shadow to preserve legibility under mixed rendering conditions.
+  - Current Sprint active quick-link color was darkened in `public/css/06-current-sprint.css` so selected-state labels clear AA contrast against the selected pill background.
+  - Sidebar support labels (`.sidebar-brand-tagline`, `.sidebar-more-summary`) now use stronger contrast and explicit card background in `public/css/03-nav-sidebar.css`.
+  - Executive shared headers now avoid duplicate `Create work` actions when an in-page create-work control already exists, reducing same-viewport CTA duplication.
+  - Executive shared-header overflow menu label changed from `More` to `Actions` to reduce cognitive duplication with sidebar `More`.
+- Expanded regression checks (fail-fast, real-style assertions):
+  - `tests/Delivera-Header-Nav-Persistence-And-Contrast-Validation-Tests.spec.js` now also verifies accent-card fallback contrast and asserts duplicate create-work actions are not rendered in the same header viewport.
+  - Verification run: `npm run build:css`
+  - Verification run: `npx playwright test tests/Delivera-Header-Nav-Persistence-And-Contrast-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list`
 
 ## Latest Reliability and UX Updates (2026-04-26)
 

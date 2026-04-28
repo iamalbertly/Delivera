@@ -143,4 +143,65 @@ test.describe('Header and nav persistence with contrast trust', () => {
       expect(isShared).toBe('true');
     }
   });
+
+  test('accent cards keep readable contrast on executive pages', async ({ page }) => {
+    const pages = ['/value-delivery', '/risks-blockers'];
+    for (const path of pages) {
+      await page.goto(path);
+      if (page.url().includes('login')) {
+        test.skip(true, 'Redirected to login');
+        return;
+      }
+      const audit = await page.evaluate(() => {
+        const parse = (input) => {
+          const match = String(input || '').match(/rgba?\(([^)]+)\)/i);
+          if (!match) return null;
+          const parts = match[1].split(',').map((part) => Number(part.trim()));
+          return { r: parts[0] || 0, g: parts[1] || 0, b: parts[2] || 0, a: parts[3] == null ? 1 : parts[3] };
+        };
+        const lum = (rgb) => {
+          const c = (v) => {
+            const x = v / 255;
+            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+          };
+          return 0.2126 * c(rgb.r) + 0.7152 * c(rgb.g) + 0.0722 * c(rgb.b);
+        };
+        const ratio = (fg, bg) => {
+          const a = lum(fg);
+          const b = lum(bg);
+          return Number(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2));
+        };
+        const card = document.querySelector('.surface-card-accent');
+        if (!card) return null;
+        const cardStyle = getComputedStyle(card);
+        const bg = parse(cardStyle.backgroundColor);
+        const heading = card.querySelector('h2');
+        const body = card.querySelector('p');
+        const hColor = parse(getComputedStyle(heading).color);
+        const pColor = parse(getComputedStyle(body).color);
+        return {
+          bg: cardStyle.backgroundColor,
+          headingRatio: hColor && bg ? ratio(hColor, bg) : null,
+          bodyRatio: pColor && bg ? ratio(pColor, bg) : null,
+        };
+      });
+      expect(audit).toBeTruthy();
+      expect(audit.bg).not.toContain('rgba(0, 0, 0, 0)');
+      expect(audit.headingRatio).toBeGreaterThanOrEqual(4.5);
+      expect(audit.bodyRatio).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test('executive header avoids duplicate create-work actions in same viewport', async ({ page }) => {
+    const pages = ['/home', '/risks-blockers'];
+    for (const path of pages) {
+      await page.goto(path);
+      if (page.url().includes('login')) {
+        test.skip(true, 'Redirected to login');
+        return;
+      }
+      const count = await page.locator('header [data-open-outcome-modal]:visible').count();
+      expect(count).toBeLessThanOrEqual(1);
+    }
+  });
 });
