@@ -503,10 +503,10 @@
 }
 
 .sprint-intervention-item .metric-label {
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted);
+  color: var(--muted-strong);
 }
 
 .sprint-intervention-item .metric-value {
@@ -516,8 +516,8 @@
 }
 
 .sprint-intervention-item .metric-meta {
-  font-size: 0.74rem;
-  color: var(--muted);
+  font-size: 0.78rem;
+  color: var(--muted-strong);
   margin-left: auto;
 }
 
@@ -539,7 +539,7 @@
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--card-muted);
-  color: var(--muted);
+  color: var(--muted-strong);
   font-size: 0.76rem;
   white-space: nowrap;
 }
@@ -675,7 +675,7 @@
   align-self: center;
   white-space: nowrap;
   font-size: var(--header-export-readiness-size);
-  color: var(--muted);
+  color: var(--muted-strong);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 8px;
@@ -2970,7 +2970,7 @@ body.current-sprint-page .current-sprint-header-bar .header-role-modes-label {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--muted-strong);
   flex-shrink: 0;
 }
 
@@ -3844,7 +3844,7 @@ body.notification-dock-visible .export-dashboard-container {
 }
 
 .header-export-readiness-sep {
-  opacity: 0.5;
+  opacity: 0.75;
 }
 
 .last-updated {
@@ -4061,7 +4061,7 @@ body.current-sprint-page header {
 }
 
 /* Single visual mission-control band: fuse project/board scope header with .current-sprint-header-bar */
-body.current-sprint-page:has(#current-sprint-content .current-sprint-header-bar) header {
+body.current-sprint-page.current-sprint-has-live-content header {
   background: linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(245,249,255,0.86) 100%);
   border: 1px solid var(--glass-border);
   border-bottom: none;
@@ -4071,7 +4071,7 @@ body.current-sprint-page:has(#current-sprint-content .current-sprint-header-bar)
   box-shadow: var(--shadow-soft);
 }
 
-body.current-sprint-page:has(#current-sprint-content .current-sprint-header-bar) #current-sprint-content > .current-sprint-header-bar:first-child {
+body.current-sprint-page.current-sprint-has-live-content #current-sprint-content > .current-sprint-header-bar:first-child {
   border-top: none;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   margin-top: 0;

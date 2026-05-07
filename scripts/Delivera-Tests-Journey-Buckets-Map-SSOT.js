@@ -235,6 +235,41 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report',
   },
+  'tests/Delivera-UX-AllSurfaces-DirectValue-Polish-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/home,/backlog-intake,/program-increment,/risks-blockers,/report,/current-sprint,/leadership',
+  },
+  'tests/Delivera-Report-Refresh-Trust-And-Action-Hierarchy-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/report',
+  },
+  'tests/Delivera-CurrentSprint-Standup-Action-Rhythm-Validation-Tests.spec.js': {
+    journey: 'journey.current-sprint',
+    layer: 'page-ux',
+    page: '/current-sprint',
+  },
+  'tests/Delivera-Leadership-Mobile-FirstViewport-Decision-Validation-Tests.spec.js': {
+    journey: 'journey.leadership',
+    layer: 'layout/responsiveness',
+    page: '/leadership',
+  },
+  'tests/Delivera-CrossSurface-Context-Freshness-SSOT-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/report,/leadership',
+  },
+  'tests/Delivera-Scroll-Stability-And-Contrast-Trust-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/report,/current-sprint',
+  },
+  'tests/Delivera-Duplicate-UI-Decision-Strip-Regression-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/report',
+  },
 
   // API + data integrity, exports, contracts
   'tests/Delivera-API-Integration-Tests.spec.js': {

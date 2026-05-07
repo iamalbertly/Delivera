@@ -11,7 +11,6 @@ import { renderExportButton } from './Delivera-CurrentSprint-Export-Dashboard.js
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 import { readNotificationSummary } from './Delivera-Shared-Notifications-Dock-Manager.js';
 import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { renderSprintCarousel } from './Delivera-CurrentSprint-Navigation-Carousel.js';
 import { renderHealthDashboard, buildEvidenceLine } from './Delivera-CurrentSprint-Health-Dashboard.js';
 import { getContextPieces, renderContextSegments } from './Delivera-Shared-Context-From-Storage.js';
 import {
@@ -28,6 +27,12 @@ const headerFilterUiState = {
 
 /** Incremented each time wireHeaderBarHandlers completes a full bind (not early-return). Second+ wires must not reset risk tags from role presets â€” that clobbered Take action / verdict filters after progressive full render. */
 let headerBarWireSessionCount = 0;
+const headerMiniModeState = {
+  activeHeader: null,
+  rafPending: false,
+  listenersBound: false,
+  lastMode: null,
+};
 
 function renderHeaderActiveFilterLabel() {
   const activeEls = document.querySelectorAll('#current-sprint-content .current-sprint-header-bar [data-header-active-filter-value]');
@@ -103,7 +108,7 @@ function renderHeaderRoleModesRow(roleViews) {
   if (!pills) return '';
   return '<div class="header-role-modes-row" data-strip="role-lens" role="group" aria-label="' + escapeHtml(SPRINT_COPY.ariaViewAsRole) + '">'
     + '<span class="header-role-modes-label">' + escapeHtml(SPRINT_COPY.viewAsLabel) + '</span>'
-    + '<div class="header-role-modes">' + pills + '</div>'
+    + '<div class="header-role-modes" data-header-lens-select="true">' + pills + '</div>'
     + '</div>';
 }
 
@@ -243,6 +248,10 @@ export function renderHeaderBar(data, options = {}) {
     sprintDatesLabel,
     (isHistoricalSprint ? SPRINT_COPY.historicalSnapshotShort : ''),
   ].filter(Boolean).join(' | ');
+  const sprintDateLine = [
+    sprintDatesLabel,
+    (isHistoricalSprint ? SPRINT_COPY.historicalSnapshotShort : ''),
+  ].filter(Boolean).join(' | ');
   const generatedAt = meta && (meta.generatedAt || meta.snapshotAt) ? new Date(meta.generatedAt || meta.snapshotAt) : null;
   let freshnessLabel = '';
   if (generatedAt) {
@@ -291,6 +300,15 @@ export function renderHeaderBar(data, options = {}) {
         return true;
       })
     : [];
+  const effectiveHeaderRoleViews = !isHistoricalSprint && headerRoleViews.length === 0
+    ? [
+        { roleMode: 'all', label: SPRINT_COPY.allWorkDefault },
+        { roleMode: 'developer', label: SPRINT_COPY.lensDev },
+        { roleMode: 'scrum-master', label: SPRINT_COPY.lensSM },
+        { roleMode: 'product-owner', label: SPRINT_COPY.lensPO },
+        { roleMode: 'line-manager', label: SPRINT_COPY.lensLeads },
+      ]
+    : headerRoleViews;
   const hasPriorityInterventions = compactStripInterventions.length > 0;
   const defaultRiskTags = hasPriorityInterventions ? (compactStripInterventions[0].riskTags || []) : [];
   const compactSummaryBits = [
@@ -298,6 +316,16 @@ export function renderHeaderBar(data, options = {}) {
     `${issuesCount} Work items`,
     `${subtaskLoggedHrs.toFixed(1)}h / ${subtaskEstimatedHrs.toFixed(1)}h`,
   ];
+  const totalSP = Number(summary.totalSP || 0);
+  const supportOpsSP = Number(summary.supportOpsSP || 0);
+  const capacityTitle = totalSP > 0
+    ? `Capacity ${supportOpsSP.toFixed(1)} / ${totalSP.toFixed(1)} SP`
+    : `${issuesCount} Work items`;
+  const capacityDetail = `${subtaskLoggedHrs.toFixed(1)}h logged / ${subtaskEstimatedHrs.toFixed(1)}h est`;
+  const capacityTone = verdictPresentation.color === 'red'
+    ? 'critical'
+    : (verdictPresentation.color === 'orange' || verdictPresentation.color === 'yellow' ? 'warning' : 'healthy');
+  const evidenceDetail = evidenceLine || statusSummary || compactSummaryBits.join(' | ');
   const verdictEvidenceLine = [evidenceLine].filter(Boolean).join(' | ');
   let verdictDisplayLine = verdictEvidenceLine || verdictInfo.summary || followUpSummary || compactSummaryBits.join(' | ');
   const recentSprintsList = Array.isArray(data.recentSprints) ? data.recentSprints : [];
@@ -346,11 +374,19 @@ export function renderHeaderBar(data, options = {}) {
   let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
-  html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintIdentityLine)}</span>`;
+  html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintNameCompact)}</span>`;
+  html += `<span class="header-sprint-dates" title="${escapeHtml(sprintDateLine)}">${escapeHtml(sprintDateLine)}</span>`;
+  html += '<span class="status-badge ' + escapeHtml(statusClass) + '" title="' + escapeHtml(statusSummary) + '">' + escapeHtml(statusBadge) + '</span>';
   html += identityMetricsHtml;
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
   html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictDisplayLine) + '</span>';
+  if (verdictRiskChips.length) {
+    const primaryVerdictChip = verdictRiskChips[0];
+    html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(primaryVerdictChip.tags.join(' '))}" aria-label="${escapeHtml(primaryVerdictChip.aria)}">${escapeHtml(primaryVerdictChip.label)}</button>`;
+  } else {
+    html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
+  }
   html += '</div>';
   html += '</div>';
   html += '<div class="header-band-actions">';
@@ -376,10 +412,10 @@ export function renderHeaderBar(data, options = {}) {
     + '</span>';
   html += '<span class="header-remediation-hint" data-signal="risk-followup" title="' + escapeHtml(verdictInfo.trackingReasons || '') + '">' + escapeHtml(verdictInfo.topRemediation || '') + '</span>';
   html += '</div>';
-  if (sectionLinksHtml || isLoadingShell) {
+  if (isLoadingShell) {
     html += '<div class="header-drawer-section">';
     html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.jumpTo) + '</div>';
-    html += (sectionLinksHtml || '<div class="sprint-section-links sprint-section-links-compact" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>');
+    html += '<div class="sprint-section-links sprint-section-links-compact" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>';
     html += '</div>';
   }
   html += '<div class="header-drawer-evidence">';
@@ -387,13 +423,8 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.whyThisVerdict) + '</div>';
   html += renderHealthDashboard(data, { compact: true });
   html += '</div>';
-  html += '<div class="header-drawer-section">';
-  html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.switchSprint) + '</div>';
-  html += renderSprintCarousel(data);
-  html += '</div>';
   html += '</div>';
   html += '<div class="header-drawer-links">';
-  html += reportLinkHtml;
   html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">' + escapeHtml(SPRINT_COPY.resetLens) + '</button>';
   if (!isHistoricalSprint) {
     html += '<button type="button" class="header-follow-up-link" data-header-action="focus-remediation-secondary">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</button>';
@@ -431,16 +462,45 @@ export function renderHeaderBar(data, options = {}) {
     html += '<span class="sprint-intervention-item"><span class="metric-label">Missing estimates</span></span>';
     html += '<span class="sprint-intervention-item"><span class="metric-label">Ownership gaps</span></span>';
     html += '</div>';
-    html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span></span>';
+    html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span></span>';
   } else {
-    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';
+    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';
   }
   html += '</div>';
+  if (hasPriorityInterventions) {
+    html += '<div class="header-action-shortlist" aria-label="Top intervention shortlist">';
+    compactStripInterventions.slice(0, 3).forEach((item, index) => {
+      const tags = Array.isArray(item.riskTags) ? item.riskTags.join(' ') : '';
+      const label = String(item.label || SPRINT_COPY.focusRiskFallback).trim();
+      html += '<button type="button" class="header-action-shortlist-item"'
+        + ' data-header-action="focus-remediation-shortlist"'
+        + ' data-shortlist-index="' + escapeHtml(String(index)) + '"'
+        + ' data-risk-tags="' + escapeHtml(tags) + '"'
+        + '>'
+        + escapeHtml(label)
+        + '</button>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
+  html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(capacityTone) + '" data-header-insight="capacity">';
+  html += '<span class="header-intelligence-eyebrow">Now</span>';
+  html += '<span class="header-intelligence-title">' + escapeHtml(capacityTitle) + '</span>';
+  html += '<span class="header-intelligence-detail">' + escapeHtml(capacityDetail) + '</span>';
+  html += '</div>';
+  html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(edgeStateAttr === 'low-confidence' ? 'warning' : 'neutral') + '" data-header-insight="evidence">';
+  html += '<span class="header-intelligence-eyebrow">Trust</span>';
+  html += '<span class="header-intelligence-title">' + escapeHtml(verdictInfo.trustLabel || exportReadiness) + '</span>';
+  html += '<span class="header-intelligence-detail">' + escapeHtml(evidenceDetail) + '</span>';
+  html += '</div>';
+  html += '</div>';
+  if (sectionLinksHtml && !isLoadingShell) {
+    html += sectionLinksHtml;
+  }
   html += headerContextStripHtml;
-  html += renderHeaderRoleModesRow(headerRoleViews);
+  html += renderHeaderRoleModesRow(effectiveHeaderRoleViews);
   /* ALB-30: Mini mode hides the full compact strip; surface History report first so it stays above squad identity. */
   html += '<div class="header-mini-strip" aria-hidden="true">';
-  html += '<div class="header-mini-strip-report-priority">' + reportLinkHtml + '</div>';
   html += '<div class="header-mini-strip-identity">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
@@ -520,6 +580,14 @@ export function wireHeaderBarHandlers() {
     const focusRemediation = el.closest?.('[data-header-action="focus-remediation"]');
     if (focusRemediation) {
       applyHeaderRiskAction(['no-log', 'missing-estimate', 'unassigned', 'blocker'], 'header-take-action');
+      return true;
+    }
+    const shortlistRemediation = el.closest?.('[data-header-action="focus-remediation-shortlist"]');
+    if (shortlistRemediation) {
+      const tags = String(shortlistRemediation.getAttribute('data-risk-tags') || '')
+        .split(/\s+/)
+        .filter(Boolean);
+      applyHeaderRiskAction(tags, 'header-shortlist');
       return true;
     }
     const interventionTarget = el.closest?.('.sprint-intervention-item');
@@ -636,24 +704,46 @@ export function wireHeaderBarHandlers() {
     } catch (_) {}
   }
 
-  /** Mini collapse: tablets/desktop only (plan todo-mini-header-mobile â€” avoid empty/churn strip on phones). */
-  function syncMiniMode() {
-    const miniStrip = headerBar.querySelector('.header-mini-strip');
+  /** Mini collapse: tablets/desktop only. Use one shared listener + hysteresis to avoid threshold flicker. */
+  function applyMiniMode(headerEl) {
+    if (!headerEl || !headerEl.isConnected) return;
+    const miniStrip = headerEl.querySelector('.header-mini-strip');
     if (window.innerWidth <= 720) {
-      headerBar.classList.remove('header-mini-mode');
+      headerEl.classList.remove('header-mini-mode');
+      headerMiniModeState.lastMode = false;
       if (miniStrip) miniStrip.setAttribute('aria-hidden', 'true');
       return;
     }
-    const threshold = Math.max(120, (headerBar.offsetTop || 0) + 72);
-    const hasMiniMode = window.scrollY > threshold;
-    headerBar.classList.toggle('header-mini-mode', hasMiniMode);
-    if (miniStrip) {
-      miniStrip.setAttribute('aria-hidden', hasMiniMode ? 'false' : 'true');
+    const baseThreshold = Math.max(120, (headerEl.offsetTop || 0) + 72);
+    const enterThreshold = baseThreshold + 18;
+    const exitThreshold = baseThreshold - 18;
+    const scrollY = window.scrollY || 0;
+    const currentMode = headerMiniModeState.lastMode === true;
+    const nextMode = currentMode ? (scrollY > exitThreshold) : (scrollY > enterThreshold);
+    if (nextMode !== currentMode) {
+      headerEl.classList.toggle('header-mini-mode', nextMode);
+      headerMiniModeState.lastMode = nextMode;
+      if (miniStrip) miniStrip.setAttribute('aria-hidden', nextMode ? 'false' : 'true');
     }
   }
-  syncMiniMode();
-  window.addEventListener('scroll', syncMiniMode, { passive: true });
-  window.addEventListener('resize', syncMiniMode);
+
+  function scheduleMiniModeSync() {
+    if (headerMiniModeState.rafPending) return;
+    headerMiniModeState.rafPending = true;
+    window.requestAnimationFrame(() => {
+      headerMiniModeState.rafPending = false;
+      applyMiniMode(headerMiniModeState.activeHeader);
+    });
+  }
+
+  headerMiniModeState.activeHeader = headerBar;
+  headerMiniModeState.lastMode = null;
+  applyMiniMode(headerBar);
+  if (!headerMiniModeState.listenersBound) {
+    headerMiniModeState.listenersBound = true;
+    window.addEventListener('scroll', scheduleMiniModeSync, { passive: true });
+    window.addEventListener('resize', scheduleMiniModeSync, { passive: true });
+  }
 
   const sprintName = headerBar.querySelector('.header-sprint-name');
   if (sprintName) {
