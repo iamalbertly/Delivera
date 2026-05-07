@@ -3,15 +3,21 @@
  * Leadership mission-control controller.
  */
 
-import { buildContextSegmentList, getContextPieces, renderContextPartList } from './Delivera-Shared-Context-From-Storage.js';
+import {
+  buildContextSegmentList,
+  getContextPieces,
+  renderContextPartList,
+  FRESHNESS_STALE_THRESHOLD_MS,
+} from './Delivera-Shared-Context-From-Storage.js';
 import { renderKPICard, KPI_TREND_VISIBILITY_HINT } from './Delivera-Shared-KPI-Card-Renderer.js';
 import { buildTrustBadge, formatCostPerSPDisplay, buildUtilizationDisplay } from './Delivera-Shared-Cost-Capacity-Calc.js';
 import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
-const STALE_THRESHOLD_MS = 15 * 60 * 1000;
+const STALE_THRESHOLD_MS = FRESHNESS_STALE_THRESHOLD_MS;
 let lastFetchTime = 0;
+let hudRequestSequence = 0;
 
 function readSelectedProjects() {
   try {
@@ -41,6 +47,7 @@ function updateHeaderStatus(text, stateClass) {
   if (!statusEl) return;
   statusEl.textContent = text;
   statusEl.className = `hud-status-pill ${stateClass || ''}`.trim();
+  statusEl.setAttribute('aria-live', 'polite');
 }
 
 function demoteHudCardClass(cardHtml, index = 0) {
@@ -68,7 +75,7 @@ function renderContextHeader(data) {
   let freshnessIsStale = false;
   if (generatedAt && !Number.isNaN(generatedAt.getTime())) {
     const diffMinutes = Math.max(0, Math.round((Date.now() - generatedAt.getTime()) / 60000));
-    freshnessIsStale = diffMinutes >= 30;
+    freshnessIsStale = diffMinutes >= Math.round(FRESHNESS_STALE_THRESHOLD_MS / 60000);
     freshness = diffMinutes < 1 ? 'Updated just now' : `Updated ${diffMinutes} min ago`;
   }
 
@@ -122,9 +129,17 @@ function renderContextHeader(data) {
   if (confidenceEl) {
     const trustBand = data?.kpis?.dataQuality?.trustBand || 'Unknown';
     const partial = data?.meta?.partial === true;
-    confidenceEl.textContent = partial
-      ? 'State: Partial - verify before export/action.'
-      : `State: Live - Trust ${trustBand}`;
+    const generatedTs = data?.generatedAt ? new Date(data.generatedAt).getTime() : 0;
+    const stale = generatedTs > 0 ? (Date.now() - generatedTs) > STALE_THRESHOLD_MS : false;
+    if (partial && stale) {
+      confidenceEl.textContent = 'State: Partial + stale - verify before action.';
+    } else if (partial) {
+      confidenceEl.textContent = 'State: Partial - verify before export/action.';
+    } else if (stale) {
+      confidenceEl.textContent = `State: Stale - Trust ${trustBand}`;
+    } else {
+      confidenceEl.textContent = `State: Live - Trust ${trustBand}`;
+    }
   }
 }
 
@@ -157,7 +172,8 @@ function initLeadershipHeaderActions() {
 }
 
 async function fetchHudData() {
-  updateHeaderStatus('Updated...', '');
+  const requestId = ++hudRequestSequence;
+  updateHeaderStatus('Refreshing...', '');
 
   try {
     const qs = leadershipSummaryQueryFromStorage();
@@ -196,12 +212,16 @@ async function fetchHudData() {
 
     const merged = kpis ? { ...baseData, kpis } : baseData;
 
+    if (requestId !== hudRequestSequence) return;
     renderHud(merged);
     renderContextHeader(merged);
     lastFetchTime = Date.now();
-    updateHeaderStatus('Live', 'hud-status-pill is-live');
+    const generatedTs = merged?.generatedAt ? new Date(merged.generatedAt).getTime() : 0;
+    const stale = generatedTs > 0 ? (Date.now() - generatedTs) > STALE_THRESHOLD_MS : false;
+    updateHeaderStatus(stale ? 'Live (stale)' : 'Live', stale ? 'hud-status-pill is-offline' : 'hud-status-pill is-live');
     updateTimeAgo();
   } catch (err) {
+    if (requestId !== hudRequestSequence) return;
     console.error('HUD Fetch Error:', err);
     updateHeaderStatus('Offline', 'hud-status-pill is-offline');
     if (!lastFetchTime && document.getElementById('hud-grid')) {

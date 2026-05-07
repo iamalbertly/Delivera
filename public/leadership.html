@@ -84,7 +84,8 @@
     .hud-summary-line {
       margin: 0;
       font-size: 0.84rem;
-      color: #3c2e2e;
+      color: #1f2937;
+      font-weight: 600;
     }
     .hud-grid {
       display: grid;
@@ -226,9 +227,14 @@
       }
       .hud-header-mission-control {
         position: static;
+        padding: 10px 12px;
+        margin-bottom: 10px;
       }
       .hud-title {
         font-size: 1.05rem;
+      }
+      .hud-subtitle {
+        display: none;
       }
       .metric-value {
         font-size: 1.7rem;
@@ -256,10 +262,10 @@
         </div>
       </div>
       <div id="leadership-header-actions" class="hud-actions-row" role="group" aria-label="Leadership quick actions">
-        <button type="button" id="leadership-refresh-btn" class="btn btn-primary btn-compact">Refresh</button>
-        <a href="/current-sprint" class="btn btn-secondary btn-compact">Open sprint risk</a>
+        <button type="button" id="leadership-refresh-btn" class="btn btn-primary btn-compact" data-shared-action-tier="primary">Refresh</button>
+        <a href="/current-sprint" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Current Sprint</a>
         <details class="leadership-header-more">
-          <summary class="btn btn-secondary btn-compact">More</summary>
+          <summary class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">More</summary>
           <div class="leadership-header-more-panel">
             <a href="/dashboard" class="btn btn-secondary btn-compact">Today</a>
             <a href="/report" class="btn btn-secondary btn-compact">Delivery</a>

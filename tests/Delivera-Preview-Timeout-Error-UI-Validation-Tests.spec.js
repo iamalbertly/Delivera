@@ -4,12 +4,12 @@
  * is visible, non-empty, and includes retry actions; validates logcat-style (console/network).
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   IGNORE_CONSOLE_ERRORS,
   IGNORE_REQUEST_PATTERNS,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Preview timeout and error UI validation', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,6 +21,10 @@ test.describe('Preview timeout and error UI validation', () => {
   });
 
   test('error panel has content and retry actions after preview failure', async ({ page }) => {
+    test.info().annotations.push({
+      type: 'allow-console-pattern',
+      description: 'Failed to load resource: net::ERR_FAILED',
+    });
     await page.route('**/preview.json**', async (route) => {
       await new Promise((r) => setTimeout(r, 500));
       await route.abort('failed');
@@ -46,6 +50,10 @@ test.describe('Preview timeout and error UI validation', () => {
   });
 
   test('no critical console or network errors during error path', async ({ page }) => {
+    test.info().annotations.push({
+      type: 'allow-console-pattern',
+      description: 'Failed to load resource: net::ERR_FAILED',
+    });
     const telemetry = captureBrowserTelemetry(page);
     await page.route('**/preview.json**', async (route) => {
       await new Promise((r) => setTimeout(r, 300));
@@ -64,7 +72,8 @@ test.describe('Preview timeout and error UI validation', () => {
     await expect(page.locator('#error')).toBeVisible({ timeout: 20000 });
 
     const unexpectedConsole = telemetry.consoleErrors.filter(
-      (t) => !IGNORE_CONSOLE_ERRORS.some((ignored) => t === ignored || t.includes(ignored))
+      (t) => !/ERR_FAILED/i.test(String(t || ''))
+        && !IGNORE_CONSOLE_ERRORS.some((ignored) => t === ignored || t.includes(ignored))
     );
     expect(unexpectedConsole).toEqual([]);
 

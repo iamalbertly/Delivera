@@ -1,54 +1,58 @@
-## Jira Reporting App - Testing Guide
+## Delivera - Testing Guide
 
-This project uses Playwright for end-to-end and integration tests. The `test:all` script orchestrates all suites.
+This project uses Playwright for end-to-end and integration tests. The root orchestration entrypoint is `npm run test:all`.
 
 ### CSS pipeline before Playwright (SSOT)
 
-- **`npm run test:all`** — after optional `npm install`, the orchestration always runs **`npm run build:css`** then **`npm run check:css`** (`scripts/Jira-Reporting-App-Test-Orchestration-Steps.js`). If `public/styles.css` is missing or out of sync with `public/css/*.css` partials, the run stops before any browser tests.
-- **`npm run test:current-sprint:dedupe-fold`** — runs **`npm run check:css`** first, then the Current Sprint / viewport Playwright pack (`package.json`). Use this for a fast header-focused gate without the full orchestration.
+- `npm run test:all` always runs `npm run build:css` and `npm run check:css` before browser tests.
+- If `public/styles.css` is missing or out of sync with `public/css/*.css`, the run stops before Playwright starts.
+- `npm run test:current-sprint:dedupe-fold` also runs `npm run check:css` first for a faster Current Sprint gate.
+- CSS ownership/source-of-truth details live in `public/css/README.md` (do not duplicate them in this file).
 
-### Default behaviour: fast, impacted + last-failed
+### Default behavior
 
-- Running `npm run test:all` now:
-  - Detects **changed files** via `git diff --name-only ${TEST_BASE_REF:-origin/main}...HEAD`.
-  - Maps those changes to the closest matching Playwright specs.
-  - Reads the last failing spec (if any) from `scripts/Jira-Reporting-App-Test-Last-Failed.json`.
-  - Runs **only**:
-    - Specs that failed in the previous orchestration run, and
-    - Specs mapped to your current changes,
-    - Or a small **smoke pack** (API + E2E + UX SSOT) when there are no changes.
+- `npm run test:all` is the full regression entrypoint.
+- The runner is foreground, serial, and fail-fast.
+- Each Playwright command is normalized to:
+  - `--max-failures=1`
+  - `--workers=1`
+  - `--reporter=list`
+- The runner prints:
+  - the active step name,
+  - the exact command,
+  - the primary spec/journey contract,
+  - a periodic heartbeat while long steps run.
 
-- Fail-fast is preserved:
-  - Each spec uses `--max-failures=1`.
-  - The orchestration runner stops on the first failing step.
+### Optional impacted-only mode
 
-### Implicit last-failed behaviour
+- Use `IMPACTED_ONLY=1 npm run test:all` for changed-only debugging.
+- In impacted-only mode, the runner:
+  - checks changed files against `TEST_BASE_REF` (default `origin/main` fallback chain),
+  - uses the saved last-failed spec list,
+  - selects only impacted or last-failed steps,
+  - still stays fail-fast.
 
-- By default, the orchestration behaves as if `TEST_LAST_FAILED=1`:
-  - The first run that fails records the failing spec path to `scripts/Jira-Reporting-App-Test-Last-Failed.json`.
-  - The next `npm run test:all` run:
-    - Prioritises that spec in the step order.
-    - Adds Playwright’s `--last-failed --pass-with-no-tests` flags to relevant commands.
-- To disable this optimisation (for debugging), set:
-  - `DISABLE_LAST_FAILED=1 npm run test:all`
+### Last-failed behavior
 
-### Forcing a full regression run
-
-- To run the full suite in its canonical order:
-  - `FULL=1 npm run test:all`
-- This ignores changed-file selection and last-failed metadata, but still keeps fail-fast enabled.
-
-### Skipped steps and transparency
-
-- When impacted-only mode is active, the runner prints:
-  - How many steps were selected vs total.
-  - How many were skipped as unrelated to current changes.
-  - A hint to use `FULL=1 npm run test:all` before merging or releasing.
+- In impacted-only mode, failing specs are persisted to `scripts/Delivera-Test-Last-Failed.json`.
+- The next impacted-only run prioritizes those specs and applies Playwright `--last-failed --pass-with-no-tests`.
+- Disable that optimization with `DISABLE_LAST_FAILED=1 npm run test:all`.
 
 ### Environment variables
 
-- `FULL=1` – run all orchestrated steps (full regression).
-- `DISABLE_LAST_FAILED=1` – turn off implicit last-failed optimisation.
-- `TEST_BASE_REF` – override the Git base ref used for change detection (defaults to `origin/main`).
-- `SKIP_NPM_INSTALL=true` – skip the initial `npm install` step in the orchestration.
+- `IMPACTED_ONLY=1` - run changed-only / last-failed selection instead of full regression.
+- `DISABLE_LAST_FAILED=1` - disable implicit last-failed optimization in impacted-only mode.
+- `TEST_BASE_REF=<ref>` - override the Git base ref used for impacted selection.
+- `SKIP_NPM_INSTALL=true` - skip the initial `npm install` step in orchestration.
 
+### New fail-fast UX trust validations
+
+- Added specs:
+  - `tests/Delivera-Report-Refresh-Trust-And-Action-Hierarchy-Validation-Tests.spec.js`
+  - `tests/Delivera-CurrentSprint-Standup-Action-Rhythm-Validation-Tests.spec.js`
+  - `tests/Delivera-Leadership-Mobile-FirstViewport-Decision-Validation-Tests.spec.js`
+  - `tests/Delivera-CrossSurface-Context-Freshness-SSOT-Validation-Tests.spec.js`
+  - `tests/Delivera-Duplicate-UI-Decision-Strip-Regression-Validation-Tests.spec.js`
+- All new specs use the shared console/pageerror guard and runtime UI assertions (not brittle static copy checks).
+- Registering a spec in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js` is required for orchestration inclusion.
+- Expected network-abort simulation tests should use `allow-console-pattern` annotations when intentionally triggering `ERR_FAILED`.

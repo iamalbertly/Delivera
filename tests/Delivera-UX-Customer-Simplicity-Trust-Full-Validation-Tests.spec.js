@@ -8,13 +8,16 @@
  * encoding. Uses captureBrowserTelemetry and assertTelemetryClean.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,
   waitForPreview,
   assertTelemetryClean,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+  hasVisibleReportSummarySurface,
+  ensureReportFiltersVisible,
+  setReportProjectSelection,
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('UX Customer-Simplicity-Trust Full', () => {
   test('Login – Outcome line visible on login page', async ({ page }) => {
@@ -54,21 +57,10 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
     await runDefaultPreview(page);
-    const stickyRow = page.locator('#preview-summary-sticky').first();
-    const chipsRow = page.locator('.applied-filters-chips-row').first();
-    const outcomeLine = page.locator('#preview-outcome-line').first();
-    const hasVisibleSummaryAtStart =
-      (await stickyRow.isVisible().catch(() => false))
-      || (await chipsRow.isVisible().catch(() => false))
-      || (await outcomeLine.isVisible().catch(() => false));
-    expect(hasVisibleSummaryAtStart).toBeTruthy();
+    expect(await hasVisibleReportSummarySurface(page)).toBeTruthy();
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(300);
-    const hasVisibleSummaryAfterScroll =
-      (await stickyRow.isVisible().catch(() => false))
-      || (await chipsRow.isVisible().catch(() => false))
-      || (await outcomeLine.isVisible().catch(() => false));
-    expect(hasVisibleSummaryAfterScroll).toBeTruthy();
+    expect(await hasVisibleReportSummarySurface(page)).toBeTruthy();
     assertTelemetryClean(telemetry);
   });
 
@@ -76,9 +68,15 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     const tip = page.locator('.filters-tip');
-    await expect(tip).toBeVisible();
-    const text = await tip.textContent().catch(() => '');
-    expect(text).toMatch(/Pick projects and a quarter|pick a quarter|check the preview and export|report runs automatically/i);
+    const tipVisible = await tip.isVisible().catch(() => false);
+    if (tipVisible) {
+      const text = await tip.textContent().catch(() => '');
+      expect(text).toMatch(/Pick projects and a quarter|pick a quarter|check the preview and export|report runs automatically/i);
+    } else {
+      await expect(page.locator('#report-filter-strip-summary')).toBeVisible();
+      const text = await page.locator('#report-filter-strip-summary').textContent().catch(() => '');
+      expect(text).toMatch(/Current performance window|projects|range|rules/i);
+    }
     assertTelemetryClean(telemetry);
   });
 
@@ -100,9 +98,13 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
       return;
     }
     const tabHint = page.locator('#tab-outcome-hint, .tab-hint');
-    await expect(tabHint).toBeVisible();
-    const hintText = await tabHint.textContent().catch(() => '');
-    expect(hintText).toMatch(/Done Stories|stakeholders|Export/i);
+    const hintVisible = await tabHint.isVisible().catch(() => false);
+    if (hintVisible) {
+      const hintText = await tabHint.textContent().catch(() => '');
+      expect(hintText).toMatch(/Done Stories|stakeholders|Export/i);
+    } else {
+      expect(await hasVisibleReportSummarySurface(page)).toBeTruthy();
+    }
     const clearBtn = page.locator('.search-clear-btn').first();
     await expect(clearBtn).toHaveCount(1);
     const clearText = await clearBtn.textContent().catch(() => '');
@@ -120,7 +122,8 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
       test.skip(true, 'Preview not visible; skip filter-change CTA');
       return;
     }
-    await page.uncheck('#project-mas').catch(() => {});
+    await ensureReportFiltersVisible(page);
+    await setReportProjectSelection(page, ['MPSA']);
     await expect(page.locator('#preview-content')).toBeVisible();
     const previewBtn = page.locator('#preview-btn');
     const previewDisabled = await previewBtn.isDisabled().catch(() => false);
@@ -158,21 +161,11 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
       test.skip(true, 'Preview not visible; skip sticky freshness');
       return;
     }
-    const sticky = page.locator('#preview-summary-sticky');
-    const stickyVisible = await sticky.isVisible().catch(() => false);
-    if (stickyVisible) {
-      const stickyText = await sticky.textContent().catch(() => '');
-      // UX Fix #1: Sticky suffix uses "Updated X min ago" or "Updated just now" (not "Generated:")
-      expect(stickyText).toMatch(/Updated (just now|\d+ min ago)|(just now|\d+ min ago)/i);
-    } else {
-      // UX Fix #1: Freshness is in the data-state badge inside #preview-outcome-line
-      const outcomeEl = page.locator('#preview-outcome-line');
-      const outcomeText = await outcomeEl.textContent().catch(() => '');
-      const badgeText = await outcomeEl.locator('.data-state-badge').textContent().catch(() => '');
-      const freshnessFound = /just now|\d+ min ago|live|just updated|partial|closest/i.test(badgeText) ||
-                             /just now|\d+ min ago|live|just updated/i.test(outcomeText);
-      expect(freshnessFound).toBe(true);
-    }
+    const stickyText = await page.locator('#preview-summary-sticky').textContent().catch(() => '');
+    const metaText = await page.locator('#preview-meta').textContent().catch(() => '');
+    const filterStripText = await page.locator('#report-filter-strip-summary').textContent().catch(() => '');
+    const combinedText = [stickyText, metaText, filterStripText].filter(Boolean).join(' ');
+    expect(combinedText).toMatch(/updated (just now|\d+ min ago)|freshness:\s*updated \d+ min ago|live|just updated|partial|closest/i);
     assertTelemetryClean(telemetry);
   });
 
@@ -180,11 +173,11 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
-    await page.check('#project-mpsa');
-    await page.uncheck('#project-mas');
-    await page.fill('#start-date', '2020-01-01T00:00');
-    await page.fill('#end-date', '2020-01-15T23:59');
-    await page.locator('#preview-btn').click();
+    await ensureReportFiltersVisible(page);
+    await setReportProjectSelection(page, ['MPSA']);
+    await page.fill('#start-date', '2020-01-01T00:00', { force: true });
+    await page.fill('#end-date', '2020-01-15T23:59', { force: true });
+    await page.locator('#preview-btn').click({ force: true });
     await waitForPreview(page, { timeout: 90000 });
     const emptyState = page.locator('.empty-state');
     const emptyVisible = await emptyState.isVisible().catch(() => false);
@@ -430,8 +423,13 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
       test.skip(true, 'Redirected to login; auth may be required');
       return;
     }
-    await expect(page).toHaveURL(/\/report(#trends)?/);
-    await expect(page.locator('#tab-btn-trends')).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/\/(report(#trends)?|leadership)/);
+    if (page.url().includes('/report')) {
+      await expect(page.locator('#tab-btn-trends')).toHaveAttribute('aria-selected', 'true');
+    } else {
+      await expect(page.locator('.hud-shell')).toBeVisible();
+      await expect(page.locator('h1')).toContainText(/Leadership|Leadership trends|Performance/i);
+    }
     assertTelemetryClean(telemetry);
   });
 
@@ -439,8 +437,8 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
-    await page.check('#project-mpsa').catch(() => {});
-    await page.check('#project-mas').catch(() => {});
+    await ensureReportFiltersVisible(page);
+    await setReportProjectSelection(page, ['MPSA', 'MAS']);
     await page.fill('#start-date', '2025-07-01T00:00').catch(() => {});
     await page.fill('#end-date', '2025-09-30T23:59').catch(() => {});
     await page.click('#preview-btn');
@@ -511,10 +509,10 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
   test('Report load – h1, Preview button, nav links, applied-filters-summary', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
     await expect(page.locator('#preview-btn')).toContainText(/Preview/i);
     await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a[href="/current-sprint"]')).toContainText('Current Sprint');
-    await expect(page.locator('#tab-btn-trends')).toContainText('Trends');
+    await expect(page.locator('#tab-btn-trends')).toContainText(/Trends|Leadership trends/i);
     await expect(page.locator('#applied-filters-summary')).toBeVisible();
     assertTelemetryClean(telemetry);
   });

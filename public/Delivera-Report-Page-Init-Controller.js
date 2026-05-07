@@ -36,6 +36,12 @@ const LEADERSHIP_HASH = '#trends';
 
 function initReportPage() {
   try { document.body.classList.add('report-page'); } catch (_) {}
+  try {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    if (!window.location.hash) {
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+    }
+  } catch (_) {}
   initOverlayManager();
   wireLeadershipContentInteractions(document);
   let autoPreviewTimer = null;
@@ -46,8 +52,97 @@ function initReportPage() {
     const loadLatestWrap = document.getElementById('report-load-latest-wrap');
     const headerBtn = document.getElementById('report-header-load-latest-btn');
     const show = !!visible;
-    if (loadLatestWrap) loadLatestWrap.style.display = show ? 'inline' : 'none';
+    // Keep one SSOT affordance: header button only.
+    if (loadLatestWrap) loadLatestWrap.style.display = 'none';
     if (headerBtn) headerBtn.hidden = !show;
+  }
+
+  function setReportActionStatus(message, tone = 'neutral') {
+    const statusEl = document.getElementById('report-header-actions-status');
+    if (!statusEl) return;
+    const text = String(message || '').trim();
+    statusEl.textContent = text;
+    statusEl.setAttribute('data-tone', tone);
+  }
+
+  function runReportPreviewFromHeader(reason = 'manual-refresh') {
+    const previewBtn = document.getElementById('preview-btn');
+    if (!previewBtn) {
+      setReportActionStatus('Preview unavailable - open filters first.', 'warning');
+      return false;
+    }
+    if (reportState.previewInProgress || previewBtn.disabled) {
+      setReportActionStatus('Preview already running - please wait.', 'warning');
+      return false;
+    }
+    try {
+      collectFilterParams();
+    } catch (_) {
+      setReportActionStatus('Complete scope and date filters before refresh.', 'warning');
+      return false;
+    }
+    setReportActionStatus('Refreshing live report context...', 'info');
+    scheduleAutoPreview(0);
+    window.setTimeout(() => {
+      const fresh = reportState.previewInProgress ? 'Preview running...' : 'Refresh queued';
+      setReportActionStatus(fresh, 'info');
+    }, 120);
+    try {
+      window.dispatchEvent(new CustomEvent('delivera:report-header-refresh', { detail: { reason } }));
+    } catch (_) {}
+    return true;
+  }
+
+  function mountReportNamedViewsBar() {
+    const filterStrip = document.getElementById('report-filter-strip');
+    if (!filterStrip) return;
+    let viewsWrap = document.getElementById('report-named-views');
+    if (!viewsWrap) {
+      viewsWrap = document.createElement('div');
+      viewsWrap.id = 'report-named-views';
+      viewsWrap.className = 'report-header-named-views';
+      filterStrip.appendChild(viewsWrap);
+    } else if (viewsWrap.parentElement !== filterStrip) {
+      filterStrip.appendChild(viewsWrap);
+    }
+    viewsWrap.innerHTML = renderReportNamedViewsBar();
+  }
+
+  function closeReportHeaderMoreMenu() {
+    const menu = document.querySelector('.report-header-more-menu');
+    if (menu && typeof menu.removeAttribute === 'function') {
+      menu.removeAttribute('open');
+    }
+  }
+
+  function ensureReportFiltersPanelOpen() {
+    const panel = document.getElementById('filters-panel');
+    const panelBody = document.getElementById('filters-panel-body');
+    const collapsedBar = document.getElementById('filters-panel-collapsed-bar');
+    if (!panel) return null;
+    if (!panel.classList.contains('collapsed')) return panel;
+    panel.hidden = false;
+    panel.classList.remove('collapsed');
+    panel.classList.add('overlay-drawer');
+    try {
+      const desktop = typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(min-width: 1025px)').matches;
+      panel.classList.toggle('expanded', desktop);
+      panel.classList.toggle('is-open', !desktop);
+    } catch (_) {
+      panel.classList.add('expanded');
+    }
+    if (panelBody) panelBody.style.display = '';
+    if (collapsedBar) {
+      collapsedBar.style.display = 'none';
+      collapsedBar.setAttribute('aria-hidden', 'true');
+    }
+    document.querySelectorAll('[data-action="toggle-filters"]').forEach((button) => {
+      button.textContent = 'Hide filters';
+      button.setAttribute('aria-expanded', 'true');
+    });
+    return panel;
   }
 
   function setReportContextLineText(contextText) {
@@ -58,6 +153,113 @@ function initReportPage() {
     reportContextLine.classList.remove('visually-hidden');
     reportContextLine.removeAttribute('aria-hidden');
   }
+
+  function openFiltersPanelAndFocus(targetId) {
+    try {
+      const panel = ensureReportFiltersPanelOpen();
+      if (!panel) return false;
+      closeReportHeaderMoreMenu();
+      const target = targetId ? document.getElementById(targetId) : panel;
+      window.setTimeout(() => {
+        target?.focus?.();
+        target?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      }, 0);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function handleReportChromeAction(action) {
+    const normalized = String(action || '').trim();
+    if (!normalized) return false;
+    if (normalized === 'toggle-filters' || normalized === 'open-filters') {
+      const panel = document.getElementById('filters-panel');
+      if (panel?.classList.contains('collapsed')) {
+        return openFiltersPanelAndFocus('project-search');
+      }
+      return openFiltersPanelAndFocus();
+    }
+    if (normalized === 'refresh-context') {
+      return runReportPreviewFromHeader('context-action');
+    }
+    if (normalized === 'load-latest-preview') {
+      return runReportPreviewFromHeader('load-latest');
+    }
+    if (normalized === 'open-project-filters' || normalized === 'open-projects') {
+      return openFiltersPanelAndFocus('project-search');
+    }
+    if (normalized === 'open-range-filters' || normalized === 'open-range') {
+      return openFiltersPanelAndFocus('start-date');
+    }
+    if (normalized === 'focus-config') {
+      const opened = openFiltersPanelAndFocus('advanced-options-toggle');
+      try {
+        document.getElementById('report-rules-tile')?.setAttribute('open', 'open');
+      } catch (_) {}
+      return opened;
+    }
+    if (normalized === 'open-boards' || normalized === 'open-boards-tab') {
+      const boardTab = document.getElementById('tab-btn-project-epic-level');
+      if (boardTab) {
+        boardTab.click();
+        boardTab.focus();
+        return true;
+      }
+      return false;
+    }
+    if (normalized === 'open-done-stories') {
+      const doneStoriesTab = document.getElementById('tab-btn-done-stories');
+      if (doneStoriesTab) {
+        doneStoriesTab.click();
+        doneStoriesTab.focus();
+        window.setTimeout(() => {
+          const firstSprintHeader = document.querySelector('#done-stories-content .sprint-header');
+          firstSprintHeader?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }, 80);
+        return true;
+      }
+      return false;
+    }
+    if (normalized === 'open-unusable-sprints') {
+      const unusableTab = document.getElementById('tab-btn-unusable-sprints');
+      if (unusableTab) {
+        unusableTab.click();
+        unusableTab.focus();
+        return true;
+      }
+      return false;
+    }
+    if (normalized === 'reset-filters') {
+      try {
+        localStorage.removeItem(SHARED_DATE_RANGE_KEY);
+        localStorage.removeItem(LAST_QUERY_KEY);
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
+        }
+      } catch (_) {}
+      document.querySelectorAll('.project-checkbox').forEach((cb) => { cb.checked = false; });
+      const startInput = document.getElementById('start-date');
+      const endInput = document.getElementById('end-date');
+      if (startInput) startInput.value = DEFAULT_WINDOW_START_LOCAL;
+      if (endInput) endInput.value = DEFAULT_WINDOW_END_LOCAL;
+      updateAppliedFiltersSummary();
+      clearPreviewOnFilterChange();
+      return true;
+    }
+    if (normalized === 'explain-freshness') {
+      const statusEl = document.getElementById('report-header-actions-status');
+      if (statusEl) {
+        statusEl.textContent = 'Freshness reflects the last successful preview run for the active report context.';
+      }
+      return true;
+    }
+    return false;
+  }
+
+  try {
+    window.__deliveraHandleReportChromeAction = handleReportChromeAction;
+  } catch (_) {}
 
   try {
     window.__reportSyncHeaderLoadLatestVisibility = syncHeaderLoadLatestVisibility;
@@ -76,6 +278,7 @@ function initReportPage() {
       autoPreviewInProgress = true;
       previewBtn.click();
       setTimeout(() => { autoPreviewInProgress = false; }, 250);
+      setReportActionStatus('Preview requested...', 'info');
       return;
     }
     autoPreviewTimer = setTimeout(() => {
@@ -85,6 +288,7 @@ function initReportPage() {
       autoPreviewInProgress = true;
       previewBtn.click();
       setTimeout(() => { autoPreviewInProgress = false; }, 250);
+      setReportActionStatus('Preview requested...', 'info');
     }, delayMs);
   }
 
@@ -94,6 +298,11 @@ function initReportPage() {
     const sprintId = params.get('sprintId') || '';
     const projects = params.get('projects') || '';
     if (boardId || sprintId || projects) {
+      if (projects) {
+        try {
+          localStorage.setItem(PROJECTS_SSOT_KEY, projects);
+        } catch (_) {}
+      }
       localStorage.setItem(REPORT_CONTEXT_KEY, JSON.stringify({
         boardId,
         sprintId,
@@ -161,19 +370,8 @@ function initReportPage() {
   hydrateFromLastQuery();
   const hasProjects = getSelectedProjects().length > 0;
   setReportContextLineText(getContextDisplayString());
-  const loadLatestWrap = document.getElementById('report-load-latest-wrap');
-  const loadLatestBtn = document.getElementById('report-load-latest-btn');
-  if (hasProjects && getContextDisplayString() === 'No report run yet' && loadLatestWrap) {
+  if (hasProjects && getContextDisplayString() === 'No report run yet') {
     syncHeaderLoadLatestVisibility(true);
-  }
-  if (loadLatestBtn) {
-    loadLatestBtn.addEventListener('click', () => {
-      const pb = document.getElementById('preview-btn');
-      if (pb && !pb.disabled) {
-        pb.click();
-        if (typeof pb.focus === 'function') pb.focus();
-      }
-    });
   }
   updateAppliedFiltersSummary();
   if (shouldAutoPreviewOnInit()) {
@@ -191,7 +389,6 @@ function initReportPage() {
 
   function initOutcomeIntake() {
     const wrap = document.getElementById('report-header-actions');
-    const strip = document.getElementById('report-filter-strip');
     if (!wrap) return;
     initGlobalOutcomeModal({
       getSelectedProjects,
@@ -221,36 +418,45 @@ function initReportPage() {
       if (query) currentSprintHref += '?' + query;
     } catch (_) {}
     wrap.innerHTML = ''
-      + '<button type="button" id="report-header-preview-btn" class="btn btn-primary btn-compact">Refresh</button>'
-      + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-action="load-latest-preview" hidden>Load latest</button>'
+      + '<button type="button" id="report-header-preview-btn" class="btn btn-primary btn-compact" data-shared-action-tier="primary">Refresh</button>'
+      + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary" data-action="load-latest-preview" hidden>Refresh latest</button>'
       + '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'
-      + '<button type="button" class="btn btn-compact report-outcome-intake-create-btn" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
+      + '<button type="button" class="btn btn-compact report-outcome-intake-create-btn" data-shared-action-tier="primary" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
       + '</div>';
     wrap.innerHTML += ''
-      + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact">Export</button>'
-      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>'
+      + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Export</button>'
       + '<details class="report-header-more-menu">'
       + '<summary class="btn btn-secondary btn-compact">More</summary>'
       + '<div class="report-header-more-panel">'
-      + '<button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Edit filters</button>'
       + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Current sprint</a>'
-      + '<button type="button" class="btn btn-secondary btn-compact" data-action="reset-filters">Reset scope</button>'
+      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>'
       + '</div>'
       + '</details>';
-    if (strip && !document.getElementById('report-named-views')) {
-      const viewsWrap = document.createElement('div');
-      viewsWrap.id = 'report-named-views';
-      viewsWrap.innerHTML = renderReportNamedViewsBar();
-      strip.appendChild(viewsWrap);
-    }
     wrap.querySelector('#report-header-preview-btn')?.addEventListener('click', () => {
-      document.getElementById('preview-btn')?.click();
+      runReportPreviewFromHeader('header-refresh');
     });
     wrap.querySelector('#report-header-export-btn')?.addEventListener('click', () => {
       document.getElementById('export-excel-btn')?.click();
     });
+    wrap.querySelectorAll('.report-header-more-panel [data-action]').forEach((control) => {
+      control.addEventListener('click', (event) => {
+        const action = control.getAttribute('data-action');
+        if (handleReportChromeAction(action)) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        closeReportHeaderMoreMenu();
+      });
+    });
+    wrap.querySelectorAll('.report-header-more-panel .btn, .report-header-more-panel a').forEach((control) => {
+      control.addEventListener('click', () => {
+        closeReportHeaderMoreMenu();
+      });
+    });
     syncHeaderLoadLatestVisibility(getSelectedProjects().length > 0 && getContextDisplayString() === 'No report run yet');
+    mountReportNamedViewsBar();
+    setReportActionStatus('Ready for decision review.', 'neutral');
   }
 
   // Keep the persisted report dataset filters in sync across tabs.
@@ -341,27 +547,9 @@ function initReportPage() {
     onChange() {
       updateAppliedFiltersSummary();
       scheduleAutoPreview(0);
-      const viewsWrap = document.getElementById('report-named-views');
-      if (viewsWrap) viewsWrap.innerHTML = renderReportNamedViewsBar();
+      mountReportNamedViewsBar();
     },
   });
-  function refreshPreviewNow() {
-    if (reportState.previewInProgress) return;
-    scheduleAutoPreview(0);
-  }
-
-  function openFiltersPanelAndFocus(targetId) {
-    try {
-      const toggleBtn = document.querySelector('[data-action="toggle-filters"]');
-      const panel = document.getElementById('filters-panel');
-      if (toggleBtn && panel?.classList.contains('collapsed')) {
-        toggleBtn.click();
-      }
-      const target = targetId ? document.getElementById(targetId) : null;
-      target?.focus?.();
-      target?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    } catch (_) {}
-  }
   document.getElementById('start-date')?.addEventListener('change', onFilterChange);
   document.getElementById('end-date')?.addEventListener('change', onFilterChange);
   document.getElementById('start-date')?.addEventListener('input', onFilterChange);
@@ -372,53 +560,21 @@ function initReportPage() {
   document.querySelectorAll('.project-checkbox').forEach((cb) => cb.addEventListener('change', onFilterChange));
 
   document.addEventListener('click', (ev) => {
-    if (ev.target?.getAttribute('data-action') !== 'reset-filters') return;
-    try {
-      localStorage.removeItem(SHARED_DATE_RANGE_KEY);
-      localStorage.removeItem(LAST_QUERY_KEY);
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem(REPORT_FILTERS_STALE_KEY, '1');
-      }
-    } catch (_) { }
-    document.querySelectorAll('.project-checkbox').forEach((cb) => { cb.checked = false; });
-    const startInput = document.getElementById('start-date');
-    const endInput = document.getElementById('end-date');
-    if (startInput) startInput.value = DEFAULT_WINDOW_START_LOCAL;
-    if (endInput) endInput.value = DEFAULT_WINDOW_END_LOCAL;
-    updateAppliedFiltersSummary();
-    clearPreviewOnFilterChange();
-  });
-
-  document.addEventListener('click', (ev) => {
-    const contextActionEl = ev.target.closest && ev.target.closest('[data-context-action]');
-    if (contextActionEl) {
-      const contextAction = contextActionEl.getAttribute('data-context-action');
-      if (contextAction === 'refresh-context') {
-        refreshPreviewNow();
-        return;
-      }
-      if (contextAction === 'open-project-filters') {
-        openFiltersPanelAndFocus('project-search');
-        return;
-      }
-      if (contextAction === 'open-range-filters') {
-        openFiltersPanelAndFocus('start-date');
-        return;
-      }
-      if (contextAction === 'explain-freshness') {
-        const statusEl = document.getElementById('report-header-actions-status');
-        if (statusEl) {
-          statusEl.textContent = 'Freshness reflects the last successful preview run for the active report context.';
-        }
+    const actionTrigger = ev.target.closest && ev.target.closest('[data-context-action], [data-preview-context-action]');
+    if (actionTrigger) {
+      const action = actionTrigger.getAttribute('data-preview-context-action')
+        || actionTrigger.getAttribute('data-context-action')
+        || '';
+      if (handleReportChromeAction(action)) {
+        ev.preventDefault();
         return;
       }
     }
     const btn = ev.target.closest && ev.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-action');
-    if (action === 'open-boards-tab') {
-      const boardTab = document.getElementById('tab-btn-project-epic-level');
-      if (boardTab) { boardTab.click(); boardTab.focus(); }
+    if (handleReportChromeAction(action)) {
+      ev.preventDefault();
     }
   });
 
@@ -432,6 +588,12 @@ function initReportPage() {
   });
 
   window.addEventListener('storage', syncFromSharedStorage);
+  window.addEventListener('report-preview-shown', () => {
+    setReportActionStatus('Live preview updated.', 'success');
+  });
+  window.addEventListener('report-preview-failed', () => {
+    setReportActionStatus('Preview failed - adjust filters and retry.', 'danger');
+  });
   initKeyboardViewportGuard();
 
   const prevRefresh = window.__refreshReportingContextBar;

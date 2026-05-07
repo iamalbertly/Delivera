@@ -17,9 +17,7 @@
           <h1>Delivery</h1>
           <p id="report-subtitle" class="subtitle">Value, risk, and trust across teams.</p>
         </div>
-        <div id="report-header-actions" class="report-header-actions report-shared-header-actions">
-          <button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Scope</button>
-        </div>
+        <div id="report-header-actions" class="report-header-actions report-shared-header-actions"></div>
       </div>
       <div id="report-filter-strip" class="report-filter-strip report-mission-strip" data-context-bar="true" aria-live="polite">
         <div id="report-filter-strip-summary" class="report-filter-strip-summary">Filter by: projects, range, rules</div>
@@ -36,7 +34,6 @@
           aria-hidden="true">
           <div id="filters-collapsed-summary" class="filters-collapsed-summary"></div>
           <span class="filters-active-count-badge" aria-live="polite"></span>
-          <button type="button" class="btn btn-secondary btn-compact" data-action="toggle-filters">Show filters</button>
         </div>
         <div class="filters-panel-body" id="filters-panel-body">
           <div class="report-primary-filters-grid">
@@ -191,7 +188,6 @@
 
       <!-- Preview Area -->
       <main id="main-content" class="preview-area">
-      <span id="report-load-latest-wrap" class="report-load-latest-wrap" style="display: none;"><button type="button" class="link-style" data-action="load-latest-preview" id="report-load-latest-btn" aria-label="Run preview to load latest data">Load latest</button></span>
       <div id="loading" class="loading loading-skeleton" style="display: none;" aria-live="polite" aria-busy="true">
         <!-- M3: Filter context bar — confirms which filters are loading -->
         <div id="loading-context-bar" class="loading-context-bar" aria-live="polite"></div>
@@ -277,28 +273,10 @@
         <div class="tab-content">
           <div id="tab-project-epic-level" class="tab-pane" role="tabpanel"
             aria-labelledby="tab-btn-project-epic-level">
-            <div class="boards-controls done-stories-controls report-tab-search-legacy" aria-hidden="true" hidden>
-              <div class="search-input-wrap">
-                <input type="text" id="boards-search-box" placeholder="Search boards by name or ID..."
-                  aria-label="Search boards by name or ID">
-                <button type="button" class="search-clear-btn" data-target="boards-search-box"
-                  aria-label="Clear boards search" title="Clear">Clear</button>
-              </div>
-              <div class="project-pills" id="boards-project-pills"></div>
-            </div>
             <div id="project-epic-level-content"></div>
           </div>
 
           <div id="tab-sprints" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-sprints">
-            <div class="sprints-controls done-stories-controls report-tab-search-legacy" aria-hidden="true" hidden>
-              <div class="search-input-wrap">
-                <input type="text" id="sprints-search-box" placeholder="Search sprints by name..."
-                  aria-label="Search sprints by name">
-                <button type="button" class="search-clear-btn" data-target="sprints-search-box"
-                  aria-label="Clear sprints search" title="Clear">Clear</button>
-              </div>
-              <div class="project-pills" id="sprints-project-pills"></div>
-            </div>
             <div id="sprints-content"></div>
           </div>
 
