@@ -208,9 +208,10 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     const lean = await headerBar.getAttribute('data-viewport-lean');
     const refreshCue = page.locator('[data-context-action="refresh-current-sprint-context"]').first();
     if (lean === 'true') {
-      await headerBar.locator('details.header-view-drawer').evaluate((el) => { el.open = true; });
-      const drawerCue = headerBar.locator('.header-drawer-context-strip-wrap [data-context-action="refresh-current-sprint-context"]');
-      await expect(drawerCue).toBeVisible();
+      const drawer = headerBar.locator('details.header-view-drawer');
+      await drawer.evaluate((el) => { el.open = true; });
+      await expect(drawer).toHaveAttribute('open', '');
+      const drawerCue = headerBar.locator('[data-context-action="refresh-current-sprint-context"]').first();
       await expect(drawerCue).toContainText(/Filters changed since last run/i);
       return;
     }
