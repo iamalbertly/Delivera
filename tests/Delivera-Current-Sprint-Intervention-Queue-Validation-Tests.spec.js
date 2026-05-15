@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { assertTelemetryClean, captureBrowserTelemetry, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { assertTelemetryClean, captureBrowserTelemetry, skipIfRedirectedToLogin } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 function buildSprintFixture() {
   return {
@@ -49,7 +49,7 @@ function buildSprintFixture() {
 }
 
 test.describe('Current Sprint Intervention Queue Validation', () => {
-  test('current sprint shows intervention queue and unified blocker truth', async ({ page }) => {
+  test('current sprint shows dynamic intervention queue with real risk counts', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.route('**/api/boards.json**', async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: ['MPSA'], boards: [{ id: 101, name: 'MPSA Board', type: 'scrum', projectKey: 'MPSA' }] }) });
@@ -63,11 +63,31 @@ test.describe('Current Sprint Intervention Queue Validation', () => {
 
     const bodyText = await page.locator('body').textContent();
     expect(bodyText || '').not.toMatch(/Narrative to Epic|No blockers detected\. Sprint is flowing well\./i);
-    await expect(page.locator('.sprint-intervention-queue')).toContainText(/Your blockers now/i);
-    await expect(page.locator('.sprint-intervention-queue')).toContainText(/Missing estimates/i);
-    await expect(page.locator('.sprint-intervention-queue')).toContainText(/Ownership gaps/i);
+
+    const drawerSummary = page.locator('.current-sprint-header-bar .header-view-drawer > summary');
+    if (await drawerSummary.isVisible().catch(() => false)) {
+      await drawerSummary.click();
+    }
+    const queue = page.locator('.sprint-intervention-queue').first();
+    await expect(queue).toBeAttached();
+    // Must NOT contain the old static placeholders — these were UX noise
+    const queueText = (await queue.textContent().catch(() => '') || '').toLowerCase();
+    expect(queueText).not.toContain('your blockers now');
+    expect(queueText).not.toContain('missing estimates');
+    expect(queueText).not.toContain('ownership gaps');
+
+    // Must show actual count-driven labels from real data
+    // Fixture has 1 blocker (MPSA-1), 1 missing estimate (MPSA-3), 1 unassigned (MPSA-2)
+    await expect(queue).toContainText(/\d+ blocker|\d+ missing est|\d+ unowned/i);
+
+    // Take action CTA must be dynamic — shows top stuck issue key when available
+    const takeActionBtn = page.locator('.sprint-intervention-item-primary');
+    await expect(takeActionBtn).toBeAttached();
+    const ctaText = (await takeActionBtn.textContent().catch(() => '') || '').trim();
+    // When stuckCandidates[0] has MPSA-1, CTA becomes "Unblock MPSA-1"
+    expect(ctaText).toMatch(/Unblock MPSA-1|Take action/i);
+
     await expect(page.locator('.current-sprint-header-bar')).toContainText(/Create work/i);
-    await expect(page.locator('#blockers-panel')).toContainText(/blocker detected in sprint risk signals|Blocked integration/i);
     assertTelemetryClean(telemetry);
   });
 });

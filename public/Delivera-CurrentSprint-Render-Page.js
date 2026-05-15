@@ -6,6 +6,7 @@ import { renderRisksAndInsights } from './Delivera-CurrentSprint-Risks-Insights.
 import { renderSprintCarousel } from './Delivera-CurrentSprint-Navigation-Carousel.js';
 import { renderCountdownTimer } from './Delivera-CurrentSprint-Countdown-Timer.js';
 import { renderDecisionCockpit } from './Delivera-CurrentSprint-Decision-Cockpit.js';
+import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js';
 
 function renderSprintSwitcher(data) {
   if (!Array.isArray(data.recentSprints) || data.recentSprints.length <= 1) return '';
@@ -65,12 +66,15 @@ export function renderCurrentSprintPage(data) {
     + '</div>'
     + '</div>';
 
-  html += renderDecisionCockpit(data);
-  html += '<details class="current-sprint-advanced-controls" data-mobile-collapse="true">';
-  html += '<summary>Change scope or view evidence controls</summary>';
-  html += renderHeaderBar(data, { sectionLinksHtml });
-  html += renderSprintSwitcher(data);
-  html += '</details>';
+  const headerOpts = { sectionLinksHtml, viewportLean: true, sectionLinksInDrawer: true };
+  html += renderHeaderBar(data, headerOpts);
+  const sprintSwitcherHtml = renderSprintSwitcher(data);
+  if (sprintSwitcherHtml) {
+    html += '<details class="current-sprint-advanced-controls" data-mobile-collapse="true">';
+    html += '<summary>Switch sprint</summary>';
+    html += sprintSwitcherHtml;
+    html += '</details>';
+  }
   if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
     html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
   }
@@ -82,10 +86,11 @@ export function renderCurrentSprintPage(data) {
       html += renderNoIssuesForContextEmptyState();
     } else {
       const isHistoricalSprint = String(data?.sprint?.state || '').toLowerCase() !== 'active';
-      const isJustStartedSprint = Number(summary.percentDone || 0) === 0 && (summary.totalStories || 0) > 0;
+      const phaseInfo = deriveSprintPhase(data);
+      const isJustStartedSprint = phaseInfo.justStarting;
       const title = isHistoricalSprint
         ? 'Historical snapshot with limited trackable signals'
-        : (isJustStartedSprint ? 'Sprint just started - evidence not formed yet' : 'No trackable work in this sprint yet');
+        : (isJustStartedSprint ? 'Early sprint - evidence still forming' : 'No trackable work in this sprint yet');
       const message = isHistoricalSprint
         ? 'This sprint snapshot does not include enough trackable time or issue movement to render health sections.'
         : (isJustStartedSprint
@@ -96,6 +101,9 @@ export function renderCurrentSprintPage(data) {
         : 'Check the board configuration or select a different sprint from the carousel.';
       html += renderEmptyStateHtml(title, message, hint, isHistoricalSprint ? 'View report' : 'Pick a board', isHistoricalSprint ? { href: '/report' } : {});
     }
+    html += '<div class="sprint-cockpit-column full-width">';
+    html += renderDecisionCockpit(data, { viewportLean: true });
+    html += '</div>';
     try {
       const sprintState = (data.sprint?.state || '').toLowerCase();
       const freshLabel = sprintState === 'active' ? 'Live sprint data' : 'Snapshot: ' + (data.sprint?.name || '');
@@ -104,13 +112,17 @@ export function renderCurrentSprintPage(data) {
     return html;
   }
 
-  html += '<div class="current-sprint-grid-layout">';
+  html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean">';
 
   if (hasStories) {
     html += '<div class="sprint-cards-column full-width">';
     html += renderStories(data);
     html += '</div>';
   }
+
+  html += '<div class="sprint-cockpit-column full-width">';
+  html += renderDecisionCockpit(data, { viewportLean: true });
+  html += '</div>';
 
   if (hasBurndownData) {
     html += '<div class="sprint-cards-row risks-row">';

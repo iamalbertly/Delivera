@@ -111,7 +111,8 @@ test.describe('Viewport compression and layering', () => {
       test.skip(true, 'Decision cockpit not visible for current sprint dataset');
       return;
     }
-    await expect(page.locator('body.current-sprint-has-live-content header')).toBeHidden();
+    await expect(page.locator('.current-sprint-header-bar').first()).toBeVisible();
+    await expect(page.locator('#stories-card')).toBeVisible();
     await expect(page.locator('.current-sprint-advanced-controls')).toBeVisible();
     await expect(page.locator('.current-sprint-advanced-controls')).not.toHaveAttribute('open', /./);
     await expect(page.locator('.decision-metrics-row .decision-metric-card')).toHaveCount(4);
@@ -121,16 +122,25 @@ test.describe('Viewport compression and layering', () => {
     expect(interventionCount).toBeLessThanOrEqual(5);
     await expect(page.locator('.current-sprint-grid-layout > .sprint-jump-rail')).toHaveCount(0);
 
-    const foldBudget = await page.evaluate(() => {
-      const summary = document.querySelector('.decision-summary-strip');
-      const metrics = document.querySelector('.decision-metrics-row');
-      if (!summary || !metrics) return null;
-      const summaryTop = summary.getBoundingClientRect().top;
-      const metricsBottom = metrics.getBoundingClientRect().bottom;
+    const foldOrder = await page.evaluate(() => {
+      const stories = document.getElementById('stories-card');
+      const cockpit = document.querySelector('.decision-cockpit-shell');
+      if (!stories || !cockpit) return null;
       return {
-        answerHeight: Math.round(metricsBottom - summaryTop),
-        viewportHeight: window.innerHeight,
+        storiesTop: stories.getBoundingClientRect().top,
+        cockpitTop: cockpit.getBoundingClientRect().top,
       };
+    });
+    if (foldOrder) {
+      expect(foldOrder.storiesTop).toBeLessThan(foldOrder.cockpitTop);
+    }
+    const foldBudget = await page.evaluate(() => {
+      const cockpitSummary = document.querySelector('.decision-cockpit-details-summary');
+      const metrics = document.querySelector('.decision-metrics-row');
+      if (!cockpitSummary) return null;
+      const top = cockpitSummary.getBoundingClientRect().top;
+      const bottom = metrics ? metrics.getBoundingClientRect().bottom : cockpitSummary.getBoundingClientRect().bottom;
+      return { answerHeight: Math.round(bottom - top), viewportHeight: window.innerHeight };
     });
     if (foldBudget) {
       expect(foldBudget.answerHeight).toBeLessThanOrEqual(760);
@@ -155,13 +165,12 @@ test.describe('Viewport compression and layering', () => {
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await page.waitForSelector('#current-sprint-projects', { timeout: 15000 }).catch(() => null);
-    const advancedControls = page.locator('.current-sprint-advanced-controls');
-    if (await advancedControls.isVisible().catch(() => false)) {
-      await advancedControls.locator('> summary').click();
+    await expect(page.locator('.current-sprint-header-bar').first()).toBeVisible();
+    const drawerSummary = page.locator('.current-sprint-header-bar .header-view-drawer > summary').first();
+    if (await drawerSummary.isVisible().catch(() => false)) {
+      await drawerSummary.click();
     }
-    const compactRow = page.locator('.current-sprint-scope-row--compact');
-    await expect(compactRow).toBeHidden();
-    await expect(page.locator('.current-sprint-advanced-controls .current-sprint-header-bar')).toBeVisible();
+    await expect(page.locator('.header-drawer-jump-section .sprint-section-links-compact, .current-sprint-scope-stack .current-sprint-jump-inline').first()).toBeAttached();
     await expect(page.locator('.current-sprint-scope-stack .current-sprint-jump-inline')).toHaveCount(1);
 
     assertTelemetryClean(telemetry);

@@ -8,8 +8,15 @@ function getToneClass(tone) {
   return 'is-positive';
 }
 
+function getInteractiveTargetAttrs(riskTags = [], targetSelector = '#stories-card') {
+  const tags = Array.isArray(riskTags) ? riskTags.filter(Boolean).join(' ') : '';
+  const target = targetSelector || '#stories-card';
+  return ` role="button" tabindex="0" data-cockpit-risk-tags="${escapeHtml(tags)}" data-cockpit-target="${escapeHtml(target)}"`;
+}
+
 function renderMetricCard(label, value, meta = '', progress = null, tone = '') {
-  const toneClass = tone ? ` ${tone}` : '';
+  const normalizedTone = String(tone || '').trim();
+  const toneClass = normalizedTone ? ` ${normalizedTone}` : '';
   const progressValue = progress == null ? null : Math.max(0, Math.min(100, Number(progress) || 0));
   return ''
     + `<article class="decision-metric-card${toneClass}">`
@@ -151,8 +158,9 @@ function renderTopRisks(topRisks = []) {
   }
   return topRisks.slice(0, 3).map((risk) => {
     const severityClass = risk.severity === 'High' ? 'is-critical' : (risk.severity === 'Medium' ? 'is-warning' : '');
+    const actionAttrs = getInteractiveTargetAttrs(risk.riskTags || [], '#stories-card');
     return ''
-      + `<article class="decision-risk-card ${severityClass}" data-cockpit-risk-tags="${escapeHtml((risk.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">`
+      + `<article class="decision-risk-card ${severityClass}"${actionAttrs}>`
       + `<div class="decision-risk-head">`
       + `<div>${renderIssueKeyLink(risk.issueKey, risk.issueUrl)} <strong>${escapeHtml(risk.summary || '')}</strong></div>`
       + `<span class="decision-severity-badge">${escapeHtml(risk.severity || 'Review')}</span>`
@@ -169,7 +177,7 @@ function renderQuickActions(actions = []) {
   }
   return '<ul class="decision-action-queue" aria-label="Action queue">'
     + actions.slice(0, 4).map((action) => ''
-    + `<li data-cockpit-risk-tags="${escapeHtml((action.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">`
+    + `<li${getInteractiveTargetAttrs(action.riskTags || [], '#stories-card')}>`
     + `<span>${escapeHtml(normalizeActionLabel(action.label || ''))}</span>`
     + `<strong>${escapeHtml(String(action.count || 0))}</strong>`
     + '</li>').join('')
@@ -243,7 +251,8 @@ function buildSummaryStrip(data, cockpit) {
     + '</section>';
 }
 
-export function renderDecisionCockpit(data) {
+export function renderDecisionCockpit(data, options = {}) {
+  const { viewportLean = false } = options;
   const cockpit = data?.decisionCockpit || {};
   const health = cockpit.health || {};
   const nextBestAction = cockpit.nextBestAction || {};
@@ -261,12 +270,24 @@ export function renderDecisionCockpit(data) {
   const doneStories = Number(data?.summary?.doneStories || 0);
   const valueDoneLabel = totalStories > 0 ? `${doneStories}/${totalStories} value stories` : 'Value stories loading';
   const riskQueueTotal = topRisks.length + quickActions.reduce((sum, item) => sum + Number(item?.count || 0), 0);
+  const riskQueueLabel = riskQueueTotal > 0 ? `${riskQueueTotal} action${riskQueueTotal === 1 ? '' : 's'} waiting` : 'No hidden blockers';
   const trustLabel = data?.meta?.partialPermissions ? 'Limited' : (metrics?.timeLogged?.ratioPct === 0 ? 'Needs evidence' : 'Usable');
+  const nextActionTitle = nextBestAction.summary
+    ? `${nextBestAction.issueKey ? `${nextBestAction.issueKey} - ` : ''}${nextBestAction.summary}`
+    : (riskQueueTotal > 0 ? 'Review risk queue' : 'No urgent action');
+  const nextActionReason = nextBestAction.reason
+    || (riskQueueTotal > 0 ? 'Use the risk queue to remove friction from the sprint.' : 'Sprint signals do not show an urgent cleanup queue right now.');
+  const nextActionCta = nextBestAction.ctaLabel || (riskQueueTotal > 0 ? 'Review work' : 'Review sprint work');
+  const collapseSummary = `${health.status || 'On Track'} — ${health.message || 'Expand for sprint drill-down.'}`;
 
+  const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
   return ''
-    + '<section class="decision-cockpit-shell">'
-    + buildSummaryStrip(data, cockpit)
-    + `<p class="decision-cockpit-subtitle">${escapeHtml(dateLabel)} <span>•</span> ${escapeHtml(remainingDaysLabel)}</p>`
+    + '<section class="decision-cockpit-shell' + leanClass + '">'
+    + (viewportLean ? '' : buildSummaryStrip(data, cockpit))
+    + '<details class="decision-cockpit-details"' + (viewportLean ? '' : ' open') + '>'
+    + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
+    + '<div class="decision-cockpit-details-body">'
+    + `<p class="decision-cockpit-subtitle">${escapeHtml(dateLabel)} <span>|</span> ${escapeHtml(remainingDaysLabel)}</p>`
     + '<div class="decision-cockpit-grid">'
     + `<article class="decision-answer-card decision-health-card ${getToneClass(health.tone)}">`
     + '<div class="decision-card-icon" aria-hidden="true">~</div>'
@@ -279,9 +300,9 @@ export function renderDecisionCockpit(data) {
     + '</article>'
     + '<article class="decision-action-card">'
     + '<p class="decision-card-label">Next action</p>'
-    + `<h2>${nextBestAction.issueKey ? escapeHtml(nextBestAction.issueKey) + ' - ' : ''}${escapeHtml(nextBestAction.summary || '')}</h2>`
-    + `<p>${escapeHtml(nextBestAction.reason || '')}</p>`
-    + `<a href="#stories-card" class="decision-primary-link" data-cockpit-risk-tags="${escapeHtml((nextBestAction.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">${escapeHtml(nextBestAction.ctaLabel || 'Review work')}</a>`
+    + `<h2>${escapeHtml(nextActionTitle)}</h2>`
+    + `<p>${escapeHtml(nextActionReason)}</p>`
+    + `<a href="#stories-card" class="decision-primary-link" data-cockpit-risk-tags="${escapeHtml((nextBestAction.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">${escapeHtml(nextActionCta)}</a>`
     + '</article>'
     + '<article class="decision-signals-card">'
     + '<p class="decision-card-label">Signals</p>'
@@ -294,7 +315,7 @@ export function renderDecisionCockpit(data) {
     + '</article>'
     + '<aside class="decision-rail">'
     + '<section class="decision-rail-card">'
-    + '<div class="decision-rail-header"><h2>Risk queue</h2><span>No hidden blockers</span></div>'
+    + `<div class="decision-rail-header"><h2>Risk queue</h2><span>${escapeHtml(riskQueueLabel)}</span></div>`
     + renderTopRisks(topRisks)
     + renderQuickActions(quickActions)
     + '</section>'
@@ -321,6 +342,8 @@ export function renderDecisionCockpit(data) {
     + '<section class="decision-insights-row">'
     + renderInsights(cockpit.insights || {})
     + '</section>'
+    + '</div>'
+    + '</details>'
     + '</section>';
 }
 
@@ -328,7 +351,7 @@ export function wireDecisionCockpitHandlers() {
   const root = document.querySelector('.decision-cockpit-shell');
   if (!root || root.dataset.wiredDecisionCockpit === '1') return;
   root.dataset.wiredDecisionCockpit = '1';
-  root.addEventListener('click', (event) => {
+  function activateCockpitTarget(event) {
     const trigger = event.target.closest('[data-cockpit-risk-tags], [data-cockpit-target]');
     if (!trigger || !root.contains(trigger)) return;
     const riskTags = String(trigger.getAttribute('data-cockpit-risk-tags') || '').split(/\s+/).filter(Boolean);
@@ -346,5 +369,13 @@ export function wireDecisionCockpitHandlers() {
       if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(target);
       else target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }
+  root.addEventListener('click', activateCockpitTarget);
+  root.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const trigger = event.target.closest('[data-cockpit-risk-tags], [data-cockpit-target]');
+    if (!trigger || !root.contains(trigger)) return;
+    event.preventDefault();
+    activateCockpitTarget(event);
   });
 }

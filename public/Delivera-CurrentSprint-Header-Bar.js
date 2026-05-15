@@ -126,6 +126,21 @@ function renderHeaderRoleModesRow(roleViews) {
     + '</div>';
 }
 
+function renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents) {
+  let html = '<div class="sprint-intervention-queue" aria-label="Intervention queue">';
+  if (stuckCount > 0) {
+    html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.blockersCount(stuckCount)) + '</span></span>';
+  }
+  if (missingEstimates > 0) {
+    html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.missingEstCount(missingEstimates)) + '</span></span>';
+  }
+  if (unassignedParents > 0) {
+    html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.unownedCount(unassignedParents)) + ' unowned</span></span>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function renderHeaderIdentityMetricsRow({ donePct, issuesCount, logH, estH, delta }) {
   const deltaHtml = delta
     ? ('<span class="' + escapeHtml(delta.className) + '" title="' + escapeHtml(delta.title) + '">' + escapeHtml(delta.short) + '</span>')
@@ -183,7 +198,12 @@ function buildHeaderContextStrip(data, freshnessLabel) {
 }
 
 export function renderHeaderBar(data, options = {}) {
-  const { sectionLinksHtml = '', isLoadingShell = false } = options;
+  const {
+    sectionLinksHtml = '',
+    isLoadingShell = false,
+    viewportLean = false,
+    sectionLinksInDrawer = false,
+  } = options;
   const sprint = data.sprint || {};
   const summary = data.summary || {};
   const days = data.daysMeta || {};
@@ -385,7 +405,8 @@ export function renderHeaderBar(data, options = {}) {
     : '/report';
   const reportLinkHtml = '<a class="header-follow-up-link header-chrome-history-report" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
 
-  let html = `<div class="current-sprint-header-bar" data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
+  const leanAttr = viewportLean ? ' data-viewport-lean="true"' : '';
+  let html = `<div class="current-sprint-header-bar"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintNameCompact)}</span>`;
@@ -436,6 +457,17 @@ export function renderHeaderBar(data, options = {}) {
     html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.jumpTo) + '</div>';
     html += '<div class="sprint-section-links sprint-section-links-compact" aria-hidden="true"><span class="sprint-section-inline-link is-disabled">Work &amp; flow</span><span class="sprint-section-inline-link is-disabled">Flow over time</span><span class="sprint-section-inline-link is-disabled">Insights</span></div>';
     html += '</div>';
+  } else if (sectionLinksInDrawer && sectionLinksHtml) {
+    html += '<div class="header-drawer-section header-drawer-jump-section">';
+    html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.jumpTo) + '</div>';
+    html += sectionLinksHtml;
+    html += '</div>';
+  }
+  if (viewportLean && hasPriorityInterventions && (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0)) {
+    html += '<div class="header-drawer-section header-drawer-intervention-section">';
+    html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</div>';
+    html += renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents);
+    html += '</div>';
   }
   html += '<div class="header-drawer-evidence">';
   html += '<div class="header-drawer-section">';
@@ -482,24 +514,15 @@ export function renderHeaderBar(data, options = {}) {
     if (primaryTags) {
       html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">' + escapeHtml(SPRINT_COPY.focusRisk(primaryIntervention.label || SPRINT_COPY.focusRiskFallback)) + '</button>';
     }
-    // Dynamic intervention queue: render actual risk counts, not static labels.
-    html += '<div class="sprint-intervention-queue" aria-label="Intervention queue">';
-    if (stuckCount > 0) {
-      html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.blockersCount(stuckCount)) + '</span></span>';
+    if (!viewportLean) {
+      html += renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents);
     }
-    if (missingEstimates > 0) {
-      html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.missingEstCount(missingEstimates)) + '</span></span>';
-    }
-    if (unassignedParents > 0) {
-      html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.unownedCount(unassignedParents)) + ' unowned</span></span>';
-    }
-    html += '</div>';
-    html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span></span>';
+    html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span>' + (viewportLean ? '' : ('<span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span>')) + '</span>';
   } else {
     html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';
   }
   html += '</div>';
-  if (hasPriorityInterventions) {
+  if (hasPriorityInterventions && !viewportLean) {
     html += '<div class="header-action-shortlist" aria-label="Top intervention shortlist">';
     compactStripInterventions.slice(0, 2).forEach((item, index) => {
       const tags = Array.isArray(item.riskTags) ? item.riskTags.join(' ') : '';
@@ -514,8 +537,7 @@ export function renderHeaderBar(data, options = {}) {
     });
     html += '</div>';
   }
-  // Avoid large empty intelligence strip when there are no issues (reduces vertical clutter on empty sprints)
-  if (issuesCount > 0) {
+  if (issuesCount > 0 && !viewportLean) {
     html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
     html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(capacityTone) + '" data-header-insight="capacity">';
     html += '<span class="header-intelligence-eyebrow">Now</span>';
@@ -529,13 +551,21 @@ export function renderHeaderBar(data, options = {}) {
     html += '</div>';
     html += '</div>';
   }
-  if (sectionLinksHtml && !isLoadingShell) {
+  if (sectionLinksHtml && !isLoadingShell && !sectionLinksInDrawer) {
     html += sectionLinksHtml;
   }
   html += headerContextStripHtml;
-  html += renderHeaderRoleModesRow(effectiveHeaderRoleViews);
+  const roleModesRowHtml = renderHeaderRoleModesRow(effectiveHeaderRoleViews);
+  if (roleModesRowHtml) {
+    if (viewportLean) {
+      html += '<details class="header-role-modes-details"><summary>' + escapeHtml(SPRINT_COPY.viewAsLabel) + '</summary>' + roleModesRowHtml + '</details>';
+    } else {
+      html += roleModesRowHtml;
+    }
+  }
   /* ALB-30: Mini mode hides the full compact strip; surface History report first so it stays above squad identity. */
   html += '<div class="header-mini-strip" aria-hidden="true">';
+  html += '<div class="header-mini-strip-report-priority">' + reportLinkHtml + '</div>';
   html += '<div class="header-mini-strip-identity">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;

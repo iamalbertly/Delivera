@@ -1,14 +1,15 @@
 /**
- * Test orchestration step definitions for Jira Reporting App.
- * SSOT for the ordered list of test steps. Used by Jira-Reporting-App-Test-Orchestration-Runner.js.
+ * Test orchestration step definitions for Delivera.
+ * SSOT for the ordered list of test steps. Used by Delivera-Test-Orchestration-Runner.js.
  * Playwright steps use --max-failures=1 so the run terminates on first failure (fail-fast).
+ * Runner uses stdio: inherit so each command’s output streams live in the terminal (see Delivera-Test-Orchestration-Runner.js).
  * Header declutter plan: `todo-orchestration` — build:css + check:css run before any journey (fail-fast CSS SSOT).
  *
  * @param {string} projectRoot - Project root path (used as cwd for each step)
  * @returns {Array<{ name: string, command: string, args: string[], cwd: string }>}
  */
 
-import { getJourneySpecs } from './Jira-Reporting-Tests-Journey-Buckets-Map-SSOT.js';
+import { getJourneySpecs } from './Delivera-Tests-Journey-Buckets-Map-SSOT.js';
 
 const PLAYWRIGHT_CMD = 'playwright';
 const PLAYWRIGHT_BASE_ARGS = ['test'];
@@ -64,6 +65,12 @@ export function getSteps(projectRoot) {
       name: 'Run Current Sprint Mission-Control Journey',
       command: 'npx',
       args: pwJourneyArgs('journey.current-sprint'),
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Human Nudge Review Trust Journey',
+      command: 'npx',
+      args: [...pwJourneyArgs('journey.human-nudge-trust'), '--workers=1'],
       cwd: projectRoot,
     },
     {

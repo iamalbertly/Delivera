@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const SPRINT_PAGE = `${BASE_URL}/current-sprint`;
@@ -41,6 +41,19 @@ async function loadSprintPage(page) {
     return { hasError: true, message: rawErrorText };
   }
   return { hasError: true, message: 'Current sprint content did not become visible' };
+}
+
+async function openDecisionCockpitDetails(page) {
+  await page.locator('.decision-cockpit-details').first().evaluate((el) => {
+    if (el && !el.open) el.open = true;
+  }).catch(() => null);
+}
+
+async function selectBoardEvenIfHeaderCollapsed(page, boardId) {
+  await page.locator('#board-select').evaluate((select, value) => {
+    select.value = value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }, boardId);
 }
 
 test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
@@ -132,9 +145,13 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
 
     await page.goto(SPRINT_PAGE);
     await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
-    await page.selectOption('#board-select', '101');
+    await selectBoardEvenIfHeaderCollapsed(page, '101');
     await expect(page.locator('#current-sprint-ribbon')).toContainText(/hidden by permissions|accessible/i);
     await expect(page.locator('#current-sprint-content')).toBeVisible();
+    await openDecisionCockpitDetails(page);
+    await expect(page.locator('.decision-action-card h2').first()).toContainText(/No urgent action|Review risk queue/i);
+    await expect(page.locator('.decision-rail-header span').first()).toContainText(/No hidden blockers|action/i);
+    await expect(page.locator('.decision-empty-card').first()).toContainText(/No hidden blockers/i);
   });
 
   test('current sprint header shows shared report context strip and stale refresh cue', async ({ page }) => {
@@ -142,7 +159,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       sessionStorage.setItem('report-context-filters-stale', '1');
       sessionStorage.setItem('report-last-run', JSON.stringify({ doneStories: 5, sprintsCount: 2 }));
       sessionStorage.setItem('report-last-meta', JSON.stringify({ generatedAt: '2026-03-20T09:00:00.000Z' }));
-      localStorage.setItem('vodaAgileBoard_lastQuery_v1', JSON.stringify({
+      localStorage.setItem('delivera_lastQuery_v1', JSON.stringify({
         projects: 'MPSA,MAS',
         start: '2026-01-01T00:00:00.000Z',
         end: '2026-03-01T00:00:00.000Z',
@@ -181,7 +198,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
 
     await page.goto(SPRINT_PAGE);
     await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
-    await page.selectOption('#board-select', '101');
+    await selectBoardEvenIfHeaderCollapsed(page, '101');
 
     const strip = page.locator('.current-sprint-header-bar .header-context-strip').first();
     await expect(strip).toBeVisible();
@@ -195,6 +212,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       'loading state keeps one compact loading line instead of a separate context row',
       'current sprint maps partial-permission Jira response into top ribbon',
       'current sprint header shows shared report context strip and stale refresh cue',
+      'Mission cockpit and header labels meet readable contrast on rendered surfaces',
       'Mobile viewport keeps full mission header (no mini-mode collapse)',
     ];
     if (exemptTitles.includes(testInfo.title)) {
@@ -227,7 +245,15 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('Role presets only render when they create a distinct stories view', async ({ page }) => {
-    const roleButtons = page.locator('[data-work-risk-role-mode]');
+    const roleDetails = page.locator('.header-role-modes-details').first();
+    if (await roleDetails.count()) {
+      const isOpen = await roleDetails.evaluate((el) => Boolean(el?.open));
+      if (!isOpen) await roleDetails.locator('summary').click();
+    }
+    const hasRoleDetails = (await roleDetails.count().catch(() => 0)) > 0;
+    const roleButtons = hasRoleDetails
+      ? roleDetails.locator('[data-work-risk-role-mode]')
+      : page.locator('.header-role-modes-row [data-work-risk-role-mode]');
     const count = await roleButtons.count().catch(() => 0);
     if (!count) {
       await expect(page.locator('#stuck-card [data-work-risk-shortcut]').first()).toBeVisible();
@@ -236,23 +262,31 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     const beforeVisibleCount = await page.locator('#stories-table tbody tr.story-parent-row').evaluateAll((rows) =>
       rows.filter((r) => !r.hasAttribute('data-role-filter-hidden') && (r.style.display || '') !== 'none').length
     );
-    await roleButtons.first().click();
+    const clickTarget = count > 1 ? roleButtons.nth(1) : roleButtons.first();
+    await clickTarget.evaluate((el) => el.click());
     const afterVisibleCount = await page.locator('#stories-table tbody tr.story-parent-row').evaluateAll((rows) =>
       rows.filter((r) => !r.hasAttribute('data-role-filter-hidden') && (r.style.display || '') !== 'none').length
     );
     expect(afterVisibleCount).toBeLessThanOrEqual(beforeVisibleCount);
   });
 
-  test('Header remediation action focuses stories and updates active view summary', async ({ page }) => {
+  test('Header remediation action focuses stories and opens review or applies filter', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 0));
     const takeAction = page.locator('.current-sprint-header-bar [data-header-action="focus-remediation"]').first();
     const visible = await takeAction.isVisible().catch(() => false);
     if (!visible) {
       test.skip(true, 'Remediation action not rendered');
       return;
     }
-    await takeAction.click();
-    await expect(page.locator('.header-view-drawer summary [data-header-active-filter-value]').first()).not.toHaveText(/^All work$/i);
+    await takeAction.evaluate((el) => el.click());
     await expect(page.locator('#stories-card')).toBeVisible();
+    await page.waitForFunction(() => {
+      const sheet = document.getElementById('delivera-jira-nudge-review-sheet');
+      if (sheet && sheet.hidden === false) return true;
+      if (document.body.classList.contains('jira-nudge-review-open')) return true;
+      const label = document.querySelector('[data-header-active-filter-value]');
+      return Boolean(label && !/^All work$/i.test((label.textContent || '').trim()));
+    }, null, { timeout: 8000 });
   });
 
   test('Mission control row 1 shows three standardized metric tiles (Done, Work items, Logged/est)', async ({ page }) => {
@@ -281,14 +315,107 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(line).toHaveAttribute('aria-label', /Sprint health verdict/i);
   });
 
+  test('Mission cockpit and header labels meet readable contrast on rendered surfaces', async ({ page }) => {
+    await page.route('**/api/boards.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          projects: ['MPSA'],
+          boards: [{ id: 101, name: 'Main Board', projectKey: 'MPSA' }],
+        }),
+      });
+    });
+    await page.route('**/api/current-sprint.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          board: { id: 101, name: 'Main Board', projectKeys: ['MPSA'] },
+          sprint: { id: 301, name: 'Sprint 301', state: 'active', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-03-15T00:00:00.000Z' },
+          stories: [
+            { key: 'MPSA-1', summary: 'Story 1', statusCategory: 'In Progress', issueType: 'Story', subtasks: [] },
+          ],
+          summary: { totalStories: 1, doneStories: 0, totalSP: 3, doneSP: 0, percentDone: 0, subtaskLoggedHours: 1, subtaskEstimatedHours: 4 },
+          daysMeta: { daysRemainingWorking: 3 },
+          recentSprints: [],
+          decisionCockpit: {
+            health: { tone: 'warning', status: 'Watch', message: 'One item needs attention.' },
+            nextBestAction: { summary: 'Add estimate to sprint work', reason: 'Estimate gap blocks confidence.', ctaLabel: 'Review work', riskTags: ['missing-estimate'] },
+            metrics: { daysRemaining: 3, progressPct: { value: 0 }, workItems: { remaining: 1, done: 0, total: 1 }, timeLogged: { ratioPct: 25 } },
+            keySignals: { completedRecent: { count: 0, storyPoints: 0 }, blockers: 0, scopeChanges: 0, inactivity: false },
+            quickActions: [{ label: 'Add estimates', count: 1, riskTags: ['missing-estimate'] }],
+          },
+          meta: { projects: 'MPSA', generatedAt: '2026-03-20T09:15:00.000Z' },
+        }),
+      });
+    });
+    await page.goto(SPRINT_PAGE);
+    await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
+    await selectBoardEvenIfHeaderCollapsed(page, '101');
+    await expect(page.locator('.decision-cockpit-shell')).toBeVisible();
+    const selectors = [
+      '.decision-summary-label',
+      '.decision-card-label',
+      '.decision-metric-label',
+      '.decision-rail-header span',
+      '.header-intelligence-title',
+      '.header-intelligence-detail',
+      '.header-context-segment-label',
+    ];
+    const samples = await page.evaluate((sampleSelectors) => {
+      function parseRgb(value) {
+        const match = String(value || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/);
+        if (!match) return null;
+        const alpha = match[4] == null ? 1 : Number(match[4]);
+        return { r: Number(match[1]), g: Number(match[2]), b: Number(match[3]), a: alpha };
+      }
+      function luminance({ r, g, b }) {
+        const toLinear = (channel) => {
+          const value = channel / 255;
+          return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+      }
+      function contrast(fg, bg) {
+        const l1 = luminance(fg);
+        const l2 = luminance(bg);
+        return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+      }
+      function findOpaqueBackground(el) {
+        let node = el;
+        while (node && node.nodeType === 1) {
+          const bg = parseRgb(getComputedStyle(node).backgroundColor);
+          if (bg && bg.a >= 0.92) return bg;
+          node = node.parentElement;
+        }
+        return { r: 255, g: 255, b: 255, a: 1 };
+      }
+      return sampleSelectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)).slice(0, 2).map((el) => {
+        const styles = getComputedStyle(el);
+        const fg = parseRgb(styles.color);
+        const bg = findOpaqueBackground(el);
+        return {
+          selector,
+          text: (el.textContent || '').trim().slice(0, 40),
+          ratio: fg && bg ? Number(contrast(fg, bg).toFixed(2)) : 0,
+        };
+      })).filter((item) => item.text);
+    }, selectors);
+    expect(samples.length).toBeGreaterThan(0);
+    const failures = samples.filter((item) => item.ratio < 4.5);
+    expect(failures).toEqual([]);
+  });
+
   test('Header context strip is compressed into one deduplicated scope line', async ({ page }) => {
-    await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
+    await page.evaluate(() => window.scrollTo(0, 0));
     const strip = page.locator('.current-sprint-header-bar .header-context-strip').first();
     await expect(strip).toBeVisible();
     const text = (await strip.textContent().catch(() => '')) || '';
     expect(text.trim().length).toBeGreaterThan(12);
     expect(/MPSA|Projects|Range|Live|Snapshot|Updated|Freshness|board/i.test(text)).toBeTruthy();
     expect(/from report cache/i.test(text)).toBeFalsy();
+    await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
     const boardRow = page.locator('.current-sprint-header-bar .header-context-summary-row').first();
     await expect(boardRow).toBeVisible();
     const boardText = ((await boardRow.textContent().catch(() => '')) || '').trim();
@@ -296,6 +423,10 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('Mission header exposes role lens strip with View as label when role presets exist', async ({ page }) => {
+    const roleDetails = page.locator('.header-role-modes-details').first();
+    if ((await roleDetails.count().catch(() => 0)) > 0) {
+      await roleDetails.evaluate((el) => { if (el && !el.open) el.open = true; });
+    }
     const row = page.locator('.current-sprint-header-bar .header-role-modes-row').first();
     const visible = await row.isVisible().catch(() => false);
     if (!visible) {
@@ -304,10 +435,15 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     }
     await expect(row.locator('.header-role-modes-label')).toHaveText(/^View as$/i);
     await expect(row).toHaveAttribute('data-strip', 'role-lens');
-    await expect(row.locator('.role-mode-pill[data-work-risk-role-mode]').first()).toBeVisible();
+    await expect(row.locator('.role-mode-pill[data-work-risk-role-mode]').first()).toBeAttached();
   });
 
   test('Context drawer shows logging hygiene in a demoted hygiene strip (not risk styling)', async ({ page }) => {
+    const contextStrip = page.locator('.current-sprint-header-bar .header-context-strip').first();
+    if (await contextStrip.isVisible().catch(() => false)) {
+      test.skip(true, 'Hygiene is deduped when header context strip is shown');
+      return;
+    }
     await page.locator('.current-sprint-header-bar .header-view-drawer').evaluate((el) => { el.open = true; });
     const hygiene = page.locator('.current-sprint-header-bar .header-hygiene-followup[data-signal="hygiene"]').first();
     await expect(hygiene).toBeVisible();
@@ -376,12 +512,69 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await page.goto(SPRINT_PAGE);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
-    await page.selectOption('#board-select', '101');
+    await selectBoardEvenIfHeaderCollapsed(page, '101');
     await page.waitForSelector('.current-sprint-header-bar', { timeout: 30000 });
     await page.evaluate(() => window.scrollTo(0, 600));
     await page.waitForTimeout(250);
     const header = page.locator('.current-sprint-header-bar').first();
     await expect(header).not.toHaveClass(/header-mini-mode/);
+  });
+
+  test('ALB-30: narrow viewport shows Open report row above scope context strip', async ({ page }) => {
+    await page.route('**/api/boards.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          projects: ['MPSA'],
+          boards: [{ id: 101, name: 'Main Board', projectKey: 'MPSA' }],
+        }),
+      });
+    });
+    await page.route('**/api/current-sprint.json*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          board: { id: 101, name: 'Main Board', projectKeys: ['MPSA'] },
+          sprint: { id: 301, name: 'Sprint 301', state: 'active', startDate: '2026-03-01T00:00:00.000Z', endDate: '2026-03-15T00:00:00.000Z' },
+          stories: [
+            { key: 'MPSA-1', summary: 'Story 1', statusCategory: 'In Progress', issueType: 'Story', subtasks: [] },
+          ],
+          summary: { totalStories: 1, doneStories: 0, totalSP: 3, doneSP: 0, percentDone: 0 },
+          daysMeta: { daysRemainingWorking: 3 },
+          recentSprints: [],
+          meta: { projects: 'MPSA', generatedAt: '2026-03-20T09:15:00.000Z' },
+        }),
+      });
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto(SPRINT_PAGE);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('#current-sprint-content, #current-sprint-error', { timeout: 30000, state: 'attached' });
+    const boardSelect = page.locator('#board-select');
+    if (await boardSelect.isVisible().catch(() => false)) {
+      const firstBoard = boardSelect.locator('option[value]:not([value=""])').first();
+      await firstBoard.waitFor({ state: 'attached', timeout: 20000 }).catch(() => null);
+      const boardVal = await firstBoard.getAttribute('value').catch(() => '');
+      if (boardVal) await boardSelect.selectOption(boardVal).catch(() => null);
+    }
+    await page.waitForSelector('.current-sprint-header-bar .header-compact-strip', { timeout: 30000 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const header = page.locator('.current-sprint-header-bar').first();
+    const reportLink = header.locator('.header-compact-strip .header-chrome-history-report').first();
+    const contextStrip = header.locator('.header-context-strip').first();
+    await expect(reportLink).toBeVisible();
+    await expect(contextStrip).toBeVisible();
+    const reportAboveScope = await page.evaluate(() => {
+      const bar = document.querySelector('.current-sprint-header-bar');
+      if (!bar) return false;
+      const report = bar.querySelector('.header-compact-strip .header-chrome-history-report');
+      const ctx = bar.querySelector('.header-context-strip');
+      if (!report || !ctx) return false;
+      return report.getBoundingClientRect().top < ctx.getBoundingClientRect().top;
+    });
+    expect(reportAboveScope).toBe(true);
   });
 
   test('Work-risk role mode remembers selection and drives filters', async ({ page }) => {

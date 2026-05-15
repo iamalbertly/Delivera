@@ -74,6 +74,8 @@ Detailed env matrix: [`docs/environment.md`](docs/environment.md)
 - Outcome intake journey: `npm run test:journey:outcome-intake`
 - UX core journey: `npm run test:journey:ux-core`
 - Direct-value Jira send (Current Sprint): `npm run test:journey:direct-value-send`
+- Human nudge review + Settings activity: `npm run test:journey:human-nudge-trust`
+- Viewport declutter (stories before cockpit): `npm run test:journey:viewport-declutter`
 - Data integrity journey: `npm run test:journey:data-integrity`
 - Full E2E journey bucket: `npm run test:e2e:full`
 - Stop orchestration: `npm run test:all:stop`
@@ -90,6 +92,7 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 - New Playwright fail-fast validations were added for refresh trust, shortlist action rhythm, cross-surface freshness SSOT, duplicate UI regression, and mobile leadership first-viewport clarity.
 - Current Sprint can post guided nudges to Jira via `POST /api/issues/:issueKey/comment` (Send to Jira, top nudge, Take action). Restart the local server after pulling API changes — a stale process returns `Cannot POST /api/issues/.../comment`.
 - Focused direct-value + Jira send gate: `npm run test:journey:direct-value-send`
+- Current Sprint viewport lean: stories and work table render before the collapsed decision cockpit; jump links and role lens live in the header drawer; human nudge uses review-before-send (`npm run test:journey:human-nudge-trust`, `npm run test:journey:viewport-declutter`).
 
 ## Documentation Map
 

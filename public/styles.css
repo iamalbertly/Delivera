@@ -11409,6 +11409,55 @@ body.jira-nudge-review-open { overflow: hidden; }
 .jira-activity-sym { font-size: 1.1rem; width: 2rem; }
 .jira-activity-preview { color: var(--muted-strong, #4a5d6e); max-width: 280px; }
 
+/* Viewport lean: work first, cockpit collapsed, header chrome in drawer */
+.current-sprint-viewport-lean .sprint-cockpit-column {
+  grid-column: 1 / -1;
+}
+.decision-cockpit-shell--viewport-lean {
+  margin-top: 4px;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.decision-cockpit-shell--viewport-lean .decision-cockpit-details:not([open]) .decision-metrics-row {
+  display: none;
+}
+.current-sprint-header-bar[data-viewport-lean="true"] .header-compact-strip .sprint-intervention-queue,
+.current-sprint-header-bar[data-viewport-lean="true"] .header-intelligence-strip,
+.current-sprint-header-bar[data-viewport-lean="true"] .header-action-shortlist {
+  display: none;
+}
+.header-drawer-intervention-section .sprint-intervention-queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.current-sprint-header-bar[data-viewport-lean="true"] .sprint-section-links-compact {
+  display: none;
+}
+.header-drawer-jump-section .sprint-section-links-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.header-role-modes-details {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 8px 8px;
+}
+.header-role-modes-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 8px 4px;
+  list-style: none;
+}
+.header-role-modes-details > summary::-webkit-details-marker {
+  display: none;
+}
+#stories-card {
+  scroll-margin-top: calc(var(--sticky-global-nav-top, 0px) + 72px);
+}
+
 
 /* todo-copy-map-and-tokens: align HUD header title with Current Sprint tokens */
 :root {
