@@ -1,21 +1,23 @@
 import dotenv from 'dotenv';
-import { logger } from './lib/Jira-Reporting-App-Server-Logging-Utility.js';
-import { authEnabled, superTokensEnabled } from './lib/middleware.js';
-import { createJiraReportingExpressCoreApp } from './lib/Jira-Reporting-App-Express-Core-App-Factory-Handler.js';
-import { appEnvConfig } from './lib/Jira-Reporting-App-Config-Env-Services-Core-SSOT.js';
+import { logger } from './lib/Delivera-Server-Logging-Utility.js';
+import { authEnabled, legacyAuthEnabled, superTokensEnabled } from './lib/middleware.js';
+import { createDeliveraExpressCoreApp } from './lib/Delivera-Express-Core-App-Factory-Handler.js';
+import { appEnvConfig } from './lib/Delivera-Config-Env-Services-Core-SSOT.js';
 
 dotenv.config();
+// Note: Delivera-Config-Env-Services-Core-SSOT already loads `<repo>/.env` from disk before reading vars.
 
 const PORT = appEnvConfig.port;
-const app = createJiraReportingExpressCoreApp({ port: PORT, enableBackgroundWorkers: true });
+const app = createDeliveraExpressCoreApp({ port: PORT, enableBackgroundWorkers: true });
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`VodaAgileBoard running on http://localhost:${PORT}`);
+  console.log(`Delivera running on http://localhost:${PORT}`);
   const accessMode = superTokensEnabled
     ? `auth at http://localhost:${PORT}/auth${legacyAuthEnabled ? ' (hybrid legacy + SuperTokens enabled)' : ''}`
     : (authEnabled ? 'login at / then /report' : `report at http://localhost:${PORT}/report`);
   console.log(`Access: ${accessMode}`);
+  console.log('API: POST /api/issues/:issueKey/comment (Current Sprint Jira nudge)');
 
   logger.info('Server started', { port: PORT });
 });

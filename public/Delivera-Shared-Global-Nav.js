@@ -22,11 +22,11 @@ const PRIMARY_NAV_KEYS = [PAGE_DASHBOARD, PAGE_SPRINTS, PAGE_REPORT, PAGE_RISKS,
 const MORE_NAV_KEYS = [PAGE_LEADERSHIP, PAGE_PI, PAGE_VALUE, PAGE_SETTINGS];
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
-  [PAGE_SPRINTS]: 'Sprint',
+  [PAGE_SPRINTS]: 'Current Sprint',
   [PAGE_REPORT]: 'Delivery',
   [PAGE_RISKS]: 'Risks',
   [PAGE_TEAMS]: 'Teams',
-  [PAGE_LEADERSHIP]: 'Leaders',
+  [PAGE_LEADERSHIP]: 'Leadership',
   [PAGE_PI]: 'PI Goals',
   [PAGE_VALUE]: 'Value Archive',
   [PAGE_SETTINGS]: 'Settings',
@@ -34,8 +34,8 @@ const NAV_LABELS = {
 const MOBILE_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
   [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_RISKS]: 'Risk',
-  [PAGE_REPORT]: 'Value',
+  [PAGE_RISKS]: 'Risks',
+  [PAGE_REPORT]: 'Delivery',
 };
 
 const NAV_ITEMS = [
@@ -474,6 +474,16 @@ function updateLeadershipBadgeFromPageState() {
 }
 
 let dataPulseBound = false;
+let sidebarFooterRefreshTimer = 0;
+
+function scheduleSidebarAlertFooterFromStore() {
+  if (sidebarFooterRefreshTimer) window.clearTimeout(sidebarFooterRefreshTimer);
+  sidebarFooterRefreshTimer = window.setTimeout(() => {
+    sidebarFooterRefreshTimer = 0;
+    updateSidebarAlertFooterFromStore();
+  }, 80);
+}
+
 function initDataPulseListener() {
   if (dataPulseBound) return;
   dataPulseBound = true;
@@ -487,9 +497,9 @@ function initDataPulseListener() {
   updateSidebarAlertFooterFromStore();
   window.addEventListener('storage', (event) => {
     if (event.key && event.key !== 'appNotificationsV1') return;
-    updateSidebarAlertFooterFromStore();
+    scheduleSidebarAlertFooterFromStore();
   });
-  window.addEventListener('app:notification-summary-updated', () => updateSidebarAlertFooterFromStore());
+  window.addEventListener('app:notification-summary-updated', () => scheduleSidebarAlertFooterFromStore());
   window.addEventListener('app:nav-rendered', () => updateLeadershipBadgeFromPageState());
   window.addEventListener('report-preview-shown', () => updateLeadershipBadgeFromPageState());
 }

@@ -1,5 +1,33 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { buildBasicNudgeText, buildGuidedNudgeText, getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
+import {
+  deriveUseCaseFromRiskTags,
+  getCurrentSprintPayload,
+  getCurrentSprintSummaryContext,
+  isSprintCommentSendAllowed,
+} from './Delivera-CurrentSprint-Action-Bridge.js';
+import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
+
+const FORMER_USER_PATTERN = /^former\s+user$/i;
+
+function isFormerUser(name) {
+  return FORMER_USER_PATTERN.test(String(name || '').trim());
+}
+
+function formatBlockedDuration(hoursInStatus) {
+  const h = Number(hoursInStatus || 0);
+  if (h <= 0) return '';
+  if (h < 24) return Math.round(h) + 'h blocked';
+  const days = Math.round(h / 24);
+  return days + 'd blocked';
+}
+
+function blockedDurationTone(hoursInStatus) {
+  const h = Number(hoursInStatus || 0);
+  if (h >= 336) return 'critical';  // 14+ days
+  if (h >= 168) return 'danger';    // 7+ days
+  if (h >= 72)  return 'warning';   // 3+ days
+  return 'caution';                 // 1-3 days
+}
 
 function ensurePreviewContainer() {
   let container = document.getElementById('current-sprint-issue-preview');
@@ -29,7 +57,8 @@ function buildPreviewHtml(targetRow, options = {}) {
 
   const summary = summaryCell ? (summaryCell.textContent || '').trim() : '';
   const status = statusCell ? (statusCell.textContent || '').trim() : '';
-  const assignee = assigneeCell ? (assigneeCell.textContent || '').trim() : '';
+  const assigneeRaw = assigneeCell ? (assigneeCell.textContent || '').trim() : '';
+  const assignee = /^[-–—]$/.test(assigneeRaw) ? '' : assigneeRaw;
   const reporter = reporterCell ? (reporterCell.textContent || '').trim() : '';
   const logged = hoursCell ? (hoursCell.textContent || '').trim() : '';
   const updated = updatedCell ? (updatedCell.textContent || '').trim() : '';
@@ -51,7 +80,7 @@ function buildPreviewHtml(targetRow, options = {}) {
     else html += '<span class="issue-preview-key">' + escapeHtml(key) + '</span>';
   }
   if (status) html += '<span class="issue-preview-status">' + escapeHtml(status) + '</span>';
-  html += '<button type="button" class="issue-preview-close" aria-label="Close issue details">x</button>';
+  html += '<button type="button" class="issue-preview-close" aria-label="Close issue details" title="Close (Esc)">&#10005;</button>';
   html += '</div>';
   if (summary) html += '<p class="issue-preview-summary">' + escapeHtml(summary) + '</p>';
   if (summaryContext?.header || summaryContext?.topAction) {
@@ -65,18 +94,46 @@ function buildPreviewHtml(targetRow, options = {}) {
   html += '<button type="button" class="issue-preview-back-link" data-issue-preview-action="back-to-table">Back to table</button>';
   html += '<button type="button" class="issue-preview-next-link" data-issue-preview-action="next-risk">Next risk</button>';
   html += '</div>';
+  const isOrphaned = isFormerUser(reporter) && (!assignee || isFormerUser(assignee));
+  const hoursInStatusRaw = Number(targetRow?.getAttribute('data-hours-in-status') || 0);
+  const blockedLabel = formatBlockedDuration(hoursInStatusRaw);
+  const blockedTone = blockedDurationTone(hoursInStatusRaw);
+
+  if (isOrphaned) {
+    html += '<div class="issue-preview-orphan-alert" role="alert" data-orphan-alert>'
+      + '<strong>No active owner</strong> — reporter is a deactivated account. Assign this ticket before sending.'
+      + '</div>';
+  }
+
   html += '<dl class="issue-preview-meta">';
-  if (assignee) html += '<div><dt>Assignee</dt><dd>' + escapeHtml(assignee) + '</dd></div>';
-  if (reporter) html += '<div><dt>Reporter</dt><dd>' + escapeHtml(reporter) + '</dd></div>';
+  if (assignee) {
+    html += '<div><dt>Assignee</dt><dd>' + escapeHtml(assignee) + '</dd></div>';
+  } else {
+    html += '<div><dt>Assignee</dt><dd class="issue-preview-missing" data-missing-assignee>No owner assigned</dd></div>';
+  }
+  if (reporter) html += '<div><dt>Reporter</dt><dd' + (isFormerUser(reporter) ? ' class="issue-preview-former-user" data-former-user' : '') + '>' + escapeHtml(reporter) + '</dd></div>';
   if (logged) html += '<div><dt>Logged</dt><dd>' + escapeHtml(logged) + '</dd></div>';
   if (updated) html += '<div><dt>Updated</dt><dd>' + escapeHtml(updated) + '</dd></div>';
+  if (blockedLabel) html += '<div><dt>Blocked</dt><dd class="issue-preview-blocked-duration issue-preview-blocked-' + escapeHtml(blockedTone) + '" data-blocked-duration>' + escapeHtml(blockedLabel) + '</dd></div>';
   html += '</dl>';
+
+  const payload = getCurrentSprintPayload();
+  const sendAllowed = isSprintCommentSendAllowed(payload?.meta, payload?.sprint) && !isOrphaned;
+
   if (url) {
     html += '<div class="issue-preview-actions">';
     html += '<a class="btn btn-secondary btn-compact" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Open in Jira</a>';
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-issue-preview-action="copy-link" data-url="' + escapeHtml(url) + '">Copy link</button>';
-    html += '<button type="button" class="btn btn-secondary btn-compact" data-issue-preview-action="copy-nudge" data-url="' + escapeHtml(url) + '" data-key="' + escapeHtml(key) + '" data-summary="' + escapeHtml(summary) + '" data-status="' + escapeHtml(status) + '">Copy basic nudge</button>';
-    html += '<button type="button" class="btn btn-primary btn-compact" data-issue-preview-action="copy-guided-nudge" data-url="' + escapeHtml(url) + '" data-key="' + escapeHtml(key) + '" data-summary="' + escapeHtml(summary) + '" data-status="' + escapeHtml(status) + '">Copy guided nudge</button>';
+    if (key) {
+      html += '<button type="button" class="btn btn-primary btn-compact" data-issue-preview-action="open-review-sheet"'
+        + ' data-url="' + escapeHtml(url) + '"'
+        + ' data-key="' + escapeHtml(key) + '"'
+        + ' data-summary="' + escapeHtml(summary) + '"'
+        + ' data-status="' + escapeHtml(status) + '"'
+        + ' data-risk-tags="' + escapeHtml(riskTags.join(' ')) + '"'
+        + ' data-hours-in-status="' + escapeHtml(String(hoursInStatusRaw || '')) + '"'
+        + (sendAllowed ? '' : ' disabled aria-disabled="true"')
+        + '>✏️ Review & send</button>';
+    }
     html += '</div>';
   }
   html += '</div>';
@@ -161,38 +218,27 @@ export function wireIssuePreviewHandlers() {
       return;
     }
 
-    const url = actionBtn.getAttribute('data-url') || '';
-    const key = actionBtn.getAttribute('data-key') || '';
-    const summary = actionBtn.getAttribute('data-summary') || '';
-    const status = actionBtn.getAttribute('data-status') || '';
-    let text = '';
-    if (action === 'copy-link') {
-      text = url;
-    } else if (action === 'copy-nudge') {
-      text = buildBasicNudgeText({
+    if (action === 'open-review-sheet' || action === 'toggle-send-composer') {
+      const url = actionBtn.getAttribute('data-url') || '';
+      const key = actionBtn.getAttribute('data-key') || '';
+      const summary = actionBtn.getAttribute('data-summary') || '';
+      const status = actionBtn.getAttribute('data-status') || '';
+      const riskTags = String(actionBtn.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+      const staleHours = Number(actionBtn.getAttribute('data-hours-in-status') || 0) || null;
+      const payload = getCurrentSprintPayload();
+      openJiraNudgeReviewSheet({
         issueKey: key,
         issueSummary: summary,
         issueStatus: status,
         issueUrl: url,
-        summaryContext: getCurrentSprintSummaryContext(),
+        useCase: deriveUseCaseFromRiskTags(riskTags),
+        staleHours,
+        readOnly: actionBtn.disabled || !isSprintCommentSendAllowed(payload?.meta, payload?.sprint),
+        meta: payload?.meta,
+        sprint: payload?.sprint,
       });
-    } else if (action === 'copy-guided-nudge') {
-      text = buildGuidedNudgeText({
-        issueKey: key,
-        issueSummary: summary,
-        issueStatus: status,
-        issueUrl: url,
-        summaryContext: getCurrentSprintSummaryContext(),
-      });
-    } else {
       return;
     }
-    try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-      const original = actionBtn.textContent;
-      actionBtn.textContent = 'Copied';
-      window.setTimeout(() => { actionBtn.textContent = original; }, 1200);
-    } catch (_) {}
   });
 
   document.addEventListener('keydown', (event) => {

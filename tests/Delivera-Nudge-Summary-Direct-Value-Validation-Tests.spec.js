@@ -36,12 +36,9 @@ test.describe('Delivera - Nudge and Summary direct-value bridge', () => {
     expect(result.context.topAction).toContain('Assign owner');
     expect(result.context.boardName).toBe('DMS board');
     expect(result.context.sprintName).toBe('FY26DMS21');
-    expect(result.nudge).toContain('[System guided nudge]');
     expect(result.nudge).toContain('SD-4768');
-    expect(result.nudge).toContain('Health signal');
-    expect(result.nudge).toContain('Risk signal');
-    expect(result.nudge).toContain('Recommended action now');
-    expect(result.nudge).toContain('https://jira.example/browse/SD-4768');
+    expect(result.nudge).not.toMatch(/\[System guided nudge\]/i);
+    expect(result.nudge.length).toBeLessThanOrEqual(280);
   });
 
   test('edge cases: summary bridge handles missing and noisy values without breaking output', async ({ page }) => {
@@ -70,9 +67,8 @@ test.describe('Delivera - Nudge and Summary direct-value bridge', () => {
     expect(result.context.scope).toBe('');
     expect(result.context.capacity).toBe('');
     expect(result.context.topAction.length).toBeGreaterThan(5);
-    expect(result.fallbackNudge).toContain('[System guided nudge]');
-    expect(result.fallbackNudge).toContain('Please review');
-    expect(result.fallbackNudge).toContain('status unknown');
+    expect(result.fallbackNudge).not.toMatch(/\[System guided nudge\]/i);
+    expect(result.fallbackNudge.length).toBeGreaterThan(5);
   });
 
   test('summary context persists and round-trips in session storage for journey continuity', async ({ page }) => {

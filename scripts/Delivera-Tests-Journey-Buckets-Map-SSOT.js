@@ -69,6 +69,31 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/current-sprint',
   },
+  'tests/Delivera-UX-19-DirectValue-Improvements-Validation-Tests.spec.js': {
+    journey: 'journey.current-sprint',
+    layer: 'page-ux',
+    page: '/current-sprint',
+  },
+  'tests/Delivera-Adaptive-Nudge-Role-EdgeCases-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.current-sprint',
+    layer: 'page-ux',
+    page: '/current-sprint',
+  },
+  'tests/Delivera-NoClick-Adaptive-Coaching-Validation-Tests.spec.js': {
+    journey: 'journey.current-sprint',
+    layer: 'page-ux',
+    page: '/current-sprint',
+  },
+  'tests/Delivera-CurrentSprint-HumanNudge-Review-Trust-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.human-nudge-trust',
+    layer: 'page-ux',
+    page: '/current-sprint,/settings',
+  },
+  'tests/Delivera-Nudge-Summary-Direct-Value-Validation-Tests.spec.js': {
+    journey: 'journey.human-nudge-trust',
+    layer: 'page-ux',
+    page: '/current-sprint',
+  },
   'tests/Delivera-Vodacom-Executive-Shell-And-Sprint-Cockpit-Validation-Tests.spec.js': {
     journey: 'journey.current-sprint',
     layer: 'page-ux',
@@ -471,6 +496,13 @@ export const journeyBuckets = {
     label: 'Full E2E Journeys & Deploy Smoke',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.e2e',
+    ),
+  },
+  'journey.human-nudge-trust': {
+    id: 'journey.human-nudge-trust',
+    label: 'Human nudge review, factual summary, Jira activity',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.human-nudge-trust',
     ),
   },
 };

@@ -1,3 +1,5 @@
+import { buildHumanNudgeDraft, shortenIssueSummary as shortenIssueSummaryHuman } from './Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js';
+
 const SUMMARY_CONTEXT_KEY = 'delivera.currentSprint.summaryContext.v1';
 const NUDGE_RATE_LIMIT_PREFIX = 'delivera.currentSprint.nudgeRateLimit.v1.';
 const SIMPLE_ENGLISH_KEY = 'delivera.simpleEnglishMode.v1';
@@ -40,7 +42,7 @@ function readCoachingLevel() {
     const raw = String(window.localStorage.getItem(COACHING_LEVEL_KEY) || '').trim().toLowerCase();
     if (raw === 'guide' || raw === 'assist' || raw === 'concise') return raw;
   } catch (_) {}
-  return 'assist';
+  return 'concise';
 }
 
 function deriveTopAction(summaryText, fallbackAction = '') {
@@ -77,18 +79,6 @@ function roleActionHint(roleMode) {
   if (roleMode === 'product-owner') return 'Confirm scope impact and decide keep, split, or defer.';
   if (roleMode === 'line-manager') return 'Close ownership gaps and align staffing for stuck work.';
   return 'Resolve the top risk with one clear owner and next step.';
-}
-
-function shortenIssueSummary(summaryText) {
-  const summary = asText(summaryText);
-  if (!summary) return 'Please review this issue';
-  const agileTemplatePattern = /^as a .*? i should be able to\s*/i;
-  const stripped = summary.replace(agileTemplatePattern, '');
-  const compact = stripped
-    .replace(/\s+/g, ' ')
-    .replace(/\s*\(to do\)\s*/ig, ' ')
-    .trim();
-  return truncate(compact || summary, 140);
 }
 
 function simplifyLine(line, simpleEnglishMode) {
@@ -140,6 +130,121 @@ function shouldSuppressNudge(issueKey, topAction) {
     sessionStorage.setItem(storageKey, String(now));
   } catch (_) {}
   return false;
+}
+
+export function shouldSuppressSend(issueKey, commentBody) {
+  return shouldSuppressNudge(issueKey, asText(commentBody).slice(0, 80));
+}
+
+export function isSprintCommentSendAllowed(meta = null, sprint = null) {
+  const snapshot = meta?.fromSnapshot === true;
+  const state = String(sprint?.state || '').toLowerCase();
+  if (snapshot) return false;
+  if (state && state !== 'active') return false;
+  return true;
+}
+
+export function buildCommentForUseCase({
+  useCase = '',
+  issueKey = '',
+  issueSummary = '',
+  issueStatus = '',
+  staleHours = null,
+} = {}) {
+  return buildHumanNudgeDraft({
+    useCase,
+    issueKey,
+    issueSummary,
+    issueStatus,
+    staleHours,
+  });
+}
+
+const STALE_SERVER_COMMENT_HINT =
+  'Comment API is missing on this server port — stop and restart npm run dev (or redeploy) so POST /api/issues/:key/comment is registered.';
+
+async function readCommentPostFailure(resp) {
+  const status = resp?.status || 0;
+  const contentType = asText(resp?.headers?.get?.('content-type') || '').toLowerCase();
+  let raw = '';
+  try {
+    raw = await resp.text();
+  } catch (_) {
+    raw = '';
+  }
+  const trimmed = asText(raw);
+  const looksLikeExpress404 =
+    status === 404
+    && (
+      /cannot\s+post\s+\/api\/issues/i.test(trimmed)
+      || (!contentType.includes('application/json') && trimmed.startsWith('<!'))
+    );
+  if (looksLikeExpress404) {
+    const err = new Error(STALE_SERVER_COMMENT_HINT);
+    err.code = 'API_ROUTE_MISSING';
+    err.httpStatus = status;
+    return err;
+  }
+  let errMsg = 'Failed to post comment';
+  if (contentType.includes('application/json') && trimmed) {
+    try {
+      const data = JSON.parse(trimmed);
+      errMsg = data?.error || data?.message || errMsg;
+    } catch (_) {}
+  } else if (trimmed && trimmed.length < 240) {
+    errMsg = trimmed;
+  }
+  const err = new Error(errMsg);
+  err.httpStatus = status;
+  if (status === 404) err.code = 'JIRA_COMMENT_FAILED';
+  return err;
+}
+
+export async function postIssueCommentToJira(issueKey, commentBody, options = {}) {
+  const key = asText(issueKey);
+  const body = asText(commentBody);
+  if (!key) throw new Error('Issue key is required.');
+  if (!body) throw new Error('Comment text is required.');
+  if (options.checkRateLimit !== false && shouldSuppressSend(key, body)) {
+    const err = new Error('Duplicate send suppressed recently; try again after ownership changes.');
+    err.code = 'SEND_RATE_LIMITED';
+    throw err;
+  }
+  const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000;
+  const ctrl = new AbortController();
+  const timeoutId = window.setTimeout(() => ctrl.abort(), timeoutMs);
+  let resp;
+  try {
+    resp = await fetch(`/api/issues/${encodeURIComponent(key)}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commentBody: body,
+        sprintId: options.sprintId ?? getCurrentSprintPayload()?.sprint?.id ?? '',
+        boardId: options.boardId ?? getCurrentSprintPayload()?.board?.id ?? '',
+      }),
+      signal: ctrl.signal,
+    });
+  } catch (fetchErr) {
+    if (fetchErr?.name === 'AbortError') {
+      const err = new Error('Comment request timed out — check network and Jira, then retry.');
+      err.code = 'SEND_TIMEOUT';
+      throw err;
+    }
+    throw fetchErr;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+  if (!resp.ok) {
+    throw await readCommentPostFailure(resp);
+  }
+  try {
+    const text = await resp.text();
+    if (!text) return { success: true };
+    return JSON.parse(text);
+  } catch (_) {
+    return { success: true };
+  }
 }
 
 export function buildSummaryContext({
@@ -203,83 +308,59 @@ export function getCurrentSprintSummaryContext() {
   }
 }
 
-export function buildGuidedNudgeText({
-  issueKey = '',
-  issueSummary = '',
-  issueStatus = '',
-  issueUrl = '',
-  summaryContext = null,
-} = {}) {
-  const key = asText(issueKey);
-  const summary = shortenIssueSummary(issueSummary);
-  const status = asText(issueStatus) || 'status unknown';
-  const url = asText(issueUrl);
-  const context = summaryContext && typeof summaryContext === 'object' ? summaryContext : null;
-  const roleMode = asText(context?.roleMode || '').toLowerCase() || readRoleMode();
-  const roleName = roleLabel(roleMode);
-  const simpleEnglishMode = context?.simpleEnglishMode !== false;
-  const coachingLevel = asText(context?.coachingLevel || '').toLowerCase() || 'assist';
-  const contextHeader = context?.header ? simplifyLine(`Sprint context: ${truncate(context.header, 240)}`, simpleEnglishMode) : '';
-  const contextHealth = context?.health ? simplifyLine(`Health signal: ${truncate(context.health, 220)}`, simpleEnglishMode) : '';
-  const contextRisk = context?.risks ? simplifyLine(`Risk signal: ${truncate(context.risks, 220)}`, simpleEnglishMode) : '';
-  const contextScope = context?.scope ? simplifyLine(`Scope signal: ${truncate(context.scope, 200)}`, simpleEnglishMode) : '';
-  const contextCapacity = context?.capacity ? simplifyLine(`Capacity signal: ${truncate(context.capacity, 200)}`, simpleEnglishMode) : '';
-  const action = context?.topAction
-    ? simplifyLine(`Recommended action now: ${truncate(context.topAction, 220)}`, simpleEnglishMode)
-    : simplifyLine(`Recommended action now: ${roleActionHint(roleMode)}`, simpleEnglishMode);
-  const evidenceBand = asText(context?.evidenceBand || '');
-  const confidence = evidenceBand === 'actionable'
-    ? 'Confidence: High'
-    : (evidenceBand === 'snapshot'
-      ? 'Confidence: Low (historical snapshot)'
-      : (evidenceBand === 'low' ? 'Confidence: Low (early evidence)' : 'Confidence: Medium'));
-  const opening = key
-    ? `[System guided nudge][${roleName}] ${key}: ${summary} (${status}).`
-    : `[System guided nudge][${roleName}] ${summary} (${status}).`;
-  const suppress = shouldSuppressNudge(key, context?.topAction || action);
-  const antiSpamNote = suppress ? 'Duplicate nudge suppressed recently; send only if ownership changed.' : '';
-  const doneCriteriaDetailed = simpleEnglishMode
-    ? 'Done: set owner + add next unblock step + update Jira state/time + check trend after action.'
-    : 'Done criteria: set owner + set next unblock step + update Jira state/time so trend can be validated after action.';
-  const doneCriteriaConcise = 'Done: owner set, next step set, Jira updated.';
-  const doneCriteria = coachingLevel === 'concise' ? doneCriteriaConcise : doneCriteriaDetailed;
-  const bodyParts = [
-    opening,
-    confidence,
-    action,
-    coachingLevel === 'guide' ? contextHeader : '',
-    coachingLevel !== 'concise' ? contextHealth : '',
-    coachingLevel !== 'concise' ? contextRisk : '',
-    coachingLevel === 'guide' ? contextScope : '',
-    coachingLevel === 'guide' ? contextCapacity : '',
-    doneCriteria,
-    antiSpamNote,
-    url,
-  ];
-  return bodyParts.filter(Boolean).join(' ');
+export function buildGuidedNudgeText(opts = {}) {
+  return buildHumanNudgeDraft({
+    issueKey: opts.issueKey,
+    issueSummary: opts.issueSummary,
+    issueStatus: opts.issueStatus,
+    useCase: 'ownership',
+    staleHours: opts.staleHours ?? null,
+  });
 }
 
-export function buildBasicNudgeText({
-  issueKey = '',
-  issueSummary = '',
-  issueStatus = '',
-  issueUrl = '',
-  summaryContext = null,
-} = {}) {
-  const key = asText(issueKey);
-  const summary = shortenIssueSummary(issueSummary);
-  const status = asText(issueStatus) || 'status unknown';
-  const context = summaryContext && typeof summaryContext === 'object' ? summaryContext : {};
-  const roleName = roleLabel(asText(context.roleMode || '').toLowerCase() || readRoleMode());
-  const simpleEnglishMode = context.simpleEnglishMode !== false;
-  const action = context?.topAction
-    ? truncate(context.topAction, 120)
-    : roleActionHint(asText(context.roleMode || '').toLowerCase() || readRoleMode());
-  const actionLine = simpleEnglishMode
-    ? `Do now: ${action}.`
-    : `Action now: ${action}.`;
-  const opening = key
-    ? `[System basic nudge][${roleName}] ${key}: ${summary} (${status}).`
-    : `[System basic nudge][${roleName}] ${summary} (${status}).`;
-  return [opening, actionLine, asText(issueUrl)].filter(Boolean).join(' ');
+export { shortenIssueSummaryHuman as shortenIssueSummary };
+
+export function buildBasicNudgeText(opts = {}) {
+  return buildHumanNudgeDraft({
+    issueKey: opts.issueKey,
+    issueSummary: opts.issueSummary,
+    issueStatus: opts.issueStatus,
+    useCase: 'ownership',
+  });
+}
+
+export function showSprintActionToast(message, tone = 'info') {
+  const text = asText(message);
+  if (!text) return;
+  const host = document.querySelector('.current-sprint-header-bar')
+    || document.getElementById('current-sprint-content')
+    || document.body;
+  if (!host) return;
+  const toast = document.createElement('div');
+  toast.className = 'header-action-toast';
+  toast.setAttribute('data-toast-tone', tone);
+  toast.setAttribute('role', 'status');
+  toast.textContent = text;
+  host.appendChild(toast);
+  window.setTimeout(() => {
+    try { toast.remove(); } catch (_) {}
+  }, tone === 'error' ? 5200 : 4200);
+}
+
+export function getCurrentSprintPayload() {
+  try {
+    return window.__deliveraCurrentSprintPayload || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+export function deriveUseCaseFromRiskTags(riskTags = []) {
+  const tags = Array.isArray(riskTags) ? riskTags : String(riskTags || '').split(/\s+/).filter(Boolean);
+  if (tags.includes('blocker')) return 'blocker';
+  if (tags.includes('no-log')) return 'no-log';
+  if (tags.includes('missing-estimate')) return 'missing-estimate';
+  if (tags.includes('unassigned')) return 'unassigned';
+  if (tags.includes('scope')) return 'scope';
+  return 'ownership';
 }

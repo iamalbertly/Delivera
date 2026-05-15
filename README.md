@@ -73,6 +73,7 @@ Detailed env matrix: [`docs/environment.md`](docs/environment.md)
 - Leadership journey: `npm run test:journey:leadership`
 - Outcome intake journey: `npm run test:journey:outcome-intake`
 - UX core journey: `npm run test:journey:ux-core`
+- Direct-value Jira send (Current Sprint): `npm run test:journey:direct-value-send`
 - Data integrity journey: `npm run test:journey:data-integrity`
 - Full E2E journey bucket: `npm run test:e2e:full`
 - Stop orchestration: `npm run test:all:stop`
@@ -87,6 +88,8 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 - Leadership confidence messaging now prioritizes stale/partial state clarity so trust risk is explicit before action.
 - Contrast/readability improvements were applied to report action status, context strips, sprint action chips, and leadership summary text.
 - New Playwright fail-fast validations were added for refresh trust, shortlist action rhythm, cross-surface freshness SSOT, duplicate UI regression, and mobile leadership first-viewport clarity.
+- Current Sprint can post guided nudges to Jira via `POST /api/issues/:issueKey/comment` (Send to Jira, top nudge, Take action). Restart the local server after pulling API changes — a stale process returns `Cannot POST /api/issues/.../comment`.
+- Focused direct-value + Jira send gate: `npm run test:journey:direct-value-send`
 
 ## Documentation Map
 

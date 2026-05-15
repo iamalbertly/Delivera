@@ -6,7 +6,13 @@ import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows, getUnifiedRisk
 import { hasOutcomeLabel, isOutcomeStoryLike } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 import { renderWorkRisksMerged } from './Delivera-CurrentSprint-Render-Subtasks.js';
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
-import { buildGuidedNudgeText, getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
+import {
+  deriveUseCaseFromRiskTags,
+  getCurrentSprintPayload,
+  isSprintCommentSendAllowed,
+  showSprintActionToast,
+} from './Delivera-CurrentSprint-Action-Bridge.js';
+import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import {
   buildDeliveredImpactBullets,
   deriveBusinessOutcome,
@@ -240,6 +246,10 @@ export function renderStories(data) {
   const stories = data.stories || [];
   const sprintState = String(data?.sprint?.state || '').toLowerCase();
   const isHistoricalSprint = sprintState && sprintState !== 'active';
+  // Build hoursInStatus lookup from stuckCandidates so table rows carry the duration attribute
+  const stuckHoursMap = new Map(
+    (data.stuckCandidates || []).map((c) => [String(c.issueKey || '').toUpperCase(), Number(c.hoursInStatus || 0)])
+  );
   const verdictInfo = deriveSprintVerdict(data);
   const scopeChanges = data.scopeChanges || [];
   const mergedRiskRows = buildMergedWorkRiskRows(data);
@@ -301,14 +311,23 @@ export function renderStories(data) {
     html += '<div class="section-inline-stats">' + storyStatChips.join('') + '</div>';
   }
   html += '</div>';
-  html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action shortcuts">';
-  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="blocker" title="Focus active blockers now">Unblock now (' + blockerKeys.size + ')</button>';
-  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="no-log" title="Focus estimated work with no logs">Logging gaps (' + noLogKeys.size + ')</button>';
-  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="missing-estimate" title="Focus work missing estimate baseline">Estimate gaps (' + missingEstimateKeys.size + ')</button>';
-  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="unassigned" title="Focus unowned work">Ownership gaps (' + parentUnassigned + ')</button>';
-  html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="scope" title="Focus scope added mid-sprint">Scope changes (' + scopeAddedKeys.size + ')</button>';
-  html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="copy-top-guided-nudge" title="Copy guided nudge for top visible risk without opening drawers">Copy top guided nudge</button>';
-  html += '</div>';
+  // Only render chips when count > 0 — zero-count chips are visual noise that erode trust
+  const hasAnyRisk = blockerKeys.size > 0 || noLogKeys.size > 0 || missingEstimateKeys.size > 0 || parentUnassigned > 0 || scopeAddedKeys.size > 0;
+  if (hasAnyRisk) {
+    html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action shortcuts">';
+    if (blockerKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="blocker" title="Focus active blockers now">Unblock now (' + blockerKeys.size + ')</button>';
+    if (noLogKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="no-log" title="Focus estimated work with no logs">Logging gaps (' + noLogKeys.size + ')</button>';
+    if (missingEstimateKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="missing-estimate" title="Focus work missing estimate baseline">Estimate gaps (' + missingEstimateKeys.size + ')</button>';
+    if (parentUnassigned > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="unassigned" title="Focus unowned work">Ownership gaps (' + parentUnassigned + ')</button>';
+    if (scopeAddedKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="scope" title="Focus scope added mid-sprint">Scope changes (' + scopeAddedKeys.size + ')</button>';
+    const topNudgeKey = blockerKeys.size > 0 ? Array.from(blockerKeys)[0] : (noLogKeys.size > 0 ? Array.from(noLogKeys)[0] : '');
+    const nudgeBtnLabel = topNudgeKey ? ('Nudge ' + topNudgeKey) : 'Send nudge to Jira';
+    const sendAllowed = isSprintCommentSendAllowed(data?.meta, data?.sprint);
+    html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="send-top-nudge-to-jira" title="Send guided nudge to top visible risk directly to Jira" data-send-top-nudge'
+      + (sendAllowed ? '' : ' disabled aria-disabled="true"')
+      + '>' + nudgeBtnLabel + '</button>';
+    html += '</div>';
+  }
   html += renderWorkRisksMerged(data);
 
   function mapRiskTagLabel(tag) {
@@ -334,32 +353,89 @@ export function renderStories(data) {
     return cardHtml;
   }
 
+  function formatBlockerAge(hoursInStatus) {
+    const h = Number(hoursInStatus || 0);
+    if (h <= 0) return 'Needs review now';
+    if (h < 24) return Math.round(h) + 'h blocked';
+    const days = Math.round(h / 24);
+    return days + 'd blocked';
+  }
+
+  function blockerAgeTone(hoursInStatus) {
+    const h = Number(hoursInStatus || 0);
+    if (h >= 336) return 'blocker-age-critical';  // 14+ days
+    if (h >= 168) return 'blocker-age-danger';     // 7+ days
+    if (h >= 72)  return 'blocker-age-warning';    // 3+ days
+    return 'blocker-age-caution';
+  }
+
+  function isFormerUserLabel(name) {
+    return /^former\s+user$/i.test(String(name || '').trim());
+  }
+
   function renderBlockersPanel() {
     if (!blockerPanelRows.length) {
-      return '<article class="sprint-blockers-panel"><div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>No hidden blockers</h3></div></div><p class="sprint-group-copy">No active blockers are hidden right now. Ownership and estimate gaps will appear here the moment they become a delivery risk.</p></article>';
+      return '<article class="sprint-blockers-panel"><div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>No active blockers</h3></div></div><p class="sprint-group-copy">No active blockers right now. Ownership and estimate gaps appear here the moment they become a delivery risk.</p></article>';
     }
     let panelHtml = '<article class="sprint-blockers-panel">';
-    panelHtml += '<div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>No hidden blockers</h3></div><span class="sprint-group-count">' + blockerPanelRows.length + ' visible</span></div>';
+    panelHtml += '<div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>Active blockers</h3></div><span class="sprint-group-count" data-blocker-count>' + blockerPanelRows.length + ' visible</span></div>';
     panelHtml += '<div class="sprint-blockers-list">';
     blockerPanelRows.forEach((row) => {
-      const owner = row.owner || row.assignee || row.reporter || 'Owner needed';
-      const ageLabel = Number(row.hoursInStatus || 0) > 0 ? Math.round(Number(row.hoursInStatus || 0)) + 'h blocked' : 'Needs review now';
-      const blockerCopy = row.riskType || 'Delivery risk requires intervention';
-      panelHtml += '<article class="sprint-blocker-row">';
-      panelHtml += '<div class="sprint-blocker-top"><strong>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + ' ' + escapeHtml(row.summary || '') + '</strong><span class="story-risk-pill story-risk-pill-compact">' + escapeHtml(blockerCopy) + '</span></div>';
-      panelHtml += '<p>' + escapeHtml(blockerCopy) + '</p>';
-      panelHtml += '<div class="sprint-blocker-meta"><span>Owner: ' + escapeHtml(owner) + '</span><span>' + escapeHtml(ageLabel) + '</span></div>';
+      const ownerRaw = row.owner || row.assignee || row.reporter || '';
+      const isOrphan = !ownerRaw || isFormerUserLabel(ownerRaw);
+      const ownerDisplay = isOrphan ? 'Owner needed' : ownerRaw;
+      const ageLabel = formatBlockerAge(row.hoursInStatus);
+      const ageTone = blockerAgeTone(row.hoursInStatus);
+      const isFormerRep = isFormerUserLabel(row.reporter);
+      panelHtml += '<article class="sprint-blocker-row' + (isOrphan ? ' sprint-blocker-row--orphan' : '') + '">';
+      if (isOrphan) {
+        panelHtml += '<div class="sprint-blocker-orphan-alert" data-blocker-orphan-alert>No active owner — deactivated account. Assign before escalating.</div>';
+      }
+      panelHtml += '<div class="sprint-blocker-top">'
+        + '<strong>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + ' ' + escapeHtml(row.summary || '') + '</strong>'
+        + '</div>';
+      panelHtml += '<div class="sprint-blocker-meta">'
+        + '<span class="sprint-blocker-owner' + (isOrphan ? ' sprint-blocker-owner--missing' : '') + '" data-blocker-owner>Owner: ' + escapeHtml(ownerDisplay) + '</span>'
+        + '<span class="sprint-blocker-age ' + escapeHtml(ageTone) + '" data-blocker-age>' + escapeHtml(ageLabel) + '</span>'
+        + (isFormerRep ? '<span class="sprint-blocker-former-reporter" data-former-reporter>Reporter deactivated</span>' : '')
+        + '</div>';
       panelHtml += '</article>';
     });
     panelHtml += '</div></article>';
     return panelHtml;
   }
 
+  function buildLiveConfidenceBrief() {
+    const doneCount = Number(data?.summary?.doneStories || 0);
+    const inProgressCount = stories.filter((s) => {
+      const st = String(s?.status || '').toLowerCase();
+      return st.includes('in progress') || st.includes('in-progress');
+    }).length;
+    const activeBlockers = blockerPanelRows.filter((r) => Array.isArray(r?.riskTags) && r.riskTags.includes('blocker')).length;
+    const remainingDaysBrief = data?.daysMeta?.daysRemainingWorking ?? data?.daysMeta?.daysRemainingCalendar;
+    const total = stories.length;
+    const daysStr = remainingDaysBrief != null ? remainingDaysBrief + 'd remaining' : '';
+    const confidence = (activeBlockers > 0 && remainingDaysBrief != null && remainingDaysBrief <= 2)
+      ? 'Low'
+      : (activeBlockers > 0 ? 'Medium' : 'Healthy');
+    const parts = [];
+    if (inProgressCount > 0) parts.push(inProgressCount + ' of ' + total + ' items in active development');
+    if (activeBlockers > 0) parts.push(activeBlockers + ' blocker' + (activeBlockers > 1 ? 's' : '') + ' unresolved');
+    if (daysStr) parts.push(daysStr);
+    parts.push('Delivery confidence: ' + confidence);
+    return parts.join('. ') + '.';
+  }
+
   function renderDeliveredSection() {
-    const bullets = deliveredBullets.length
-      ? deliveredBullets
-      : ['Delivered sprint outcomes will be translated into business language here as soon as work reaches Done.'];
-    return '<article class="sprint-delivered-panel"><div class="sprint-group-header"><div><p class="sprint-group-kicker">What Was Delivered This Sprint</p><h3>Leadership-ready outcome summary</h3></div></div><ul class="sprint-delivered-list">' + bullets.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></article>';
+    if (deliveredBullets.length) {
+      return '<article class="sprint-delivered-panel" data-delivered-panel><div class="sprint-group-header"><div><p class="sprint-group-kicker">What Was Delivered This Sprint</p><h3>Leadership-ready outcome summary</h3></div></div><ul class="sprint-delivered-list">' + deliveredBullets.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></article>';
+    }
+    const brief = buildLiveConfidenceBrief();
+    return '<article class="sprint-delivered-panel" data-delivered-panel data-confidence-brief>'
+      + '<div class="sprint-group-header"><div><p class="sprint-group-kicker">What Was Delivered This Sprint</p><h3>Sprint confidence brief</h3></div></div>'
+      + '<p class="sprint-confidence-brief" data-confidence-brief-text>' + escapeHtml(brief) + '</p>'
+      + '<p class="sprint-confidence-brief-note">Delivered outcomes will appear here as work reaches Done.</p>'
+      + '</article>';
   }
 
   function renderStoryValueCard(story) {
@@ -456,7 +532,7 @@ export function renderStories(data) {
     const outcomeLabels = Array.isArray(row.labels) ? row.labels : [];
     const isOutcome = isOutcomeStoryLike({ labels: outcomeLabels, epicKey: row.epicKey }) || hasOutcomeLabel(outcomeLabels);
     const parentStatus = String(row.status || '').toLowerCase();
-    const parentRowClasses = ['story-parent-row'];
+    const parentRowClasses = ['story-parent-row', 'work-risk-parent-row'];
     if (parentStatus.includes('done')) parentRowClasses.push('story-parent-row-done');
     let rowHtml = '<tr class="' + parentRowClasses.join(' ') + '" data-parent-key="' + escapeHtml(parentKey) + '"' + (subtasks.length ? ' data-has-children="true" aria-expanded="false"' : '') + '';
     if (completedDayKey) {
@@ -465,10 +541,14 @@ export function renderStories(data) {
     if (rowTags.length) {
       rowHtml += ' data-risk-tags="' + escapeHtml(rowTags.join(' ')) + '"';
     }
+    const rowHoursInStatus = stuckHoursMap.get(rowKey) || 0;
+    if (rowHoursInStatus > 0) {
+      rowHtml += ' data-hours-in-status="' + rowHoursInStatus + '"';
+    }
     rowHtml += '>';
     rowHtml += '<td>';
     if (subtasks.length) {
-      rowHtml += '<button type="button" class="story-row-toggle" aria-label="Expand subtasks" aria-expanded="false" title="Show subtasks">></button>';
+      rowHtml += '<button type="button" class="story-row-toggle" aria-label="Expand subtasks" aria-expanded="false" title="Show subtasks">&#9654;</button>';
     } else {
       rowHtml += '<span class="story-row-toggle story-row-toggle-placeholder" aria-hidden="true"></span>';
     }
@@ -499,7 +579,7 @@ export function renderStories(data) {
       const compactLabel = labels.length === 1 ? labels[0] : (labels.length + ' risks');
       rowHtml += '<span class="story-risk-pill story-risk-pill-compact" title="' + escapeHtml(labels.join(', ')) + '">' + escapeHtml(compactLabel) + '</span>';
     } else {
-      rowHtml += '<span class="story-risk-pill-empty" aria-hidden="true">-</span>';
+      rowHtml += '<span class="story-risk-pill-empty" aria-hidden="true"></span><span class="visually-hidden">No risk flags</span>';
     }
     rowHtml += '</td>';
     rowHtml += '</tr>';
@@ -844,8 +924,8 @@ export function wireDailyCompletionTimelineHandlers() {
       }
     });
 
-    card.addEventListener('click', async (event) => {
-      const quickNudge = event.target.closest('[data-action="copy-top-guided-nudge"]');
+    card.addEventListener('click', (event) => {
+      const quickNudge = event.target.closest('[data-action="send-top-nudge-to-jira"]');
       if (!quickNudge || !card.contains(quickNudge)) return;
       event.preventDefault();
       const candidateRows = getRows().filter((row) => {
@@ -861,19 +941,25 @@ export function wireDailyCompletionTimelineHandlers() {
       const summary = (topRow.querySelector('.story-summary-cell')?.textContent || '').trim();
       const status = (topRow.querySelector('.story-status-cell')?.textContent || '').trim();
       const url = topRow.querySelector('a[href*="/browse/"]')?.href || '';
-      const text = buildGuidedNudgeText({
+      if (!key) return;
+      const payload = getCurrentSprintPayload();
+      const readOnly = quickNudge.disabled || !isSprintCommentSendAllowed(payload?.meta, payload?.sprint);
+      if (readOnly) {
+        showSprintActionToast('Snapshot mode — switch to Live to comment in Jira.', 'error');
+      }
+      const staleHours = Number(topRow.getAttribute('data-hours-in-status') || 0) || null;
+      const riskTags = String(topRow.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+      openJiraNudgeReviewSheet({
         issueKey: key,
         issueSummary: summary,
         issueStatus: status,
         issueUrl: url,
-        summaryContext: getCurrentSprintSummaryContext(),
+        useCase: deriveUseCaseFromRiskTags(riskTags),
+        staleHours,
+        readOnly,
+        meta: payload?.meta,
+        sprint: payload?.sprint,
       });
-      try {
-        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-        const original = quickNudge.textContent;
-        quickNudge.textContent = 'Copied';
-        window.setTimeout(() => { quickNudge.textContent = original; }, 1200);
-      } catch (_) {}
     });
 
     card.addEventListener('click', (event) => {

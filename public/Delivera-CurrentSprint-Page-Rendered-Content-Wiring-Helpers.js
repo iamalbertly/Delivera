@@ -12,6 +12,7 @@ import { wireSubtasksShowMoreHandlers } from './Delivera-CurrentSprint-Render-Su
 import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers } from './Delivera-CurrentSprint-Render-Progress.js';
 import { wireExportHandlers } from './Delivera-CurrentSprint-Export-Dashboard.js';
 import { wireIssuePreviewHandlers } from './Delivera-CurrentSprint-Issue-Preview.js';
+import { initJiraNudgeReviewSheetGlobal } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import { wireDecisionCockpitHandlers } from './Delivera-CurrentSprint-Decision-Cockpit.js';
 import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
 import { markPerf } from './Delivera-Shared-Perf-Marks.js';
@@ -176,14 +177,15 @@ function wireNoClickJourneys() {
   if (window.__currentSprintNoClickJourneysBound) return;
   window.__currentSprintNoClickJourneysBound = true;
 
-  function openTopRiskPreviewIfNeeded() {
+  function highlightTopBlockerRow() {
     try {
-      const alreadyOpened = sessionStorage.getItem('delivera.currentSprint.topRiskPreviewOpened.v1') === '1';
-      if (alreadyOpened) return;
-      const row = document.querySelector('#work-risks-table tbody tr[data-risk-tags], #stories-table tbody tr[data-risk-tags]');
+      const alreadyDone = sessionStorage.getItem('delivera.currentSprint.topBlockerHighlight.v1') === '1';
+      if (alreadyDone) return;
+      const row = document.querySelector('#work-risks-table tbody tr[data-risk-tags*="blocker"], #stories-table tbody tr[data-risk-tags*="blocker"], #work-risks-table tbody tr[data-risk-tags], #stories-table tbody tr[data-risk-tags]');
       if (!row) return;
-      sessionStorage.setItem('delivera.currentSprint.topRiskPreviewOpened.v1', '1');
-      window.dispatchEvent(new CustomEvent('currentSprint:openIssuePreviewForRow', { detail: { row } }));
+      sessionStorage.setItem('delivera.currentSprint.topBlockerHighlight.v1', '1');
+      row.classList.add('issue-preview-source-row');
+      row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
     } catch (_) {}
   }
 
@@ -202,7 +204,7 @@ function wireNoClickJourneys() {
           copySummaryBtn.click();
         }
       } else if (event.key === 'g' || event.key === 'G') {
-        const quickNudgeBtn = document.querySelector('[data-action="copy-top-guided-nudge"]');
+        const quickNudgeBtn = document.querySelector('[data-send-top-nudge]');
         if (quickNudgeBtn) {
           event.preventDefault();
           quickNudgeBtn.click();
@@ -218,7 +220,7 @@ function wireNoClickJourneys() {
     });
   }
 
-  window.setTimeout(openTopRiskPreviewIfNeeded, 260);
+  window.setTimeout(highlightTopBlockerRow, 260);
   wireKeyboardShortcuts();
 }
 
@@ -237,6 +239,7 @@ export function appendCurrentSprintLoginLink(errorEl) {
 function wireRenderedContent(data, onSelectSprintById) {
   try {
     window.currentSprintScrollToTarget = scrollToCurrentSprintTarget;
+    window.__deliveraCurrentSprintPayload = data;
   } catch (_) {}
   const summary = updateNotificationStore(data);
   renderNotificationDock({ summary, pageContext: 'current-sprint' });
@@ -250,6 +253,7 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireDailyCompletionTimelineHandlers();
   wireSprintCarouselHandlers((sprintId) => onSelectSprintById(sprintId));
   wireExportHandlers(data);
+  initJiraNudgeReviewSheetGlobal();
   wireIssuePreviewHandlers();
   wireDecisionCockpitHandlers();
   wireSummaryActionBridge();

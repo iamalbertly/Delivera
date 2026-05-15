@@ -14,6 +14,14 @@ import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Delivera
 import { renderHealthDashboard, buildEvidenceLine } from './Delivera-CurrentSprint-Health-Dashboard.js';
 import { getContextPieces, renderContextSegments } from './Delivera-Shared-Context-From-Storage.js';
 import {
+  deriveUseCaseFromRiskTags,
+  getCurrentSprintPayload,
+  getCurrentSprintSummaryContext,
+  isSprintCommentSendAllowed,
+  showSprintActionToast,
+} from './Delivera-CurrentSprint-Action-Bridge.js';
+import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
+import {
   SPRINT_COPY,
   formatSprintRemainingLabel,
   formatFreshnessAgeLabel,
@@ -99,16 +107,22 @@ function computeDoneDeltaVsPriorClosed(data, currentPct) {
 /** Role lens presets: secondary strip below verdict/context (plan todo-header-role-strip). */
 function renderHeaderRoleModesRow(roleViews) {
   if (!Array.isArray(roleViews) || !roleViews.length) return '';
-  const pills = roleViews.map((item) => {
+  const pillsArray = roleViews.map((item) => {
     const mode = String(item.roleMode || '').trim();
     const label = String(item.label || '').trim();
     if (!mode) return '';
     return '<button type="button" class="role-mode-pill" data-work-risk-role-mode="' + escapeHtml(mode) + '" data-role-mode="' + escapeHtml(mode) + '" aria-pressed="false">' + escapeHtml(label) + '</button>';
-  }).filter(Boolean).join('');
-  if (!pills) return '';
+  }).filter(Boolean);
+  if (!pillsArray.length) return '';
+  // If many pills, show first 4 and collapse the rest into a "more" list to reduce clutter.
+  const visible = pillsArray.slice(0, 4).join('');
+  const hidden = pillsArray.slice(4).join('');
+  const moreCount = Math.max(0, pillsArray.length - 4);
+  const moreHtml = moreCount > 0 ? ('<button type="button" class="role-mode-more" data-action="show-more-roles" aria-expanded="false">+' + String(moreCount) + '</button>') : '';
+  const hiddenWrapper = moreCount > 0 ? ('<div class="role-mode-more-list" style="display:none">' + hidden + '</div>') : '';
   return '<div class="header-role-modes-row" data-strip="role-lens" role="group" aria-label="' + escapeHtml(SPRINT_COPY.ariaViewAsRole) + '">'
     + '<span class="header-role-modes-label">' + escapeHtml(SPRINT_COPY.viewAsLabel) + '</span>'
-    + '<div class="header-role-modes" data-header-lens-select="true">' + pills + '</div>'
+    + '<div class="header-role-modes" data-header-lens-select="true">' + visible + moreHtml + hiddenWrapper + '</div>'
     + '</div>';
 }
 
@@ -405,13 +419,18 @@ export function renderHeaderBar(data, options = {}) {
   });
   if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
   html += '</div>';
-  html += '<div class="header-drawer-meta" title="' + escapeHtml(statusSummary) + '">';
-  html += '<span class="header-hygiene-followup" data-signal="hygiene" title="' + escapeHtml(SPRINT_COPY.drawerHygieneTitle) + '">'
-    + '<span class="header-hygiene-followup-label">' + escapeHtml(SPRINT_COPY.hygieneLabel) + '</span>'
-    + '<span class="header-hygiene-followup-value">' + escapeHtml(followUpSummary) + '</span>'
-    + '</span>';
-  html += '<span class="header-remediation-hint" data-signal="risk-followup" title="' + escapeHtml(verdictInfo.trackingReasons || '') + '">' + escapeHtml(verdictInfo.topRemediation || '') + '</span>';
-  html += '</div>';
+  // Drawer meta is rendered conditionally below (to avoid duplicate context when headerContextStripHtml exists).
+  // If the main header already renders a context strip, avoid duplicating scope/meta inside the drawer.
+  // This prevents repeated project/freshness lines and reduces visual clutter when the header is already descriptive.
+  if (!headerContextStripHtml) {
+    html += '<div class="header-drawer-meta" title="' + escapeHtml(statusSummary) + '">';
+    html += '<span class="header-hygiene-followup" data-signal="hygiene" title="' + escapeHtml(SPRINT_COPY.drawerHygieneTitle) + '">'
+      + '<span class="header-hygiene-followup-label">' + escapeHtml(SPRINT_COPY.hygieneLabel) + '</span>'
+      + '<span class="header-hygiene-followup-value">' + escapeHtml(followUpSummary) + '</span>'
+      + '</span>';
+    html += '<span class="header-remediation-hint" data-signal="risk-followup" title="' + escapeHtml(verdictInfo.trackingReasons || '') + '">' + escapeHtml(verdictInfo.topRemediation || '') + '</span>';
+    html += '</div>';
+  }
   if (isLoadingShell) {
     html += '<div class="header-drawer-section">';
     html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.jumpTo) + '</div>';
@@ -451,16 +470,29 @@ export function renderHeaderBar(data, options = {}) {
       .filter(Boolean)
       .join(' | ');
     const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
-    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation">' + escapeHtml(SPRINT_COPY.takeAction) + '</button>';
-    html += '<span class="visually-hidden">Create work</span>';
+    const topBlockerKey = data?.stuckCandidates?.[0]?.issueKey || '';
+    const takeActionLabel = topBlockerKey
+      ? ('Unblock ' + topBlockerKey)
+      : SPRINT_COPY.takeAction;
+    const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
+    const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
+    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
+      + (sendAllowed ? '' : ' disabled aria-disabled="true"')
+      + ' title="' + escapeHtml(takeActionTitle) + '">' + escapeHtml(takeActionLabel) + '</button>';
     if (primaryTags) {
       html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">' + escapeHtml(SPRINT_COPY.focusRisk(primaryIntervention.label || SPRINT_COPY.focusRiskFallback)) + '</button>';
     }
-    // Legacy compatibility: keep intervention queue semantics for validation selectors.
+    // Dynamic intervention queue: render actual risk counts, not static labels.
     html += '<div class="sprint-intervention-queue" aria-label="Intervention queue">';
-    html += '<span class="sprint-intervention-item"><span class="metric-label">Your blockers now</span></span>';
-    html += '<span class="sprint-intervention-item"><span class="metric-label">Missing estimates</span></span>';
-    html += '<span class="sprint-intervention-item"><span class="metric-label">Ownership gaps</span></span>';
+    if (stuckCount > 0) {
+      html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.blockersCount(stuckCount)) + '</span></span>';
+    }
+    if (missingEstimates > 0) {
+      html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.missingEstCount(missingEstimates)) + '</span></span>';
+    }
+    if (unassignedParents > 0) {
+      html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.unownedCount(unassignedParents)) + ' unowned</span></span>';
+    }
     html += '</div>';
     html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span></span>';
   } else {
@@ -469,7 +501,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   if (hasPriorityInterventions) {
     html += '<div class="header-action-shortlist" aria-label="Top intervention shortlist">';
-    compactStripInterventions.slice(0, 3).forEach((item, index) => {
+    compactStripInterventions.slice(0, 2).forEach((item, index) => {
       const tags = Array.isArray(item.riskTags) ? item.riskTags.join(' ') : '';
       const label = String(item.label || SPRINT_COPY.focusRiskFallback).trim();
       html += '<button type="button" class="header-action-shortlist-item"'
@@ -482,18 +514,21 @@ export function renderHeaderBar(data, options = {}) {
     });
     html += '</div>';
   }
-  html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
-  html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(capacityTone) + '" data-header-insight="capacity">';
-  html += '<span class="header-intelligence-eyebrow">Now</span>';
-  html += '<span class="header-intelligence-title">' + escapeHtml(capacityTitle) + '</span>';
-  html += '<span class="header-intelligence-detail">' + escapeHtml(capacityDetail) + '</span>';
-  html += '</div>';
-  html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(edgeStateAttr === 'low-confidence' ? 'warning' : 'neutral') + '" data-header-insight="evidence">';
-  html += '<span class="header-intelligence-eyebrow">Trust</span>';
-  html += '<span class="header-intelligence-title">' + escapeHtml(verdictInfo.trustLabel || exportReadiness) + '</span>';
-  html += '<span class="header-intelligence-detail">' + escapeHtml(evidenceDetail) + '</span>';
-  html += '</div>';
-  html += '</div>';
+  // Avoid large empty intelligence strip when there are no issues (reduces vertical clutter on empty sprints)
+  if (issuesCount > 0) {
+    html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
+    html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(capacityTone) + '" data-header-insight="capacity">';
+    html += '<span class="header-intelligence-eyebrow">Now</span>';
+    html += '<span class="header-intelligence-title">' + escapeHtml(capacityTitle) + '</span>';
+    html += '<span class="header-intelligence-detail">' + escapeHtml(capacityDetail) + '</span>';
+    html += '</div>';
+    html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(edgeStateAttr === 'low-confidence' ? 'warning' : 'neutral') + '" data-header-insight="evidence">';
+    html += '<span class="header-intelligence-eyebrow">Trust</span>';
+    html += '<span class="header-intelligence-title">' + escapeHtml(verdictInfo.trustLabel || exportReadiness) + '</span>';
+    html += '<span class="header-intelligence-detail">' + escapeHtml(evidenceDetail) + '</span>';
+    html += '</div>';
+    html += '</div>';
+  }
   if (sectionLinksHtml && !isLoadingShell) {
     html += sectionLinksHtml;
   }
@@ -516,6 +551,13 @@ export function wireHeaderBarHandlers() {
   const headerBar = document.querySelector('#current-sprint-content .current-sprint-header-bar')
     || document.querySelector('.current-sprint-header-bar');
   if (!headerBar) return;
+  // Remove duplicate header bars if multiple instances rendered (dedupe visual chrome)
+  try {
+    const headerBarsAll = Array.from(document.querySelectorAll('#current-sprint-content .current-sprint-header-bar, .current-sprint-header-bar'));
+    if (headerBarsAll.length > 1) {
+      headerBarsAll.slice(1).forEach((hb) => { try { hb.remove(); } catch (_) {} });
+    }
+  } catch (_) {}
   if (headerBar.dataset.headerBarHandlersWired === '1') return;
   headerBar.dataset.headerBarHandlersWired = '1';
 
@@ -579,6 +621,42 @@ export function wireHeaderBarHandlers() {
     if (event) event.preventDefault();
     const focusRemediation = el.closest?.('[data-header-action="focus-remediation"]');
     if (focusRemediation) {
+      if (focusRemediation.disabled) {
+        showSprintActionToast(SPRINT_COPY.historical, 'error');
+        return true;
+      }
+      try {
+        const row = document.querySelector('#work-risks-table tbody .work-risk-parent-row, #stories-table tbody tr[data-issue-key], #stuck-card tbody tr[data-issue-key]');
+        if (row) {
+          const link = row.querySelector('a[href*="/browse/"]');
+          const key = link ? (link.textContent || '').trim() : (row.getAttribute('data-issue-key') || '');
+          const url = link ? link.href : '';
+          const summaryCell = row.querySelector('.story-summary-cell, td.subtask-child-summary, td[data-label="Summary"]');
+          const statusCell = row.querySelector('.story-status-cell, td[data-label="Status"]');
+          const summary = summaryCell ? (summaryCell.textContent || '').trim() : '';
+          const status = statusCell ? (statusCell.textContent || '').trim() : '';
+          if (key) {
+            const payload = getCurrentSprintPayload();
+            const riskTags = String(row.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+            const staleHours = Number(row.getAttribute('data-hours-in-status') || 0) || null;
+            openJiraNudgeReviewSheet({
+              issueKey: key,
+              issueSummary: summary,
+              issueStatus: status,
+              issueUrl: url,
+              useCase: deriveUseCaseFromRiskTags(riskTags),
+              staleHours,
+              readOnly: !isSprintCommentSendAllowed(payload?.meta, payload?.sprint),
+              meta: payload?.meta,
+              sprint: payload?.sprint,
+            });
+            row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+            return true;
+          }
+        }
+      } catch (err) {
+        showSprintActionToast(err?.message || 'Could not post comment.', 'error');
+      }
       applyHeaderRiskAction(['no-log', 'missing-estimate', 'unassigned', 'blocker'], 'header-take-action');
       return true;
     }
@@ -630,6 +708,20 @@ export function wireHeaderBarHandlers() {
       if (!el) return;
       const bar = el.closest('.current-sprint-header-bar');
       if (!bar) return;
+      const showMore = el.closest('[data-action="show-more-roles"]');
+      if (showMore && bar.contains(showMore)) {
+        event.preventDefault();
+        try {
+          const parent = showMore.closest('.header-role-modes');
+          if (parent) {
+            const list = parent.querySelector('.role-mode-more-list');
+            const expanded = showMore.getAttribute('aria-expanded') === 'true';
+            showMore.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            if (list) list.style.display = expanded ? 'none' : 'block';
+          }
+        } catch (_) {}
+        return;
+      }
       const leadershipLink = el.closest('[data-header-action="open-leadership-trend"]');
       if (leadershipLink && bar.contains(leadershipLink)) {
         try {
@@ -642,6 +734,16 @@ export function wireHeaderBarHandlers() {
         } catch (_) {}
       }
       if (handleInterventionClick(el, event)) {
+        return;
+      }
+
+      const remediationSecondary = el.closest('[data-header-action="focus-remediation-secondary"]');
+      if (remediationSecondary && bar.contains(remediationSecondary)) {
+        event.preventDefault();
+        applyHeaderRiskAction(['blocker', 'no-log', 'missing-estimate', 'unassigned'], 'header-remediation-queue');
+        const scrollTarget = document.getElementById('stuck-card') || document.getElementById('stories-card');
+        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(scrollTarget);
+        else scrollTarget?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
         return;
       }
 

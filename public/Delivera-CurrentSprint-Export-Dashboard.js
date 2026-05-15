@@ -190,12 +190,14 @@ export async function buildSprintSummaryModel(data, options = {}) {
   const storyLevelTimeRisk = getStoryLevelTimeRisk(stories);
   const closedSprintCount = Number(board.closedSprintCount || meta.closedSprintCount || meta.closedSprintTotal || 0);
   const limitedHistory = closedSprintCount > 0 && closedSprintCount < 3;
-  const justStarting = totalStories <= 1 || (pctDone === 0 && recentSubtaskMovement === 0 && logHrs === 0);
+  const { deriveSprintPhase, buildHealthLineForPhase } = await import('./Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js');
+  const phaseInfo = deriveSprintPhase(data);
+  const justStarting = phaseInfo.justStarting;
 
   const isHistorical = String(sprint.state || '').toLowerCase() !== 'active' || Boolean(meta.fromSnapshot);
   const verdict = limitedHistory
     ? 'Limited history / low-confidence signals'
-    : (justStarting ? 'Sprint just starting / evidence not formed yet' : (verdictInfo.verdict || 'Sprint'));
+    : (justStarting ? phaseInfo.label : (verdictInfo.verdict || phaseInfo.label || 'Sprint'));
   const hasTrackableSignals = totalStories > 0 || trackingRows.length > 0 || estHrs > 0 || logHrs > 0 || scopeChanges.length > 0 || stuck.length > 0;
   const hasRiskEvidence = blockersCount > 0 || inProgressLike(stuck).length > 0 || unownedOutcomes > 0 || missingEstimate > 0 || missingLogged > 0;
 
@@ -214,12 +216,9 @@ export async function buildSprintSummaryModel(data, options = {}) {
       `Historical snapshot - read only${dateRangeLabel ? ` (${dateRangeLabel})` : ''}. ${pctDone}% done, ${doneStories}/${totalStories} stories.`,
     );
   } else if (justStarting) {
-    const justStartedHealth = hasRiskEvidence
-      ? `Early risk detected while sprint evidence is still forming${remainingDays != null && remainingDays > 0 ? ` (next check in ${remainingDays}d)` : ''}.`
-      : `Sprint just started - no risks yet, next check-in ${remainingDays != null && remainingDays > 0 ? `in ${remainingDays}d` : 'soon'}.`;
     pushSummaryLine(
       model.sections.health,
-      justStartedHealth,
+      buildHealthLineForPhase(phaseInfo, data),
       { isBold: true },
     );
   } else {
@@ -765,8 +764,10 @@ async function copyDashboardSummary(data, btn) {
   const originalText = btn?.textContent || '';
   setButtonStatus(btn, 'Copying...', null, true);
   try {
+    const { renderStandupQuickCopyText } = await import('./Delivera-CurrentSprint-Summary-02Standup-QuickCopy-01Renderer.js');
+    const standupText = renderStandupQuickCopyText(data);
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
-    const text = renderSummaryModelToQuickClipboard(model);
+    const text = standupText || renderSummaryModelToQuickClipboard(model);
     const html = renderSummaryModelToQuickClipboardHtml(model);
     const primaryAction = (Array.isArray(model?.sections?.actions) && model.sections.actions[0]?.text)
       ? String(model.sections.actions[0].text)

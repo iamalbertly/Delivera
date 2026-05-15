@@ -28,6 +28,14 @@ import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
 import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
 import { buildJiraIssueUrl, escapeHtml } from '../lib/Delivera-Server-Url-And-Escape-Helpers.js';
+import { postIssueComment } from '../lib/Delivera-Jira-Issue-Comment-Post-Service.js';
+import {
+    appendJiraActivityEntry,
+    readJiraActivityEntries,
+    findJiraActivityEntry,
+    updateJiraActivityEntry,
+} from '../lib/Delivera-Data-JiraActivity-01AuditLog-IO.js';
+import { undoJiraComment } from '../lib/Delivera-Data-JiraActivity-02CommentUndo-01Service.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -213,6 +221,107 @@ function formatJiraValidationMessage(error) {
         .filter(Boolean);
     return [...errorMessages, ...formattedFieldErrors].join(' | ') || error?.message || 'Jira rejected the issue payload.';
 }
+
+// One-tap comment endpoint used by the UI to post guided nudges to Jira issues
+router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
+    try {
+        const issueKey = String(req.params.issueKey || '').trim();
+        const commentBody = typeof req.body?.commentBody === 'string' ? String(req.body.commentBody).trim() : '';
+        if (!issueKey) return res.status(400).json({ error: 'Missing issue key', code: 'MISSING_ISSUE_KEY' });
+        if (!commentBody) return res.status(400).json({ error: 'Missing comment body', code: 'MISSING_COMMENT_BODY' });
+
+        const version3Client = createVersion3Client();
+        let result = null;
+        try {
+            result = await postIssueComment(version3Client, issueKey, commentBody);
+        } catch (err) {
+            logger.warn('Jira comment failed', { issueKey, error: err?.message });
+            const httpStatus = err?.httpStatus || err?.response?.status || err?.status || 500;
+            const errMsg = err?.message || 'Failed to post comment';
+            const code = err?.code || 'JIRA_COMMENT_FAILED';
+            return res.status(httpStatus >= 400 && httpStatus < 600 ? httpStatus : 500).json({ error: errMsg, code });
+        }
+
+        let activityId = null;
+        try {
+            const commentId = result?.id || result?.commentId || null;
+            const activityRow = await appendJiraActivityEntry({
+                user: req.user?.id || req.user?.email || 'unknown',
+                issueKey,
+                commentId,
+                bodyPreview: commentBody,
+                sprintId: req.body?.sprintId,
+                boardId: req.body?.boardId,
+                status: 'sent',
+            });
+            activityId = activityRow?.id || null;
+        } catch (auditErr) {
+            logger.warn('Jira activity audit append failed', { issueKey, error: auditErr?.message });
+        }
+
+        return res.json({
+            success: true,
+            comment: result || null,
+            commentId: result?.id || result?.commentId || null,
+            activityId,
+            auditId: activityId,
+        });
+    } catch (error) {
+        logger.error('Comment endpoint error', { error: error?.message });
+        const httpStatus = error?.response?.status || error?.status || 500;
+        const errMsg = error?.response?.data?.errorMessages?.[0] || error?.message || 'Failed to post comment';
+        return res.status(httpStatus >= 400 && httpStatus < 600 ? httpStatus : 500).json({ error: errMsg, code: 'JIRA_COMMENT_FAILED' });
+    }
+});
+
+router.get('/api/jira-activity', requireAuth, async (req, res) => {
+    try {
+        const limit = Math.min(100, Math.max(1, Number(req.query?.limit) || 50));
+        const entries = await readJiraActivityEntries({ limit });
+        return res.json({ entries });
+    } catch (error) {
+        logger.error('Jira activity list failed', { error: error?.message });
+        return res.status(500).json({ error: 'Failed to load activity', code: 'JIRA_ACTIVITY_READ_FAILED' });
+    }
+});
+
+router.post('/api/jira-activity/:id/undo', requireAuth, async (req, res) => {
+    try {
+        const id = String(req.params.id || '').trim();
+        if (!id) return res.status(400).json({ error: 'Missing activity id', code: 'MISSING_ACTIVITY_ID' });
+        const entry = await findJiraActivityEntry(id);
+        if (!entry) return res.status(404).json({ error: 'Activity not found', code: 'ACTIVITY_NOT_FOUND' });
+        if (entry.status === 'undone') {
+            return res.json({ success: true, entry, alreadyUndone: true });
+        }
+        if (!entry.commentId) {
+            return res.status(422).json({
+                error: 'No Jira comment id stored — open the issue in Jira to edit manually.',
+                code: 'UNDO_NO_COMMENT_ID',
+            });
+        }
+        const version3Client = createVersion3Client();
+        try {
+            await undoJiraComment(version3Client, entry.issueKey, entry.commentId);
+        } catch (err) {
+            const httpStatus = err?.httpStatus || 500;
+            await updateJiraActivityEntry(id, {
+                status: 'undo_failed',
+                undoReason: err?.message || 'Jira undo failed',
+            });
+            return res.status(httpStatus >= 400 && httpStatus < 600 ? httpStatus : 500).json({
+                error: err?.message || 'Could not undo in Jira',
+                code: err?.code || 'JIRA_UNDO_FAILED',
+            });
+        }
+        const updated = await updateJiraActivityEntry(id, { status: 'undone', undoReason: '' });
+        return res.json({ success: true, entry: updated });
+    } catch (error) {
+        logger.error('Jira activity undo failed', { error: error?.message });
+        return res.status(500).json({ error: 'Undo failed', code: 'JIRA_ACTIVITY_UNDO_FAILED' });
+    }
+});
+
 
 function buildOutcomeHttpError({ status = 422, code = 'OUTCOME_CREATE_FAILED', message, details = null }) {
     const error = new Error(message || 'Outcome creation failed');
