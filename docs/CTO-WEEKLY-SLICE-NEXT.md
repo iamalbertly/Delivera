@@ -21,7 +21,7 @@ Full orchestration and the focused dedupe-fold gate both enforce **CSS SSOT** be
 ## Baseline / verify commands (PowerShell)
 
 ```powershell
-Set-Location C:\Shared\Projects\Jira
+Set-Location C:\Shared\Projects\Delivera
 npm run build:css
 npm run test:current-sprint:dedupe-fold
 ```
@@ -30,4 +30,4 @@ npm run test:current-sprint:dedupe-fold
 
 Append to `C:\Shared\Projects\VALUE_PROOF_LEDGER.md` (Vodacom Impact Engine).
 
-**Scope contract:** `C:\Shared\Projects\REUSE_RADAR.md` Jira must-win line.
+**Scope contract:** `C:\Shared\Projects\REUSE_RADAR.md` Delivera must-win line.

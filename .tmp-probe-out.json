@@ -1,0 +1,58 @@
+﻿{
+  "state": {
+    "url": "http://127.0.0.1:3003/current-sprint?boardId=9&sprintId=7723",
+    "hasHeader": true,
+    "hasSendNudge": true,
+    "hasTakeAction": false
+  },
+  "clickResults": [
+    {
+      "label": "Take action",
+      "selector": "[data-header-action=\"focus-remediation\"]",
+      "status": "not_visible"
+    },
+    {
+      "label": "Send nudge to Jira",
+      "selector": "[data-action=\"send-top-nudge-to-jira\"]",
+      "status": "clicked"
+    },
+    {
+      "label": "Unblock now chip",
+      "selector": ".stories-risk-chip[data-risk-tags=\"blocker\"]",
+      "status": "clicked"
+    },
+    {
+      "label": "Export default",
+      "selector": ".export-dashboard-btn.export-default-action",
+      "status": "clicked"
+    },
+    {
+      "label": "Open view drawer",
+      "selector": ".header-view-drawer summary",
+      "status": "clicked"
+    },
+    {
+      "label": "Remediation secondary",
+      "selector": "[data-header-action=\"focus-remediation-secondary\"]",
+      "status": "not_visible"
+    },
+    {
+      "label": "Shortlist",
+      "selector": "[data-header-action=\"focus-remediation-shortlist\"]",
+      "status": "clicked"
+    },
+    {
+      "label": "Send to Jira toggle",
+      "selector": "[data-issue-preview-action=\"toggle-send-composer\"]",
+      "status": "clicked"
+    },
+    {
+      "label": "Send comment",
+      "selector": "[data-issue-preview-action=\"confirm-send-to-jira\"]",
+      "status": "clicked"
+    }
+  ],
+  "networkFails": [],
+  "consoleLogs": [],
+  "pageErrors": []
+}

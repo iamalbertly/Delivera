@@ -1,7 +1,7 @@
 import {
   REPORT_LAST_VIEW_KEY,
   REPORT_NAMED_VIEWS_KEY,
-} from './Reporting-App-Shared-Storage-Keys.js';
+} from './Delivera-Shared-Storage-Keys.js';
 
 const DEFAULT_REPORT_VIEWS = [
   {

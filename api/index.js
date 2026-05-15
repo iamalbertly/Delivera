@@ -1,7 +1,7 @@
-import { createJiraReportingExpressCoreApp } from '../lib/Jira-Reporting-App-Express-Core-App-Factory-Handler.js';
-import { appEnvConfig } from '../lib/Jira-Reporting-App-Config-Env-Services-Core-SSOT.js';
+import { createDeliveraExpressCoreApp } from '../lib/Delivera-Express-Core-App-Factory-Handler.js';
+import { appEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 
-const app = createJiraReportingExpressCoreApp({
+const app = createDeliveraExpressCoreApp({
   port: appEnvConfig.port,
   enableBackgroundWorkers: false,
 });

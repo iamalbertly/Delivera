@@ -1,8 +1,8 @@
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { buildCsvFilename, getDateRangeLabel, getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { generateCSVClient } from './Reporting-App-Report-Utils-Data-Helpers.js';
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { buildCsvFilename, getDateRangeLabel, getSafeMeta } from './Delivera-Report-Page-Render-Helpers.js';
+import { generateCSVClient } from './Delivera-Report-Utils-Data-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 export function validateCSVColumns(columns, rows) {
   if (!Array.isArray(columns) || columns.length === 0) return false;
@@ -110,7 +110,7 @@ export async function exportCSV(rows, type, columns) {
   if (!validateCSVColumns(columns, rows)) return;
 
   const dateRange = await getDateRangeLabel(meta.windowStart, meta.windowEnd);
-  const filename = buildCsvFilename('voda-agile-board', meta, type, dateRange);
+  const filename = buildCsvFilename('delivera', meta, type, dateRange);
 
   try {
     const csv = generateCSVClient(columns, rows);

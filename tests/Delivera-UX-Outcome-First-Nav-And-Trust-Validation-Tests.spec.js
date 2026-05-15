@@ -6,13 +6,13 @@
  * Uses captureBrowserTelemetry and assertTelemetryClean; fails on UI or logcat issues.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,
   waitForPreview,
   assertTelemetryClean,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('UX Outcome-First Nav And Trust', () => {
   test('Report – Default tab is Done Stories', async ({ page }) => {

@@ -16,10 +16,14 @@ import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Param
 import { reportState } from './Delivera-Report-Page-State.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
-const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
+export const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
 const CONTEXT_SEPARATOR = ' | ';
 const DATE_RANGE_SEPARATOR = ' - ';
 const CONTEXT_LABEL_ORDER = ['Last', 'Projects', 'Range', 'Freshness', 'Context'];
+const LEGACY_LAST_QUERY_KEY = 'last_query';
+const LEGACY_REPORT_LAST_RUN_KEY = 'report_last_run';
+const LEGACY_REPORT_LAST_META_KEY = 'report_last_meta';
+const LEGACY_REPORT_FILTERS_STALE_KEY = 'report_filters_stale';
 
 function parseDate(s) {
   if (typeof s !== 'string' || !s.trim()) return null;
@@ -37,7 +41,8 @@ function isValidRange(start, end) {
 function getFiltersStaleFlag() {
   try {
     if (typeof sessionStorage === 'undefined') return false;
-    return sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1';
+    return sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1'
+      || sessionStorage.getItem(LEGACY_REPORT_FILTERS_STALE_KEY) === '1';
   } catch (_) {
     return false;
   }
@@ -49,7 +54,7 @@ function getFiltersStaleFlag() {
  */
 export function getValidLastQuery() {
   try {
-    const raw = localStorage.getItem(LAST_QUERY_KEY);
+    const raw = localStorage.getItem(LAST_QUERY_KEY) || localStorage.getItem(LEGACY_LAST_QUERY_KEY);
     if (!raw || !raw.trim()) return null;
     const data = JSON.parse(raw);
     const projects = typeof data?.projects === 'string' ? data.projects.trim() : '';
@@ -232,7 +237,9 @@ export function renderContextSegments(pieces, options = {}) {
  */
 function getLastRunSummary() {
   try {
-    const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(REPORT_LAST_RUN_KEY) : null;
+    const raw = typeof sessionStorage !== 'undefined'
+      ? (sessionStorage.getItem(REPORT_LAST_RUN_KEY) || sessionStorage.getItem(LEGACY_REPORT_LAST_RUN_KEY))
+      : null;
     if (!raw || !raw.trim()) return null;
     const obj = JSON.parse(raw);
     const stories = typeof obj.doneStories === 'number' ? obj.doneStories : null;
@@ -254,7 +261,7 @@ function getLastRunSummary() {
 export function getLastMetaFreshnessInfo() {
   try {
     if (typeof sessionStorage === 'undefined') return { label: null, isStale: false };
-    const raw = sessionStorage.getItem(REPORT_LAST_META_KEY);
+    const raw = sessionStorage.getItem(REPORT_LAST_META_KEY) || sessionStorage.getItem(LEGACY_REPORT_LAST_META_KEY);
     if (!raw || !raw.trim()) return { label: null, isStale: false };
     const obj = JSON.parse(raw);
     const generatedAt = typeof obj?.generatedAt === 'string' ? obj.generatedAt.trim() : '';
@@ -271,6 +278,30 @@ export function getLastMetaFreshnessInfo() {
     return { label: isStale ? 'Older snapshot — refresh when ready' : `Updated ${hours}h ago`, isStale };
   } catch (_) {
     return { label: null, isStale: false };
+  }
+}
+
+/**
+ * Single SSOT mapping for report data state badges used across chrome surfaces.
+ * Returns { label, kind } or null.
+ */
+export function getContextStateBadgeInfo() {
+  try {
+    if (typeof sessionStorage === 'undefined') return null;
+    const raw = sessionStorage.getItem(REPORT_LAST_META_KEY) || sessionStorage.getItem(LEGACY_REPORT_LAST_META_KEY);
+    if (!raw || !raw.trim()) return null;
+    const meta = JSON.parse(raw);
+    const isPartial = meta?.partial === true;
+    const isClosest = meta?.reducedScope === true;
+    const isCached = meta?.fromCache === true && !isPartial && !isClosest;
+    const isLive = !isCached && !isPartial && !isClosest;
+    if (isPartial) return { label: 'Partial', kind: 'partial' };
+    if (isClosest) return { label: 'Closest', kind: 'closest' };
+    if (isCached) return { label: 'Cached', kind: 'cached' };
+    if (isLive) return { label: 'Live', kind: 'live' };
+    return null;
+  } catch (_) {
+    return null;
   }
 }
 

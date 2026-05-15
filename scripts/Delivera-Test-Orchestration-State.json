@@ -1,0 +1,17 @@
+{
+  "pid": 34072,
+  "startedAt": 1778170424829,
+  "mode": "last-failed-only",
+  "totalAvailableSteps": 9,
+  "selectedStepsCount": 1,
+  "stepNames": [
+    "Run UX Core Journeys (Navigation, Trust, Responsiveness)"
+  ],
+  "completedStepNames": [],
+  "lastStartedStepName": "Run UX Core Journeys (Navigation, Trust, Responsiveness)",
+  "finished": true,
+  "cancelled": false,
+  "failed": true,
+  "currentStepIndex": 0,
+  "errorMessage": "Step Run UX Core Journeys (Navigation, Trust, Responsiveness) failed with exit code 1"
+}

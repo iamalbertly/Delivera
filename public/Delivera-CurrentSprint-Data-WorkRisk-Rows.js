@@ -1,6 +1,6 @@
 /**
  * Build merged work-risk rows from current sprint data (scope changes, stuck, subtasks, stories).
- * Used by Reporting-App-CurrentSprint-Render-Subtasks.js.
+ * Used by Delivera-CurrentSprint-Render-Subtasks.js.
  */
 import {
   normalizePerson,
@@ -8,7 +8,7 @@ import {
   isFlowStatus,
   hasOwnershipSignals,
   isOwnedBlockerCandidate,
-} from './Reporting-App-Shared-Outcome-Risk-Semantics.js';
+} from './Delivera-Shared-Outcome-Risk-Semantics.js';
 
 const WORK_RISK_ROWS_CACHE_KEY = '__workRiskRowsCache';
 
@@ -268,6 +268,48 @@ export function getUnifiedUnownedOutcomeCount(data) {
     keys.add(key);
   }
   return keys.size;
+}
+
+/**
+ * Build distinct sprint filter views for risk-chip navigation and story tag mapping.
+ * Returns:
+ *   distinctRiskViews — ordered array of { label, riskTags } for filter chip buttons
+ *   storyTagMap       — Map<issueKey, riskTags[]> for per-story tag lookup
+ */
+export function buildDistinctSprintFilterViews(data, verdictInfo) {
+  const rows = buildMergedWorkRiskRows(data);
+
+  // Build storyTagMap: issueKey -> union of riskTags from all rows for that key
+  const storyTagMap = new Map();
+  for (const row of rows) {
+    const key = String(row?.issueKey || row?.key || '').trim().toUpperCase();
+    if (!key || key === '-') continue;
+    const existing = storyTagMap.get(key) || [];
+    const merged = Array.from(new Set([...existing, ...(row.riskTags || [])]));
+    storyTagMap.set(key, merged);
+  }
+
+  // Collect which risk tag groups are actually present in the data
+  const present = new Set();
+  for (const tags of storyTagMap.values()) {
+    for (const t of tags) present.add(t);
+  }
+
+  // Define ordered view groups (highest priority first, max 5 shown, UI slices to 3)
+  const VIEW_DEFS = [
+    { label: 'Blockers',          riskTags: ['blocker'] },
+    { label: 'Stuck in flow',     riskTags: ['parent-flow', 'subtask-flow'] },
+    { label: 'Missing estimates', riskTags: ['missing-estimate'] },
+    { label: 'No log yet',        riskTags: ['no-log'] },
+    { label: 'Scope added',       riskTags: ['scope'] },
+    { label: 'Unassigned',        riskTags: ['unassigned'] },
+  ];
+
+  const distinctRiskViews = VIEW_DEFS.filter((def) =>
+    def.riskTags.some((t) => present.has(t))
+  );
+
+  return { distinctRiskViews, storyTagMap };
 }
 
 export function getUnifiedRiskCounts(data) {

@@ -1,8 +1,8 @@
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { renderEmptyState, getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { sortSprintsLatestFirst } from './Reporting-App-Report-Page-Sorting.js';
-import { formatDateForDisplay, formatNumber, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { renderEmptyState, getSafeMeta } from './Delivera-Report-Page-Render-Helpers.js';
+import { sortSprintsLatestFirst } from './Delivera-Report-Page-Sorting.js';
+import { formatDateForDisplay, formatNumber, formatPercent } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 function computeSprintTimeTotals(rows) {
   const totals = new Map();
@@ -252,5 +252,5 @@ export function renderSprintsTab(sprints, metrics) {
 
   html += '</tbody></table></div>';
   content.innerHTML = html;
-  try { import('./Reporting-App-Shared-Dom-Escape-Helpers.js').then(({ addTitleForTruncatedCells }) => addTitleForTruncatedCells('#tab-sprints table.data-table th, #tab-sprints table.data-table td')).catch(() => {}); } catch (e) {}
+  try { import('./Delivera-Shared-Dom-Escape-Helpers.js').then(({ addTitleForTruncatedCells }) => addTitleForTruncatedCells('#tab-sprints table.data-table th, #tab-sprints table.data-table td')).catch(() => {}); } catch (e) {}
 } 

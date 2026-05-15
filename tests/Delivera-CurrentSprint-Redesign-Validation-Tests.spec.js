@@ -1,6 +1,6 @@
 /**
  * SIZE-EXEMPT: Cohesive E2E spec for Current Sprint redesign (11 UI components); splitting would duplicate setup and reduce clarity.
- * Jira Reporting App - Current Sprint Redesign Validation Test Suite
+ * Delivera - Current Sprint Redesign Validation Test Suite
  * Comprehensive tests for all 11 new UI components:
  * 1. Fixed Header Bar
  * 2. Unified Health Dashboard
@@ -23,7 +23,7 @@
  * Tests validate: functionality, performance, accessibility, responsiveness, error handling
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 // Base configuration
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
@@ -212,13 +212,19 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
   });
 
   test('Validation 3.2: Command center provides direct blocker filter affordance', async ({ page }) => {
-    const blockerPill = page.locator('.sprint-verdict-line .verdict-pill', { hasText: /blockers/i }).first();
-    const noRiskPill = page.locator('.sprint-verdict-line .verdict-pill-muted').first();
+    const headerBar = page.locator('.current-sprint-header-bar').first();
+    const lean = (await headerBar.getAttribute('data-viewport-lean')) === 'true';
+    if (lean) {
+      await headerBar.locator('details.header-view-drawer').evaluate((el) => { el.open = true; });
+    }
+    const blockerPill = page.locator('.verdict-pill[data-risk-tags*="blocker"], .sprint-intervention-item-primary').first();
+    const missionBriefing = page.locator('.sprint-mission-briefing').first();
     const hasBlockerPill = await blockerPill.isVisible().catch(() => false);
-    const hasNoRiskPill = await noRiskPill.isVisible().catch(() => false);
-    expect(hasBlockerPill || hasNoRiskPill).toBeTruthy();
+    const hasBriefing = await missionBriefing.isVisible().catch(() => false);
+    expect(hasBlockerPill || hasBriefing).toBeTruthy();
     if (hasBlockerPill) {
-      await expect(blockerPill).toHaveAttribute('data-risk-tags', /blocker/);
+      const tags = await blockerPill.getAttribute('data-risk-tags');
+      if (tags) await expect(blockerPill).toHaveAttribute('data-risk-tags', /blocker/);
     }
   });
 

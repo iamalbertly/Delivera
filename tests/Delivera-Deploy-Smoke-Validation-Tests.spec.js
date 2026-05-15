@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 const testUser = process.env.TEST_LOGIN_USER || process.env.APP_LOGIN_USER || '';
 const testPass = process.env.TEST_LOGIN_PASSWORD || process.env.APP_LOGIN_PASSWORD || '';
@@ -11,7 +11,7 @@ function captureConsoleErrors(page) {
   return errors;
 }
 
-test.describe('VodaAgileBoard – Deploy Smoke Tests', () => {
+test.describe('Delivera – Deploy Smoke Tests', () => {
   test('core sprint report flow works on current BASE_URL', async ({ page }) => {
     test.setTimeout(300000);
     const consoleErrors = captureConsoleErrors(page);
@@ -34,12 +34,17 @@ test.describe('VodaAgileBoard – Deploy Smoke Tests', () => {
       }
     }
 
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
     await expect(page.locator('#preview-btn')).toBeVisible();
     await expect(page.locator('#project-mpsa')).toBeVisible();
     await expect(page.locator('#project-mas')).toBeVisible();
 
-    await page.click('#preview-btn');
+    await page.click('#preview-btn').catch(async () => {
+      await page.evaluate(() => {
+        const btn = document.getElementById('preview-btn');
+        if (btn && !btn.hasAttribute('disabled')) btn.click();
+      });
+    });
 
     await Promise.race([
       page.waitForSelector('#loading', { state: 'visible', timeout: 10000 }).catch(() => null),

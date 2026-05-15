@@ -1,4 +1,4 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 export function getOutlierEpics(epicRows, thresholdWorkingDays = 90) {
   const rows = Array.isArray(epicRows) ? epicRows : [];

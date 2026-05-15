@@ -1,6 +1,6 @@
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { clickReportPreviewFromCurrentState, ensureReportFiltersVisible, getReportExportButtonState } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { clickReportPreviewFromCurrentState, ensureReportFiltersVisible, getReportExportButtonState } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Growth & Velocity Plan Validation', () => {
 
@@ -22,7 +22,7 @@ test.describe('Growth & Velocity Plan Validation', () => {
         if (!hasLegacyHud) {
             // Current flow routes leadership to report trends.
             await expect(page).toHaveURL(/\/report|\/leadership/);
-            await expect(page.locator('h1')).toContainText(/General Performance|Leadership/i);
+            await expect(page.locator('h1')).toContainText(/Delivery|General Performance|Leadership/i);
             return;
         }
         const connectionText = ((await connectionStatus.textContent().catch(() => '')) || '').trim();
@@ -85,12 +85,11 @@ test.describe('Growth & Velocity Plan Validation', () => {
             }
         } else {
             const exportState = await getReportExportButtonState(page);
-            await expect(exportExcelBtn).toBeVisible();
-            const enabled = exportState.enabled;
-            if (enabled) {
+            if (exportState.visible) {
+                await expect(exportExcelBtn).toBeVisible();
                 await expect(exportExcelBtn).toContainText(/Export|Share/i);
             } else {
-                await expect(exportExcelBtn).toBeDisabled();
+                await expect(exportExcelBtn).toBeHidden();
             }
         }
     });

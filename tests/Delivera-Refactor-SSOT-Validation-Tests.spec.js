@@ -4,8 +4,8 @@
  * CSV/Excel column consistency, and no console errors during preview/export flow.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, waitForPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, waitForPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const BOARD_COLUMN_ORDER = [
   'Board', 'Projects', 'Sprints', 'Sprint Days', 'Avg Sprint Days',
@@ -16,7 +16,7 @@ const BOARD_COLUMN_ORDER = [
   'Assumed Capacity (PD)', 'Assumed Waste %', 'Sprint Window', 'Latest End',
 ];
 
-test.describe('Jira Reporting App - Refactor SSOT Validation Tests', () => {
+test.describe('Delivera - Refactor SSOT Validation Tests', () => {
   const getBoardsTable = (page) => page.locator('#project-epic-level-content table.data-table').first();
   const expandBoardsAdvancedColumns = async (page) => {
     const toggle = page.locator('#boards-columns-toggle');

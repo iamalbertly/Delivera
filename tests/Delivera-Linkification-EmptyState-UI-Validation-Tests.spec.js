@@ -4,10 +4,10 @@
  * fails on UI mismatch or console/request errors.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, waitForPreview, captureBrowserTelemetry, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, waitForPreview, captureBrowserTelemetry, skipIfRedirectedToLogin, ensureReportFiltersVisible } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-test.describe('Jira Reporting App - Linkification and Empty-state UI Validation', () => {
+test.describe('Delivera - Linkification and Empty-state UI Validation', () => {
   test('report Done Stories: issue keys are links when rows exist', async ({ page }) => {
     test.setTimeout(180000);
     const telemetry = captureBrowserTelemetry(page);
@@ -37,11 +37,23 @@ test.describe('Jira Reporting App - Linkification and Empty-state UI Validation'
     test.setTimeout(180000);
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
-    await page.check('#project-mpsa');
-    await page.uncheck('#project-mas');
-    await page.fill('#start-date', '2025-07-01T00:00');
-    await page.fill('#end-date', '2025-09-30T23:59');
-    await page.click('#preview-btn');
+    await ensureReportFiltersVisible(page);
+    await page.evaluate(() => {
+      const setProjectChecked = (id, checked) => {
+        const input = document.getElementById(id);
+        if (!(input instanceof HTMLInputElement)) return;
+        input.checked = checked;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      setProjectChecked('project-mpsa', true);
+      setProjectChecked('project-mas', false);
+    });
+    await expect(page.locator('#project-mpsa')).toBeChecked();
+    await expect(page.locator('#project-mas')).not.toBeChecked();
+    await page.fill('#start-date', '2025-07-01T00:00', { force: true });
+    await page.fill('#end-date', '2025-09-30T23:59', { force: true });
+    await page.click('#preview-btn', { force: true });
     await Promise.race([
       page.waitForSelector('#preview-content', { state: 'visible', timeout: 120000 }).catch(() => null),
       page.waitForSelector('#error', { state: 'visible', timeout: 120000 }).catch(() => null),
@@ -88,7 +100,7 @@ test.describe('Jira Reporting App - Linkification and Empty-state UI Validation'
 
     await expect(page.locator('h1')).toContainText('Current Sprint');
     await expect(page.locator('#board-select')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Report|High-Level Performance/i);
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Delivery|Report|High-Level Performance/i);
 
     expect(telemetry.consoleErrors).toEqual([]);
     expect(telemetry.pageErrors).toEqual([]);
@@ -180,13 +192,13 @@ test.describe('Jira Reporting App - Linkification and Empty-state UI Validation'
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     if (page.url().includes('/report')) {
-      await expect(page.locator('h1')).toContainText(/General Performance|Sprint Leadership/i);
+      await expect(page.locator('h1')).toContainText(/Delivery|General Performance|Sprint Leadership/i);
       await expect(page.locator('#preview-btn')).toBeVisible();
       await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a[href="/current-sprint"]')).toContainText(/Current Sprint/i);
     } else {
-      await expect(page.locator('h1')).toContainText('Sprint Leadership');
-      await expect(page.locator('#leadership-preview')).toBeVisible();
-      await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Report|High-Level Performance/i);
+      await expect(page.locator('h1')).toContainText(/Leadership|Delivery|Sprint Leadership|Performance - Leadership trends/i);
+      await expect(page.locator('header button:has-text("Refresh"), [data-action="retry-leadership-preview"]').first()).toBeVisible();
+      await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Delivery|Report|High-Level Performance/i);
       await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a[href="/current-sprint"]')).toContainText('Current Sprint');
     }
 

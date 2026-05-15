@@ -329,7 +329,7 @@ body.report-page .tab-btn {
   body.report-page,
   body.hud-mode {
     background: linear-gradient(180deg, #170f10 0%, #120c0d 100%);
-    color: #f8eded;
+    color: #581a1a;
   }
 
   .surface-hero-card,
@@ -343,7 +343,7 @@ body.report-page .tab-btn {
   .surface-list li,
   .surface-context-segment-value,
   .report-executive-card h3 {
-    color: #fff6f6;
+    color: #581a1a;
   }
 
   .surface-lead,

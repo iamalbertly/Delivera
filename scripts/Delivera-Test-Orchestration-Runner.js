@@ -101,10 +101,14 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
     let args = step.args || [];
     const timestamp = () => new Date().toISOString();
     let heartbeat = null;
+    let cancelWatcher = null;
     if (process.env.TEST_LAST_FAILED === '1' || process.env.TEST_LAST_FAILED === 'true') {
       const isPlaywright = step.command === 'npx' && args.some(a => a === 'playwright');
       if (isPlaywright && !args.includes('--last-failed')) {
-        args = [...args, '--last-failed', '--pass-with-no-tests'];
+        args = [...args, '--last-failed'];
+        if (!args.includes('--pass-with-no-tests')) {
+          args = [...args, '--pass-with-no-tests'];
+        }
       }
     }
     {
@@ -124,6 +128,10 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
     console.log(`${'='.repeat(60)}`);
     console.log(`Command: ${step.command} ${args.join(' ')}`);
     console.log(`Working Directory: ${step.cwd}`);
+    const specPath = getSpecPathFromStep(step);
+    if (specPath) {
+      console.log(`Primary Spec/Journey Contract: ${specPath}`);
+    }
     console.log(`${'='.repeat(60)}\n`);
 
     const proc = spawn(step.command, args, {
@@ -137,9 +145,19 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
       const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
       console.log(`[${timestamp()}] RUNNING Step ${stepIndex + 1}/${totalSteps} (${step.name}) - ${elapsedSec}s elapsed`);
     }, 60000);
+    cancelWatcher = setInterval(() => {
+      try {
+        if (!fs.existsSync(cancelFilePath)) return;
+        console.log(`[${timestamp()}] CANCEL requested. Stopping active step: ${step.name}`);
+        proc.kill('SIGTERM');
+      } catch (_) {
+        // best effort
+      }
+    }, 2000);
 
     proc.on('close', (code) => {
       if (heartbeat) clearInterval(heartbeat);
+      if (cancelWatcher) clearInterval(cancelWatcher);
       if (code !== 0) {
         const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1);
         console.error(`\n${'='.repeat(60)}`);
@@ -155,6 +173,7 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
 
     proc.on('error', (error) => {
       if (heartbeat) clearInterval(heartbeat);
+      if (cancelWatcher) clearInterval(cancelWatcher);
       console.error(`\n${'='.repeat(60)}`);
       console.error(`[${timestamp()}] ERROR: Failed to start step ${stepIndex + 1} (${step.name})`);
       console.error(`Error: ${error.message}`);
@@ -162,6 +181,19 @@ function runStep(step, stepIndex, totalSteps, envOverrides = {}) {
       reject(error);
     });
   });
+}
+
+function extractSpecPathsFromStepArgs(step) {
+  try {
+    if (!step || step.command !== 'npx' || !Array.isArray(step.args) || !step.args.includes('playwright')) return [];
+    const paths = step.args
+      .map((arg) => String(arg || '').trim())
+      .filter((arg) => /(^tests\/.+\.spec\.js$)|(^tests\\.+\.spec\.js$)/i.test(arg))
+      .map((arg) => arg.replace(/\\/g, '/'));
+    return Array.from(new Set(paths));
+  } catch (_) {
+    return [];
+  }
 }
 
 function loadLastFailedSpecs() {
@@ -237,7 +269,8 @@ async function runAllTests() {
     // ignore
   }
 
-  const fullRun = process.env.FULL === '1' || process.env.FULL === 'true';
+  const impactedOnly = process.env.IMPACTED_ONLY === '1' || process.env.IMPACTED_ONLY === 'true';
+  const fullRun = !impactedOnly;
   const disableLastFailed = process.env.DISABLE_LAST_FAILED === '1' || process.env.DISABLE_LAST_FAILED === 'true';
 
   // Determine changed files via git (best-effort).
@@ -313,6 +346,11 @@ async function runAllTests() {
   });
 
   const stepsToRun = selection.steps;
+  if (!fullRun && stepsToRun.length === 0) {
+    console.error('[ERROR] Impacted-only selection resolved to zero steps. Failing to avoid false green.');
+    console.error('[ERROR] Re-run with FULL=1 npm run test:all or set IMPACTED_ONLY=0.\n');
+    process.exit(1);
+  }
 
   summaryState.startedAt = Date.now();
   summaryState.totalAvailableSteps = steps.length;
@@ -343,12 +381,15 @@ async function runAllTests() {
   console.log(`  Last-failed specs: ${selection.info.lastFailedCount}`);
   console.log(`  Impacted specs: ${selection.info.impactedCount}`);
   console.log(`  Smoke specs used: ${selection.info.smokeCount}\n`);
+  if (fullRun) {
+    console.log('[INFO] Full regression is the default for npm run test:all. Use IMPACTED_ONLY=1 npm run test:all for changed-only debugging.\n');
+  }
   if (!fullRun && selection.info.selectedCount < selection.info.totalSteps) {
     const skipped = selection.info.totalSteps - selection.info.selectedCount;
-    console.log(`[INFO] Skipping ${skipped} steps unrelated to current changes. Set FULL=1 to run full regression.`);
+    console.log(`[INFO] Skipping ${skipped} steps unrelated to current changes. Run npm run test:all without IMPACTED_ONLY=1 for the full regression.`);
   }
   if (!fullRun && !disableLastFailed) {
-    console.log('[INFO] TEST_LAST_FAILED is applied implicitly. Use DISABLE_LAST_FAILED=1 to turn this off for debugging.\n');
+    console.log('[INFO] TEST_LAST_FAILED is applied implicitly with --pass-with-no-tests to avoid false-red empty-last-failed runs. Use DISABLE_LAST_FAILED=1 to turn this off for debugging.\n');
   }
 
   let manualServer = null;
@@ -484,9 +525,12 @@ async function runAllTests() {
     console.error('='.repeat(60));
     console.error(`Error: ${error.message}\n`);
     if (lastStartedStep) {
-      const failingSpec = getSpecPathFromStep(lastStartedStep);
-      if (failingSpec) {
-        saveLastFailedSpecs([failingSpec]);
+      const inferredSpecs = extractSpecPathsFromStepArgs(lastStartedStep);
+      if (inferredSpecs.length) {
+        saveLastFailedSpecs(inferredSpecs);
+      } else {
+        const failingSpec = getSpecPathFromStep(lastStartedStep);
+        if (failingSpec) saveLastFailedSpecs([failingSpec]);
       }
     }
     if (manualServer) {

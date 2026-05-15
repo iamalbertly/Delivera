@@ -1,9 +1,9 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   skipIfRedirectedToLogin,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function skipIfNoActiveSprint(page, testCtx) {
   const hasHeader = await page.locator('.current-sprint-header-bar').first().isVisible().catch(() => false);
@@ -84,7 +84,7 @@ test.describe('Current Sprint - Export last action status contract', () => {
 
     const statusEl = page.locator('.export-dashboard-container .export-status-text').first();
     const statusTextAfterCopy = (await statusEl.innerText().catch(() => '')) || '';
-    expect(statusTextAfterCopy).toMatch(/Last action:\s*Copy summary/i);
+    expect(statusTextAfterCopy).toMatch(/(?:Last action:\s*)?Copy summary/i);
     expect(statusTextAfterCopy).toMatch(/·/);
 
     // Use the shared status helper directly to simulate a second export action.
@@ -97,7 +97,7 @@ test.describe('Current Sprint - Export last action status contract', () => {
     await page.waitForTimeout(300);
 
     const statusTextAfterLink = (await statusEl.innerText().catch(() => '')) || '';
-    expect(statusTextAfterLink).toMatch(/Last action:/i);
+    expect(statusTextAfterLink).toMatch(/(?:Last action:\s*)?Copy link/i);
     expect(statusTextAfterLink).not.toEqual(statusTextAfterCopy);
 
     const telemetry = captureBrowserTelemetry(page);

@@ -6,10 +6,10 @@
  * Rationale: Customer - Scope creep is sprint killer; visible immediately. Simplicity - One chip vs. tab. Trust - Transparent tracking.
  */
 
-import { escapeHtml, renderIssueKeyLink } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { createModalBehavior } from './Reporting-App-Core-UI-02Primitives-Modal.js';
-import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Reporting-App-Report-Utils-Jira-Helpers.js';
+import { escapeHtml, renderIssueKeyLink } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { createModalBehavior } from './Delivera-Core-UI-02Primitives-Modal.js';
+import { buildJiraIssueUrl, getResolvedJiraHostFromMeta } from './Delivera-Report-Utils-Jira-Helpers.js';
 
 export function renderScopeIndicator(data) {
   const scopeChanges = data.scopeChanges || [];

@@ -92,6 +92,15 @@ function refreshBoards(preferredId, preferredSprintId) {
         opt.textContent = (b.name || 'Board ' + b.id) + (b.projectKey ? ' (' + b.projectKey + ')' : '');
         boardSelect.appendChild(opt);
       });
+      if (Array.isArray(res.jiraErrors) && res.jiraErrors.length) {
+        const keys = res.jiraErrors.map((e) => e.projectKey).filter(Boolean).join(', ');
+        showRibbon(
+          keys
+            ? `Some projects could not load from Jira (${keys}). Deselect them in Report or fix Jira access.`
+            : 'Some projects could not load from Jira. Deselect them in Report or fix Jira access.',
+          'warning'
+        );
+      }
       if (!boards.length) {
         setBoardSelectCouldntLoad();
         showBoardsLoadError('No boards found for selected projects. Check project filters or run Report preview.', preferredId, preferredSprintId);

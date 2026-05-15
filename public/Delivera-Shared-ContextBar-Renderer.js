@@ -1,6 +1,6 @@
-import { renderContextSummaryStrip } from './Reporting-App-Shared-Context-Summary-Strip.js';
-import { renderAttentionQueue } from './Reporting-App-Shared-Attention-Queue.js';
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { renderContextSummaryStrip } from './Delivera-Shared-Context-Summary-Strip.js';
+import { renderAttentionQueue } from './Delivera-Shared-Attention-Queue.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 /**
  * Shared "ContextBar" renderer: one-line context + optional attention queue.

@@ -2,13 +2,13 @@
 
 // SSOT journey runner: executes Playwright specs for a given journey bucket.
 // Usage:
-//   node scripts/Jira-Reporting-Tests-Journey-Runner-SSOT.js journey.current-sprint
-//   node scripts/Jira-Reporting-Tests-Journey-Runner-SSOT.js journey.ux-core -- --grep "some pattern"
+//   node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.current-sprint
+//   node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.ux-core -- --grep "some pattern"
 
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { journeyBuckets, getJourneySpecs } from './Jira-Reporting-Tests-Journey-Buckets-Map-SSOT.js';
+import { journeyBuckets, getJourneySpecs } from './Delivera-Tests-Journey-Buckets-Map-SSOT.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,7 +16,7 @@ const projectRoot = join(__dirname, '..');
 
 function printUsageAndExit() {
   const ids = Object.keys(journeyBuckets).sort();
-  console.error('Usage: node scripts/Jira-Reporting-Tests-Journey-Runner-SSOT.js <journeyId> [-- <extra playwright args>]');
+  console.error('Usage: node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId> [-- <extra playwright args>]');
   console.error('Known journeyIds:');
   ids.forEach((id) => {
     const label = journeyBuckets[id]?.label || '';

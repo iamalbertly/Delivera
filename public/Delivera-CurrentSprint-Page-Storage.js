@@ -1,5 +1,5 @@
-import { currentSprintDom, currentSprintKeys } from './Reporting-App-CurrentSprint-Page-Context.js';
-import { REPORT_CONTEXT_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { currentSprintDom, currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
+import { REPORT_CONTEXT_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 function normalizeForCurrentSprint(value) {
   const raw = (value || '').trim();

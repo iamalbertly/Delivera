@@ -1,4 +1,4 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 export function renderAttentionQueue({ title = 'Attention queue', items = [], compact = false } = {}) {
   const safeItems = (Array.isArray(items) ? items : []).filter((item) => item && item.label);

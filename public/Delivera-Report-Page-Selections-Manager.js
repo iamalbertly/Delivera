@@ -1,5 +1,5 @@
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { PROJECTS_SSOT_KEY, REPORT_ADVANCED_OPTIONS_OPEN_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { PROJECTS_SSOT_KEY, REPORT_ADVANCED_OPTIONS_OPEN_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 export function getSelectedProjects() {
   return Array.from(document.querySelectorAll('.project-checkbox[data-project]:checked'))
@@ -63,14 +63,17 @@ function initProjectSearch() {
 }
 
 function initAdvancedOptionsToggle() {
+  const tile = document.getElementById('report-rules-tile');
   const toggleBtn = document.getElementById('advanced-options-toggle');
   const panel = document.getElementById('advanced-options');
   if (!panel) return;
   if (toggleBtn) {
+    const primaryLabel = toggleBtn.querySelector('span');
     const setOpen = (open) => {
+      if (tile instanceof HTMLDetailsElement) tile.open = open;
       panel.hidden = !open;
       toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      toggleBtn.textContent = open ? 'Hide advanced' : '+ Advanced';
+      if (primaryLabel) primaryLabel.textContent = open ? 'Hide advanced' : 'Rules & strictness';
       try { localStorage.setItem(REPORT_ADVANCED_OPTIONS_OPEN_KEY, open ? '1' : '0'); } catch (_) {}
     };
     let shouldOpen = false;
@@ -78,10 +81,19 @@ function initAdvancedOptionsToggle() {
       shouldOpen = localStorage.getItem(REPORT_ADVANCED_OPTIONS_OPEN_KEY) === '1';
     } catch (_) {}
     setOpen(shouldOpen);
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', (event) => {
+      event.preventDefault();
       const isOpen = toggleBtn.getAttribute('aria-expanded') === 'true';
       setOpen(!isOpen);
     });
+    if (tile instanceof HTMLDetailsElement) {
+      tile.addEventListener('toggle', () => {
+        const open = tile.open;
+        if ((toggleBtn.getAttribute('aria-expanded') === 'true') !== open) {
+          setOpen(open);
+        }
+      });
+    }
   } else {
     panel.hidden = false;
   }

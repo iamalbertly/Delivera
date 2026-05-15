@@ -226,7 +226,7 @@ button.attention-queue-item,
 .context-summary-chip--muted,
 .attention-queue-item--muted {
   background: var(--card-muted);
-  color: var(--muted);
+  color: var(--muted-strong);
 }
 
 .context-summary-chip--success {
@@ -238,7 +238,7 @@ button.attention-queue-item,
 .context-summary-chip--warning,
 .attention-queue-item--warning {
   background: #fff8e6;
-  color: #9a6700;
+  color: #7a5200;
   border-color: rgba(245, 158, 11, 0.22);
 }
 
@@ -258,7 +258,7 @@ button.attention-queue-item,
 
 .context-summary-secondary,
 .attention-queue-item-detail {
-  color: var(--muted);
+  color: var(--muted-strong);
   font-size: 0.82rem;
 }
 

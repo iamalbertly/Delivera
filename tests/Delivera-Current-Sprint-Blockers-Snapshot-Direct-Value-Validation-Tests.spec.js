@@ -94,7 +94,7 @@ test.describe('Current Sprint Direct Value Blockers Snapshot Validation', () => 
 
   test('Validation 4b: take action applies a focused active-view state', async ({ page }) => {
     if (await skipIfNoActiveSprint(page, test)) return;
-    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="take-action"]');
+    const takeAction = page.locator('.current-sprint-header-bar [data-header-action="focus-remediation"]');
     if (!(await takeAction.isVisible().catch(() => false))) {
       test.skip(true, 'Take action control not shown for this dataset');
       return;

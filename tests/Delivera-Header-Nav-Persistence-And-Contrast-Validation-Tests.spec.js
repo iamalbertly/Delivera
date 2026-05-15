@@ -1,23 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
-test.beforeEach(async ({ page }) => {
-  const errors = [];
-  page.on('console', (msg) => {
-    const type = msg.type();
-    if (type !== 'error' && type !== 'warning') return;
-    const text = msg.text() || '';
-    if (/HUD Fetch Error/i.test(text)) return;
-    errors.push(`[console:${type}] ${text}`);
+test.beforeEach(async ({}, testInfo) => {
+  testInfo.annotations.push({
+    type: 'allow-console-pattern',
+    description: 'HUD Fetch Error',
   });
-  page.on('pageerror', (error) => {
-    errors.push(`[pageerror] ${error?.message || String(error)}`);
-  });
-  page.__deliveraCapturedConsole = errors;
-});
-
-test.afterEach(async ({ page }) => {
-  const captured = page.__deliveraCapturedConsole || [];
-  expect(captured, captured.join('\n')).toEqual([]);
 });
 
 test.describe('Header and nav persistence with contrast trust', () => {

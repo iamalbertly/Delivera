@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
 const testUser = process.env.TEST_LOGIN_USER || process.env.APP_LOGIN_USER || '';
 const testPass = process.env.TEST_LOGIN_PASSWORD || process.env.APP_LOGIN_PASSWORD || '';
@@ -11,14 +11,14 @@ function captureConsoleErrors(page) {
   return errors;
 }
 
-test.describe('VodaAgileBoard – Login, Security & Deploy Validation', () => {
+test.describe('Delivera – Login, Security & Deploy Validation', () => {
   test('GET / shows login page or redirects to /report when auth disabled', async ({ page }) => {
     const consoleErrors = captureConsoleErrors(page);
     await page.goto('/', { waitUntil: 'load' });
     const url = page.url();
     const hasLoginForm = await page.locator('#username').isVisible().catch(() => false);
     if (hasLoginForm) {
-      await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+      await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
       await expect(page.locator('input[name="username"]')).toBeVisible();
       await expect(page.locator('input[name="password"]')).toBeVisible();
       await expect(page.locator('button[type="submit"]')).toBeVisible();
@@ -27,7 +27,7 @@ test.describe('VodaAgileBoard – Login, Security & Deploy Validation', () => {
       await expect(honeypot).toBeHidden();
     } else {
       if (!url.match(/\/report$/)) await page.goto('/report');
-      await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+      await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
       await expect(page.locator('#preview-btn')).toBeVisible();
     }
     const errs = consoleErrors.filter((e) => e.type === 'error');
@@ -82,7 +82,7 @@ test.describe('VodaAgileBoard – Login, Security & Deploy Validation', () => {
     await page.fill('#password', testPass);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/report/, { timeout: 10000 });
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
     await expect(page.locator('#preview-btn')).toBeVisible();
     expect(consoleErrors.filter((e) => e.type === 'error')).toHaveLength(0);
   });

@@ -7,13 +7,13 @@
  * Uses captureBrowserTelemetry and realtime UI assertions; fails on UI or telemetry mismatch.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,
   waitForPreview,
   assertTelemetryClean,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('UX Outcome-First No-Click-Hidden', () => {
   test.beforeEach(async ({ page }) => {

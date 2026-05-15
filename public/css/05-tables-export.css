@@ -113,8 +113,13 @@ body .preview-area {
 
 .data-table td .story-pill--unlinked,
 .data-table td .epic-key--unlinked {
-  color: #5b6777;
+  color: #3f4b5c;
   text-decoration: none;
+}
+
+/* Duplicate suppression rule: collapse repeated unlinked pills inside one cell. */
+.data-table td .story-pill--unlinked + .story-pill--unlinked {
+  display: none;
 }
 
 .jira-link-status-line {
@@ -289,7 +294,7 @@ body .preview-area {
   transform: translateY(-50%);
   border: none;
   background: transparent;
-  color: var(--muted);
+  color: #475569;
   font-size: 1.1em;
   cursor: pointer;
   display: inline-flex;
@@ -307,6 +312,7 @@ body .preview-area {
 }
 .search-clear-btn:disabled {
   opacity: 0.45;
+  color: #475569;
   cursor: not-allowed;
 }
 

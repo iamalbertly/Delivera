@@ -3,7 +3,7 @@
  * @typedef {{ loadingEl?: HTMLElement | null, errorEl?: HTMLElement | null, contentEl?: HTMLElement | null }} StatusDom
  */
 
-import { setErrorOnEl, setActionErrorOnEl, clearEl } from './Reporting-App-Shared-Status-Helpers.js';
+import { setErrorOnEl, setActionErrorOnEl, clearEl } from './Delivera-Shared-Status-Helpers.js';
 
 /**
  * @param {StatusDom} dom

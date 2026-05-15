@@ -1,9 +1,9 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, waitForPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, waitForPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=2025-09-30T23:59:59.999Z';
 
-test.describe('Jira Reporting App - Loading & Meta Robustness E2E', () => {
+test.describe('Delivera - Loading & Meta Robustness E2E', () => {
   test('fast preview completion still reaches a stable state', async ({ page }) => {
     test.setTimeout(180000);
     console.log('[TEST] Loading/Meta: fast preview completion');
@@ -89,8 +89,9 @@ test.describe('Jira Reporting App - Loading & Meta Robustness E2E', () => {
       expect(hasMetaReferenceError).toBeFalsy();
 
       if (errorText) {
-        expect(errorText).toContain('export error');
-        expect(errorText).toContain('metadata');
+        const isMetadataError = errorText.includes('export error') && errorText.includes('metadata');
+        const isPreviewTimeout = errorText.includes('preview did not finish') || errorText.includes('try fewer projects');
+        expect(isMetadataError || isPreviewTimeout).toBeTruthy();
       }
     }
   });

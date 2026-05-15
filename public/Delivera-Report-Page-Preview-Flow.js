@@ -21,7 +21,7 @@ import {
 } from './Delivera-Shared-Storage-Keys.js';
 import { updateLoadingMessage, clearLoadingSteps, readResponseJson, hideLoadingIfVisible, setLoadingVisible, setLoadingStage, startTheaterGathering, stopTheaterGathering, resetLoadingBarToZero } from './Delivera-Report-Page-Loading-Steps.js';
 import { emitTelemetry } from './Delivera-Shared-Telemetry.js';
-import { renderPreview } from './Delivera-Report-Page-Render-Preview.js';
+import { renderPreview, syncReportPreviewActiveFromDom } from './Delivera-Report-Page-Render-Preview.js';
 import { updateExportFilteredState, updateExportHint } from './Delivera-Report-Page-Export-Menu.js';
 import { updateRangeHint } from './Delivera-Report-Page-DateRange-Controller.js';
 import { sortSprintsLatestFirst } from './Delivera-Report-Page-Sorting.js';
@@ -122,6 +122,8 @@ export function restoreLastPreviewFromStorage() {
     markPerf('report', 'firstValueRendered', { firstValueSource: 'last-success-cache' });
     markPerf('report', 'fullRenderComplete');
     if (reportDom.previewContent) reportDom.previewContent.style.display = 'block';
+    if (reportDom.exportExcelBtn) reportDom.exportExcelBtn.hidden = true;
+    if (reportDom.exportDropdownTrigger) reportDom.exportDropdownTrigger.hidden = true;
     const statusEl = document.getElementById('preview-status');
     if (statusEl) {
       statusEl.innerHTML = '<div class="status-banner warning">Older snapshot — tap Preview for latest<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
@@ -159,8 +161,14 @@ export function clearPreviewOnFilterChange() {
     stickyEl.textContent = '';
     stickyEl.setAttribute('aria-hidden', 'true');
   }
-  if (exportExcelBtn) exportExcelBtn.disabled = true;
-  if (exportDropdownTrigger) exportDropdownTrigger.disabled = true;
+  if (exportExcelBtn) {
+    exportExcelBtn.disabled = true;
+    exportExcelBtn.hidden = true;
+  }
+  if (exportDropdownTrigger) {
+    exportDropdownTrigger.disabled = true;
+    exportDropdownTrigger.hidden = true;
+  }
   updateExportHint();
 }
 
@@ -398,6 +406,7 @@ export function initPreviewFlow() {
 
     if (!hasExistingPreview && previewContent) {
       previewContent.style.display = 'none';
+      syncReportPreviewActiveFromDom();
     }
 
     let params;
@@ -920,6 +929,7 @@ export function initPreviewFlow() {
         exportExcelBtn.style.display = '';
       }
       updateExportHint();
+      syncReportPreviewActiveFromDom();
     }
   });
 

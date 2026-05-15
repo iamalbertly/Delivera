@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test('Date windows are ordered most-recent-first in quarter strip', async ({ page }) => {
   await page.goto('/report');

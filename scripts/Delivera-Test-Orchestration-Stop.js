@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Cooperative stop helper for Jira Reporting App test orchestration.
+ * Cooperative stop helper for Delivera test orchestration.
  *
  * Writes a cancel flag file that the orchestration runner checks between steps.
  * This avoids using broad taskkill and lets the runner print its own summary.
@@ -14,8 +14,8 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
-const stateFilePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Orchestration-State.json');
-const cancelFilePath = join(projectRoot, 'scripts', 'Jira-Reporting-App-Test-Orchestration-Cancel.json');
+const stateFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-State.json');
+const cancelFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-Cancel.json');
 
 function main() {
   try {

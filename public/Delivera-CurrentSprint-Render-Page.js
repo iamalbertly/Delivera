@@ -172,43 +172,6 @@ export function renderCurrentSprintPageParts(data) {
   };
 }
 
-function buildSprintAtAGlanceHero(data, verdict, capacitySummary) {
-  const summary = data.summary || {};
-  const daysMeta = data.daysMeta || {};
-  const totalStories = summary.totalStories ?? 0;
-  const doneStories = summary.doneStories ?? 0;
-  const totalSP = summary.totalSP ?? 0;
-  const doneSP = summary.doneSP ?? 0;
-  const percentDone = typeof summary.percentDone === 'number' ? summary.percentDone : 0;
-  const remainingDays = daysMeta.daysRemainingWorking ?? daysMeta.daysRemainingCalendar;
-
-  const sprintHealthClass = verdict.color === 'red' || verdict.color === 'critical'
-    ? 'sprint-health-needs-attention'
-    : verdict.color === 'yellow' || verdict.color === 'warning'
-      ? 'sprint-health-at-risk'
-      : 'sprint-health-healthy';
-
-  const capacityLabel = capacitySummary?.label || 'Capacity status not available yet';
-  const narrative = Number(percentDone || 0) === 0 && totalStories > 0
-    ? 'Sprint just started. Evidence is still forming.'
-    : (verdict.tagline || verdict.summary || 'Health combines blockers, scope, ownership, and time tracking.');
-
-  return ''
-    + '<section class="sprint-at-a-glance-hero" aria-label="Sprint at a glance">'
-    + '<div class="sprint-at-a-glance-stats">'
-    + '<strong>' + percentDone + '% done</strong>'
-    + (totalStories ? ' | ' + doneStories + '/' + totalStories + ' stories' : '')
-    + (totalSP ? ' | ' + doneSP + '/' + totalSP + ' SP' : '')
-    + (remainingDays != null ? ' | Ends in ' + remainingDays + 'd' : '')
-    + '</div>'
-    + '<p class="sprint-at-a-glance-cta">'
-    + '<span class="' + sprintHealthClass + '">' + (verdict.verdict || 'Sprint health') + '</span>'
-    + ' | ' + narrative
-    + ' | Capacity: ' + capacityLabel
-    + '</p>'
-    + '</section>';
-}
-
 function buildCapacityAllocationCard(capacitySummary, data) {
   const summary = capacitySummary || {};
   const unassignedDetail = summary.unassignedCount > 0

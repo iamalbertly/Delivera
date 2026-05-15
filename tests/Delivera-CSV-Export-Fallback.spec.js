@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test('CSV export fallback copies CSV to clipboard when download fails', async ({ page }) => {
   await page.goto('/report');
@@ -35,7 +35,7 @@ test('CSV export fallback copies CSV to clipboard when download fails', async ({
 
   // Trigger the shared CSV fallback path directly so the test only validates the recovery contract.
   await page.evaluate(async () => {
-    const mod = await import('/Reporting-App-Report-Page-Export-CSV.js');
+    const mod = await import('/Delivera-Report-Page-Export-CSV.js');
     mod.downloadCSV('col1,col2\nA,B', 'fallback-test.csv');
   });
 

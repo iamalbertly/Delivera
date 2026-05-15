@@ -1,13 +1,13 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { readFileSync } from 'fs';
-import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { runDefaultPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=2025-09-30T23:59:59.999Z';
 
 test.describe('RED LINE ITEMS KPI Validation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('should include issueType column in CSV export', async ({ page, request }) => {

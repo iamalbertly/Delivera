@@ -1,10 +1,10 @@
-﻿/**
+/**
  * Sprint Navigation Carousel Component
  * Visual quick-switch tabs showing last 8 sprints with mini health indicators.
  */
 
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDate } from './Delivera-Shared-Format-DateNumber-Helpers.js';
 
 function computeDurationDays(startDate, endDate) {
   const start = startDate ? new Date(startDate).getTime() : NaN;
@@ -144,65 +144,123 @@ export function renderSprintCarousel(data) {
  * Wire sprint carousel handlers
  */
 export function wireSprintCarouselHandlers(onSprintSelect) {
-  const carousel = document.querySelector('.sprint-carousel');
-  if (!carousel) return;
+  const carousels = Array.from(document.querySelectorAll('.sprint-carousel'));
+  if (!carousels.length) return;
+  const primaryCarousel = carousels[0];
+  const focusVisibleTabByIndex = (index) => {
+    const visibleTabs = Array.from(document.querySelectorAll('.carousel-tab'))
+      .filter((item) => !!(item.offsetWidth || item.offsetHeight || item.getClientRects().length));
+    if (!visibleTabs.length) return false;
+    const boundedIndex = Math.max(0, Math.min(Number(index || 0), visibleTabs.length - 1));
+    const target = visibleTabs[boundedIndex];
+    if (!target) return false;
+    target.focus();
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    return document.activeElement === target;
+  };
+  const restorePendingCarouselFocus = () => {
+    if (window.__deliveraPendingSprintCarouselFocusIndex == null) return;
+    const targetIndex = Number(window.__deliveraPendingSprintCarouselFocusIndex || 0);
+    const focused = focusVisibleTabByIndex(targetIndex);
+    if (focused) window.__deliveraPendingSprintCarouselFocusIndex = null;
+  };
 
-  const tabs = carousel.querySelectorAll('.carousel-tab');
+  if (!window.__deliveraSprintCarouselKeyboardFallbackWired) {
+    window.__deliveraSprintCarouselKeyboardFallbackWired = true;
+    window.__deliveraLastSprintCarouselFocusIndex = 0;
+    document.addEventListener('focusin', (event) => {
+      const tab = event.target?.closest?.('.carousel-tab');
+      if (!tab) return;
+      const visibleTabs = Array.from(document.querySelectorAll('.carousel-tab'))
+        .filter((item) => !!(item.offsetWidth || item.offsetHeight || item.getClientRects().length));
+      const index = visibleTabs.indexOf(tab);
+      if (index >= 0) window.__deliveraLastSprintCarouselFocusIndex = index;
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      const activeEl = document.activeElement;
+      if (activeEl?.closest?.('.carousel-tab')) return;
+      if (activeEl && activeEl !== document.body && activeEl !== document.documentElement) return;
+      const visibleTabs = Array.from(document.querySelectorAll('.carousel-tab'))
+        .filter((item) => !!(item.offsetWidth || item.offsetHeight || item.getClientRects().length));
+      if (visibleTabs.length < 2) return;
+      const currentIndex = Math.max(0, Math.min(Number(window.__deliveraLastSprintCarouselFocusIndex || 0), visibleTabs.length - 1));
+      const nextIndex = event.key === 'ArrowRight'
+        ? (currentIndex + 1) % visibleTabs.length
+        : (currentIndex - 1 + visibleTabs.length) % visibleTabs.length;
+      event.preventDefault();
+      window.__deliveraLastSprintCarouselFocusIndex = nextIndex;
+      window.__deliveraPendingSprintCarouselFocusIndex = nextIndex;
+      focusVisibleTabByIndex(nextIndex);
+      setTimeout(restorePendingCarouselFocus, 0);
+      setTimeout(restorePendingCarouselFocus, 40);
+    }, true);
+  }
 
   const container = document.querySelector('.sprint-carousel-container');
   if (container) {
     container.addEventListener('click', (e) => {
       const dot = e.target.closest('.sparkline-dot');
       if (dot && dot.dataset.sprintId) {
-        const tab = carousel.querySelector('.carousel-tab[data-sprint-id="' + dot.dataset.sprintId + '"]');
+        const tab = primaryCarousel.querySelector('.carousel-tab[data-sprint-id="' + dot.dataset.sprintId + '"]');
         if (tab) tab.click();
       }
     });
   }
 
-  const scrollHint = document.querySelector('.sprint-carousel-scroll-hint');
-  if (scrollHint) {
-    carousel.addEventListener('scroll', () => {
-      scrollHint.classList.add('scrolled');
-    }, { passive: true, once: true });
-  }
+  carousels.forEach((carousel) => {
+    const tabs = Array.from(carousel.querySelectorAll('.carousel-tab'));
+    const scrollHint = carousel.parentElement?.querySelector?.('.sprint-carousel-scroll-hint');
+    if (scrollHint) {
+      carousel.addEventListener('scroll', () => {
+        scrollHint.classList.add('scrolled');
+      }, { passive: true, once: true });
+    }
 
-  tabs.forEach((tab, idx) => {
-    tab.addEventListener('click', () => {
-      const sprintId = tab.dataset.sprintId;
-      if (sprintId && onSprintSelect) {
-        onSprintSelect(sprintId);
-      }
+    tabs.forEach((tab, idx) => {
+      tab.addEventListener('click', () => {
+        const sprintId = tab.dataset.sprintId;
+        if (sprintId && onSprintSelect) {
+          onSprintSelect(sprintId);
+        }
 
-      tabs.forEach((t) => {
-        t.classList.remove('active', 'carousel-tab-current');
-        t.setAttribute('aria-selected', 'false');
+        tabs.forEach((t) => {
+          t.classList.remove('active', 'carousel-tab-current');
+          t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('active', 'carousel-tab-current');
+        tab.setAttribute('aria-selected', 'true');
+
+        tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       });
-      tab.classList.add('active', 'carousel-tab-current');
-      tab.setAttribute('aria-selected', 'true');
 
-      tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    });
-
-    tab.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        const nextTab = tabs[idx + 1];
-        if (nextTab) {
-          nextTab.focus();
-          nextTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      tab.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const nextTab = tabs[idx + 1] || tabs[0];
+          if (nextTab) {
+            window.__deliveraPendingSprintCarouselFocusIndex = tabs.indexOf(nextTab);
+            nextTab.focus();
+            nextTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            setTimeout(restorePendingCarouselFocus, 0);
+          }
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prevTab = tabs[idx - 1] || tabs[tabs.length - 1];
+          if (prevTab) {
+            window.__deliveraPendingSprintCarouselFocusIndex = tabs.indexOf(prevTab);
+            prevTab.focus();
+            prevTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            setTimeout(restorePendingCarouselFocus, 0);
+          }
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          tab.click();
         }
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        const prevTab = tabs[idx - 1];
-        if (prevTab) {
-          prevTab.focus();
-          prevTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-      } else if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        tab.click();
-      }
+      });
     });
   });
+
+  restorePendingCarouselFocus();
+  setTimeout(restorePendingCarouselFocus, 0);
 }

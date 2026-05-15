@@ -1,6 +1,7 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatNumber } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { deriveSprintVerdict } from './Reporting-App-CurrentSprint-Alert-Banner.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
+import { formatEvidenceSummary } from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
 
 export function buildEvidenceLine({
   verdict,
@@ -12,21 +13,18 @@ export function buildEvidenceLine({
   totalSP,
   remainingDays,
 }) {
-  const parts = [];
-  if (stuckCount > 0) parts.push(`${stuckCount} blocker${stuckCount === 1 ? '' : 's'}`);
-  if (missingEstimates > 0) parts.push(`${missingEstimates} missing est`);
-  if (missingLoggedItems > 0) parts.push(`${missingLoggedItems} no log`);
-  if (unassignedParents > 0) parts.push(`${unassignedParents} unowned`);
-  if (supportOpsSP > 0 && totalSP > 0) parts.push(`${Math.round((supportOpsSP / totalSP) * 100)}% support`);
-  if (!parts.length) {
-    if (verdict.verdict === 'Healthy') {
-      return remainingDays > 0
-        ? `No material risks. Next check-in in ${Math.floor(remainingDays)}d.`
-        : 'No material risks in this snapshot.';
-    }
-    return verdict.summary || verdict.tagline || 'Evidence is still forming.';
-  }
-  return parts.join(' | ');
+  const supportPct = supportOpsSP > 0 && totalSP > 0 ? Math.round((supportOpsSP / totalSP) * 100) : null;
+  const line = formatEvidenceSummary({
+    stale: stuckCount,
+    missingEst: missingEstimates,
+    missingLog: missingLoggedItems,
+    unowned: unassignedParents,
+    supportPct,
+    remainingDays,
+    verdictHealthy: verdict?.verdict === 'Healthy',
+  });
+  if (line) return line;
+  return verdict.summary || verdict.tagline || 'Evidence is still forming.';
 }
 
 export function renderHealthDashboard(data, options = {}) {

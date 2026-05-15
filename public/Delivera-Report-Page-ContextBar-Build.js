@@ -2,8 +2,8 @@
  * SSOT chip list for report header + preview meta: one grammar for projects, range,
  * freshness, stale-context, rules, and (when preview exists) outcomes.
  */
-import { chip } from './Reporting-App-Shared-ContextBar-Renderer.js';
-import { getContextPieces, buildContextSegmentList } from './Reporting-App-Shared-Context-From-Storage.js';
+import { chip } from './Delivera-Shared-ContextBar-Renderer.js';
+import { getContextPieces, buildContextSegmentList } from './Delivera-Shared-Context-From-Storage.js';
 
 export const REPORT_CONTEXT_BAR_TITLE = 'Current performance window';
 
@@ -23,13 +23,18 @@ function getRulesChip() {
 export function buildUnifiedReportContextChips({ outcomesCount } = {}) {
   const pieces = getContextPieces();
   const segments = buildContextSegmentList(pieces);
+  const seen = new Set();
   const chips = segments.map((segment) => {
+    const dedupeKey = `${segment.label}:${segment.value}`;
+    if (seen.has(dedupeKey)) return null;
+    seen.add(dedupeKey);
     let action = '';
     if (segment.label === 'Projects') action = 'open-projects';
     else if (segment.label === 'Range') action = 'open-range';
     else if (segment.label === 'Context') action = 'refresh-context';
+    else if (segment.label === 'Freshness') action = 'explain-freshness';
     return chip(segment.label, segment.value, { action });
-  });
+  }).filter(Boolean);
   chips.push(getRulesChip());
   if (typeof outcomesCount === 'number') {
     chips.push(chip('Outcomes', String(outcomesCount), { action: 'open-done-stories' }));

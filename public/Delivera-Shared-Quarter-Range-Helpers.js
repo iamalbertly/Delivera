@@ -1,4 +1,4 @@
-import { formatDateTimeLocalForInput } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
+import { formatDateTimeLocalForInput } from './Delivera-Shared-Format-DateNumber-Helpers.js';
 
 export function getFiscalShortLabel(endDate) {
   if (!endDate || Number.isNaN(endDate.getTime())) return '';

@@ -1,7 +1,7 @@
 /**
  * Shared loading theater: rotating messages only (no progress bar).
  * Used by Current Sprint and Leadership for consistent "something is happening" feedback.
- * Report uses full theater (fill + messages + step cue) in Reporting-App-Report-Page-Loading-Steps.js.
+ * Report uses full theater (fill + messages + step cue) in Delivera-Report-Page-Loading-Steps.js.
  */
 
 let rotatingIntervalId = null;

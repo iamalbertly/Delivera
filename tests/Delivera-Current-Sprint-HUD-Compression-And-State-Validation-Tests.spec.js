@@ -1,10 +1,10 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   selectFirstBoard,
   skipIfRedirectedToLogin,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Current sprint HUD compression and state handling', () => {
   test('health HUD keeps one evidence line and no standalone snapshot row', async ({ page }) => {

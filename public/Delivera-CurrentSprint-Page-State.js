@@ -4,9 +4,9 @@
  * Only the main content area switches state; header/nav/sidebar persist. No page reload on board/sprint change.
  */
 
-import { currentSprintDom } from './Reporting-App-CurrentSprint-Page-Context.js';
-import { setActionErrorOnEl, clearEl } from './Reporting-App-Shared-Status-Helpers.js';
-import { stopRotatingMessages } from './Reporting-App-Shared-Loading-Theater.js';
+import { currentSprintDom } from './Delivera-CurrentSprint-Page-Context.js';
+import { setActionErrorOnEl, clearEl } from './Delivera-Shared-Status-Helpers.js';
+import { stopRotatingMessages } from './Delivera-Shared-Loading-Theater.js';
 
 export const PAGE_STATE = Object.freeze({
   WELCOME: 'welcome',
@@ -78,7 +78,7 @@ export function setPageState(state, options = {}) {
         if (preserveContent) {
           loadingEl.innerHTML = '<div class="current-sprint-loading-copy current-sprint-loading-copy-inline"></div>';
           const copyEl = loadingEl.querySelector('.current-sprint-loading-copy');
-          if (copyEl) copyEl.textContent = msg;
+          if (copyEl) copyEl.textContent = 'Refreshing data… showing previous snapshot until new results arrive.';
           loadingEl.classList.remove('current-sprint-loading-with-spinner');
         } else {
           loadingEl.innerHTML = LOADING_SPINNER_HTML;

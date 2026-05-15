@@ -4,7 +4,7 @@
  * and partial preview visibility using Playwright with telemetry and UI assertions.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,
@@ -12,7 +12,7 @@ import {
   IGNORE_CONSOLE_ERRORS,
   IGNORE_REQUEST_PATTERNS,
   EXCEL_DOWNLOAD_TIMEOUT_MS,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Server errors and export validation', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe('Server errors and export validation', () => {
 
   test('report page loads without critical errors', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
     await page.waitForLoadState('networkidle').catch(() => {});
 
     expect(telemetry.pageErrors).toEqual([]);

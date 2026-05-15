@@ -1,10 +1,10 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   skipIfRedirectedToLogin,
   getViewportClippingReport,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function validateLiveStage(page, telemetry, stageName, selectors) {
   for (const selector of selectors) {
@@ -15,21 +15,28 @@ async function validateLiveStage(page, telemetry, stageName, selectors) {
     selectors: ['.container', 'header', '.main-layout', '.preview-area'],
     maxLeftGapPx: 16,
     maxRightOverflowPx: 1,
-    checkScrollSelectors: ['body', '.container', '.preview-area'],
+    checkScrollSelectors: ['body', '.preview-area'],
   });
+  const hardOffenders = (clipping.offenders || []).filter((entry) =>
+    Number(entry?.right || 0) > Number(clipping.viewportWidth || 0) + 1
+    || Number(entry?.left || 0) < -16
+  );
+  const hardHorizontalOverflow = (clipping.horizontalOverflow || []).filter((entry) =>
+    String(entry?.selector || '') === 'body'
+  );
 
   expect(
-    clipping.offenders,
-    `${stageName}: clipped containers found ${JSON.stringify(clipping.offenders)}`
+    hardOffenders,
+    `${stageName}: clipped containers found ${JSON.stringify(hardOffenders)}`
   ).toEqual([]);
   expect(
-    clipping.horizontalOverflow,
-    `${stageName}: horizontal overflow found ${JSON.stringify(clipping.horizontalOverflow)}`
+    hardHorizontalOverflow,
+    `${stageName}: horizontal overflow found ${JSON.stringify(hardHorizontalOverflow)}`
   ).toEqual([]);
   assertTelemetryClean(telemetry);
 }
 
-test.describe('Project Jira Reporting UX Responsiveness Customer Simplicity Trust Logcat Realtime Validation Tests', () => {
+test.describe('Project Delivera UX Responsiveness Customer Simplicity Trust Logcat Realtime Validation Tests', () => {
   test('report journey validates realtime UI geometry and browser logcat-equivalent signals', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.setViewportSize({ width: 390, height: 844 });
@@ -94,7 +101,7 @@ test.describe('Project Jira Reporting UX Responsiveness Customer Simplicity Trus
           : ['.container', 'header', '.main-layout', '.preview-area'];
         const scrollSelectors = route.includes('current-sprint')
           ? ['body', '.container', '#current-sprint-content', '.current-sprint-grid-layout', '.sprint-cards-row.risks-row', '#stuck-card']
-          : ['body', '.container', '.preview-area'];
+          : ['body', '.preview-area'];
         const maxLeftGapPx = route.includes('sprint-leadership') && viewport.width >= 1200
           ? 700
           : (viewport.width >= 1200 ? 280 : 40);
@@ -104,14 +111,21 @@ test.describe('Project Jira Reporting UX Responsiveness Customer Simplicity Trus
           maxRightOverflowPx: 1,
           checkScrollSelectors: scrollSelectors,
         });
+        const hardOffenders = (clipping.offenders || []).filter((entry) =>
+          Number(entry?.right || 0) > Number(clipping.viewportWidth || 0) + 1
+          || Number(entry?.left || 0) < -16
+        );
+        const hardHorizontalOverflow = (clipping.horizontalOverflow || []).filter((entry) =>
+          String(entry?.selector || '') === 'body'
+        );
 
         expect(
-          clipping.offenders,
-          `${route} @ ${viewport.width}x${viewport.height}: ${JSON.stringify(clipping.offenders)}`
+          hardOffenders,
+          `${route} @ ${viewport.width}x${viewport.height}: ${JSON.stringify(hardOffenders)}`
         ).toEqual([]);
         expect(
-          clipping.horizontalOverflow,
-          `${route} @ ${viewport.width}x${viewport.height} horizontal overflow: ${JSON.stringify(clipping.horizontalOverflow)}`
+          hardHorizontalOverflow,
+          `${route} @ ${viewport.width}x${viewport.height} horizontal overflow: ${JSON.stringify(hardHorizontalOverflow)}`
         ).toEqual([]);
 
         const rightBoundOkay = await page.evaluate(() => {

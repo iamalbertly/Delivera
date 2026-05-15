@@ -1,8 +1,8 @@
 /**
- * Smart test selection helper for Jira Reporting App test orchestration.
+ * Smart test selection helper for Delivera test orchestration.
  *
  * This module is intentionally pure in its core selection logic: given
- * - the full ordered list of steps (from Jira-Reporting-App-Test-Orchestration-Steps.js)
+ * - the full ordered list of steps (from Delivera-Test-Orchestration-Steps.js)
  * - a list of changed files (relative paths from git)
  * - a list of last-failed spec paths
  * - a configured smoke pack of spec paths

@@ -1,11 +1,11 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   assertTelemetryClean,
   captureBrowserTelemetry,
   runDefaultPreview,
   selectFirstBoard,
   skipIfRedirectedToLogin,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Mission strip compression contracts', () => {
   test('current sprint keeps context, intervention, and attention inside one header shell', async ({ page }) => {

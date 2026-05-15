@@ -1,9 +1,15 @@
-import { getProjectsParam } from './Reporting-App-CurrentSprint-Page-Storage.js';
-import { readWarmBoards, writeWarmBoards } from './Reporting-App-Shared-Journey-Warmup.js';
+import { getProjectsParam } from './Delivera-CurrentSprint-Page-Storage.js';
+import { readWarmBoards, writeWarmBoards } from './Delivera-Shared-Journey-Warmup.js';
 
 export function getErrorMessage(response, body, fallback) {
   if (response.status === 401) return 'Session expired. Sign in again to continue.';
   if (response.status === 429) return 'Data may be incomplete due to rate limits; try again later.';
+  if (response.status === 502 && body?.code === 'JIRA_UNAUTHORIZED') {
+    return (
+      body.message ||
+      'Jira API rejected the server credentials or blocked all selected projects. Verify JIRA_* configuration and project access.'
+    );
+  }
   return (body && (body.message || body.error)) || response.statusText || fallback;
 }
 

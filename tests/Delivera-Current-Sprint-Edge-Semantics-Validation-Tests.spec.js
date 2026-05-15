@@ -1,9 +1,9 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   skipIfRedirectedToLogin,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function skipIfNoActiveSprint(page, testCtx) {
   const hasCommandCenter = await page.locator('.current-sprint-header-bar').first().isVisible().catch(() => false);
@@ -45,7 +45,7 @@ test.describe('Current Sprint - Edge semantics and context trust', () => {
       test.skip(true, 'Context line has no visible text after filter change for this dataset');
       return;
     }
-    expect(updatedText).toContain('filters changed; context from last run');
+    expect(updatedText).toMatch(/filters changed(?:; context from last run| since last run)/);
 
     const telemetryFinal = captureBrowserTelemetry(page);
     assertTelemetryClean(telemetryFinal, { excludePreviewAbort: true });

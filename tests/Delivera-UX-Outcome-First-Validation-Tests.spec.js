@@ -5,13 +5,13 @@
  * Login outcome/submit state. Uses captureBrowserTelemetry and assertTelemetryClean.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   runDefaultPreview,
   assertTelemetryClean,
   skipIfRedirectedToLogin,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('UX Outcome-First', () => {
   test('Report – Outcome line present after preview', async ({ page }) => {

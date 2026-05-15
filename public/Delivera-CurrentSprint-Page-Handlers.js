@@ -1,4 +1,4 @@
-import { loadCurrentSprint } from './Reporting-App-CurrentSprint-Page-Data-Loaders.js';
+import { loadCurrentSprint } from './Delivera-CurrentSprint-Page-Data-Loaders.js';
 
 let isGlobalHoverBound = false;
 let isCardToggleBound = false;
@@ -14,7 +14,6 @@ function bindGlobalPrefetchHover() {
     trigger.dataset.prefetched = 'true';
     const sprintId = trigger.dataset.sprintId;
     if (sprintId) {
-      console.log(`[Growth] Optimistic prefetch for sprint ${sprintId}`);
       // In next phase: fetch(`/api/sprint-details/${sprintId}`).catch(()=>{});
     }
   }, { passive: true });

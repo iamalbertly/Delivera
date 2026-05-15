@@ -1,5 +1,5 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { formatDate } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDate } from './Delivera-Shared-Format-DateNumber-Helpers.js';
 
 export function renderNotes(data) {
   const notes = data.notes || { dependencies: [], learnings: [], updatedAt: null };

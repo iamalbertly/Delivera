@@ -1,12 +1,12 @@
-import { leadershipDom, leadershipKeys } from './Reporting-App-Leadership-Page-Context.js';
-import { renderLeadershipPage } from './Reporting-App-Leadership-Page-Render.js';
-import { buildBoardSummaries } from './Reporting-App-Shared-Boards-Summary-Builder.js';
-import { initQuarterStrip } from './Reporting-App-Shared-Quarter-Range-Helpers.js';
-import { SHARED_DATE_RANGE_KEY } from './Reporting-App-Shared-Storage-Keys.js';
-import { AUTO_PREVIEW_DELAY_MS } from './Reporting-App-Shared-AutoPreview-Config.js';
-import { getValidLastQuery, getFallbackContext } from './Reporting-App-Shared-Context-From-Storage.js';
-import { showLoadingView, showErrorView, clearErrorView, showContentView } from './Reporting-App-Shared-Status-View-Helpers.js';
-import { startRotatingMessages, stopRotatingMessages } from './Reporting-App-Shared-Loading-Theater.js';
+import { leadershipDom, leadershipKeys } from './Delivera-Leadership-Page-Context.js';
+import { renderLeadershipPage } from './Delivera-Leadership-Page-Render.js';
+import { buildBoardSummaries } from './Delivera-Shared-Boards-Summary-Builder.js';
+import { initQuarterStrip } from './Delivera-Shared-Quarter-Range-Helpers.js';
+import { SHARED_DATE_RANGE_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { AUTO_PREVIEW_DELAY_MS } from './Delivera-Shared-AutoPreview-Config.js';
+import { getValidLastQuery, getFallbackContext } from './Delivera-Shared-Context-From-Storage.js';
+import { showLoadingView, showErrorView, clearErrorView, showContentView } from './Delivera-Shared-Status-View-Helpers.js';
+import { startRotatingMessages, stopRotatingMessages } from './Delivera-Shared-Loading-Theater.js';
 
 const LEADERSHIP_FILTERS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -108,6 +108,7 @@ function saveFilters() {
 }
 
 const LEADERSHIP_LOADING_MESSAGES = ['Fetching quarter data...', 'Computing trends...', 'Preparing view...'];
+const LEADERSHIP_PREVIEW_TIMEOUT_MS = 45000;
 
 function showLoading(msg) {
   stopRotatingMessages();
@@ -182,6 +183,13 @@ async function loadPreview() {
     try { leadershipInFlightController.abort(); } catch (_) {}
   }
   leadershipInFlightController = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    try {
+      leadershipInFlightController?.abort();
+    } catch (_) {}
+  }, LEADERSHIP_PREVIEW_TIMEOUT_MS);
   try {
     const response = await fetch(url, {
       credentials: 'same-origin',
@@ -237,7 +245,17 @@ async function loadPreview() {
     showContent(renderLeadershipPage(body));
     setQuarterStripEnabled(true);
   } catch (err) {
-    if (err && err.name === 'AbortError') return;
+    if (err && err.name === 'AbortError') {
+      if (!timedOut) return;
+      showError({
+        title: 'Preview timed out.',
+        message: 'Leadership data is taking too long. Retry or narrow the range.',
+        primaryLabel: 'Retry preview',
+        primaryAction: 'retry-leadership-preview',
+      });
+      setQuarterStripEnabled(true);
+      return;
+    }
     showError({
       title: 'Could not load trends.',
       message: err.message || 'Failed to load preview.',
@@ -246,6 +264,7 @@ async function loadPreview() {
     });
     setQuarterStripEnabled(true);
   } finally {
+    clearTimeout(timeoutId);
     if (requestId === leadershipRequestSeq) {
       leadershipInFlightController = null;
     }

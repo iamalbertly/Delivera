@@ -1,4 +1,4 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 export const KPI_TREND_VISIBILITY_HINT = 'For trend visibility and decision support, not for ranking teams.';
 

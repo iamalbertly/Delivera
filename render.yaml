@@ -1,7 +1,7 @@
 services:
   - type: web
     runtime: node
-    name: voda-agile-board
+    name: delivera
     buildCommand: npm install
     startCommand: npm start
     plan: free

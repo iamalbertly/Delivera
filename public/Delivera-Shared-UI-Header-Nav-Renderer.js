@@ -39,7 +39,7 @@ function ensureExecutiveHeader(path) {
     + '<summary class="btn btn-secondary btn-compact">Actions</summary>'
     + '<div class="report-header-more-panel">'
     + '<a href="/report" class="btn btn-secondary btn-compact">Delivery</a>'
-    + '<a href="/current-sprint" class="btn btn-secondary btn-compact">Current sprint</a>'
+    + '<a href="/current-sprint" class="btn btn-secondary btn-compact">Current Sprint</a>'
     + '<a href="/leadership" class="btn btn-secondary btn-compact">Leadership</a>'
     + '</div>'
     + '</details>'
@@ -141,7 +141,7 @@ export function ensureSharedHeader() {
     if (!header) return;
 
     ensureHeaderContract(header);
-    const suppressContextBar = hasDedicatedContextSurface(path);
+    const suppressContextBar = hasDedicatedContextSurface(path) || !!document.getElementById('surface-context-bar');
     const contextTarget = getContextActionTarget(path);
 
     let contextBar = header.querySelector('.shared-context-bar[data-context-bar]');

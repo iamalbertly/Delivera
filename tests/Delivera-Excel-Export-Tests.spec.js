@@ -2,8 +2,8 @@
  * SIZE-EXEMPT: Cohesive E2E spec for Excel export (file naming, tabs, columns, dates, KPI); splitting would duplicate runDefaultPreview and export flow.
  * Excel Export Validation Tests - file naming, multi-tab structure, business-friendly columns, Excel dates, KPI calculations
  */
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, captureBrowserTelemetry, IGNORE_REQUEST_PATTERNS, EXCEL_DOWNLOAD_TIMEOUT_MS } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, captureBrowserTelemetry, IGNORE_REQUEST_PATTERNS, EXCEL_DOWNLOAD_TIMEOUT_MS } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const EXPORT_TIMEOUT_MS = EXCEL_DOWNLOAD_TIMEOUT_MS;
 const DIALOG_TIMEOUT_MS = 5000;
@@ -31,10 +31,10 @@ async function loadWorkbookFromDownload(download) {
   return workbook;
 }
 
-test.describe('Jira Reporting App - Excel Export Tests', () => {
+test.describe('Delivera - Excel Export Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('should generate Excel file with correct filename format', async ({ page }) => {
@@ -542,7 +542,8 @@ test.describe('Jira Reporting App - Excel Export Tests', () => {
     }
   });
 
-  test('should show specific error message when server returns 500 for Excel export', async ({ page }) => {
+  test('should show specific error message when server returns 500 for Excel export', async ({ page }, testInfo) => {
+    testInfo.annotations.push({ type: 'allow-http-status-console', description: '500' });
     test.setTimeout(180000);
     console.log('[TEST] Testing Excel export server error handling (500)');
 

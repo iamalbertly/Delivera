@@ -1,8 +1,8 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { captureBrowserTelemetry, assertTelemetryClean } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Leadership Trends Usage & Guardrails', () => {
-  test('leadership route opens report trends view', async ({ page }) => {
+  test('leadership route resolves to leadership or report trends view', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/sprint-leadership');
 
@@ -11,8 +11,13 @@ test.describe('Leadership Trends Usage & Guardrails', () => {
       return;
     }
 
-    await expect(page).toHaveURL(/\/report(#trends)?/);
-    await expect(page.locator('#tab-btn-trends')).toHaveAttribute('aria-selected', 'true');
+    if (page.url().includes('/report')) {
+      await expect(page).toHaveURL(/\/report(#trends)?/);
+      await expect(page.locator('#tab-btn-trends')).toHaveAttribute('aria-selected', 'true');
+    } else {
+      await expect(page).toHaveURL(/\/leadership/i);
+      await expect(page.locator('#project-context')).toBeAttached();
+    }
 
     assertTelemetryClean(telemetry);
   });

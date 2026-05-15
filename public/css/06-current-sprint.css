@@ -6166,6 +6166,18 @@ body.jira-nudge-review-open { overflow: hidden; }
 .current-sprint-header-bar[data-viewport-lean="true"] .sprint-section-links-compact {
   display: none;
 }
+.header-drawer-context-strip-wrap .header-context-strip {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.current-sprint-header-bar[data-viewport-lean="true"] .sprint-verdict-explain {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .header-drawer-jump-section .sprint-section-links-compact {
   display: flex !important;
   flex-wrap: wrap;

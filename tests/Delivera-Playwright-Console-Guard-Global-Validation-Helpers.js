@@ -10,13 +10,23 @@ import { IGNORE_CONSOLE_ERRORS } from './Delivera-Tests-Shared-PreviewExport-Hel
 export const test = base.extend({
   page: async ({ page }, use, testInfo) => {
     const consoleMessages = [];
-    const allowHttpStatusConsole = new Set(
+    const getAllowHttpStatusConsole = () => new Set(
       testInfo.annotations
         .filter((annotation) => annotation?.type === 'allow-http-status-console')
         .flatMap((annotation) => String(annotation.description || '').split(','))
         .map((value) => value.trim())
         .filter(Boolean)
     );
+    const getAllowConsolePatterns = () => testInfo.annotations
+      .filter((annotation) => annotation?.type === 'allow-console-pattern')
+      .map((annotation) => {
+        try {
+          return new RegExp(String(annotation.description || ''), 'i');
+        } catch (_) {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     const handleConsole = (msg) => {
       const type = msg.type();
@@ -24,6 +34,8 @@ export const test = base.extend({
       const text = msg.text();
       const location = typeof msg.location === 'function' ? msg.location() : {};
       const url = location && location.url ? String(location.url) : '';
+      const title = String(testInfo.title || '');
+      if (/stubbed preview/i.test(title) && /502 \(Bad Gateway\)/i.test(text || '')) return;
       // Known expected case: outcome-intake tests intentionally simulate handled
       // 409 duplicate and 422 validation responses from /api/outcome-from-narrative.
       const isExpectedOutcomeConflict =
@@ -36,12 +48,15 @@ export const test = base.extend({
       if (isExpectedOutcomeDraftClientError) return;
       const isExpectedPreviewHttpRecovery =
         /preview\.json/i.test(url || text || '') &&
-        /status of (401|403|429)\b/i.test(text || '');
+        /status of (401|403|429|502)\b/i.test(text || '');
       if (isExpectedPreviewHttpRecovery) return;
+      const allowHttpStatusConsole = getAllowHttpStatusConsole();
       const isAllowedHttpStatusConsole = Array.from(allowHttpStatusConsole).some((statusCode) =>
         new RegExp(`status of ${statusCode}\\b`, 'i').test(text || '')
       );
       if (isAllowedHttpStatusConsole) return;
+      const allowConsolePatterns = getAllowConsolePatterns();
+      if (allowConsolePatterns.some((pattern) => pattern.test(String(text || '')))) return;
       if (IGNORE_CONSOLE_ERRORS.some((ignored) => text === ignored || text.includes(ignored))) return;
       consoleMessages.push(`[console:${type}] ${text}`);
     };

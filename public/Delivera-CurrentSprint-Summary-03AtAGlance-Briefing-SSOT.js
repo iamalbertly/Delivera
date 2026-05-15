@@ -6,6 +6,10 @@ import { formatSprintRemainingLabel } from './Delivera-CurrentSprint-Copy.js';
 import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js';
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import {
+  formatRiskCountsRollup,
+  staleInProgressLabel,
+} from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
 
 function asNum(v, fallback = 0) {
   const n = Number(v);
@@ -103,24 +107,25 @@ export function buildSprintAtAGlanceBriefing(data) {
   } else if (phaseInfo.justStarting) {
     topRiskLine = 'Top risk: none flagged yet — confirm committed scope in Jira';
   } else {
-    topRiskLine = 'Top risk: no stale blockers — watch scope creep and logging gaps';
+    topRiskLine = 'Top risk: no stale work — watch scope creep and logging gaps';
   }
 
-  const riskRollupParts = [];
-  if (risks.blockersOwned > 0) {
-    riskRollupParts.push(`${risks.blockersOwned} blocker${risks.blockersOwned === 1 ? '' : 's'}`);
-  }
-  if (risks.unownedOutcomes > 0) {
-    riskRollupParts.push(`${risks.unownedOutcomes} unowned`);
-  }
   const scopeCount = Array.isArray(data?.scopeChanges) ? data.scopeChanges.length : 0;
-  if (scopeCount > 0) riskRollupParts.push(`+${scopeCount} scope`);
   const missingEst = asNum(summary.subtaskMissingEstimate, 0);
-  if (missingEst > 0) riskRollupParts.push(`${missingEst} missing est`);
+  const missingLog = asNum(summary.subtaskMissingLogged, 0);
+  let risksRollup = formatRiskCountsRollup({
+    stale: risks.blockersOwned,
+    missingEst,
+    missingLog,
+    unowned: risks.unownedOutcomes,
+  });
+  if (scopeCount > 0) {
+    risksRollup = [risksRollup, `+${scopeCount} scope`].filter(Boolean).join(' · ');
+  }
 
-  const nextAction = topRisk?.nextAction
+  let nextAction = topRisk?.nextAction
     || (risks.blockersOwned > 0
-      ? `Clear ${risks.blockersOwned} active blocker${risks.blockersOwned === 1 ? '' : 's'} before adding new scope.`
+      ? `Clear ${staleInProgressLabel(risks.blockersOwned) || 'stale work'} before adding new scope.`
       : (phaseInfo.justStarting
         ? 'Add stories and owners in Jira so health signals can form.'
         : 'Keep daily logging current so burndown and leadership rollups stay truthful.'));
@@ -133,8 +138,11 @@ export function buildSprintAtAGlanceBriefing(data) {
     `Do next: ${nextAction}`,
   ].filter(Boolean);
 
-  const headerExplain = [timeLeftLine, topRiskLine, `Do next: ${nextAction}`].join(' · ');
   const isHistorical = String(sprint.state || '').toLowerCase() !== 'active' || Boolean(meta.fromSnapshot);
+  if (isHistorical) {
+    nextAction = 'Snapshot only — switch to a live sprint to post Jira updates or change ownership.';
+  }
+  const headerExplain = [timeLeftLine, topRiskLine, `Do next: ${nextAction}`].join(' · ');
 
   return {
     scopeLine,
@@ -144,7 +152,7 @@ export function buildSprintAtAGlanceBriefing(data) {
     topRisk,
     topRiskLine,
     topRiskDetail,
-    risksRollup: riskRollupParts.join(' · '),
+    risksRollup,
     nextAction,
     quickClipboardLines,
     headerExplain,
@@ -157,6 +165,7 @@ export function buildSprintAtAGlanceBriefing(data) {
 
 export function renderMissionBriefingHtml(briefing, escapeHtml) {
   if (!briefing || typeof escapeHtml !== 'function') return '';
+  if (briefing.isHistorical) return '';
   const time = escapeHtml(briefing.timeLeftLine || '');
   const risk = escapeHtml(briefing.topRiskLine || '');
   const action = escapeHtml(briefing.nextAction || '');

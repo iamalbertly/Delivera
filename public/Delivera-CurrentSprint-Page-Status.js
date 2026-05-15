@@ -1,5 +1,5 @@
-import { getProjectsParam } from './Reporting-App-CurrentSprint-Page-Storage.js';
-import { PAGE_STATE, setPageState, getCurrentState } from './Reporting-App-CurrentSprint-Page-State.js';
+import { getProjectsParam } from './Delivera-CurrentSprint-Page-Storage.js';
+import { PAGE_STATE, setPageState, getCurrentState } from './Delivera-CurrentSprint-Page-State.js';
 
 export { getCurrentState };
 

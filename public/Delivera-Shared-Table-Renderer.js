@@ -1,4 +1,4 @@
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 export function buildDataTableHtml(columns, rows, options = {}) {
   const { id, rowClassKey = '__rowClass', footerRow = null, footerTooltips = null, wrapperClass = '', tableClass = '' } = options;

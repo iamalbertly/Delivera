@@ -2,8 +2,8 @@
  * SIZE-EXEMPT: Cohesive E2E spec for UX critical fixes (Epic/Summary, throughput/columns, export/TTM, loading states);
  * splitting would duplicate runDefaultPreview setup and reduce clarity.
  */
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const DEFAULT_Q2_QUERY = '?projects=MPSA,MAS&start=2025-07-01T00:00:00.000Z&end=2025-09-30T23:59:59.999Z';
 const DIALOG_TIMEOUT_MS = 5000;
@@ -22,10 +22,10 @@ async function clickAndWaitForDownload(page, selector, timeout = 15000) {
   return downloadPromise;
 }
 
-test.describe('Jira Reporting App - UX Critical Fixes Tests', () => {
+test.describe('Delivera - UX Critical Fixes Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('should display Epic Title and Summary in Stories done report when epicLinkFieldId exists', async ({ page }) => {
@@ -243,7 +243,7 @@ test.describe('Jira Reporting App - UX Critical Fixes Tests', () => {
     await page.click('.tab-btn[data-tab="done-stories"]');
     await expect(page.locator('#tab-done-stories')).toHaveClass(/active/);
 
-    await page.fill('#search-box', 'NO_MATCH_FILTER_987654321');
+    await page.fill('#report-tab-search', 'NO_MATCH_FILTER_987654321');
     await page.waitForTimeout(500);
 
     const emptyStateVisible = await page.locator('#done-stories-content .empty-state').isVisible().catch(() => false);
@@ -252,7 +252,7 @@ test.describe('Jira Reporting App - UX Critical Fixes Tests', () => {
       return;
     }
 
-    await expect(page.locator('#export-hint')).toContainText('No rows match');
+    await expect(page.locator('#export-hint')).toContainText(/No rows match/i);
   });
 
   test('should display renamed column labels with tooltips in Sprints tab', async ({ page }) => {

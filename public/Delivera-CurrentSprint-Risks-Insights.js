@@ -3,8 +3,8 @@
  * Consolidates blocker context, learnings, and risk notes into one actionable card.
  */
 
-import { escapeHtml } from './Reporting-App-Shared-Dom-Escape-Helpers.js';
-import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
 const INSIGHT_MAX_LEN = 1000;
 
 function toLocalIsoMinute(date = new Date()) {
@@ -35,7 +35,7 @@ export function renderRisksAndInsights(data) {
   const learnings = notes.learnings || [];
   const riskCounts = getUnifiedRiskCounts(data);
   const ownedBlockerCount = Number(riskCounts.blockersOwned || 0);
-  /** SSOT: same as work queue — never show 0 blockers in UI when signals say >0 */
+  /** SSOT: same as work queue ï¿½ never show 0 blockers in UI when signals say >0 */
   const blockerChipCount = Math.max(blockersText.length, ownedBlockerCount);
   const summaryItems = [
     ...blockersText.map((text) => ({ kind: 'Blocker', text })),
@@ -45,7 +45,7 @@ export function renderRisksAndInsights(data) {
   const topItems = summaryItems.slice(0, 1);
   const blockerNotesLabel = blockersText.length === 1 ? '1 note' : `${blockersText.length} notes`;
   const oneLineSummary = blockerChipCount > 0
-    ? `${blockerChipCount} blocker${blockerChipCount === 1 ? '' : 's'} in sprint signals (queue SSOT)${blockersText.length > 0 ? ` · ${blockerNotesLabel} below` : ''}`
+    ? `${blockerChipCount} blocker${blockerChipCount === 1 ? '' : 's'} in sprint signals (queue SSOT)${blockersText.length > 0 ? ` ï¿½ ${blockerNotesLabel} below` : ''}`
     : (assumptions.length > 0
       ? `${assumptions.length} active risk${assumptions.length === 1 ? '' : 's'} in this sprint (team notes)`
       : (learnings.length > 0
@@ -59,6 +59,38 @@ export function renderRisksAndInsights(data) {
   html += '<span class="insights-summary-chip" title="Blockers: sprint risk signals and work queue (same SSOT); count is max of signals and saved dependency notes.">' + blockerChipCount + ' blockers</span>';
   html += '<span class="insights-summary-chip" title="Risks: team-entered notes in this card (not the same as signal tags in the queue).">' + assumptions.length + ' risks</span>';
   html += '<span class="insights-summary-chip" title="Learnings: team notes captured below.">' + learnings.length + ' learnings</span>';
+  html += '</div>';
+  html += '<div class="insights-tabs" role="tablist" aria-label="Risks and insights views">';
+  html += '<button type="button" class="insights-tab active" id="blockers-tab" role="tab" aria-selected="true" aria-controls="blockers-panel" tabindex="0">Blockers <span class="insights-tab-badge">' + blockerChipCount + '</span></button>';
+  html += '<button type="button" class="insights-tab" id="learnings-tab" role="tab" aria-selected="false" aria-controls="learnings-panel" tabindex="-1">Learnings <span class="insights-tab-badge">' + learnings.length + '</span></button>';
+  html += '<button type="button" class="insights-tab" id="assumptions-tab" role="tab" aria-selected="false" aria-controls="assumptions-panel" tabindex="-1">Assumptions <span class="insights-tab-badge">' + assumptions.length + '</span></button>';
+  html += '</div>';
+  html += '<div id="blockers-panel" class="insights-panel active" role="tabpanel" aria-labelledby="blockers-tab">';
+  if (blockersText.length > 0) {
+    blockersText.slice(0, 3).forEach((text) => {
+      html += '<div class="insight-item blocker-item"><span class="insight-icon" aria-hidden="true">!</span><div class="insight-text">' + escapeHtml(text) + '</div></div>';
+    });
+  } else {
+    html += '<div class="insight-empty"><p>' + escapeHtml(blockerChipCount > 0 ? blockerChipCount + ' blocker' + (blockerChipCount === 1 ? '' : 's') + ' detected in sprint signals. Review the work queue below.' : 'No blockers need immediate review.') + '</p></div>';
+  }
+  html += '</div>';
+  html += '<div id="learnings-panel" class="insights-panel" role="tabpanel" aria-labelledby="learnings-tab">';
+  if (learnings.length > 0) {
+    learnings.slice(0, 3).forEach((text) => {
+      html += '<div class="insight-item learning-item"><span class="insight-icon" aria-hidden="true">i</span><div class="insight-text">' + escapeHtml(text) + '</div></div>';
+    });
+  } else {
+    html += '<div class="insight-empty"><p>No learnings captured yet.</p></div>';
+  }
+  html += '</div>';
+  html += '<div id="assumptions-panel" class="insights-panel" role="tabpanel" aria-labelledby="assumptions-tab">';
+  if (assumptions.length > 0) {
+    assumptions.slice(0, 3).forEach((text) => {
+      html += '<div class="insight-item assumption-item"><span class="insight-icon" aria-hidden="true">!</span><div class="insight-text">' + escapeHtml(text) + '</div></div>';
+    });
+  } else {
+    html += '<div class="insight-empty"><p>No assumptions logged yet.</p></div>';
+  }
   html += '</div>';
   if (topItems.length > 0) {
     html += '<div class="insights-summary-list">';
@@ -146,6 +178,74 @@ function setInsightsStatus(card, text, cssVarName) {
 export function wireRisksAndInsightsHandlers() {
   const card = document.querySelector('.risks-insights-card');
   if (!card) return;
+
+  const tabs = Array.from(card.querySelectorAll('.insights-tab'));
+  const panels = Array.from(card.querySelectorAll('.insights-panel'));
+  const focusVisibleInsightTabByIndex = (index) => {
+    const visibleTabs = Array.from(document.querySelectorAll('.insights-tab'))
+      .filter((item) => !!(item.offsetWidth || item.offsetHeight || item.getClientRects().length));
+    if (!visibleTabs.length) return false;
+    const boundedIndex = Math.max(0, Math.min(Number(index || 0), visibleTabs.length - 1));
+    const target = visibleTabs[boundedIndex];
+    if (!target) return false;
+    target.focus();
+    return document.activeElement === target;
+  };
+  const activateTab = (targetTab, shouldFocus = false) => {
+    if (!targetTab) return;
+    tabs.forEach((tab) => {
+      const isActive = tab === targetTab;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      tab.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
+    panels.forEach((panel) => {
+      panel.classList.toggle('active', panel.id === targetTab.getAttribute('aria-controls'));
+    });
+    if (shouldFocus) targetTab.focus();
+  };
+  if (!window.__deliveraInsightsKeyboardFallbackWired) {
+    window.__deliveraInsightsKeyboardFallbackWired = true;
+    window.__deliveraLastInsightsFocusIndex = 0;
+    document.addEventListener('focusin', (event) => {
+      const tab = event.target?.closest?.('.insights-tab');
+      if (!tab) return;
+      const visibleTabs = Array.from(document.querySelectorAll('.insights-tab'))
+        .filter((item) => !!(item.offsetWidth || item.offsetHeight || item.getClientRects().length));
+      const index = visibleTabs.indexOf(tab);
+      if (index >= 0) window.__deliveraLastInsightsFocusIndex = index;
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      const activeEl = document.activeElement;
+      if (activeEl?.closest?.('.insights-tab')) return;
+      if (activeEl && activeEl !== document.body && activeEl !== document.documentElement) return;
+      const visibleTabs = Array.from(document.querySelectorAll('.insights-tab'))
+        .filter((item) => !!(item.offsetWidth || item.offsetHeight || item.getClientRects().length));
+      if (visibleTabs.length < 2) return;
+      const currentIndex = Math.max(0, Math.min(Number(window.__deliveraLastInsightsFocusIndex || 0), visibleTabs.length - 1));
+      const nextIndex = event.key === 'ArrowRight'
+        ? (currentIndex + 1) % visibleTabs.length
+        : (currentIndex - 1 + visibleTabs.length) % visibleTabs.length;
+      event.preventDefault();
+      window.__deliveraLastInsightsFocusIndex = nextIndex;
+      focusVisibleInsightTabByIndex(nextIndex);
+    }, true);
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => activateTab(tab, false));
+    tab.addEventListener('keydown', (event) => {
+      let nextIndex = index;
+      if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      window.__deliveraLastInsightsFocusIndex = nextIndex;
+      activateTab(tabs[nextIndex], true);
+    });
+  });
 
   wireCharCount(card, '#blockers-mitigation', '#blockers-char-count', INSIGHT_MAX_LEN);
   wireCharCount(card, '#learnings-new', '#learnings-char-count', INSIGHT_MAX_LEN);

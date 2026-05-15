@@ -78,7 +78,7 @@ test.describe('Current Sprint Intervention Queue Validation', () => {
 
     // Must show actual count-driven labels from real data
     // Fixture has 1 blocker (MPSA-1), 1 missing estimate (MPSA-3), 1 unassigned (MPSA-2)
-    await expect(queue).toContainText(/\d+ blocker|\d+ missing est|\d+ unowned/i);
+    await expect(queue).toContainText(/\d+ stale in progress|\d+ missing est|\d+ unowned/i);
 
     // Take action CTA must be dynamic — shows top stuck issue key when available
     const takeActionBtn = page.locator('.sprint-intervention-item-primary');

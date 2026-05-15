@@ -1,10 +1,10 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-test.describe('Jira Reporting App - Column Titles & Tooltips', () => {
+test.describe('Delivera - Column Titles & Tooltips', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('boards table column titles expose helpful tooltips', async ({ page }) => {

@@ -52,11 +52,7 @@ export function renderWorkRisksMerged(data) {
   const visibleRiskViews = Array.isArray(distinctViews?.distinctRiskViews) ? distinctViews.distinctRiskViews.slice(0, 3) : [];
   const remediationLine = verdictInfo.topRemediation || 'Top focus: no urgent remediation';
 
-  const blockersPanelText = blockerRows.length > 0
-    ? 'blocker detected in sprint risk signals'
-    : remediationLine;
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
-  html += '<div id="blockers-panel-legacy-summary" class="visually-hidden">' + escapeHtml(blockersPanelText) + '</div>';
   html += '<div class="work-risks-inline-summary">';
   html += '<span class="work-risks-inline-label">Work risks<span class="visually-hidden"> Remediation queue</span></span>';
   html += '<span class="work-risks-inline-copy">' + escapeHtml(remediationLine) + '</span>';

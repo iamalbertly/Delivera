@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { captureBrowserTelemetry, assertTelemetryClean } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('UX Login Trust & Copy Validation', () => {
   test('login copy, outcome, and trust strip are visible when login screen is active', async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe('UX Login Trust & Copy Validation', () => {
       return;
     }
 
-    await expect(page.locator('h1')).toContainText('VodaAgileBoard');
+    await expect(page.locator('h1')).toContainText('Delivera');
     await expect(page.locator('.login-outcome-line')).toContainText(/Sprint risks and delivery in under 30 seconds/i);
     await expect(page.locator('.login-trust-line')).toContainText(/Internal use.*Session-secured|credentials never stored/i);
     await expect(page.locator('.login-footer')).toContainText('Owned by Agile & Digital PMO');

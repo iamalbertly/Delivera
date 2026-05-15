@@ -1,8 +1,8 @@
-import { formatDateForDisplay, formatDateTimeLocalForInput, formatDateShort } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { toUtcIsoFromLocalInput } from './Reporting-App-Report-Utils-Data-Helpers.js';
-import { initQuarterStrip } from './Reporting-App-Shared-Quarter-Range-Helpers.js';
-import { SHARED_DATE_RANGE_KEY, REPORT_HAS_RUN_PREVIEW_KEY } from './Reporting-App-Shared-Storage-Keys.js';
-import { DEFAULT_WINDOW_END_LOCAL, DEFAULT_WINDOW_START_LOCAL } from './Reporting-App-Report-Config-Constants.js';
+import { formatDateForDisplay, formatDateTimeLocalForInput, formatDateShort } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { toUtcIsoFromLocalInput } from './Delivera-Report-Utils-Data-Helpers.js';
+import { initQuarterStrip } from './Delivera-Shared-Quarter-Range-Helpers.js';
+import { SHARED_DATE_RANGE_KEY, REPORT_HAS_RUN_PREVIEW_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { DEFAULT_WINDOW_END_LOCAL, DEFAULT_WINDOW_START_LOCAL } from './Delivera-Report-Config-Constants.js';
 
 let lastQuarterLabel = null;
 

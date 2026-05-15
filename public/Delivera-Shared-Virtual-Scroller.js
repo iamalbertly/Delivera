@@ -1,6 +1,6 @@
 
 /**
- * Virtual Scroller for VodaAgileBoard
+ * Virtual Scroller for Delivera
  * "Speed" Value: Renders 1000s of rows in <16ms frame budget.
  */
 export class VirtualScroller {

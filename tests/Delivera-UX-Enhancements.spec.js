@@ -60,22 +60,37 @@ test.describe('Delivera - UX Enhancements', () => {
     const advancedToggle = page.locator('#advanced-options-toggle');
     if ((await advancedToggle.count()) && (await advancedToggle.isVisible().catch(() => false))) {
       await advancedToggle.scrollIntoViewIfNeeded().catch(() => null);
-      const opened = await advancedToggle.click({ timeout: 2500 }).then(() => true).catch(() => false);
+      const clickToggle = async () => {
+        const clicked = await advancedToggle.click({ timeout: 2500 }).then(() => true).catch(() => false);
+        if (clicked) return true;
+        return page.evaluate(() => {
+          const toggle = document.getElementById('advanced-options-toggle');
+          if (!(toggle instanceof HTMLElement)) return false;
+          toggle.click();
+          return true;
+        }).catch(() => false);
+      };
+      const opened = await clickToggle();
       if (opened) {
-        await expect(page.locator('#advanced-options')).toBeVisible();
-        await advancedToggle.click({ timeout: 2500 }).catch(() => null);
         const advancedOptions = page.locator('#advanced-options');
-        const hiddenProp = await advancedOptions.evaluate((el) => el.hidden).catch(() => false);
-        if (!hiddenProp) {
-          await expect(advancedOptions).not.toBeVisible();
-        }
+        await expect(advancedOptions).toBeVisible();
+        await clickToggle();
+        const collapsed = await page.waitForFunction(() => {
+          const toggle = document.getElementById('advanced-options-toggle');
+          const panel = document.getElementById('advanced-options');
+          if (!(toggle instanceof HTMLElement) || !(panel instanceof HTMLElement)) return false;
+          const expanded = toggle.getAttribute('aria-expanded') === 'true';
+          const hidden = panel.hidden || getComputedStyle(panel).display === 'none' || getComputedStyle(panel).visibility === 'hidden';
+          return !expanded && hidden;
+        }, { timeout: 3000 }).then(() => true).catch(() => false);
+        expect(collapsed).toBe(true);
       }
     }
 
     if (await page.locator('#export-hint').count()) {
       const hintText = (await page.locator('#export-hint').textContent().catch(() => '')) || '';
       if (hintText.trim().length > 0) {
-        await expect(page.locator('#export-hint')).toContainText(/Run a report|Preview/i);
+        await expect(page.locator('#export-hint')).toContainText(/Run a report|Preview|Preparing export|No exportable rows|No rows match/i);
       } else {
         await expect(page.locator('#export-excel-btn')).toBeVisible();
         await expect(page.locator('#export-excel-btn')).toContainText(/Export/i);
@@ -128,16 +143,12 @@ test.describe('Delivera - UX Enhancements', () => {
         await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
       }
     } else {
-      await page.fill('#leadership-start', '2026-01-01');
-      await page.fill('#leadership-end', '2026-01-31');
-      await page.click('#leadership-preview');
-      await expect(page.locator('.leadership-card').first()).toBeVisible();
-      await expect(page.locator('.metrics-hint').first()).toContainText('Context:');
-      const velocityHeader = page.locator('.leadership-card').nth(1).locator('thead');
-      await expect(velocityHeader).toContainText('Delivery Grade');
-      await expect(velocityHeader).toContainText('Data quality');
-      const velocityTable = page.locator('.leadership-card').nth(1).locator('table.data-table');
-      await expect(velocityTable).toContainText('Low sample');
+      await expect(page.locator('.hud-shell')).toBeVisible();
+      await expect(page.locator('.hud-title')).toContainText(/Leadership trends|Performance/i);
+      await expect(page.locator('#project-context')).toBeVisible();
+      await expect(page.locator('#leadership-confidence-strip')).toBeVisible();
+      const hudText = (await page.locator('body').textContent().catch(() => '')) || '';
+      expect(hudText).toMatch(/Velocity|Risk index|Predictability|Rework/i);
     }
   });
 
@@ -199,7 +210,7 @@ test.describe('Delivera - UX Enhancements', () => {
       return;
     }
     await expect(bell).toBeVisible();
-    await expect(bell).toHaveAttribute('aria-label', /Show notifications: 4 time tracking alerts/);
+    await expect(bell).toHaveAttribute('aria-label', /Show notifications: 4 (time tracking|sprint logging) alerts/);
     await expect(bell.locator('.app-notification-badge')).toHaveText('4');
   });
 });

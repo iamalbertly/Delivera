@@ -1,4 +1,4 @@
-import { PROJECTS_SSOT_KEY, LEADERSHIP_FILTERS_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { PROJECTS_SSOT_KEY, LEADERSHIP_FILTERS_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 export const leadershipDom = {
   projectsSelect: document.getElementById('leadership-projects'),

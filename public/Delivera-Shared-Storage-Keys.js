@@ -32,6 +32,7 @@ export const REPORT_NAMED_VIEWS_KEY = 'report-named-views-v1';
 export const REPORT_LAST_VIEW_KEY = 'report-last-view-v1';
 export const CURRENT_SPRINT_LAST_VIEW_KEY = 'current-sprint-last-view-v1';
 export const LEADERSHIP_LAST_VIEW_KEY = 'leadership-last-view-v1';
+export const OUTCOME_ACTIVITY_LOG_KEY = 'delivera_outcomeActivityLog_v1';
 
 const LEGACY_KEY_PAIRS = [
   [PROJECTS_SSOT_KEY, 'vodaAgileBoard_selectedProjects'],

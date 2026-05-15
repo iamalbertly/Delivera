@@ -59,8 +59,10 @@ Detailed env matrix: [`docs/environment.md`](docs/environment.md)
 
 ### Build and run
 
-- `npm run dev`
-- `npm start`
+- **One dev port (recommended):** set `PORT=3001` once in `.env`, then run `npm run dev:hot` — nodemon restarts the API on file save and CSS partials rebuild automatically (no second terminal on 3003).
+- `npm run dev` — build CSS once, then nodemon (same hot API restart; run `npm run build:css` after stylesheet edits if not using `dev:hot`).
+- `npm start` — production-style start (prebuilds CSS).
+- Playwright against your running server: `BASE_URL=http://localhost:3001 SKIP_WEBSERVER=true npm run test:current-sprint:dedupe-fold`
 - `npm run build:css`
 - `npm run check:css`
 - `npm run validate:jira-env`
@@ -93,7 +95,14 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 - Current Sprint can post guided nudges to Jira via `POST /api/issues/:issueKey/comment` (Send to Jira, top nudge, Take action). Restart the local server after pulling API changes — a stale process returns `Cannot POST /api/issues/.../comment`.
 - Focused direct-value + Jira send gate: `npm run test:journey:direct-value-send`
 - Current Sprint viewport lean: stories and work table render before the collapsed decision cockpit; jump links and role lens live in the header drawer; human nudge uses review-before-send (`npm run test:journey:human-nudge-trust`, `npm run test:journey:viewport-declutter`).
-- Sprint at-a-glance briefing (SSOT `Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js`): header mission strip and quick copy include time left, top blocker with hours/owner, and a concrete next action; Jira comments support `@displayName` mentions when `meta.teamRoster` is present on the sprint payload.
+- Sprint at-a-glance briefing (SSOT `Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js`): header mission strip and quick copy include time left, top stale item with hours/owner, and a concrete next action; Jira comments support `@displayName` mentions when `meta.teamRoster` is present on the sprint payload.
+- Risk vocabulary SSOT (`Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js`): UI says “stale in progress” once (not “blockers” in 20 places); viewport-lean header hides duplicate chips when the mission briefing is visible.
+
+### Local dev without port churn (CI/CD-friendly patterns)
+
+1. **`npm run dev:hot`** — single `PORT` in `.env`; nodemon + CSS watch (near-zero downtime for API; hard refresh browser after JS module graph changes).
+2. **`SKIP_WEBSERVER=true` + `BASE_URL`** — Playwright hits your already-running instance instead of spawning another port.
+3. **Production:** Render blueprint / `npm start` with health checks; blue-green or rolling deploy on the host — see [`docs/deployment.md`](docs/deployment.md).
 
 ## Documentation Map
 

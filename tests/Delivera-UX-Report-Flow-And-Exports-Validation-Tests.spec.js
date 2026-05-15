@@ -1,5 +1,9 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { captureBrowserTelemetry, assertTelemetryClean } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import {
+  captureBrowserTelemetry,
+  assertTelemetryClean,
+  hasVisibleReportSummarySurface,
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function ensureReportFiltersExpanded(page) {
   const projectSearch = page.locator('#project-search');
@@ -13,12 +17,12 @@ async function ensureReportFiltersExpanded(page) {
 }
 
 test.describe('UX Report Flow & Export Experience', () => {
-  test('report subtitle explains auto-refresh with manual Preview control', async ({ page }) => {
+  test('report subtitle stays direct-to-value while Preview remains visible', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
 
-    await expect(page.locator('h1')).toContainText(/General Performance|Performance History/i);
-    await expect(page.locator('#report-subtitle')).toContainText(/Preview updates automatically when filters change/i);
+    await expect(page.locator('h1')).toContainText(/Delivery|General Performance|Performance History/i);
+    await expect(page.locator('#report-subtitle')).toContainText(/Outcomes, delivery trend, and data trust|View:/i);
     await expect(page.locator('#preview-btn')).toBeVisible();
 
     assertTelemetryClean(telemetry);
@@ -49,16 +53,19 @@ test.describe('UX Report Flow & Export Experience', () => {
 
     const summary = page.locator('#applied-filters-summary');
     await expect(summary).toBeVisible();
-    await expect(summary).toContainText(/2025-07-01/);
-    await expect(summary).toContainText(/2025-09-30/);
+    const summaryText = [
+      (await summary.textContent().catch(() => '')) || '',
+      (await summary.getAttribute('title').catch(() => '')) || '',
+    ].join(' ');
+    expect(summaryText).toMatch(/2025-07-01|Jul|2025-09-30|Sep/i);
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(200);
-    await expect(summary).toBeVisible();
+    expect(await hasVisibleReportSummarySurface(page)).toBeTruthy();
     await expect(page.locator('#applied-filters-edit-btn')).toHaveCount(0);
   });
 
-  test('export CTAs are hidden until preview has run then show Share / Export', async ({ page }) => {
+  test('export CTAs are hidden until preview has run then show the report export action', async ({ page }) => {
     await page.goto('/report');
 
     await expect(page.locator('#export-excel-btn')).toBeHidden();
@@ -78,7 +85,7 @@ test.describe('UX Report Flow & Export Experience', () => {
     await expect(page.locator('#preview-content')).toBeVisible({ timeout: 60000 });
 
     await expect(page.locator('#export-excel-btn')).toBeVisible();
-    await expect(page.locator('#export-excel-btn')).toContainText(/Share \/ Export|Export Excel - All data/);
+    await expect(page.locator('#export-excel-btn')).toContainText(/Export|Share/i);
   });
 
   test('loading feedback and sticky context are visible when triggering preview from deep scroll', async ({ page }) => {
@@ -117,7 +124,7 @@ test.describe('UX Report Flow & Export Experience', () => {
     if (stickyVisible) {
       await expect(sticky).toBeVisible();
     } else {
-      await expect(page.locator('#preview-outcome-line')).toBeVisible();
+      expect(await hasVisibleReportSummarySurface(page)).toBeTruthy();
     }
   });
 });

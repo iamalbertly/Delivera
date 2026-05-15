@@ -1,7 +1,7 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, waitForPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, waitForPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-test.describe('Jira Reporting App – Preview Concurrency & Rate Limit UX', () => {
+test.describe('Delivera – Preview Concurrency & Rate Limit UX', () => {
   test('multiple quick preview clicks do not leave UI stuck', async ({ page }) => {
     test.setTimeout(180000);
 

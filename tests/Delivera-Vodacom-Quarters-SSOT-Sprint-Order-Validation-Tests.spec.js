@@ -4,15 +4,15 @@
  * Uses captureBrowserTelemetry and UI assertions at every step; fails on UI mismatch or console/network errors.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, waitForPreview, captureBrowserTelemetry } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, waitForPreview, captureBrowserTelemetry } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-test.describe('Jira Reporting App - Vodacom Quarters SSOT Sprint Order Validation', () => {
+test.describe('Delivera - Vodacom Quarters SSOT Sprint Order Validation', () => {
   test('report page shows quarter quick-pick buttons and no console errors', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
 
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|High-Level Performance|Performance History/i);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|High-Level Performance|Performance History/i);
     await expect(page.locator('.quick-range-strip')).toBeVisible();
     await page.waitForSelector('.quarter-pill', { timeout: 15000 }).catch(() => null);
     await expect(page.locator('.quarter-pill').first()).toContainText(/Q[1-4]/i);
@@ -34,9 +34,12 @@ test.describe('Jira Reporting App - Vodacom Quarters SSOT Sprint Order Validatio
     await page.waitForSelector('.quarter-pill', { timeout: 15000 }).catch(() => null);
     const q2Like = page.locator('.quarter-pill').filter({ hasText: /Q2/i }).first();
     if (await q2Like.count()) {
-      await q2Like.click();
+      await q2Like.scrollIntoViewIfNeeded().catch(() => null);
+      await q2Like.click({ force: true });
     } else {
-      await page.locator('.quarter-pill').nth(1).click();
+      const fallbackQuarter = page.locator('.quarter-pill').nth(1);
+      await fallbackQuarter.scrollIntoViewIfNeeded().catch(() => null);
+      await fallbackQuarter.click({ force: true });
     }
     await page.waitForTimeout(2000);
     const startVal = await page.locator('#start-date').inputValue();
@@ -155,7 +158,15 @@ test.describe('Jira Reporting App - Vodacom Quarters SSOT Sprint Order Validatio
       await expect(leadershipQ2).toBeVisible();
       await leadershipQ2.click();
     } else {
-      await expect(page.locator('.quick-range-strip')).toBeVisible();
+      const quickRangeStrip = page.locator('.quick-range-strip');
+      if (!(await quickRangeStrip.count())) {
+        // /sprint-leadership may resolve to /leadership HUD where quarter quick-pick lives on /report.
+        await expect(page.locator('#project-context')).toBeVisible();
+        expect(telemetry.consoleErrors).toEqual([]);
+        expect(telemetry.pageErrors).toEqual([]);
+        return;
+      }
+      await expect(quickRangeStrip).toBeVisible();
       await page.waitForSelector('.quarter-pill', { timeout: 15000 }).catch(() => null);
       if (await reportQ2.count()) await reportQ2.click();
       else await page.locator('.quarter-pill').nth(1).click();

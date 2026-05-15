@@ -462,6 +462,20 @@ test.describe('Delivera - API Integration Tests', () => {
     expect(json.code).toBe('BOARD_NOT_FOUND');
   });
 
+  test('POST /api/issues/:issueKey/comment is registered (not Express bare 404)', async ({ request }) => {
+    const response = await request.post('/api/issues/TEST-1/comment', {
+      data: { commentBody: 'Delivera route registration probe' },
+    });
+    if (response.status() === 401) {
+      test.skip('Auth required');
+      return;
+    }
+    expect(response.status()).not.toBe(404);
+    const body = await response.text();
+    expect(body).not.toMatch(/Cannot POST\s+\/api\/issues/i);
+    expect(response.headers()['content-type'] || '').toMatch(/application\/json/i);
+  });
+
   test('POST /api/current-sprint-notes should require boardId and sprintId', async ({ request }) => {
     const response = await request.post('/api/current-sprint-notes', {
       data: { dependencies: 'Blocked by data feed', learnings: 'Sync earlier' },

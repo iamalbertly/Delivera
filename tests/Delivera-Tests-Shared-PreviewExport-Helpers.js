@@ -4,15 +4,14 @@
 
 export const IGNORE_CONSOLE_ERRORS = [
   'Failed to load resource: the server responded with a status of 404 (Not Found)',
-  'Failed to load resource: net::ERR_FAILED',
   'Failed to load resource: net::ERR_INSUFFICIENT_RESOURCES',
-  'Failed to load resource: the server responded with a status of 500 (Internal Server Error)',
   'ResizeObserver loop limit exceeded',
   'The operation is insecure.',
   'AbortError: signal is aborted without reason',
   'signal is aborted without reason',
   'Receiving end does not exist',
-  'Unchecked runtime.lastError'
+  'Unchecked runtime.lastError',
+  'A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received',
 ];
 
 export const IGNORE_REQUEST_PATTERNS = [
@@ -124,6 +123,90 @@ export async function waitForPreview(page, options = {}) {
       page.waitForSelector('#error', { state: 'visible', timeout: 10000 }).catch(() => null),
     ]);
   }
+
+  await page.waitForFunction(() => {
+    const previewBtn = document.getElementById('preview-btn');
+    if (!previewBtn) return true;
+    return !previewBtn.disabled;
+  }, { timeout: 5000 }).catch(() => null);
+}
+
+/**
+ * Returns true when any selector in the list is currently visible.
+ * @param {import('@playwright/test').Page} page
+ * @param {string[]} selectors
+ */
+export async function isAnySelectorVisible(page, selectors = []) {
+  for (const selector of selectors) {
+    const visible = await page.locator(selector).first().isVisible().catch(() => false);
+    if (visible) return true;
+  }
+  return false;
+}
+
+/**
+ * Adaptive report summary contract: at least one active summary surface must be visible.
+ * Keeps tests resilient while summary UI shifts between sticky row, filter strip, and preview story.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function hasVisibleReportSummarySurface(page) {
+  return isAnySelectorVisible(page, [
+    '#preview-summary-sticky',
+    '#report-filter-strip-summary .context-summary-strip',
+    '#preview-meta .preview-header-story',
+    '#preview-meta [data-context-bar="true"]',
+    '#preview-outcome-line',
+  ]);
+}
+
+/**
+ * Clicks the first visible report context/action chip for the requested action.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} action
+ */
+export async function clickVisibleReportChromeAction(page, action) {
+  const selectors = [
+    `[data-preview-context-action="${action}"]`,
+    `[data-context-action="${action}"]`,
+  ];
+  for (const selector of selectors) {
+    const matches = page.locator(selector);
+    const count = await matches.count().catch(() => 0);
+    for (let index = 0; index < count; index += 1) {
+      const locator = matches.nth(index);
+      const visible = await locator.isVisible().catch(() => false);
+      if (!visible) continue;
+      await locator.click({ force: true }).catch(() => null);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Sets report project checkbox state via DOM events instead of click geometry.
+ * Keeps tests stable when sticky chrome overlaps the filters pane.
+ * @param {import('@playwright/test').Page} page
+ * @param {string[]} projects
+ */
+export async function setReportProjectSelection(page, projects = []) {
+  const selectedProjects = new Set(
+    (Array.isArray(projects) ? projects : [])
+      .map((value) => String(value || '').trim().toUpperCase())
+      .filter(Boolean)
+  );
+
+  await page.evaluate((selected) => {
+    document.querySelectorAll('.project-checkbox[data-project]').forEach((input) => {
+      if (!(input instanceof HTMLInputElement)) return;
+      const projectKey = String(input.dataset.project || '').trim().toUpperCase();
+      const shouldBeChecked = selected.includes(projectKey);
+      if (input.checked === shouldBeChecked) return;
+      input.checked = shouldBeChecked;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }, Array.from(selectedProjects));
 }
 
 /**
@@ -149,12 +232,7 @@ export async function runDefaultPreview(page, overrides = {}) {
     await startInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
   }
 
-  const mpsaChecked = projects.includes('MPSA');
-  const masChecked = projects.includes('MAS');
-  if (mpsaChecked) await page.check('#project-mpsa', { force: true });
-  else await page.uncheck('#project-mpsa', { force: true });
-  if (masChecked) await page.check('#project-mas', { force: true });
-  else await page.uncheck('#project-mas', { force: true });
+  await setReportProjectSelection(page, projects);
 
   await page.fill('#start-date', start, { force: true });
   await page.fill('#end-date', end, { force: true });
@@ -163,7 +241,12 @@ export async function runDefaultPreview(page, overrides = {}) {
   await page.waitForTimeout(150);
   const isDisabled = await previewBtn.isDisabled().catch(() => false);
   if (!isDisabled) {
-    await previewBtn.click().catch(() => null);
+    await previewBtn.click().catch(async () => {
+      await page.evaluate(() => {
+        const btn = document.getElementById('preview-btn');
+        if (btn && !btn.hasAttribute('disabled')) btn.click();
+      }).catch(() => null);
+    });
   }
 
   await Promise.race([
@@ -237,7 +320,12 @@ export async function clickReportPreviewFromCurrentState(page) {
   await previewBtn.waitFor({ state: 'attached', timeout: 10000 }).catch(() => null);
   const enabled = await previewBtn.isEnabled().catch(() => false);
   if (!enabled) return false;
-  await previewBtn.click().catch(() => null);
+  await previewBtn.click().catch(async () => {
+    await page.evaluate(() => {
+      const btn = document.getElementById('preview-btn');
+      if (btn && !btn.hasAttribute('disabled')) btn.click();
+    }).catch(() => null);
+  });
   return true;
 }
 

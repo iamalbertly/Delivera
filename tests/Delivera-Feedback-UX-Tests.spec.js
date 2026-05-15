@@ -11,6 +11,10 @@ test.describe('Delivera - Feedback & Date Display Tests', () => {
       return;
     }
     const feedbackToggle = page.locator('#feedback-toggle');
+    const feedbackVisible = await feedbackToggle.isVisible().catch(() => false);
+    if (!feedbackVisible) {
+      await page.locator('#report-header-actions details.report-header-more-menu summary').first().click().catch(() => null);
+    }
     await expect(feedbackToggle).toBeVisible();
 
     await feedbackToggle.click();

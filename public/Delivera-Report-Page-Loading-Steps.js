@@ -1,5 +1,5 @@
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { LOADING_STEP_LIMIT } from './Reporting-App-Report-Config-Constants.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { LOADING_STEP_LIMIT } from './Delivera-Report-Config-Constants.js';
 
 const LOADING_CHIP_MIN_VISIBLE_MS = 300;
 // Length must match LOADING_STAGE_PERCENT; used for progress bar and aria
@@ -215,13 +215,14 @@ export function setLoadingVisible(visible = true) {
     if (typeof window.__reportSyncHeaderLoadLatestVisibility === 'function') window.__reportSyncHeaderLoadLatestVisibility(false);
     else if (loadLatestWrap) loadLatestWrap.style.display = 'none';
     clearLoadingChipShowTimer();
+    if (chip) {
+      chip.style.display = 'block';
+      const msgEl = document.getElementById('loading-message');
+      if (msgEl) chip.textContent = msgEl.textContent || '';
+    }
+    // Keep a minimum visibility timer so rapid toggles do not flash.
     loadingChipShowTimerId = setTimeout(() => {
       loadingChipShowTimerId = null;
-      if (chip) {
-        chip.style.display = 'block';
-        const msgEl = document.getElementById('loading-message');
-        if (msgEl) chip.textContent = msgEl.textContent || '';
-      }
     }, LOADING_CHIP_MIN_VISIBLE_MS);
   } else {
     clearLoadingChipShowTimer();

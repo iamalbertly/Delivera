@@ -3,8 +3,8 @@
  * Uses captureBrowserTelemetry; fails on UI mismatch or console/request errors.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, waitForPreview, captureBrowserTelemetry, skipIfRedirectedToLogin } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { runDefaultPreview, waitForPreview, captureBrowserTelemetry, skipIfRedirectedToLogin } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function ensureFiltersVisible(page) {
   const strip = page.locator('.quick-range-strip, [aria-label="Vodacom quarters"]').first();
@@ -15,8 +15,8 @@ async function ensureFiltersVisible(page) {
   }
 }
 
-test.describe('Jira Reporting App - General Performance Quarters UI Validation', () => {
-  test('report page title or heading includes General Performance', async ({ page }) => {
+test.describe('Delivera - General Performance Quarters UI Validation', () => {
+  test('report page title or heading includes Delivery context title', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
@@ -24,8 +24,10 @@ test.describe('Jira Reporting App - General Performance Quarters UI Validation',
     const h1 = page.locator('h1');
     const title = await page.title();
     const h1Text = await h1.textContent().catch(() => '');
-    const hasGeneralPerformance = (h1Text && h1Text.includes('General Performance')) || (title && title.includes('General Performance'));
-    expect(hasGeneralPerformance).toBeTruthy();
+    const hasReportTitle =
+      (h1Text && /Delivery|General Performance|Performance History/i.test(h1Text))
+      || (title && /Reports - Delivera|General Performance/i.test(title));
+    expect(hasReportTitle).toBeTruthy();
 
     expect(telemetry.consoleErrors).toEqual([]);
     expect(telemetry.pageErrors).toEqual([]);
@@ -121,6 +123,14 @@ test.describe('Jira Reporting App - General Performance Quarters UI Validation',
     await page.goto('/sprint-leadership');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
+    // /sprint-leadership redirects to /leadership (HUD); quarter pills are SSOT on /report filters.
+    if (page.url().includes('/leadership')) {
+      await expect(page.locator('#project-context')).toBeVisible({ timeout: 15000 });
+      expect(telemetry.consoleErrors).toEqual([]);
+      expect(telemetry.pageErrors).toEqual([]);
+      return;
+    }
+
     await ensureFiltersVisible(page);
     const strip = page.locator('.quick-range-strip, [aria-label="Vodacom quarters"]').first();
     await expect(strip).toBeVisible({ timeout: 15000 });
@@ -146,10 +156,16 @@ test.describe('Jira Reporting App - General Performance Quarters UI Validation',
 
     const subtitle = page.locator('#report-subtitle');
     const meta = page.locator('#preview-meta');
+    const contextStrip = page.locator('#report-filter-strip-summary');
     const subtitleText = await subtitle.textContent().catch(() => '');
     const metaText = await meta.textContent().catch(() => '');
-    const hasProjects = (subtitleText && subtitleText.includes('Projects')) || (metaText && metaText.includes('Projects'));
-    const hasDate = (subtitleText && (subtitleText.includes('to') || subtitleText.match(/\d/))) || (metaText && (metaText.includes('Window') || metaText.includes('to')));
+    const contextText = await contextStrip.textContent().catch(() => '');
+    const hasProjects = (subtitleText && /View:/i.test(subtitleText))
+      || (metaText && /Projects|Scope:/i.test(metaText))
+      || (contextText && /Projects:|Scope:/i.test(contextText));
+    const hasDate = (subtitleText && (subtitleText.includes('to') || /\d{1,2}\s\w{3}\s\d{4}/.test(subtitleText)))
+      || (metaText && (metaText.includes('Window') || metaText.includes('to') || /\d{1,2}\s\w{3}\s\d{4}/.test(metaText)))
+      || (contextText && /\d{1,2}\s\w{3}\s\d{4}/.test(contextText));
     expect(hasProjects).toBeTruthy();
     expect(hasDate).toBeTruthy();
 
@@ -164,7 +180,7 @@ test.describe('Jira Reporting App - General Performance Quarters UI Validation',
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await expect(page.locator('h1')).toContainText('Current Sprint');
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Report|High-Level Performance/i);
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Delivery|Report|High-Level Performance/i);
 
     const alertsCard = page.locator('#notifications-card, [id*="notification"]');
     const hasAlerts = await alertsCard.isVisible().catch(() => false);

@@ -1,4 +1,4 @@
-import { createOverlayController } from './Reporting-App-Shared-Overlay-Manager.js';
+import { createOverlayController } from './Delivera-Shared-Overlay-Manager.js';
 
 function getActiveFiltersCount() {
   let count = 0;
@@ -45,23 +45,32 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
 
   function setFiltersPanelCollapsed(collapsed) {
     if (!panel || !panelBody || !collapsedBar) return;
+    const desktopDrawer = isDesktopDrawer();
     try {
       if (collapsed) sessionStorage.setItem(collapsedStorageKey, '1');
       else sessionStorage.removeItem(collapsedStorageKey);
     } catch (_) {}
     panel.classList.toggle('collapsed', collapsed);
-    panel.classList.toggle('expanded', !collapsed && isDesktopDrawer());
+    panel.classList.toggle('expanded', !collapsed && desktopDrawer);
     panel.classList.toggle('overlay-drawer', !collapsed);
     panelBody.style.display = collapsed ? 'none' : '';
     const showCollapsedBar = collapsed && !isDesktopDrawer();
     collapsedBar.style.display = showCollapsedBar ? 'flex' : 'none';
     collapsedBar.setAttribute('aria-hidden', showCollapsedBar ? 'false' : 'true');
     updateToggleLabels(collapsed);
-    if (collapsed) overlayController?.close({ returnFocus: false });
-    else overlayController?.open({});
+    if (collapsed || desktopDrawer) {
+      overlayController?.close({ returnFocus: false });
+      panel.classList.remove('is-open');
+      panel.hidden = false;
+    } else {
+      overlayController?.open({});
+    }
     if (collapsed && collapsedSummary && appliedSummary) {
+      // Prefer the actual active scope summary (projects + range) over "Waiting for preview",
+      // so the collapsed bar reflects the current selection immediately on load.
+      const appliedSummaryText = (appliedSummary.textContent || '').trim();
       const chipsText = (appliedChips?.textContent || '').trim();
-      const base = chipsText || appliedSummary.textContent || 'Applied filters';
+      const base = appliedSummaryText || chipsText || 'Applied filters';
       collapsedSummary.textContent = base;
     }
   }
@@ -69,10 +78,12 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
   function applyStoredFiltersCollapsed() {
     if (!panel || !panelBody || !collapsedBar) return;
     if (isDesktopDrawer()) {
-      let shouldCollapse = true;
+      // Desktop drawer CSS uses pointer-events:none until .expanded; default expanded so
+      // #preview-btn and filter controls stay clickable (clicks otherwise hit #main-content).
+      let shouldCollapse = false;
       try {
         const stored = sessionStorage.getItem(collapsedStorageKey);
-        shouldCollapse = stored !== '0';
+        shouldCollapse = stored === '1';
       } catch (_) {}
       setFiltersPanelCollapsed(shouldCollapse);
       return;
@@ -104,6 +115,26 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
     if (!insidePanel && !toggle) {
       setFiltersPanelCollapsed(true);
     }
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || !panel || panel.classList.contains('collapsed')) return;
+    if (!panel.classList.contains('is-open') && !panel.classList.contains('expanded')) return;
+    setFiltersPanelCollapsed(true);
+  });
+
+  window.addEventListener('resize', () => {
+    if (!panel) return;
+    if (isDesktopDrawer()) {
+      overlayController?.close({ returnFocus: false });
+      panel.classList.remove('is-open');
+      if (!panel.classList.contains('collapsed')) {
+        panel.classList.add('expanded');
+        panel.hidden = false;
+      }
+      return;
+    }
+    panel.classList.remove('expanded');
   });
 
   window.addEventListener('report-preview-shown', () => {

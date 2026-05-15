@@ -146,6 +146,7 @@ export function updateAppliedFiltersSummary() {
     chipsEl.title = summaryText;
   }
   if (filterStripSummaryEl) {
+    filterStripSummaryEl.classList.add('applied-filters-chips-row');
     const outcomesCount = reportState.previewData != null
       ? (Array.isArray(reportState.previewRows) ? reportState.previewRows.length : 0)
       : undefined;
@@ -318,4 +319,3 @@ export function hydrateFromLastQuery() {
     });
   }
 }
-

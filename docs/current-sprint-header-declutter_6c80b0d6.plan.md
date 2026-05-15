@@ -133,9 +133,9 @@ isProject: false
 
 - **Extend existing Playwright specs in `tests/`**  
   - Update or extend:
-    - `tests/Jira-Reporting-App-Current-Sprint-UX-SSOT-Validation-Tests.spec.js`
-    - `tests/Jira-Reporting-App-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js`
-    - `tests/Jira-Reporting-App-UX-Enhancements.spec.js`
+    - `tests/Delivera-Current-Sprint-UX-SSOT-Validation-Tests.spec.js`
+    - `tests/Delivera-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js`
+    - `tests/Delivera-UX-Enhancements.spec.js`
   - Validate via UI queries:
     - The three-row header and mini-header scroll behavior (check class presence, sticky offsets, and visibility).
     - The presence and text of verdict line, Last 3 sprints comparison, and key chips (blockers, missing est, no log) under different data scenarios.

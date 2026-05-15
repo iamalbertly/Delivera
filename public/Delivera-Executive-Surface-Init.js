@@ -2,6 +2,45 @@ import { buildContextSegmentList, getContextPieces, renderContextPartList } from
 import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
 import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 
+const LAST_ROUTE_KEY = 'delivera.lastRoute.v1';
+const ROUTE_LABELS = {
+  '/current-sprint': 'Current Sprint',
+  '/report': 'Delivery',
+  '/leadership': 'Leadership',
+  '/dashboard': 'Dashboard',
+  '/home': 'Dashboard',
+};
+
+function readLastRoute() {
+  try {
+    const raw = window.localStorage.getItem(LAST_ROUTE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.path) return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function persistLastRoute(path) {
+  const normalized = String(path || '').trim();
+  if (!normalized || normalized === '/dashboard' || normalized === '/home') return;
+  try {
+    window.localStorage.setItem(LAST_ROUTE_KEY, JSON.stringify({ path: normalized, at: Date.now() }));
+  } catch (_) {}
+}
+
+function applyContinueCta() {
+  const btn = document.getElementById('surface-continue-cta');
+  if (!btn) return;
+  const last = readLastRoute();
+  const path = last?.path || '/current-sprint';
+  const label = ROUTE_LABELS[path] || 'your last view';
+  btn.setAttribute('data-surface-nav', path);
+  btn.textContent = `Continue to ${label}`;
+}
+
 function readSelectedProjects() {
   try {
     return (window.localStorage.getItem(PROJECTS_SSOT_KEY) || '')
@@ -48,12 +87,21 @@ function initQuickNavigation() {
     const href = trigger.getAttribute('data-surface-nav');
     if (!href) return;
     event.preventDefault();
+    persistLastRoute(href);
     window.location.href = href;
   });
 }
 
+try {
+  const path = window.location.pathname || '';
+  if (path && path !== '/dashboard' && path !== '/home') {
+    persistLastRoute(path);
+  }
+} catch (_) {}
+
 function initSurfacePage() {
   renderSurfaceContext();
+  applyContinueCta();
   initQuickNavigation();
   initGlobalOutcomeModal({
     getSelectedProjects: () => {

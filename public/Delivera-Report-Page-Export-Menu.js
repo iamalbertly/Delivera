@@ -1,8 +1,8 @@
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { getSafeMeta } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { exportCSV } from './Reporting-App-Report-Page-Export-CSV.js';
-import { setActionErrorOnEl } from './Reporting-App-Shared-Status-Helpers.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { getSafeMeta } from './Delivera-Report-Page-Render-Helpers.js';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { exportCSV } from './Delivera-Report-Page-Export-CSV.js';
+import { setActionErrorOnEl } from './Delivera-Shared-Status-Helpers.js';
 
 function showExportError(message) {
   const { errorEl } = reportDom;
@@ -129,8 +129,32 @@ export function triggerExcelExport() {
 export function updateExportHint() {
   const { exportExcelBtn, exportDropdownTrigger, exportHint } = reportDom;
   if (!exportHint) return;
-  const disabled = (exportExcelBtn ? exportExcelBtn.disabled : true) && (exportDropdownTrigger ? exportDropdownTrigger.disabled : true);
-  exportHint.textContent = disabled ? 'Run a report to enable Share / Export.' : '';
+  const hasPreviewData = !!reportState.previewData;
+  const hasRows = Array.isArray(reportState.previewRows) && reportState.previewRows.length > 0;
+  const activeSection = getActiveTabSectionName();
+  const activeRows = getRowsForSection(activeSection);
+  const hasActiveRows = Array.isArray(activeRows) && activeRows.length > 0;
+  const isLoading = !!reportState.previewInProgress;
+
+  if (isLoading) {
+    exportHint.textContent = 'Preparing export...';
+  } else if (!hasPreviewData) {
+    exportHint.textContent = 'Run preview to enable export.';
+  } else if (!hasRows) {
+    exportHint.textContent = 'No exportable rows in this scope.';
+  } else if (!hasActiveRows) {
+    exportHint.textContent = 'No rows match the current view filters.';
+  } else {
+    exportHint.textContent = '';
+  }
+
+  if (exportExcelBtn) {
+    exportExcelBtn.textContent = hasRows ? 'Export options' : 'Export unavailable';
+    exportExcelBtn.setAttribute('aria-disabled', hasRows ? 'false' : 'true');
+  }
+  if (exportDropdownTrigger) {
+    exportDropdownTrigger.hidden = true;
+  }
 }
 
 export function updateExportFilteredState() {
@@ -141,6 +165,9 @@ export function updateExportFilteredState() {
   const hasRows = Array.isArray(reportState.visibleRows) && reportState.visibleRows.length > 0;
   if (csvFiltered) csvFiltered.disabled = !hasRows;
   if (excelFiltered) excelFiltered.disabled = !hasRows;
+  if (!hasRows && exportDropdownMenu.getAttribute('aria-hidden') === 'false') {
+    exportDropdownMenu.setAttribute('aria-hidden', 'true');
+  }
   updateExportHint();
 }
 

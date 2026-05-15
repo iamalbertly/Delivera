@@ -49,7 +49,7 @@ export function deriveSprintVerdict(data) {
   }
 
   let detail = donePct + '% done';
-  if (counts.stuckCount > 0) detail += ' · ' + counts.stuckCount + ' blockers';
+  if (counts.stuckCount > 0) detail += ' · ' + counts.stuckCount + ' stale in progress';
   if (counts.missingEstimate > 0) detail += ' · ' + counts.missingEstimate + ' missing estimates';
   if (counts.missingLogged > 0) detail += ' · ' + counts.missingLogged + ' no log';
   if (counts.unassignedParents > 0) detail += ' · ' + counts.unassignedParents + ' unowned outcomes';
@@ -58,7 +58,7 @@ export function deriveSprintVerdict(data) {
   let trackingReasons = detail;
   if (counts.stuckCount > 0) {
     topRemediation = `Unblock ${counts.stuckCount} stale in-progress item${counts.stuckCount === 1 ? '' : 's'} first.`;
-    trackingReasons = `${counts.stuckCount} blocker${counts.stuckCount === 1 ? '' : 's'} aging past 24h in the same status`;
+    trackingReasons = `${counts.stuckCount} item${counts.stuckCount === 1 ? '' : 's'} stale in progress >24h in the same status`;
   } else if (counts.unassignedParents > 0) {
     topRemediation = `Assign owners for ${counts.unassignedParents} unowned outcome${counts.unassignedParents === 1 ? '' : 's'}.`;
     trackingReasons = `${counts.unassignedParents} sprint outcome${counts.unassignedParents === 1 ? '' : 's'} without an assignee`;

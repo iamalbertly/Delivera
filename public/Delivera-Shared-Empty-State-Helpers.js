@@ -39,6 +39,7 @@ export function renderNoActiveSprintEmptyState(projectsCsv = '') {
     + ' data-outcome-context="No active sprint — capture the next piece of work to track."'
     + outcomeProjectsAttr
     + '>Create work</button>'
+    + '<a href="/report" class="btn btn-secondary btn-compact">Open report</a>'
     + '</p>'
   );
   return renderEmptyStateHtml(

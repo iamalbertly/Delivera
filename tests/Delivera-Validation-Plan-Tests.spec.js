@@ -1,13 +1,13 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { captureBrowserTelemetry } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { captureBrowserTelemetry } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-test.describe('Jira Reporting App - Validation Plan (UI + Telemetry)', () => {
+test.describe('Delivera - Validation Plan (UI + Telemetry)', () => {
   test('report page loads with expected controls and no console errors', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
 
     await page.goto('/report');
 
-    await expect(page.locator('h1')).toContainText(/VodaAgileBoard|General Performance|Performance History/i);
+    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/i);
     await expect(page.locator('#project-mpsa')).toBeVisible();
     await expect(page.locator('#project-mas')).toBeVisible();
     await expect(page.locator('#start-date')).toBeVisible();
@@ -23,7 +23,7 @@ test.describe('Jira Reporting App - Validation Plan (UI + Telemetry)', () => {
       await expect(leadershipNavLink).toContainText('Leadership');
     } else {
       await page.goto('/sprint-leadership');
-      await expect(page).toHaveURL(/\/report(#trends)?/);
+      await expect(page).toHaveURL(/\/(report(#trends)?|leadership)/);
       await page.goto('/report');
     }
 

@@ -1,6 +1,6 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
-test.describe('Jira Reporting App - Current Sprint and Leadership View Tests', () => {
+test.describe('Delivera - Current Sprint and Leadership View Tests', () => {
   test('should load current-sprint page and show board selector', async ({ page }) => {
     await page.goto('/current-sprint');
     if (page.url().includes('login') || page.url().endsWith('/')) {
@@ -70,22 +70,21 @@ test.describe('Jira Reporting App - Current Sprint and Leadership View Tests', (
       return;
     }
     if (page.url().includes('/report')) {
-      await expect(page.locator('h1')).toContainText(/General Performance|Sprint Leadership/i);
+      await expect(page.locator('h1')).toContainText(/Delivery|General Performance|Sprint Leadership/i);
       await expect(page.locator('#start-date')).toBeVisible();
       await expect(page.locator('#end-date')).toBeVisible();
       await expect(page.locator('#preview-btn')).toBeVisible();
       await expect(page.locator('.tab-btn[data-tab="trends"]')).toHaveCount(1);
       return;
     }
-    await expect(page.locator('h1')).toContainText(/Sprint Leadership/i);
-    await expect(page.locator('#leadership-start')).toBeVisible();
-    await expect(page.locator('#leadership-end')).toBeVisible();
-    await expect(page.locator('#leadership-preview')).toBeVisible();
-    await expect(page.locator('#leadership-preview')).toContainText('Preview');
+    await expect(page.locator('h1')).toContainText(/Leadership|Performance - Leadership/i);
+    await expect(page.locator('#project-context')).toBeVisible();
+    await expect(page.locator('#leadership-refresh-btn')).toBeVisible();
+    await expect(page.locator('#leadership-header-actions [data-open-outcome-modal]')).toContainText(/Create work/i);
   });
 
   test('should load sprint-leadership and handle Preview click without crash', async ({ page }) => {
-    test.setTimeout(90000);
+    test.setTimeout(45000);
     await page.goto('/sprint-leadership');
     if (page.url().includes('login') || page.url().endsWith('/')) {
       test.skip('Redirected to login or home; auth may be required');
@@ -95,30 +94,23 @@ test.describe('Jira Reporting App - Current Sprint and Leadership View Tests', (
     if (isReportRoute) {
       await expect(page.locator('#preview-btn')).toBeVisible();
       await page.click('#preview-btn');
+      await page.waitForTimeout(1500);
+      const reportContent = page.locator('#preview-content');
+      const reportLoading = page.locator('#loading');
+      const reportError = page.locator('#error');
+      const hasReportSignal = (await reportContent.isVisible().catch(() => false))
+        || (await reportLoading.isVisible().catch(() => false))
+        || (await reportError.isVisible().catch(() => false));
+      expect(hasReportSignal).toBeTruthy();
+      return;
     } else {
-      await expect(page.locator('#leadership-preview')).toBeVisible();
-      await page.click('#leadership-preview');
-    }
-    await page.waitForTimeout(5000);
-    const leadershipContent = page.locator('#leadership-content');
-    const reportContent = page.locator('#preview-content');
-    const leadershipLoading = page.locator('#leadership-loading');
-    const reportLoading = page.locator('#loading');
-    const leadershipError = page.locator('#leadership-error');
-    const reportError = page.locator('#error');
-    const contentVisible = (await leadershipContent.isVisible().catch(() => false)) || (await reportContent.isVisible().catch(() => false));
-    const loadingVisible = (await leadershipLoading.isVisible().catch(() => false)) || (await reportLoading.isVisible().catch(() => false));
-    const errorVisible = (await leadershipError.isVisible().catch(() => false)) || (await reportError.isVisible().catch(() => false));
-    const bodyText = await page.locator('body').textContent();
-    const leadershipText = (await leadershipContent.textContent().catch(() => '')) || '';
-    const reportText = (await reportContent.textContent().catch(() => '')) || '';
-    const errorText = ((await leadershipError.textContent().catch(() => '')) || '') + ((await reportError.textContent().catch(() => '')) || '');
-    const hasContent = contentVisible && (leadershipText.trim().length > 0 || reportText.trim().length > 0);
-    const hasError = errorVisible && errorText.trim().length > 0;
-    expect(hasContent || loadingVisible || hasError || (bodyText && bodyText.length > 0)).toBeTruthy();
-
-    if (hasContent && !isReportRoute) {
-      await expect(page.locator('text=Velocity (SP/day)')).toBeVisible();
+      await expect(page.locator('#leadership-refresh-btn')).toBeVisible();
+      await page.click('#leadership-refresh-btn');
+      await page.waitForTimeout(1200);
+      await expect(page.locator('#hud-grid')).toBeVisible();
+      const cardCount = await page.locator('#hud-grid .hud-card').count();
+      expect(cardCount).toBeGreaterThan(0);
+      return;
     }
   });
 });

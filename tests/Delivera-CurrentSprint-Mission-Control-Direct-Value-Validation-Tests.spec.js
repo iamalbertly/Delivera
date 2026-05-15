@@ -204,11 +204,21 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       document.querySelectorAll('.current-sprint-header-bar').forEach((bar) => bar.classList.remove('header-mini-mode'));
     });
 
-    const strip = page.locator('.current-sprint-header-bar .header-context-strip').first();
+    const headerBar = page.locator('.current-sprint-header-bar').first();
+    const lean = await headerBar.getAttribute('data-viewport-lean');
+    const refreshCue = page.locator('[data-context-action="refresh-current-sprint-context"]').first();
+    if (lean === 'true') {
+      await headerBar.locator('details.header-view-drawer').evaluate((el) => { el.open = true; });
+      const drawerCue = headerBar.locator('.header-drawer-context-strip-wrap [data-context-action="refresh-current-sprint-context"]');
+      await expect(drawerCue).toBeVisible();
+      await expect(drawerCue).toContainText(/Filters changed since last run/i);
+      return;
+    }
+    const strip = headerBar.locator('.header-context-strip').first();
     await expect(strip).toBeVisible();
     const labels = await strip.locator('.header-context-segment-label').allTextContents();
     expect(labels).toEqual(expect.arrayContaining(['Last', 'Projects', 'Range', 'Freshness', 'Context']));
-    await expect(strip.locator('[data-context-action="refresh-current-sprint-context"]').first()).toContainText(/Filters changed since last run/i);
+    await expect(refreshCue).toContainText(/Filters changed since last run/i);
   });
 
   test.beforeEach(async ({ page }, testInfo) => {
@@ -413,7 +423,14 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
 
   test('Header context strip is compressed into one deduplicated scope line', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, 0));
-    const strip = page.locator('.current-sprint-header-bar .header-context-strip').first();
+    const headerBar = page.locator('.current-sprint-header-bar').first();
+    const lean = (await headerBar.getAttribute('data-viewport-lean')) === 'true';
+    if (lean) {
+      await headerBar.locator('details.header-view-drawer').evaluate((el) => { el.open = true; });
+    }
+    const strip = lean
+      ? headerBar.locator('.header-drawer-context-strip-wrap .header-context-strip').first()
+      : headerBar.locator('.header-context-strip').first();
     await expect(strip).toBeVisible();
     const text = (await strip.textContent().catch(() => '')) || '';
     expect(text.trim().length).toBeGreaterThan(12);
@@ -567,8 +584,15 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await page.evaluate(() => window.scrollTo(0, 0));
     const header = page.locator('.current-sprint-header-bar').first();
     const reportLink = header.locator('.header-compact-strip .header-chrome-history-report').first();
-    const contextStrip = header.locator('.header-context-strip').first();
+    const lean = (await header.getAttribute('data-viewport-lean')) === 'true';
     await expect(reportLink).toBeVisible();
+    if (lean) {
+      await header.locator('details.header-view-drawer').evaluate((el) => { el.open = true; });
+      const drawerCtx = header.locator('.header-drawer-context-strip-wrap .header-context-strip').first();
+      await expect(drawerCtx).toBeVisible();
+      return;
+    }
+    const contextStrip = header.locator('.header-context-strip').first();
     await expect(contextStrip).toBeVisible();
     const reportAboveScope = await page.evaluate(() => {
       const bar = document.querySelector('.current-sprint-header-bar');

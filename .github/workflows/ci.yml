@@ -14,6 +14,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - run: npm run brand:guard
+      - run: npm run identity:check
       - run: npx playwright install --with-deps chromium
       # Guard: fail fast if styles.css was edited directly instead of via partials
       - name: Verify CSS partials are in sync
@@ -51,7 +53,7 @@ jobs:
       - name: Run deploy smoke tests against live app
         env:
           CI: true
-          BASE_URL: ${{ secrets.VODAAGILEBOARD_PROD_BASE_URL }}
+          BASE_URL: ${{ secrets.DELIVERA_PROD_BASE_URL != '' && secrets.DELIVERA_PROD_BASE_URL || secrets.VODAAGILEBOARD_PROD_BASE_URL }}
           TEST_LOGIN_USER: ${{ secrets.APP_LOGIN_USER }}
           TEST_LOGIN_PASSWORD: ${{ secrets.APP_LOGIN_PASSWORD }}
-        run: npx playwright test tests/Jira-Reporting-App-Deploy-Smoke-Validation-Tests.spec.js --reporter=list
+        run: npx playwright test tests/Delivera-Deploy-Smoke-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list

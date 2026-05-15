@@ -1,5 +1,5 @@
 /**
- * Feedback panel inner HTML. Injected by Reporting-App-Report-Page-Feedback-Panel-Inject.js so report.html stays under 300 lines.
+ * Feedback panel inner HTML. Injected by Delivera-Report-Page-Feedback-Panel-Inject.js so report.html stays under 300 lines.
  */
 export function getFeedbackPanelInnerHtml() {
   return (

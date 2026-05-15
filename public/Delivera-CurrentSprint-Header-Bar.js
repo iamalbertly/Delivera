@@ -26,6 +26,10 @@ import {
   renderMissionBriefingHtml,
 } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import {
+  formatRiskCountsRollup,
+  unblockActionLabel,
+} from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
+import {
   SPRINT_COPY,
   formatSprintRemainingLabel,
   formatFreshnessAgeLabel,
@@ -130,19 +134,17 @@ function renderHeaderRoleModesRow(roleViews) {
     + '</div>';
 }
 
-function renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents) {
-  let html = '<div class="sprint-intervention-queue" aria-label="Intervention queue">';
-  if (stuckCount > 0) {
-    html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.blockersCount(stuckCount)) + '</span></span>';
-  }
-  if (missingEstimates > 0) {
-    html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.missingEstCount(missingEstimates)) + '</span></span>';
-  }
-  if (unassignedParents > 0) {
-    html += '<span class="sprint-intervention-item"><span class="metric-label">' + escapeHtml(SPRINT_COPY.unownedCount(unassignedParents)) + ' unowned</span></span>';
-  }
-  html += '</div>';
-  return html;
+function renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents, missingLogged = 0) {
+  const rollup = formatRiskCountsRollup({
+    stale: stuckCount,
+    missingEst: missingEstimates,
+    missingLog: missingLogged,
+    unowned: unassignedParents,
+  });
+  if (!rollup) return '';
+  return '<div class="sprint-intervention-queue" aria-label="Intervention queue">'
+    + '<span class="sprint-intervention-item sprint-intervention-rollup"><span class="metric-label">' + escapeHtml(rollup) + '</span></span>'
+    + '</div>';
 }
 
 function renderHeaderIdentityMetricsRow({ donePct, issuesCount, logH, estH, delta }) {
@@ -394,8 +396,11 @@ export function renderHeaderBar(data, options = {}) {
     verdictDisplayLine = `${verdictDisplayLine} · ${SPRINT_COPY.lowConfidence}`;
     edgeStateAttr = 'low-confidence';
   } else if (missionBriefing?.headerExplain && edgeStateAttr === 'none') {
-    verdictDisplayLine = missionBriefing.headerExplain;
+    verdictDisplayLine = viewportLean
+      ? `${remainingChipLabel} · ${donePercentage}% done`
+      : missionBriefing.headerExplain;
   }
+  const suppressDuplicateRiskChrome = viewportLean && missionBriefing && edgeStateAttr === 'none';
   const verdictExplainTitle =
     edgeStateAttr === 'low-confidence' ? SPRINT_COPY.lowConfidenceHint : verdictInfo.trackingReasons || '';
   const doneDelta = computeDoneDeltaVsPriorClosed(data, donePercentage);
@@ -423,11 +428,13 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
   html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictDisplayLine) + '</span>';
-  if (verdictRiskChips.length) {
-    const primaryVerdictChip = verdictRiskChips[0];
-    html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(primaryVerdictChip.tags.join(' '))}" aria-label="${escapeHtml(primaryVerdictChip.aria)}">${escapeHtml(primaryVerdictChip.label)}</button>`;
-  } else {
-    html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
+  if (!suppressDuplicateRiskChrome) {
+    if (verdictRiskChips.length) {
+      const primaryVerdictChip = verdictRiskChips[0];
+      html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(primaryVerdictChip.tags.join(' '))}" aria-label="${escapeHtml(primaryVerdictChip.aria)}">${escapeHtml(primaryVerdictChip.label)}</button>`;
+    } else {
+      html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
+    }
   }
   html += '</div>';
   html += '</div>';
@@ -444,16 +451,19 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-context-summary-row" data-header-drawer-board-scope="true" aria-label="' + escapeHtml(SPRINT_COPY.drawerBoardScopeAria) + '">';
   html += '<span class="header-drawer-meta-item">' + escapeHtml(drawerBoardLine) + '</span>';
   html += '</div>';
-  html += '<div class="header-drawer-risks">';
-  verdictRiskChips.slice(0, 4).forEach((chip) => {
-    html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
-  });
-  if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
-  html += '</div>';
-  // Drawer meta is rendered conditionally below (to avoid duplicate context when headerContextStripHtml exists).
-  // If the main header already renders a context strip, avoid duplicating scope/meta inside the drawer.
-  // This prevents repeated project/freshness lines and reduces visual clutter when the header is already descriptive.
-  if (!headerContextStripHtml) {
+  if (viewportLean && headerContextStripHtml) {
+    html += '<div class="header-drawer-context-strip-wrap">' + headerContextStripHtml + '</div>';
+  }
+  if (!suppressDuplicateRiskChrome) {
+    html += '<div class="header-drawer-risks">';
+    verdictRiskChips.slice(0, 4).forEach((chip) => {
+      html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
+    });
+    if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
+    html += '</div>';
+  }
+  // Hygiene meta in drawer when lean (context strip moved here) or when no inline context strip.
+  if (viewportLean || !headerContextStripHtml) {
     html += '<div class="header-drawer-meta" title="' + escapeHtml(statusSummary) + '">';
     html += '<span class="header-hygiene-followup" data-signal="hygiene" title="' + escapeHtml(SPRINT_COPY.drawerHygieneTitle) + '">'
       + '<span class="header-hygiene-followup-label">' + escapeHtml(SPRINT_COPY.hygieneLabel) + '</span>'
@@ -473,10 +483,11 @@ export function renderHeaderBar(data, options = {}) {
     html += sectionLinksHtml;
     html += '</div>';
   }
-  if (viewportLean && hasPriorityInterventions && (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0)) {
+  if (viewportLean && hasPriorityInterventions && !suppressDuplicateRiskChrome
+    && (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0 || missingLoggedItems > 0)) {
     html += '<div class="header-drawer-section header-drawer-intervention-section">';
     html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</div>';
-    html += renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents);
+    html += renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents, missingLoggedItems);
     html += '</div>';
   }
   html += '<div class="header-drawer-evidence">';
@@ -513,9 +524,7 @@ export function renderHeaderBar(data, options = {}) {
       .join(' | ');
     const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
     const topBlockerKey = data?.stuckCandidates?.[0]?.issueKey || '';
-    const takeActionLabel = topBlockerKey
-      ? ('Unblock ' + topBlockerKey)
-      : SPRINT_COPY.takeAction;
+    const takeActionLabel = unblockActionLabel(topBlockerKey) || SPRINT_COPY.takeAction;
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
     html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
@@ -525,7 +534,7 @@ export function renderHeaderBar(data, options = {}) {
       html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">' + escapeHtml(SPRINT_COPY.focusRisk(primaryIntervention.label || SPRINT_COPY.focusRiskFallback)) + '</button>';
     }
     if (!viewportLean) {
-      html += renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents);
+      html += renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents, missingLoggedItems);
     }
     html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span>' + (viewportLean ? '' : ('<span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span>')) + '</span>';
   } else {
@@ -564,7 +573,9 @@ export function renderHeaderBar(data, options = {}) {
   if (sectionLinksHtml && !isLoadingShell && !sectionLinksInDrawer) {
     html += sectionLinksHtml;
   }
-  html += headerContextStripHtml;
+  if (!viewportLean) {
+    html += headerContextStripHtml;
+  }
   const roleModesRowHtml = renderHeaderRoleModesRow(effectiveHeaderRoleViews);
   if (roleModesRowHtml) {
     if (viewportLean) {
@@ -600,6 +611,17 @@ export function wireHeaderBarHandlers() {
   } catch (_) {}
   if (headerBar.dataset.headerBarHandlersWired === '1') return;
   headerBar.dataset.headerBarHandlersWired = '1';
+
+  headerBar.querySelectorAll('details.header-view-drawer summary').forEach((summaryEl) => {
+    if (summaryEl.dataset.drawerSummaryBound === '1') return;
+    summaryEl.dataset.drawerSummaryBound = '1';
+    summaryEl.addEventListener('click', () => {
+      const details = summaryEl.closest('details');
+      if (details && !details.open) {
+        window.requestAnimationFrame(() => { details.open = true; });
+      }
+    });
+  });
 
   const isFirstWire = headerBarWireSessionCount === 0;
   headerBarWireSessionCount += 1;

@@ -3,17 +3,17 @@
  * Validates: report first-paint context line (#report-context-line), login outcome line,
  * sidebar context card, context line cleared after preview, and telemetry clean at every step.
  * Uses captureBrowserTelemetry + assertTelemetryClean (logcat equivalent) and real-time UI assertions.
- * Run by orchestration (Jira-Reporting-App-Test-Orchestration-Steps.js). Fail fast: retries 0.
+ * Run by orchestration (Delivera-Test-Orchestration-Steps.js). Fail fast: retries 0.
  */
 
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
   assertTelemetryClean,
   skipIfRedirectedToLogin,
   runDefaultPreview,
   waitForPreview,
-} from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Outcome-First and First-Paint Validation', () => {
   test.describe.configure({ retries: 0 });

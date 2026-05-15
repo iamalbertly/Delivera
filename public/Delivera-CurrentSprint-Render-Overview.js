@@ -1,5 +1,5 @@
-import { currentSprintDom } from './Reporting-App-CurrentSprint-Page-Context.js';
-import { SPRINT_COPY } from './Reporting-App-CurrentSprint-Copy.js';
+import { currentSprintDom } from './Delivera-CurrentSprint-Page-Context.js';
+import { SPRINT_COPY } from './Delivera-CurrentSprint-Copy.js';
 
 export function updateHeader(sprint) {
   const { titleEl, nameEl } = currentSprintDom;

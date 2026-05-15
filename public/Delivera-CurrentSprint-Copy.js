@@ -1,6 +1,13 @@
 /**
  * Single grammar for Current Sprint mission header + compact strips (plan todo-copy-map-and-tokens).
  */
+import {
+  staleInProgressLabel,
+  missingEstimateLabel,
+  missingLogLabel,
+  unownedOutcomeLabel,
+} from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
+
 export const SPRINT_COPY = {
   pageTitle: 'Current Sprint',
   pageSubtitleEmpty: 'Sprint work, risks, and next action in one view',
@@ -43,10 +50,10 @@ export const SPRINT_COPY = {
   noActiveSprintName: 'No active sprint',
   historicalSnapshotShort: 'Historical snapshot',
 
-  blockersCount: (n) => `${n} blockers`,
-  missingEstCount: (n) => `${n} missing est`,
-  noLogCount: (n) => `${n} no log`,
-  unownedCount: (n) => `${n} unowned`,
+  blockersCount: (n) => staleInProgressLabel(n) || '0 stale in progress',
+  missingEstCount: (n) => missingEstimateLabel(n) || '0 missing est',
+  noLogCount: (n) => missingLogLabel(n) || '0 no log',
+  unownedCount: (n) => unownedOutcomeLabel(n) || '0 unowned',
 
   metricDone: 'Done',
   metricWorkItems: 'Work items',

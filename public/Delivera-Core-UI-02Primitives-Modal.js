@@ -1,4 +1,4 @@
-import { createOverlayController } from './Reporting-App-Shared-Overlay-Manager.js';
+import { createOverlayController } from './Delivera-Shared-Overlay-Manager.js';
 
 // Shared modal behavior primitive
 export function createModalBehavior(modalSelector, opts = {}) {

@@ -5,6 +5,16 @@ function normalizeJiraHost(host) {
   return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
 }
 
+function normalizeUrlOrigin(urlValue) {
+  if (!urlValue) return '';
+  try {
+    const parsed = new URL(urlValue);
+    return normalizeJiraHost(parsed.origin);
+  } catch (_) {
+    return '';
+  }
+}
+
 export function getResolvedJiraHostFromMeta(meta) {
   return normalizeJiraHost(
     (meta && (meta.jiraHostResolved || meta.jiraHost || meta.host)) || ''
@@ -34,9 +44,25 @@ export function buildJiraIssueUrl(host, issueKey) {
 
 export function resolveJiraIssueUrl(meta, issueKey, issueUrlCandidate = '') {
   const fromRow = String(issueUrlCandidate || '').trim();
-  if (fromRow && /^https?:\/\//i.test(fromRow)) return fromRow;
   const host = getResolvedJiraHostFromMeta(meta);
-  return buildJiraIssueUrl(host, issueKey);
+  const canonicalUrl = buildJiraIssueUrl(host, issueKey);
+
+  if (fromRow && /^https?:\/\//i.test(fromRow)) {
+    if (!host) return fromRow;
+    const candidateOrigin = normalizeUrlOrigin(fromRow);
+    const resolvedOrigin = normalizeUrlOrigin(host);
+    if (candidateOrigin && resolvedOrigin && candidateOrigin !== resolvedOrigin) {
+      return canonicalUrl || fromRow;
+    }
+    if (meta?.jiraHostMismatch) {
+      return canonicalUrl || fromRow;
+    }
+    return fromRow;
+  }
+  if (fromRow && fromRow.startsWith('/browse/')) {
+    return host ? `${host}${fromRow}` : fromRow;
+  }
+  return canonicalUrl;
 }
 
 /** Returns true if the key looks like a real Jira issue key (e.g. PROJECT-123), not a synthetic label like AD-HOC or *-ad-hoc. */

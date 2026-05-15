@@ -1,12 +1,12 @@
-export { populateBoardsPills, populateSprintsPills, populateProjectsPills, applyBoardsFilters, applySprintsFilters, applyFilters } from './Reporting-App-Report-Page-Filters-Pills-Manager.js';
-export { renderProjectEpicLevelTab } from './Reporting-App-Report-Page-Render-Boards.js';
-export { renderSprintsTab } from './Reporting-App-Report-Page-Render-Sprints.js';
-export { renderDoneStoriesTab, toggleSprint } from './Reporting-App-Report-Page-Render-DoneStories.js';
-export { renderUnusableSprintsTab } from './Reporting-App-Report-Page-Render-Unusable.js';
-export { updateExportFilteredState } from './Reporting-App-Report-Page-Export-Menu.js';
+export { populateBoardsPills, populateSprintsPills, populateProjectsPills, applyBoardsFilters, applySprintsFilters, applyFilters } from './Delivera-Report-Page-Filters-Pills-Manager.js';
+export { renderProjectEpicLevelTab } from './Delivera-Report-Page-Render-Boards.js';
+export { renderSprintsTab } from './Delivera-Report-Page-Render-Sprints.js';
+export { renderDoneStoriesTab, toggleSprint } from './Delivera-Report-Page-Render-DoneStories.js';
+export { renderUnusableSprintsTab } from './Delivera-Report-Page-Render-Unusable.js';
+export { updateExportFilteredState } from './Delivera-Report-Page-Export-Menu.js';
 
-import { renderLeadershipPage } from './Reporting-App-Leadership-Page-Render.js';
-import { buildBoardSummaries } from './Reporting-App-Shared-Boards-Summary-Builder.js';
+import { renderLeadershipPage } from './Delivera-Leadership-Page-Render.js';
+import { buildBoardSummaries } from './Delivera-Shared-Boards-Summary-Builder.js';
 
 export function renderTrendsTab(previewData) {
   const container = document.getElementById('leadership-content');

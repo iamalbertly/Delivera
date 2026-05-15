@@ -1,14 +1,12 @@
-import { reportState } from './Reporting-App-Report-Page-State.js';
-import { reportDom } from './Reporting-App-Report-Page-Context.js';
-import { buildBoardSummaries } from './Reporting-App-Shared-Boards-Summary-Builder.js';
-import { renderEmptyState } from './Reporting-App-Report-Page-Render-Helpers.js';
-import { renderProjectEpicLevelTab } from './Reporting-App-Report-Page-Render-Boards.js';
-import { renderSprintsTab } from './Reporting-App-Report-Page-Render-Sprints.js';
-import { renderDoneStoriesTab } from './Reporting-App-Report-Page-Render-DoneStories.js';
-import { updateExportFilteredState } from './Reporting-App-Report-Page-Export-Menu.js';
-
-const REPORT_SEARCH_STORAGE_KEY = 'vodaAgileBoard_reportSearch_v1';
-const REPORT_ACTIVE_TAB_SEARCH_KEY = 'vodaAgileBoard_reportSearch_active_v1';
+import { reportState } from './Delivera-Report-Page-State.js';
+import { reportDom } from './Delivera-Report-Page-Context.js';
+import { buildBoardSummaries } from './Delivera-Shared-Boards-Summary-Builder.js';
+import { renderEmptyState } from './Delivera-Report-Page-Render-Helpers.js';
+import { renderProjectEpicLevelTab } from './Delivera-Report-Page-Render-Boards.js';
+import { renderSprintsTab } from './Delivera-Report-Page-Render-Sprints.js';
+import { renderDoneStoriesTab } from './Delivera-Report-Page-Render-DoneStories.js';
+import { updateExportFilteredState } from './Delivera-Report-Page-Export-Menu.js';
+import { REPORT_SEARCH_STORAGE_KEY, REPORT_ACTIVE_TAB_SEARCH_KEY } from './Delivera-Shared-Storage-Keys.js';
 const TAB_SEARCH_CONFIG = {
   'project-epic-level': { field: 'boards', placeholder: 'Search current view' },
   sprints: { field: 'sprints', placeholder: 'Search current view' },
@@ -65,9 +63,9 @@ function readCurrentSearchState() {
   return state;
 }
 
-function persistSearchState() {
+function persistSearchState(stateOverride = null) {
   try {
-    const payload = readCurrentSearchState();
+    const payload = stateOverride || readCurrentSearchState();
     localStorage.setItem(REPORT_SEARCH_STORAGE_KEY, JSON.stringify(payload));
   } catch (_) {}
 }
@@ -98,8 +96,9 @@ function applyTabFilter(allItems, searchText, activePills, config) {
   return filtered;
 }
 
-export function applyBoardsFilters() {
-  const searchText = getStoredSearchState().boards;
+export function applyBoardsFilters(searchStateOverride = null) {
+  const searchState = searchStateOverride || getStoredSearchState();
+  const searchText = searchState.boards;
   const activePills = Array.from(document.querySelectorAll('#boards-project-pills .pill.active')).map(p => p.dataset.project);
   reportState.visibleBoardRows = applyTabFilter(reportState.previewData?.boards || [], searchText, activePills, {
     projectKey: (board) => (board.projectKeys || []).join(','),
@@ -109,8 +108,9 @@ export function applyBoardsFilters() {
   updateExportFilteredState();
 }
 
-export function applySprintsFilters() {
-  const searchText = getStoredSearchState().sprints;
+export function applySprintsFilters(searchStateOverride = null) {
+  const searchState = searchStateOverride || getStoredSearchState();
+  const searchText = searchState.sprints;
   const activePills = Array.from(document.querySelectorAll('#sprints-project-pills .pill.active')).map(p => p.dataset.project);
   reportState.visibleSprintRows = applyTabFilter(reportState.previewData?.sprintsIncluded || [], searchText, activePills, {
     projectKey: (sprint) => (sprint.projectKey || ''),
@@ -120,8 +120,9 @@ export function applySprintsFilters() {
   updateExportFilteredState();
 }
 
-export function applyFilters() {
-  const searchText = (getStoredSearchState().stories || '').toLowerCase();
+export function applyFilters(searchStateOverride = null) {
+  const searchState = searchStateOverride || getStoredSearchState();
+  const searchText = (searchState.stories || '').toLowerCase();
   const activePills = Array.from(document.querySelectorAll('#project-pills .pill.active')).map(p => p.dataset.project);
   reportState.visibleRows = applyTabFilter(reportState.previewRows || [], searchText, activePills, {
     projectKey: (row) => row.projectKey || '',
@@ -205,10 +206,10 @@ export function initFilters() {
       const state = readCurrentSearchState();
       state[cfg.field] = value;
       setLegacySearchValues(state);
-      if (cfg.field === 'boards') applyBoardsFilters();
-      if (cfg.field === 'sprints') applySprintsFilters();
-      if (cfg.field === 'stories') applyFilters();
-      persistSearchState();
+      persistSearchState(state);
+      if (cfg.field === 'boards') applyBoardsFilters(state);
+      if (cfg.field === 'sprints') applySprintsFilters(state);
+      if (cfg.field === 'stories') applyFilters(state);
     });
     window.addEventListener('report:active-tab-changed', () => {
       const activeTab = getActiveTabName();

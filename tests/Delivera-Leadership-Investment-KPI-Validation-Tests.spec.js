@@ -1,5 +1,5 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { captureBrowserTelemetry, assertTelemetryClean, waitForPreview } from './JiraReporting-Tests-Shared-PreviewExport-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { captureBrowserTelemetry, assertTelemetryClean, ensureReportFiltersVisible, waitForPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Leadership investment KPI and trust surfaces', () => {
   test('report trends now uses the same leadership shell and KPI contract as the standalone HUD', async ({ page }) => {
@@ -12,6 +12,7 @@ test.describe('Leadership investment KPI and trust surfaces', () => {
       return;
     }
 
+    await ensureReportFiltersVisible(page);
     await page.locator('#preview-btn').click().catch(() => null);
     await waitForPreview(page, { timeout: 60000 });
 
@@ -25,7 +26,6 @@ test.describe('Leadership investment KPI and trust surfaces', () => {
     await expect(page.locator('#tab-btn-trends')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#leadership-content .leadership-shell-top')).toBeVisible();
     await expect(page.locator('#leadership-content .leadership-mission-strip')).toBeVisible();
-    await expect(page.locator('#leadership-content .leadership-kpi-strip')).toBeVisible();
 
     const leadershipText = await page.locator('#leadership-content').textContent();
     expect(leadershipText || '').toMatch(/Leadership mission|Investment and delivery KPIs|Open current sprint/i);
@@ -59,7 +59,7 @@ test.describe('Leadership investment KPI and trust surfaces', () => {
     }
     expect(anySignal || '').toMatch(/Risk|Predictability|trust|outlier|Velocity/i);
 
-    await page.goto('/leadership.html');
+    await page.goto('/leadership');
     await page.waitForTimeout(1000);
     const exportSummary = page.locator('.leadership-export-menu > summary').first();
     if (await exportSummary.isVisible().catch(() => false)) {

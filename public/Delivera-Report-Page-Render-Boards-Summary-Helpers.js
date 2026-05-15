@@ -1,5 +1,5 @@
-import { formatDateForDisplay, formatNumber, formatPercent } from './Reporting-App-Shared-Format-DateNumber-Helpers.js';
-import { calculateVariance } from './Reporting-App-Report-Page-Sorting.js';
+import { formatDateForDisplay, formatNumber, formatPercent } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { calculateVariance } from './Delivera-Report-Page-Sorting.js';
 
 export const DELIVERY_GRADE_TOOLTIP = 'Simple health grade from completed-sprint outcomes: average of On-time % and SP Estimation % (when available). Strong 90+; Solid 80-89; Mixed 65-79; Weak 50-64; Critical <50. If only one metric exists, grade is marked partial.';
 

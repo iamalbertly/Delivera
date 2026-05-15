@@ -1,4 +1,4 @@
-import { CURRENT_SPRINT_SNAPSHOT_KEY } from './Reporting-App-Shared-Storage-Keys.js';
+import { CURRENT_SPRINT_SNAPSHOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 const SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
 

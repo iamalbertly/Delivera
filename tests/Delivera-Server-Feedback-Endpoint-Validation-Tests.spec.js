@@ -1,4 +1,4 @@
-import { test, expect } from './Jira-Reporting-App-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import path from 'path';
 import { existsSync, readFileSync } from 'fs';
 
@@ -26,7 +26,7 @@ test('server /feedback accepts anonymous submissions and persists them', async (
 
   expect(response.ok()).toBeTruthy();
 
-  const feedbackFilePath = path.join(process.cwd(), 'data', 'JiraReporting-Feedback-UserInput-Submission-Log.jsonl');
+  const feedbackFilePath = path.join(process.cwd(), 'data', 'Delivera-Feedback-UserInput-Submission-Log.jsonl');
   expect(existsSync(feedbackFilePath)).toBeTruthy();
 
   const content = readFileSync(feedbackFilePath, 'utf-8');
