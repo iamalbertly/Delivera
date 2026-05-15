@@ -3,7 +3,7 @@
  * Legacy verdict/alert banner rendering was removed in favor of a single
  * header command center summary.
  */
-import { getUnifiedRiskCounts } from './Reporting-App-CurrentSprint-Data-WorkRisk-Rows.js';
+import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
 
 function getRiskCounts(data) {
   const summary = data?.summary || {};
@@ -54,10 +54,28 @@ export function deriveSprintVerdict(data) {
   if (counts.missingLogged > 0) detail += ' · ' + counts.missingLogged + ' no log';
   if (counts.unassignedParents > 0) detail += ' · ' + counts.unassignedParents + ' unowned outcomes';
 
+  let topRemediation = '';
+  let trackingReasons = detail;
+  if (counts.stuckCount > 0) {
+    topRemediation = `Unblock ${counts.stuckCount} stale in-progress item${counts.stuckCount === 1 ? '' : 's'} first.`;
+    trackingReasons = `${counts.stuckCount} blocker${counts.stuckCount === 1 ? '' : 's'} aging past 24h in the same status`;
+  } else if (counts.unassignedParents > 0) {
+    topRemediation = `Assign owners for ${counts.unassignedParents} unowned outcome${counts.unassignedParents === 1 ? '' : 's'}.`;
+    trackingReasons = `${counts.unassignedParents} sprint outcome${counts.unassignedParents === 1 ? '' : 's'} without an assignee`;
+  } else if (counts.missingEstimate > 0) {
+    topRemediation = `Add estimates on ${counts.missingEstimate} work item${counts.missingEstimate === 1 ? '' : 's'} missing a baseline.`;
+  }
+
+  const trustLabel = counts.totalStories > 0 ? 'Signals from live sprint data' : 'Waiting for sprint stories';
+
   return {
     verdict,
     color,
     detail,
+    summary: detail,
+    topRemediation,
+    trackingReasons,
+    trustLabel,
     stuckCount: counts.stuckCount,
     missingEstimate: counts.missingEstimate,
     missingLogged: counts.missingLogged,

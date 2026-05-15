@@ -11,6 +11,7 @@ import {
   buildSummaryContext,
   persistCurrentSprintSummaryContext,
 } from './Delivera-CurrentSprint-Action-Bridge.js';
+import { buildSprintAtAGlanceBriefing } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 
 const SUMMARY_SECTION_KEYS = [
   'summary',
@@ -385,7 +386,10 @@ function renderSummaryModelToClipboard(model, options = {}) {
   return linesOut.join('\n').trim();
 }
 
-export function renderSummaryModelToQuickClipboard(model) {
+export function renderSummaryModelToQuickClipboard(model, data = null) {
+  if (data) {
+    return buildSprintAtAGlanceBriefing(data).quickClipboardLines.join('\n').trim();
+  }
   const lines = [];
   const meta = model?.meta || {};
   const headerLine = String(meta.headerLine || '').trim();
@@ -408,14 +412,14 @@ export function renderSummaryModelToQuickClipboard(model) {
   const blockersLine = normalizeBulletText(model?.sections?.blockers?.[0]?.text || '');
   const actionLine = normalizeBulletText(model?.sections?.actions?.[0]?.text || '');
   if (blockersLine) {
-    lines.push(`Risks: ${blockersLine}`);
+    lines.push(`Top risk: ${blockersLine}`);
   } else if (actionLine) {
-    lines.push(`Next: ${actionLine}`);
+    lines.push(`Do next: ${actionLine}`);
   } else if (scopeLine && !capacityLine) {
     lines.push(`Scope: ${scopeLine}`);
   }
 
-  return lines.filter(Boolean).slice(0, 4).join('\n').trim();
+  return lines.filter(Boolean).slice(0, 5).join('\n').trim();
 }
 
 function renderSummaryModelToClipboardHtml(model) {
@@ -764,18 +768,15 @@ async function copyDashboardSummary(data, btn) {
   const originalText = btn?.textContent || '';
   setButtonStatus(btn, 'Copying...', null, true);
   try {
-    const { renderStandupQuickCopyText } = await import('./Delivera-CurrentSprint-Summary-02Standup-QuickCopy-01Renderer.js');
-    const standupText = renderStandupQuickCopyText(data);
+    const briefing = buildSprintAtAGlanceBriefing(data);
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
-    const text = standupText || renderSummaryModelToQuickClipboard(model);
+    const text = briefing.quickClipboardLines.join('\n') || renderSummaryModelToQuickClipboard(model, data);
     const html = renderSummaryModelToQuickClipboardHtml(model);
-    const primaryAction = (Array.isArray(model?.sections?.actions) && model.sections.actions[0]?.text)
-      ? String(model.sections.actions[0].text)
-      : '';
     const context = buildSummaryContext({
       summaryText: text,
       modelMeta: model?.meta || {},
-      primaryAction,
+      primaryAction: briefing.nextAction,
+      briefing,
     });
     persistCurrentSprintSummaryContext(context);
     rememberCurrentSprintExportArtifact('__currentSprintLastCopiedSummary', text);

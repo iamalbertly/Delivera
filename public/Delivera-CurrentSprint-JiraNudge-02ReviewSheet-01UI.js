@@ -73,6 +73,18 @@ export function openJiraNudgeReviewSheet({
   if (!sendAllowed) {
     html += '<p class="jira-nudge-review-trust" role="alert">Live sprint required to post. Switch to live data or pick an active sprint.</p>';
   }
+  const roster = Array.isArray(meta?.teamRoster) ? meta.teamRoster.slice(0, 8) : [];
+  if (roster.length && sendAllowed) {
+    html += '<div class="jira-nudge-mention-row" role="group" aria-label="Mention teammates">';
+    roster.forEach((person) => {
+      const name = asText(person?.displayName);
+      if (!name) return;
+      const short = name.split(/\s+/)[0] || name;
+      html += '<button type="button" class="jira-nudge-mention-chip" data-mention-name="' + escapeHtml(name) + '">@' + escapeHtml(short) + '</button>';
+    });
+    html += '<button type="button" class="jira-nudge-mention-chip" data-mention-all="1">@team</button>';
+    html += '</div>';
+  }
   html += '<label class="jira-nudge-review-label" for="jira-nudge-review-text">Edit before sending</label>';
   html += '<textarea id="jira-nudge-review-text" class="jira-nudge-review-textarea" rows="4" maxlength="280"'
     + (sendAllowed ? '' : ' disabled')
@@ -102,6 +114,31 @@ export function openJiraNudgeReviewSheet({
   };
   updateCount();
   textarea?.addEventListener('input', updateCount);
+  const insertMention = (token) => {
+    if (!textarea || !token) return;
+    const start = textarea.selectionStart ?? textarea.value.length;
+    const end = textarea.selectionEnd ?? start;
+    const before = textarea.value.slice(0, start);
+    const needsSpace = before.length > 0 && !/\s$/.test(before);
+    const insert = (needsSpace ? ' ' : '') + token + ' ';
+    textarea.value = before + insert + textarea.value.slice(end);
+    textarea.focus();
+    updateCount();
+  };
+  sheet.querySelectorAll('[data-mention-name]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const name = chip.getAttribute('data-mention-name') || '';
+      if (name) insertMention('@' + name);
+    });
+  });
+  sheet.querySelector('[data-mention-all]')?.addEventListener('click', () => {
+    const tokens = roster
+      .map((p) => asText(p?.displayName))
+      .filter(Boolean)
+      .slice(0, 4)
+      .map((n) => '@' + n);
+    if (tokens.length) insertMention(tokens.join(' '));
+  });
   textarea?.focus();
   const onClose = () => closeSheet(sheet);
   sheet.querySelector('[data-review-cancel]')?.addEventListener('click', onClose);
@@ -122,7 +159,7 @@ export function openJiraNudgeReviewSheet({
     sendBtn.textContent = 'Sending…';
     if (statusEl) statusEl.textContent = '';
     try {
-      const result = await postIssueCommentToJira(key, body);
+      const result = await postIssueCommentToJira(key, body, { teamRoster: roster });
       markIssueNudged(key);
       showJiraNudgeSendReceipt({
         issueKey: key,

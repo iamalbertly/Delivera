@@ -28,8 +28,14 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     }
     const text = await verdict.textContent();
     expect(text || '').toMatch(/Healthy|Caution|At Risk|Critical/i);
-    expect(text || '').toMatch(/Evidence|blockers|gaps|No material sprint risks/i);
+    expect(text || '').toMatch(/Ends in|ended|Do next|Top risk|blocker|unowned|%/i);
     await expect(page.locator('.header-compact-strip')).toBeVisible();
+    const missionBriefing = page.locator('.sprint-mission-briefing');
+    const briefingVisible = await missionBriefing.isVisible().catch(() => false);
+    if (briefingVisible) {
+      const briefingText = (await missionBriefing.textContent()) || '';
+      expect(briefingText).toMatch(/Ends in|Ends today|ended|Top risk|Do:/i);
+    }
 
     assertTelemetryClean(telemetry);
   });
@@ -57,7 +63,7 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
       return;
     }
 
-    expect(bodyText).toMatch(/showing last completed sprint|Pick a recent sprint|Pick a board|Create work|previous sprint/i);
+    expect(bodyText).toMatch(/showing last completed sprint|Pick a recent sprint|Pick a board|Create work|Open report|previous sprint/i);
   });
 
   test('projects SSOT sync applies silently and normalizes to one project for current sprint', async ({ page }) => {

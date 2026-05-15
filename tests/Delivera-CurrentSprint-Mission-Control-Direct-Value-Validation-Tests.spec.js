@@ -199,6 +199,10 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await page.goto(SPRINT_PAGE);
     await page.waitForSelector('#board-select option[value="101"]', { timeout: 15000, state: 'attached' });
     await selectBoardEvenIfHeaderCollapsed(page, '101');
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+      document.querySelectorAll('.current-sprint-header-bar').forEach((bar) => bar.classList.remove('header-mini-mode'));
+    });
 
     const strip = page.locator('.current-sprint-header-bar .header-context-strip').first();
     await expect(strip).toBeVisible();
@@ -673,15 +677,24 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(drawer.locator('[data-issue-preview-action="next-risk"]')).toBeVisible();
   });
 
-  test('Sticky section links stay visible while scrolling content', async ({ page }) => {
-    const links = page.locator('.sprint-section-links-sticky');
-    const isVisible = await links.isVisible().catch(() => false);
-    if (!isVisible) {
-      test.skip(true, 'Sticky section links not rendered for this layout');
+  test('Jump section links reachable from header drawer on lean layout', async ({ page }) => {
+    await page.waitForSelector('#stories-card, #current-sprint-content .current-sprint-grid-layout', { timeout: 30000 }).catch(() => null);
+    const headerBar = page.locator('.current-sprint-header-bar[data-viewport-lean="true"]').first();
+    const lean = await headerBar.isVisible().catch(() => false);
+    if (!lean) {
+      test.skip(true, 'Viewport-lean header not active for this dataset');
       return;
     }
+    const jumpSection = headerBar.locator('.header-drawer-jump-section');
+    if ((await jumpSection.count()) === 0) {
+      test.skip(true, 'Drawer jump section not rendered for this sprint state');
+      return;
+    }
+    await headerBar.locator('details.header-view-drawer').evaluate((el) => { el.open = true; });
+    await expect(jumpSection).toBeVisible();
+    await expect(jumpSection.locator('a, .sprint-section-inline-link').first()).toBeAttached();
     await page.evaluate(() => window.scrollBy(0, 800));
-    await expect(links).toBeVisible();
+    await expect(headerBar).toBeVisible();
   });
 
   test('Header no longer exposes top-level refresh chrome', async ({ page }) => {

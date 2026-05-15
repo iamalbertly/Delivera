@@ -93,6 +93,7 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 - Current Sprint can post guided nudges to Jira via `POST /api/issues/:issueKey/comment` (Send to Jira, top nudge, Take action). Restart the local server after pulling API changes — a stale process returns `Cannot POST /api/issues/.../comment`.
 - Focused direct-value + Jira send gate: `npm run test:journey:direct-value-send`
 - Current Sprint viewport lean: stories and work table render before the collapsed decision cockpit; jump links and role lens live in the header drawer; human nudge uses review-before-send (`npm run test:journey:human-nudge-trust`, `npm run test:journey:viewport-declutter`).
+- Sprint at-a-glance briefing (SSOT `Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js`): header mission strip and quick copy include time left, top blocker with hours/owner, and a concrete next action; Jira comments support `@displayName` mentions when `meta.teamRoster` is present on the sprint payload.
 
 ## Documentation Map
 

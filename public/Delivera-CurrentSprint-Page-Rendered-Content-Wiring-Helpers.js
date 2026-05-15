@@ -157,8 +157,15 @@ function wireSummaryActionBridge() {
     if (!context) return;
     const action = String(context.topAction || context.next || '').trim();
     const headline = String(context.header || 'Summary copied').trim();
-    if (!action && !headline) return;
-    const text = [headline, action ? `Next: ${action}` : ''].filter(Boolean).join(' | ');
+    const timeLeft = String(context.timeLeft || '').trim();
+    const risks = String(context.risks || '').trim();
+    if (!action && !headline && !timeLeft && !risks) return;
+    const text = [
+      headline,
+      timeLeft ? `Time: ${timeLeft}` : '',
+      risks,
+      action ? `Do next: ${action}` : '',
+    ].filter(Boolean).join(' | ');
     ribbon.textContent = text;
     ribbon.style.display = '';
     ribbon.setAttribute('data-state', 'fresh');

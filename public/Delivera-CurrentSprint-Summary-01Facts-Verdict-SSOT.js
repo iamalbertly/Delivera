@@ -69,13 +69,24 @@ export function buildHealthLineForPhase(phaseInfo, data) {
   const nextCheck = remaining != null && remaining > 0 ? ` (next check in ${remaining}d)` : '';
 
   if (phaseInfo?.phase === 'forming') {
+    const remaining = phaseInfo?.daysRemaining;
+    const timeBit = remaining != null && remaining > 0
+      ? ` · ${remaining} working day${remaining === 1 ? '' : 's'} left`
+      : '';
     if (phaseInfo.hasRiskEvidence) {
-      return `Early risk while signals form${nextCheck}.`;
+      return `Early risk while signals form${timeBit}${nextCheck}.`;
     }
-    return `Sprint started · no risks flagged yet${nextCheck}.`;
+    return `Sprint started · no risks flagged yet${timeBit}${nextCheck}.`;
   }
   if (phaseInfo?.phase === 'in_progress_risk') {
-    return `Work started · ${pctDone}% done · risks need attention.`;
+    const stuck = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates : [];
+    const top = [...stuck].sort((a, b) => Number(b?.hoursInStatus || 0) - Number(a?.hoursInStatus || 0))[0];
+    if (top?.issueKey) {
+      const hrs = Math.round(Number(top.hoursInStatus || 0));
+      const who = top.assignee ? ` (${top.assignee})` : ' (unassigned)';
+      return `${pctDone}% done · top blocker ${top.issueKey} stuck ${hrs}h${who} — assign owner and unblock today.`;
+    }
+    return `Work started · ${pctDone}% done · ${stuck.length || 'several'} risks need owners today.`;
   }
   if (phaseInfo?.phase === 'historical') {
     return `${pctDone}% done · ${doneStories}/${totalStories} stories (snapshot).`;

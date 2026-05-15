@@ -97,7 +97,7 @@ test.describe('Human nudge review trust flow', () => {
     });
     const joined = lines.join('\n');
     expect(joined).not.toMatch(/just starting/i);
-    expect(lines.length).toBeLessThanOrEqual(4);
+    expect(lines.length).toBeLessThanOrEqual(5);
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
   });
 

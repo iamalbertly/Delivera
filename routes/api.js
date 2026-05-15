@@ -233,7 +233,8 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
         const version3Client = createVersion3Client();
         let result = null;
         try {
-            result = await postIssueComment(version3Client, issueKey, commentBody);
+            const teamRoster = Array.isArray(req.body?.teamRoster) ? req.body.teamRoster : [];
+            result = await postIssueComment(version3Client, issueKey, commentBody, { roster: teamRoster });
         } catch (err) {
             logger.warn('Jira comment failed', { issueKey, error: err?.message });
             const httpStatus = err?.httpStatus || err?.response?.status || err?.status || 500;

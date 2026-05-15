@@ -220,6 +220,9 @@ export async function postIssueCommentToJira(issueKey, commentBody, options = {}
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         commentBody: body,
+        teamRoster: Array.isArray(options.teamRoster)
+          ? options.teamRoster
+          : (getCurrentSprintPayload()?.meta?.teamRoster || []),
         sprintId: options.sprintId ?? getCurrentSprintPayload()?.sprint?.id ?? '',
         boardId: options.boardId ?? getCurrentSprintPayload()?.board?.id ?? '',
       }),
@@ -251,22 +254,46 @@ export function buildSummaryContext({
   summaryText = '',
   modelMeta = {},
   primaryAction = '',
+  briefing = null,
 } = {}) {
+  const roleMode = readRoleMode();
+  if (briefing && typeof briefing === 'object') {
+    const normalized = normalizeContradictions({
+      header: asText(briefing.scopeLine),
+      health: asText(briefing.healthLine),
+      risks: asText(briefing.topRiskLine),
+      scope: asText(briefing.risksRollup),
+      capacity: asText(briefing.progressLine),
+      next: asText(briefing.nextAction),
+      topAction: asText(briefing.nextAction) || roleActionHint(roleMode),
+      timeLeft: asText(briefing.timeLeftLine),
+      boardName: asText(modelMeta.boardName || ''),
+      sprintName: asText(modelMeta.sprintName || ''),
+      generatedAt: new Date().toISOString(),
+      roleMode,
+      roleLabel: roleLabel(roleMode),
+      simpleEnglishMode: readSimpleEnglishMode(),
+      coachingLevel: readCoachingLevel(),
+    });
+    normalized.evidenceBand = deriveEvidenceBand(normalized);
+    return normalized;
+  }
   const header = safeFirstLine(summaryText);
   const health = extractLineByPrefix(summaryText, 'Health:');
   const risks = extractLineByPrefix(summaryText, 'Risks:');
   const scope = extractLineByPrefix(summaryText, 'Scope:');
   const capacity = extractLineByPrefix(summaryText, 'Capacity:');
   const next = extractLineByPrefix(summaryText, 'Next:');
-  const roleMode = readRoleMode();
+  const timeLeft = extractLineByPrefix(summaryText, 'Time:');
   const topAction = deriveTopAction(summaryText, primaryAction) || roleActionHint(roleMode);
   const normalized = normalizeContradictions({
     header,
     health: health.replace(/^Health:\s*/i, ''),
-    risks: risks.replace(/^Risks:\s*/i, ''),
+    risks: risks.replace(/^Risks:|^Top risk:\s*/i, ''),
     scope: scope.replace(/^Scope:\s*/i, ''),
     capacity: capacity.replace(/^Capacity:\s*/i, ''),
-    next: next.replace(/^Next:\s*/i, ''),
+    next: next.replace(/^(Next|Do next):\s*/i, ''),
+    timeLeft: timeLeft.replace(/^Time:\s*/i, ''),
     topAction,
     boardName: asText(modelMeta.boardName || ''),
     sprintName: asText(modelMeta.sprintName || ''),

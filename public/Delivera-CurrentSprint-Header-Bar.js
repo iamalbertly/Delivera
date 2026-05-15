@@ -22,6 +22,10 @@ import {
 } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import {
+  buildSprintAtAGlanceBriefing,
+  renderMissionBriefingHtml,
+} from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
+import {
   SPRINT_COPY,
   formatSprintRemainingLabel,
   formatFreshnessAgeLabel,
@@ -219,6 +223,7 @@ export function renderHeaderBar(data, options = {}) {
   const isHistoricalSprint = sprintState && sprintState !== 'active';
   const issuesCount = (data.stories || []).length;
   const verdictInfo = deriveSprintVerdict(data);
+  const missionBriefing = !isHistoricalSprint ? buildSprintAtAGlanceBriefing(data) : null;
   const distinctViews = buildDistinctSprintFilterViews(data, verdictInfo);
   const riskCounts = getUnifiedRiskCounts(data);
   const stuckCount = Number(riskCounts.blockersOwned || 0);
@@ -388,6 +393,8 @@ export function renderHeaderBar(data, options = {}) {
   } else if (showLowConfidence) {
     verdictDisplayLine = `${verdictDisplayLine} · ${SPRINT_COPY.lowConfidence}`;
     edgeStateAttr = 'low-confidence';
+  } else if (missionBriefing?.headerExplain && edgeStateAttr === 'none') {
+    verdictDisplayLine = missionBriefing.headerExplain;
   }
   const verdictExplainTitle =
     edgeStateAttr === 'low-confidence' ? SPRINT_COPY.lowConfidenceHint : verdictInfo.trackingReasons || '';
@@ -424,6 +431,9 @@ export function renderHeaderBar(data, options = {}) {
   }
   html += '</div>';
   html += '</div>';
+  if (viewportLean && missionBriefing && edgeStateAttr === 'none') {
+    html += renderMissionBriefingHtml(missionBriefing, escapeHtml);
+  }
   html += '<div class="header-band-actions">';
   html += renderExportButton(true);
   html += '<details class="header-view-drawer">';
