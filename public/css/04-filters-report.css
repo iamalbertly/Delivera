@@ -3614,3 +3614,31 @@ a.signals-rail-tile:hover {
   opacity: 1;
   color: var(--primary);
 }
+
+/* Report desktop compression: one performance-window strip, no oversized sticky chrome. */
+@media (min-width: 1024px) {
+  body.report-page .report-shell-top {
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+
+  body.report-page .report-filter-strip-summary {
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+
+  body.report-page .report-filter-strip-summary .context-summary-strip {
+    gap: 8px;
+  }
+
+  body.report-page .report-filter-strip-summary .context-summary-title,
+  body.report-page .report-filter-strip-summary .context-summary-meta,
+  body.report-page .report-filter-strip-summary .context-summary-chip--muted {
+    display: none;
+  }
+
+  body.report-page .date-range-summary-wrap {
+    display: none;
+  }
+}

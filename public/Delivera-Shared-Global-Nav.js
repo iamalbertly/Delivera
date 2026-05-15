@@ -18,8 +18,13 @@ const PAGE_SETTINGS = 'settings';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
-const PRIMARY_NAV_KEYS = [PAGE_DASHBOARD, PAGE_SPRINTS, PAGE_REPORT, PAGE_RISKS, PAGE_TEAMS];
-const MORE_NAV_KEYS = [PAGE_LEADERSHIP, PAGE_PI, PAGE_VALUE, PAGE_SETTINGS];
+/** Direct-to-value primaries: now · proof · portfolio (Risks/Teams are deep links in More). */
+const PRIMARY_NAV_KEYS = [PAGE_SPRINTS, PAGE_REPORT, PAGE_LEADERSHIP];
+const MORE_NAV_KEYS = [PAGE_DASHBOARD, PAGE_RISKS, PAGE_TEAMS, PAGE_PI, PAGE_VALUE, PAGE_SETTINGS];
+const NAV_HREF_OVERRIDES = {
+  [PAGE_RISKS]: '/current-sprint#stuck-card',
+  [PAGE_TEAMS]: '/current-sprint',
+};
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
   [PAGE_SPRINTS]: 'Current Sprint',
@@ -32,10 +37,9 @@ const NAV_LABELS = {
   [PAGE_SETTINGS]: 'Settings',
 };
 const MOBILE_LABELS = {
-  [PAGE_DASHBOARD]: 'Today',
   [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_RISKS]: 'Risks',
   [PAGE_REPORT]: 'Delivery',
+  [PAGE_LEADERSHIP]: 'Lead',
 };
 
 const NAV_ITEMS = [
@@ -49,7 +53,7 @@ const NAV_ITEMS = [
     key: PAGE_PI,
     label: 'Program Increment (PI)',
     href: '/program-increment',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v4H4zm0 5h10v4H4zm0 5h16v4H4z"/></svg>',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 5v5l4 2-.9 1.6-4.6-2.3V7Z"/></svg>',
   },
   {
     key: PAGE_SPRINTS,
@@ -118,11 +122,20 @@ function getCurrentPage() {
 }
 
 function getNavItems(current) {
-  return NAV_ITEMS.map((item) => ({
-    ...item,
-    label: NAV_LABELS[item.key] || item.label,
-    active: current === item.key,
-  }));
+  const { path, hash } = getPathState();
+  const onSprintRisksLens = (path === '/current-sprint' || path.endsWith('/current-sprint'))
+    && (hash === '#stuck-card' || hash === '#work-risks');
+  return NAV_ITEMS.map((item) => {
+    let active = current === item.key;
+    if (item.key === PAGE_RISKS && onSprintRisksLens) active = true;
+    const href = NAV_HREF_OVERRIDES[item.key] || item.href;
+    return {
+      ...item,
+      href,
+      label: NAV_LABELS[item.key] || item.label,
+      active,
+    };
+  });
 }
 
 function buildSidebarHTML() {
@@ -131,7 +144,7 @@ function buildSidebarHTML() {
   const primaryItems = items.filter((item) => PRIMARY_NAV_KEYS.includes(item.key));
   const moreItems = items.filter((item) => MORE_NAV_KEYS.includes(item.key));
   const moreIsActive = moreItems.some((item) => item.active);
-  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span><span class="sidebar-brand-subtag">Value, risk, action.</span></div>';
+  let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span></div>';
   html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
   for (const item of primaryItems) {
     const className = 'sidebar-link' + (item.active ? ' active current' : '');
@@ -244,7 +257,7 @@ function navigateTo(itemKey, itemHref) {
 
 function buildBottomNavHTML() {
   const current = getCurrentPage();
-  const items = getNavItems(current).filter((item) => [PAGE_DASHBOARD, PAGE_SPRINTS, PAGE_RISKS, PAGE_REPORT].includes(item.key));
+  const items = getNavItems(current).filter((item) => [PAGE_SPRINTS, PAGE_REPORT, PAGE_LEADERSHIP].includes(item.key));
   let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
   for (const item of items) {
     const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');
@@ -502,6 +515,11 @@ function initDataPulseListener() {
   window.addEventListener('app:notification-summary-updated', () => scheduleSidebarAlertFooterFromStore());
   window.addEventListener('app:nav-rendered', () => updateLeadershipBadgeFromPageState());
   window.addEventListener('report-preview-shown', () => updateLeadershipBadgeFromPageState());
+  window.addEventListener('delivera:currentSprintPayloadReady', () => {
+    try {
+      renderSidebarContextCard();
+    } catch (_) {}
+  });
 }
 
 if (typeof document !== 'undefined') {

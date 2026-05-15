@@ -259,10 +259,15 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('Role presets only render when they create a distinct stories view', async ({ page }) => {
+    await page.evaluate(() => {
+      sessionStorage.removeItem('delivera.currentSprint.autoRiskFilter.v1');
+      sessionStorage.removeItem('delivera.currentSprint.topBlockerHighlight.v1');
+      window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: [], source: 'test-reset' } }));
+    });
     const roleDetails = page.locator('.header-role-modes-details').first();
     if (await roleDetails.count()) {
       const isOpen = await roleDetails.evaluate((el) => Boolean(el?.open));
-      if (!isOpen) await roleDetails.locator('summary').click();
+      if (!isOpen) await roleDetails.evaluate((el) => { el.open = true; });
     }
     const hasRoleDetails = (await roleDetails.count().catch(() => 0)) > 0;
     const roleButtons = hasRoleDetails
@@ -723,6 +728,21 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
 
   test('Header no longer exposes top-level refresh chrome', async ({ page }) => {
     await expect(page.locator('.header-refresh-btn')).toHaveCount(0);
+  });
+
+  test('sidebar context shows live sprint signals instead of empty report fallback', async ({ page }) => {
+    const card = page.locator('#sidebar-context-card .context-card-segments--sprint-live');
+    await expect(card).toBeVisible();
+    await expect(page.locator('#sidebar-context-card')).not.toContainText(/No report run yet/i);
+    await expect(card).toContainText(/Sprint|Ends|Live sprint/i);
+  });
+
+  test('primary nav exposes three direct-to-value destinations', async ({ page }) => {
+    const primaries = page.locator('.app-sidebar .sidebar-link');
+    await expect(primaries).toHaveCount(3);
+    await expect(primaries.filter({ hasText: /Current Sprint/i })).toHaveCount(1);
+    await expect(primaries.filter({ hasText: /Delivery/i })).toHaveCount(1);
+    await expect(primaries.filter({ hasText: /Leadership/i })).toHaveCount(1);
   });
 
   test('Daily completion timeline filters Issues table by completion day', async ({ page }) => {

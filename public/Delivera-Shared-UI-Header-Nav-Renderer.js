@@ -35,14 +35,6 @@ function ensureExecutiveHeader(path) {
     + '<div id="executive-shared-header-actions" class="report-header-actions" role="group" aria-label="Page actions">'
     + '<button type="button" class="btn btn-primary btn-compact" data-shared-action="refresh-page">Refresh</button>'
     + (hasInlineCreateWork ? '' : `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from ${pageTitle} context.">Create work</button>`)
-    + '<details class="report-header-more-menu">'
-    + '<summary class="btn btn-secondary btn-compact">Actions</summary>'
-    + '<div class="report-header-more-panel">'
-    + '<a href="/report" class="btn btn-secondary btn-compact">Delivery</a>'
-    + '<a href="/current-sprint" class="btn btn-secondary btn-compact">Current Sprint</a>'
-    + '<a href="/leadership" class="btn btn-secondary btn-compact">Leadership</a>'
-    + '</div>'
-    + '</details>'
     + '</div>'
     + '</div>';
   if (main) container.insertBefore(header, main);

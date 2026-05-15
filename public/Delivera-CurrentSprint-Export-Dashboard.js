@@ -520,7 +520,7 @@ export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
   let html = '<div class="' + containerClass + '">';
   html += '<span class="export-split-group">';
-  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary" aria-live="polite">Copy summary</button>';
+  html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary" aria-live="polite">Copy</button>';
   if (!inline) {
     html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
   } else {

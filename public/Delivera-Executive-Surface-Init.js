@@ -70,10 +70,12 @@ function renderSurfaceContext() {
   });
   const parts = buildContextSegmentList(segments);
   if (contextEl) {
-    contextEl.innerHTML = renderContextPartList(parts, {
-      className: 'surface-context-strip',
-      segmentClass: 'surface-context-segment',
-    });
+    contextEl.innerHTML = projects.length
+      ? ''
+      : renderContextPartList(parts, {
+        className: 'surface-context-strip',
+        segmentClass: 'surface-context-segment',
+      });
   }
   if (summaryEl) {
     summaryEl.textContent = buildSurfaceSummary(projects);
@@ -90,6 +92,38 @@ function initQuickNavigation() {
     persistLastRoute(href);
     window.location.href = href;
   });
+}
+
+const EXECUTIVE_SHELL_REDIRECTS = {
+  '/risks-blockers': '/current-sprint#stuck-card',
+  '/teams': '/current-sprint',
+};
+
+function maybeRedirectExecutiveShell() {
+  try {
+    const path = window.location.pathname || '';
+    const target = EXECUTIVE_SHELL_REDIRECTS[path];
+    if (!target) return false;
+    window.location.replace(target);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function maybeRedirectDashboardToLastRoute() {
+  try {
+    const path = window.location.pathname || '';
+    if (path !== '/dashboard' && path !== '/home') return false;
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('stay') === '1') return false;
+    const last = readLastRoute();
+    if (!last?.path || last.path === '/dashboard' || last.path === '/home') return false;
+    window.location.replace(last.path);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 try {
@@ -112,8 +146,13 @@ function initSurfacePage() {
   });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSurfacePage);
-} else {
+function bootExecutiveSurface() {
+  if (maybeRedirectExecutiveShell() || maybeRedirectDashboardToLastRoute()) return;
   initSurfacePage();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootExecutiveSurface);
+} else {
+  bootExecutiveSurface();
 }

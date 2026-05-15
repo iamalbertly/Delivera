@@ -778,3 +778,107 @@ body.hud-mode .hud-grid {
     width: 100%;
   }
 }
+
+/* Direct-to-value desktop pass: leadership cannot hide its own answer row. */
+@media (min-width: 1024px) {
+  body.hud-mode .hud-shell {
+    padding-top: 18px;
+  }
+
+  body.hud-mode .hud-header-mission-control {
+    position: static !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title status"
+      "context action"
+      "summary summary";
+    gap: 6px 12px !important;
+    min-height: 0;
+    margin-bottom: 10px !important;
+    padding: 10px 16px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 18px rgba(72, 22, 22, 0.06) !important;
+  }
+
+  body.hud-mode .hud-header-top {
+    display: contents !important;
+  }
+
+  body.hud-mode .app-header-title-block {
+    grid-area: title;
+    min-width: 0;
+  }
+
+  body.hud-mode .hud-title {
+    font-size: 1.05rem;
+  }
+
+  body.hud-mode .hud-subtitle {
+    display: none;
+  }
+
+  body.hud-mode .hud-status-row {
+    grid-area: status;
+    justify-self: end;
+  }
+
+  body.hud-mode .hud-actions-row {
+    grid-area: action;
+    justify-self: end;
+    align-self: center;
+  }
+
+  body.hud-mode .leadership-header-more {
+    display: none;
+  }
+
+  body.hud-mode #project-context {
+    grid-area: context;
+    margin-top: 0;
+    align-self: center;
+  }
+
+  body.hud-mode #project-context .header-context-strip {
+    gap: 6px;
+  }
+
+  body.hud-mode #leadership-confidence-strip {
+    grid-area: summary;
+    font-size: 0.82rem;
+  }
+
+  body.hud-mode #leadership-summary {
+    display: none;
+  }
+
+  body.hud-mode .hud-grid {
+    margin-top: 0;
+    gap: 10px;
+  }
+
+  body.hud-mode .hud-answer-row {
+    position: relative;
+    z-index: 1;
+    gap: 8px;
+  }
+
+  body.hud-mode .hud-answer-card,
+  body.hud-mode .hud-metric-card {
+    border-radius: 10px !important;
+  }
+
+  body.hud-mode .hud-answer-card {
+    min-height: 0;
+    padding: 12px 14px;
+  }
+
+  body.hud-mode .hud-answer-card strong {
+    font-size: 1.25rem;
+  }
+
+  body.hud-mode .hud-card.hud-card-shell {
+    min-height: 0;
+    padding: 14px 16px;
+  }
+}

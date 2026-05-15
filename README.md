@@ -97,6 +97,7 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 - Current Sprint viewport lean: stories and work table render before the collapsed decision cockpit; jump links and role lens live in the header drawer; human nudge uses review-before-send (`npm run test:journey:human-nudge-trust`, `npm run test:journey:viewport-declutter`).
 - Sprint at-a-glance briefing (SSOT `Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js`): header mission strip and quick copy include time left, top stale item with hours/owner, and a concrete next action; Jira comments support `@displayName` mentions when `meta.teamRoster` is present on the sprint payload.
 - Risk vocabulary SSOT (`Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js`): UI says “stale in progress” once (not “blockers” in 20 places); viewport-lean header hides duplicate chips when the mission briefing is visible.
+- Sidebar IA (3 primaries): **Current Sprint**, **Delivery**, **Leadership**; **Today**, **Risks** (deep link `#stuck-card`), **Teams**, **PI Goals**, **Value Archive**, and **Settings** live under **More**. Shell routes `/risks-blockers` and `/teams` redirect into sprint. Sidebar **Context** shows live sprint scope on `/current-sprint` (not “No report run yet”). Mission briefing risk line is one-click scroll + filter.
 
 ### Local dev without port churn (CI/CD-friendly patterns)
 

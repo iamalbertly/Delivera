@@ -6221,6 +6221,22 @@ body.jira-nudge-review-open { overflow: hidden; }
   flex: 1 1 220px;
   min-width: 0;
 }
+.sprint-mission-briefing .mission-briefing-hit {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(196, 30, 58, 0.35);
+  text-underline-offset: 2px;
+}
+.sprint-mission-briefing .mission-briefing-hit:hover {
+  text-decoration-color: rgba(196, 30, 58, 0.85);
+}
 .sprint-mission-briefing .mission-briefing-action strong {
   font-weight: 700;
 }
@@ -6242,3 +6258,70 @@ body.jira-nudge-review-open { overflow: hidden; }
   border-color: var(--accent, #c45c26);
 }
 
+/* Direct-to-value desktop pass: keep the sprint HUD compact and stop export controls floating above context. */
+@media (min-width: 1024px) {
+  body.current-sprint-page .current-sprint-header-bar {
+    padding: 6px 10px;
+  }
+
+  body.current-sprint-page .header-band {
+    grid-template-columns: minmax(0, 1fr) minmax(190px, auto);
+    gap: 4px 10px;
+  }
+
+  body.current-sprint-page .header-band-actions {
+    align-self: center;
+  }
+
+  body.current-sprint-page .header-export-inline {
+    position: static !important;
+    inset: auto !important;
+    bottom: auto !important;
+    right: auto !important;
+    transform: none !important;
+  }
+
+  body.current-sprint-page .header-export-inline .export-split-group {
+    border-radius: 999px;
+  }
+
+  body.current-sprint-page .header-export-inline .export-dashboard-btn,
+  body.current-sprint-page .header-export-inline .export-menu-toggle {
+    min-height: 30px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+
+  body.current-sprint-page .header-view-drawer summary {
+    min-height: 30px;
+    padding: 5px 10px;
+  }
+
+  body.current-sprint-page .current-sprint-header-bar[data-viewport-lean="true"] .header-role-modes-details {
+    display: none;
+  }
+
+  body.current-sprint-page .current-sprint-header-bar[data-viewport-lean="true"] .header-context-strip,
+  body.current-sprint-page .current-sprint-header-bar[data-viewport-lean="true"] .sprint-section-links-compact {
+    display: none !important;
+  }
+
+  body.current-sprint-page .current-sprint-advanced-controls {
+    margin: 6px 0 10px;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  body.current-sprint-page .current-sprint-advanced-controls > summary {
+    width: fit-content;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 0.8rem;
+  }
+
+  body.current-sprint-page .stories-primary-sticky .stories-risk-chip {
+    display: none;
+  }
+}

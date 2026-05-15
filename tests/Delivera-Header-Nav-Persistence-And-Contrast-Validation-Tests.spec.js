@@ -112,15 +112,16 @@ test.describe('Header and nav persistence with contrast trust', () => {
       test.skip(true, 'Redirected to login');
       return;
     }
-    const routeByKey = ['teams', 'report', 'sprints', 'leadership', 'dashboard'];
+    const routeByKey = ['sprints', 'report', 'leadership', 'teams', 'dashboard'];
     for (const key of routeByKey) {
       const selector = `a[data-nav-key="${key}"], .sidebar-more-link[data-nav-key="${key}"]`;
       const targetCount = await page.locator(selector).count();
       if (targetCount < 1) continue;
-      if (key === 'leadership' || key === 'dashboard') {
+      if (key === 'dashboard' || key === 'teams') {
         const moreSummary = page.locator('.sidebar-more-summary');
         if (await moreSummary.count()) {
           await moreSummary.first().click().catch(() => null);
+          await page.locator('.sidebar-more').evaluate((el) => { el.open = true; }).catch(() => null);
         }
       }
       await page.locator(selector).first().click();
@@ -132,7 +133,7 @@ test.describe('Header and nav persistence with contrast trust', () => {
   });
 
   test('accent cards keep readable contrast on executive pages', async ({ page }) => {
-    const pages = ['/value-delivery', '/risks-blockers'];
+    const pages = ['/value-delivery', '/program-increment'];
     for (const path of pages) {
       await page.goto(path);
       if (page.url().includes('login')) {

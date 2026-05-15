@@ -2,6 +2,8 @@ import { renderNotificationDock } from './Delivera-Shared-Notifications-Dock-Man
 import { updateNotificationStore } from './Delivera-CurrentSprint-Notifications-Helpers.js';
 import { showContent } from './Delivera-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Delivera-CurrentSprint-Render-Page.js';
+import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
+import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
 import { wireDynamicHandlers } from './Delivera-CurrentSprint-Page-Handlers.js';
 import { wireHeaderBarHandlers } from './Delivera-CurrentSprint-Header-Bar.js';
 import { wireHealthDashboardHandlers } from './Delivera-CurrentSprint-Health-Dashboard.js';
@@ -58,7 +60,8 @@ function scrollToCurrentSprintTarget(target) {
 
 function applyInitialHashFocus() {
   try {
-    const hash = window.location && window.location.hash ? window.location.hash : '';
+    let hash = window.location && window.location.hash ? window.location.hash : '';
+    if (hash === '#work-risks') hash = '#stuck-card';
     if (!hash || !hash.startsWith('#')) return;
     const target = document.querySelector(hash);
     if (!target) return;
@@ -184,16 +187,53 @@ function wireNoClickJourneys() {
   if (window.__currentSprintNoClickJourneysBound) return;
   window.__currentSprintNoClickJourneysBound = true;
 
+  function focusTopRiskRow(options = {}) {
+    const applyFilter = options.applyFilter !== false;
+    const shouldScroll = options.scroll !== false;
+    try {
+      const payload = window.__deliveraCurrentSprintPayload;
+      const counts = payload ? getUnifiedRiskCounts(payload) : {};
+      const stale = Number(counts.blockersOwned || counts.blockers || 0);
+      if (applyFilter && stale > 0) {
+        const autoKey = 'delivera.currentSprint.autoRiskFilter.v1';
+        const alreadyFiltered = sessionStorage.getItem(autoKey) === '1';
+        if (!alreadyFiltered) {
+          sessionStorage.setItem(autoKey, '1');
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
+            detail: { riskTags: ['blocker'], source: 'auto-top-risk' },
+          }));
+        }
+      }
+      const row = document.querySelector('#work-risks-table tbody tr[data-risk-tags*="blocker"], #stories-table tbody tr[data-risk-tags*="blocker"], #work-risks-table tbody tr[data-risk-tags], #stories-table tbody tr[data-risk-tags]');
+      if (!row) return;
+      row.classList.add('issue-preview-source-row');
+      if (!shouldScroll) return;
+      if (typeof window.currentSprintScrollToTarget === 'function') {
+        window.currentSprintScrollToTarget(row);
+      } else {
+        row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      }
+    } catch (_) {}
+  }
+
   function highlightTopBlockerRow() {
     try {
       const alreadyDone = sessionStorage.getItem('delivera.currentSprint.topBlockerHighlight.v1') === '1';
       if (alreadyDone) return;
-      const row = document.querySelector('#work-risks-table tbody tr[data-risk-tags*="blocker"], #stories-table tbody tr[data-risk-tags*="blocker"], #work-risks-table tbody tr[data-risk-tags], #stories-table tbody tr[data-risk-tags]');
-      if (!row) return;
       sessionStorage.setItem('delivera.currentSprint.topBlockerHighlight.v1', '1');
-      row.classList.add('issue-preview-source-row');
-      row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      focusTopRiskRow({ applyFilter: true, scroll: false });
     } catch (_) {}
+  }
+
+  function wireMissionBriefingClicks() {
+    if (window.__currentSprintMissionBriefingBound) return;
+    window.__currentSprintMissionBriefingBound = true;
+    document.addEventListener('click', (event) => {
+      const hit = event.target.closest('[data-mission-briefing-action="focus-top-risk"]');
+      if (!hit) return;
+      event.preventDefault();
+      focusTopRiskRow({ applyFilter: true });
+    });
   }
 
   function wireKeyboardShortcuts() {
@@ -228,6 +268,7 @@ function wireNoClickJourneys() {
   }
 
   window.setTimeout(highlightTopBlockerRow, 260);
+  wireMissionBriefingClicks();
   wireKeyboardShortcuts();
 }
 
@@ -247,6 +288,8 @@ function wireRenderedContent(data, onSelectSprintById) {
   try {
     window.currentSprintScrollToTarget = scrollToCurrentSprintTarget;
     window.__deliveraCurrentSprintPayload = data;
+    renderSidebarContextCard();
+    window.dispatchEvent(new CustomEvent('delivera:currentSprintPayloadReady'));
   } catch (_) {}
   const summary = updateNotificationStore(data);
   renderNotificationDock({ summary, pageContext: 'current-sprint' });

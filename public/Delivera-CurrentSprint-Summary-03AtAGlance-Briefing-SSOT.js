@@ -170,9 +170,9 @@ export function renderMissionBriefingHtml(briefing, escapeHtml) {
   const risk = escapeHtml(briefing.topRiskLine || '');
   const action = escapeHtml(briefing.nextAction || '');
   if (!time && !risk && !action) return '';
-  return '<div class="sprint-mission-briefing" role="status" aria-live="polite" data-signal="mission-briefing">'
+  return '<div class="sprint-mission-briefing is-actionable" role="group" aria-live="polite" data-signal="mission-briefing" data-mission-briefing-action="focus-top-risk">'
     + '<span class="mission-briefing-time" data-briefing="time">' + time + '</span>'
-    + '<span class="mission-briefing-risk" data-briefing="risk">' + risk + '</span>'
+    + '<button type="button" class="mission-briefing-risk mission-briefing-hit" data-briefing="risk" data-mission-briefing-action="focus-top-risk">' + risk + '</button>'
     + '<span class="mission-briefing-action" data-briefing="action"><strong>Do:</strong> ' + action + '</span>'
     + '</div>';
 }

@@ -5,6 +5,7 @@
 
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import { staleInProgressLabel } from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
 const INSIGHT_MAX_LEN = 1000;
 
 function toLocalIsoMinute(date = new Date()) {
@@ -37,6 +38,7 @@ export function renderRisksAndInsights(data) {
   const ownedBlockerCount = Number(riskCounts.blockersOwned || 0);
   /** SSOT: same as work queue � never show 0 blockers in UI when signals say >0 */
   const blockerChipCount = Math.max(blockersText.length, ownedBlockerCount);
+  const staleLabel = staleInProgressLabel(blockerChipCount) || '0 stale in progress';
   const summaryItems = [
     ...blockersText.map((text) => ({ kind: 'Blocker', text })),
     ...assumptions.map((text) => ({ kind: 'Risk', text })),
@@ -45,7 +47,7 @@ export function renderRisksAndInsights(data) {
   const topItems = summaryItems.slice(0, 1);
   const blockerNotesLabel = blockersText.length === 1 ? '1 note' : `${blockersText.length} notes`;
   const oneLineSummary = blockerChipCount > 0
-    ? `${blockerChipCount} blocker${blockerChipCount === 1 ? '' : 's'} in sprint signals (queue SSOT)${blockersText.length > 0 ? ` � ${blockerNotesLabel} below` : ''}`
+    ? `${staleLabel} in sprint signals (queue SSOT)${blockersText.length > 0 ? ` � ${blockerNotesLabel} below` : ''}`
     : (assumptions.length > 0
       ? `${assumptions.length} active risk${assumptions.length === 1 ? '' : 's'} in this sprint (team notes)`
       : (learnings.length > 0
@@ -56,12 +58,12 @@ export function renderRisksAndInsights(data) {
   html += '<h2>Risks & Insights</h2>';
   html += '<p class="insights-summary-copy">' + escapeHtml(oneLineSummary) + '</p>';
   html += '<div class="insights-summary-strip">';
-  html += '<span class="insights-summary-chip" title="Blockers: sprint risk signals and work queue (same SSOT); count is max of signals and saved dependency notes.">' + blockerChipCount + ' blockers</span>';
+  html += '<span class="insights-summary-chip" title="Stale in progress: sprint risk signals and work queue (same SSOT); count is max of signals and saved dependency notes.">' + escapeHtml(staleLabel) + '</span>';
   html += '<span class="insights-summary-chip" title="Risks: team-entered notes in this card (not the same as signal tags in the queue).">' + assumptions.length + ' risks</span>';
   html += '<span class="insights-summary-chip" title="Learnings: team notes captured below.">' + learnings.length + ' learnings</span>';
   html += '</div>';
   html += '<div class="insights-tabs" role="tablist" aria-label="Risks and insights views">';
-  html += '<button type="button" class="insights-tab active" id="blockers-tab" role="tab" aria-selected="true" aria-controls="blockers-panel" tabindex="0">Blockers <span class="insights-tab-badge">' + blockerChipCount + '</span></button>';
+  html += '<button type="button" class="insights-tab active" id="blockers-tab" role="tab" aria-selected="true" aria-controls="blockers-panel" tabindex="0">Stale <span class="insights-tab-badge">' + blockerChipCount + '</span></button>';
   html += '<button type="button" class="insights-tab" id="learnings-tab" role="tab" aria-selected="false" aria-controls="learnings-panel" tabindex="-1">Learnings <span class="insights-tab-badge">' + learnings.length + '</span></button>';
   html += '<button type="button" class="insights-tab" id="assumptions-tab" role="tab" aria-selected="false" aria-controls="assumptions-panel" tabindex="-1">Assumptions <span class="insights-tab-badge">' + assumptions.length + '</span></button>';
   html += '</div>';
@@ -71,7 +73,7 @@ export function renderRisksAndInsights(data) {
       html += '<div class="insight-item blocker-item"><span class="insight-icon" aria-hidden="true">!</span><div class="insight-text">' + escapeHtml(text) + '</div></div>';
     });
   } else {
-    html += '<div class="insight-empty"><p>' + escapeHtml(blockerChipCount > 0 ? blockerChipCount + ' blocker' + (blockerChipCount === 1 ? '' : 's') + ' detected in sprint signals. Review the work queue below.' : 'No blockers need immediate review.') + '</p></div>';
+    html += '<div class="insight-empty"><p>' + escapeHtml(blockerChipCount > 0 ? staleLabel + ' detected in sprint signals. Review the work queue below.' : 'No stale items need immediate review.') + '</p></div>';
   }
   html += '</div>';
   html += '<div id="learnings-panel" class="insights-panel" role="tabpanel" aria-labelledby="learnings-tab">';

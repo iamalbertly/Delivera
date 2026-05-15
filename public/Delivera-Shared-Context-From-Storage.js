@@ -15,6 +15,8 @@ import {
 import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Params.js';
 import { reportState } from './Delivera-Report-Page-State.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import { formatRiskCountsRollup } from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
 
 export const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
 const CONTEXT_SEPARATOR = ' | ';
@@ -333,15 +335,60 @@ export function getContextDisplayString() {
 }
 
 /**
+ * Live sprint sidebar context from in-memory payload (avoids "No report run yet" on /current-sprint).
+ */
+function buildCurrentSprintSidebarContextParts() {
+  const data = typeof window !== 'undefined' ? window.__deliveraCurrentSprintPayload : null;
+  if (!data?.sprint) return null;
+  const sprintName = String(data.sprint.name || 'Sprint').trim();
+  const daysRemaining = data?.daysMeta?.daysRemaining;
+  let timeValue = 'Live sprint';
+  if (Number.isFinite(Number(daysRemaining))) {
+    const whole = Math.floor(Number(daysRemaining));
+    timeValue = whole <= 0 ? 'Ends today' : `Ends in ${whole}d`;
+  }
+  const projects = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim() || 'All projects';
+  const counts = getUnifiedRiskCounts(data);
+  const rollup = formatRiskCountsRollup({
+    stale: Number(counts.blockersOwned || counts.blockers || 0),
+    missingEst: Number(counts.missingEstimate || 0),
+    missingLog: Number(counts.noLog || 0),
+    unowned: Number(counts.unassigned || 0),
+  });
+  const parts = [
+    { label: 'Sprint', value: sprintName, stateClass: '' },
+    { label: 'Time', value: timeValue, stateClass: '' },
+    { label: 'Scope', value: projects, stateClass: '' },
+  ];
+  if (rollup) {
+    parts.push({ label: 'Signals', value: rollup, stateClass: ' is-warning' });
+  }
+  return parts;
+}
+
+/**
  * Returns HTML for the persistent sidebar context card (selected projects, last generated, freshness).
  * Used on /report, /current-sprint, /leadership. Call renderSidebarContextCard() after DOM ready.
  */
 export function getContextCardHtml() {
   const pieces = getContextPieces();
   const isReportPage = typeof document !== 'undefined' && document.body?.classList?.contains('report-page');
+  const isSprintPage = typeof document !== 'undefined' && document.body?.classList?.contains('current-sprint-page');
   const previewActive = isReportPage && typeof document !== 'undefined' && document.body?.classList?.contains('preview-active');
+  const sprintParts = isSprintPage ? buildCurrentSprintSidebarContextParts() : null;
 
   let html = '<div class="context-card' + (previewActive ? ' context-card--report-preview-compact' : '') + '"><h3 class="context-card-title">Context</h3>';
+
+  if (sprintParts?.length) {
+    html += renderContextPartList(sprintParts, {
+      className: 'context-card-segments context-card-segments--sprint-live',
+      segmentClass: 'context-card-segment',
+      containerAriaLabel: 'Current sprint context',
+      stripAriaLabel: 'Current sprint context',
+    });
+    html += '</div>';
+    return html;
+  }
 
   if (previewActive) {
     const compactParts = [];
