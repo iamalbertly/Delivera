@@ -24,7 +24,7 @@ export function missingLogLabel(count) {
 export function unownedOutcomeLabel(count) {
   const n = Number(count || 0);
   if (n <= 0) return '';
-  return `${n} unowned`;
+  return `${n} ownership gap${n === 1 ? '' : 's'}`;
 }
 
 /** Single rollup line for chips, drawer, intervention queue. */

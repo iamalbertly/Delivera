@@ -10,6 +10,7 @@
     "identity:check": "node scripts/Delivera-Workspace-Identity-Check.js",
     "validate:jira-env": "node scripts/Delivera-Jira-Env-Connectivity-Validate.js",
     "brand:guard": "node scripts/Delivera-Brand-Guard.js",
+    "vercel:deploy": "npm run build:css && npx vercel deploy",
     "dev": "npm run build:css && nodemon server.js",
     "dev:hot": "node scripts/Delivera-Dev-HotReload-01Orchestrator.js",
     "prestart": "npm run build:css",

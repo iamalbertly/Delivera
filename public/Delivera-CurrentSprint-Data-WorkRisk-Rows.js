@@ -168,7 +168,7 @@ export function buildMergedWorkRiskRows(data) {
     if (!missingReporter) continue;
     pushRow({
       source: 'Sprint',
-      riskType: isUnowned ? 'Unassigned Issue' : 'Missing Reporter',
+      riskType: isUnowned ? 'Ownership Gap' : 'Missing Reporter',
       issueKey: row.issueKey || row.key || '',
       issueUrl: row.issueUrl || '',
       summary: row.summary || '-',
@@ -302,7 +302,7 @@ export function buildDistinctSprintFilterViews(data, verdictInfo) {
     { label: 'Missing estimates', riskTags: ['missing-estimate'] },
     { label: 'No log yet',        riskTags: ['no-log'] },
     { label: 'Scope added',       riskTags: ['scope'] },
-    { label: 'Unassigned',        riskTags: ['unassigned'] },
+    { label: 'Ownership gaps',    riskTags: ['unassigned'] },
   ];
 
   const distinctRiskViews = VIEW_DEFS.filter((def) =>
