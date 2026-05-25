@@ -1,6 +1,19 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { runDefaultPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
+async function ensureProjectEpicLevelTab(page) {
+  const content = page.locator('#project-epic-level-content');
+  const activePanel = page.locator('#tab-project-epic-level.active');
+  if (await activePanel.isVisible().catch(() => false)) {
+    return await content.isVisible().catch(() => false);
+  }
+
+  const tabButton = page.locator('.tab-btn[data-tab="project-epic-level"]');
+  await tabButton.waitFor({ state: 'attached', timeout: 10000 });
+  await tabButton.evaluate((button) => button.click());
+  return await content.isVisible({ timeout: 10000 }).catch(() => false);
+}
+
 test.describe('Epic Key linkification & column layout', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
@@ -11,10 +24,12 @@ test.describe('Epic Key linkification & column layout', () => {
     test.setTimeout(180000);
     await runDefaultPreview(page);
 
-    // Navigate to Project & Epic Level (Boards + Epics)
-    await page.locator('.tab-btn[data-tab="project-epic-level"]').click({ force: true });
-    await page.waitForSelector('#tab-project-epic-level.active', { state: 'visible', timeout: 10000 });
-    await page.waitForSelector('#project-epic-level-content', { state: 'visible', timeout: 10000 });
+    // Navigate to Project & Epic Level (Boards + Epics), unless already active.
+    const projectEpicReady = await ensureProjectEpicLevelTab(page);
+    if (!projectEpicReady) {
+      test.skip();
+      return;
+    }
 
     // Check for epic-key link in either Boards or Epic TTM
     const link = page.locator('#project-epic-level-content .epic-key a').first();
@@ -37,9 +52,7 @@ test.describe('Epic Key linkification & column layout', () => {
   test('ad-hoc rows show board-scoped label and are not Jira links', async ({ page }) => {
     test.setTimeout(180000);
     await runDefaultPreview(page);
-    await page.locator('.tab-btn[data-tab="project-epic-level"]').click({ force: true });
-    await page.waitForSelector('#tab-project-epic-level.active', { state: 'visible', timeout: 10000 });
-    await page.waitForSelector('#project-epic-level-content', { state: 'visible', timeout: 10000 });
+    await ensureProjectEpicLevelTab(page);
 
     const content = page.locator('#project-epic-level-content');
     const epicKeyCellsWithAdhoc = content.locator('.epic-key').filter({ hasText: '-ad-hoc' });

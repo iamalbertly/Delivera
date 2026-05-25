@@ -33,6 +33,8 @@ export const REPORT_LAST_VIEW_KEY = 'report-last-view-v1';
 export const CURRENT_SPRINT_LAST_VIEW_KEY = 'current-sprint-last-view-v1';
 export const LEADERSHIP_LAST_VIEW_KEY = 'leadership-last-view-v1';
 export const OUTCOME_ACTIVITY_LOG_KEY = 'delivera_outcomeActivityLog_v1';
+/** Stores preferred AI provider name in localStorage (key stored in sessionStorage separately). */
+export const AI_PROVIDER_PREF_KEY = 'delivera_ai_provider_pref_v1';
 
 const LEGACY_KEY_PAIRS = [
   [PROJECTS_SSOT_KEY, 'vodaAgileBoard_selectedProjects'],

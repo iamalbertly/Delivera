@@ -25,6 +25,7 @@ import { parseOutcomeIntake } from '../public/Delivera-Shared-Outcome-Intake-Par
 import { jaccardSimilarity } from '../lib/Delivera-Outcome-Similarity-01Core.js';
 import { buildBoardStyleProfile } from '../lib/Delivera-Outcome-Board-Style-Profile.js';
 import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
+import { resolveProviderConfig, parseViaNarrative, testProviderConfig } from '../lib/Delivera-AI-Provider-Gateway.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
 import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
 import { buildJiraIssueUrl, escapeHtml } from '../lib/Delivera-Server-Url-And-Escape-Helpers.js';
@@ -1090,6 +1091,23 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
     }
 });
 
+router.post('/api/settings/ai-provider', requireAuth, async (req, res) => {
+    try {
+        const provider = String(req.body?.provider || req.headers?.['x-ai-provider'] || 'built-in').trim().toLowerCase();
+        const action = String(req.body?.action || 'test').trim();
+        const apiKey = String(req.headers?.['x-ai-key'] || req.body?.apiKey || '').trim();
+        const host = String(req.headers?.['x-ai-host'] || req.body?.host || '').trim();
+        if (action === 'test') {
+            const result = await testProviderConfig(provider, apiKey, host);
+            return res.json(result);
+        }
+        return res.status(400).json({ error: 'Unknown action', code: 'UNKNOWN_ACTION' });
+    } catch (error) {
+        logger.error('ai-provider settings error', { error: error?.message });
+        return res.status(500).json({ valid: false, error: String(error?.message || 'Test failed') });
+    }
+});
+
 router.post('/api/outcome-draft', requireAuth, async (req, res) => {
     try {
         const rawNarrative = (req.body && typeof req.body.narrative === 'string') ? req.body.narrative.trim() : '';
@@ -1126,16 +1144,22 @@ router.post('/api/outcome-draft', requireAuth, async (req, res) => {
         } catch (error) {
             logger.warn('outcome-draft profile skipped', { error: error?.message });
         }
-        const draft = await buildOutcomeDraft({
+        const providerConfig = resolveProviderConfig(req.headers || {});
+        const draft = await parseViaNarrative(
             rawNarrative,
-            projectKey,
-            boardId: Number.isFinite(boardId) ? boardId : null,
-            inputMode,
-            quarterHint,
-            version3Client,
-            host,
-            profile,
-        });
+            { projectKey, boardStyleProfile: profile, quarterHint },
+            providerConfig,
+            () => buildOutcomeDraft({
+                rawNarrative,
+                projectKey,
+                boardId: Number.isFinite(boardId) ? boardId : null,
+                inputMode,
+                quarterHint,
+                version3Client,
+                host,
+                profile,
+            }),
+        );
         return res.json(draft);
     } catch (error) {
         logger.error('outcome-draft failed', { error: error?.message });

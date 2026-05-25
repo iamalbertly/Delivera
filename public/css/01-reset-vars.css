@@ -42,6 +42,17 @@
   --sticky-global-nav-top: 64px;
   --sticky-summary-top: 72px;
   --sticky-table-head-top: 64px;
+  /* Work draft canvas — type chip colours */
+  --chip-epic: #6d28d9;
+  --chip-epic-bg: #f5f3ff;
+  --chip-story: #187a53;
+  --chip-story-bg: #eefbf3;
+  --chip-task: #0369a1;
+  --chip-task-bg: #eff6ff;
+  --chip-note: #92400e;
+  --chip-note-bg: #fffbeb;
+  --chip-ignore: #6b7280;
+  --chip-ignore-bg: #f3f4f6;
 }
 
 * {
