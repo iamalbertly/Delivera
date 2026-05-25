@@ -865,6 +865,7 @@ router.get('/api/sprints', requireAuth, getSprintsHandler);
 router.get('/api/sprints.json', requireAuth, getSprintsHandler);
 
 router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
+    let snapshotKey = null;
     try {
         const boardIdParam = req.query.boardId;
         const sprintIdParam = req.query.sprintId;
@@ -893,7 +894,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         const completionAnchor = (req.query.completionAnchor || 'resolution').toLowerCase();
         const supportedAnchors = ['resolution', 'lastsubtask', 'statusdone'];
         const anchor = supportedAnchors.includes(completionAnchor) ? completionAnchor : 'resolution';
-        const snapshotKey = buildCurrentSprintSnapshotCacheKey({
+        snapshotKey = buildCurrentSprintSnapshotCacheKey({
             boardId,
             sprintId: sprintId != null && !Number.isNaN(sprintId) ? sprintId : null,
             projectKeys,
@@ -940,10 +941,23 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         payload.meta.partialPermissions = false;
 
         const selectedSprintState = String(payload?.sprint?.state || '').toLowerCase();
-        const noActiveSprintFallback = !sprintId && selectedSprintState === 'closed' && Number(payload?.meta?.activeSprintCount || 0) === 0;
+        const activeCount = Number(payload?.meta?.activeSprintCount || 0);
+        const noActiveSprintFallback = !sprintId && selectedSprintState === 'closed' && activeCount === 0;
         if (noActiveSprintFallback) {
             payload.meta.noActiveSprintFallback = true;
-            payload.meta.explanatoryLine = 'No active sprint - showing last completed sprint.';
+            const next = payload.nextSprint;
+            if (next?.id) {
+                // Team has a future sprint planned but hasn't started it — smart limbo detection
+                const nextName = String(next.name || '').trim();
+                const nextStart = next.startDate ? new Date(next.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+                payload.meta.explanatoryLine = nextName
+                    ? `No active sprint — showing last completed. "${nextName}" is planned${nextStart ? ' from ' + nextStart : ''} but not yet started.`
+                    : 'No active sprint — showing last completed. A future sprint is planned but not yet started.';
+                payload.meta.nextSprintCandidate = { id: next.id, name: nextName, startDate: next.startDate || '', goal: next.goal || '' };
+                payload.meta.suggestStartSprint = true;
+            } else {
+                payload.meta.explanatoryLine = 'No active sprint — showing last completed sprint.';
+            }
         }
 
         writeReportContextToSession(req, buildCurrentSprintSessionContext(projectKeys, boardId, payload?.sprint?.id || sprintId));
@@ -959,6 +973,22 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         const mapped = mapCurrentSprintError(error);
         if (mapped.httpStatus === 401 || mapped.httpStatus === 403) {
             await cache.invalidateCurrentSprintSnapshot({ boardId }).catch(() => {});
+        }
+        // Serve stale snapshot on Jira outage (502/503) so teams see data, not an error screen
+        const isJiraOutage = mapped.httpStatus === 502 || mapped.httpStatus === 503;
+        if (isJiraOutage && snapshotKey) {
+            const staleEntry = await cache.getWithStaleFallback(snapshotKey, 8 * 60 * 60 * 1000).catch(() => null);
+            if (staleEntry) {
+                const out = staleEntry.value ?? staleEntry;
+                if (out && typeof out === 'object') {
+                    out.meta = out.meta || {};
+                    out.meta.stale = true;
+                    out.meta.staleAgeMs = staleEntry.staleAgeMs || 0;
+                    out.meta.staleReason = 'JIRA_UNREACHABLE';
+                    logger.warn('Serving stale current-sprint during Jira outage', buildRequestLogContext(req, { boardId, staleAgeMs: staleEntry.staleAgeMs }));
+                    return res.json(out);
+                }
+            }
         }
         logger.error('Error generating current-sprint payload', {
             ...buildRequestLogContext(req, { boardId, status: mapped.httpStatus }),

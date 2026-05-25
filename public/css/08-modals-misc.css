@@ -346,7 +346,7 @@ button.attention-queue-item,
   right: 0;
   top: 0;
   bottom: 0;
-  width: min(560px, calc(100vw - 240px));
+  width: min(560px, calc(100vw - var(--sidebar-width, 240px)));
   transform: translateX(100%);
   transition: transform 0.25s ease;
   z-index: 1500;
@@ -698,14 +698,14 @@ button.attention-queue-item,
   background: var(--card-muted);
 }
 
-/* Ignored notes fold */
+/* Ignored notes fold — class-toggled div replaces <details> */
 .wdd-ignored-fold {
   margin: 4px 16px 4px;
   border: 1px dashed var(--border);
   border-radius: 8px;
   overflow: hidden;
 }
-.wdd-ignored-fold-summary {
+.wdd-ignored-fold-toggle {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -713,11 +713,14 @@ button.attention-queue-item,
   font-size: 0.78rem;
   color: var(--muted);
   cursor: pointer;
-  list-style: none;
+  border: 0;
+  background: none;
+  width: 100%;
+  text-align: left;
   -webkit-user-select: none;
   user-select: none;
 }
-.wdd-ignored-fold-summary::-webkit-details-marker { display: none; }
+.wdd-ignored-fold-toggle:hover { background: var(--bg-accent); }
 .wdd-ignored-fold-item {
   display: flex;
   align-items: center;
@@ -865,6 +868,11 @@ kbd {
   background: var(--chip-ignore-bg);
   color: var(--chip-ignore);
   border: 1px solid var(--border);
+}
+.wdd-send-count--empty {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.78rem;
 }
 .wdd-send-actions {
   display: flex;

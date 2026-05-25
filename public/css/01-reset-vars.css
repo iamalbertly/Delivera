@@ -42,6 +42,8 @@
   --sticky-global-nav-top: 64px;
   --sticky-summary-top: 72px;
   --sticky-table-head-top: 64px;
+  /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
+  --sidebar-width: 240px;
   /* Work draft canvas — type chip colours */
   --chip-epic: #6d28d9;
   --chip-epic-bg: #f5f3ff;

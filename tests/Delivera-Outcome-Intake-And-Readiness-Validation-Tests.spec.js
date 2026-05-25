@@ -74,7 +74,10 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(2, { timeout: 4000 });
     await page.locator('#wdd-create-safe-btn').dispatchEvent('click');
     await expect(page.locator('#wdd-submit-status')).toContainText(/Possible duplicate|Create anyway/i);
+    // Wait for the second request before asserting — dispatchEvent is async; fetch fires async
+    const secondResponsePromise = page.waitForResponse('**/api/outcome-from-narrative', { timeout: 5000 });
     await page.locator('.wdd-conflict-action-btn').dispatchEvent('click');
+    await secondResponsePromise;
     expect(callCount).toBe(2);
   });
 

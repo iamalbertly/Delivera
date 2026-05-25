@@ -569,12 +569,15 @@ function buildRepairHtml(item) {
 
 function renderIgnoredFold(canvas) {
   if (!_ignoredItems.length) return;
-  const fold = document.createElement('details');
+  const fold = document.createElement('div');
   fold.className = 'wdd-ignored-fold';
-  fold.innerHTML = `<summary class="wdd-ignored-fold-summary">▸ ${_ignoredItems.length} line${_ignoredItems.length === 1 ? '' : 's'} ignored as non-work</summary>`
+  const label = `${_ignoredItems.length} line${_ignoredItems.length === 1 ? '' : 's'} ignored as non-work`;
+  fold.innerHTML = `<button class="wdd-ignored-fold-toggle" aria-expanded="false" data-action="toggle-ignored-fold">▸ ${esc(label)}</button>`
+    + `<div class="wdd-ignored-fold-items" hidden>`
     + _ignoredItems.map((item, idx) =>
       `<div class="wdd-ignored-fold-item"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.title)}</span><button class="wdd-ignored-restore-btn" data-restore-idx="${idx}">Restore</button></div>`
-    ).join('');
+    ).join('')
+    + `</div>`;
   canvas.appendChild(fold);
 }
 
@@ -595,17 +598,34 @@ function updateSendBar() {
   const createBtn = document.getElementById('wdd-create-safe-btn');
   const reviewBtn = document.getElementById('wdd-review-btn');
   const hasJiraKeys = _jiraKeysDetected.length > 0;
+  const noProject = !_projectKey;
+  const totalItems = _items.length;
 
   if (countsEl) {
-    countsEl.innerHTML = ''
-      + `<span class="wdd-send-count wdd-send-count--safe">Ready: ${counts.safe}</span>`
-      + (counts.review ? `<button class="wdd-send-count wdd-send-count--review" data-action="toggle-review">Needs review: ${counts.review}</button>` : '')
-      + (counts.ignored ? `<span class="wdd-send-count wdd-send-count--ignored">Ignored: ${counts.ignored}</span>` : '');
+    if (totalItems === 0) {
+      countsEl.innerHTML = '<span class="wdd-send-count wdd-send-count--empty">Paste notes above to get started</span>';
+    } else {
+      countsEl.innerHTML = ''
+        + `<span class="wdd-send-count wdd-send-count--safe">Ready: ${counts.safe}</span>`
+        + (counts.review ? `<button class="wdd-send-count wdd-send-count--review" data-action="toggle-review">Needs review: ${counts.review}</button>` : '')
+        + (counts.ignored ? `<span class="wdd-send-count wdd-send-count--ignored">Ignored: ${counts.ignored}</span>` : '');
+    }
   }
 
   if (createBtn) {
-    createBtn.disabled = counts.safe === 0 || _isSubmitting || hasJiraKeys;
-    createBtn.textContent = _isSubmitting ? 'Creating…' : `Create ${counts.safe} issue${counts.safe === 1 ? '' : 's'}`;
+    if (noProject) {
+      createBtn.disabled = true;
+      createBtn.textContent = 'Select a project first';
+    } else if (_isSubmitting) {
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating…';
+    } else if (hasJiraKeys) {
+      createBtn.disabled = true;
+      createBtn.textContent = 'Jira keys detected — link only';
+    } else {
+      createBtn.disabled = counts.safe === 0;
+      createBtn.textContent = counts.safe === 0 ? 'Nothing to create yet' : `Create ${counts.safe} issue${counts.safe === 1 ? '' : 's'}`;
+    }
   }
 
   if (reviewBtn) {
@@ -1219,7 +1239,10 @@ function wireEvents() {
     }
   });
 
-  document.getElementById('wdd-source-textarea')?.addEventListener('input', onSourceInput);
+  const ta = document.getElementById('wdd-source-textarea');
+  ta?.addEventListener('input', onSourceInput);
+  // Paste fires before textarea value updates; use rAF to read the pasted content immediately
+  ta?.addEventListener('paste', () => requestAnimationFrame(onSourceInput));
   document.getElementById('wdd-settings-btn')?.addEventListener('click', toggleSettings);
   document.getElementById('wdd-source-toggle')?.addEventListener('click', () => {
     const sourceEl = document.getElementById('wdd-source');
@@ -1272,6 +1295,19 @@ function wireEvents() {
 
     // Toggle review from the send-counts chip (element is recreated on each updateSendBar call)
     if (e.target?.closest('[data-action="toggle-review"]')) toggleReviewOnly();
+
+    // Toggle ignored-notes fold expand/collapse
+    const ignoredToggle = e.target?.closest('[data-action="toggle-ignored-fold"]');
+    if (ignoredToggle) {
+      const foldEl = ignoredToggle.closest('.wdd-ignored-fold');
+      const itemsEl = foldEl?.querySelector('.wdd-ignored-fold-items');
+      if (itemsEl) {
+        const nowOpen = itemsEl.hidden;
+        itemsEl.hidden = !nowOpen;
+        ignoredToggle.setAttribute('aria-expanded', String(nowOpen));
+        ignoredToggle.textContent = (nowOpen ? '▾ ' : '▸ ') + ignoredToggle.textContent.slice(2);
+      }
+    }
 
     // Close settings panel via its X button
     if (e.target?.closest('.wdd-settings-close')) toggleSettings();

@@ -749,6 +749,15 @@ export function initPreviewFlow() {
       setLoadingStage(4, 'Final checks…');
       if (runIdForThisRequest === previewRunId) {
         applyPreviewPayload(responseJson);
+        // Jira outage stale-data notice — served cached data when Jira was unreachable
+        if (responseJson?.meta?.stale && statusEl) {
+          const staleAgeH = responseJson.meta.staleAgeMs > 0
+            ? Math.round(responseJson.meta.staleAgeMs / 3600000)
+            : null;
+          const ageText = staleAgeH != null ? ` from ${staleAgeH}h ago` : '';
+          statusEl.innerHTML = `<div class="status-banner warning">Showing cached data${ageText} — Jira was unreachable when this loaded. <button type="button" class="status-close" aria-label="Dismiss">✕</button></div>`;
+          statusEl.style.display = 'block';
+        }
       }
       try {
         warmCurrentSprintJourney(responseJson?.meta?.selectedProjects || []);

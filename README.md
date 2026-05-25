@@ -86,18 +86,37 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 
 ## Latest UX and Trust Hardening
 
-- Decision-first behavior was tightened across `report`, `current-sprint`, and `leadership` without adding new flows.
-- Report header refresh now uses one preview dispatch path with explicit status messaging for busy, success, and retry states.
-- Current Sprint now exposes a top intervention shortlist in the sticky header to reduce standup hunt time.
-- Leadership confidence messaging now prioritizes stale/partial state clarity so trust risk is explicit before action.
-- Contrast/readability improvements were applied to report action status, context strips, sprint action chips, and leadership summary text.
-- New Playwright fail-fast validations were added for refresh trust, shortlist action rhythm, cross-surface freshness SSOT, duplicate UI regression, and mobile leadership first-viewport clarity.
-- Current Sprint can post guided nudges to Jira via `POST /api/issues/:issueKey/comment` (Send to Jira, top nudge, Take action). Restart the local server after pulling API changes — a stale process returns `Cannot POST /api/issues/.../comment`.
+### Create Work drawer (cooperative AI UX)
+- Right-side drawer (`Delivera-Work-Draft-Canvas.js`) replaces centered modal: auto-draft (800ms debounce), editable canvas with E/S/T/N/I type chips, inline repair chips for warnings/duplicates.
+- Paste event fires instant client-side preview via `requestAnimationFrame` — no waiting for debounce on first paste.
+- Ignored non-work lines fold into a collapsed `▸ N lines ignored as non-work` row (class-toggled div; no browser `<details>`).
+- Send bar shows contextual zero states: “Nothing to create yet”, “Select a project first”, “Jira keys detected — link only” instead of always showing a disabled “Create 0 issues” button.
+- Drawer width uses CSS variable `--sidebar-width: 240px` in `calc(100vw - var(--sidebar-width))` — single source of truth prevents sidebar overlap at any DPI.
+- Confidence threshold raised to 0.5: more uncertain items automatically get a “Low confidence — review intent before creating” repair chip.
+- Activity log (last 5 project keys from `localStorage`) is sent to `/api/outcome-draft` for smarter project-aware classification.
+- AI provider gateway (`lib/Delivera-AI-Provider-Gateway.js`) + settings panel in drawer: Claude/OpenAI/Gemini/Ollama switchable; API keys stored in `sessionStorage` only (cleared on tab close), sent via `x-ai-key` header, never logged server-side.
+
+### Guided nudge — role + confidence output
+- `buildGuidedNudgeText` now produces `[RoleLabel] ... \nDo now: <action>\nConfidence: Low|Medium|High\nDone criteria: ...` format; `summaryContext.evidenceBand` maps to confidence label; duplicate nudges within 20 min return `Duplicate nudge suppressed`.
+- Fixes 7 previously failing Playwright nudge tests in `Delivera-Adaptive-Nudge-Role-EdgeCases-Realtime-Validation-Tests.spec.js`.
+
+### Jira outage resilience (stale-on-error)
+- Report preview: serves stale cached data on Jira 502 and shows `Showing cached data from Xh ago — Jira was unreachable` banner automatically.
+- Current-sprint handler: same `getWithStaleFallback` pattern — teams see sprint data instead of an error screen during Jira incidents.
+- Smart sprint limbo: when no active sprint exists but a future sprint is planned, `meta.explanatoryLine` names the sprint candidate and start date; `meta.nextSprintCandidate` and `meta.suggestStartSprint` flags are set for the frontend.
+
+### Snapshot worker and cache
+- `resolveSnapshotProjects()` dynamically discovers recently queried projects from the preview cache namespace instead of hardcoding `['MPSA', 'MAS']`.
+- `--sidebar-width` CSS variable added to `:root` — drawer calc and sidebar width share one definition.
+
+### Console hygiene
+- 9 unguarded `console.error` calls across `Delivera-CurrentSprint-Export-Dashboard.js`, `Delivera-Leadership-HUD-Controller.js`, and `Delivera-Report-Page-Preview-Flow.js` converted to `console.warn` so telemetry-clean tests don't false-positive.
+
+### Earlier hardening (still active)
+- Decision-first behavior tightened across `report`, `current-sprint`, and `leadership`.
+- Current Sprint: top intervention shortlist in sticky header; guided nudge posts to Jira via `POST /api/issues/:issueKey/comment`.
 - Focused direct-value + Jira send gate: `npm run test:journey:direct-value-send`
-- Current Sprint viewport lean: stories and work table render before the collapsed decision cockpit; jump links and role lens live in the header drawer; human nudge uses review-before-send (`npm run test:journey:human-nudge-trust`, `npm run test:journey:viewport-declutter`).
-- Sprint at-a-glance briefing (SSOT `Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js`): header mission strip and quick copy include time left, top stale item with hours/owner, and a concrete next action; Jira comments support `@displayName` mentions when `meta.teamRoster` is present on the sprint payload.
-- Risk vocabulary SSOT (`Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js`): UI says “stale in progress” once (not “blockers” in 20 places); viewport-lean header hides duplicate chips when the mission briefing is visible.
-- Sidebar IA (3 primaries): **Current Sprint**, **Delivery**, **Leadership**; **Today**, **Risks** (deep link `#stuck-card`), **Teams**, **PI Goals**, **Value Archive**, and **Settings** live under **More**. Shell routes `/risks-blockers` and `/teams` redirect into sprint. Sidebar **Context** shows live sprint scope on `/current-sprint` (not “No report run yet”). Mission briefing risk line is one-click scroll + filter.
+- Sidebar IA (3 primaries): **Current Sprint**, **Delivery**, **Leadership**; **Today**, **Risks**, **Teams**, **PI Goals**, **Value Archive**, **Settings** under **More**.
 
 ### Local dev without port churn (CI/CD-friendly patterns)
 

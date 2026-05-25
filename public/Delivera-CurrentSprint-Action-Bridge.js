@@ -336,13 +336,44 @@ export function getCurrentSprintSummaryContext() {
 }
 
 export function buildGuidedNudgeText(opts = {}) {
-  return buildHumanNudgeDraft({
-    issueKey: opts.issueKey,
-    issueSummary: opts.issueSummary,
-    issueStatus: opts.issueStatus,
-    useCase: 'ownership',
-    staleHours: opts.staleHours ?? null,
-  });
+  const issueKey = asText(opts.issueKey);
+  const issueSummary = asText(opts.issueSummary);
+  const issueStatus = asText(opts.issueStatus);
+  const issueUrl = asText(opts.issueUrl);
+  const ctx = opts.summaryContext && typeof opts.summaryContext === 'object' ? opts.summaryContext : null;
+
+  // Role resolution — prefer already-resolved context over re-reading localStorage
+  const rm = ctx?.roleMode || readRoleMode();
+  const rl = roleLabel(rm);
+  const actionHint = asText(ctx?.topAction) || roleActionHint(rm);
+  const simpleEnglish = ctx?.simpleEnglishMode ?? readSimpleEnglishMode();
+
+  // Dedup suppression — same key+action within 20 min is suppressed
+  if (shouldSuppressNudge(issueKey, actionHint)) {
+    return `Duplicate nudge suppressed for ${issueKey || 'this issue'}. Allow 20 min before re-sending to the same item.`;
+  }
+
+  // Confidence label from evidence band — always use "Confidence:" as the structured field name
+  // since this text goes into a Jira comment and must be machine-readable
+  const band = ctx?.evidenceBand || 'emerging';
+  const confidenceMap = { low: 'Low', snapshot: 'Low', emerging: 'Medium', actionable: 'High' };
+  const confidenceLabel = confidenceMap[band] || 'Medium';
+  const doNowWord = simpleEnglish ? 'Do now' : 'Recommended action now';
+
+  // Base nudge line from existing human-text builder
+  const base = buildHumanNudgeDraft({ issueKey, issueSummary, issueStatus, useCase: 'ownership', staleHours: opts.staleHours ?? null });
+
+  // Done-criteria line — surface URL when available, else generic prompt
+  const doneLine = issueUrl
+    ? `Done: Confirm resolved and link updated → ${issueUrl}`
+    : `Done criteria: Confirm status is updated in Jira before next stand-up.`;
+
+  return truncate([
+    `[${rl}] ${base}`,
+    `${doNowWord}: ${actionHint}`,
+    `Confidence: ${confidenceLabel}`,
+    doneLine,
+  ].join('\n'), 500);
 }
 
 export { shortenIssueSummaryHuman as shortenIssueSummary };
