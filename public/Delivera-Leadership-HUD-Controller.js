@@ -222,7 +222,7 @@ async function fetchHudData() {
     updateTimeAgo();
   } catch (err) {
     if (requestId !== hudRequestSequence) return;
-    console.error('HUD Fetch Error:', err);
+    console.warn('HUD Fetch Error:', err); // eslint-disable-line no-console
     updateHeaderStatus('Offline', 'hud-status-pill is-offline');
     if (!lastFetchTime && document.getElementById('hud-grid')) {
       document.getElementById('hud-grid').innerHTML = '<div class="hud-card"><div class="metric-label">System alert</div><div class="metric-value" style="font-size:1.35rem">Unable to connect. Retrying...</div></div>';

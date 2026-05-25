@@ -853,7 +853,7 @@ export function initPreviewFlow() {
             } catch (_) {}
           }
         } catch (innerErr) {
-          console.error('Error rendering preview error UI', innerErr);
+          console.warn('Error rendering preview error UI', innerErr); // eslint-disable-line no-console
           setActionErrorOnEl(errorEl, {
             title: 'Server error',
             message: 'Please try again or use a smaller date range.',

@@ -69,7 +69,7 @@ test.describe('Outcome-First Direct Value IA Validation', () => {
       'Filter feedback by category',
     ].join('\n'));
 
-    // Auto-draft fires after 1200ms debounce — wait for canvas with 3 items
+    // Auto-draft fires after 800ms debounce — wait for canvas with 3 items
     await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(3, { timeout: 4000 });
 
     // Verify canvas shows S parent + T children as expected from mocked draft

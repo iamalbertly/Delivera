@@ -70,13 +70,13 @@ test.describe('Delivera Outcome Draft Assistant Direct Value Logcat Realtime Val
       });
 
       await page.locator('#wdd-source-textarea').fill('Q1 needs feature work plus fix login bugs for support.\n- Story one\n- Story two');
-      // Auto-draft fires after 1200ms debounce; wait up to 4s for canvas items
+      // Auto-draft fires after 800ms debounce; wait up to 4s for canvas items
       await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(2, { timeout: 4000 });
       // Precheck message appears in parse status
       await expect(page.locator('#wdd-parse-status')).toContainText(/Mixed notes/i);
-      // Send bar shows ready (1 safe item) and review (1 warning item)
+      // Send bar shows ready (1 safe item) and needs-review (1 warning item)
       await expect(page.locator('#wdd-send-counts')).toContainText(/Ready: 1/i);
-      await expect(page.locator('#wdd-send-counts')).toContainText(/Review: 1/i);
+      await expect(page.locator('#wdd-send-counts')).toContainText(/Needs review: 1/i);
       // Warning item has a repair chip
       await expect(page.locator('.wdc-repair-chip')).toBeVisible();
       assertTelemetryClean(telemetry);

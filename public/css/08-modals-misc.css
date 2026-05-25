@@ -469,51 +469,52 @@ button.attention-queue-item,
   min-height: 0;
 }
 
-/* Source evidence */
+/* Source area — plain div, toggle-controlled */
 .wdd-source {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.wdd-source-summary {
+.wdd-source-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  font-size: 0.8rem;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 16px;
+  font-size: 0.78rem;
   color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  text-align: left;
   cursor: pointer;
-  list-style: none;
   -webkit-user-select: none;
   user-select: none;
+  transition: color 0.12s;
 }
-.wdd-source-summary::-webkit-details-marker { display: none; }
-.wdd-source-summary::before {
-  content: '▸';
-  font-size: 0.7rem;
-  transition: transform 0.15s;
-}
-details.wdd-source[open] .wdd-source-summary::before {
-  transform: rotate(90deg);
-}
+.wdd-source-toggle:hover { color: var(--text); }
+/* Hide toggle when source is open and no items exist yet (keep focus on textarea) */
+.wdd-source.is-open:not(.wdd-had-items) .wdd-source-toggle { display: none; }
 .wdd-source-textarea {
   display: block;
   width: 100%;
   padding: 10px 16px 14px;
   border: 0;
-  border-top: 1px solid var(--border);
   resize: none;
   font-size: 0.85rem;
   font-family: inherit;
   line-height: 1.55;
   background: var(--card-muted);
   color: var(--text);
-  min-height: 100px;
+  min-height: 110px;
   max-height: 220px;
   overflow-y: auto;
 }
 .wdd-source-textarea:focus {
   outline: 2px solid rgba(230, 0, 0, 0.18);
 }
+/* Collapsed: hide textarea, show toggle only */
+.wdd-source.is-collapsed .wdd-source-textarea { display: none; }
+.wdd-source.is-collapsed { border-bottom-color: transparent; }
 
 /* Parse status */
 .wdd-parse-status {

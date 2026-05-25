@@ -6,7 +6,7 @@ import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY } from './Delivera-Shared-S
 const AI_PROVIDER_SESSION_KEY = 'wdd_ai_provider_v1';
 const LAST_PROJECT_KEY = 'report_last_outcome_project_v1';
 const SUBMIT_TIMEOUT_MS = 45000;
-const PARSE_DEBOUNCE_MS = 1200;
+const PARSE_DEBOUNCE_MS = 800;
 const UNDO_STACK_LIMIT = 50;
 const JIRA_KEY_RE = /\b[A-Z][A-Z0-9]+-\d+\b/g;
 
@@ -186,13 +186,13 @@ function ensureDrawer() {
   Draft only · No existing Jira issues will be changed · Undo available before send
 </div>
 <div class="wdd-body" id="wdd-body">
-  <details class="wdd-source" id="wdd-source">
-    <summary class="wdd-source-summary">Source text</summary>
+  <div class="wdd-source is-open" id="wdd-source">
+    <button class="wdd-source-toggle" id="wdd-source-toggle" aria-label="Toggle source text">▲ Source</button>
     <textarea class="wdd-source-textarea" id="wdd-source-textarea" rows="5"
-      placeholder="Paste a goal, brain dump, or rough notes…"
+      placeholder="Paste your goals, brain dump, or meeting notes — AI will structure them into Jira work items based on your project's history."
       aria-label="Narrative source text"
       spellcheck="true"></textarea>
-  </details>
+  </div>
   <div class="wdd-parse-status" id="wdd-parse-status" hidden></div>
   <div class="wdd-canvas" id="wdd-canvas" role="list" aria-label="Work items" tabindex="0"></div>
   <div class="wdd-follow-up" id="wdd-follow-up" hidden></div>
@@ -200,9 +200,8 @@ function ensureDrawer() {
 <div class="wdd-safe-send-bar" id="wdd-safe-send-bar">
   <div class="wdd-send-counts" id="wdd-send-counts"></div>
   <div class="wdd-send-actions" id="wdd-send-actions">
-    <button class="wdd-create-safe-btn" id="wdd-create-safe-btn" disabled>Create 0 safe issues</button>
+    <button class="wdd-create-safe-btn" id="wdd-create-safe-btn" disabled>Create 0 issues</button>
     <button class="wdd-review-btn" id="wdd-review-btn" hidden>Review warnings</button>
-    <button class="wdd-create-all-btn" id="wdd-create-all-btn">Create all</button>
   </div>
   <div class="wdd-submit-status" id="wdd-submit-status" aria-live="polite"></div>
 </div>
@@ -247,14 +246,17 @@ export function openWorkDraftDrawer(prefill = {}) {
   if (bd) bd.classList.add('is-visible');
   document.body.style.overflow = 'hidden';
 
-  const sourceDetails = document.getElementById('wdd-source');
-  if (sourceDetails && ta?.value) {
-    sourceDetails.open = true;
-    scheduleServerDraft();
-  } else if (sourceDetails) {
-    sourceDetails.open = true;
-    if (ta) ta.focus();
+  const sourceEl = document.getElementById('wdd-source');
+  if (sourceEl) {
+    sourceEl.classList.add('is-open');
+    sourceEl.classList.remove('is-collapsed');
   }
+  if (ta?.value) {
+    scheduleServerDraft();
+  } else if (ta) {
+    ta.focus();
+  }
+  updateSourceToggleLabel();
 }
 
 export function closeWorkDraftDrawer() {
@@ -325,6 +327,7 @@ async function fetchServerDraft() {
   showParseStatus('Analysing…', true);
   _isDraftLoading = true;
   const ctx = getDraftContext();
+  const recentProjectKeys = readRecentActivityProjectKeys();
   try {
     const res = await postWithTimeout('/api/outcome-draft', {
       narrative,
@@ -333,6 +336,7 @@ async function fetchServerDraft() {
       boardId: Number.isFinite(ctx.boardId) ? ctx.boardId : null,
       inputMode: 'mixed',
       quarterHint: ctx.quarterHint,
+      recentProjectKeys,
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -341,15 +345,49 @@ async function fetchServerDraft() {
       return;
     }
     applyServerDraft(json, narrative);
-    const sourceDetails = document.getElementById('wdd-source');
-    if (sourceDetails) sourceDetails.open = false;
-    // showParseStatus is now managed inside applyServerDraft (precheck + jira keys)
+    collapseSource();
   } catch (err) {
     showParseStatus('Parse failed: ' + (err?.message || 'network'));
     renderQuickPreview(narrative);
   } finally {
     _isDraftLoading = false;
   }
+}
+
+function collapseSource() {
+  const sourceEl = document.getElementById('wdd-source');
+  if (sourceEl) {
+    sourceEl.classList.add('is-collapsed', 'wdd-had-items');
+    sourceEl.classList.remove('is-open');
+  }
+  updateSourceToggleLabel();
+}
+
+function expandSource() {
+  const sourceEl = document.getElementById('wdd-source');
+  if (sourceEl) { sourceEl.classList.add('is-open'); sourceEl.classList.remove('is-collapsed'); }
+  const ta = document.getElementById('wdd-source-textarea');
+  if (ta) ta.focus();
+  updateSourceToggleLabel();
+}
+
+function updateSourceToggleLabel() {
+  const btn = document.getElementById('wdd-source-toggle');
+  const sourceEl = document.getElementById('wdd-source');
+  if (!btn || !sourceEl) return;
+  const isOpen = sourceEl.classList.contains('is-open');
+  btn.textContent = isOpen ? '▲ Source' : '▼ Edit source';
+  btn.setAttribute('aria-expanded', String(isOpen));
+}
+
+function readRecentActivityProjectKeys() {
+  try {
+    const raw = window.localStorage.getItem(OUTCOME_ACTIVITY_LOG_KEY);
+    const log = Array.isArray(JSON.parse(raw || '[]')) ? JSON.parse(raw || '[]') : [];
+    const keys = new Set();
+    log.slice(0, 5).forEach((entry) => { if (entry?.projectKey) keys.add(String(entry.projectKey).toUpperCase()); });
+    return Array.from(keys);
+  } catch (_) { return []; }
 }
 
 function showParseStatus(msg, spinner = false) {
@@ -406,7 +444,7 @@ function applyServerDraft(payload, narrative) {
     const depth = Number(row.depth ?? (chipType === 'E' ? 0 : 1));
     const confidence = Number(row.confidence ?? 1);
     const warnings = warningsFromRow(row);
-    if (confidence < 0.35 && !warnings.length) warnings.push('Low confidence — review before creating');
+    if (confidence < 0.5 && !warnings.length) warnings.push('Low confidence — review intent before creating');
     _items.push({
       id: uid(),
       type: chipType,
@@ -439,14 +477,17 @@ function renderQuickPreview(narrative) {
   // No pushUndo() here — automatic preview is not a user action
   _items = [];
   _ignoredItems = [];
+  const confidence = parsed.confidenceScore ?? 0.5;
   (parsed.previewRows || []).forEach((row, idx) => {
     const title = String(row.title || '').trim();
     if (!title) return;
     const type = inferTypeFromKind(row.kind);
     const isParent = idx === 0 && (parsed.previewRows || []).length > 1;
     const depth = (isParent || type === 'E') ? 0 : 1;
-    _items.push({ id: uid(), type, title, depth, confidence: parsed.confidenceScore ?? 0.5, warnings: [], duplicate: null, sourceLineIndex: idx, selected: true });
+    const warnings = confidence < 0.5 ? ['Low confidence — review intent before creating'] : [];
+    _items.push({ id: uid(), type, title, depth, confidence, warnings, duplicate: null, sourceLineIndex: idx, selected: true });
   });
+  if (_items.length > 0) collapseSource();
   renderCanvas();
   updateSendBar();
 }
@@ -458,7 +499,7 @@ function renderCanvas() {
   if (!canvas) return;
 
   if (!_items.length) {
-    canvas.innerHTML = '<div style="padding:20px 16px;color:var(--muted);font-size:0.85rem">Paste source text above to get started, or type an item and press Enter.</div>';
+    canvas.innerHTML = '<div style="padding:20px 16px;color:var(--muted);font-size:0.85rem;line-height:1.5">Paste your goals, brain dump, or meeting notes above — AI will structure them into Jira work items based on your project\'s history. Or press <kbd>Enter</kbd> to add items manually.</div>';
     renderIgnoredFold(canvas);
     return;
   }
@@ -553,30 +594,23 @@ function updateSendBar() {
   const countsEl = document.getElementById('wdd-send-counts');
   const createBtn = document.getElementById('wdd-create-safe-btn');
   const reviewBtn = document.getElementById('wdd-review-btn');
-  const createAllBtn = document.getElementById('wdd-create-all-btn');
   const hasJiraKeys = _jiraKeysDetected.length > 0;
 
   if (countsEl) {
-    // Use data-action for event delegation — no direct listener attached here
     countsEl.innerHTML = ''
       + `<span class="wdd-send-count wdd-send-count--safe">Ready: ${counts.safe}</span>`
-      + (counts.review ? `<button class="wdd-send-count wdd-send-count--review" data-action="toggle-review">Review: ${counts.review}</button>` : '')
+      + (counts.review ? `<button class="wdd-send-count wdd-send-count--review" data-action="toggle-review">Needs review: ${counts.review}</button>` : '')
       + (counts.ignored ? `<span class="wdd-send-count wdd-send-count--ignored">Ignored: ${counts.ignored}</span>` : '');
   }
 
   if (createBtn) {
     createBtn.disabled = counts.safe === 0 || _isSubmitting || hasJiraKeys;
-    createBtn.textContent = _isSubmitting ? 'Creating…' : `Create ${counts.safe} safe issue${counts.safe === 1 ? '' : 's'}`;
+    createBtn.textContent = _isSubmitting ? 'Creating…' : `Create ${counts.safe} issue${counts.safe === 1 ? '' : 's'}`;
   }
 
   if (reviewBtn) {
     reviewBtn.hidden = counts.review === 0;
     reviewBtn.textContent = `Review ${counts.review}`;
-  }
-
-  if (createAllBtn) {
-    const allClear = counts.review === 0 && (counts.safe + counts.ignored) > 0 && !hasJiraKeys;
-    createAllBtn.classList.toggle('is-visible', allClear);
   }
 }
 
@@ -1187,6 +1221,11 @@ function wireEvents() {
 
   document.getElementById('wdd-source-textarea')?.addEventListener('input', onSourceInput);
   document.getElementById('wdd-settings-btn')?.addEventListener('click', toggleSettings);
+  document.getElementById('wdd-source-toggle')?.addEventListener('click', () => {
+    const sourceEl = document.getElementById('wdd-source');
+    if (!sourceEl) return;
+    if (sourceEl.classList.contains('is-collapsed')) { expandSource(); } else { collapseSource(); }
+  });
 
   document.addEventListener('click', (e) => {
     const trigger = e.target?.closest('[data-open-outcome-modal]');
@@ -1222,14 +1261,6 @@ function wireEvents() {
   document.getElementById('wdd-create-safe-btn')?.addEventListener('click', () => createSafeIssues());
   document.getElementById('wdd-review-btn')?.addEventListener('click', toggleReviewOnly);
 
-  document.getElementById('wdd-create-all-btn')?.addEventListener('click', async () => {
-    const allCreatable = _items.filter((i) => i.type !== 'I' && i.type !== 'N' && i.title.trim());
-    if (!allCreatable.length) return;
-    allCreatable.forEach((item) => { item.warnings = []; item.duplicate = null; });
-    renderCanvas();
-    updateSendBar();
-    await createSafeIssues();
-  });
 
   // Delegated handlers on the drawer element — covers dynamically injected elements
   d.addEventListener('click', (e) => {
