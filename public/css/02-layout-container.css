@@ -567,6 +567,35 @@ header .subtitle {
   }
 }
 
+/* Mobile-first clutter reduction: surface the CTA as fast as possible */
+@media (max-width: 640px) {
+  .surface-eyebrow {
+    display: none;
+  }
+  .surface-lead {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.85rem;
+  }
+  .surface-summary-line {
+    display: none;
+  }
+  .surface-hero-card {
+    padding: 16px;
+  }
+  .surface-hero-actions {
+    margin-top: 14px;
+  }
+  .surface-list {
+    display: none;
+  }
+  .surface-card {
+    padding: 14px 16px;
+  }
+}
+
 /* M2: Scroll-aware page identity — compact page name fades in as H1 scrolls off (X.com pattern) */
 .header-page-context {
   font-size: 0.78rem;

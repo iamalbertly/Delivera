@@ -1126,5 +1126,87 @@ kbd {
   #work-draft-drawer { width: 100vw; }
   .wdd-safe-send-bar { padding: 8px 12px; }
   .wdc-item { padding-left: 12px; padding-right: 12px; }
+  /* Collapse trust strip to single line on narrow screens */
+  .wdd-trust-strip {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 4px 12px;
+  }
+  /* Stack send actions vertically so buttons don't overflow */
+  .wdd-send-actions {
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+  .wdd-create-safe-btn,
+  .wdd-review-btn {
+    width: 100%;
+  }
+}
+
+/* Sprint limbo CTA card — shown when a future sprint exists but hasn't been started */
+.sprint-limbo-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--tone-warning-border, #fde68a);
+  background: var(--tone-warning-bg, #fffbeb);
+  border-radius: var(--radius, 8px);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.sprint-limbo-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.sprint-limbo-content { flex: 1; min-width: 0; }
+.sprint-limbo-title {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.sprint-limbo-line {
+  font-size: 0.84rem;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+.sprint-limbo-goal {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-style: italic;
+  margin: 0 0 6px;
+}
+.sprint-limbo-overdue {
+  font-size: 0.82rem;
+  color: #b45309;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.sprint-limbo-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+  border-top: 1px solid var(--tone-warning-border, #fde68a);
+  padding-top: 6px;
+  margin-top: 6px;
+}
+
+/* Current-sprint stale data banner */
+.cs-stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--tone-warning-bg, #fffbeb);
+  border: 1px solid var(--tone-warning-border, #fde68a);
+  border-radius: var(--radius, 8px);
+  font-size: 0.82rem;
+  color: #7a4f00;
+  margin-bottom: 10px;
 }
 

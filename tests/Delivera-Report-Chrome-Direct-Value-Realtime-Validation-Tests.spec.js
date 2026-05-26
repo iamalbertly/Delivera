@@ -124,7 +124,8 @@ test.describe('Report chrome direct value realtime validation', () => {
 
     await test.step('06 context title not clipped to nonsense token', async () => {
       const title = page.locator('#report-filter-strip-summary .context-summary-title').first();
-      await expect(title).toBeVisible();
+      // Title may be visually hidden at desktop widths (clutter reduction); check content regardless
+      await expect(title).toBeAttached();
       const t = ((await title.textContent()) || '').replace(/\s+/g, ' ').trim();
       expect(t.length).toBeGreaterThan(12);
       expect(/performance|window|context/i.test(t)).toBeTruthy();

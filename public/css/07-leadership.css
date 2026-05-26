@@ -882,3 +882,50 @@ body.hud-mode .hud-grid {
     padding: 14px 16px;
   }
 }
+
+/* Mobile above-fold: collapse leadership non-essential labels to keep KPI cards visible */
+@media (max-width: 640px) {
+  .leadership-direct-value-eyebrow,
+  .leadership-mission-eyebrow {
+    display: none;
+  }
+  .leadership-mission-trust-line {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+  .leadership-mission-strip {
+    padding: 8px;
+    gap: 4px;
+  }
+  .leadership-direct-value-card,
+  .leadership-trust-card,
+  .leadership-kpi-strip,
+  .leadership-summary-strip-wrap,
+  .leadership-attention-wrap,
+  .leadership-outliers,
+  .leadership-governance-footer {
+    padding: 10px 12px;
+  }
+  .leadership-direct-answer {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .leadership-direct-answer article {
+    padding: 10px 12px;
+  }
+  .leadership-onboarding-empty {
+    padding: 10px;
+  }
+  body.hud-mode .hud-subtitle {
+    display: none;
+  }
+  body.hud-mode .hud-summary-line {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}

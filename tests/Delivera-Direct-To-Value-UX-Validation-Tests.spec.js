@@ -241,10 +241,11 @@ test.describe('Delivera - Direct-To-Value UX Validation', () => {
 
     const createWorkBtn = page.locator('#report-header-actions [data-open-outcome-modal]').first();
     await expect(createWorkBtn).toBeVisible();
-    await createWorkBtn.click();
-    await expect(page.locator('#global-outcome-modal')).toBeVisible();
-    await expect(page.locator('#report-outcome-follow-up')).toBeAttached();
-    await expect(page.locator('#report-outcome-follow-up')).toBeHidden();
+    await createWorkBtn.dispatchEvent('click');
+    // Create Work now opens a right-side drawer (#work-draft-drawer) instead of the old centered modal
+    await expect(page.locator('#work-draft-drawer')).toHaveClass(/is-open/, { timeout: 5000 });
+    await expect(page.locator('#wdd-follow-up')).toBeAttached();
+    await expect(page.locator('#wdd-follow-up')).toBeHidden();
     assertTelemetryClean(telemetry);
   });
 

@@ -9,6 +9,7 @@ const SUBMIT_TIMEOUT_MS = 45000;
 const PARSE_DEBOUNCE_MS = 800;
 const UNDO_STACK_LIMIT = 50;
 const JIRA_KEY_RE = /\b[A-Z][A-Z0-9]+-\d+\b/g;
+const MAX_NARRATIVE_CHARS = 8000;
 
 const TYPE_CYCLE = ['E', 'S', 'T', 'N', 'I'];
 const TYPE_LABELS = { E: 'Epic', S: 'Story', T: 'Task', N: 'Note', I: 'Ignore' };
@@ -147,7 +148,7 @@ async function postWithTimeout(url, body, extraHeaders = {}) {
   try {
     return await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
   } catch (err) {
-    if (err?.name === 'AbortError') throw new Error(`Timed out after ${SUBMIT_TIMEOUT_MS / 1000}s. Re-authenticate Jira and retry.`);
+    if (err?.name === 'AbortError') throw new Error(`Request timed out after ${SUBMIT_TIMEOUT_MS / 1000}s. Check your network connection and Jira session, then retry.`);
     throw err;
   } finally { clearTimeout(t); }
 }
@@ -259,7 +260,18 @@ export function openWorkDraftDrawer(prefill = {}) {
   updateSourceToggleLabel();
 }
 
-export function closeWorkDraftDrawer() {
+export function closeWorkDraftDrawer(force = false) {
+  // Guard: warn before discarding unsaved canvas items
+  if (!force) {
+    const hasPending = _items.some((item) => item.type !== 'I' && item.title.trim());
+    if (hasPending) {
+      const counts = countsByStatus();
+      const label = counts.safe > 0
+        ? `${counts.safe} issue${counts.safe === 1 ? '' : 's'} ready to create`
+        : `${_items.filter((i) => i.type !== 'I').length} unsaved item${_items.filter((i) => i.type !== 'I').length === 1 ? '' : 's'}`;
+      if (!window.confirm(`Close and discard ${label}?`)) return;
+    }
+  }
   const d = drawer();
   if (d) {
     d.classList.remove('is-open');
@@ -383,7 +395,8 @@ function updateSourceToggleLabel() {
 function readRecentActivityProjectKeys() {
   try {
     const raw = window.localStorage.getItem(OUTCOME_ACTIVITY_LOG_KEY);
-    const log = Array.isArray(JSON.parse(raw || '[]')) ? JSON.parse(raw || '[]') : [];
+    const parsed = JSON.parse(raw || '[]');
+    const log = Array.isArray(parsed) ? parsed : [];
     const keys = new Set();
     log.slice(0, 5).forEach((entry) => { if (entry?.projectKey) keys.add(String(entry.projectKey).toUpperCase()); });
     return Array.from(keys);
@@ -587,6 +600,8 @@ function countsByStatus() {
   let safe = 0, review = 0, ignored = 0;
   _items.forEach((item) => {
     if (item.type === 'I') { ignored++; return; }
+    // Empty-titled items are not ready to create — treat as needing review
+    if (!item.title.trim()) { review++; return; }
     if (item.warnings.length || item.duplicate) { review++; } else { safe++; }
   });
   return { safe, review, ignored: ignored + _ignoredItems.length };
@@ -688,9 +703,11 @@ function onCanvasKeydown(e) {
     pushUndo();
     if (e.shiftKey) {
       _items[idx].depth = Math.max(0, _items[idx].depth - 1);
-      if (_items[idx].depth === 0) _items[idx].type = 'E';
+      // Only promote S→E on outdent to root; leave T/N/I unchanged
+      if (_items[idx].depth === 0 && _items[idx].type === 'S') _items[idx].type = 'E';
     } else {
       _items[idx].depth = Math.min(3, _items[idx].depth + 1);
+      // Only demote E→S on indent; leave T/N/I unchanged
       if (_items[idx].type === 'E' && _items[idx].depth > 0) _items[idx].type = 'S';
     }
     _focusedItemId = id;
@@ -939,9 +956,24 @@ function showKbdHints() {
   hints.querySelector('button')?.focus();
 }
 
+// ─── Flush active title input before computing safe list ──────────────────────
+
+function flushActiveInput() {
+  const focused = document.activeElement;
+  if (focused instanceof HTMLInputElement && focused.classList.contains('wdc-title')) {
+    const itemEl = focused.closest('[data-item-id]');
+    if (itemEl) {
+      const id = itemEl.dataset.itemId;
+      const item = _items.find((i) => i.id === id);
+      if (item) item.title = focused.value;
+    }
+  }
+}
+
 // ─── Issue creation ────────────────────────────────────────────────────────────
 
 async function createSafeIssues(forceCreate = false) {
+  flushActiveInput();
   const safeItems = _items.filter((item) => item.type !== 'I' && item.type !== 'N' && !item.warnings.length && !item.duplicate && item.title.trim());
   if (!safeItems.length || _isSubmitting) return;
 
@@ -1241,8 +1273,31 @@ function wireEvents() {
 
   const ta = document.getElementById('wdd-source-textarea');
   ta?.addEventListener('input', onSourceInput);
-  // Paste fires before textarea value updates; use rAF to read the pasted content immediately
-  ta?.addEventListener('paste', () => requestAnimationFrame(onSourceInput));
+  // Strip HTML on paste (e.g. from Notion, email, Slack) and enforce char limit
+  ta?.addEventListener('paste', (e) => {
+    const html = e.clipboardData?.getData('text/html');
+    if (html) {
+      e.preventDefault();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      let plain = (tmp.textContent || tmp.innerText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      if (plain.length > MAX_NARRATIVE_CHARS) {
+        plain = plain.slice(0, MAX_NARRATIVE_CHARS);
+        showParseStatus(`Pasted text trimmed to ${MAX_NARRATIVE_CHARS.toLocaleString()} characters.`);
+      }
+      const start = ta.selectionStart ?? 0;
+      const end = ta.selectionEnd ?? ta.value.length;
+      ta.value = ta.value.slice(0, start) + plain + ta.value.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + plain.length;
+    }
+    requestAnimationFrame(() => {
+      if (ta.value.length > MAX_NARRATIVE_CHARS) {
+        ta.value = ta.value.slice(0, MAX_NARRATIVE_CHARS);
+        showParseStatus(`Input trimmed to ${MAX_NARRATIVE_CHARS.toLocaleString()} characters.`);
+      }
+      onSourceInput();
+    });
+  });
   document.getElementById('wdd-settings-btn')?.addEventListener('click', toggleSettings);
   document.getElementById('wdd-source-toggle')?.addEventListener('click', () => {
     const sourceEl = document.getElementById('wdd-source');
