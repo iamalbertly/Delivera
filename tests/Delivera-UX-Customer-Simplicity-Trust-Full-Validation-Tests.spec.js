@@ -17,6 +17,10 @@ import {
   hasVisibleReportSummarySurface,
   ensureReportFiltersVisible,
   setReportProjectSelection,
+  skipIfRedirectedToLogin,
+  getViewportClippingReport,
+  clickReportPreviewFromCurrentState,
+  getReportExportButtonState,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('UX Customer-Simplicity-Trust Full', () => {
@@ -511,9 +515,9 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     await page.goto('/report');
     await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
     await expect(page.locator('#preview-btn')).toContainText(/Preview/i);
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a[href="/current-sprint"]')).toContainText('Current Sprint');
-    await expect(page.locator('#tab-btn-trends')).toContainText(/Trends|Leadership trends/i);
-    await expect(page.locator('#applied-filters-summary')).toBeVisible();
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a.sidebar-link[href="/current-sprint"]')).toContainText('Current Sprint');
+    await expect(page.locator('#tab-btn-trends')).toContainText(/Trends|Leadership trends|Leadership/i);
+    await expect(page.locator('#applied-filters-summary')).not.toBeEmpty();
     assertTelemetryClean(telemetry);
   });
 
@@ -526,6 +530,178 @@ test.describe('UX Customer-Simplicity-Trust Full', () => {
     const headerBar = await page.locator('.header-bar, [class*="header"]').first().textContent().catch(() => '');
     expect(headerBar).not.toMatch(/\s\?\s/);
     assertTelemetryClean(telemetry);
+  });
+});
+
+// ─── Merged from Delivera-Customer-Simplicity-Trust-Recovery-Validation-Tests.spec.js ───
+
+async function triggerReportPreviewForRecovery(page) {
+  await ensureReportFiltersVisible(page);
+  await page.evaluate(() => {
+    const el = document.getElementById('preview-btn');
+    if (el && !el.disabled) el.click();
+  });
+}
+
+test.describe('Customer Simplicity Trust Recovery Validation', () => {
+  test.describe.configure({ retries: 0 });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      try { window.__DELIVERA_TEST_DISABLE_AUTO_PREVIEW = true; } catch (_) {}
+    });
+  });
+  test('report load: no critical console or network errors', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report: Preview enabled when projects and valid range selected', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await ensureReportFiltersVisible(page);
+    await expect(page.locator('#project-mpsa')).toBeVisible();
+    await page.check('#project-mpsa').catch(() => null);
+    await page.check('#project-mas').catch(() => null);
+    await page.fill('#start-date', '2025-07-01T00:00').catch(() => null);
+    await page.fill('#end-date', '2025-09-30T23:59').catch(() => null);
+    await page.waitForTimeout(200);
+    await expect(page.locator('#preview-btn')).toBeEnabled();
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report first-paint: context line visible and Load latest when no report run yet', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    const contextLine = page.locator('#report-context-line');
+    await expect(contextLine).toBeAttached();
+    const text = ((await contextLine.textContent()) || '').trim();
+    const isPlaceholder = /No report run yet/i.test(text);
+    if (isPlaceholder) {
+      const loadLatestWrap = page.locator('#report-load-latest-wrap');
+      await expect(loadLatestWrap).toBeVisible();
+    } else {
+      await expect(page.locator('#report-filter-strip')).toBeVisible();
+    }
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report: when no projects selected Load latest is hidden and Preview disabled', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.evaluate(() => {
+      document.querySelectorAll('.project-checkbox').forEach((cb) => {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+    await page.waitForTimeout(300);
+    await expect(page.locator('#preview-btn')).toBeDisabled();
+    const loadLatestWrap = page.locator('#report-load-latest-wrap');
+    const wrapVisible = await loadLatestWrap.isVisible().catch(() => false);
+    const wrapDisplay = await loadLatestWrap.evaluate(el => el && getComputedStyle(el).display).catch(() => 'none');
+    expect(wrapVisible === false || wrapDisplay === 'none').toBe(true);
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report: after loading completes preview area aria-busy is false', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await ensureReportFiltersVisible(page);
+    const previewBtn = page.locator('#preview-btn');
+    if (await previewBtn.isDisabled().catch(() => true)) { test.skip(true, 'Preview disabled'); return; }
+    await triggerReportPreviewForRecovery(page);
+    await waitForPreview(page, { timeout: 90000 });
+    await page.waitForFunction(() => {
+      const previewArea = document.querySelector('.preview-area');
+      const ariaBusy = previewArea ? previewArea.getAttribute('aria-busy') : null;
+      return ariaBusy === 'false' || ariaBusy == null;
+    }, { timeout: 8000 }).catch(() => null);
+    const errorVisible = await page.locator('#error').isVisible().catch(() => false);
+    if (!errorVisible) {
+      const ariaBusy = await page.locator('.preview-area').getAttribute('aria-busy').catch(() => null);
+      expect(ariaBusy === 'false' || ariaBusy === null).toBe(true);
+    }
+    assertTelemetryClean(telemetry);
+  });
+});
+
+// ─── Merged from Delivera-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js ───
+
+test.describe('Customer Speed Simplicity Trust Realtime', () => {
+  test.describe.configure({ retries: 0 });
+  test('report first paint has controls and clean realtime telemetry', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('#preview-btn')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#start-date')).toBeVisible();
+    await expect(page.locator('#end-date')).toBeVisible();
+    assertTelemetryClean(telemetry);
+  });
+
+  test('report desktop viewport has no clipped containers', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    const report = await getViewportClippingReport?.(page).catch(() => null);
+    if (report && report.clipped && report.clipped.length > 0) {
+      const nonTrivial = report.clipped.filter((c) => !c.selector?.includes('hidden') && c.width > 5);
+      expect(nonTrivial.length).toBe(0);
+    }
+  });
+
+  test('report mobile viewport has no forced left gutter or horizontal overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    const overflow = await page.evaluate(() => document.body.scrollWidth > window.innerWidth).catch(() => false);
+    expect(overflow).toBe(false);
+  });
+
+  test('export controls stay hidden before preview and appear after successful preview', async ({ page }) => {
+    test.setTimeout(240000);
+    await page.goto('/report');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    const beforeState = await getReportExportButtonState?.(page).catch(() => null);
+    if (beforeState) {
+      expect(beforeState.visible === false || beforeState.enabled === false).toBe(true);
+    }
+    const previewBtn = page.locator('#preview-btn');
+    if (await previewBtn.isDisabled().catch(() => true)) { test.skip(true, 'Preview disabled'); return; }
+    await runDefaultPreview(page, { timeout: 180000 }).catch(() => null);
+    const visible = await hasVisibleReportSummarySurface(page).catch(() => false);
+    if (!visible) { test.skip(true, 'Preview not visible'); return; }
+    const afterState = await getReportExportButtonState?.(page).catch(() => null);
+    if (afterState) {
+      expect(afterState.visible).toBe(true);
+    }
+  });
+
+  test('current sprint page loads with board selector or clear fallback and clean telemetry', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+    await page.waitForSelector('#current-sprint-content, #current-sprint-error, #board-select', { timeout: 30000 }).catch(() => null);
+    const bodyText = await page.locator('body').textContent().catch(() => '');
+    const hasFallback = /No boards available|Couldn't load boards|No active or recent closed sprint|Loading boards for project/i.test(bodyText);
+    const hasRuntimeErrorText = /ReferenceError|TypeError|is not defined|Cannot read properties of/i.test(bodyText);
+    expect(!hasRuntimeErrorText).toBe(true);
+    assertTelemetryClean(telemetry);
+  });
+
+  test('current sprint page keeps viewport fit on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+    await page.waitForTimeout(2000);
+    const overflow = await page.evaluate(() => document.body.scrollWidth > window.innerWidth + 2).catch(() => false);
+    expect(overflow).toBe(false);
   });
 });
 

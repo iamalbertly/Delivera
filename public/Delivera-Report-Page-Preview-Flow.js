@@ -122,8 +122,14 @@ export function restoreLastPreviewFromStorage() {
     markPerf('report', 'firstValueRendered', { firstValueSource: 'last-success-cache' });
     markPerf('report', 'fullRenderComplete');
     if (reportDom.previewContent) reportDom.previewContent.style.display = 'block';
-    if (reportDom.exportExcelBtn) reportDom.exportExcelBtn.hidden = true;
-    if (reportDom.exportDropdownTrigger) reportDom.exportDropdownTrigger.hidden = true;
+    if (reportDom.exportExcelBtn) {
+      reportDom.exportExcelBtn.hidden = true;
+      reportDom.exportExcelBtn.title = 'Export will refresh after you run a new preview';
+    }
+    if (reportDom.exportDropdownTrigger) {
+      reportDom.exportDropdownTrigger.hidden = true;
+      reportDom.exportDropdownTrigger.title = 'Export will refresh after you run a new preview';
+    }
     const statusEl = document.getElementById('preview-status');
     if (statusEl) {
       statusEl.innerHTML = '<div class="status-banner warning">Older snapshot — tap Preview for latest<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
@@ -634,10 +640,12 @@ export function initPreviewFlow() {
       } catch (_) {}
       if (exportExcelBtn) {
         exportExcelBtn.disabled = !reportState.previewHasRows;
+        exportExcelBtn.hidden = false;
         exportExcelBtn.style.display = '';
       }
       if (exportDropdownTrigger) {
         exportDropdownTrigger.disabled = !reportState.previewHasRows;
+        exportDropdownTrigger.hidden = false;
         exportDropdownTrigger.style.display = '';
       }
       updateExportHint();
@@ -931,10 +939,12 @@ export function initPreviewFlow() {
       const hasRows = Array.isArray(reportState.previewRows) && reportState.previewRows.length > 0;
       if (exportDropdownTrigger) {
         exportDropdownTrigger.disabled = !hasRows;
+        exportDropdownTrigger.hidden = false;
         exportDropdownTrigger.style.display = '';
       }
       if (exportExcelBtn) {
         exportExcelBtn.disabled = !hasRows;
+        exportExcelBtn.hidden = false;
         exportExcelBtn.style.display = '';
       }
       updateExportHint();

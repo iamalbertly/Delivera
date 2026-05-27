@@ -67,3 +67,17 @@ export function migrateVodaAgileBoardStorageKeys() {
 }
 
 migrateVodaAgileBoardStorageKeys();
+
+/**
+ * Shared helper used by Leadership, Executive-Surface, and any module needing
+ * the selected projects list from localStorage. Centralises the split/trim/filter
+ * pattern that was previously duplicated in 3+ modules.
+ */
+export function readSharedProjectsCsv() {
+  try {
+    const raw = localStorage.getItem(PROJECTS_SSOT_KEY) || '';
+    return raw.split(',').map((p) => p.trim()).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}

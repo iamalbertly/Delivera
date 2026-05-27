@@ -11,24 +11,15 @@ import {
 } from './Delivera-Shared-Context-From-Storage.js';
 import { renderKPICard, KPI_TREND_VISIBILITY_HINT } from './Delivera-Shared-KPI-Card-Renderer.js';
 import { buildTrustBadge, formatCostPerSPDisplay, buildUtilizationDisplay } from './Delivera-Shared-Cost-Capacity-Calc.js';
-import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
-import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
 const STALE_THRESHOLD_MS = FRESHNESS_STALE_THRESHOLD_MS;
 let lastFetchTime = 0;
 let hudRequestSequence = 0;
 
-function readSelectedProjects() {
-  try {
-    return (window.localStorage.getItem(PROJECTS_SSOT_KEY) || '')
-      .split(',')
-      .map((k) => String(k || '').trim())
-      .filter(Boolean);
-  } catch (_) {
-    return [];
-  }
-}
+const readSelectedProjects = readSharedProjectsCsv;
 
 function formatNumber(num, decimals = 0) {
   if (num === null || num === undefined || Number.isNaN(Number(num))) return 'No data';
@@ -131,14 +122,18 @@ function renderContextHeader(data) {
     const partial = data?.meta?.partial === true;
     const generatedTs = data?.generatedAt ? new Date(data.generatedAt).getTime() : 0;
     const stale = generatedTs > 0 ? (Date.now() - generatedTs) > STALE_THRESHOLD_MS : false;
+    const blockerCount = Number(risk?.blockersOwned || 0);
+    const blockerSuffix = blockerCount > 0
+      ? ` — ${blockerCount} blocker${blockerCount === 1 ? '' : 's'} need attention`
+      : '';
     if (partial && stale) {
-      confidenceEl.textContent = 'State: Partial + stale - verify before action.';
+      confidenceEl.textContent = `Portfolio data is partial and stale — verify before sharing${blockerSuffix}`;
     } else if (partial) {
-      confidenceEl.textContent = 'State: Partial - verify before export/action.';
+      confidenceEl.textContent = `Portfolio data is partial — verify before export${blockerSuffix}`;
     } else if (stale) {
-      confidenceEl.textContent = `State: Stale - Trust ${trustBand}`;
+      confidenceEl.textContent = `Portfolio is showing cached data (${trustBand} trust)${blockerSuffix}`;
     } else {
-      confidenceEl.textContent = `State: Live - Trust ${trustBand}`;
+      confidenceEl.textContent = `Portfolio is live (${trustBand} trust)${blockerSuffix}`;
     }
   }
 }

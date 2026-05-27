@@ -109,6 +109,36 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 - Report preview: serves stale cached data on Jira 502 and shows `Showing cached data from Xh ago — Jira was unreachable` banner automatically.
 - Current-sprint handler: same `getWithStaleFallback` pattern — teams see sprint data instead of an error screen during Jira incidents.
 
+### Create Work — intelligence, confidence, and button-flow fixes (latest)
+
+**Critical bug fixes (all verified by route-mocked E2E tests):**
+- **Create button was always disabled:** `createSafeIssues` filtered `!item.duplicate`, but the server always returns a `duplicate` object (even for non-duplicates). Fixed to use `hasMeaningfulDuplicate(item)` — items with `suggestedAction: 'createNew'` are now treated as safe-to-create.
+- **All chips showed `S` instead of `T`:** `SERVER_TYPE_TO_CHIP` mapped full names (`'Task'→'T'`) but the server sends chip letters (`'T'`). Added passthrough mappings (`E:'E'`, `S:'S'`, `T:'T'`). Merged into a single unified `chipLetterFromServer(type, kind)` function — eliminates the former `serverTypeToChip` / `inferTypeFromKind` split.
+- **Ready count always 0 / Needs review always N:** `countsByStatus` treated the default `{suggestedAction:'createNew'}` duplicate object as a real duplicate. Fixed via `hasMeaningfulDuplicate` check applied to both `countsByStatus` and `renderCanvas` review-mode filter.
+- **Flat task items showed at depth 1 (indented with no parent):** Added `batchHasEpic` pre-scan; if no Epic in the batch, all items default to `depth=0`.
+- **Wrong precheck message:** Numbered task lists triggered "Looks like support or maintenance work." Removed standalone `fix` from `SUPPORT_WORDS` (hotfix/bug cover real cases). Added `SEQUENTIAL_TASK_CLUSTER` precheck override before falling through to `pickPrecheckMessage`.
+
+**Create Work intelligence (server-side, `lib/Delivera-Outcome-Draft-Builder.js`):**
+- `SEQUENTIAL_TASK_CLUSTER` structure mode: ≥3 numbered action-verb lines → base confidence 0.72, all items typed as `Task`, flat (no parent/child hierarchy).
+- Acronym coherence boost: if ≥50% of preview rows contain a known board acronym (`topAcronyms`), apply `+0.20` confidence boost; ≥30% → `+0.10`.
+- Per-row similarity boost: `bestOpenStory.similarity ≥ 0.45` → `+0.15`; `completedHit.similarity ≥ 0.5` → `+0.10`.
+- Assignee inference: `fetchCandidatePool` now includes the `assignee` field; builds `topAssigneeByAcronym` tally from 40 recent issues; each row gets a `suggestedAssignee` derived from its board acronyms.
+- Sprint capacity fit hint: `capacityFitHint` returned when item count fits team's sprint pattern from recent pool history.
+
+**Canvas UX improvements (`public/Delivera-Work-Draft-Canvas.js`):**
+- **Type-aware Create button:** "Create 6 Tasks" / "Create 3 Stories" / "Create 2 Epics" via `dominantType()` + `typeLabel()`.
+- **Confidence left-border:** each canvas item shows a green (≥0.7), amber (≥0.45), or red (<0.45) left border via `data-confidence` attribute.
+- **Icon-prefixed parse status:** ✓ for positive structural messages, ⚠ for support/mixed warnings, ℹ for informational.
+- **Scroll-to-first-warning:** "Needs review: N" chip scrolls canvas to the first item with repairs and focuses its title input.
+- **Drawer title with count:** updates to "Create work · 6" when items are present.
+- **Trust strip compression:** trust strip is hidden (max-height: 0) when no warning exists; only expands for "No backlog context" state.
+- **Suggested assignee chip:** `wdc-repair-chip--assignee` renders with "Use" button per item when `suggestedAssignee` is present.
+- **Capacity fit chip:** `#wdd-capacity-hint` renders the sprint-fit signal as a green positive chip.
+
+**New E2E test file (`tests/Delivera-CreateWork-Canvas-ButtonFlow-DirectValue-E2E-Validation-Tests.spec.js`):**
+- 9 route-mocked tests covering: T chips visible, Create N Tasks button enabled, click triggers flow, Ready/Needs review counts correct, scroll-to-warning, type chip cycling, drawer title update, precheck message correctness, no console errors.
+- Each test uses `page.route('**/api/outcome-draft', ...)` and `page.route('**/api/outcome-from-narrative', ...)` so they work without live Jira and catch real button-click regressions.
+
 ### Canvas editor edge cases (Create Work drawer)
 - **Tab auto-type guard:** `Tab` now only promotes `E→S` (indent) and `S→E` (outdent to root). `T`, `N`, and `I` types are never auto-changed by indentation, only by explicit chip click or `/type` inline command.
 - **`flushActiveInput()` on Ctrl+Enter:** reads `document.activeElement` before computing the safe-issue list, so edits typed but not yet committed (e.g., the user is mid-title when pressing Ctrl+Enter) are captured correctly.
@@ -119,10 +149,12 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 - **Clearer timeout error copy:** network abort now reads "Request timed out … Check your network connection and Jira session" instead of the misleading "Re-authenticate Jira".
 - **Single JSON.parse in activity log reader:** `readRecentActivityProjectKeys()` no longer double-parses the same localStorage string.
 
-### Mobile above-fold clutter reduction
+### Above-fold clutter reduction (desktop + mobile)
+- **Current sprint health HUD** (`06-current-sprint.css`): health axis grid now uses `minmax(140px, 1fr)` with 5 px gap (was 180 px / 8 px), axis cards have 5 px / 8 px padding (was 8 px / 10 px). On mobile, grid forces 2-column so all 4 KPIs are visible without scrolling.
+- **Intervention queue** (`06-current-sprint.css`): item padding reduced to 5 px / 8 px (was 8 px / 10 px); metric value font-size reduced to 0.9 rem — denser, scannable row above the fold.
+- **Leadership KPI grid** (`07-leadership.css`): capped at 2-column on ≥900 px viewports (was `auto-fit` which could span 4+ columns requiring horizontal eye-travel); card padding reduced to 8 px / 10 px; mini-grid uses `minmax(90px, 1fr)` to fit 4 values per card in a single glance. Mobile forces single-column.
 - **Executive surface pages** (`/home`, `/backlog-intake`, `/program-increment`) hide eyebrow labels, collapse lead text to 2 lines, and reduce hero card padding below 640 px — primary CTA is visible without scrolling on small phones.
-- **Leadership HUD mobile** (`/leadership`): mission eyebrow and trust line are suppressed below 640 px; KPI card padding and mission strip spacing are tightened so metric values land above the fold.
-- **Work Draft Drawer mobile** (≤600 px): trust strip collapses to a single ellipsised line; send-actions stack vertically so "Create N issues" and "Review N" buttons are full-width and always tappable without a horizontal scroll.
+- **Work Draft Drawer mobile** (≤600 px): trust strip collapses to a single ellipsised line; send-actions stack vertically so "Create N Tasks" and "Review N" buttons are full-width and always tappable without a horizontal scroll.
 
 ### Test resilience hardening
 - **Performance budget raised**: `firstValueRendered` budget is 30 s (was 15 s) and `fullRenderComplete` is 45 s (was 30 s) to accommodate real Jira API latency under concurrent system load in CI.

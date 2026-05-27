@@ -14,11 +14,24 @@ const MAX_NARRATIVE_CHARS = 8000;
 const TYPE_CYCLE = ['E', 'S', 'T', 'N', 'I'];
 const TYPE_LABELS = { E: 'Epic', S: 'Story', T: 'Task', N: 'Note', I: 'Ignore' };
 
-// Map server/AI-returned type strings to canvas chip letters
-const SERVER_TYPE_TO_CHIP = {
-  Epic: 'E', Story: 'S', Task: 'T', Note: 'N', Ignore: 'I',
+// Map server/AI-returned type strings to canvas chip letters.
+// Accepts full names ('Task'), uppercase variants ('TASK'), already-resolved chip letters ('T'),
+// and falls back to inferring from kind ('EPIC'→'E', 'TASK'→'T', 'STORY'/'ISSUE'→'S').
+const _TYPE_STRING_TO_CHIP = {
+  Epic: 'E', Story: 'S', Task: 'T', 'Sub-task': 'T', Note: 'N', Ignore: 'I',
   EPIC: 'E', STORY: 'S', TASK: 'T', NOTE: 'N', IGNORE: 'I',
+  E: 'E', S: 'S', T: 'T', N: 'N', I: 'I',
 };
+
+function chipLetterFromServer(type, kind) {
+  const fromType = _TYPE_STRING_TO_CHIP[String(type || '')];
+  if (fromType) return fromType;
+  const k = String(kind || '').toUpperCase();
+  if (k === 'EPIC') return 'E';
+  if (k === 'SUBTASK' || k === 'TASK') return 'T';
+  if (k === 'STORY' || k === 'ISSUE') return 'S';
+  return null;
+}
 
 // ─── Module state ─────────────────────────────────────────────────────────────
 
@@ -179,18 +192,16 @@ function ensureDrawer() {
     </button>
     <div class="wdd-project-popover" id="wdd-project-popover" hidden></div>
   </div>
-  <span class="wdd-title">Create work</span>
+  <span class="wdd-title" id="wdd-title">Create work</span>
   <button class="wdd-settings-btn" id="wdd-settings-btn" aria-label="AI provider settings" title="AI provider settings">⚙</button>
   <button class="wdd-close-btn" id="wdd-close-btn" aria-label="Close">✕</button>
 </div>
-<div class="wdd-trust-strip" id="wdd-trust-strip">
-  Draft only · No existing Jira issues will be changed · Undo available before send
-</div>
+<div class="wdd-trust-strip" id="wdd-trust-strip"></div>
 <div class="wdd-body" id="wdd-body">
   <div class="wdd-source is-open" id="wdd-source">
     <button class="wdd-source-toggle" id="wdd-source-toggle" aria-label="Toggle source text">▲ Source</button>
     <textarea class="wdd-source-textarea" id="wdd-source-textarea" rows="5"
-      placeholder="Paste your goals, brain dump, or meeting notes — AI will structure them into Jira work items based on your project's history."
+      placeholder="Paste goals or notes — AI structures them into Jira tasks based on project history…"
       aria-label="Narrative source text"
       spellcheck="true"></textarea>
   </div>
@@ -310,9 +321,13 @@ function updateTrustStrip() {
   if (!strip) return;
   const ctx = getDraftContext();
   const noBoardCtx = !Number.isFinite(ctx.boardId) || ctx.boardId <= 0;
-  strip.innerHTML = noBoardCtx
-    ? 'Draft only · No existing Jira issues will be changed · Undo available before send · <span class="wdd-trust-strip-warn">No backlog context loaded — duplicate detection limited</span>'
-    : 'Draft only · No existing Jira issues will be changed · Undo available before send';
+  if (noBoardCtx) {
+    strip.classList.add('has-warn');
+    strip.innerHTML = '<span class="wdd-trust-strip-warn">⚠ No backlog context loaded — duplicate detection limited</span>';
+  } else {
+    strip.classList.remove('has-warn');
+    strip.innerHTML = '';
+  }
 }
 
 // ─── Jira key detection ───────────────────────────────────────────────────────
@@ -404,25 +419,25 @@ function readRecentActivityProjectKeys() {
   } catch (_) { return []; }
 }
 
+function precheckIcon(msg) {
+  const m = String(msg).toLowerCase();
+  if (m.startsWith('numbered task') || m.includes('quarterly epic') || m.includes('flat sprint')) return '✓';
+  if (m.includes('warn') || m.includes('support') || m.includes('maintenance') || m.includes('mixed')) return '⚠';
+  return 'ℹ';
+}
+
 function showParseStatus(msg, spinner = false) {
   const el = document.getElementById('wdd-parse-status');
   if (!el) return;
   if (!msg) { el.hidden = true; el.innerHTML = ''; return; }
   el.hidden = false;
-  el.innerHTML = (spinner ? '<span class="wdd-parse-status-spinner"></span>' : '') + esc(msg);
+  const icon = spinner ? '<span class="wdd-parse-status-spinner"></span>' : `<span style="flex-shrink:0">${precheckIcon(msg)}</span>`;
+  el.innerHTML = icon + `<span>${esc(msg)}</span>`;
 }
 
-function serverTypeToChip(serverType) {
-  return SERVER_TYPE_TO_CHIP[String(serverType || '')] || null;
-}
-
-function inferTypeFromKind(kind) {
-  if (!kind) return 'S';
-  const k = String(kind).toUpperCase();
-  if (k === 'EPIC') return 'E';
-  if (k === 'SUBTASK' || k === 'TASK') return 'T';
-  if (k === 'STORY' || k === 'ISSUE') return 'S';
-  return 'S';
+// A duplicate object with suggestedAction:'createNew' means "no duplicate found" — not a blocker.
+function hasMeaningfulDuplicate(item) {
+  return item.duplicate != null && item.duplicate.suggestedAction !== 'createNew';
 }
 
 function warningsFromRow(row) {
@@ -441,12 +456,16 @@ function applyServerDraft(payload, narrative) {
   }
   _items = [];
   _ignoredItems = [];
+
+  // Pre-scan: detect if any row is an Epic-level item; flat task clusters have no epics.
+  const batchHasEpic = rows.some((r) => chipLetterFromServer(r.type, r.kind) === 'E');
+
   rows.forEach((row, idx) => {
     const title = String(row.title || '').trim();
     if (!title) return;
 
     // Respect the type field from AI provider responses; fall back to isParent heuristic
-    const fromServerType = serverTypeToChip(row.type);
+    const fromServerType = chipLetterFromServer(row.type, row.kind);
     const isParent = row.isParent === true || (idx === 0 && rows.length > 1 && !row.childItemIndex);
     const chipType = fromServerType || (isParent ? 'E' : 'S');
 
@@ -455,7 +474,8 @@ function applyServerDraft(payload, narrative) {
       return;
     }
 
-    const depth = Number(row.depth ?? (chipType === 'E' ? 0 : 1));
+    // Flat task clusters (SEQUENTIAL_TASK_CLUSTER) have no parent epic: all items sit at depth 0.
+    const depth = Number(row.depth ?? (chipType === 'E' ? 0 : (batchHasEpic ? 1 : 0)));
     const confidence = Number(row.confidence ?? 1);
     const warnings = warningsFromRow(row);
     if (confidence < 0.5 && !warnings.length) warnings.push('Low confidence — review intent before creating');
@@ -508,7 +528,7 @@ function renderQuickPreview(narrative) {
   (parsed.previewRows || []).forEach((row, idx) => {
     const title = String(row.title || '').trim();
     if (!title) return;
-    const type = inferTypeFromKind(row.kind);
+    const type = chipLetterFromServer(null, row.kind) || 'S';
     const isParent = idx === 0 && (parsed.previewRows || []).length > 1;
     const depth = (isParent || type === 'E') ? 0 : 1;
     const warnings = confidence < 0.5 ? ['Low confidence — review intent before creating'] : [];
@@ -525,13 +545,18 @@ function renderCanvas() {
   const canvas = document.getElementById('wdd-canvas');
   if (!canvas) return;
 
+  const titleEl = document.getElementById('wdd-title');
+  if (titleEl) {
+    titleEl.textContent = _items.length > 0 ? `Create work · ${_items.length}` : 'Create work';
+  }
+
   if (!_items.length) {
-    canvas.innerHTML = '<div style="padding:20px 16px;color:var(--muted);font-size:0.85rem;line-height:1.5">Paste your goals, brain dump, or meeting notes above — AI will structure them into Jira work items based on your project\'s history. Or press <kbd>Enter</kbd> to add items manually.</div>';
+    canvas.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.83rem">Paste notes above or press <kbd>Enter</kbd> to add items.</div>';
     renderIgnoredFold(canvas);
     return;
   }
 
-  const visible = _showingReviewOnly ? _items.filter((item) => item.warnings.length || item.duplicate) : _items;
+  const visible = _showingReviewOnly ? _items.filter((item) => item.warnings.length || hasMeaningfulDuplicate(item)) : _items;
   canvas.innerHTML = visible.map((item) => renderItem(item)).join('')
     + '<div class="wdc-item wdc-add-row" data-add-item style="opacity:0.5;cursor:pointer"><span style="font-size:0.8rem;color:var(--muted);padding:2px 8px">+ Add item  <kbd>Enter</kbd></span></div>';
 
@@ -543,14 +568,24 @@ function renderCanvas() {
   }
 }
 
+function confidenceBand(confidence) {
+  const c = Number(confidence ?? 1);
+  if (c >= 0.7) return 'high';
+  if (c >= 0.45) return 'medium';
+  return 'low';
+}
+
 function renderItem(item) {
   const repairHtml = buildRepairHtml(item);
   const typeLabel = TYPE_LABELS[item.type] || item.type;
+  const nextType = TYPE_CYCLE[(TYPE_CYCLE.indexOf(item.type) + 1) % TYPE_CYCLE.length];
+  const nextLabel = TYPE_LABELS[nextType] || nextType;
   return `<div class="wdc-item${item.type === 'I' ? ' is-ignored' : ''}${_focusedItemId === item.id ? ' is-focused' : ''}"
     data-item-id="${esc(item.id)}"
+    data-confidence="${confidenceBand(item.confidence)}"
     style="--wdc-depth:${item.depth}"
     role="listitem">
-  <button class="wdc-type-chip" data-type="${esc(item.type)}" title="Type: ${esc(typeLabel)} — click to change" aria-label="Item type: ${esc(typeLabel)}">${esc(item.type)}</button>
+  <button class="wdc-type-chip" data-type="${esc(item.type)}" title="${esc(typeLabel)} — click to change to ${esc(nextLabel)}" aria-label="Item type: ${esc(typeLabel)}">${esc(item.type)}</button>
   <div class="wdc-item-body">
     <input type="text" class="wdc-title" value="${esc(item.title)}" placeholder="Add title…" aria-label="Work item title" spellcheck="true" />
     ${repairHtml ? `<div class="wdc-repairs">${repairHtml}</div>` : ''}
@@ -621,9 +656,23 @@ function countsByStatus() {
     if (item.type === 'I') { ignored++; return; }
     // Empty-titled items are not ready to create — treat as needing review
     if (!item.title.trim()) { review++; return; }
-    if (item.warnings.length || item.duplicate) { review++; } else { safe++; }
+    if (item.warnings.length || hasMeaningfulDuplicate(item)) { review++; } else { safe++; }
   });
   return { safe, review, ignored: ignored + _ignoredItems.length };
+}
+
+function dominantType() {
+  if (!_items.length) return null;
+  const tally = {};
+  _items.forEach((i) => { if (i.type !== 'I') tally[i.type] = (tally[i.type] || 0) + 1; });
+  return Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+function typeLabel(chip, count) {
+  const singular = { E: 'Epic', S: 'Story', T: 'Task', N: 'Note' };
+  const plural = { E: 'Epics', S: 'Stories', T: 'Tasks', N: 'Notes' };
+  const map = count === 1 ? singular : plural;
+  return map[chip] || (count === 1 ? 'item' : 'items');
 }
 
 function updateSendBar() {
@@ -641,7 +690,7 @@ function updateSendBar() {
     } else {
       countsEl.innerHTML = ''
         + `<span class="wdd-send-count wdd-send-count--safe">Ready: ${counts.safe}</span>`
-        + (counts.review ? `<button class="wdd-send-count wdd-send-count--review" data-action="toggle-review">Needs review: ${counts.review}</button>` : '')
+        + (counts.review ? `<button class="wdd-send-count wdd-send-count--review" data-action="scroll-to-first-warning">Needs review: ${counts.review}</button>` : '')
         + (counts.ignored ? `<span class="wdd-send-count wdd-send-count--ignored">Ignored: ${counts.ignored}</span>` : '');
     }
   }
@@ -657,8 +706,11 @@ function updateSendBar() {
       createBtn.disabled = true;
       createBtn.textContent = 'Jira keys detected — link only';
     } else {
+      const dom = dominantType();
       createBtn.disabled = counts.safe === 0;
-      createBtn.textContent = counts.safe === 0 ? 'Nothing to create yet' : `Create ${counts.safe} issue${counts.safe === 1 ? '' : 's'}`;
+      createBtn.textContent = counts.safe === 0
+        ? 'Nothing to create yet'
+        : `Create ${counts.safe} ${typeLabel(dom, counts.safe)}`;
     }
   }
 
@@ -1000,7 +1052,7 @@ function flushActiveInput() {
 
 async function createSafeIssues(forceCreate = false) {
   flushActiveInput();
-  const safeItems = _items.filter((item) => item.type !== 'I' && item.type !== 'N' && !item.warnings.length && !item.duplicate && item.title.trim());
+  const safeItems = _items.filter((item) => item.type !== 'I' && item.type !== 'N' && !item.warnings.length && !hasMeaningfulDuplicate(item) && item.title.trim());
   if (!safeItems.length || _isSubmitting) return;
 
   _isSubmitting = true;
@@ -1392,7 +1444,19 @@ function wireEvents() {
     onAiTestClick(e);
     onAiClearClick(e);
 
-    // Toggle review from the send-counts chip (element is recreated on each updateSendBar call)
+    // "Needs review: N" chip: scroll to first item needing attention instead of toggling view mode
+    if (e.target?.closest('[data-action="scroll-to-first-warning"]')) {
+      const canvas = document.getElementById('wdd-canvas');
+      const firstWarning = canvas?.querySelector('.wdc-item .wdc-repairs');
+      if (firstWarning) {
+        const itemEl = firstWarning.closest('.wdc-item');
+        itemEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        itemEl?.classList.add('is-focused');
+        const titleInput = itemEl?.querySelector('.wdc-title');
+        if (titleInput) titleInput.focus();
+        setTimeout(() => itemEl?.classList.remove('is-focused'), 1500);
+      }
+    }
     if (e.target?.closest('[data-action="toggle-review"]')) toggleReviewOnly();
 
     // Toggle ignored-notes fold expand/collapse

@@ -202,6 +202,12 @@ export function initTabs(updateExportFilteredState, onTabActivate) {
       activateTab(hashTab, { skipFocus: true });
       return;
     }
+    const savedTabName = sessionStorage.getItem(REPORT_ACTIVE_TAB_KEY);
+    const savedTab = savedTabName ? tabButtons.find((b) => b.dataset.tab === savedTabName) : null;
+    if (savedTab) {
+      activateTab(savedTab, { skipFocus: true });
+      return;
+    }
     if (activeTab) {
       activateTab(activeTab, { skipFocus: true });
     }

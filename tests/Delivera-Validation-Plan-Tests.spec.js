@@ -17,7 +17,7 @@ test.describe('Delivera - Validation Plan (UI + Telemetry)', () => {
     // Main nav: Report | Current Sprint (leadership route may be consolidated into report trends)
     const nav = page.locator('.app-sidebar .app-nav, nav.app-nav');
     await expect(nav).toBeVisible();
-    await expect(nav.locator('a[href="/current-sprint"]')).toContainText('Current Sprint');
+    await expect(nav.locator('a.sidebar-link[href="/current-sprint"]')).toContainText('Current Sprint');
     const leadershipNavLink = nav.locator('a[href="/sprint-leadership"]');
     if (await leadershipNavLink.isVisible().catch(() => false)) {
       await expect(leadershipNavLink).toContainText('Leadership');

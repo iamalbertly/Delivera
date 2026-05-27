@@ -62,7 +62,6 @@ export function renderCurrentSprintPage(data) {
     + jumpLinks.join('')
     + '<div class="sprint-section-inline-actions">'
     + renderCountdownTimer(data, { compact: true, inlineHeader: true })
-    + '<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint risks and progress.">Create work</button>'
     + '</div>'
     + '</div>';
 
@@ -75,8 +74,32 @@ export function renderCurrentSprintPage(data) {
     html += sprintSwitcherHtml;
     html += '</details>';
   }
-  if (data?.meta?.noActiveSprintFallback && data?.meta?.explanatoryLine) {
-    html += '<div class="transparency-card"><p><strong>No active sprint</strong> - ' + data.meta.explanatoryLine + '</p></div>';
+  if (data?.meta?.noActiveSprintFallback) {
+    const nc = data.meta.nextSprintCandidate;
+    if (data.meta.suggestStartSprint && nc) {
+      const ncName = String(nc.name || 'Upcoming sprint').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const ncGoal = String(nc.goal || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const overdue = data.meta.nextSprintStartOverdue === true;
+      html += '<div class="transparency-card sprint-limbo-card">'
+        + '<div class="sprint-limbo-icon">⚡</div>'
+        + '<div class="sprint-limbo-content">'
+        + '<strong class="sprint-limbo-title">Sprint not started — ' + ncName + '</strong>'
+        + '<p class="sprint-limbo-line">' + String(data.meta.explanatoryLine || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>'
+        + (ncGoal ? '<p class="sprint-limbo-goal">“' + ncGoal + '”</p>' : '')
+        + (overdue ? '<p class="sprint-limbo-overdue">Planned start date has passed. Your team is waiting on sprint activation to pick up work.</p>' : '')
+        + '<p class="sprint-limbo-hint">In Jira: open <strong>' + ncName + '</strong> on your board and click <strong>Start sprint</strong> to activate it.</p>'
+        + '</div>'
+        + '</div>';
+    } else if (data.meta.explanatoryLine) {
+      html += '<div class="transparency-card"><p><strong>No active sprint</strong> — ' + String(data.meta.explanatoryLine).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p></div>';
+    }
+  }
+
+  if (data?.meta?.stale) {
+    const ageMs = Number(data.meta.staleAgeMs) || 0;
+    const ageH = ageMs > 0 ? Math.round(ageMs / 3600000) : null;
+    const ageText = ageH != null ? ' from ' + ageH + 'h ago' : '';
+    html = '<div class="cs-stale-banner">Showing cached sprint data' + ageText + ' — Jira was unreachable. Nudge send is disabled.</div>' + html;
   }
 
   const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData;

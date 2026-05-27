@@ -618,3 +618,52 @@ header .subtitle {
   /* Desktop shows page name via breadcrumbs/title; hide the scroll pill */
   .header-page-context { display: none; }
 }
+
+/* Clickable surface cards (UX-02) */
+a.surface-card--linked {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.12s;
+}
+a.surface-card--linked:hover {
+  box-shadow: var(--shadow-gloss);
+  transform: translateY(-1px);
+}
+a.surface-card--linked .surface-card-kicker {
+  transition: color 0.12s;
+}
+a.surface-card--linked:hover .surface-card-kicker {
+  color: var(--primary-dark, var(--primary));
+}
+
+/* Per-page surface accent tokens (UX-11) — body[data-surface-name] already present in HTML */
+[data-surface-name="Program Increment"] .surface-hero-card { --surface-accent: rgba(16,185,129,0.10); }
+[data-surface-name="Value Delivery"] .surface-hero-card     { --surface-accent: rgba(14,165,233,0.10); }
+[data-surface-name="Risks & Blockers"] .surface-hero-card   { --surface-accent: rgba(239,68,68,0.10); }
+[data-surface-name="Dashboard"] .surface-hero-card          { --surface-accent: rgba(99,102,241,0.10); }
+
+.surface-hero-card::before {
+  background: radial-gradient(circle, var(--surface-accent, rgba(230,0,0,0.12)), transparent 70%);
+}
+
+/* Context hints on surface cards (UX-12) */
+.surface-card-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+/* Cross-page navigation links inside surface cards (UX-13) */
+.surface-card-action-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 8px;
+}
+.surface-card-action-link:hover {
+  text-decoration: underline;
+}

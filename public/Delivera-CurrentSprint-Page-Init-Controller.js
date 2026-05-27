@@ -4,7 +4,7 @@ import { loadBoards, loadCurrentSprint } from './Delivera-CurrentSprint-Page-Dat
 import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Delivera-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
 import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Delivera-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
-import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprintSnapshot } from './Delivera-CurrentSprint-Page-Snapshot.js';
 import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
 

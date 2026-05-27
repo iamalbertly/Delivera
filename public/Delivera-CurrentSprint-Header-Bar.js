@@ -556,7 +556,8 @@ export function renderHeaderBar(data, options = {}) {
     });
     html += '</div>';
   }
-  if (issuesCount > 0 && !viewportLean) {
+  const showIntelligenceStrip = issuesCount > 0 && !viewportLean && (edgeStateAttr !== 'none' || stuckCount > 0);
+  if (showIntelligenceStrip) {
     html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
     html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(capacityTone) + '" data-header-insight="capacity">';
     html += '<span class="header-intelligence-eyebrow">Now</span>';

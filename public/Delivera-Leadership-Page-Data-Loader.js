@@ -332,5 +332,6 @@ export function tryAutoRunPreviewOnce() {
 }
 
 export function renderLeadershipLoading() {
+  if (leadershipInFlightController) return;
   showLoading('Trends load when you pick a quarter or date range.');
 }

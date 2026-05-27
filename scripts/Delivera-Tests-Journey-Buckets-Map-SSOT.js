@@ -133,6 +133,18 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report',
   },
+  'tests/Delivera-CreateWork-Canvas-ButtonFlow-DirectValue-E2E-Validation-Tests.spec.js': {
+    journey: 'journey.outcome-intake',
+    layer: 'page-ux',
+    page: '/current-sprint',
+    priority: 1,
+  },
+  'tests/Delivera-CreateWork-Intelligence-Confidence-Assignee-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.outcome-intake',
+    layer: 'api-contract',
+    page: '/current-sprint',
+    priority: 1,
+  },
   'tests/Delivera-Outcome-Validation-Screen-And-Epic-Level-Tests.spec.js': {
     journey: 'journey.outcome-intake',
     layer: 'page-ux',
@@ -294,6 +306,11 @@ export const specMetadata = {
     journey: 'journey.ux-core',
     layer: 'page-ux',
     page: '/report',
+  },
+  'tests/Delivera-Mission-Strip-Compression-Validation-Tests.spec.js': {
+    journey: 'journey.current-sprint',
+    layer: 'page-ux',
+    page: '/current-sprint,/report,/leadership',
   },
 
   // API + data integrity, exports, contracts

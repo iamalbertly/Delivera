@@ -27,7 +27,7 @@ import { initExportMenu as initReportExportMenu } from './Delivera-Report-Page-E
 import { getCurrentSelectionComplexity, shouldAutoPreviewOnInit, refreshPreviewButtonLabel, updateAppliedFiltersSummary, hydrateFromLastQuery } from './Delivera-Report-Page-Filters-Summary-Helpers.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
 import { initReportFiltersPanelState } from './Delivera-Report-Page-Init-Filters-Panel-State-Helpers.js';
-import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { renderReportNamedViewsBar, wireReportNamedViews } from './Delivera-Report-Page-Named-Views.js';
 import { initOverlayManager } from './Delivera-Shared-Overlay-Manager.js';
 import { wireLeadershipContentInteractions } from './Delivera-Leadership-Shared-Actions.js';
@@ -374,14 +374,14 @@ function initReportPage() {
     syncHeaderLoadLatestVisibility(true);
   }
   updateAppliedFiltersSummary();
-  if (shouldAutoPreviewOnInit()) {
-    const previewBtn = document.getElementById('preview-btn');
-    if (previewBtn && !previewBtn.disabled) scheduleAutoPreview(1000);
-  }
   initReportExportMenu();
   initPreviewFlow();
   wirePreviewContextActions();
-  restoreLastPreviewFromStorage();
+  const cacheRestored = restoreLastPreviewFromStorage();
+  if (!cacheRestored && shouldAutoPreviewOnInit()) {
+    const previewBtn = document.getElementById('preview-btn');
+    if (previewBtn && !previewBtn.disabled) scheduleAutoPreview(1000);
+  }
   initFilters();
   initSearchClearButtons();
   renderNotificationDock({ pageContext: 'report', collapsedByDefault: true });
@@ -418,41 +418,20 @@ function initReportPage() {
       if (query) currentSprintHref += '?' + query;
     } catch (_) {}
     wrap.innerHTML = ''
-      + '<button type="button" id="report-header-preview-btn" class="btn btn-primary btn-compact" data-shared-action-tier="primary">Refresh</button>'
+      + '<button type="button" id="report-header-preview-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Refresh</button>'
       + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary" data-action="load-latest-preview" hidden>Refresh latest</button>'
       + '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'
-      + '<button type="button" class="btn btn-compact report-outcome-intake-create-btn" data-shared-action-tier="primary" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
-      + '</div>';
-    wrap.innerHTML += ''
-      + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Export</button>'
-      + '<details class="report-header-more-menu">'
-      + '<summary class="btn btn-secondary btn-compact">More</summary>'
-      + '<div class="report-header-more-panel">'
-      + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Current sprint</a>'
-      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>'
+      + '<button type="button" class="btn btn-primary btn-compact report-outcome-intake-create-btn" data-shared-action-tier="primary" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
       + '</div>'
-      + '</details>';
+      + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Export</button>'
+      + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Sprint</a>'
+      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>';
     wrap.querySelector('#report-header-preview-btn')?.addEventListener('click', () => {
       runReportPreviewFromHeader('header-refresh');
     });
     wrap.querySelector('#report-header-export-btn')?.addEventListener('click', () => {
       document.getElementById('export-excel-btn')?.click();
-    });
-    wrap.querySelectorAll('.report-header-more-panel [data-action]').forEach((control) => {
-      control.addEventListener('click', (event) => {
-        const action = control.getAttribute('data-action');
-        if (handleReportChromeAction(action)) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        closeReportHeaderMoreMenu();
-      });
-    });
-    wrap.querySelectorAll('.report-header-more-panel .btn, .report-header-more-panel a').forEach((control) => {
-      control.addEventListener('click', () => {
-        closeReportHeaderMoreMenu();
-      });
     });
     syncHeaderLoadLatestVisibility(getSelectedProjects().length > 0 && getContextDisplayString() === 'No report run yet');
     mountReportNamedViewsBar();
@@ -538,6 +517,8 @@ function initReportPage() {
       setReportContextLineText(getContextDisplayString());
     } catch (_) {}
     syncHeaderLoadLatestVisibility(getSelectedProjects().length > 0 && getContextDisplayString() === 'No report run yet');
+    document.querySelector('[data-open-outcome-modal].report-outcome-intake-create-btn')
+      ?.setAttribute('data-outcome-projects', getSelectedProjects().join(','));
     clearPreviewOnFilterChange();
     if (!getCurrentSelectionComplexity().isHeavy) {
       scheduleAutoPreview();

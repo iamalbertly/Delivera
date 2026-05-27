@@ -1,6 +1,6 @@
 import { buildContextSegmentList, getContextPieces, renderContextPartList } from './Delivera-Shared-Context-From-Storage.js';
-import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
-import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
+import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
 const LAST_ROUTE_KEY = 'delivera.lastRoute.v1';
 const ROUTE_LABELS = {
@@ -41,16 +41,7 @@ function applyContinueCta() {
   btn.textContent = `Continue to ${label}`;
 }
 
-function readSelectedProjects() {
-  try {
-    return (window.localStorage.getItem(PROJECTS_SSOT_KEY) || '')
-      .split(',')
-      .map((value) => String(value || '').trim())
-      .filter(Boolean);
-  } catch (_) {
-    return [];
-  }
-}
+const readSelectedProjects = readSharedProjectsCsv;
 
 function buildSurfaceSummary(projects) {
   const pageName = document.body.getAttribute('data-surface-name') || 'Executive surface';
@@ -104,6 +95,7 @@ function maybeRedirectExecutiveShell() {
     const path = window.location.pathname || '';
     const target = EXECUTIVE_SHELL_REDIRECTS[path];
     if (!target) return false;
+    document.body.setAttribute('aria-hidden', 'true');
     window.location.replace(target);
     return true;
   } catch (_) {
@@ -138,10 +130,7 @@ function initSurfacePage() {
   applyContinueCta();
   initQuickNavigation();
   initGlobalOutcomeModal({
-    getSelectedProjects: () => {
-      const selected = readSelectedProjects();
-      return selected.length ? selected : ['MPSA'];
-    },
+    getSelectedProjects: readSelectedProjects,
     getOutcomeDraftContext: () => ({ boardId: null, quarterHint: '' }),
   });
 }

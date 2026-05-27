@@ -5,6 +5,7 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
+    "test": "npm run build:css && node scripts/Delivera-Test-Smart-Dev-Runner.js",
     "build:css": "node scripts/build-css.js",
     "check:css": "node scripts/check-css.js",
     "identity:check": "node scripts/Delivera-Workspace-Identity-Check.js",

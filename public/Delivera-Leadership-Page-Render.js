@@ -239,6 +239,7 @@ function renderLeadershipMissionStrip(data, projectsLabel, rangeStart, rangeEnd,
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-quarterly-story">Copy portfolio summary</button>
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-kpis-csv">Export KPI CSV</button>
               <button type="button" class="btn btn-secondary btn-compact" data-action="export-leadership-boards-csv">Export boards CSV</button>
+              <button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from leadership insight." data-outcome-projects="${escapeHtml((projectsLabel || '').replace(/\s+/g, ''))}">Create work from insight</button>
             </div>
           </details>
         </div>

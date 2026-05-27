@@ -147,7 +147,6 @@ test.describe('Cross-Page Persistence', () => {
       return;
     }
 
-    await page.locator('#report-header-actions details.report-header-more-menu summary').click();
     const shortcut = page.locator('#report-header-actions a[href*="/current-sprint"]').first();
     await expect(shortcut).toBeVisible();
     const href = await shortcut.getAttribute('href');

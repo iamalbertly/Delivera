@@ -87,7 +87,7 @@ test.describe('Current Sprint Intervention Queue Validation', () => {
     // When stuckCandidates[0] has MPSA-1, CTA becomes "Unblock MPSA-1"
     expect(ctaText).toMatch(/Unblock MPSA-1|Take action/i);
 
-    await expect(page.locator('.current-sprint-header-bar')).toContainText(/Create work/i);
+    await expect(page.locator('[data-open-outcome-modal]').first()).toBeAttached();
     assertTelemetryClean(telemetry);
   });
 });

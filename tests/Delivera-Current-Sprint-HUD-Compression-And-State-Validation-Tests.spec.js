@@ -66,7 +66,8 @@ test.describe('Current sprint HUD compression and state handling', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('loading and retry states preserve last content instead of blanking the main area', async ({ page }) => {
+  test('loading and retry states preserve last content instead of blanking the main area', async ({ page }, testInfo) => {
+    testInfo.annotations.push({ type: 'allow-http-status-console', description: '500' });
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
     let callCount = 0;
@@ -100,6 +101,6 @@ test.describe('Current sprint HUD compression and state handling', () => {
     await expect(page.locator('#current-sprint-error')).toBeVisible();
     await expect(page.locator('#current-sprint-loading')).toHaveCount(1);
 
-    assertTelemetryClean(telemetry, { allowConsolePatterns: [/Injected failure/i] });
+    assertTelemetryClean(telemetry, { allowConsolePatterns: [/Injected failure/i, /Failed to load resource.*500/i, /status of 500/i] });
   });
 });

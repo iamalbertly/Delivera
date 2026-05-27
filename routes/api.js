@@ -955,6 +955,13 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                     : 'No active sprint — showing last completed. A future sprint is planned but not yet started.';
                 payload.meta.nextSprintCandidate = { id: next.id, name: nextName, startDate: next.startDate || '', goal: next.goal || '' };
                 payload.meta.suggestStartSprint = true;
+                // Detect overdue start: planned start date has already passed but sprint was never started
+                if (next.startDate) {
+                    const plannedStart = new Date(next.startDate).getTime();
+                    if (Number.isFinite(plannedStart) && plannedStart < Date.now()) {
+                        payload.meta.nextSprintStartOverdue = true;
+                    }
+                }
             } else {
                 payload.meta.explanatoryLine = 'No active sprint — showing last completed sprint.';
             }

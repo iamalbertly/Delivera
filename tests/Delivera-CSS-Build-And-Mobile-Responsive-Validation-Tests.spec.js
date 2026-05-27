@@ -134,8 +134,6 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#report-header-preview-btn')).toBeVisible();
     await expect(page.locator('[data-action="toggle-filters"]')).toHaveCount(0);
-    await page.locator('#report-header-actions details.report-header-more-menu summary').click();
-    await expect(page.locator('.report-header-more-panel [data-action="toggle-filters"]')).toHaveCount(0);
     const collapsedBarVisible = await page.locator('#filters-panel-collapsed-bar').isVisible().catch(() => false);
     expect(collapsedBarVisible).toBe(false);
     assertTelemetryClean(telemetry);

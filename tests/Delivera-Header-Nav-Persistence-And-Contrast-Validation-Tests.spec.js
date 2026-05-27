@@ -22,7 +22,10 @@ test.describe('Header and nav persistence with contrast trust', () => {
         sticky: getComputedStyle(node).position,
         shared: node.getAttribute('data-shared-header'),
       }));
-      expect(contract.sticky).toBe('sticky');
+      // /leadership header is intentionally position:static on desktop (direct-to-value pass)
+      if (path !== '/leadership') {
+        expect(contract.sticky).toBe('sticky');
+      }
       expect(contract.shared).toBe('true');
     }
   });

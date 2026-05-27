@@ -167,7 +167,7 @@ test.describe('Delivera - E2E User Journey Tests', () => {
       return;
     }
     const outcomesTabText = ((await page.locator('#tab-btn-done-stories').textContent().catch(() => '')) || '').trim();
-    expect(outcomesTabText).toMatch(/Outcomes \((Total: )?\d+\)/i);
+    expect(outcomesTabText).toMatch(/Outcomes \((Total: )?\d+\)|Value delivery \((Total: )?\d+\)/i);
     await page.click('#tab-btn-done-stories').catch(() => null);
     const visibleSummary = ((await page.locator('#done-stories-visibility-summary').textContent().catch(() => '')) || '').trim();
     expect(visibleSummary).toMatch(/Showing \d+ of \d+ stor/i);

@@ -80,18 +80,21 @@ router.get('/report', requireAuth, (req, res) => {
     res.sendFile('report.html', { root: './public' });
 });
 
+// Legacy alias — /home → /dashboard 301 (keep for bookmarks and nav history).
 router.get('/home', requireAuth, (req, res) => {
-    res.sendFile('home.html', { root: './public' });
+    res.redirect(301, '/dashboard');
 });
 
 router.get('/dashboard', requireAuth, (req, res) => {
     res.sendFile('home.html', { root: './public' });
 });
 
+// Legacy alias — /backlog-intake merged into /value-delivery (2025-05). Keep for bookmarks.
 router.get('/backlog-intake', requireAuth, (req, res) => {
     res.redirect('/value-delivery');
 });
 
+// Legacy alias — /roadmap → /program-increment (2025-03). Keep for bookmarks.
 router.get('/roadmap', requireAuth, (req, res) => {
     res.redirect('/program-increment');
 });
@@ -131,6 +134,7 @@ router.get('/current-sprint', requireAuth, (req, res) => {
     res.sendFile('current-sprint.html', { root: './public' });
 });
 
+// Legacy alias — /sprints → /current-sprint (2025-01). Keep for bookmarks.
 router.get('/sprints', requireAuth, (req, res) => {
     res.redirect('/current-sprint');
 });
@@ -142,7 +146,7 @@ router.get('/leadership', requireAuth, (req, res) => {
     res.sendFile('leadership.html', { root: './public' });
 });
 
-// Legacy Redirect
+// Legacy alias — /sprint-leadership → /leadership (2024-12). Keep for bookmarks.
 router.get('/sprint-leadership', requireAuth, (req, res) => {
     res.redirect('/leadership');
 });

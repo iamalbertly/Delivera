@@ -28,7 +28,7 @@ const NAV_HREF_OVERRIDES = {
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
   [PAGE_SPRINTS]: 'Current Sprint',
-  [PAGE_REPORT]: 'Delivery',
+  [PAGE_REPORT]: 'Delivery Report',
   [PAGE_RISKS]: 'Risks',
   [PAGE_TEAMS]: 'Teams',
   [PAGE_LEADERSHIP]: 'Leadership',

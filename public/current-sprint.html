@@ -195,8 +195,9 @@
     <main id="main-content" data-current-sprint-state="welcome">
       <div id="current-sprint-ribbon" class="preview-status-strip" style="display: none;" aria-live="polite"></div>
       <!-- M9: Sprint loading context — shows board + sprint name above spinner while loading -->
-      <div id="current-sprint-loading">
-        <div class="current-sprint-loading-copy">Loading your last sprint HUD… adjust scope only if needed.</div>
+      <div id="current-sprint-loading" class="current-sprint-loading-with-spinner">
+        <div class="current-sprint-loading-spinner" aria-hidden="true"></div>
+        <p class="current-sprint-loading-msg">Connecting to sprint&hellip;</p>
       </div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>
       <div id="current-sprint-content"></div>

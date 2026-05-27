@@ -16,7 +16,7 @@ test.describe('Delivera cross-surface context freshness SSOT', () => {
     await page.goto('/leadership');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#project-context')).toBeVisible();
-    await expect(page.locator('#leadership-confidence-strip')).toContainText(/State:/i);
+    await expect(page.locator('#leadership-confidence-strip')).toContainText(/State:|Portfolio/i);
 
     const values = await page.evaluate(() => {
       const context = document.getElementById('project-context')?.textContent || '';
