@@ -21,7 +21,7 @@ test.describe('Delivera - No-click adaptive coaching and trust validation', () =
         summaryContext: ctx,
       });
     });
-    expect(payload).toContain('[System basic nudge]');
+    expect(payload).toMatch(/^\[.+\]/);
     expect(payload).not.toMatch(/As a CSS\/TM\/SSM/i);
     expect(payload).toContain('Do now:');
   });

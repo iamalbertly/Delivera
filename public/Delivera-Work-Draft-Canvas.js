@@ -195,6 +195,7 @@ function ensureDrawer() {
       spellcheck="true"></textarea>
   </div>
   <div class="wdd-parse-status" id="wdd-parse-status" hidden></div>
+  <div class="wdd-capacity-hint" id="wdd-capacity-hint" hidden></div>
   <div class="wdd-canvas" id="wdd-canvas" role="list" aria-label="Work items" tabindex="0"></div>
   <div class="wdd-follow-up" id="wdd-follow-up" hidden></div>
 </div>
@@ -466,6 +467,7 @@ function applyServerDraft(payload, narrative) {
       confidence,
       warnings,
       duplicate: row.duplicate || null,
+      suggestedAssignee: row.suggestedAssignee || null,
       sourceLineIndex: idx,
       selected: true,
     });
@@ -480,6 +482,18 @@ function applyServerDraft(payload, narrative) {
     showParseStatus(`Jira key${_jiraKeysDetected.length > 1 ? 's' : ''} detected (${_jiraKeysDetected.slice(0, 3).join(', ')}) — these will be linked, not created`);
   } else {
     showParseStatus('');
+  }
+
+  // Capacity fit hint: green positive signal when item count fits the team's sprint pattern
+  const capacityEl = document.getElementById('wdd-capacity-hint');
+  if (capacityEl) {
+    if (payload.capacityFitHint) {
+      capacityEl.textContent = payload.capacityFitHint;
+      capacityEl.hidden = false;
+    } else {
+      capacityEl.hidden = true;
+      capacityEl.textContent = '';
+    }
   }
 }
 
@@ -547,6 +561,11 @@ function renderItem(item) {
 
 function buildRepairHtml(item) {
   const parts = [];
+
+  if (item.suggestedAssignee) {
+    parts.push(`<span class="wdc-repair-chip wdc-repair-chip--assignee" title="Based on who worked on similar items in this board">Suggested: ${esc(item.suggestedAssignee)}</span>`
+      + `<button class="wdc-repair-action" data-repair="accept-assignee" data-item-id="${esc(item.id)}" data-assignee="${esc(item.suggestedAssignee)}">Use</button>`);
+  }
 
   if (item.duplicate?.key) {
     const dk = esc(item.duplicate.key);
@@ -896,6 +915,13 @@ function onRepairAction(e) {
       item.type = 'S';
       item.warnings = [];
       break;
+    case 'accept-assignee': {
+      const assignee = btn.dataset.assignee || '';
+      // Accept the suggestion: store as confirmed assignee, clear the chip
+      item.acceptedAssignee = assignee || item.suggestedAssignee;
+      item.suggestedAssignee = null;
+      break;
+    }
   }
 
   _focusedItemId = id;
@@ -1195,8 +1221,17 @@ async function onAiTestClick(e) {
   if (!btn) return;
   const provider = btn.dataset.aiTest;
   const ai = readAiProvider();
+  const hintEl = btn.closest('.wdd-ai-provider-row, label')?.querySelector('.wdd-ai-provider-hint')
+    ?? btn.parentElement?.querySelector('.wdd-ai-provider-hint');
+  const originalHint = hintEl?.textContent || '';
   btn.textContent = 'Testing…';
   btn.disabled = true;
+  const reset = () => {
+    btn.textContent = 'Test';
+    btn.disabled = false;
+    btn.dataset.testResult = '';
+    if (hintEl) hintEl.textContent = originalHint;
+  };
   try {
     const res = await fetch('/api/settings/ai-provider', {
       method: 'POST',
@@ -1204,11 +1239,16 @@ async function onAiTestClick(e) {
       body: JSON.stringify({ provider, action: 'test' }),
     });
     const json = await res.json().catch(() => ({}));
-    btn.textContent = json.valid ? '✓ OK' : '✗ Failed';
-    setTimeout(() => { btn.textContent = 'Test'; btn.disabled = false; }, 2500);
+    const valid = Boolean(json.valid);
+    btn.textContent = valid ? '✓ OK' : '✗ Failed';
+    btn.dataset.testResult = valid ? 'pass' : 'fail';
+    if (hintEl) hintEl.textContent = valid ? '✓ Connected' : `✗ Failed${json.error ? ': ' + json.error : ''}`;
+    setTimeout(reset, 5000);
   } catch (_) {
     btn.textContent = '✗ Error';
-    setTimeout(() => { btn.textContent = 'Test'; btn.disabled = false; }, 2500);
+    btn.dataset.testResult = 'error';
+    if (hintEl) hintEl.textContent = '✗ Network error — check your connection';
+    setTimeout(reset, 5000);
   }
 }
 
@@ -1281,6 +1321,10 @@ function wireEvents() {
       const tmp = document.createElement('div');
       tmp.innerHTML = html;
       let plain = (tmp.textContent || tmp.innerText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      if (!plain.trim()) {
+        showParseStatus('Pasted content appears to be formatting only — no plain text found.');
+        return;
+      }
       if (plain.length > MAX_NARRATIVE_CHARS) {
         plain = plain.slice(0, MAX_NARRATIVE_CHARS);
         showParseStatus(`Pasted text trimmed to ${MAX_NARRATIVE_CHARS.toLocaleString()} characters.`);

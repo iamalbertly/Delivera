@@ -644,6 +644,29 @@ button.attention-queue-item,
   border-color: var(--border);
   color: var(--muted-strong);
 }
+.wdc-repair-chip--assignee {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+  cursor: default;
+}
+.wdd-capacity-hint {
+  padding: 7px 16px;
+  font-size: 0.78rem;
+  color: #166534;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.wdd-capacity-hint::before {
+  content: '✓';
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
 .wdc-repair-action {
   display: inline-flex;
   align-items: center;
