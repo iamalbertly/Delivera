@@ -1343,3 +1343,10 @@ body.hud-mode {
     border-bottom: 1px dashed var(--border);
   }
 }
+
+.kpi-create-btn {
+  margin-left: auto;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  height: 22px;
+}

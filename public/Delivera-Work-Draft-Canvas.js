@@ -218,9 +218,17 @@ function ensureDrawer() {
 </div>
 <div class="wdd-safe-send-bar" id="wdd-safe-send-bar">
   <div class="wdd-send-counts" id="wdd-send-counts"></div>
+  <div class="wdd-bulk-estimate-row" id="wdd-bulk-estimate-row" hidden aria-label="Set estimate for all items">
+    <span class="wdd-bulk-estimate-label">Set all:</span>
+    <button class="wdc-estimate-chip" data-bulk-hours="1">1h</button>
+    <button class="wdc-estimate-chip" data-bulk-hours="2">2h</button>
+    <button class="wdc-estimate-chip" data-bulk-hours="4">4h</button>
+    <button class="wdc-estimate-chip" data-bulk-hours="8">8h</button>
+  </div>
   <div class="wdd-send-actions" id="wdd-send-actions">
     <button class="wdd-create-safe-btn" id="wdd-create-safe-btn" disabled>Create 0 issues</button>
     <button class="wdd-review-btn" id="wdd-review-btn" hidden>Review warnings</button>
+    <button class="wdd-skip-all-done-btn" id="wdd-skip-all-done-btn" hidden>Skip all done</button>
   </div>
   <div class="wdd-submit-status" id="wdd-submit-status" aria-live="polite"></div>
 </div>
@@ -263,6 +271,7 @@ export function openWorkDraftDrawer(prefill = {}) {
   if (d) d.classList.add('is-open');
   const bd = document.getElementById('work-draft-backdrop');
   if (bd) bd.classList.add('is-visible');
+  document.body.classList.add('wdd-panel-open');
   document.body.style.overflow = 'hidden';
 
   const sourceEl = document.getElementById('wdd-source');
@@ -307,6 +316,7 @@ export function closeWorkDraftDrawer(force = false) {
   }
   const bd = document.getElementById('work-draft-backdrop');
   if (bd) bd.classList.remove('is-visible');
+  document.body.classList.remove('wdd-panel-open');
   document.body.style.overflow = '';
   _focusedItemId = null;
   _settingsOpen = false;
@@ -470,6 +480,18 @@ function isDoneDuplicate(item) {
   return item.duplicate?.suggestedAction === 'skipAlreadyDone' || item.duplicate?.isDoneMatch === true;
 }
 
+function skipAllDoneDuplicates() {
+  pushUndo();
+  _items.forEach((item) => {
+    if (isDoneDuplicate(item) && item.type !== 'I') {
+      item.type = 'I';
+      item.selected = false;
+    }
+  });
+  renderCanvas();
+  updateSendBar();
+}
+
 function warningsFromRow(row) {
   const list = [];
   const rw = Array.isArray(row.warnings) ? row.warnings : [];
@@ -519,7 +541,7 @@ function applyServerDraft(payload, narrative) {
       warnings,
       duplicate: row.duplicate || null,
       suggestedAssignee: row.suggestedAssignee || null,
-      estimateHours: null,
+      estimateHours: autoSuggestEstimate(title),
       sourceLineIndex: idx,
       selected: true,
     });
@@ -584,9 +606,10 @@ function renderCanvas() {
   }
 
   if (!_items.length) {
+    const exampleText = '0: Clean Site Data.\n1: Reload from MIS.\n2: Validate alignment.';
     const hint = _projectKey
-      ? `<div class="wdc-empty-hint">Paste your task list or press <kbd>Enter</kbd> to add the first item.</div>`
-      : `<div class="wdc-empty-hint wdc-empty-hint--no-project"><span>Set a project above</span> then paste your task list — e.g.<br><code>1: Clean data\n2: Reload from MIS\n3: Validate</code></div>`;
+      ? `<div class="wdc-empty-hint">Paste your task list or press <kbd>Enter</kbd> to add the first item. <button class="wdc-example-btn" data-action="paste-example">Try example</button></div>`
+      : `<div class="wdc-empty-hint wdc-empty-hint--no-project"><span>Set a project above</span> then paste your task list — e.g.<br><code>${exampleText}</code><br><button class="wdc-example-btn" data-action="paste-example">Use this example</button></div>`;
     canvas.innerHTML = hint;
     renderIgnoredFold(canvas);
     return;
@@ -620,13 +643,41 @@ function confidenceBand(confidence) {
   return 'low';
 }
 
+const ESTIMATE_CHIPS = [
+  { hours: 0.5, label: '½h' },
+  { hours: 1,   label: '1h' },
+  { hours: 2,   label: '2h' },
+  { hours: 4,   label: '4h' },
+  { hours: 8,   label: '8h' },
+  { hours: 16,  label: '1d' },
+  { hours: 32,  label: '2d' },
+];
+
+function autoSuggestEstimate(title) {
+  const t = String(title || '').toLowerCase();
+  if (/\b(validate|verify|check|test)\b/.test(t)) return 2;
+  if (/\b(implement|build|create|develop|write)\b/.test(t)) return 4;
+  if (/\b(deploy|configure|setup|install)\b/.test(t)) return 1;
+  if (/\b(migrate|refactor|redesign|rewrite)\b/.test(t)) return 8;
+  if (/\b(fix|patch|hotfix|repair)\b/.test(t)) return 2;
+  if (/\b(reload|re-load|sync|load|re-validate)\b/.test(t)) return 1;
+  return null;
+}
+
+function renderEstimateChips(item) {
+  if (item.type === 'I' || item.type === 'N') return '';
+  const chips = ESTIMATE_CHIPS.map(({ hours, label }) => {
+    const active = item.estimateHours === hours;
+    return `<button class="wdc-estimate-chip${active ? ' is-active' : ''}" data-hours="${hours}" aria-pressed="${active}" data-estimate-for="${esc(item.id)}">${esc(label)}</button>`;
+  }).join('');
+  return `<div class="wdc-estimate-chips" role="group" aria-label="Estimate hours">${chips}</div>`;
+}
+
 function renderItem(item) {
   const repairHtml = buildRepairHtml(item);
   const typeLabel = TYPE_LABELS[item.type] || item.type;
   const nextType = TYPE_CYCLE[(TYPE_CYCLE.indexOf(item.type) + 1) % TYPE_CYCLE.length];
   const nextLabel = TYPE_LABELS[nextType] || nextType;
-  const showEstimate = item.type !== 'I' && item.type !== 'N';
-  const estVal = item.estimateHours != null ? String(item.estimateHours) : '';
   return `<div class="wdc-item${item.type === 'I' ? ' is-ignored' : ''}${_focusedItemId === item.id ? ' is-focused' : ''}"
     data-item-id="${esc(item.id)}"
     data-confidence="${confidenceBand(item.confidence)}"
@@ -638,7 +689,7 @@ function renderItem(item) {
     <input type="text" class="wdc-title" value="${esc(item.title)}" placeholder="Add title…" aria-label="Work item title" spellcheck="true" />
     ${repairHtml ? `<div class="wdc-repairs">${repairHtml}</div>` : ''}
   </div>
-  ${showEstimate ? `<div class="wdc-estimate-wrap" title="Estimated hours for this item"><label class="wdc-estimate-label">h</label><input type="number" class="wdc-estimate-input" min="0" max="200" step="0.5" value="${esc(estVal)}" placeholder="–" aria-label="Estimate in hours" data-estimate-for="${esc(item.id)}" /></div>` : ''}
+  ${renderEstimateChips(item)}
   <button class="wdc-item-menu-btn" title="More options" aria-label="More options for this item">⋮</button>
 </div>`;
 }
@@ -654,10 +705,16 @@ function buildRepairHtml(item) {
   }
 
   if (item.duplicate?.suggestedAction === 'skipAlreadyDone') {
-    const dk = esc(item.duplicate.key || '');
+    const dk = item.duplicate.key || '';
     const score = item.duplicate.similarity != null ? ` · ${esc(String(item.duplicate.similarity))}% match` : '';
-    parts.push(`<span class="wdc-repair-chip wdc-repair-chip--done-block" title="This work is already in your Done column">Already done: ${dk}${score}</span>`
-      + `<button class="wdc-repair-action" data-repair="link-dup" data-item-id="${esc(item.id)}" data-dup-key="${dk}">Link</button>`
+    // Find Jira URL from warning with code 'ALREADY_DONE'
+    const doneWarn = item.warnings.find ? null : null; // warnings are strings in canvas; url lives on duplicate obj itself
+    const jiraUrl = item.duplicate.url || '';
+    const keyChip = jiraUrl
+      ? `<a class="wdc-repair-chip wdc-repair-chip--done-block" href="${esc(jiraUrl)}" target="_blank" rel="noopener noreferrer" title="View in Jira — this work is already Done">Already done: ${esc(dk)}${score}</a>`
+      : `<span class="wdc-repair-chip wdc-repair-chip--done-block" title="This work is already in your Done column">Already done: ${esc(dk)}${score}</span>`;
+    parts.push(keyChip
+      + `<button class="wdc-repair-action" data-repair="link-dup" data-item-id="${esc(item.id)}" data-dup-key="${esc(dk)}">Link</button>`
       + `<button class="wdc-repair-action wdc-repair-action--secondary" data-repair="create-anyway" data-item-id="${esc(item.id)}">Create anyway</button>`
       + `<button class="wdc-repair-action" data-repair="ignore-dup" data-item-id="${esc(item.id)}">Skip</button>`);
   } else if (item.duplicate?.key && item.duplicate?.suggestedAction !== 'createNew' && item.duplicate?.suggestedAction !== 'reviewSimilar') {
@@ -790,6 +847,21 @@ function updateSendBar() {
     reviewBtn.hidden = counts.review === 0;
     reviewBtn.textContent = `Review ${counts.review}`;
   }
+
+  // Bulk estimate row: show when ≥2 safe items and none have estimates yet
+  const bulkEl = document.getElementById('wdd-bulk-estimate-row');
+  if (bulkEl) {
+    const safeItems = _items.filter((i) => i.type !== 'I' && i.type !== 'N' && !i.warnings.length && !hasMeaningfulDuplicate(i) && i.title.trim());
+    const anyEstimated = safeItems.some((i) => i.estimateHours != null);
+    bulkEl.hidden = safeItems.length < 2 || anyEstimated;
+  }
+
+  // Skip-all-done button: show when any done-dup items exist
+  const skipAllEl = document.getElementById('wdd-skip-all-done-btn');
+  if (skipAllEl) {
+    skipAllEl.hidden = counts.alreadyDone === 0;
+    skipAllEl.textContent = `Skip all done (${counts.alreadyDone})`;
+  }
 }
 
 function toggleReviewOnly() {
@@ -863,7 +935,7 @@ function onCanvasKeydown(e) {
     e.preventDefault();
     pushUndo();
     const currentDepth = _items[idx].depth;
-    const newItem = { id: uid(), type: currentDepth === 0 ? 'E' : 'S', title: '', depth: currentDepth, confidence: 1, warnings: [], duplicate: null, sourceLineIndex: -1, selected: true };
+    const newItem = { id: uid(), type: currentDepth === 0 ? 'E' : 'S', title: '', depth: currentDepth, confidence: 1, warnings: [], duplicate: null, estimateHours: null, sourceLineIndex: -1, selected: true };
     _items.splice(idx + 1, 0, newItem);
     _focusedItemId = newItem.id;
     renderCanvas();
@@ -924,17 +996,39 @@ function onCanvasInput(e) {
   updateSendBar();
 }
 
-function onCanvasEstimateChange(e) {
-  const input = e.target;
-  if (!(input instanceof HTMLInputElement) || !input.dataset.estimateFor) return;
-  const id = input.dataset.estimateFor;
+function onEstimateChipClick(e) {
+  const btn = e.target.closest('[data-hours][data-estimate-for]');
+  if (!btn) return;
+  const id = btn.dataset.estimateFor;
   const item = _items.find((i) => i.id === id);
   if (!item) return;
-  const raw = parseFloat(input.value);
-  // Edge case: NaN, negative, or zero → null (no estimate)
-  item.estimateHours = (!Number.isNaN(raw) && raw > 0 && raw <= 200) ? Math.round(raw * 2) / 2 : null;
-  // Correct input value to reflect normalized value
-  input.value = item.estimateHours != null ? String(item.estimateHours) : '';
+  const hours = parseFloat(btn.dataset.hours);
+  if (Number.isNaN(hours)) return;
+  // Tap same active chip → deselect; tap different chip → select
+  item.estimateHours = (item.estimateHours === hours) ? null : hours;
+  // Update chips in-place without full re-render (prevents scroll jump)
+  const itemEl = btn.closest('[data-item-id]');
+  if (itemEl) {
+    itemEl.querySelectorAll('[data-estimate-for]').forEach((chip) => {
+      const chipHours = parseFloat(chip.dataset.hours);
+      const active = item.estimateHours === chipHours;
+      chip.classList.toggle('is-active', active);
+      chip.setAttribute('aria-pressed', String(active));
+    });
+  }
+  updateSendBar();
+}
+
+function onBulkEstimate(hours) {
+  const h = parseFloat(hours);
+  if (Number.isNaN(h) || h <= 0) return;
+  _items.forEach((item) => {
+    if (item.type !== 'I' && item.type !== 'N' && item.estimateHours == null) {
+      item.estimateHours = h;
+    }
+  });
+  renderCanvas();
+  updateSendBar();
 }
 
 function onCanvasFocusin(e) {
@@ -1539,10 +1633,20 @@ function wireEvents() {
   if (canvas) {
     canvas.addEventListener('keydown', onCanvasKeydown);
     canvas.addEventListener('input', onCanvasInput);
-    canvas.addEventListener('change', onCanvasEstimateChange);
     canvas.addEventListener('focusin', onCanvasFocusin);
     canvas.addEventListener('focusout', onCanvasFocusout);
     canvas.addEventListener('click', (e) => {
+      // "Use this example" button in empty canvas state
+      if (e.target?.closest('[data-action="paste-example"]')) {
+        const ta = document.getElementById('wdd-source-textarea');
+        if (ta) {
+          ta.value = '0: Clean Site Data.\n1: Reload from MIS.\n2: Validate alignment.';
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+          ta.focus();
+        }
+        return;
+      }
+      onEstimateChipClick(e);
       onTypeChipClick(e);
       onRepairAction(e);
       onAddItemClick(e);
@@ -1584,6 +1688,15 @@ function wireEvents() {
       }
     }
     if (e.target?.closest('[data-action="toggle-review"]')) toggleReviewOnly();
+
+    // Bulk estimate: "Set all" chip row
+    const bulkChip = e.target?.closest('[data-bulk-hours]');
+    if (bulkChip) { onBulkEstimate(bulkChip.dataset.bulkHours); }
+
+    // Skip all done duplicates at once
+    if (e.target?.closest('#wdd-skip-all-done-btn, [data-action="skip-all-done"]')) {
+      skipAllDoneDuplicates();
+    }
 
     // Toggle ignored-notes fold expand/collapse
     const ignoredToggle = e.target?.closest('[data-action="toggle-ignored-fold"]');

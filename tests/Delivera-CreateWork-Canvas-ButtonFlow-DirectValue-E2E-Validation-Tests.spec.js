@@ -642,4 +642,155 @@ test.describe('Create Work — canvas button-click flow (mocked API)', () => {
 
     assertTelemetryClean(telemetry);
   });
+
+  test('estimate chips render per item and clicking ½h chip selects it, button shows hours', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify(MOCK_SEQUENTIAL_TASK_DRAFT),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('0: Validate data.\n1: Reload from MIS.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
+
+    // Estimate chips should render (not the old number input)
+    const chips = canvas.locator('.wdc-estimate-chip');
+    const chipCount = await chips.count();
+    expect(chipCount).toBeGreaterThanOrEqual(7); // at least one set of 7 chips
+
+    // Click ½h chip on first item
+    const halfHourChip = canvas.locator('[data-hours="0.5"]').first();
+    if (await halfHourChip.isVisible().catch(() => false)) {
+      await halfHourChip.dispatchEvent('click');
+      await page.waitForTimeout(300);
+      const pressed = await halfHourChip.getAttribute('aria-pressed');
+      expect(pressed).toBe('true');
+    }
+
+    // Old number input should NOT exist
+    const oldInput = canvas.locator('.wdc-estimate-input');
+    expect(await oldInput.count()).toBe(0);
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('auto-suggest sets estimate chip for "Validate" title on draft load', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Validate DMS to CSS alignment', confidence: 0.72, warnings: [], selected: true, suggestedAssignee: null, duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        ],
+      }),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('0: Validate DMS to CSS alignment.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
+
+    // 2h chip should be auto-selected (validate → 2h)
+    const twoHourChip = canvas.locator('[data-hours="2"]').first();
+    if (await twoHourChip.isVisible().catch(() => false)) {
+      const pressed = await twoHourChip.getAttribute('aria-pressed');
+      expect(pressed).toBe('true');
+    }
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('"Skip all done (N)" button appears and clears all done-dup items', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Clean Site Data', confidence: 0.72,
+            warnings: [{ code: 'ALREADY_DONE', message: 'Already done: DMS-42' }], selected: true,
+            duplicate: { suggestedAction: 'skipAlreadyDone', primaryReason: 'done_match', key: 'DMS-42', similarity: 88, isDoneMatch: true, url: null } },
+          { id: 'r1', index: 1, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Reload from MIS', confidence: 0.72,
+            warnings: [], selected: true,
+            duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        ],
+      }),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('0: Clean Site Data.\n1: Reload from MIS.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const skipAllBtn = page.locator('#wdd-skip-all-done-btn');
+    if (await skipAllBtn.isVisible().catch(() => false)) {
+      const btnText = await skipAllBtn.textContent();
+      expect(btnText).toMatch(/Skip all done/i);
+      await skipAllBtn.dispatchEvent('click');
+      await page.waitForTimeout(500);
+      // After skip, done-dup item should be gone
+      const doneDupItems = page.locator('[data-done-dup="true"]');
+      expect(await doneDupItems.count()).toBe(0);
+    }
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('desktop push panel: body.wdd-panel-open added on open, removed on close', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify(MOCK_SEQUENTIAL_TASK_DRAFT),
+    }));
+
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const hasPanelClass = await page.evaluate(() => document.body.classList.contains('wdd-panel-open'));
+    expect(hasPanelClass).toBe(true);
+
+    // Backdrop should not be visible on desktop (1400px ≥ 1200px breakpoint)
+    const backdropVisible = await page.evaluate(() => {
+      const bd = document.getElementById('work-draft-backdrop');
+      if (!bd) return false;
+      const style = window.getComputedStyle(bd);
+      return style.display !== 'none';
+    });
+    expect(backdropVisible).toBe(false);
+
+    // Close drawer
+    const closeBtn = page.locator('#wdd-close-btn');
+    if (await closeBtn.isVisible().catch(() => false)) {
+      await closeBtn.dispatchEvent('click');
+      await page.waitForTimeout(300);
+      const stillOpen = await page.evaluate(() => document.body.classList.contains('wdd-panel-open'));
+      expect(stillOpen).toBe(false);
+    }
+
+    assertTelemetryClean(telemetry);
+  });
 });

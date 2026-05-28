@@ -71,6 +71,7 @@ function renderLeadershipKpiStrip(data) {
         <header>
           <h3>${escapeHtml(projectKey)}</h3>
           ${trustBadge ? `<span class="kpi-trust-badge tone-${escapeHtml(trustBadge.tone)}" title="${escapeHtml(trustBadge.tooltip || '')}">${escapeHtml(trustBadge.label)}</span>` : ''}
+          <button type="button" class="btn btn-primary btn-compact kpi-create-btn" data-open-outcome-modal data-outcome-projects="${escapeHtml(projectKey)}" data-outcome-context="Create work from ${escapeHtml(projectKey)} delivery context." title="Create work for ${escapeHtml(projectKey)}">+ Create</button>
         </header>
         <dl class="leadership-kpi-mini-grid">
           <div><dt>Cost / SP</dt><dd>${escapeHtml(formatCostPerSPDisplay(kpi) || 'No data')}</dd></div>

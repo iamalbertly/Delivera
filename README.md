@@ -86,6 +86,36 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 
 ## Latest UX and Trust Hardening
 
+### Mobile-first automation UX (this session)
+
+**Estimate hours — tap-to-select chip row (no keyboard)**
+- Replaced the 44px `<input type="number">` with 7 pill chips (½h, 1h, 2h, 4h, 8h, 1d, 2d) per canvas item — tap-to-select, tap-again-to-deselect, horizontally scrollable on mobile with no visible scrollbar.
+- Auto-estimate suggestion: `autoSuggestEstimate(title)` pre-selects chips from title keywords on draft load (validate→2h, deploy→1h, implement→4h, migrate→8h, reload→1h).
+- "Set all" bulk row in send bar: when ≥2 safe items have no estimate, shows `[1h][2h][4h][8h]` chips that apply to all unestimated items at once.
+- Create button shows total: "Create 6 Tasks · 18h" when estimates are set.
+
+**Duplicate detection: smarter pool + acronym boost**
+- `fetchCandidatePool` now fires two JQL queries in parallel: (1) last 90d up to 60 issues, (2) Done status only up to 365d up to 60 issues — merged and deduplicated. Total pool: up to 120 issues (was 40 in 90d window).
+- `acronymBoost(a, b)` added to `Delivera-Outcome-Similarity-01Core.js`: when both strings share technical acronyms (DMS, MIS, AMS, CSS etc.), similarity score is pulled toward the acronym match. Ensures "Clean Site Data on DMS" vs "Clean Site Data for DMS" scores much higher.
+- Done-duplicate "Already done: {key}" chip is now an `<a>` link to Jira (when URL available).
+- "Skip all done (N)" button in send bar skips all done-dup items to type I in one click.
+
+**Desktop push panel (GitHub/Linear pattern)**
+- On ≥1200px screens, opening Create Work drawer adds `body.wdd-panel-open` class which pushes main content left via `margin-right` transition instead of overlaying it with a dim backdrop.
+- Mobile/tablet (<1200px) behavior unchanged (overlay with backdrop).
+
+**Page consolidation — 4 thin pages eliminated**
+- `/teams` → 302 `/current-sprint`, `/value-delivery` → 302 `/report`, `/program-increment` → 302 `/leadership`
+- Global nav links updated to match redirect targets (no double-redirect)
+- HTML files marked `DeleteThisFile_teams.html`, `DeleteThisFile_value-delivery.html`, `DeleteThisFile_program-increment.html`
+- `home.html` enriched with live sprint pulse card: on page load, fetches current sprint summary and shows "Sprint X · N% done · N blockers → Open sprint" above the 3 nav cards.
+
+**Other UX micro-improvements**
+- Quick-create chip ("+ Create work") above decision cockpit fold on `/current-sprint` (viewport-lean mode).
+- "+ Create" button per project KPI card on the leadership page (pre-fills drawer with that project key).
+- "Use this example" / "Try example" button in empty canvas state — one click pastes a sample numbered task list and fires the draft.
+- `console.error` → `console.warn` in `Delivera-CurrentSprint-Page-Init-Controller.js:332` (unblocked UX Core test suite which was failing on console errors).
+
 ### Create Work: duplicate prevention + estimate hours (this session)
 - **Enhanced "Already done" detection:** `rankDuplicateAction` now uses `suggestedAction: 'skipAlreadyDone'` with lowered thresholds (done: 0.55, open: 0.65, epic: 0.65 — previously 0.68/0.78/0.72). Short titles (<20 chars) use higher thresholds to avoid noise.
 - **Blocking done-duplicate chip:** items matching a Done backlog issue render a red "Already done: {key} · N% match" chip with Link / Create anyway / Skip actions. Items are visually struck through (`data-done-dup="true"`) and excluded from the safe-create count.

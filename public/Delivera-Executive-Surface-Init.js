@@ -135,9 +135,43 @@ function initSurfacePage() {
   });
 }
 
+async function initHomeDashboardSprintPulse() {
+  const pulseEl = document.getElementById('home-sprint-pulse');
+  if (!pulseEl) return;
+  const projects = readSelectedProjects();
+  if (!projects.length) return;
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const qs = new URLSearchParams({ projects: projects.join(',') }).toString();
+    const res = await fetch(`/api/current-sprint.json?${qs}`, { credentials: 'same-origin', signal: ctrl.signal });
+    clearTimeout(timeout);
+    if (!res.ok) return;
+    const data = await res.json().catch(() => null);
+    if (!data) return;
+    const sprintName = data.sprint?.name || 'Active sprint';
+    const totalStories = (data.stories || []).length;
+    const doneStories = (data.stories || []).filter((s) => String(s?.status || '').toLowerCase().includes('done')).length;
+    const pct = totalStories > 0 ? Math.round((doneStories / totalStories) * 100) : 0;
+    const blockersOwned = data.risks?.blockersOwned ?? 0;
+    pulseEl.innerHTML = `
+      <div class="home-sprint-pulse-inner">
+        <span class="home-sprint-pulse-name">${sprintName}</span>
+        <span class="home-sprint-pulse-pct home-sprint-pulse-pct--${pct >= 70 ? 'good' : pct >= 40 ? 'mid' : 'low'}">${pct}% done</span>
+        <span class="home-sprint-pulse-stories">${totalStories} items</span>
+        ${blockersOwned > 0 ? `<span class="home-sprint-pulse-risk">${blockersOwned} blockers</span>` : ''}
+        <a href="/current-sprint" class="home-sprint-pulse-cta">Open sprint →</a>
+      </div>`;
+    pulseEl.hidden = false;
+  } catch (_) {
+    clearTimeout(timeout);
+  }
+}
+
 function bootExecutiveSurface() {
   if (maybeRedirectExecutiveShell() || maybeRedirectDashboardToLastRoute()) return;
   initSurfacePage();
+  initHomeDashboardSprintPulse();
 }
 
 if (document.readyState === 'loading') {

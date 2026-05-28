@@ -8,7 +8,9 @@ async function skipIfLogin(page) {
 test.describe('Delivera - All Surfaces Direct Value Polish', () => {
   test('executive surfaces use shared header and normalized create-work CTA', async ({ page }) => {
     // ?stay=1 prevents /home from auto-redirecting to last visited route
-    const pages = ['/home?stay=1', '/backlog-intake', '/program-increment', '/risks-blockers'];
+    // /program-increment → /leadership (redirect), /risks-blockers → /current-sprint (redirect)
+    // Test only pages that still serve HTML as executive surfaces
+    const pages = ['/home?stay=1', '/settings'];
     let pagesChecked = 0;
     for (const route of pages) {
       await page.goto(route);

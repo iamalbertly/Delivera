@@ -281,9 +281,10 @@ export function renderDecisionCockpit(data, options = {}) {
   const collapseSummary = `${health.status || 'On Track'} — ${health.message || 'Expand for sprint drill-down.'}`;
 
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
+  const quickCreateChip = '<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context." style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>';
   return ''
     + '<section class="decision-cockpit-shell' + leanClass + '">'
-    + (viewportLean ? '' : buildSummaryStrip(data, cockpit))
+    + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))
     + '<details class="decision-cockpit-details"' + (viewportLean ? '' : ' open') + '>'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'

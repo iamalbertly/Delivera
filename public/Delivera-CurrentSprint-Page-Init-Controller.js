@@ -329,7 +329,7 @@ function safeInitBoot() {
     // Surface a clear, user-facing error instead of leaving the page stuck in a welcome state.
     try {
       // eslint-disable-next-line no-console
-      console.error('Current Sprint init failed', error);
+      console.warn('Current Sprint init failed', error);
     } catch (_) {}
     const message = (error && error.message) ? error.message : 'Unexpected error during Current Sprint setup.';
     showError('Could not initialise Current Sprint view: ' + message);

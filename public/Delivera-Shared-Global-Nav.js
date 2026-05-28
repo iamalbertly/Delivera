@@ -51,8 +51,8 @@ const NAV_ITEMS = [
   },
   {
     key: PAGE_PI,
-    label: 'Program Increment (PI)',
-    href: '/program-increment',
+    label: 'PI Goals',
+    href: '/leadership',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 5v5l4 2-.9 1.6-4.6-2.3V7Z"/></svg>',
   },
   {
@@ -64,7 +64,7 @@ const NAV_ITEMS = [
   {
     key: PAGE_VALUE,
     label: 'Value Delivery',
-    href: '/value-delivery',
+    href: '/report',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2H7zm-2 4h14v2H5zm0 5h14v2H5zm0 5h10v2H5z"/></svg>',
   },
   {
@@ -82,7 +82,7 @@ const NAV_ITEMS = [
   {
     key: PAGE_TEAMS,
     label: 'Teams',
-    href: '/teams',
+    href: '/current-sprint',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11.5a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm9 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3ZM3 20v-1.2A4.8 4.8 0 0 1 7.8 14h-.6A4.8 4.8 0 0 1 12 18.8V20Zm9 0v-1.2A4.8 4.8 0 0 1 16.8 14h-.6A4.8 4.8 0 0 1 21 18.8V20Z"/></svg>',
   },
   {

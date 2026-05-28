@@ -100,11 +100,11 @@ router.get('/roadmap', requireAuth, (req, res) => {
 });
 
 router.get('/program-increment', requireAuth, (req, res) => {
-    res.sendFile('program-increment.html', { root: './public' });
+    res.redirect(302, '/leadership');
 });
 
 router.get('/value-delivery', requireAuth, (req, res) => {
-    res.sendFile('value-delivery.html', { root: './public' });
+    res.redirect(302, '/report');
 });
 
 router.get('/risks-blockers', requireAuth, (req, res) => {
@@ -112,7 +112,7 @@ router.get('/risks-blockers', requireAuth, (req, res) => {
 });
 
 router.get('/teams', requireAuth, (req, res) => {
-    res.sendFile('teams.html', { root: './public' });
+    res.redirect(302, '/current-sprint');
 });
 
 router.get('/settings', requireAuth, (req, res) => {

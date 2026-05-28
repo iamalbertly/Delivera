@@ -264,13 +264,21 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('executive placeholder pages are live and decision-oriented', async ({ page }) => {
+  test('executive placeholder pages redirect to live decision surfaces', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    for (const path of ['/program-increment', '/value-delivery', '/settings']) {
-      await page.goto(path);
-      if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
+    // /program-increment → /leadership, /value-delivery → /report (now redirects, not static pages)
+    await page.goto('/program-increment');
+    if (!page.url().includes('/login')) {
+      await expect(page).toHaveURL(/\/leadership/);
+    }
+    await page.goto('/value-delivery');
+    if (!page.url().includes('/login')) {
+      await expect(page).toHaveURL(/\/report/);
+    }
+    // /settings still serves static page
+    await page.goto('/settings');
+    if (!page.url().includes('/login')) {
       await expect(page.locator('.surface-hero-card')).toBeVisible();
-      await expect(page.locator('.surface-hero-card h1')).toBeVisible();
     }
     await page.goto('/risks-blockers');
     if (!page.url().includes('/login')) {

@@ -810,49 +810,73 @@ button.attention-queue-item,
   background: var(--card-muted);
 }
 
-/* Estimate hours compact input per canvas item */
-.wdc-estimate-wrap {
+/* Estimate hours — tap-to-select chip row (replaces old number input) */
+.wdc-estimate-chips {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  padding: 1px 0;
+  align-items: center;
+}
+.wdc-estimate-chips::-webkit-scrollbar { display: none; }
+
+.wdc-estimate-chip {
+  flex-shrink: 0;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  touch-action: manipulation;
+  line-height: 18px;
+}
+.wdc-estimate-chip:hover {
+  background: var(--card-muted);
+  color: var(--text);
+}
+.wdc-estimate-chip.is-active,
+.wdc-estimate-chip[aria-pressed="true"] {
+  background: #dcfce7;
+  border-color: #4ade80;
+  color: #14532d;
+  font-weight: 700;
+}
+
+/* Bulk estimate "Set all" row in send bar */
+.wdd-bulk-estimate-row {
   display: flex;
   align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
+  gap: 4px;
+  padding: 4px 16px;
+  border-top: 1px solid var(--border);
+}
+.wdd-bulk-estimate-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
   margin-right: 2px;
 }
-.wdc-estimate-label {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  -webkit-user-select: none;
-  user-select: none;
-  line-height: 1;
-}
-.wdc-estimate-input {
-  width: 44px;
-  height: 22px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: transparent;
+
+/* Skip all done button */
+.wdd-skip-all-done-btn {
   font-size: 0.78rem;
-  text-align: right;
-  padding: 0 4px;
-  color: var(--text);
-  outline: none;
-  -moz-appearance: textfield;
-  appearance: textfield;
+  padding: 2px 10px;
+  border: 1px solid #f87171;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  cursor: pointer;
+  font-weight: 600;
 }
-.wdc-estimate-input::-webkit-inner-spin-button,
-.wdc-estimate-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-}
-.wdc-estimate-input:focus {
-  border-color: var(--accent, #3b82f6);
-  background: var(--card-muted);
-}
-.wdc-estimate-input:not(:placeholder-shown) {
-  border-color: #86efac;
-  background: #f0fdf4;
-  color: #166534;
-}
+.wdd-skip-all-done-btn:hover { background: #fecaca; }
 
 /* Ignored notes fold — class-toggled div replaces <details> */
 .wdd-ignored-fold {
@@ -1373,3 +1397,62 @@ kbd {
   margin-bottom: 10px;
 }
 
+
+/* Desktop push-panel: when Create Work drawer is open on wide screens,
+   push main content left instead of overlaying it (GitHub/Linear pattern) */
+@media (min-width: 1200px) {
+  body.wdd-panel-open .hud-shell,
+  body.wdd-panel-open .container,
+  body.wdd-panel-open .report-shell {
+    margin-right: min(var(--sidebar-width, 560px), calc(100vw - 640px));
+    transition: margin-right 0.2s ease;
+  }
+  body.wdd-panel-open #work-draft-backdrop {
+    display: none; /* no dim overlay on desktop — content stays visible */
+  }
+  body.wdd-panel-open #work-draft-drawer {
+    box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+  }
+}
+
+/* Home page sprint pulse card */
+.home-sprint-pulse-card { margin-bottom: 12px; }
+.home-sprint-pulse-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.86rem;
+  flex-wrap: wrap;
+}
+.home-sprint-pulse-name { font-weight: 600; color: var(--text); }
+.home-sprint-pulse-pct {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.home-sprint-pulse-pct--good { background: #dcfce7; color: #14532d; }
+.home-sprint-pulse-pct--mid { background: #fef3c7; color: #92400e; }
+.home-sprint-pulse-pct--low { background: #fee2e2; color: #991b1b; }
+.home-sprint-pulse-stories { color: var(--text-muted); font-size: 0.8rem; }
+.home-sprint-pulse-risk { background: #fee2e2; color: #991b1b; font-size: 0.78rem; font-weight: 600; padding: 2px 7px; border-radius: 8px; }
+.home-sprint-pulse-cta { margin-left: auto; color: var(--primary, #0f4c81); font-size: 0.82rem; text-decoration: none; font-weight: 600; }
+.home-sprint-pulse-cta:hover { text-decoration: underline; }
+
+.wdc-example-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.76rem;
+  background: var(--card);
+  color: var(--primary, #0f4c81);
+  cursor: pointer;
+  font-weight: 500;
+}
+.wdc-example-btn:hover { background: var(--card-muted); }
