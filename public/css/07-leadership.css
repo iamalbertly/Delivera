@@ -1328,3 +1328,18 @@ body.hud-mode {
   background: #f0fdf4;
   color: #166534;
 }
+
+/* Desktop: 3-column KPI cards on very wide screens */
+@media (min-width: 1400px) {
+  .leadership-kpi-project-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .squad-status-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+  }
+  .squad-status-row {
+    border-bottom: 1px dashed var(--border);
+  }
+}

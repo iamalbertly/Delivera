@@ -214,7 +214,10 @@ function decideStructureMode(rows, inputKind) {
   const numberedCount = rows.filter((r) => NUMBERED_PREFIX_RE.test(r.raw)).length;
   const letterCount = rows.filter((r) => LETTER_PREFIX_RE.test(r.raw)).length;
   const allNumbered = rows.length >= 3 && rows.every((row) => NUMBERED_PREFIX_RE.test(row.raw));
-  const allLettered = rows.length >= 3 && rows.every((row) => LETTER_PREFIX_RE.test(row.raw));
+  // allLettered requires meaningful content after the prefix (not just 1-2 words)
+  const allLettered = rows.length >= 3
+    && rows.every((row) => LETTER_PREFIX_RE.test(row.raw))
+    && rows.every((row) => row.clean.split(/\s+/).length >= 2);
   const allActionRatio = rows.filter((r) => r.signals.startsWithAction).length / rows.length;
 
   if (quarterlyEpicBatch) {
@@ -252,11 +255,11 @@ function decideStructureMode(rows, inputKind) {
   }
 
   // Mixed numeric + letter prefixes: ≥60% numbered, ≥20% lettered, majority action-verb
-  const mixedListRatio = (numberedCount + letterCount) / rows.length;
   if (rows.length >= 3 && numberedCount >= Math.ceil(rows.length * 0.6) && letterCount >= Math.ceil(rows.length * 0.2) && allActionRatio >= 0.5) {
+    const mixedRatio = (numberedCount + letterCount) / rows.length;
     return {
       structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
-      confidenceScore: clamp01(0.48 + (mixedListRatio * 0.15)),
+      confidenceScore: clamp01(0.48 + (mixedRatio * 0.15)),
       rationale: 'Mixed numeric and letter list prefixes with action-verb majority — treated as flat task cluster.',
     };
   }

@@ -459,9 +459,15 @@ function showParseStatus(msg, spinner = false) {
   el.innerHTML = icon + `<span>${esc(msg)}</span>`;
 }
 
-// A duplicate object with suggestedAction:'createNew' means "no duplicate found" — not a blocker.
+// A duplicate object with suggestedAction:'createNew' or 'reviewSimilar' doesn't block creation.
+// 'skipAlreadyDone', 'mergeIntoExistingStory', 'attachToExistingEpic' are blocking.
 function hasMeaningfulDuplicate(item) {
-  return item.duplicate != null && item.duplicate.suggestedAction !== 'createNew';
+  const action = item.duplicate?.suggestedAction;
+  return action != null && action !== 'createNew' && action !== 'reviewSimilar';
+}
+
+function isDoneDuplicate(item) {
+  return item.duplicate?.suggestedAction === 'skipAlreadyDone' || item.duplicate?.isDoneMatch === true;
 }
 
 function warningsFromRow(row) {
@@ -513,6 +519,7 @@ function applyServerDraft(payload, narrative) {
       warnings,
       duplicate: row.duplicate || null,
       suggestedAssignee: row.suggestedAssignee || null,
+      estimateHours: null,
       sourceLineIndex: idx,
       selected: true,
     });
@@ -569,6 +576,7 @@ function renderQuickPreview(narrative) {
 function renderCanvas() {
   const canvas = document.getElementById('wdd-canvas');
   if (!canvas) return;
+  const savedScroll = canvas.scrollTop;
 
   const titleEl = document.getElementById('wdd-title');
   if (titleEl) {
@@ -576,16 +584,28 @@ function renderCanvas() {
   }
 
   if (!_items.length) {
-    canvas.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.83rem">Paste notes above or press <kbd>Enter</kbd> to add items.</div>';
+    const hint = _projectKey
+      ? `<div class="wdc-empty-hint">Paste your task list or press <kbd>Enter</kbd> to add the first item.</div>`
+      : `<div class="wdc-empty-hint wdc-empty-hint--no-project"><span>Set a project above</span> then paste your task list — e.g.<br><code>1: Clean data\n2: Reload from MIS\n3: Validate</code></div>`;
+    canvas.innerHTML = hint;
     renderIgnoredFold(canvas);
     return;
   }
 
+  const workItems = _items.filter((i) => i.type !== 'I' && i.type !== 'N');
+  const allDone = workItems.length > 0 && workItems.every((i) => isDoneDuplicate(i));
+  const allDoneBanner = allDone
+    ? `<div class="wdc-all-done-banner">All items appear to already exist in your Done column. Review matches or click "Create anyway" per item to override.</div>`
+    : '';
+
   const visible = _showingReviewOnly ? _items.filter((item) => item.warnings.length || hasMeaningfulDuplicate(item)) : _items;
-  canvas.innerHTML = visible.map((item) => renderItem(item)).join('')
+  canvas.innerHTML = allDoneBanner
+    + visible.map((item) => renderItem(item)).join('')
     + '<div class="wdc-item wdc-add-row" data-add-item style="opacity:0.5;cursor:pointer"><span style="font-size:0.8rem;color:var(--muted);padding:2px 8px">+ Add item  <kbd>Enter</kbd></span></div>';
 
   renderIgnoredFold(canvas);
+
+  if (savedScroll > 0) canvas.scrollTop = savedScroll;
 
   if (_focusedItemId) {
     const input = canvas.querySelector(`[data-item-id="${_focusedItemId}"] .wdc-title`);
@@ -605,9 +625,12 @@ function renderItem(item) {
   const typeLabel = TYPE_LABELS[item.type] || item.type;
   const nextType = TYPE_CYCLE[(TYPE_CYCLE.indexOf(item.type) + 1) % TYPE_CYCLE.length];
   const nextLabel = TYPE_LABELS[nextType] || nextType;
+  const showEstimate = item.type !== 'I' && item.type !== 'N';
+  const estVal = item.estimateHours != null ? String(item.estimateHours) : '';
   return `<div class="wdc-item${item.type === 'I' ? ' is-ignored' : ''}${_focusedItemId === item.id ? ' is-focused' : ''}"
     data-item-id="${esc(item.id)}"
     data-confidence="${confidenceBand(item.confidence)}"
+    data-done-dup="${isDoneDuplicate(item) ? 'true' : 'false'}"
     style="--wdc-depth:${item.depth}"
     role="listitem">
   <button class="wdc-type-chip" data-type="${esc(item.type)}" title="${esc(typeLabel)} — click to change to ${esc(nextLabel)}" aria-label="Item type: ${esc(typeLabel)}">${esc(item.type)}</button>
@@ -615,6 +638,7 @@ function renderItem(item) {
     <input type="text" class="wdc-title" value="${esc(item.title)}" placeholder="Add title…" aria-label="Work item title" spellcheck="true" />
     ${repairHtml ? `<div class="wdc-repairs">${repairHtml}</div>` : ''}
   </div>
+  ${showEstimate ? `<div class="wdc-estimate-wrap" title="Estimated hours for this item"><label class="wdc-estimate-label">h</label><input type="number" class="wdc-estimate-input" min="0" max="200" step="0.5" value="${esc(estVal)}" placeholder="–" aria-label="Estimate in hours" data-estimate-for="${esc(item.id)}" /></div>` : ''}
   <button class="wdc-item-menu-btn" title="More options" aria-label="More options for this item">⋮</button>
 </div>`;
 }
@@ -629,13 +653,25 @@ function buildRepairHtml(item) {
       + `<button class="wdc-repair-action" data-repair="accept-assignee" data-item-id="${esc(item.id)}" data-assignee="${esc(item.suggestedAssignee)}">Use</button>`);
   }
 
-  if (item.duplicate?.key) {
+  if (item.duplicate?.suggestedAction === 'skipAlreadyDone') {
+    const dk = esc(item.duplicate.key || '');
+    const score = item.duplicate.similarity != null ? ` · ${esc(String(item.duplicate.similarity))}% match` : '';
+    parts.push(`<span class="wdc-repair-chip wdc-repair-chip--done-block" title="This work is already in your Done column">Already done: ${dk}${score}</span>`
+      + `<button class="wdc-repair-action" data-repair="link-dup" data-item-id="${esc(item.id)}" data-dup-key="${dk}">Link</button>`
+      + `<button class="wdc-repair-action wdc-repair-action--secondary" data-repair="create-anyway" data-item-id="${esc(item.id)}">Create anyway</button>`
+      + `<button class="wdc-repair-action" data-repair="ignore-dup" data-item-id="${esc(item.id)}">Skip</button>`);
+  } else if (item.duplicate?.key && item.duplicate?.suggestedAction !== 'createNew' && item.duplicate?.suggestedAction !== 'reviewSimilar') {
     const dk = esc(item.duplicate.key);
-    const dscore = item.duplicate.similarity != null ? ` ${Math.round(Number(item.duplicate.similarity) * 100)}% match` : '';
-    parts.push(`<span class="wdc-repair-chip wdc-repair-chip--dupe">Similar: ${dk}${esc(dscore)}</span>`
+    const dscore = item.duplicate.similarity != null ? ` · ${esc(String(item.duplicate.similarity))}% match` : '';
+    parts.push(`<span class="wdc-repair-chip wdc-repair-chip--dupe">Similar: ${dk}${dscore}</span>`
       + `<button class="wdc-repair-action" data-repair="link-dup" data-item-id="${esc(item.id)}" data-dup-key="${dk}">Link</button>`
       + `<button class="wdc-repair-action" data-repair="create-new" data-item-id="${esc(item.id)}">Create new</button>`
       + `<button class="wdc-repair-action" data-repair="ignore-dup" data-item-id="${esc(item.id)}">Ignore</button>`);
+  } else if (item.duplicate?.suggestedAction === 'reviewSimilar' && item.duplicate?.key) {
+    const dk = esc(item.duplicate.key);
+    const dscore = item.duplicate.similarity != null ? ` · ${esc(String(item.duplicate.similarity))}% match` : '';
+    parts.push(`<span class="wdc-repair-chip wdc-repair-chip--fuzzy" title="Similar item exists but not a definite match">Review: ${dk}${dscore}</span>`
+      + `<button class="wdc-repair-action" data-repair="ignore-dup" data-item-id="${esc(item.id)}">Dismiss</button>`);
   }
 
   item.warnings.forEach((w) => {
@@ -678,14 +714,15 @@ function renderIgnoredFold(canvas) {
 // ─── Send bar ─────────────────────────────────────────────────────────────────
 
 function countsByStatus() {
-  let safe = 0, review = 0, ignored = 0;
+  let safe = 0, review = 0, ignored = 0, alreadyDone = 0;
   _items.forEach((item) => {
     if (item.type === 'I') { ignored++; return; }
-    // Empty-titled items are not ready to create — treat as needing review
     if (!item.title.trim()) { review++; return; }
-    if (item.warnings.length || hasMeaningfulDuplicate(item)) { review++; } else { safe++; }
+    if (isDoneDuplicate(item)) { alreadyDone++; review++; }
+    else if (item.warnings.length || hasMeaningfulDuplicate(item)) { review++; }
+    else { safe++; }
   });
-  return { safe, review, ignored: ignored + _ignoredItems.length };
+  return { safe, review, ignored: ignored + _ignoredItems.length, alreadyDone };
 }
 
 function dominantType() {
@@ -717,7 +754,8 @@ function updateSendBar() {
     } else {
       countsEl.innerHTML = ''
         + `<span class="wdd-send-count wdd-send-count--safe">Ready: ${counts.safe}</span>`
-        + (counts.review ? `<button class="wdd-send-count wdd-send-count--review" data-action="scroll-to-first-warning">Needs review: ${counts.review}</button>` : '')
+        + (counts.alreadyDone ? `<button class="wdd-send-count wdd-send-count--done-block" data-action="scroll-to-first-warning">Already done: ${counts.alreadyDone}</button>` : '')
+        + (counts.review - counts.alreadyDone > 0 ? `<button class="wdd-send-count wdd-send-count--review" data-action="scroll-to-first-warning">Review: ${counts.review - counts.alreadyDone}</button>` : '')
         + (counts.ignored ? `<span class="wdd-send-count wdd-send-count--ignored">Ignored: ${counts.ignored}</span>` : '');
     }
   }
@@ -735,9 +773,16 @@ function updateSendBar() {
     } else {
       const dom = dominantType();
       createBtn.disabled = counts.safe === 0;
-      createBtn.textContent = counts.safe === 0
-        ? 'Nothing to create yet'
-        : `Create ${counts.safe} ${typeLabel(dom, counts.safe)}`;
+      if (counts.safe === 0) {
+        createBtn.textContent = counts.alreadyDone > 0
+          ? `${counts.alreadyDone} item${counts.alreadyDone > 1 ? 's' : ''} already in Done — review or skip`
+          : 'Nothing to create yet';
+      } else {
+        const safeWithEstimate = _items.filter((i) => i.type !== 'I' && i.type !== 'N' && !i.warnings.length && !hasMeaningfulDuplicate(i) && i.title.trim() && i.estimateHours != null);
+        const totalHours = safeWithEstimate.reduce((s, i) => s + i.estimateHours, 0);
+        const hoursSuffix = totalHours > 0 ? ` · ${totalHours}h` : '';
+        createBtn.textContent = `Create ${counts.safe} ${typeLabel(dom, counts.safe)}${hoursSuffix}`;
+      }
     }
   }
 
@@ -879,6 +924,19 @@ function onCanvasInput(e) {
   updateSendBar();
 }
 
+function onCanvasEstimateChange(e) {
+  const input = e.target;
+  if (!(input instanceof HTMLInputElement) || !input.dataset.estimateFor) return;
+  const id = input.dataset.estimateFor;
+  const item = _items.find((i) => i.id === id);
+  if (!item) return;
+  const raw = parseFloat(input.value);
+  // Edge case: NaN, negative, or zero → null (no estimate)
+  item.estimateHours = (!Number.isNaN(raw) && raw > 0 && raw <= 200) ? Math.round(raw * 2) / 2 : null;
+  // Correct input value to reflect normalized value
+  input.value = item.estimateHours != null ? String(item.estimateHours) : '';
+}
+
 function onCanvasFocusin(e) {
   const input = e.target;
   if (!(input instanceof HTMLInputElement) || !input.classList.contains('wdc-title')) return;
@@ -964,7 +1022,12 @@ function onRepairAction(e) {
   switch (action) {
     case 'link-dup':
       item.duplicate = null;
-      item.warnings = item.warnings.filter((w) => !w.toLowerCase().includes('duplicate') && !w.toLowerCase().includes('similar'));
+      item.warnings = item.warnings.filter((w) => !w.toLowerCase().includes('duplicate') && !w.toLowerCase().includes('similar') && !w.toLowerCase().includes('done') && !w.toLowerCase().includes('review'));
+      break;
+    case 'create-anyway':
+      // User explicitly overrides done-duplicate detection — clear it and mark as safe
+      item.duplicate = { suggestedAction: 'createNew', primaryReason: 'user_override', key: null, similarity: null, isDoneMatch: false };
+      item.warnings = item.warnings.filter((w) => !w.toLowerCase().includes('already done') && !w.toLowerCase().includes('similar') && !w.toLowerCase().includes('review'));
       break;
     case 'create-new':
     case 'ignore-dup':
@@ -1017,7 +1080,7 @@ function onRestoreIgnored(e) {
   const restored = _ignoredItems.splice(idx, 1)[0];
   if (!restored) return;
   pushUndo();
-  _items.push({ id: uid(), type: 'S', title: restored.title, depth: 1, confidence: 0.5, warnings: ['Restored from ignored — review type'], duplicate: null, sourceLineIndex: restored.sourceLineIndex, selected: true });
+  _items.push({ id: uid(), type: 'S', title: restored.title, depth: 1, confidence: 0.5, warnings: ['Restored from ignored — review type'], duplicate: null, estimateHours: null, sourceLineIndex: restored.sourceLineIndex, selected: true });
   renderCanvas();
   updateSendBar();
 }
@@ -1027,7 +1090,7 @@ function onRestoreIgnored(e) {
 function onAddItemClick(e) {
   if (!e.target.closest('[data-add-item]')) return;
   pushUndo();
-  const newItem = { id: uid(), type: 'S', title: '', depth: 1, confidence: 1, warnings: [], duplicate: null, sourceLineIndex: -1, selected: true };
+  const newItem = { id: uid(), type: 'S', title: '', depth: 1, confidence: 1, warnings: [], duplicate: null, estimateHours: null, sourceLineIndex: -1, selected: true };
   _items.push(newItem);
   _focusedItemId = newItem.id;
   renderCanvas();
@@ -1102,6 +1165,11 @@ async function createSafeIssues(forceCreate = false) {
     childIssueTypeName: childIssueTypeName || null,
     // Only include source indices for server-parsed items; manually added items (index -1) are excluded
     commitChildIndices: safeItems.map((i) => i.sourceLineIndex).filter((n) => n >= 0),
+    // Per-item estimate hours: map of sourceLineIndex → hours (only non-null values)
+    itemEstimates: Object.fromEntries(
+      safeItems.filter((i) => i.estimateHours != null && i.sourceLineIndex >= 0)
+        .map((i) => [String(i.sourceLineIndex), i.estimateHours])
+    ),
     ...(forceCreate ? { createAnyway: true } : {}),
   };
 
@@ -1471,6 +1539,7 @@ function wireEvents() {
   if (canvas) {
     canvas.addEventListener('keydown', onCanvasKeydown);
     canvas.addEventListener('input', onCanvasInput);
+    canvas.addEventListener('change', onCanvasEstimateChange);
     canvas.addEventListener('focusin', onCanvasFocusin);
     canvas.addEventListener('focusout', onCanvasFocusout);
     canvas.addEventListener('click', (e) => {
@@ -1499,17 +1568,19 @@ function wireEvents() {
     onAiTestClick(e);
     onAiClearClick(e);
 
-    // "Needs review: N" chip: scroll to first item needing attention instead of toggling view mode
+    // "Needs review" / "Already done" chip: scroll to first item needing attention
     if (e.target?.closest('[data-action="scroll-to-first-warning"]')) {
       const canvas = document.getElementById('wdd-canvas');
-      const firstWarning = canvas?.querySelector('.wdc-item .wdc-repairs');
-      if (firstWarning) {
-        const itemEl = firstWarning.closest('.wdc-item');
-        itemEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        itemEl?.classList.add('is-focused');
-        const titleInput = itemEl?.querySelector('.wdc-title');
+      const isDoneBtn = e.target?.closest('.wdd-send-count--done-block');
+      const firstTarget = isDoneBtn
+        ? canvas?.querySelector('.wdc-item[data-done-dup="true"]')
+        : (canvas?.querySelector('.wdc-item .wdc-repairs')?.closest('.wdc-item'));
+      if (firstTarget) {
+        firstTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        firstTarget.classList.add('is-focused');
+        const titleInput = firstTarget.querySelector('.wdc-title');
         if (titleInput) titleInput.focus();
-        setTimeout(() => itemEl?.classList.remove('is-focused'), 1500);
+        setTimeout(() => firstTarget.classList.remove('is-focused'), 1500);
       }
     }
     if (e.target?.closest('[data-action="toggle-review"]')) toggleReviewOnly();

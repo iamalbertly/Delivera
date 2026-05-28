@@ -108,7 +108,7 @@ router.get('/value-delivery', requireAuth, (req, res) => {
 });
 
 router.get('/risks-blockers', requireAuth, (req, res) => {
-    res.sendFile('risks-blockers.html', { root: './public' });
+    res.redirect(302, '/current-sprint#stuck-card');
 });
 
 router.get('/teams', requireAuth, (req, res) => {

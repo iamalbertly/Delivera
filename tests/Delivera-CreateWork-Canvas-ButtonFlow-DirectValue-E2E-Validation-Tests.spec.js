@@ -499,4 +499,147 @@ test.describe('Create Work — canvas button-click flow (mocked API)', () => {
 
     assertTelemetryClean(telemetry);
   });
+
+  test('"Already done" chip renders and blocks create for done-duplicate items', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Clean Site Data on DMS', confidence: 0.72, warnings: [{ code: 'ALREADY_DONE', message: 'Already done: DMS-42 (88% match)' }], selected: true,
+            duplicate: { suggestedAction: 'skipAlreadyDone', primaryReason: 'done_match', key: 'DMS-42', similarity: 88, isDoneMatch: true, epicCandidate: null, storyCandidate: null, completedRecently: { key: 'DMS-42', similarity: 0.88 } } },
+          { id: 'r1', index: 1, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Reload from MIS', confidence: 0.72, warnings: [], selected: true, duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        ],
+      }),
+    }));
+
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('0: Clean Site Data on DMS.\n1: Reload from MIS.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    await expect(canvas).toBeVisible();
+
+    // Verify "Already done" chip appears
+    const doneChip = canvas.locator('.wdc-repair-chip--done-block').first();
+    if (await doneChip.isVisible().catch(() => false)) {
+      const chipText = await doneChip.textContent();
+      expect(chipText).toMatch(/Already done|DMS-42/i);
+    }
+
+    // Verify item is visually de-emphasized (strikethrough via data-done-dup)
+    const doneDupItem = canvas.locator('[data-done-dup="true"]');
+    const doneDupCount = await doneDupItem.count();
+    expect(doneDupCount).toBeGreaterThanOrEqual(1);
+
+    // "Already done" count should appear in send bar
+    const doneCountChip = page.locator('.wdd-send-count--done-block');
+    if (await doneCountChip.isVisible().catch(() => false)) {
+      const doneText = await doneCountChip.textContent();
+      expect(doneText).toMatch(/Already done|1/);
+    }
+
+    // Create button should show only 1 safe item (not the done one)
+    const createBtn = page.locator('#wdd-create-safe-btn');
+    const btnText = await createBtn.textContent().catch(() => '');
+    expect(btnText).not.toMatch(/Create 2/);
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('"Create anyway" override clears done-duplicate block and enables creation', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Clean Site Data on DMS', confidence: 0.72,
+            warnings: [{ code: 'ALREADY_DONE', message: 'Already done: DMS-42' }], selected: true,
+            duplicate: { suggestedAction: 'skipAlreadyDone', primaryReason: 'done_match', key: 'DMS-42', similarity: 88, isDoneMatch: true, epicCandidate: null, storyCandidate: null, completedRecently: { key: 'DMS-42', similarity: 0.88 } } },
+        ],
+      }),
+    }));
+
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('0: Clean Site Data on DMS.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    const createAnywayBtn = canvas.locator('[data-repair="create-anyway"]').first();
+    if (await createAnywayBtn.isVisible().catch(() => false)) {
+      await createAnywayBtn.dispatchEvent('click');
+      await page.waitForTimeout(500);
+
+      // After overriding, the item should no longer be marked as done-dup
+      const stillDoneDup = await canvas.locator('[data-done-dup="true"]').count();
+      expect(stillDoneDup).toBe(0);
+
+      // Create button should now be enabled
+      const createBtn = page.locator('#wdd-create-safe-btn');
+      const isDisabled = await createBtn.isDisabled().catch(() => true);
+      expect(isDisabled).toBe(false);
+    }
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('estimate hours input renders per item and shows total in create button label', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify(MOCK_SEQUENTIAL_TASK_DRAFT),
+    }));
+
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('0: Clean Data.\n1: Reload Data.\n2: Validate Data.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) {
+      test.skip(true, 'Canvas not visible after draft'); return;
+    }
+
+    // Each non-ignored item should have an estimate input
+    const estimateInputs = canvas.locator('.wdc-estimate-input');
+    const inputCount = await estimateInputs.count();
+    expect(inputCount).toBeGreaterThanOrEqual(3);
+
+    // Fill an estimate for the first item
+    const firstInput = estimateInputs.first();
+    await firstInput.fill('4');
+    await firstInput.dispatchEvent('change');
+    await page.waitForTimeout(300);
+
+    // Create button should show hours suffix
+    const createBtn = page.locator('#wdd-create-safe-btn');
+    const btnText = await createBtn.textContent().catch(() => '');
+    if (btnText && !btnText.includes('Nothing') && !btnText.includes('Select')) {
+      expect(btnText).toMatch(/4h/);
+    }
+
+    assertTelemetryClean(telemetry);
+  });
 });

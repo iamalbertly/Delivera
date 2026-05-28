@@ -1251,6 +1251,9 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         const createAnyway = req.body?.createAnyway === true;
         const requestedStructureMode = typeof req.body?.structureMode === 'string' ? req.body.structureMode.trim() : '';
         const requestedConfidenceScore = Number(req.body?.confidenceScore || 0);
+        // Per-item estimate hours: { "0": 2, "3": 4 } — keyed by sourceLineIndex
+        const itemEstimates = (req.body?.itemEstimates && typeof req.body.itemEstimates === 'object' && !Array.isArray(req.body.itemEstimates))
+            ? req.body.itemEstimates : {};
         if (!rawNarrative) {
             return res.status(400).json({ error: 'Narrative text is required', code: 'MISSING_NARRATIVE' });
         }
@@ -1522,6 +1525,13 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             }
         };
 
+        // Builds Jira estimate fields from user-provided hours (Jira expects seconds)
+        const estimateFieldsForIndex = (lineIndex) => {
+            const hours = lineIndex >= 0 ? Number(itemEstimates[String(lineIndex)]) : NaN;
+            if (!Number.isFinite(hours) || hours <= 0) return {};
+            return { timeoriginalestimate: Math.round(hours * 3600) };
+        };
+
         const createIssue = async (issueFields, issueTypeMeta = null, createContext = {}) => {
             try {
                 const created = await withOutcomeTimeout('issue creation', () => version3Client.issues.createIssue({ fields: issueFields }));
@@ -1566,7 +1576,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                     .filter((entry) => entry.key && entry.summary)
                     .map((entry) => [normalizeOutcomeTitle(entry.summary), entry])
             );
-            for (const item of parsedIntake.items) {
+            for (const [itemIdx, item] of parsedIntake.items.entries()) {
                 const normalizedTitle = normalizeOutcomeTitle(item.title);
                 if (!normalizedTitle) continue;
                 if (duplicateTitleSeen.has(normalizedTitle)) {
@@ -1597,6 +1607,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                         project: { key: projectKey },
                         issuetype: { name: standaloneIssueTypeName },
                         labels: ensureLabels([...(item.labels || []), itemHashLabel], projectKey),
+                        ...estimateFieldsForIndex(commitChildIndices[itemIdx] ?? -1),
                     }, selectedStandaloneType, { role: 'standalone', title: item.title });
                     createdStandalone.push({ ...createdItem, title: item.title });
                     if (createdItem?.key) expectedLevelsByKey[createdItem.key] = 'standalone';
@@ -1613,7 +1624,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                 labels,
             }, selectedParentType, { role: 'parent' });
             if (primary?.key) expectedLevelsByKey[primary.key] = 'parent';
-            for (const item of parsedIntake.items) {
+            for (const [childIdx, item] of parsedIntake.items.entries()) {
                 const itemLabels = ensureLabels(
                     [...labels, ...(Array.isArray(item.labels) ? item.labels : [])].filter((label) => !/^OutcomeHash_/i.test(label)),
                     projectKey,
@@ -1642,6 +1653,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                     project: { key: projectKey },
                     issuetype: { name: childIssueTypeName },
                     labels: itemLabels,
+                    ...estimateFieldsForIndex(commitChildIndices[childIdx] ?? -1),
                 };
                 if (childLinkMode === 'parent') childFields.parent = { key: primary.key };
                 else if (childLinkMode === 'epicLink' && childLinkFieldId) childFields[childLinkFieldId] = primary.key;

@@ -70,7 +70,7 @@ const NAV_ITEMS = [
   {
     key: PAGE_RISKS,
     label: 'Risks & Blockers',
-    href: '/risks-blockers',
+    href: '/current-sprint#stuck-card',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4ZM11 9h2v5h-2Zm0 6.5h2v2h-2Z"/></svg>',
   },
   {

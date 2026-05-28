@@ -13187,6 +13187,21 @@ body.hud-mode {
   background: #f0fdf4;
   color: #166534;
 }
+
+/* Desktop: 3-column KPI cards on very wide screens */
+@media (min-width: 1400px) {
+  .leadership-kpi-project-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .squad-status-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+  }
+  .squad-status-row {
+    border-bottom: 1px dashed var(--border);
+  }
+}
 /* Login page (outcome-first, trust below form) */
 .login-page .login-container {
   max-width: 360px;
@@ -13350,6 +13365,7 @@ body.hud-mode {
   padding: 0;
   margin: 0;
   background: rgba(15, 23, 42, 0.28);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   z-index: 1150;
 }
@@ -13752,6 +13768,38 @@ button.attention-queue-item,
   padding: 10px 0 4px;
   outline: none;
 }
+.wdc-empty-hint {
+  padding: 20px 16px;
+  color: var(--text-muted);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+.wdc-empty-hint code {
+  display: block;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: var(--card-muted);
+  border-radius: 6px;
+  white-space: pre;
+  font-size: 0.78rem;
+  color: var(--text);
+}
+.wdc-empty-hint--no-project span {
+  font-weight: 600;
+  color: var(--accent, #3b82f6);
+  cursor: pointer;
+}
+.wdc-all-done-banner {
+  margin: 8px 8px 4px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #f87171;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #991b1b;
+  font-weight: 600;
+  line-height: 1.4;
+}
 
 .wdc-item {
   display: flex;
@@ -13775,6 +13823,8 @@ button.attention-queue-item,
 .wdc-item[data-confidence="high"] { border-left-color: #22c55e; }
 .wdc-item[data-confidence="medium"] { border-left-color: #f59e0b; }
 .wdc-item[data-confidence="low"] { border-left-color: #ef4444; }
+.wdc-item[data-done-dup="true"] { opacity: 0.65; }
+.wdc-item[data-done-dup="true"] .wdc-title { text-decoration: line-through; color: var(--text-muted); }
 
 /* Type chips */
 .wdc-type-chip {
@@ -13856,6 +13906,29 @@ button.attention-queue-item,
   background: var(--card-muted);
   border-color: var(--border);
   color: var(--muted-strong);
+}
+.wdc-repair-chip--done-block {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #991b1b;
+  font-weight: 700;
+  cursor: default;
+}
+.wdc-repair-chip--fuzzy {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #78350f;
+  cursor: default;
+}
+.wdc-repair-action--secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 2px 8px;
+}
+.wdc-repair-action--secondary:hover {
+  background: var(--card-muted);
 }
 .wdc-repair-chip--assignee {
   background: #f0fdf4;
@@ -13939,6 +14012,50 @@ button.attention-queue-item,
 }
 .wdc-item-menu-btn:hover {
   background: var(--card-muted);
+}
+
+/* Estimate hours compact input per canvas item */
+.wdc-estimate-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.wdc-estimate-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  -webkit-user-select: none;
+  user-select: none;
+  line-height: 1;
+}
+.wdc-estimate-input {
+  width: 44px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  font-size: 0.78rem;
+  text-align: right;
+  padding: 0 4px;
+  color: var(--text);
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.wdc-estimate-input::-webkit-inner-spin-button,
+.wdc-estimate-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+.wdc-estimate-input:focus {
+  border-color: var(--accent, #3b82f6);
+  background: var(--card-muted);
+}
+.wdc-estimate-input:not(:placeholder-shown) {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
 }
 
 /* Ignored notes fold — class-toggled div replaces <details> */
@@ -14111,6 +14228,13 @@ kbd {
   background: var(--chip-ignore-bg);
   color: var(--chip-ignore);
   border: 1px solid var(--border);
+}
+.wdd-send-count--done-block {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #f87171;
+  font-weight: 700;
+  cursor: pointer;
 }
 .wdd-send-count--empty {
   color: var(--muted);

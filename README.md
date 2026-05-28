@@ -86,6 +86,21 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 
 ## Latest UX and Trust Hardening
 
+### Create Work: duplicate prevention + estimate hours (this session)
+- **Enhanced "Already done" detection:** `rankDuplicateAction` now uses `suggestedAction: 'skipAlreadyDone'` with lowered thresholds (done: 0.55, open: 0.65, epic: 0.65 — previously 0.68/0.78/0.72). Short titles (<20 chars) use higher thresholds to avoid noise.
+- **Blocking done-duplicate chip:** items matching a Done backlog issue render a red "Already done: {key} · N% match" chip with Link / Create anyway / Skip actions. Items are visually struck through (`data-done-dup="true"`) and excluded from the safe-create count.
+- **"All already done" banner:** when every work item is a done duplicate, a full-width red banner explains the situation and prompts the user to review or override per item.
+- **"Already done: N" count in send bar:** separate red count chip surfaces done-duplicate items independently from other review items. Clicking scrolls to the first done item.
+- **"Create anyway" override:** clicking "Create anyway" on an already-done chip clears the block, restores the item to the safe-create list, and updates the create button immediately.
+- **Fuzzy match chip:** items with similarity 0.45–0.65 against an open backlog item show amber "Review: {key} · N% match" with a dismiss button — surfaced as info, not blocker.
+- **Estimate hours per item:** each non-ignored/note canvas item has a compact `h` number input (`.wdc-estimate-input`). Values are normalized to 0.5h steps (max 200h). When estimates are set, the create button shows a total: "Create 6 Tasks · 18h". Estimates are sent to the server as `itemEstimates: { "0": 4, "2": 2 }` and converted to Jira `timeoriginalestimate` (seconds) per issue.
+- **Canvas scroll preservation:** `renderCanvas()` saves and restores `scrollTop` so re-renders don't jump to top.
+- **Enhanced empty state:** when no items exist, the canvas shows a contextual paste hint; if no project is selected, it shows a code example and highlights the project chip.
+
+### Page consolidation + navigation
+- **`/risks-blockers`** now HTTP-redirects to `/current-sprint#stuck-card` (was a meta-refresh HTML page). HTML file marked `DeleteThisFile_risks-blockers.html`. Global nav links updated to skip the redirect hop.
+- **`roadmap.html`** was never served (route already redirects to `/program-increment`). Marked `DeleteThisFile_roadmap.html`.
+
 ### Leadership: squad sprint status visibility (Teams Activity)
 - **New "Teams Activity" section** in the leadership report tab (`/report#trends`) and HUD (`/leadership`): shows each squad's sprint activation state — Active (green), Not started / Pending (amber), No sprint / Overdue start (red).
 - **Squad stall alert chip in HUD:** if any squad has no active sprint, a red `hud-squad-alert` chip appears above the metric cards: "⚠ N squads without active sprint — invisible risk."
