@@ -109,7 +109,13 @@ function saveAiProvider(data) {
 
 function getAllowedProjects(prefill = {}) {
   const selected = typeof _config.getSelectedProjects === 'function' ? (_config.getSelectedProjects() || []) : [];
-  return Array.from(new Set([...selected, ...(prefill.contextProjects || [])].map((v) => String(v || '').trim().toUpperCase()).filter(Boolean)));
+  // Layer 1: page-context projects + prefill
+  const fromContext = [...selected, ...(prefill.contextProjects || [])];
+  // Layer 2: global project context CSV (PROJECTS_SSOT_KEY — user's configured project list)
+  const fromCsv = readProjectContextCsv().split(',').map((v) => v.trim()).filter(Boolean);
+  // Layer 3: recent activity log (last 3 projects used successfully)
+  const fromActivity = readRecentActivityProjectKeys().slice(0, 3);
+  return Array.from(new Set([...fromContext, ...fromCsv, ...fromActivity].map((v) => String(v || '').trim().toUpperCase()).filter(Boolean)));
 }
 
 function getDraftContext() {
@@ -206,7 +212,7 @@ function ensureDrawer() {
       spellcheck="true"></textarea>
   </div>
   <div class="wdd-parse-status" id="wdd-parse-status" hidden></div>
-  <div class="wdd-capacity-hint" id="wdd-capacity-hint" hidden></div>
+  <div class="wdd-capacity-hint" id="wdd-capacity-hint" hidden aria-live="polite"></div>
   <div class="wdd-canvas" id="wdd-canvas" role="list" aria-label="Work items" tabindex="0"></div>
   <div class="wdd-follow-up" id="wdd-follow-up" hidden></div>
 </div>
@@ -264,7 +270,17 @@ export function openWorkDraftDrawer(prefill = {}) {
     sourceEl.classList.add('is-open');
     sourceEl.classList.remove('is-collapsed');
   }
-  if (ta?.value) {
+
+  // If no project resolved from any context, auto-open the project popover so the user
+  // can pick or type one — don't leave them staring at a permanently-disabled Create button.
+  if (!_projectKey) {
+    const pop = document.getElementById('wdd-project-popover');
+    if (pop) {
+      pop.hidden = false;
+      document.getElementById('wdd-project-chip')?.setAttribute('aria-expanded', 'true');
+      setTimeout(() => document.getElementById('wdd-project-manual-input')?.focus(), 80);
+    }
+  } else if (ta?.value) {
     scheduleServerDraft();
   } else if (ta) {
     ta.focus();
@@ -308,10 +324,18 @@ function updateProjectChip() {
 function renderProjectPopover() {
   const pop = document.getElementById('wdd-project-popover');
   if (!pop) return;
-  if (!_projectOptions.length) { pop.hidden = true; pop.innerHTML = ''; return; }
-  pop.innerHTML = _projectOptions.map((p) =>
+  const items = _projectOptions.map((p) =>
     `<button class="wdd-project-popover-item${p === _projectKey ? ' is-active' : ''}" data-project="${esc(p)}">${esc(p)}</button>`
   ).join('');
+  // Always include free-text fallback so users can type any project key without needing board context
+  pop.innerHTML = items
+    + `<div class="wdd-project-popover-manual">
+        <input type="text" class="wdd-project-manual-input" id="wdd-project-manual-input"
+          placeholder="Type project key (e.g. OPS)"
+          maxlength="12" autocomplete="off" spellcheck="false"
+          aria-label="Enter project key manually" />
+       </div>`
+    + (!items ? `<p class="wdd-project-popover-hint">No projects found in current context — enter a key above to get started.</p>` : '');
 }
 
 // ─── Trust strip ──────────────────────────────────────────────────────────────
@@ -448,6 +472,7 @@ function warningsFromRow(row) {
 }
 
 function applyServerDraft(payload, narrative) {
+  _showingReviewOnly = false;
   pushUndo();
   const rows = Array.isArray(payload.rows) ? payload.rows : [];
   if (!rows.length) {
@@ -597,7 +622,9 @@ function renderItem(item) {
 function buildRepairHtml(item) {
   const parts = [];
 
-  if (item.suggestedAssignee) {
+  if (item.acceptedAssignee) {
+    parts.push(`<span class="wdc-repair-chip wdc-repair-chip--assignee-accepted" title="Assignee confirmed">Assigned: ${esc(item.acceptedAssignee)}</span>`);
+  } else if (item.suggestedAssignee) {
     parts.push(`<span class="wdc-repair-chip wdc-repair-chip--assignee" title="Based on who worked on similar items in this board">Suggested: ${esc(item.suggestedAssignee)}</span>`
       + `<button class="wdc-repair-action" data-repair="accept-assignee" data-item-id="${esc(item.id)}" data-assignee="${esc(item.suggestedAssignee)}">Use</button>`);
   }
@@ -1322,7 +1349,11 @@ function onProjectChipClick(e) {
   const open = !pop.hidden;
   pop.hidden = open;
   chip.setAttribute('aria-expanded', String(!open));
-  if (!open) pop.querySelector('button')?.focus();
+  if (!open) {
+    const manualInput = pop.querySelector('#wdd-project-manual-input');
+    const firstBtn = pop.querySelector('button');
+    (manualInput || firstBtn)?.focus();
+  }
 }
 
 function onProjectSelect(e) {
@@ -1335,6 +1366,25 @@ function onProjectSelect(e) {
   document.getElementById('wdd-project-chip')?.setAttribute('aria-expanded', 'false');
   updateProjectChip();
   scheduleServerDraft();
+}
+
+function onProjectManualKeydown(e) {
+  const input = e.target;
+  if (!input || input.id !== 'wdd-project-manual-input') return;
+  if (e.key !== 'Enter') return;
+  const val = input.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!val || val.length < 2) return;
+  _projectKey = val;
+  if (!_projectOptions.includes(val)) { _projectOptions = [..._projectOptions, val]; }
+  saveLastProject(_projectKey);
+  const pop = document.getElementById('wdd-project-popover');
+  if (pop) pop.hidden = true;
+  document.getElementById('wdd-project-chip')?.setAttribute('aria-expanded', 'false');
+  updateProjectChip();
+  updateSendBar();
+  scheduleServerDraft();
+  // Focus textarea so user can start pasting immediately
+  setTimeout(() => document.getElementById('wdd-source-textarea')?.focus(), 50);
 }
 
 // ─── Source textarea ──────────────────────────────────────────────────────────
@@ -1435,6 +1485,11 @@ function wireEvents() {
   document.getElementById('wdd-create-safe-btn')?.addEventListener('click', () => createSafeIssues());
   document.getElementById('wdd-review-btn')?.addEventListener('click', toggleReviewOnly);
 
+
+  // Manual project key input: Enter key confirms and sets the project
+  d.addEventListener('keydown', (e) => {
+    onProjectManualKeydown(e);
+  });
 
   // Delegated handlers on the drawer element — covers dynamically injected elements
   d.addEventListener('click', (e) => {

@@ -50,15 +50,15 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
-      name: 'Run UX Core Journeys (Navigation, Trust, Responsiveness)',
+      name: 'Run Outcome Intake & Create Work Journey (covers most-recently-changed files)',
       command: 'npx',
-      args: pwJourneyArgs('journey.ux-core'),
+      args: pwJourneyArgs('journey.outcome-intake'),
       cwd: projectRoot,
     },
     {
-      name: 'Run Outcome Intake & Outcome-First Readiness Journey',
+      name: 'Run UX Core Journeys (Navigation, Trust, Responsiveness)',
       command: 'npx',
-      args: pwJourneyArgs('journey.outcome-intake'),
+      args: pwJourneyArgs('journey.ux-core'),
       cwd: projectRoot,
     },
     {

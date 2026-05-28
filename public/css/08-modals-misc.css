@@ -674,6 +674,13 @@ button.attention-queue-item,
   color: #166534;
   cursor: default;
 }
+.wdc-repair-chip--assignee-accepted {
+  background: #dcfce7;
+  border-color: #4ade80;
+  color: #14532d;
+  cursor: default;
+  font-weight: 600;
+}
 .wdd-capacity-hint {
   padding: 7px 16px;
   font-size: 0.78rem;

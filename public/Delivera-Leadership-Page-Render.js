@@ -44,15 +44,28 @@ function buildLeadershipRecommendation(data) {
   return { headline, body, repairAction, trustBand };
 }
 
+function buildEpicProgressLine(projectKey, outlierEpics) {
+  if (!Array.isArray(outlierEpics) || !outlierEpics.length) return '';
+  const prefix = (projectKey + '-').toUpperCase();
+  const projectEpics = outlierEpics.filter((e) => String(e.label || '').toUpperCase().startsWith(prefix));
+  if (!projectEpics.length) return '';
+  const overdueCount = projectEpics.filter((e) => String(e.metric || '').toLowerCase().includes('overdue') || String(e.rcaHint || '').toLowerCase().includes('overdue')).length;
+  const label = `${projectEpics.length} epic${projectEpics.length !== 1 ? 's' : ''}${overdueCount > 0 ? ` · ${overdueCount} overdue` : ''}`;
+  const tone = overdueCount > 0 ? 'warning' : 'ok';
+  return `<p class="kpi-epic-progress tone-${escapeHtml(tone)}">${escapeHtml(label)}</p>`;
+}
+
 function renderLeadershipKpiStrip(data) {
   const projectKPIs = data?.kpis?.projectKPIs || {};
   const projectKeys = Object.keys(projectKPIs);
   if (!projectKeys.length) return '';
+  const outlierEpics = Array.isArray(data?.kpis?.outlierEpics) ? data.kpis.outlierEpics : [];
 
   const cards = projectKeys.map((projectKey) => {
     const kpi = projectKPIs[projectKey];
     const trustBadge = buildTrustBadge(kpi?.dataQuality);
     const utilization = buildUtilizationDisplay(kpi);
+    const epicLine = buildEpicProgressLine(projectKey, outlierEpics);
     return `
       <article class="leadership-kpi-project-card" data-kpi-project="${escapeHtml(projectKey)}">
         <header>
@@ -67,6 +80,7 @@ function renderLeadershipKpiStrip(data) {
           <div><dt>Rework</dt><dd>${escapeHtml(formatPct(kpi?.reworkPct, 1))}</dd></div>
           <div><dt>Epic TTM</dt><dd>${escapeHtml(kpi?.epicTTMWorkingDays != null ? `${formatNumber(kpi.epicTTMWorkingDays, 0, '-') }d` : 'No data')}</dd></div>
         </dl>
+        ${epicLine}
       </article>
     `;
   }).join('');
@@ -313,6 +327,64 @@ function gradeFromSignals(onTimePct, predictabilityPct, sprintCount = 0) {
   return deriveDeliveryGrade(onTimePct, predictability, sprintCount);
 }
 
+function renderSquadActivationStatus(squads) {
+  if (!Array.isArray(squads) || squads.length === 0) return '';
+
+  function classifyBadge(squad) {
+    if (squad.sprintState === 'unavailable') return { cls: 'squad-badge--unknown', label: 'Unavailable' };
+    if (squad.hasActiveSprintFallback) {
+      return squad.nextSprintStartOverdue
+        ? { cls: 'squad-badge--stalled', label: 'Overdue start' }
+        : (squad.suggestStartSprint ? { cls: 'squad-badge--pending', label: 'Not started' } : { cls: 'squad-badge--stalled', label: 'No sprint' });
+    }
+    if (squad.sprintState === 'active') return { cls: 'squad-badge--active', label: 'Active sprint' };
+    if (squad.sprintState === 'future') return { cls: 'squad-badge--pending', label: 'Upcoming' };
+    return { cls: 'squad-badge--unknown', label: squad.sprintState || 'Unknown' };
+  }
+
+  const rows = squads.map((squad) => {
+    const badge = classifyBadge(squad);
+    let detail = squad.sprintName ? escapeHtml(squad.sprintName) : '';
+    if (squad.sprintStartDate) {
+      detail += detail ? ' · started ' : 'Started ';
+      detail += escapeHtml(squad.sprintStartDate.slice(0, 10));
+    }
+    if (squad.hasActiveSprintFallback && squad.nextSprintCandidate) {
+      detail = escapeHtml(squad.nextSprintCandidate.name || '') + ' planned' + (squad.nextSprintStartOverdue ? ' — start overdue' : ' — click Start Sprint in Jira');
+    }
+    if (squad.hasActiveSprintFallback && !squad.nextSprintCandidate) {
+      detail = 'No future sprint planned';
+    }
+    if (squad.error) detail = escapeHtml(squad.error);
+    const progress = squad.totalStories > 0
+      ? `<span class="squad-row-progress">${squad.doneStories}/${squad.totalStories} done</span>` : '';
+    return `
+      <div class="squad-status-row">
+        <span class="squad-status-badge ${escapeHtml(badge.cls)}" aria-label="${escapeHtml(badge.label)}">${escapeHtml(badge.label)}</span>
+        <span class="squad-row-name">${escapeHtml(squad.boardName)}</span>
+        ${detail ? `<span class="squad-row-detail">${detail}</span>` : ''}
+        ${progress}
+      </div>
+    `;
+  }).join('');
+
+  const stalledCount = squads.filter((s) => s.hasActiveSprintFallback).length;
+  const alertHtml = stalledCount > 0
+    ? `<p class="squad-status-alert" role="alert">⚠ ${stalledCount} squad${stalledCount > 1 ? 's' : ''} without an active sprint — risk of invisible scrambling.</p>`
+    : '';
+
+  return `
+    <section class="leadership-card squad-activation-status-card" aria-label="Squad sprint activation">
+      <div class="leadership-card-header">
+        <h2>Teams activity</h2>
+        <p class="leadership-delivery-hint"><small>Squads without an active sprint are a hidden risk — leaders won't know they're scrambling.</small></p>
+      </div>
+      ${alertHtml}
+      <div class="squad-status-list">${rows}</div>
+    </section>
+  `;
+}
+
 export function renderLeadershipPage(data) {
   const boards = data.boards || [];
   const meta = data.meta || {};
@@ -395,6 +467,10 @@ export function renderLeadershipPage(data) {
   html += '</div>';
   html += renderLeadershipKpiStrip(data);
   html += renderLeadershipEvidenceFold(data);
+
+  if (Array.isArray(data.squads) && data.squads.length > 0) {
+    html += renderSquadActivationStatus(data.squads);
+  }
 
   html += '<div class="leadership-card">';
   html += '<div class="leadership-card-header">';
@@ -500,6 +576,7 @@ export function renderLeadershipPage(data) {
     html += '<th class="sortable" data-sort="storiesPerDay" scope="col">Stories / Day</th>';
     html += '<th class="sortable" data-sort="indexedDelivery" scope="col" title="Current SP/day vs this board\'s baseline (last 6 sprints).">Indexed Delivery</th>';
     html += '<th class="sortable" data-sort="onTime" scope="col">On-time %</th>';
+    html += '<th data-sort="trend" scope="col">Velocity trend</th>';
     html += '</tr></thead><tbody>';
     for (const board of boards) {
       const summary = (data.boardSummaries || new Map()).get(board.id);
@@ -517,6 +594,18 @@ export function renderLeadershipPage(data) {
       const sprintCount = summary?.sprintCount ?? '-';
       const isRiskRow = onTimePct != null && onTimePct < 80;
       const hasLimitedHistory = typeof sprintCount === 'number' && sprintCount < 2;
+      const spValues = Array.isArray(summary?.sprintSpValues) ? summary.sprintSpValues : [];
+      let velocityTrendHtml = '<span style="color:var(--text-muted)">–</span>';
+      if (spValues.length >= 2) {
+        const latest = spValues[spValues.length - 1];
+        const prev = spValues[spValues.length - 2];
+        if (prev > 0) {
+          const diffPct = ((latest - prev) / prev) * 100;
+          if (diffPct >= 8) velocityTrendHtml = `<span style="color:#166534">↑ +${formatNumber(diffPct, 0, '0')}%</span>`;
+          else if (diffPct <= -8) velocityTrendHtml = `<span style="color:#991b1b">↓ ${formatNumber(diffPct, 0, '0')}%</span>`;
+          else velocityTrendHtml = `<span style="color:#6b7280">→ flat</span>`;
+        }
+      }
       const rowClass = isRiskRow ? ' class="leadership-board-row leadership-board-row--risk"' : ' class="leadership-board-row"';
       html += '<tr' + rowClass + '>';
       html += '<td>' + escapeHtml(board.name);
@@ -532,6 +621,7 @@ export function renderLeadershipPage(data) {
       html += '<td>' + (storiesPerDay != null ? formatNumber(storiesPerDay, 2, '-') : '-') + '</td>';
       html += '<td>' + indexStr + '</td>';
       html += '<td>' + onTime + '</td>';
+      html += '<td>' + velocityTrendHtml + '</td>';
       html += '</tr>';
     }
     html += '</tbody></table></div>';

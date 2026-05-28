@@ -225,6 +225,14 @@ async function fetchHudData() {
   }
 }
 
+function renderSquadAlertChip(squads) {
+  if (!Array.isArray(squads) || squads.length === 0) return '';
+  const stalledCount = squads.filter((s) => s.hasActiveSprintFallback).length;
+  if (stalledCount === 0) return '';
+  const names = squads.filter((s) => s.hasActiveSprintFallback).map((s) => s.boardName).join(', ');
+  return `<div class="hud-squad-alert" role="alert" title="${names}">⚠ ${stalledCount} squad${stalledCount > 1 ? 's' : ''} without active sprint — invisible risk</div>`;
+}
+
 function renderHud(data) {
   const grid = document.getElementById('hud-grid');
   if (!grid) return;
@@ -347,7 +355,9 @@ function renderHud(data) {
     }));
   }
 
+  const squadAlertHtml = renderSquadAlertChip(data?.squads);
   grid.innerHTML = `
+    ${squadAlertHtml ? `<div style="grid-column:1/-1;">${squadAlertHtml}</div>` : ''}
     <section class="hud-answer-row" style="grid-column:1/-1;" aria-label="Leadership answer">
       <article class="hud-answer-card">
         <span>Portfolio answer</span>

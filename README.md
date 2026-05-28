@@ -86,6 +86,27 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 
 ## Latest UX and Trust Hardening
 
+### Leadership: squad sprint status visibility (Teams Activity)
+- **New "Teams Activity" section** in the leadership report tab (`/report#trends`) and HUD (`/leadership`): shows each squad's sprint activation state — Active (green), Not started / Pending (amber), No sprint / Overdue start (red).
+- **Squad stall alert chip in HUD:** if any squad has no active sprint, a red `hud-squad-alert` chip appears above the metric cards: "⚠ N squads without active sprint — invisible risk."
+- **API extension (`/api/leadership-summary.json`):** now returns `squads[]` per board with `{ boardName, sprintState, hasActiveSprintFallback, nextSprintCandidate, nextSprintStartOverdue, suggestStartSprint, doneStories, totalStories }`.
+- **Data loader parallel fetch:** `Delivera-Leadership-Page-Data-Loader.js` now fires `/api/leadership-summary.json` in parallel with the main preview fetch and merges `squads` before calling `renderLeadershipPage()`.
+- **Epic progress per team:** KPI cards now show "X epics · Y overdue" beneath the 6-metric mini-grid, derived from `outlierEpics` filtered by project key prefix.
+- **Per-board velocity trend column:** boards table now has a "Velocity trend" column showing ↑ +X%, ↓ -X%, or → flat, computed from the last 2 sprint SP values in `summary.sprintSpValues`.
+
+### Create Work: auto-project fix (no more "Select a project first" lockout)
+- **3-layer project fallback** in `getAllowedProjects()`: (1) page/prefill context, (2) `readProjectContextCsv()` from PROJECTS_SSOT_KEY localStorage, (3) last 3 keys from activity log.
+- **Auto-open project popover** when no project resolved: popover opens immediately on drawer open and focuses the free-text manual input.
+- **Free-text project input** always shown in popover: user can type any key (e.g. `OPS`, `MPSA`), press Enter → key is accepted, draft fires, send bar unblocks.
+- **`_showingReviewOnly` reset** in `applyServerDraft()`: new server drafts no longer inherit the review-only filter from a previous draft.
+- **`aria-live="polite"`** on `#wdd-capacity-hint` so screen readers announce capacity fit signals.
+- **Accepted assignee badge:** clicking "Use" on a suggested assignee chip now shows a green "Assigned: {name}" static badge (`.wdc-repair-chip--assignee-accepted`) instead of silently removing the chip.
+
+### Parser: letter-prefix list support
+- `LETTER_PREFIX_RE` added: lists prefixed `a:`, `b:`, `c:` etc. now trigger `SEQUENTIAL_TASK_CLUSTER` at 0.52 base confidence — same flat-task behavior as numeric lists.
+- Mixed numeric + letter prefix lists (≥60% numbered, ≥20% lettered) also trigger SEQUENTIAL at 0.48 confidence.
+- `buildRow()` now strips letter prefixes before signal detection, consistent with numeric prefix stripping.
+
 ### Create Work drawer (cooperative AI UX)
 - Right-side drawer (`Delivera-Work-Draft-Canvas.js`) replaces centered modal: auto-draft (800ms debounce), editable canvas with E/S/T/N/I type chips, inline repair chips for warnings/duplicates.
 - Paste event fires instant client-side preview via `requestAnimationFrame` — no waiting for debounce on first paste.

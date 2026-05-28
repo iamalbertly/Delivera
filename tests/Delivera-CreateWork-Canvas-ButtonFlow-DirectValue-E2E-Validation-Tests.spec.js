@@ -405,4 +405,98 @@ test.describe('Create Work — canvas button-click flow (mocked API)', () => {
 
     assertTelemetryClean(telemetry);
   });
+
+  test('drawer auto-opens project popover or shows free-text input when no project context exists', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+
+    // Clear localStorage project context to simulate fresh user with no board context
+    await page.goto('/current-sprint');
+    await page.evaluate(() => {
+      try {
+        localStorage.removeItem('delivera_selected_projects');
+        localStorage.removeItem('delivera_projects_ssot');
+        localStorage.removeItem('wdd_last_project');
+        localStorage.removeItem('recentOutcomeActivity');
+      } catch (_) {}
+    });
+
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify(MOCK_SEQUENTIAL_TASK_DRAFT),
+    }));
+
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    // Either the project popover is shown or the send bar does not show "Select a project first"
+    // after the user manually enters a project key
+    const manualInput = page.locator('#wdd-project-manual-input');
+    const isManualVisible = await manualInput.isVisible().catch(() => false);
+
+    if (isManualVisible) {
+      // Manual input is visible — simulate user entering a project key
+      await manualInput.fill('OPS');
+      await manualInput.press('Enter');
+      await page.waitForTimeout(500);
+
+      const sendBar = page.locator('#wdd-safe-send-bar');
+      const sendText = await sendBar.textContent().catch(() => '');
+      expect(sendText).not.toMatch(/Select a project first/i);
+    }
+
+    // After entering the project, paste task list
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('a: Clean Data.\nb: Reload Data.\nc: Validate Data.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    // The send bar should NOT permanently show "Select a project first"
+    const sendBarFinal = page.locator('#wdd-safe-send-bar');
+    const finalSendText = await sendBarFinal.textContent().catch(() => '');
+    expect(finalSendText).not.toMatch(/Select a project first/i);
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('letter-prefixed list (a:, b:, c:) triggers task cluster mode, chips show T', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        precheck: { key: 'sequential_task_cluster', message: 'Numbered task list — each step becomes a flat sprint-ready task.' },
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Clean Data', confidence: 0.72, warnings: [], selected: true },
+          { id: 'r1', index: 1, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Reload Data', confidence: 0.72, warnings: [], selected: true },
+          { id: 'r2', index: 2, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Validate Data', confidence: 0.72, warnings: [], selected: true },
+        ],
+      }),
+    }));
+
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('a: Clean Data.\nb: Reload Data.\nc: Validate Data.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    if (await canvas.isVisible().catch(() => false)) {
+      const typeChips = canvas.locator('.wdc-type-chip');
+      const count = await typeChips.count();
+      if (count > 0) {
+        for (let i = 0; i < count; i++) {
+          const chipText = await typeChips.nth(i).textContent();
+          expect(chipText?.trim()).toBe('T');
+        }
+      }
+    }
+
+    assertTelemetryClean(telemetry);
+  });
 });

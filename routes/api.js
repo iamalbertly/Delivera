@@ -1103,6 +1103,42 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         const deliveryRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, blockersOwned / 10) * 100)));
         const dataQualityRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, (unownedOutcomes + missingLogged + missingEstimate) / 30) * 100)));
 
+        const squads = boardPayloadsSettled.map((settled, idx) => {
+            const board = activeBoards[idx];
+            if (settled.status !== 'fulfilled' || !settled.value) {
+                return { boardId: board?.id, boardName: board?.name || 'Unknown', sprintState: 'unavailable', error: 'Jira unreachable' };
+            }
+            const payload = settled.value;
+            const meta = payload.meta || {};
+            const sprint = payload.sprint || {};
+            const nextSprint = payload.nextSprint || {};
+            const selectedSprintState = String(sprint.state || '').toLowerCase();
+            const activeCount = Number(meta.activeSprintCount || 0);
+            const noActiveFallback = selectedSprintState === 'closed' && activeCount === 0;
+            let nextSprintStartOverdue = false;
+            if (noActiveFallback && nextSprint.startDate) {
+                const plannedStart = new Date(nextSprint.startDate).getTime();
+                if (Number.isFinite(plannedStart) && plannedStart < Date.now()) nextSprintStartOverdue = true;
+            }
+            const storyList = payload.stories || [];
+            const boardDone = storyList.filter((s) => String(s?.status || '').toLowerCase().includes('done')).length;
+            return {
+                boardId: board?.id,
+                boardName: board?.name || 'Unknown',
+                sprintState: sprint.state || 'none',
+                sprintName: sprint.name || null,
+                sprintStartDate: sprint.startDate || null,
+                hasActiveSprintFallback: noActiveFallback,
+                nextSprintCandidate: (noActiveFallback && nextSprint.id)
+                    ? { id: nextSprint.id, name: nextSprint.name || '', startDate: nextSprint.startDate || '' }
+                    : null,
+                nextSprintStartOverdue,
+                suggestStartSprint: noActiveFallback && !!nextSprint.id,
+                doneStories: boardDone,
+                totalStories: storyList.length,
+            };
+        });
+
         const summary = {
             velocity: { avg: 45, trend: 12 },
             risk: {
@@ -1117,6 +1153,7 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
             },
             quality: { reworkPct: 8.5, trend: 2 },
             predictability: { avg: 82, trend: 4 },
+            squads,
             projectContext: projects.join(', '),
             generatedAt: new Date().toISOString()
         };

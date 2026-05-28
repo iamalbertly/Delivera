@@ -1,5 +1,6 @@
 const BULLET_PREFIX_RE = /^\s*(?:[-*•]+|\d+\s*[:.)-])\s*/;
 const NUMBERED_PREFIX_RE = /^\s*\d+\s*[:.)-]\s*/;
+const LETTER_PREFIX_RE = /^\s*[a-zA-Z]\s*[:.)-]\s*/;
 const JIRA_KEY_RE = /\b([A-Z][A-Z0-9]+-\d+)\b/ig;
 const TABLE_HEADER_RE = /^(key|summary|description|status|owner|assignee)$/i;
 // Extended with technical/DevOps verbs common in developer task lists
@@ -124,9 +125,10 @@ function getLineSignals(text) {
 }
 
 function buildRow(raw, description = '') {
-  // Strip numbered list prefix before splitting (e.g. "0: Clean..." → "Clean...")
-  // so that getLineSignals sees the actual task text, not the list index
-  const strippedRaw = NUMBERED_PREFIX_RE.test(raw) ? raw.replace(NUMBERED_PREFIX_RE, '') : raw;
+  // Strip numbered or letter list prefix before splitting (e.g. "0: Clean..." or "a: Clean..." → "Clean...")
+  const strippedRaw = NUMBERED_PREFIX_RE.test(raw)
+    ? raw.replace(NUMBERED_PREFIX_RE, '')
+    : (LETTER_PREFIX_RE.test(raw) ? raw.replace(LETTER_PREFIX_RE, '') : raw);
   const split = splitTitleAndDescription(strippedRaw);
   const title = split.title || rewriteTitle(strippedRaw);
   const body = normalizeWhitespace(description || split.description || '');
@@ -208,8 +210,11 @@ function decideStructureMode(rows, inputKind) {
     && rows.every((row) => QUARTER_EPIC_LINE_RE.test(row.clean))
     && rows.every((row) => !row.signals.startsWithAction);
 
-  // Pre-compute numbered-list metrics — used before parent-child checks
+  // Pre-compute numbered/letter-list metrics — used before parent-child checks
+  const numberedCount = rows.filter((r) => NUMBERED_PREFIX_RE.test(r.raw)).length;
+  const letterCount = rows.filter((r) => LETTER_PREFIX_RE.test(r.raw)).length;
   const allNumbered = rows.length >= 3 && rows.every((row) => NUMBERED_PREFIX_RE.test(row.raw));
+  const allLettered = rows.length >= 3 && rows.every((row) => LETTER_PREFIX_RE.test(row.raw));
   const allActionRatio = rows.filter((r) => r.signals.startsWithAction).length / rows.length;
 
   if (quarterlyEpicBatch) {
@@ -228,14 +233,31 @@ function decideStructureMode(rows, inputKind) {
     };
   }
 
-  // Numbered sequential task cluster: developer checklist or ordered procedure.
-  // Detection: ≥3 lines, all have numeric prefix, ≥70% start with an action verb.
-  // Checked BEFORE parent-child patterns — numbering signals siblings, not hierarchy.
+  // Numbered/letter-prefixed sequential task cluster: developer checklist or ordered procedure.
+  // Checked BEFORE parent-child patterns — list prefixes signal siblings, not hierarchy.
   if (allNumbered && allActionRatio >= 0.6) {
     return {
       structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
       confidenceScore: clamp01(0.60 + (allActionRatio * 0.20)),
       rationale: 'Numbered action-verb steps detected — each becomes a flat sprint-ready task (no parent/child hierarchy).',
+    };
+  }
+
+  if (allLettered && allActionRatio >= 0.5) {
+    return {
+      structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
+      confidenceScore: clamp01(0.52 + (allActionRatio * 0.18)),
+      rationale: 'Alphabetically-prefixed action-verb steps detected — each becomes a flat sprint-ready task.',
+    };
+  }
+
+  // Mixed numeric + letter prefixes: ≥60% numbered, ≥20% lettered, majority action-verb
+  const mixedListRatio = (numberedCount + letterCount) / rows.length;
+  if (rows.length >= 3 && numberedCount >= Math.ceil(rows.length * 0.6) && letterCount >= Math.ceil(rows.length * 0.2) && allActionRatio >= 0.5) {
+    return {
+      structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
+      confidenceScore: clamp01(0.48 + (mixedListRatio * 0.15)),
+      rationale: 'Mixed numeric and letter list prefixes with action-verb majority — treated as flat task cluster.',
     };
   }
 
@@ -263,14 +285,14 @@ function decideStructureMode(rows, inputKind) {
     };
   }
 
-  // Partial numbered: ≥3 lines with mixed numeric/non-numeric prefixes but majority action-verb.
+  // Partial list: ≥60% of lines have numeric or letter prefixes, majority action-verb.
   // Treat as flat task cluster with slightly lower confidence.
-  const someNumbered = rows.filter((r) => NUMBERED_PREFIX_RE.test(r.raw)).length;
+  const someNumbered = numberedCount + letterCount;
   if (rows.length >= 3 && someNumbered >= Math.ceil(rows.length * 0.6) && allActionRatio >= 0.55) {
     return {
       structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
       confidenceScore: clamp01(0.52 + (allActionRatio * 0.18)),
-      rationale: 'Partially numbered action-verb steps — treated as sprint-ready tasks.',
+      rationale: 'Partially prefixed action-verb steps — treated as sprint-ready tasks.',
     };
   }
 
