@@ -11602,6 +11602,15 @@ body.jira-nudge-review-open { overflow: hidden; }
   margin-bottom: 10px;
   gap: 8px;
 }
+.cs-cockpit-quick-create {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  justify-self: start;
+  font-size: 0.78rem !important;
+  padding: 3px 10px !important;
+  margin-bottom: 0;
+}
 .decision-cockpit-shell--viewport-lean .decision-cockpit-details:not([open]) .decision-metrics-row {
   display: none;
 }
@@ -13887,6 +13896,19 @@ button.attention-queue-item,
   padding: 1px 5px;
   white-space: nowrap;
   line-height: 1.4;
+  cursor: text;
+  outline: none;
+  min-width: 20px;
+}
+.wdc-sp-badge:focus {
+  outline: 2px solid #3b82f6;
+  border-radius: 4px;
+  background: #eff6ff;
+}
+.wdc-sp-unit {
+  font-weight: 400;
+  opacity: 0.7;
+  font-size: 0.62rem;
 }
 .wdc-title:focus {
   box-shadow: 0 0 0 2px rgba(230, 0, 0, 0.15);
@@ -14110,13 +14132,20 @@ button.attention-queue-item,
   white-space: nowrap;
   margin-right: 2px;
 }
-.wdd-bulk-est-btn {
-  height: 20px; padding: 0 7px;
-  border: 1px solid var(--border); border-radius: 8px;
-  font-size: 0.7rem; font-weight: 500; background: transparent;
-  color: var(--text-muted); cursor: pointer;
+.wdd-bulk-slider {
+  flex: 1;
+  max-width: 100px;
+  height: 4px;
+  cursor: pointer;
+  accent-color: var(--accent, #3b82f6);
 }
-.wdd-bulk-est-btn:hover { background: var(--card-muted); color: var(--text); }
+.wdd-bulk-slider-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 22px;
+  text-align: left;
+}
 
 /* Skip all done button */
 .wdd-skip-all-done-btn {

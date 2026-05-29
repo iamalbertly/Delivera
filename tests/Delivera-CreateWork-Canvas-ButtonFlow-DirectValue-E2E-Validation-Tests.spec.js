@@ -662,18 +662,24 @@ test.describe('Create Work — canvas button-click flow (mocked API)', () => {
     const canvas = page.locator('#wdd-canvas');
     if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
 
-    // Estimate chips should render (not the old number input)
-    const chips = canvas.locator('.wdc-estimate-chip');
-    const chipCount = await chips.count();
-    expect(chipCount).toBeGreaterThanOrEqual(7); // at least one set of 7 chips
+    // Estimate slider should render (chip row was replaced by a range slider)
+    const sliderWraps = canvas.locator('.wdc-estimate-slider-wrap');
+    const sliderCount = await sliderWraps.count();
+    expect(sliderCount).toBeGreaterThanOrEqual(1);
 
-    // Click ½h chip on first item
-    const halfHourChip = canvas.locator('[data-hours="0.5"]').first();
-    if (await halfHourChip.isVisible().catch(() => false)) {
-      await halfHourChip.dispatchEvent('click');
-      await page.waitForTimeout(300);
-      const pressed = await halfHourChip.getAttribute('aria-pressed');
-      expect(pressed).toBe('true');
+    // Set slider to step 2 (1h) via JS
+    const firstSlider = canvas.locator('.wdc-estimate-slider').first();
+    if (await firstSlider.isVisible().catch(() => false)) {
+      await firstSlider.evaluate((el) => {
+        el.value = '2';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.waitForTimeout(200);
+      const labelEl = canvas.locator('.wdc-estimate-slider-label').first();
+      if (await labelEl.isVisible().catch(() => false)) {
+        const label = await labelEl.textContent();
+        expect(label?.trim()).toBe('1h');
+      }
     }
 
     // Old number input should NOT exist
@@ -707,11 +713,12 @@ test.describe('Create Work — canvas button-click flow (mocked API)', () => {
     const canvas = page.locator('#wdd-canvas');
     if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
 
-    // 2h chip should be auto-selected (validate → 2h)
-    const twoHourChip = canvas.locator('[data-hours="2"]').first();
-    if (await twoHourChip.isVisible().catch(() => false)) {
-      const pressed = await twoHourChip.getAttribute('aria-pressed');
-      expect(pressed).toBe('true');
+    // auto-suggest for "validate" maps to 2h = step 3; verify slider value
+    const firstSlider = canvas.locator('.wdc-estimate-slider').first();
+    if (await firstSlider.isVisible().catch(() => false)) {
+      const sliderValue = await firstSlider.getAttribute('value');
+      // Step 3 = 2h (validate keyword → 2h → hoursToStep(2) = 3)
+      expect(Number(sliderValue)).toBe(3);
     }
 
     assertTelemetryClean(telemetry);
@@ -935,6 +942,88 @@ test.describe('Create Work — canvas button-click flow (mocked API)', () => {
       expect(chipText).toMatch(/Already done|checkmark|done/i);
     }
 
+    assertTelemetryClean(telemetry);
+  });
+
+  test('SP→slider bridge: 13pt item auto-positions slider at step 6 (1d)', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T',
+            title: 'TM activators KPI rolling 30 days', confidence: 0.72, warnings: [], selected: true,
+            suggestedStoryPoints: 13,
+            duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        ],
+      }),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('1: TM activators KPI rolling 30 days -13pt');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
+    const slider = canvas.locator('.wdc-estimate-slider').first();
+    if (await slider.isVisible().catch(() => false)) {
+      const value = await slider.getAttribute('value');
+      // 13pt → spToStep[13] = 6 → label '1d'
+      expect(Number(value)).toBe(6);
+      const label = await canvas.locator('.wdc-estimate-slider-label').first().textContent();
+      expect(label?.trim()).toBe('1d');
+    }
+    // SP badge should show 13pt
+    const badge = canvas.locator('.wdc-sp-badge').first();
+    if (await badge.isVisible().catch(() => false)) {
+      const txt = await badge.textContent();
+      expect(txt).toMatch(/13/);
+    }
+    assertTelemetryClean(telemetry);
+  });
+
+  test('SP badge is contenteditable and updates on blur', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T',
+            title: 'Fix gross add table', confidence: 0.72, warnings: [], selected: true,
+            suggestedStoryPoints: 5,
+            duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        ],
+      }),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('1: Fix gross add table -5pt');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
+    const badge = canvas.locator('.wdc-sp-badge').first();
+    if (await badge.isVisible().catch(() => false)) {
+      // Verify it is contenteditable
+      const editable = await badge.getAttribute('contenteditable');
+      expect(editable).toBe('true');
+      // Edit the SP value
+      await badge.click();
+      await badge.fill('8');
+      await badge.blur();
+      await page.waitForTimeout(300);
+      // After blur, badge should reflect "8"
+      const newText = await badge.textContent();
+      expect(newText).toMatch(/8/);
+    }
     assertTelemetryClean(telemetry);
   });
 });

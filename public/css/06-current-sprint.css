@@ -6156,6 +6156,15 @@ body.jira-nudge-review-open { overflow: hidden; }
   margin-bottom: 10px;
   gap: 8px;
 }
+.cs-cockpit-quick-create {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  justify-self: start;
+  font-size: 0.78rem !important;
+  padding: 3px 10px !important;
+  margin-bottom: 0;
+}
 .decision-cockpit-shell--viewport-lean .decision-cockpit-details:not([open]) .decision-metrics-row {
   display: none;
 }

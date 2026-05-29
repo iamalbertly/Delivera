@@ -86,6 +86,16 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 
 ## Latest UX and Trust Hardening
 
+### SP→Estimate bridge, SP badge edit, Teams parser hardening, bulk slider, cockpit CSS (this session)
+- **SP→Slider bridge**: `ESTIMATE_SCALE.spToStep` maps Fibonacci story points to slider steps (1pt→1h, 5pt→4h, 13pt→1d, 21pt→2d). Applied in `applyServerDraft()` — SP takes priority over keyword auto-suggest.
+- **SP badge inline edit**: `.wdc-sp-badge` is now `contenteditable="true"`. Click badge → type new value → blur saves to `item.suggestedStoryPoints` and updates the slider. Empty blur resets to original.
+- **Teams parser hardening**: Unnumbered lines after a numbered block are now classified as independent tasks (if ≥5 words, starts uppercase, not a continuation-word) vs. continuation lines (otherwise). Example: "Cross checking if all new sites..." after `10:` becomes item 11.
+- **Bulk estimate slider**: `#wdd-bulk-estimate-row` chip buttons replaced with a compact `<input type="range" id="wdd-bulk-slider">`. Dragging applies the estimate to ALL items simultaneously.
+- **Cockpit quick-create CSS**: `.cs-cockpit-quick-create` now has proper CSS (`align-self: start`, `justify-self: start`) so it sits correctly as the first grid item in the lean cockpit.
+- **SP total in drawer title**: "Create work · 6 · 47pt" when any item has story points.
+- **`skipAllDoneDuplicates()` review-only guard**: Resets `_showingReviewOnly = false` before rendering to prevent empty canvas.
+- **Test fixes**: 2 assertions updated from `.wdc-estimate-chip` (removed) to `.wdc-estimate-slider-wrap`. 2 new E2E tests: SP→slider bridge and SP badge edit.
+
 ### Estimate slider, Teams chat parser, sprint page fix (this session)
 
 **Estimate hours — compact range slider (replaces chip row)**

@@ -219,15 +219,14 @@ function ensureDrawer() {
 <div class="wdd-safe-send-bar" id="wdd-safe-send-bar">
   <div class="wdd-send-counts" id="wdd-send-counts"></div>
   <div class="wdd-bulk-estimate-row" id="wdd-bulk-estimate-row" hidden aria-label="Set estimate for all items">
-    <span class="wdd-bulk-estimate-label">All:</span>
-    <button class="wdd-bulk-est-btn" data-bulk-hours="2">2h</button>
-    <button class="wdd-bulk-est-btn" data-bulk-hours="4">4h</button>
-    <button class="wdd-bulk-est-btn" data-bulk-hours="8">8h</button>
+    <label class="wdd-bulk-estimate-label" for="wdd-bulk-slider">All:</label>
+    <input type="range" class="wdd-bulk-slider" id="wdd-bulk-slider" min="0" max="7" step="1" value="0" aria-label="Set estimate for all items" />
+    <span class="wdd-bulk-slider-label" id="wdd-bulk-slider-label">—</span>
   </div>
   <div class="wdd-send-actions" id="wdd-send-actions">
     <button class="wdd-create-safe-btn" id="wdd-create-safe-btn" disabled>Create 0 issues</button>
     <button class="wdd-review-btn" id="wdd-review-btn" hidden>Review warnings</button>
-    <button class="wdd-skip-all-done-btn" id="wdd-skip-all-done-btn" hidden>Skip all done</button>
+    <button class="wdd-skip-all-done-btn" id="wdd-skip-all-done-btn" hidden aria-live="polite">Skip all done</button>
   </div>
   <div class="wdd-submit-status" id="wdd-submit-status" aria-live="polite"></div>
 </div>
@@ -487,6 +486,8 @@ function skipAllDoneDuplicates() {
       item.selected = false;
     }
   });
+  // Edge case: if in review-only mode, skipping all done items could leave an empty canvas view
+  _showingReviewOnly = false;
   renderCanvas();
   updateSendBar();
 }
@@ -531,6 +532,10 @@ function applyServerDraft(payload, narrative) {
     const confidence = Number(row.confidence ?? 1);
     const warnings = warningsFromRow(row);
     if (confidence < 0.5 && !warnings.length) warnings.push('Low confidence — review intent before creating');
+    const sp = row.suggestedStoryPoints ?? null;
+    // Bridge: SP → estimate slider position (story points take priority over keyword auto-suggest)
+    const spStep = sp != null ? (ESTIMATE_SCALE.spToStep[sp] ?? 0) : 0;
+    const keywordHours = spStep === 0 ? autoSuggestEstimate(title) : null;
     _items.push({
       id: uid(),
       type: chipType,
@@ -540,8 +545,8 @@ function applyServerDraft(payload, narrative) {
       warnings,
       duplicate: row.duplicate || null,
       suggestedAssignee: row.suggestedAssignee || null,
-      estimateHours: autoSuggestEstimate(title),
-      suggestedStoryPoints: row.suggestedStoryPoints ?? null,
+      estimateHours: spStep > 0 ? stepToHours(spStep) : keywordHours,
+      suggestedStoryPoints: sp,
       sourceLineIndex: idx,
       selected: true,
     });
@@ -602,7 +607,12 @@ function renderCanvas() {
 
   const titleEl = document.getElementById('wdd-title');
   if (titleEl) {
-    titleEl.textContent = _items.length > 0 ? `Create work · ${_items.length}` : 'Create work';
+    if (_items.length > 0) {
+      const totalSP = _items.reduce((s, i) => s + (i.type !== 'I' && i.type !== 'N' ? (i.suggestedStoryPoints || 0) : 0), 0);
+      titleEl.textContent = totalSP > 0 ? `Create work · ${_items.length} · ${totalSP}pt` : `Create work · ${_items.length}`;
+    } else {
+      titleEl.textContent = 'Create work';
+    }
   }
 
   if (!_items.length) {
@@ -648,6 +658,8 @@ const ESTIMATE_SCALE = {
   hours: [null, 0.5, 1, 2, 4, 8, 16, 32],
   labels: ['—', '½h', '1h', '2h', '4h', '8h', '1d', '2d'],
   max: 7,
+  // Fibonacci-style SP → nearest matching step (1sp≈1h, 2sp≈2h, 3sp≈2h, 5sp≈4h, 8sp≈8h, 13sp≈1d, 21sp≈2d)
+  spToStep: { 1: 2, 2: 3, 3: 3, 5: 4, 8: 5, 13: 6, 21: 7 },
 };
 function hoursToStep(hours) {
   if (hours == null) return 0;
@@ -695,7 +707,7 @@ function renderItem(item) {
   <div class="wdc-item-body">
     <div class="wdc-title-row">
       <input type="text" class="wdc-title" value="${esc(item.title)}" placeholder="Add title…" aria-label="Work item title" spellcheck="true" />
-      ${item.suggestedStoryPoints != null ? `<span class="wdc-sp-badge" title="Story points from your task list">${esc(String(item.suggestedStoryPoints))}pt</span>` : ''}
+      ${item.suggestedStoryPoints != null ? `<span class="wdc-sp-badge" contenteditable="true" role="spinbutton" aria-label="Story points" title="Click to edit story points">${esc(String(item.suggestedStoryPoints))}<span class="wdc-sp-unit">pt</span></span>` : ''}
     </div>
     ${repairHtml ? `<div class="wdc-repairs">${repairHtml}</div>` : ''}
   </div>
@@ -821,7 +833,11 @@ function updateSendBar() {
     } else {
       countsEl.innerHTML = ''
         + `<span class="wdd-send-count wdd-send-count--safe">Ready: ${counts.safe}</span>`
-        + (counts.alreadyDone ? `<button class="wdd-send-count wdd-send-count--done-block" data-action="scroll-to-first-warning">Already done: ${counts.alreadyDone}</button>` : '')
+        + (counts.alreadyDone ? (() => {
+            const doneKeys = _items.filter((i) => isDoneDuplicate(i) && i.duplicate?.key).map((i) => i.duplicate.key).join(', ');
+            const titleAttr = doneKeys ? ` title="${esc(doneKeys)}"` : '';
+            return `<button class="wdd-send-count wdd-send-count--done-block" data-action="scroll-to-first-warning"${titleAttr}>Already done: ${counts.alreadyDone}</button>`;
+          })() : '')
         + (counts.review - counts.alreadyDone > 0 ? `<button class="wdd-send-count wdd-send-count--review" data-action="scroll-to-first-warning">Review: ${counts.review - counts.alreadyDone}</button>` : '')
         + (counts.ignored ? `<span class="wdd-send-count wdd-send-count--ignored">Ignored: ${counts.ignored}</span>` : '');
     }
@@ -1008,6 +1024,25 @@ function onCanvasInput(e) {
   updateSendBar();
 }
 
+function onSpBadgeBlur(e) {
+  const badge = e.target;
+  if (!badge || !badge.classList.contains('wdc-sp-badge')) return;
+  const itemEl = badge.closest('[data-item-id]');
+  if (!itemEl) return;
+  const id = itemEl.dataset.itemId;
+  const item = _items.find((i) => i.id === id);
+  if (!item) return;
+  // Read text content, strip the "pt" unit span text
+  const raw = badge.innerText.replace(/pt\s*$/i, '').trim();
+  const parsed = parseInt(raw, 10);
+  if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 200) {
+    item.suggestedStoryPoints = parsed || null;
+  }
+  // Re-render to normalize display (including the unit suffix)
+  renderCanvas();
+  updateSendBar();
+}
+
 function onEstimateSliderInput(e) {
   const slider = e.target;
   if (!(slider instanceof HTMLInputElement) || !slider.classList.contains('wdc-estimate-slider')) return;
@@ -1031,6 +1066,24 @@ function onEstimateSliderInput(e) {
   updateSendBar();
 }
 
+function onBulkSliderInput(e) {
+  const slider = e.target;
+  if (!slider || slider.id !== 'wdd-bulk-slider') return;
+  const step = parseInt(slider.value, 10);
+  const label = stepToLabel(step);
+  const labelEl = document.getElementById('wdd-bulk-slider-label');
+  if (labelEl) labelEl.textContent = label;
+  if (step === 0) return; // step 0 = "no estimate", don't apply
+  _items.forEach((item) => {
+    if (item.type !== 'I' && item.type !== 'N') {
+      item.estimateHours = stepToHours(step);
+    }
+  });
+  renderCanvas();
+  updateSendBar();
+}
+
+// Legacy stub — kept because the drawer click handler checks data-bulk-hours; now unused
 function onBulkEstimate(hours) {
   const h = parseFloat(hours);
   if (Number.isNaN(h) || h <= 0) return;
@@ -1653,6 +1706,7 @@ function wireEvents() {
       onEstimateSliderInput(e);
       onCanvasInput(e);
     });
+    canvas.addEventListener('blur', onSpBadgeBlur, true); // capture phase catches contenteditable blur
     canvas.addEventListener('focusin', onCanvasFocusin);
     canvas.addEventListener('focusout', onCanvasFocusout);
     canvas.addEventListener('click', (e) => {
@@ -1676,6 +1730,7 @@ function wireEvents() {
 
   document.getElementById('wdd-create-safe-btn')?.addEventListener('click', () => createSafeIssues());
   document.getElementById('wdd-review-btn')?.addEventListener('click', toggleReviewOnly);
+  document.getElementById('wdd-bulk-slider')?.addEventListener('input', onBulkSliderInput);
 
 
   // Manual project key input: Enter key confirms and sets the project
@@ -1708,9 +1763,7 @@ function wireEvents() {
     }
     if (e.target?.closest('[data-action="toggle-review"]')) toggleReviewOnly();
 
-    // Bulk estimate: "Set all" chip row
-    const bulkChip = e.target?.closest('[data-bulk-hours]');
-    if (bulkChip) { onBulkEstimate(bulkChip.dataset.bulkHours); }
+    // Bulk estimate slider is wired via 'input' event on #wdd-bulk-slider (see wireEvents)
 
     // Skip all done duplicates at once
     if (e.target?.closest('#wdd-skip-all-done-btn, [data-action="skip-all-done"]')) {
