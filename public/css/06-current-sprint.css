@@ -1246,7 +1246,7 @@
   animation: slideDown 0.3s ease-out;
   scroll-margin-top: 120px;
   position: relative;
-  z-index: 1200;
+  z-index: 1210; /* above nudge-review-panel (1201) to prevent layering conflicts */
 }
 
 .alert-banner.yellow {

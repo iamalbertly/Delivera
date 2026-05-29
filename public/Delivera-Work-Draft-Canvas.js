@@ -219,11 +219,10 @@ function ensureDrawer() {
 <div class="wdd-safe-send-bar" id="wdd-safe-send-bar">
   <div class="wdd-send-counts" id="wdd-send-counts"></div>
   <div class="wdd-bulk-estimate-row" id="wdd-bulk-estimate-row" hidden aria-label="Set estimate for all items">
-    <span class="wdd-bulk-estimate-label">Set all:</span>
-    <button class="wdc-estimate-chip" data-bulk-hours="1">1h</button>
-    <button class="wdc-estimate-chip" data-bulk-hours="2">2h</button>
-    <button class="wdc-estimate-chip" data-bulk-hours="4">4h</button>
-    <button class="wdc-estimate-chip" data-bulk-hours="8">8h</button>
+    <span class="wdd-bulk-estimate-label">All:</span>
+    <button class="wdd-bulk-est-btn" data-bulk-hours="2">2h</button>
+    <button class="wdd-bulk-est-btn" data-bulk-hours="4">4h</button>
+    <button class="wdd-bulk-est-btn" data-bulk-hours="8">8h</button>
   </div>
   <div class="wdd-send-actions" id="wdd-send-actions">
     <button class="wdd-create-safe-btn" id="wdd-create-safe-btn" disabled>Create 0 issues</button>
@@ -542,6 +541,7 @@ function applyServerDraft(payload, narrative) {
       duplicate: row.duplicate || null,
       suggestedAssignee: row.suggestedAssignee || null,
       estimateHours: autoSuggestEstimate(title),
+      suggestedStoryPoints: row.suggestedStoryPoints ?? null,
       sourceLineIndex: idx,
       selected: true,
     });
@@ -643,15 +643,19 @@ function confidenceBand(confidence) {
   return 'low';
 }
 
-const ESTIMATE_CHIPS = [
-  { hours: 0.5, label: '½h' },
-  { hours: 1,   label: '1h' },
-  { hours: 2,   label: '2h' },
-  { hours: 4,   label: '4h' },
-  { hours: 8,   label: '8h' },
-  { hours: 16,  label: '1d' },
-  { hours: 32,  label: '2d' },
-];
+// ESTIMATE_SCALE: discrete steps for the estimate slider (step 0 = no estimate)
+const ESTIMATE_SCALE = {
+  hours: [null, 0.5, 1, 2, 4, 8, 16, 32],
+  labels: ['—', '½h', '1h', '2h', '4h', '8h', '1d', '2d'],
+  max: 7,
+};
+function hoursToStep(hours) {
+  if (hours == null) return 0;
+  const idx = ESTIMATE_SCALE.hours.indexOf(hours);
+  return idx >= 0 ? idx : 0;
+}
+function stepToLabel(step) { return ESTIMATE_SCALE.labels[step] || '—'; }
+function stepToHours(step) { return ESTIMATE_SCALE.hours[step] ?? null; }
 
 function autoSuggestEstimate(title) {
   const t = String(title || '').toLowerCase();
@@ -664,13 +668,16 @@ function autoSuggestEstimate(title) {
   return null;
 }
 
-function renderEstimateChips(item) {
+function renderEstimateSlider(item) {
   if (item.type === 'I' || item.type === 'N') return '';
-  const chips = ESTIMATE_CHIPS.map(({ hours, label }) => {
-    const active = item.estimateHours === hours;
-    return `<button class="wdc-estimate-chip${active ? ' is-active' : ''}" data-hours="${hours}" aria-pressed="${active}" data-estimate-for="${esc(item.id)}">${esc(label)}</button>`;
-  }).join('');
-  return `<div class="wdc-estimate-chips" role="group" aria-label="Estimate hours">${chips}</div>`;
+  const step = hoursToStep(item.estimateHours);
+  const label = stepToLabel(step);
+  const hasEst = step > 0;
+  const fillPct = Math.round((step / ESTIMATE_SCALE.max) * 100);
+  return `<div class="wdc-estimate-slider-wrap" data-has-estimate="${hasEst}" data-estimate-item="${esc(item.id)}" style="--filled:${fillPct}%" title="Drag to set estimate">
+  <input type="range" class="wdc-estimate-slider" min="0" max="${ESTIMATE_SCALE.max}" step="1" value="${step}" data-estimate-for="${esc(item.id)}" aria-label="Estimate hours" aria-valuetext="${esc(label)}" />
+  <span class="wdc-estimate-slider-label">${esc(label)}</span>
+</div>`;
 }
 
 function renderItem(item) {
@@ -686,10 +693,13 @@ function renderItem(item) {
     role="listitem">
   <button class="wdc-type-chip" data-type="${esc(item.type)}" title="${esc(typeLabel)} — click to change to ${esc(nextLabel)}" aria-label="Item type: ${esc(typeLabel)}">${esc(item.type)}</button>
   <div class="wdc-item-body">
-    <input type="text" class="wdc-title" value="${esc(item.title)}" placeholder="Add title…" aria-label="Work item title" spellcheck="true" />
+    <div class="wdc-title-row">
+      <input type="text" class="wdc-title" value="${esc(item.title)}" placeholder="Add title…" aria-label="Work item title" spellcheck="true" />
+      ${item.suggestedStoryPoints != null ? `<span class="wdc-sp-badge" title="Story points from your task list">${esc(String(item.suggestedStoryPoints))}pt</span>` : ''}
+    </div>
     ${repairHtml ? `<div class="wdc-repairs">${repairHtml}</div>` : ''}
   </div>
-  ${renderEstimateChips(item)}
+  ${renderEstimateSlider(item)}
   <button class="wdc-item-menu-btn" title="More options" aria-label="More options for this item">⋮</button>
 </div>`;
 }
@@ -835,10 +845,12 @@ function updateSendBar() {
           ? `${counts.alreadyDone} item${counts.alreadyDone > 1 ? 's' : ''} already in Done — review or skip`
           : 'Nothing to create yet';
       } else {
-        const safeWithEstimate = _items.filter((i) => i.type !== 'I' && i.type !== 'N' && !i.warnings.length && !hasMeaningfulDuplicate(i) && i.title.trim() && i.estimateHours != null);
-        const totalHours = safeWithEstimate.reduce((s, i) => s + i.estimateHours, 0);
+        const safeList = _items.filter((i) => i.type !== 'I' && i.type !== 'N' && !i.warnings.length && !hasMeaningfulDuplicate(i) && i.title.trim());
+        const totalHours = safeList.reduce((s, i) => s + (i.estimateHours || 0), 0);
+        const totalSP = safeList.reduce((s, i) => s + (i.suggestedStoryPoints || 0), 0);
         const hoursSuffix = totalHours > 0 ? ` · ${totalHours}h` : '';
-        createBtn.textContent = `Create ${counts.safe} ${typeLabel(dom, counts.safe)}${hoursSuffix}`;
+        const spSuffix = totalSP > 0 ? ` · ${totalSP}pt` : '';
+        createBtn.textContent = `Create ${counts.safe} ${typeLabel(dom, counts.safe)}${spSuffix}${hoursSuffix}`;
       }
     }
   }
@@ -996,25 +1008,25 @@ function onCanvasInput(e) {
   updateSendBar();
 }
 
-function onEstimateChipClick(e) {
-  const btn = e.target.closest('[data-hours][data-estimate-for]');
-  if (!btn) return;
-  const id = btn.dataset.estimateFor;
+function onEstimateSliderInput(e) {
+  const slider = e.target;
+  if (!(slider instanceof HTMLInputElement) || !slider.classList.contains('wdc-estimate-slider')) return;
+  const id = slider.dataset.estimateFor;
   const item = _items.find((i) => i.id === id);
   if (!item) return;
-  const hours = parseFloat(btn.dataset.hours);
-  if (Number.isNaN(hours)) return;
-  // Tap same active chip → deselect; tap different chip → select
-  item.estimateHours = (item.estimateHours === hours) ? null : hours;
-  // Update chips in-place without full re-render (prevents scroll jump)
-  const itemEl = btn.closest('[data-item-id]');
-  if (itemEl) {
-    itemEl.querySelectorAll('[data-estimate-for]').forEach((chip) => {
-      const chipHours = parseFloat(chip.dataset.hours);
-      const active = item.estimateHours === chipHours;
-      chip.classList.toggle('is-active', active);
-      chip.setAttribute('aria-pressed', String(active));
-    });
+  const step = parseInt(slider.value, 10);
+  item.estimateHours = stepToHours(step);
+  const label = stepToLabel(step);
+  const hasEst = step > 0;
+  const fillPct = Math.round((step / ESTIMATE_SCALE.max) * 100);
+  // Update label + aria + fill in-place (no full re-render prevents scroll jump)
+  slider.setAttribute('aria-valuetext', label);
+  const wrap = slider.closest('.wdc-estimate-slider-wrap');
+  if (wrap) {
+    wrap.dataset.hasEstimate = String(hasEst);
+    wrap.style.setProperty('--filled', fillPct + '%');
+    const labelEl = wrap.querySelector('.wdc-estimate-slider-label');
+    if (labelEl) labelEl.textContent = label;
   }
   updateSendBar();
 }
@@ -1259,10 +1271,15 @@ async function createSafeIssues(forceCreate = false) {
     childIssueTypeName: childIssueTypeName || null,
     // Only include source indices for server-parsed items; manually added items (index -1) are excluded
     commitChildIndices: safeItems.map((i) => i.sourceLineIndex).filter((n) => n >= 0),
-    // Per-item estimate hours: map of sourceLineIndex → hours (only non-null values)
+    // Per-item estimate hours: map of sourceLineIndex → hours
     itemEstimates: Object.fromEntries(
       safeItems.filter((i) => i.estimateHours != null && i.sourceLineIndex >= 0)
         .map((i) => [String(i.sourceLineIndex), i.estimateHours])
+    ),
+    // Per-item story points from Teams chat rich format
+    itemStoryPoints: Object.fromEntries(
+      safeItems.filter((i) => i.suggestedStoryPoints != null && i.sourceLineIndex >= 0)
+        .map((i) => [String(i.sourceLineIndex), i.suggestedStoryPoints])
     ),
     ...(forceCreate ? { createAnyway: true } : {}),
   };
@@ -1632,7 +1649,10 @@ function wireEvents() {
   const canvas = document.getElementById('wdd-canvas');
   if (canvas) {
     canvas.addEventListener('keydown', onCanvasKeydown);
-    canvas.addEventListener('input', onCanvasInput);
+    canvas.addEventListener('input', (e) => {
+      onEstimateSliderInput(e);
+      onCanvasInput(e);
+    });
     canvas.addEventListener('focusin', onCanvasFocusin);
     canvas.addEventListener('focusout', onCanvasFocusout);
     canvas.addEventListener('click', (e) => {
@@ -1646,7 +1666,6 @@ function wireEvents() {
         }
         return;
       }
-      onEstimateChipClick(e);
       onTypeChipClick(e);
       onRepairAction(e);
       onAddItemClick(e);

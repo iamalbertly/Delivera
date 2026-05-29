@@ -1254,6 +1254,9 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         // Per-item estimate hours: { "0": 2, "3": 4 } — keyed by sourceLineIndex
         const itemEstimates = (req.body?.itemEstimates && typeof req.body.itemEstimates === 'object' && !Array.isArray(req.body.itemEstimates))
             ? req.body.itemEstimates : {};
+        // Per-item story points from rich Teams chat format: { "0": 13, "2": 5 }
+        const itemStoryPoints = (req.body?.itemStoryPoints && typeof req.body.itemStoryPoints === 'object' && !Array.isArray(req.body.itemStoryPoints))
+            ? req.body.itemStoryPoints : {};
         if (!rawNarrative) {
             return res.status(400).json({ error: 'Narrative text is required', code: 'MISSING_NARRATIVE' });
         }
@@ -1525,11 +1528,18 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             }
         };
 
-        // Builds Jira estimate fields from user-provided hours (Jira expects seconds)
+        // Builds Jira estimate + story-points fields for a given line index
         const estimateFieldsForIndex = (lineIndex) => {
+            const result = {};
             const hours = lineIndex >= 0 ? Number(itemEstimates[String(lineIndex)]) : NaN;
-            if (!Number.isFinite(hours) || hours <= 0) return {};
-            return { timeoriginalestimate: Math.round(hours * 3600) };
+            if (Number.isFinite(hours) && hours > 0) {
+                result.timeoriginalestimate = Math.round(hours * 3600);
+            }
+            const sp = lineIndex >= 0 ? Number(itemStoryPoints[String(lineIndex)]) : NaN;
+            if (Number.isFinite(sp) && sp > 0 && fields?.storyPointsFieldId) {
+                result[fields.storyPointsFieldId] = sp;
+            }
+            return result;
         };
 
         const createIssue = async (issueFields, issueTypeMeta = null, createContext = {}) => {

@@ -6692,7 +6692,7 @@ body .preview-area {
   animation: slideDown 0.3s ease-out;
   scroll-margin-top: 120px;
   position: relative;
-  z-index: 1200;
+  z-index: 1210; /* above nudge-review-panel (1201) to prevent layering conflicts */
 }
 
 .alert-banner.yellow {
@@ -13860,6 +13860,12 @@ button.attention-queue-item,
 .wdc-type-chip[data-type="I"] { background: var(--chip-ignore-bg); color: var(--chip-ignore); }
 
 /* Editable title */
+.wdc-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
 .wdc-title {
   flex: 1;
   min-width: 0;
@@ -13870,6 +13876,17 @@ button.attention-queue-item,
   border-radius: 4px;
   padding: 1px 4px;
   word-break: break-word;
+}
+.wdc-sp-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #1e40af;
+  background: #dbeafe;
+  border-radius: 8px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 .wdc-title:focus {
   box-shadow: 0 0 0 2px rgba(230, 0, 0, 0.15);
@@ -14021,44 +14038,62 @@ button.attention-queue-item,
   background: var(--card-muted);
 }
 
-/* Estimate hours — tap-to-select chip row (replaces old number input) */
-.wdc-estimate-chips {
+/* Estimate hours — compact range slider per canvas item */
+.wdc-estimate-slider-wrap {
   display: flex;
-  gap: 3px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex-shrink: 0;
-  padding: 1px 0;
   align-items: center;
-}
-.wdc-estimate-chips::-webkit-scrollbar { display: none; }
-
-.wdc-estimate-chip {
+  gap: 5px;
   flex-shrink: 0;
-  height: 20px;
-  padding: 0 6px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  background: transparent;
-  color: var(--text-muted);
+  width: 112px; /* fixed width so item layout never shifts */
+}
+.wdc-estimate-slider {
+  flex: 1;
+  height: 3px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  outline: none;
   touch-action: manipulation;
-  line-height: 18px;
+  /* green fill from left to thumb via --filled CSS var */
+  background: linear-gradient(
+    to right,
+    #4ade80 0%, #4ade80 var(--filled, 0%),
+    var(--border) var(--filled, 0%), var(--border) 100%
+  );
 }
-.wdc-estimate-chip:hover {
-  background: var(--card-muted);
-  color: var(--text);
+.wdc-estimate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--primary, #0f4c81);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--border);
+  transition: background 0.1s;
 }
-.wdc-estimate-chip.is-active,
-.wdc-estimate-chip[aria-pressed="true"] {
-  background: #dcfce7;
-  border-color: #4ade80;
+.wdc-estimate-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--primary, #0f4c81);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+/* When at step 0 (no estimate), thumb is grey */
+.wdc-estimate-slider-wrap[data-has-estimate="false"] .wdc-estimate-slider::-webkit-slider-thumb {
+  background: var(--border);
+}
+.wdc-estimate-slider-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 22px;
+  text-align: right;
+  white-space: nowrap;
+  line-height: 1;
+}
+.wdc-estimate-slider-wrap[data-has-estimate="true"] .wdc-estimate-slider-label {
   color: #14532d;
-  font-weight: 700;
 }
 
 /* Bulk estimate "Set all" row in send bar */
@@ -14075,6 +14110,13 @@ button.attention-queue-item,
   white-space: nowrap;
   margin-right: 2px;
 }
+.wdd-bulk-est-btn {
+  height: 20px; padding: 0 7px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.7rem; font-weight: 500; background: transparent;
+  color: var(--text-muted); cursor: pointer;
+}
+.wdd-bulk-est-btn:hover { background: var(--card-muted); color: var(--text); }
 
 /* Skip all done button */
 .wdd-skip-all-done-btn {

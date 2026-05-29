@@ -86,6 +86,30 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 
 ## Latest UX and Trust Hardening
 
+### Estimate slider, Teams chat parser, sprint page fix (this session)
+
+**Estimate hours — compact range slider (replaces chip row)**
+- 7-stop `<input type="range">` (—, ½h, 1h, 2h, 4h, 8h, 1d, 2d) replaces the horizontal chip row. Saves horizontal space in each item row. Touch-friendly, no scrolling needed. Green fill tracks from left to thumb (`--filled` CSS variable). Label updates live in-place as user drags.
+- `ESTIMATE_SCALE` object with `hours[]`, `labels[]`, `hoursToStep()`, `stepToLabel()`, `stepToHours()` helper functions.
+- `onEstimateSliderInput` handler updates label and wrap attributes without full canvas re-render (no scroll jump).
+
+**Teams/Slack chat message rich metadata parser**
+- `preprocessRichNarrative(rawText)` in `lib/Delivera-Outcome-Draft-Builder.js`: pre-processes MS Teams/Slack work lists before the main parser runs.
+  - **Continuation lines**: un-numbered lines appended to preceding numbered item's description
+  - **Story points**: extracted from `-13pt`, `13pts`, `{5pt}`, `21sp`, etc. → `suggestedStoryPoints` per row
+  - **Issue type hints**: `new feature` → Story (S), `bug-fix` / `bug` → Task (T), `chore` / `refactor` → Task (T)
+  - **Inline assignees**: `- Name Surname, Organization` at line end → `suggestedAssignee`
+  - **Curly-brace notes**: `{detail text}` → appended to item description
+  - **✅ checkmark prefix**: marks item as already-done (`suggestedAction: 'skipAlreadyDone'`)
+- Story points badge (`.wdc-sp-badge`) shown inline per canvas item when SP extracted
+- Create button shows total: "Create 6 Tasks · 34pt · 18h"
+- Story points sent to Jira via `storyPointsFieldId` field on issue creation (graceful skip when field not available)
+- Precheck: "Chat format detected — story points, issue types, and assignees extracted automatically."
+
+**Current sprint page fixes**
+- Snapshot mismatch: stale snapshot (from a different board/sprint) no longer flashes before fresh data loads when URL has explicit `boardId`/`sprintId` params.
+- Z-index fix: `.alert-banner` raised from 1200 → 1210 (above `.jira-nudge-review-panel` at 1201). Alert banners no longer hidden behind nudge review panel.
+
 ### Mobile-first automation UX (this session)
 
 **Estimate hours — tap-to-select chip row (no keyboard)**

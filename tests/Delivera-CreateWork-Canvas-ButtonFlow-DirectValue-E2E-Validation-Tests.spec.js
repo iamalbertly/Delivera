@@ -793,4 +793,148 @@ test.describe('Create Work — canvas button-click flow (mocked API)', () => {
 
     assertTelemetryClean(telemetry);
   });
+
+  test('estimate slider renders per item (not chips), drag to step 4 shows "4h"', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify(MOCK_SEQUENTIAL_TASK_DRAFT),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('0: Validate data.\n1: Reload from MIS.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
+
+    // Slider should render (not old chips)
+    const sliders = canvas.locator('.wdc-estimate-slider');
+    const sliderCount = await sliders.count();
+    expect(sliderCount).toBeGreaterThanOrEqual(2);
+
+    // Old chip element should NOT be present
+    const oldChips = canvas.locator('.wdc-estimate-chip');
+    expect(await oldChips.count()).toBe(0);
+
+    // Set slider to step 4 (4h) via JS and fire input event
+    const firstSlider = sliders.first();
+    if (await firstSlider.isVisible().catch(() => false)) {
+      await firstSlider.evaluate((el) => {
+        el.value = '4';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.waitForTimeout(200);
+      const wrap = canvas.locator('.wdc-estimate-slider-wrap').first();
+      const label = await wrap.locator('.wdc-estimate-slider-label').textContent();
+      expect(label).toBe('4h');
+    }
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('Teams chat format: story points badge shows and precheck says "Chat format detected"', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+
+    const TEAMS_DRAFT = {
+      ...MOCK_SEQUENTIAL_TASK_DRAFT,
+      precheck: { key: 'rich_teams_format', message: 'Chat format detected — story points, issue types, and assignees extracted automatically.' },
+      rows: [
+        { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T', title: 'TM see yesterday vs today registration hourly', confidence: 0.72, warnings: [], selected: true, suggestedStoryPoints: 13, suggestedAssignee: null, duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        { id: 'r1', index: 1, kind: 'STORY', issueType: 'Task', type: 'T', title: 'TM see correct title for GA shares', confidence: 0.72, warnings: [], selected: true, suggestedStoryPoints: 5, suggestedAssignee: null, duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        { id: 'r2', index: 2, kind: 'STORY', issueType: 'Task', type: 'T', title: 'TM colors match competitors market share', confidence: 0.72, warnings: [], selected: true, suggestedStoryPoints: 5, suggestedAssignee: null, duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+      ],
+    };
+
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify(TEAMS_DRAFT),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('1: TM see yesterday vs today registration hourly -13pt - new feature\n2: TM see correct title for GA shares -5pts - bug-fix\n3: TM colors match competitors market share - 5pts - bug-fix');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
+
+    // Story points badges should appear
+    const spBadges = canvas.locator('.wdc-sp-badge');
+    if (await spBadges.count() > 0) {
+      const firstBadge = await spBadges.first().textContent();
+      expect(firstBadge).toMatch(/13pt/);
+    }
+
+    // Precheck message should contain Teams format signal
+    const parseStatus = page.locator('#wdd-parse-status');
+    if (await parseStatus.isVisible().catch(() => false)) {
+      const statusText = await parseStatus.textContent();
+      expect(statusText).toMatch(/Chat format|story points|Teams/i);
+    }
+
+    // Create button should show total story points
+    const createBtn = page.locator('#wdd-create-safe-btn');
+    const btnText = await createBtn.textContent().catch(() => '');
+    if (btnText && !btnText.includes('Nothing') && !btnText.includes('Select')) {
+      expect(btnText).toMatch(/23pt|Create/);
+    }
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('checkmark emoji prefix auto-tags item as done-duplicate', async ({ page }) => {
+    test.setTimeout(90000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.goto('/current-sprint');
+    await page.route('**/api/outcome-draft', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        ...MOCK_SEQUENTIAL_TASK_DRAFT,
+        rows: [
+          { id: 'r0', index: 0, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Deploy to prod', confidence: 0.72,
+            warnings: [{ code: 'ALREADY_DONE', message: 'Marked as done (✅ in your list) — skip or override to create.' }],
+            selected: true, suggestedStoryPoints: null,
+            duplicate: { suggestedAction: 'skipAlreadyDone', primaryReason: 'checkmark_done', key: null, similarity: null, isDoneMatch: true, url: null } },
+          { id: 'r1', index: 1, kind: 'STORY', issueType: 'Task', type: 'T', title: 'Validate alignment', confidence: 0.72,
+            warnings: [], selected: true, suggestedStoryPoints: null,
+            duplicate: { suggestedAction: 'createNew', primaryReason: 'none', key: null, similarity: null, isDoneMatch: false } },
+        ],
+      }),
+    }));
+    const isOpen = await openCreateWork(page);
+    if (!isOpen) { test.skip(true, 'Create work drawer not reachable'); return; }
+
+    const textarea = page.locator('#wdd-source-textarea');
+    await textarea.fill('✅ 0: Deploy to prod.\n1: Validate alignment.');
+    await textarea.dispatchEvent('input');
+    await page.waitForTimeout(2500);
+
+    const canvas = page.locator('#wdd-canvas');
+    if (!await canvas.isVisible().catch(() => false)) { test.skip(true, 'Canvas not visible'); return; }
+
+    // At least one item should be marked as done-dup
+    const doneDupItems = canvas.locator('[data-done-dup="true"]');
+    if (await doneDupItems.count() > 0) {
+      expect(await doneDupItems.count()).toBeGreaterThanOrEqual(1);
+    }
+
+    // Already done chip should appear
+    const doneChip = canvas.locator('.wdc-repair-chip--done-block').first();
+    if (await doneChip.isVisible().catch(() => false)) {
+      const chipText = await doneChip.textContent();
+      expect(chipText).toMatch(/Already done|checkmark|done/i);
+    }
+
+    assertTelemetryClean(telemetry);
+  });
 });

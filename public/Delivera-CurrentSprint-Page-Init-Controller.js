@@ -349,7 +349,14 @@ function init() {
   const preferredSprintId = getPreferredSprintId();
   syncProjectsSelect(getStoredProjects());
   const initialSnapshot = readCurrentSprintSnapshot(getProjectsParam(), preferredId);
-  if (initialSnapshot?.data) {
+  // Only show snapshot if it matches the URL-specified sprint (prevents stale data flash
+  // when user navigates to /current-sprint?boardId=X&sprintId=Y with explicit params)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlHasBoardOrSprint = urlParams.has('boardId') || urlParams.has('sprintId');
+  const snapshotSprintId = String(initialSnapshot?.data?.sprint?.id || '');
+  const snapshotMatchesUrl = !urlHasBoardOrSprint
+    || (!preferredSprintId || snapshotSprintId === String(preferredSprintId));
+  if (initialSnapshot?.data && snapshotMatchesUrl) {
     showCurrentSprintRenderedContent(initialSnapshot.data, (sprintId) => initHandlers.selectSprintById(sprintId), { source: 'snapshot' });
   }
   initGlobalOutcomeModal({
