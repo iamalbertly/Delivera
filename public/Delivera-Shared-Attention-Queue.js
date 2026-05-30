@@ -1,7 +1,18 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
+function dedupeAttentionItems(items) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : []).filter((item) => {
+    if (!item || !item.label) return false;
+    const key = item.dedupeKey || `${item.tone || ''}:${item.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function renderAttentionQueue({ title = 'Attention queue', items = [], compact = false } = {}) {
-  const safeItems = (Array.isArray(items) ? items : []).filter((item) => item && item.label);
+  const safeItems = dedupeAttentionItems(items);
   if (!safeItems.length) return '';
   const rows = safeItems.slice(0, compact ? 3 : 5).map((item) => {
     const tone = item.tone ? ` attention-queue-item--${escapeHtml(item.tone)}` : '';

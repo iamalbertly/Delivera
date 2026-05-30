@@ -126,14 +126,19 @@ function renderContextHeader(data) {
     const blockerSuffix = blockerCount > 0
       ? ` — ${blockerCount} blocker${blockerCount === 1 ? '' : 's'} need attention`
       : '';
+    const squads = Array.isArray(data?.squads) ? data.squads : [];
+    const stalledCount = squads.filter((s) => s?.hasActiveSprintFallback).length;
+    const stallSuffix = stalledCount > 0
+      ? ` — ${stalledCount} squad${stalledCount > 1 ? 's' : ''} without active sprint`
+      : '';
     if (partial && stale) {
-      confidenceEl.textContent = `Portfolio data is partial and stale — verify before sharing${blockerSuffix}`;
+      confidenceEl.textContent = `Portfolio data is partial and stale — verify before sharing${stallSuffix}${blockerSuffix}`;
     } else if (partial) {
-      confidenceEl.textContent = `Portfolio data is partial — verify before export${blockerSuffix}`;
+      confidenceEl.textContent = `Portfolio data is partial — verify before export${stallSuffix}${blockerSuffix}`;
     } else if (stale) {
-      confidenceEl.textContent = `Portfolio is showing cached data (${trustBand} trust)${blockerSuffix}`;
+      confidenceEl.textContent = `Portfolio is showing cached data (${trustBand} trust)${stallSuffix}${blockerSuffix}`;
     } else {
-      confidenceEl.textContent = `Portfolio is live (${trustBand} trust)${blockerSuffix}`;
+      confidenceEl.textContent = `Portfolio is live (${trustBand} trust)${stallSuffix}${blockerSuffix}`;
     }
   }
 }
@@ -355,7 +360,8 @@ function renderHud(data) {
     }));
   }
 
-  const squadAlertHtml = renderSquadAlertChip(data?.squads);
+  const stalledSquads = Array.isArray(data?.squads) ? data.squads.filter((s) => s?.hasActiveSprintFallback).length : 0;
+  const squadAlertHtml = stalledSquads > 0 ? '' : renderSquadAlertChip(data?.squads);
   grid.innerHTML = `
     ${squadAlertHtml ? `<div style="grid-column:1/-1;">${squadAlertHtml}</div>` : ''}
     <section class="hud-answer-row" style="grid-column:1/-1;" aria-label="Leadership answer">

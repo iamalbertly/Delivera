@@ -1,7 +1,8 @@
 import { reportDom } from './Delivera-Report-Page-Context.js';
 import { reportState } from './Delivera-Report-Page-State.js';
 import { getSafeMeta } from './Delivera-Report-Page-Render-Helpers.js';
-import { buildPreviewMetaAndStatus } from './Delivera-Report-Page-Render-Preview-01Meta.js';
+import { buildPreviewMetaAndStatus, buildReportHeaderDeltaMessage } from './Delivera-Report-Page-Render-Preview-01Meta.js';
+import { refreshReportSquadStallAttention } from './Delivera-Report-Page-Squad-Stall-Bridge.js';
 import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
 import { updateDateDisplay } from './Delivera-Report-Page-DateRange-Controller.js';
@@ -18,6 +19,7 @@ import {
 import { applyDoneStoriesOptionalColumnsPreference } from './Delivera-Report-Page-DoneStories-Column-Preference.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { emitTelemetry } from './Delivera-Shared-Telemetry.js';
+import { REPORT_FILTERS_STALE_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { updateAppliedFiltersSummary } from './Delivera-Report-Page-Filters-Summary-Helpers.js';
 
 /**
@@ -88,6 +90,7 @@ export function wirePreviewContextActions() {
     }
     const tabMap = {
       'open-sprints': 'tab-btn-sprints',
+      'open-sprints-tab': 'tab-btn-sprints',
       'open-owned-blockers': 'tab-btn-done-stories',
       'open-unowned-outcomes': 'tab-btn-done-stories',
     };
@@ -144,6 +147,12 @@ export function renderPreview() {
     return;
   }
 
+  if (previewContent) previewContent.style.display = 'block';
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.innerHTML = '';
+  }
+
   const boardsCount = previewData.boards?.length || 0;
   const sprintsCount = previewData.sprintsIncluded?.length || 0;
   const rowsCount = (previewData.rows || []).length;
@@ -158,6 +167,8 @@ export function renderPreview() {
     rowsCount,
     unusableCount,
     compactOutcomeScope: true,
+    stripPopulated: true,
+    squadStallItems: reportState.squadStallItems || [],
   });
   const reportSubtitleEl = document.getElementById('report-subtitle');
   if (reportSubtitleEl) {
@@ -175,7 +186,13 @@ export function renderPreview() {
       ${metaBlock.attentionQueueHtml || ''}
       ${metaBlock.previewMetaHTML}
     `;
+    const exportWrap = previewMeta.querySelector('.preview-header-export-wrap');
+    if (exportWrap) exportWrap.hidden = rowsCount === 0;
   }
+  try {
+    window.__reportPreviewDeltaMessage = buildReportHeaderDeltaMessage(rowsCount, sprintsCount);
+  } catch (_) {}
+  refreshReportSquadStallAttention(metaBlock.baseAttentionItems || []).catch(() => {});
   if (reportContextLine) {
     reportContextLine.textContent = '';
     reportContextLine.setAttribute('aria-hidden', 'true');
@@ -246,7 +263,12 @@ export function renderPreview() {
   }
 
   const hasRows = rowsCount > 0;
-  const allowPrimaryExport = hasRows && meta.restoredFromLastSuccess !== true;
+  let filtersStaleForExport = false;
+  try {
+    filtersStaleForExport = typeof sessionStorage !== 'undefined'
+      && sessionStorage.getItem(REPORT_FILTERS_STALE_KEY) === '1';
+  } catch (_) {}
+  const allowPrimaryExport = hasRows && meta.restoredFromLastSuccess !== true && !filtersStaleForExport;
   if (exportDropdownTrigger) {
     exportDropdownTrigger.disabled = !hasRows;
     exportDropdownTrigger.hidden = true;
@@ -362,6 +384,8 @@ export function renderPreview() {
       window.setTimeout(() => {
         document.querySelector('#done-stories-content .sprint-header')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
       }, 80);
+    } else if (metaBlock.preferSprintsTab && tabSprints && hash !== '#trends') {
+      tabSprints.click();
     } else if (tabBoards && !tabBoards.classList.contains('active')) {
       tabBoards.click();
     }
@@ -373,14 +397,4 @@ export function renderPreview() {
   });
 
   syncReportPreviewActiveFromDom();
-
-  const statusStripElAfter = document.getElementById('preview-status-strip');
-  if (statusStripElAfter && !statusStripElAfter.textContent) {
-    const ageMs = Number(meta.cacheAgeMs || 0);
-    const ageMins = Math.round(ageMs / 60000);
-    const statusText = ageMins > 30 ? 'Older snapshot - refresh when ready' : 'Just updated';
-    statusStripElAfter.innerHTML = `${escapeHtml(statusText)} <a class="preview-status-inline-link" href="/current-sprint">Open sprint actions</a>`;
-    statusStripElAfter.setAttribute('data-state', ageMins > 30 ? 'stale' : 'fresh');
-    statusStripElAfter.style.display = '';
-  }
 }

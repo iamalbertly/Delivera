@@ -133,11 +133,11 @@ test.describe('Report chrome direct value realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('07 value view row and compact scope', async () => {
+    await test.step('07 value view verdict row without duplicate scope chips', async () => {
       await expect(page.locator('#preview-meta .preview-context-bar')).toBeVisible();
       await expect(page.locator('#preview-meta')).toContainText(/Value view/i);
-      await expect(page.locator('#preview-meta .preview-context-bar--compact-scope')).toHaveCount(1);
-      await expect(page.locator('#preview-meta .preview-context-chip-scope--combined')).toBeVisible();
+      await expect(page.locator('#preview-meta .preview-context-bar--verdict-only')).toHaveCount(1);
+      await expect(page.locator('#preview-meta .preview-context-chip-scope')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
 

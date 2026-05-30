@@ -36,6 +36,20 @@ function buildGeneratedLabels(generatedAt) {
   return { label, stickySuffix, ageMin, isRecent: recent };
 }
 
+export function buildReportHeaderDeltaMessage(rowsCount, sprintsCount) {
+  try {
+    const lastRaw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(REPORT_LAST_RUN_KEY) : null;
+    const last = lastRaw ? JSON.parse(lastRaw) : null;
+    const sprintDelta = last && typeof last.sprintsCount === 'number' ? sprintsCount - last.sprintsCount : 0;
+    const parts = [];
+    if (sprintDelta !== 0) parts.push(`${sprintDelta > 0 ? '+' : ''}${sprintDelta} sprints`);
+    parts.push(`${rowsCount} outcomes tagged`);
+    return parts.join(' · ');
+  } catch (_) {
+    return `${rowsCount} outcomes · ${sprintsCount} sprints loaded`;
+  }
+}
+
 export function buildPreviewMetaAndStatus(params) {
   const {
     meta,
@@ -45,6 +59,8 @@ export function buildPreviewMetaAndStatus(params) {
     rowsCount,
     unusableCount,
     compactOutcomeScope = false,
+    stripPopulated = false,
+    squadStallItems = [],
   } = params;
   let chipProjects = Array.isArray(meta.selectedProjects) ? meta.selectedProjects : [];
   let chipWindowStart = meta.windowStart;
@@ -145,13 +161,15 @@ export function buildPreviewMetaAndStatus(params) {
   const appliedFiltersText = `Applied: ${selectedProjectsLabel} | ${windowStartLocal} - ${windowEndLocal}${opts.length ? ' | ' + opts.join(', ') : ''}`;
 
   let prevRunText = '';
+  let lastRunStories = 0;
+  let lastRunSprints = 0;
   try {
     const lastRun = sessionStorage.getItem(REPORT_LAST_RUN_KEY);
     if (lastRun) {
       const obj = JSON.parse(lastRun);
-      const prevStories = typeof obj.doneStories === 'number' ? obj.doneStories : 0;
-      const prevSprints = typeof obj.sprintsCount === 'number' ? obj.sprintsCount : 0;
-      prevRunText = `Previous run: ${prevStories} done stories, ${prevSprints} sprints.`;
+      lastRunStories = typeof obj.doneStories === 'number' ? obj.doneStories : 0;
+      lastRunSprints = typeof obj.sprintsCount === 'number' ? obj.sprintsCount : 0;
+      prevRunText = `Previous run: ${lastRunStories} done stories, ${lastRunSprints} sprints.`;
     }
   } catch (_) {}
 
@@ -194,13 +212,28 @@ export function buildPreviewMetaAndStatus(params) {
   const exportLabel = rowsCount > 0 ? 'Export ready' : 'No data yet';
   const healthRisk = blockersOwned > 0 || unownedOutcomes > 0;
 
+  const hasHistoricalSignal = sprintsCount > 0 || lastRunSprints > 0 || lastRunStories > 0;
   let healthSentence;
   let headerStoryText;
   let zeroOutcomeHint = '';
   if (rowsCount === 0) {
     healthSentence = 'No outcome stories in this window (maintenance-only work)';
-    headerStoryText = 'No outcome stories matched this scope yet. Adjust projects or dates to recover signal.';
-    zeroOutcomeHint = '<p class="preview-context-zero-hint">Define outcome labels or epic links in Jira to see outcome metrics here.</p>';
+    if (hasHistoricalSignal) {
+      const projLabel = projectSummary.label || selectedProjectsLabel;
+      headerStoryText = `${projLabel} delivered work across ${sprintsCount || lastRunSprints} sprint(s) — none tagged as outcomes in this window.`;
+      zeroOutcomeHint =
+        '<p class="preview-context-zero-hint preview-context-zero-actions" role="group" aria-label="Recover delivery signal">'
+        + '<button type="button" class="btn btn-secondary btn-compact preview-zero-action" data-preview-context-action="open-sprints">Show sprint delivery</button> '
+        + '<button type="button" class="btn btn-secondary btn-compact preview-zero-action" data-preview-context-action="open-range">Widen date range</button> '
+        + '<button type="button" class="btn btn-secondary btn-compact preview-zero-action" data-preview-context-action="open-done-stories">Browse stories</button>'
+        + '</p>';
+    } else {
+      headerStoryText = 'No outcome stories matched this scope yet. Adjust projects or dates to recover signal.';
+      zeroOutcomeHint =
+        '<p class="preview-context-zero-hint">'
+        + '<button type="button" class="btn btn-secondary btn-compact preview-zero-action" data-preview-context-action="open-range">Widen date range</button>'
+        + ' or define outcome labels in Jira.</p>';
+    }
   } else {
     const riskParts = [];
     if (blockersOwned > 0) riskParts.push(`${blockersOwned} blocker${blockersOwned > 1 ? 's' : ''}`);
@@ -227,13 +260,20 @@ export function buildPreviewMetaAndStatus(params) {
   const scopeChipsFull =
     '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-projects" title="' + escapeHtml('Projects: ' + projectSummary.full) + '" aria-label="Open project filters">Projects: ' + escapeHtml(projectSummary.label) + '<span class="visually-hidden"> Projects full list: ' + escapeHtml(projectSummary.full) + '</span></button>' +
     '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-scope" data-preview-context-action="open-range" title="' + escapeHtml('Range: ' + compactRangeLabel) + '" aria-label="Open date range">' + escapeHtml(compactRangeLabel) + '</button>';
+
+  const verdictBarInner =
+    '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Value view</span>' +
+    '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
+    '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Trust details</button>';
+
+  const legacyBarInner =
+    verdictBarInner +
+    (compactOutcomeScope ? scopeChipCompact : scopeChipsFull) +
+    '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>';
+
   const outcomeLineHTML =
-    '<div class="preview-context-bar' + (compactOutcomeScope ? ' preview-context-bar--compact-scope' : '') + '" data-context-bar="true" role="group" aria-label="Report preview context and outcome">' +
-      '<span class="preview-context-chip preview-context-chip-title preview-context-chip-muted">Value view</span>' +
-      (compactOutcomeScope ? scopeChipCompact : scopeChipsFull) +
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-chip-health' + healthChipExtra + '" data-preview-context-action="open-done-stories" aria-label="Open outcome list">' + escapeHtml(healthSentence) + '</button>' +
-      '<span class="preview-context-chip preview-context-chip-data-state">' + dataStateBadgeHTML + '</span>' +
-      '<button type="button" class="preview-context-chip preview-context-chip-link preview-context-details-toggle" aria-expanded="false" aria-controls="preview-meta-details" title="' + escapeHtml(detailsHint || 'Show range, timing and data mode details') + '">Trust details</button>' +
+    '<div class="preview-context-bar' + (stripPopulated ? ' preview-context-bar--verdict-only' : (compactOutcomeScope ? ' preview-context-bar--compact-scope' : '')) + '" data-context-bar="true" role="group" aria-label="Report preview verdict">' +
+      (stripPopulated ? verdictBarInner : legacyBarInner) +
     '</div>' +
     zeroOutcomeHint;
   const reportExecutiveHeroHtml = rowsCount > 0
@@ -263,14 +303,17 @@ export function buildPreviewMetaAndStatus(params) {
       + '</article>'
       + '</section>'
     : '';
+  const baseAttentionItems = [
+    ...(Array.isArray(squadStallItems) ? squadStallItems : []),
+    blockersOwned > 0 ? { dedupeKey: 'blockers-owned', label: `${blockersOwned} blockers owned by the team`, detail: 'Open outcomes', tone: 'danger', action: 'open-owned-blockers' } : null,
+    unownedOutcomes > 0 ? { dedupeKey: 'unowned-outcomes', label: `${unownedOutcomes} outcomes without clear ownership`, detail: 'Fix ownership', tone: 'warning', action: 'open-unowned-outcomes' } : null,
+    unusableCount > 0 ? { dedupeKey: 'unusable-sprints', label: `${unusableCount} sprints excluded from rollups`, detail: 'Review sprint dates', tone: 'warning', action: 'open-unusable-sprints' } : null,
+    rowsCount === 0 && !stripPopulated ? { dedupeKey: 'no-outcomes', label: 'No outcome stories in this window', detail: 'Adjust scope or open outcomes', tone: 'muted', action: 'open-done-stories' } : null,
+  ].filter(Boolean);
+
   const attentionQueueHtml = renderAttentionQueue({
     title: 'Attention queue',
-    items: [
-      blockersOwned > 0 ? { label: `${blockersOwned} blockers owned by the team`, detail: 'Open outcomes', tone: 'danger', action: 'open-owned-blockers' } : null,
-      unownedOutcomes > 0 ? { label: `${unownedOutcomes} outcomes without clear ownership`, detail: 'Fix ownership', tone: 'warning', action: 'open-unowned-outcomes' } : null,
-      unusableCount > 0 ? { label: `${unusableCount} sprints excluded from rollups`, detail: 'Review sprint dates', tone: 'warning', action: 'open-unusable-sprints' } : null,
-      rowsCount === 0 ? { label: 'No outcome stories in this window', detail: 'Adjust scope or open outcomes', tone: 'muted', action: 'open-done-stories' } : null,
-    ].filter(Boolean),
+    items: baseAttentionItems,
   });
 
   const phaseLog = Array.isArray(meta.phaseLog) ? meta.phaseLog : [];
@@ -338,10 +381,13 @@ export function buildPreviewMetaAndStatus(params) {
     previewHeaderStoryHtml,
     outcomeLineHTML,
     attentionQueueHtml,
+    baseAttentionItems,
     previewMetaHTML,
     stickyText,
     statusHTML,
     statusDisplay,
     statusStripText,
+    preferSprintsTab: rowsCount === 0 && sprintsCount > 0,
+    scrollAttentionOnStall: (squadStallItems || []).length > 0,
   };
 }

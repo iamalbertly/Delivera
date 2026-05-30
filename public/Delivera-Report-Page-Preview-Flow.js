@@ -667,8 +667,13 @@ export function initPreviewFlow() {
 
     const fetchStartMs = Date.now();
     try {
-      setLoadingStage(1, 'Gathering sprint history…');
-      startTheaterGathering(() => Date.now() - fetchStartMs);
+      if (!hasExistingPreview) {
+        setLoadingStage(1, 'Gathering sprint history…');
+        startTheaterGathering(() => Date.now() - fetchStartMs);
+      } else if (loadingEl) {
+        loadingEl.style.display = 'none';
+        loadingEl.setAttribute('aria-hidden', 'true');
+      }
 
       const controller = new AbortController();
       currentPreviewController = controller;

@@ -230,6 +230,19 @@ function initReportPage() {
       }
       return false;
     }
+    if (normalized === 'open-current-sprint') {
+      window.location.href = '/current-sprint';
+      return true;
+    }
+    if (normalized === 'open-sprints' || normalized === 'open-sprints-tab') {
+      const sprintsTab = document.getElementById('tab-btn-sprints');
+      if (sprintsTab) {
+        sprintsTab.click();
+        sprintsTab.focus();
+        return true;
+      }
+      return false;
+    }
     if (normalized === 'reset-filters') {
       try {
         localStorage.removeItem(SHARED_DATE_RANGE_KEY);
@@ -570,7 +583,10 @@ function initReportPage() {
 
   window.addEventListener('storage', syncFromSharedStorage);
   window.addEventListener('report-preview-shown', () => {
-    setReportActionStatus('Live preview updated.', 'success');
+    const delta = typeof window.__reportPreviewDeltaMessage === 'string'
+      ? window.__reportPreviewDeltaMessage
+      : 'Preview updated.';
+    setReportActionStatus(delta, 'success');
   });
   window.addEventListener('report-preview-failed', () => {
     setReportActionStatus('Preview failed - adjust filters and retry.', 'danger');

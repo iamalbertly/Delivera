@@ -113,8 +113,12 @@ test.describe('Viewport compression and layering', () => {
     }
     await expect(page.locator('.current-sprint-header-bar').first()).toBeVisible();
     await expect(page.locator('#stories-card')).toBeVisible();
-    await expect(page.locator('.current-sprint-advanced-controls')).toBeVisible();
-    await expect(page.locator('.current-sprint-advanced-controls')).not.toHaveAttribute('open', /./);
+    const sprintChrome = page.locator('.current-sprint-advanced-controls, .sprint-switcher-card-inline').first();
+    await expect(sprintChrome).toBeVisible();
+    const advancedControls = page.locator('.current-sprint-advanced-controls');
+    if (await advancedControls.count()) {
+      await expect(advancedControls).not.toHaveAttribute('open', /./);
+    }
     await expect(page.locator('.decision-metrics-row .decision-metric-card')).toHaveCount(4);
     await expect(page.locator('.sprint-hud-carousel-inline')).toHaveCount(0);
     await expect(page.locator('.mobile-secondary-details')).toHaveCount(0);

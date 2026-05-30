@@ -4,8 +4,8 @@ import { showContent } from './Delivera-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Delivera-CurrentSprint-Render-Page.js';
 import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { wireDynamicHandlers } from './Delivera-CurrentSprint-Page-Handlers.js';
 import { wireHeaderBarHandlers } from './Delivera-CurrentSprint-Header-Bar.js';
+import { wireDynamicHandlers } from './Delivera-CurrentSprint-Page-Handlers.js';
 import { wireHealthDashboardHandlers } from './Delivera-CurrentSprint-Health-Dashboard.js';
 import { wireRisksAndInsightsHandlers } from './Delivera-CurrentSprint-Risks-Insights.js';
 import { wireSprintCarouselHandlers } from './Delivera-CurrentSprint-Navigation-Carousel.js';
@@ -193,18 +193,28 @@ function wireNoClickJourneys() {
     try {
       const payload = window.__deliveraCurrentSprintPayload;
       const counts = payload ? getUnifiedRiskCounts(payload) : {};
-      const stale = Number(counts.blockersOwned || counts.blockers || 0);
-      if (applyFilter && stale > 0) {
+      const scopeCount = Array.isArray(payload?.scopeChanges) ? payload.scopeChanges.length : 0;
+      const blockers = Number(counts.blockersOwned || counts.blockers || 0);
+      const unowned = Number(counts.unownedOutcomes || 0);
+      let riskTag = '';
+      if (scopeCount > 0) riskTag = 'scope';
+      else if (blockers > 0) riskTag = 'blocker';
+      else if (unowned > 0) riskTag = 'unassigned';
+      if (applyFilter && riskTag) {
         const autoKey = 'delivera.currentSprint.autoRiskFilter.v1';
         const alreadyFiltered = sessionStorage.getItem(autoKey) === '1';
         if (!alreadyFiltered) {
           sessionStorage.setItem(autoKey, '1');
           window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
-            detail: { riskTags: ['blocker'], source: 'auto-top-risk' },
+            detail: { riskTags: [riskTag], source: 'auto-top-risk' },
           }));
         }
       }
-      const row = document.querySelector('#work-risks-table tbody tr[data-risk-tags*="blocker"], #stories-table tbody tr[data-risk-tags*="blocker"], #work-risks-table tbody tr[data-risk-tags], #stories-table tbody tr[data-risk-tags]');
+      const row = document.querySelector(
+        riskTag
+          ? `#work-risks-table tbody tr[data-risk-tags*="${riskTag}"], #stories-table tbody tr[data-risk-tags*="${riskTag}"]`
+          : '#work-risks-table tbody tr[data-risk-tags], #stories-table tbody tr[data-risk-tags]',
+      );
       if (!row) return;
       row.classList.add('issue-preview-source-row');
       if (!shouldScroll) return;

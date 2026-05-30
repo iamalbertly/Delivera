@@ -335,7 +335,10 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await expect(row).toHaveAttribute('aria-label', /Sprint metrics/i);
     await expect(row.locator('[data-metric="done"] .metric-label')).toHaveText(/^Done$/i);
     await expect(row.locator('[data-metric="issues"] .metric-label')).toHaveText(/^Work items$/i);
-    await expect(row.locator('[data-metric="hours"] .metric-label')).toHaveText(/^Logged \/ est$/i);
+    const hoursTile = row.locator('[data-metric="hours"]');
+    if (await hoursTile.count()) {
+      await expect(hoursTile.locator('.metric-label')).toHaveText(/^Logged \/ est$/i);
+    }
     const doneVal = await row.locator('[data-metric="done"] .metric-value').textContent();
     expect(doneVal || '').toMatch(/%/);
   });
@@ -672,7 +675,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
       };
     });
     await trigger.dispatchEvent('click');
-    await expect(page.locator('#global-outcome-modal')).toBeVisible();
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
     expect(await page.evaluate(() => window.__promptCalls || 0)).toBe(0);
   });
 

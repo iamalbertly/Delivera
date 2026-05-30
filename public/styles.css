@@ -11153,6 +11153,18 @@ body.current-sprint-page .burndown-metric-inline {
   background: linear-gradient(90deg, var(--primary), #ff7a7a);
 }
 
+.sprint-story-signal-bar.is-success {
+  background: rgba(28, 124, 84, 0.12);
+}
+
+.sprint-story-signal-bar.is-success span {
+  background: linear-gradient(90deg, #1c7c54, #4caf7a);
+}
+
+.preview-context-bar--verdict-only .preview-context-chip-title {
+  margin-right: 0.35rem;
+}
+
 .sprint-visibility-grid {
   grid-template-columns: 1.05fr 1fr;
 }

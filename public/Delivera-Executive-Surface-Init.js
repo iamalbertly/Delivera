@@ -104,18 +104,7 @@ function maybeRedirectExecutiveShell() {
 }
 
 function maybeRedirectDashboardToLastRoute() {
-  try {
-    const path = window.location.pathname || '';
-    if (path !== '/dashboard' && path !== '/home') return false;
-    const params = new URLSearchParams(window.location.search || '');
-    if (params.get('stay') === '1') return false;
-    const last = readLastRoute();
-    if (!last?.path || last.path === '/dashboard' || last.path === '/home') return false;
-    window.location.replace(last.path);
-    return true;
-  } catch (_) {
-    return false;
-  }
+  return false;
 }
 
 try {
@@ -144,11 +133,39 @@ async function initHomeDashboardSprintPulse() {
   const timeout = setTimeout(() => ctrl.abort(), 5000);
   try {
     const qs = new URLSearchParams({ projects: projects.join(',') }).toString();
-    const res = await fetch(`/api/current-sprint.json?${qs}`, { credentials: 'same-origin', signal: ctrl.signal });
+    const [sprintRes, squadRes] = await Promise.all([
+      fetch(`/api/current-sprint.json?${qs}`, { credentials: 'same-origin', signal: ctrl.signal }),
+      fetch(`/api/leadership-summary.json?${qs}`, { credentials: 'same-origin', signal: ctrl.signal }).catch(() => null),
+    ]);
     clearTimeout(timeout);
-    if (!res.ok) return;
-    const data = await res.json().catch(() => null);
+    if (!sprintRes.ok) return;
+    const data = await sprintRes.json().catch(() => null);
     if (!data) return;
+    let stalledCount = 0;
+    if (squadRes?.ok) {
+      const squadData = await squadRes.json().catch(() => null);
+      stalledCount = Array.isArray(squadData?.squads)
+        ? squadData.squads.filter((s) => s?.hasActiveSprintFallback).length
+        : 0;
+    }
+    const noActive = data?.meta?.noActiveSprintFallback || data?.meta?.suggestStartSprint;
+    if (stalledCount > 0 || noActive) {
+      pulseEl.innerHTML = `
+        <div class="home-sprint-pulse-inner home-sprint-pulse-inner--stalled">
+          <span class="home-sprint-pulse-name">Team idle</span>
+          <span class="home-sprint-pulse-risk">${stalledCount || 1} squad${(stalledCount || 1) > 1 ? 's' : ''} without active sprint</span>
+          <a href="/current-sprint" class="home-sprint-pulse-cta">Open sprint cockpit →</a>
+        </div>`;
+      pulseEl.hidden = false;
+      const continueBtn = document.getElementById('surface-continue-cta');
+      if (continueBtn) {
+        continueBtn.setAttribute('data-surface-nav', '/current-sprint');
+        continueBtn.textContent = 'Resolve sprint stall';
+        continueBtn.classList.add('btn-primary');
+        continueBtn.classList.remove('btn-secondary');
+      }
+      return;
+    }
     const sprintName = data.sprint?.name || 'Active sprint';
     const totalStories = (data.stories || []).length;
     const doneStories = (data.stories || []).filter((s) => String(s?.status || '').toLowerCase().includes('done')).length;

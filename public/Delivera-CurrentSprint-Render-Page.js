@@ -67,13 +67,7 @@ export function renderCurrentSprintPage(data) {
 
   const headerOpts = { sectionLinksHtml, viewportLean: true, sectionLinksInDrawer: true };
   html += renderHeaderBar(data, headerOpts);
-  const sprintSwitcherHtml = renderSprintSwitcher(data);
-  if (sprintSwitcherHtml) {
-    html += '<details class="current-sprint-advanced-controls" data-mobile-collapse="true">';
-    html += '<summary>Switch sprint</summary>';
-    html += sprintSwitcherHtml;
-    html += '</details>';
-  }
+  html += renderSprintSwitcher(data);
   if (data?.meta?.noActiveSprintFallback) {
     const nc = data.meta.nextSprintCandidate;
     if (data.meta.suggestStartSprint && nc) {
