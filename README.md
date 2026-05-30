@@ -86,6 +86,12 @@ For run modes, fail-fast behavior, and impacted-only flags, see [`TESTING.md`](T
 
 ## Latest UX and Trust Hardening
 
+### Direct-to-value growth UX (report, sprint, leadership, dashboard)
+- **Report:** Single freshness/scope row in `#report-filter-strip-summary`; verdict-only `#preview-meta`; squad stall in attention queue via `Delivera-Report-Page-Squad-Stall-Bridge.js`; smart default **Sprint delivery** tab when outcomes are zero; cache-first restore (no loading theater); header **More** menu tucks Feedback.
+- **Current Sprint:** Done % only in header bar; semantic progress tones; auto risk filter on load; inline sprint carousel (no duplicate switch control); collapsed cockpit opens before **Review work** navigates.
+- **Leadership / dashboard:** Stall signal in confidence strip; dashboard `?stay=1` with sprint pulse and stall CTA.
+- **Tests:** `tests/Delivera-Growth-Direct-Value-Realtime-Validation-Tests.spec.js` (`npm run test:journey:ux-core`).
+
 ### SP→Estimate bridge, SP badge edit, Teams parser hardening, bulk slider, cockpit CSS (this session)
 - **SP→Slider bridge**: `ESTIMATE_SCALE.spToStep` maps Fibonacci story points to slider steps (1pt→1h, 5pt→4h, 13pt→1d, 21pt→2d). Applied in `applyServerDraft()` — SP takes priority over keyword auto-suggest.
 - **SP badge inline edit**: `.wdc-sp-badge` is now `contenteditable="true"`. Click badge → type new value → blur saves to `item.suggestedStoryPoints` and updates the slider. Empty blur resets to original.

@@ -153,11 +153,12 @@ export function updateAppliedFiltersSummary() {
     const chips = buildUnifiedReportContextChips(
       typeof outcomesCount === 'number' ? { outcomesCount } : {},
     );
-    const secondary = reportState.previewData
-      ? (document.body?.classList.contains('preview-active')
-        ? 'Preview is open — chips match your current filter picks.'
-        : 'Results reflect the last preview for this scope.')
-      : 'Run preview once to load numbers for the scope in the chips.';
+    const previewActive = document.body?.classList.contains('preview-active');
+    const secondary = previewActive
+      ? ''
+      : (reportState.previewData
+        ? 'Results reflect the last preview for this scope.'
+        : 'Run preview once to load numbers for the scope in the chips.');
     filterStripSummaryEl.innerHTML = renderContextBar({
       title: REPORT_CONTEXT_BAR_TITLE,
       chips,

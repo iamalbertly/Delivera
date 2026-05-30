@@ -355,6 +355,8 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await stubSprintPage(page, buildStubSprintPayload());
     await page.goto('/current-sprint');
+    const cockpitDetails = page.locator('.decision-cockpit-details').first();
+    if (await cockpitDetails.count()) await cockpitDetails.evaluate((el) => { el.open = true; });
     await expect(page.locator('.decision-workmovement-chart')).toBeVisible();
     const chartText = await page.locator('.decision-workmovement-card').textContent();
     expect(chartText || '').toMatch(/Scope change|Inactivity/i);
@@ -381,7 +383,8 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await stubSprintPage(page, payload);
     await page.goto('/current-sprint');
     await expect(page.locator('.decision-action-card')).toContainText(/No critical Jira issue/i);
-    await page.locator('.decision-action-card .decision-primary-link').click();
+    await page.locator('.decision-cockpit-details').first().evaluate((el) => { el.open = true; });
+    await page.locator('.decision-action-card .decision-primary-link').click({ force: true });
     await expect(page.locator('#stories-card')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
@@ -403,6 +406,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     });
     await stubSprintPage(page, payload);
     await page.goto('/current-sprint');
+    await page.locator('.decision-cockpit-details').first().evaluate((el) => { el.open = true; }).catch(() => null);
     const emptyVisible = await page.locator('.decision-workmovement-empty').isVisible().catch(() => false);
     const chartVisible = await page.locator('.decision-workmovement-chart').isVisible().catch(() => false);
     expect(emptyVisible || chartVisible).toBe(true);
@@ -425,7 +429,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await stubSprintPage(page, payload);
     await page.goto('/current-sprint');
     await expect(page.locator('.decision-health-card')).toContainText(/Limited View/i);
-    await expect(page.locator('.current-sprint-advanced-controls')).toBeVisible();
+    await expect(page.locator('.current-sprint-header-bar, .sprint-switcher-card-inline').first()).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 });

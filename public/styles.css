@@ -4697,6 +4697,19 @@ body.report-page .preview-status-strip[data-state="fresh"] {
   body.report-page.preview-active .report-filters-status-bar {
     display: none !important;
   }
+
+  body.report-page.preview-active #preview-status-strip[data-state="fresh"],
+  body.report-page.preview-active #preview-status-strip[data-state="up-to-date"] {
+    display: none !important;
+  }
+
+  body.report-page.preview-active #report-filter-strip-summary .context-summary-secondary {
+    display: none !important;
+  }
+
+  body.report-page.preview-active #report-one-click-cta-wrap {
+    display: none !important;
+  }
 }
 
 /* ALB-29: Narrow + preview-active - single visible hero; clip redundant page h1 when preview context shows */

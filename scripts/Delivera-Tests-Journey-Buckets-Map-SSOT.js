@@ -197,16 +197,6 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/login,/report,/current-sprint,/sprint-leadership',
   },
-  'tests/Delivera-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js': {
-    journey: 'journey.ux-core',
-    layer: 'page-ux',
-    page: '/report,/current-sprint,/sprint-leadership',
-  },
-  'tests/Delivera-Customer-Simplicity-Trust-Recovery-Validation-Tests.spec.js': {
-    journey: 'journey.ux-core',
-    layer: 'page-ux',
-    page: '/report',
-  },
   'tests/Delivera-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'layout/responsiveness',

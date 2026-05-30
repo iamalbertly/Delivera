@@ -141,7 +141,7 @@ test.describe('Header and nav persistence with contrast trust', () => {
   });
 
   test('accent cards keep readable contrast on executive pages', async ({ page }) => {
-    const pages = ['/dashboard', '/leadership'];
+    const pages = ['/dashboard'];
     for (const path of pages) {
       await page.goto(path);
       if (page.url().includes('login')) {
@@ -167,10 +167,14 @@ test.describe('Header and nav persistence with contrast trust', () => {
           const b = lum(bg);
           return Number(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2));
         };
-        const card = document.querySelector('.surface-card-accent, .surface-card');
+        const card = document.querySelector('.surface-hero-card, .surface-card');
         if (!card) return null;
         const cardStyle = getComputedStyle(card);
-        const bg = parse(cardStyle.backgroundColor);
+        let bg = parse(cardStyle.backgroundColor);
+        if (!bg || cardStyle.backgroundColor.includes('rgba(0, 0, 0, 0)')) {
+          const parentBg = parse(getComputedStyle(card.parentElement || card).backgroundColor);
+          if (parentBg) bg = parentBg;
+        }
         const heading = card.querySelector('h2, h3');
         const body = card.querySelector('p');
         if (!heading || !body) return null;

@@ -364,6 +364,8 @@ export function wireDecisionCockpitHandlers() {
         }));
       } catch (_) {}
     }
+    const details = root.querySelector('.decision-cockpit-details');
+    if (details && !details.open) details.open = true;
     const target = document.querySelector(targetSelector);
     if (target) {
       event.preventDefault();

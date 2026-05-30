@@ -439,7 +439,12 @@ function initReportPage() {
       + '</div>'
       + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Export</button>'
       + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Sprint</a>'
-      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>';
+      + '<details class="report-header-more-menu">'
+      + '<summary class="btn btn-secondary btn-compact" aria-label="More report actions">More</summary>'
+      + '<div class="report-header-more-panel" role="group" aria-label="Secondary report actions">'
+      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>'
+      + '</div>'
+      + '</details>';
     wrap.querySelector('#report-header-preview-btn')?.addEventListener('click', () => {
       runReportPreviewFromHeader('header-refresh');
     });
