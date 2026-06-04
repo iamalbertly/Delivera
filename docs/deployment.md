@@ -35,8 +35,9 @@ Recommended production env:
 
 The repository includes:
 
-- `api/index.js` — Vercel serverless entrypoint exporting the Express app.
-- `vercel.json` — routes all requests through the Express app (`api/index.js`). Node file tracing bundles imported server code; static assets under `public/` are served by Express.
+- `index.js` — Vercel zero-config Express entrypoint (must import `express` in this file). Exports the app with background workers disabled.
+- `api/index.js` — re-exports root `index.js` for legacy `/api` paths only.
+- `vercel.json` — install + CSS build only; routing is handled by Vercel’s Express builder. Static assets under `public/` are served from the CDN (not `express.static`).
 - `.github/workflows/vercel-preview.yml` — preview deployment workflow that runs only when Vercel repository secrets are configured.
 
 Use Vercel when you want a quick beta URL. Keep these limits in mind:

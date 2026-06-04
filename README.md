@@ -96,7 +96,7 @@ Ownership: [`public/css/README.md`](public/css/README.md)
 ## Deployment
 
 - **Render:** [`render.yaml`](render.yaml) — always-on Node, background workers
-- **Vercel:** `api/index.js` + `vercel.json` — serverless Express; workers disabled
+- **Vercel:** root `index.js` + `vercel.json` — zero-config Express; workers disabled
 
 Pre-deploy: `npm run build:css`, `npm run check:css`, then your chosen test gate.
 
