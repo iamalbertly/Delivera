@@ -73,6 +73,12 @@ async function disableSidebarPointerBlock(page) {
   });
 }
 
+/** Scope bar / top chrome can intercept summary clicks in CI viewports. */
+async function openGovernanceAgentQueueChrome(page) {
+  await disableSidebarPointerBlock(page);
+  await page.evaluate(() => document.getElementById('gov-top-chrome-mount')?.setAttribute('open', ''));
+}
+
 const CATALOG_KEYS = ['MPSA', 'MAS', 'RPA', 'MVA', 'ASG', 'FIN', 'SD', 'MPSA2', 'TRS', 'VB', 'AMS2', 'BIO'];
 
 async function mockGovernancePage(page) {
@@ -213,8 +219,7 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await disableSidebarPointerBlock(page);
-    await page.evaluate(() => document.getElementById('gov-top-chrome-mount')?.setAttribute('open', ''));
+    await openGovernanceAgentQueueChrome(page);
     const queueOpen = page.locator('[data-queue-open]');
     await expect(queueOpen).toBeVisible({ timeout: 15000 });
     await queueOpen.click({ force: true });
@@ -241,8 +246,8 @@ test.describe('Governance agentic worker — UI', () => {
     const telemetry = await captureBrowserTelemetry(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('.gov-top-chrome-summary').click();
-    await page.locator('[data-queue-open]').click();
+    await openGovernanceAgentQueueChrome(page);
+    await page.locator('[data-queue-open]').click({ force: true });
     await expect(page.locator('.gov-inbox-cached-hint, .gov-inbox-hint')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
@@ -261,8 +266,8 @@ test.describe('Governance agentic worker — UI', () => {
     });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('.gov-top-chrome-summary').click();
-    await page.locator('[data-queue-open]').click();
+    await openGovernanceAgentQueueChrome(page);
+    await page.locator('[data-queue-open]').click({ force: true });
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('[data-inbox-approve="n1"]')).toBeVisible();
     await disableSidebarPointerBlock(page);
@@ -278,8 +283,8 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('.gov-top-chrome-summary').click();
-    await page.locator('[data-queue-open]').click();
+    await openGovernanceAgentQueueChrome(page);
+    await page.locator('[data-queue-open]').click({ force: true });
     await expect(page.locator('.gov-inbox-group-card')).toContainText(/PI drift/i);
   });
 
@@ -316,8 +321,8 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('.gov-top-chrome-summary').click();
-    await page.locator('[data-queue-open]').click();
+    await openGovernanceAgentQueueChrome(page);
+    await page.locator('[data-queue-open]').click({ force: true });
     await page.locator('[data-queue-tab="nudges"]').click();
     await expect(page.locator('.gov-inbox-draft-excerpt')).toContainText(/confirm next step/i);
     await disableSidebarPointerBlock(page);
