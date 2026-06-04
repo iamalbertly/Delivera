@@ -157,10 +157,11 @@ function buildSidebarHTML() {
   html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
   for (const item of primaryItems) {
     const className = 'sidebar-link' + (item.active ? ' active current' : '');
+    const badge = item.key === PAGE_GOVERNANCE ? '<span class="sidebar-nav-badge" data-sidebar-badge="governance" hidden></span>' : '';
     if (item.active) {
-      html += '<span class="' + className + '" aria-current="page" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></span>';
+      html += '<span class="' + className + '" aria-current="page" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span>' + badge + '</span>';
     } else {
-      html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></a>';
+      html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span>' + badge + '</a>';
     }
   }
   if (moreItems.length) {
@@ -529,6 +530,24 @@ function initDataPulseListener() {
       renderSidebarContextCard();
     } catch (_) {}
   });
+}
+
+/** Brief queue badge on sidebar + mobile nav (B5). */
+export function setBriefNavBadge(inboxTotal = 0) {
+  const n = Number(inboxTotal) || 0;
+  const label = n > 0 ? String(n) : '';
+  const el = document.querySelector('[data-sidebar-badge="governance"]');
+  if (el) {
+    if (label) {
+      el.hidden = false;
+      el.textContent = label;
+      el.setAttribute('title', `${n} items in agent queue`);
+    } else {
+      el.hidden = true;
+      el.textContent = '';
+    }
+  }
+  updateBottomNavBadge(PAGE_GOVERNANCE, label, n > 0 ? `${n} queue items` : '');
 }
 
 if (typeof document !== 'undefined') {

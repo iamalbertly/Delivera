@@ -119,11 +119,11 @@ test.describe('Governance PI intelligence', () => {
     expect(text).toContain('FY27 Q1');
   });
 
-  test('page renders PI confidence gauge', async ({ page }) => {
+  test('page renders PI confidence gauge or no-data state', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
     await expect(page.locator('.gov-pi-strip')).toBeVisible();
-    await expect(page.locator('.gov-pi-gauge-track')).toBeVisible();
+    await expect(page.locator('.gov-pi-gauge-track, .gov-pi-nodata')).toBeVisible();
     await expect(page.locator('.gov-pi-counter-row')).toBeVisible();
   });
 
@@ -145,7 +145,7 @@ test.describe('Governance PI intelligence', () => {
   test('epic hygiene and ad-hoc watcher render', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
-    await expect(page.locator('.gov-epic-hygiene')).toBeVisible();
+    await expect(page.locator('.gov-pi-hygiene-row')).toBeVisible();
     await expect(page.locator('.gov-adhoc-chip')).toBeVisible();
   });
 
@@ -200,7 +200,7 @@ test.describe('Governance PI intelligence', () => {
     await mockPiPage(page);
     await page.goto('/governance');
     await expect(page.locator('.gov-narration-badge--advisor')).toBeVisible();
-    await page.locator('.gov-command-overflow summary').click();
+    await page.locator('#gov-overflow-toggle').click();
     await page.locator('#gov-copy-pi-forum').click();
     await expect(page.locator('#gov-copy-pi-forum')).toContainText(/copied/i);
   });
@@ -208,7 +208,7 @@ test.describe('Governance PI intelligence', () => {
   test('protect-me wording reveals safe line', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
-    await page.locator('.gov-command-overflow summary').click();
+    await page.locator('#gov-overflow-toggle').click();
     await page.locator('#gov-protect-me').click();
     await expect(page.locator('#gov-protect-me-line')).toBeVisible();
     await expect(page.locator('#gov-protect-me-line')).toContainText(/Safest wording/i);

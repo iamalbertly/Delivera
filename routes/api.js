@@ -1566,6 +1566,9 @@ router.get('/api/governance/worker-receipt.json', requireAuth, async (req, res) 
             jobs: jobs.slice(0, 3),
             inboxTotal: items.length,
             setupGaps: brief?.meta?.setupGaps || [],
+            sinceLastRun: brief?.meta?.sinceLastRun || null,
+            piConfidence: brief?.meta?.piConfidence || null,
+            poReadiness: brief?.poReadiness || brief?.meta?.poReadiness || null,
         });
     } catch (err) {
         logger.warn('governance worker-receipt failed', { error: err?.message });

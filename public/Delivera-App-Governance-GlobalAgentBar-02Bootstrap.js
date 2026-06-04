@@ -29,9 +29,11 @@ async function bootstrap() {
     }
     updateGlobalAgentBar({
       meta: {
-        workerReceipt: data.workerReceipt,
+        workerReceipt: { ...data.workerReceipt, inboxTotal: data.inboxTotal },
         setupGaps: data.setupGaps || [],
-        piConfidence: piConfidence || { headline: 'PI n/a' },
+        piConfidence: piConfidence || data.piConfidence || { headline: 'PI n/a' },
+        sinceLastRun: data.sinceLastRun || null,
+        poReadiness: data.poReadiness || null,
       },
     });
   } catch (_) { /* non-blocking */ }

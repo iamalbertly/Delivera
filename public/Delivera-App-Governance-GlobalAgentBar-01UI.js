@@ -26,11 +26,16 @@ export function updateGlobalAgentBar(brief) {
   const gaps = (brief?.meta?.setupGaps || []).length;
   const pi = brief?.meta?.piConfidence?.headline || 'PI n/a';
   const since = brief?.meta?.sinceLastRun?.summary || '';
+  const po = brief?.meta?.poReadiness || brief?.poReadiness;
+  const poPill = po?.score != null
+    ? `<span class="gov-global-pill">PO ${Math.round(po.score)}%</span>`
+    : '';
   const deltaPill = since
     ? `<span class="gov-global-pill gov-since-delta">${escapeHtml(since.slice(0, 60))}</span>`
-    : `<span class="gov-global-pill">Queue ${inbox}</span>`;
+    : (inbox > 0 ? `<span class="gov-global-pill">Brief queue: ${inbox}</span>` : '');
   bar.innerHTML = `
     ${deltaPill}
+    ${poPill}
     <span class="gov-global-pill">Gaps ${gaps}</span>
     <span class="gov-global-pill">${escapeHtml(pi.slice(0, 50))}</span>`;
   bar.hidden = false;

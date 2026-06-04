@@ -3,6 +3,9 @@
  */
 import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
+import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+
+const LAST_VERDICT_KEY = 'delivera_lastVerdictTier';
 
 const KNOWN_PROJECTS = ['MPSA', 'MAS', 'RPA', 'SD'];
 
@@ -31,6 +34,14 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let quarters = [];
   let activeQuarter = quarterLabel || '';
   let baselineWizard = null;
+  let statusTier = 'watch';
+  let inboxTotal = 0;
+  let sinceDelta = '';
+  let advancedWarnCount = 0;
+
+  try {
+    statusTier = localStorage.getItem(LAST_VERDICT_KEY) || 'watch';
+  } catch (_) { /* ignore */ }
 
   function render() {
     const chips = KNOWN_PROJECTS.map((pk) => {
@@ -50,10 +61,15 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const intelLine = counts.available != null
       ? ` · ${counts.available} available · ${counts.noSprint || 0} no sprint · ${counts.piCommitted || 0} PI`
       : '';
+    const statusLabel = simpleStatusLabel(statusTier, true);
+    const queuePart = inboxTotal > 0 ? ` (${inboxTotal} pending)` : '';
+    const deltaPart = sinceDelta ? ` · ${escapeHtml(sinceDelta.slice(0, 48))}` : '';
+    const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
 
     mount.innerHTML = `
       <div class="gov-scope-capsule" aria-label="Brief scope">
         <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(selected.join(' + '))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
+        <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}</span>
         <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
         <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
       </div>
@@ -66,7 +82,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
             <div class="gov-scope-quarter-strip">${quarterPills}</div>
           </div>
           <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">Set PI baseline</button>
-          <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">Advanced scope</button>
+          <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">${escapeHtml(advLabel)}</button>
         </div>
       </div>`;
 
@@ -119,5 +135,16 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     getProjects: () => [...selected],
     getQuarterLabel: () => activeQuarter,
     refreshCapsule: () => render(),
+    updateStatus(tier, queue = 0, sinceSummary = '') {
+      statusTier = tier || 'watch';
+      inboxTotal = Number(queue) || 0;
+      sinceDelta = sinceSummary || '';
+      try { localStorage.setItem(LAST_VERDICT_KEY, statusTier); } catch (_) { /* ignore */ }
+      render();
+    },
+    setAdvancedWarnCount(n) {
+      advancedWarnCount = Math.max(0, Number(n) || 0);
+      render();
+    },
   };
 }

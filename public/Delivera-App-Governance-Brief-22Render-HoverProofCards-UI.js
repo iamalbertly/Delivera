@@ -31,6 +31,11 @@ function proofCardHtml(risk, evidenceRow) {
 
 const STATIC_HELP = {
   'pi-gauge': () => `<p><strong>PI baseline</strong></p><p>${GOV_TOOLTIPS.piConfidence}</p><p>Without baseline: carryover and removed scope cannot be proven.</p>`,
+  'pi-candidates': (brief) => {
+    const c = brief?.meta?.piConfidence?.counts || {};
+    const n = (c.offPlan || 0) + (c.onTrack || 0);
+    return `<p><strong>Candidates (${n})</strong></p><p>Not yet confirmed in PI baseline. Set baseline to classify as committed or removed.</p>`;
+  },
   'evidence-count': (brief) => {
     const n = (brief?.evidencePack?.rows || []).length;
     return `<p><strong>Evidence: ${n}</strong></p><p>${n} issue keys checked against sprint and changelog.</p>`;

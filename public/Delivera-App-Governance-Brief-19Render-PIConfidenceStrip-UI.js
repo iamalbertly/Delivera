@@ -1,7 +1,7 @@
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
-import { renderAdHocChip } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
+import { renderAdHocChip, renderEpicHygieneInlineRow } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
 
 function chipHtml(chip) {
   const elapsed = chip.elapsedPct != null ? `${chip.elapsedPct}% elapsed` : 'dates unknown';
@@ -29,27 +29,37 @@ export function renderPIConfidenceStrip(brief) {
   if (!strip) return '';
   const c = strip.counts || {};
   const pct = strip.confidencePct;
-  const gaugePct = pct != null ? Math.min(100, Math.max(0, pct)) : (strip.trusted ? 70 : 15);
-  const trustLabel = pct == null && !strip.trusted ? 'No data' : strip.trusted ? 'High' : 'Low';
-  const trustedCls = strip.trusted ? 'is-trusted' : pct == null ? 'is-nodata' : 'is-limited';
+  const noData = pct == null && !strip.trusted;
+  const gaugePct = pct != null ? Math.min(100, Math.max(0, pct)) : (strip.trusted ? 70 : 0);
+  const trustLabel = noData ? '' : strip.trusted ? 'High' : 'Low';
+  const trustedCls = strip.trusted ? 'is-trusted' : noData ? 'is-nodata' : 'is-limited';
   const chips = (strip.timelineChips || []).map(chipHtml).join('');
   const chipsBlock = chips
     ? `<div class="gov-pi-chip-row" role="list">${chips}</div>`
     : '<p class="gov-pi-empty">Set PI baseline to unlock timeline chips.</p>';
   const adHocChip = renderAdHocChip(brief);
+  const hygieneRow = renderEpicHygieneInlineRow(brief);
+
+  const gaugeBlock = noData
+    ? `<div class="gov-pi-nodata" data-hover-proof="pi-gauge">
+        <span class="gov-pi-nodata-icon" aria-hidden="true">○</span>
+        <p class="gov-pi-nodata-label">PI baseline not set</p>
+        <button type="button" class="btn btn-primary btn-compact" id="gov-pi-fix-baseline">Set baseline →</button>
+      </div>`
+    : `<div class="gov-pi-gauge-wrap">
+        <span class="gov-pi-gauge-label">PI Trust</span>
+        <div class="gov-pi-gauge-track" role="meter" aria-valuenow="${gaugePct}" aria-valuemin="0" aria-valuemax="100" data-hover-proof="pi-gauge">
+          <span class="gov-pi-gauge-fill" style="width:${gaugePct}%"></span>
+        </div>
+        <strong class="gov-pi-gauge-tier">${escapeHtml(trustLabel)}</strong>
+      </div>`;
 
   return `
-    <section class="gov-pi-strip ${trustedCls}" aria-label="PI confidence" data-hover-proof="pi-gauge" title="${escapeHtml(GOV_TOOLTIPS.piConfidence)}">
+    <section class="gov-pi-strip ${trustedCls}" aria-label="PI confidence" title="${escapeHtml(GOV_TOOLTIPS.piConfidence)}">
       <div class="gov-pi-strip-head gov-pi-gauge-row">
-        <div class="gov-pi-gauge-wrap">
-          <span class="gov-pi-gauge-label">PI Trust</span>
-          <div class="gov-pi-gauge-track" role="meter" aria-valuenow="${gaugePct}" aria-valuemin="0" aria-valuemax="100">
-            <span class="gov-pi-gauge-fill" style="width:${gaugePct}%"></span>
-          </div>
-          <strong class="gov-pi-gauge-tier">${escapeHtml(trustLabel)}</strong>
-        </div>
+        ${gaugeBlock}
         ${adHocChip}
-        <button type="button" class="btn btn-secondary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>
+        ${noData ? '' : `<button type="button" class="btn btn-secondary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>`}
       </div>
       <dl class="gov-pi-counter-row">
         <div><dt>Confirmed</dt><dd>${c.committed ?? 0}</dd></div>
@@ -57,6 +67,7 @@ export function renderPIConfidenceStrip(brief) {
         <div><dt>Missing dates</dt><dd>${c.missingDates ?? 0}</dd></div>
         <div><dt>At risk</dt><dd>${c.atRisk ?? 0}</dd></div>
       </dl>
+      ${hygieneRow}
       <details class="gov-pi-strip-details">
         <summary>Timeline (${(strip.timelineChips || []).length})</summary>
         ${chipsBlock}

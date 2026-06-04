@@ -63,6 +63,10 @@ export const COPY = {
   statusWatch: 'Watch',
   statusOnTrack: 'OK',
   statusSetup: 'Setup',
+  statusIconBlocked: '✕ Blocked',
+  statusIconWatch: '⚠ Watch',
+  statusIconOnTrack: '✓ OK',
+  statusIconSetup: '○ Setup',
   fixPiBaseline: 'Fix PI baseline',
   adHocChip: 'Ad-hoc',
   learningReceipt: 'Feedback improved',
@@ -73,16 +77,21 @@ export function isSimpleMode() {
   try { return localStorage.getItem('delivera_simpleMode') === '1'; } catch (_) { return false; }
 }
 
-export function simpleStatusLabel(tier = 'watch') {
+export function simpleStatusLabel(tier = 'watch', withIcon = false) {
   const t = String(tier || '').toLowerCase();
-  if (t === 'blocked') return COPY.statusBlocked;
-  if (t === 'on-track' || t === 'ok') return COPY.statusOnTrack;
-  if (t === 'setup' || t === 'limited') return COPY.statusSetup;
-  return COPY.statusWatch;
+  if (t === 'blocked') return withIcon ? COPY.statusIconBlocked : COPY.statusBlocked;
+  if (t === 'on-track' || t === 'ok') return withIcon ? COPY.statusIconOnTrack : COPY.statusOnTrack;
+  if (t === 'setup' || t === 'limited') return withIcon ? COPY.statusIconSetup : COPY.statusSetup;
+  return withIcon ? COPY.statusIconWatch : COPY.statusWatch;
 }
 
 export function verdictTierFromBrief(brief = {}) {
   const ev = brief?.executiveView || {};
+  const tier = String(ev.verdictTier || '').toLowerCase();
+  if (tier === 'blocked') return 'blocked';
+  if (tier === 'watch') return 'watch';
+  if (tier === 'on-track' || tier === 'ok') return 'on-track';
+  if (tier === 'setup' || tier === 'limited') return 'setup';
   if (ev.verdictTier) return ev.verdictTier;
   const line = String(ev.verdictLine || '').toLowerCase();
   if (line.includes('blocked')) return 'blocked';

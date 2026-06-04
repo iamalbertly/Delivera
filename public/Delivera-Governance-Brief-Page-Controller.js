@@ -12,13 +12,14 @@ import { renderVerdictZone } from './Delivera-App-Governance-Brief-07Render-Verd
 import { renderPortfolioGrid, bindRiskHeatInteractions } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
 import { renderMeasurementStrip } from './Delivera-App-Governance-Brief-10Render-MeasurementStrip-UI.js';
 import { renderMeetingScript, buildMeetingAnswerClipboard } from './Delivera-App-Governance-Brief-11Render-MeetingScript-UI.js';
-import { renderCommandAnswerBar } from './Delivera-App-Governance-Brief-13Render-CommandAnswerBar-UI.js';
+import { renderCommandAnswerBar, bindCommandOverflowMenu } from './Delivera-App-Governance-Brief-13Render-CommandAnswerBar-UI.js';
 import { renderWorkerReceiptRail } from './Delivera-App-Governance-Brief-14Render-WorkerReceipt-UI.js';
 import { renderOwnerActionClusters } from './Delivera-App-Governance-Brief-15Render-OwnerActionCluster-UI.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { renderSetupDebtStrip } from './Delivera-App-Governance-Brief-17Render-SetupDebtStrip-UI.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
-import { COPY, freshnessPlainEnglish } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, freshnessPlainEnglish, verdictTierFromBrief } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { setBriefNavBadge } from './Delivera-Shared-Global-Nav.js';
 import { wireGovernanceIssuePreview } from './Delivera-Shared-Issue-Preview-01Bridge.js';
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { renderGovernanceMicroSurvey } from './Delivera-App-Governance-Brief-12Render-MicroSurvey-UI.js';
@@ -556,29 +557,22 @@ function refreshScopeBarCounts() {
 
 let lastFeedbackSummary = null;
 
-async function fetchFeedbackSummary() {
-  try {
-    const res = await fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(projectsCsv().split(',')[0] || 'MPSA')}`);
-    if (res.ok) return res.json();
-  } catch (_) { /* empty */ }
-  return null;
-}
-
 function renderBriefUi(brief) {
   lastSurfaces = partitionBriefSurfaces(brief);
   ownerGroups = groupDoNowByOwner(lastSurfaces.drawerIssues);
   if (els.piStripMount) {
     els.piStripMount.innerHTML = renderPIConfidenceStrip(brief);
+    bindEpicHygieneInteractions(els.piStripMount, brief);
     els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
       document.getElementById('gov-scope-baseline')?.click();
     });
   }
   if (els.workerReceiptMount) els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, lastFeedbackSummary);
-  if (els.answerMount) els.answerMount.innerHTML = renderCommandAnswerBar(brief, lastSurfaces);
-  if (els.epicHygieneMount) {
-    els.epicHygieneMount.innerHTML = renderEpicHygienePanel(brief);
-    bindEpicHygieneInteractions(els.epicHygieneMount, brief);
+  if (els.answerMount) {
+    els.answerMount.innerHTML = renderCommandAnswerBar(brief, lastSurfaces);
+    bindCommandOverflowMenu(els.answerMount);
   }
+  if (els.epicHygieneMount) els.epicHygieneMount.innerHTML = '';
   if (els.setupDebtMount) els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief);
   if (els.verdictMount) {
     els.verdictMount.innerHTML = isPortfolioMode(brief)
@@ -609,6 +603,13 @@ function renderBriefUi(brief) {
   updateGlobalAgentBar(brief);
   updateStickyMicroAnswer(brief);
   refreshScopeBarCounts();
+  const tier = verdictTierFromBrief(brief);
+  const inboxTotal = inboxApi?.getInboxTotal?.() || brief?.meta?.workerReceipt?.inboxTotal || 0;
+  scopeBarApi?.updateStatus?.(tier, inboxTotal, brief?.meta?.sinceLastRun?.summary || '');
+  const warnCards = (brief?.meta?.scopeIntelligence?.cards || []).filter((c) => c.health && c.health !== 'ok').length;
+  scopeBarApi?.setAdvancedWarnCount?.(warnCards);
+  setBriefNavBadge(inboxTotal);
+  mountFeedbackLabButton(els.feedbackLabMount, projectsCsv().split(',')[0], lastFeedbackSummary);
 }
 
 async function loadBrief() {
@@ -616,18 +617,21 @@ async function loadBrief() {
   const quarter = scopeBarApi?.getQuarterLabel?.() || '';
   const qs = new URLSearchParams({ projects: projectsCsv() });
   if (quarter) qs.set('quarter', quarter);
+  const pk = projectsCsv().split(',')[0] || 'MPSA';
   try {
-    const res = await fetch(`/api/governance-brief.json?${qs.toString()}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    lastBrief = await res.json();
+    const [briefRes, feedbackRes] = await Promise.all([
+      fetch(`/api/governance-brief.json?${qs.toString()}`),
+      fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`),
+    ]);
+    if (!briefRes.ok) throw new Error(`HTTP ${briefRes.status}`);
+    lastBrief = await briefRes.json();
+    lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
     const confirmCount = inboxApi?.getConfirmCount?.() || 0;
     renderFreshness(lastBrief, confirmCount);
-    lastFeedbackSummary = await fetchFeedbackSummary();
     renderBriefUi(lastBrief);
     renderScorecard();
     inboxApi?.refresh?.();
     document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
-      mountFeedbackLabButton(els.feedbackLabMount, projectsCsv().split(',')[0]);
       document.getElementById('gov-open-feedback-lab')?.click();
     });
   } catch (err) {
@@ -661,7 +665,7 @@ function init() {
   mountGlobalAgentBar();
   mountStickyMicroAnswer(els.stickyAnswerMount);
   bindStickyScroll(100);
-  mountFeedbackLabButton(els.feedbackLabMount, projectsCsv().split(',')[0]);
+  mountFeedbackLabButton(els.feedbackLabMount, projectsCsv().split(',')[0], null);
   scopeBarApi = mountGovernanceScopeBar({
     mount: $('gov-scope-bar-mount'),
     onRefresh: loadBrief,

@@ -96,16 +96,9 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm }) 
     writeLastSeen();
     expandedDrawer = false;
 
-    const renderBody = () => {
-      if (expandedDrawer) {
-        return renderGroupedDrawer(items, resolveGroup);
-      }
-      return renderGroupedDrawer(items, resolveGroup);
-    };
-
     const { close, el } = openRightDrawer({
       title: `Agent queue — ${label} (${items.length})`,
-      bodyHtml: renderBody(),
+      bodyHtml: renderGroupedDrawer(items, false),
     });
     drawerClose = close;
 

@@ -53,9 +53,16 @@ export async function openFeedbackImprovementCenter(project = '') {
   return { close, el };
 }
 
-export function mountFeedbackLabButton(mount, project) {
+export function mountFeedbackLabButton(mount, project, summary = null) {
   if (!mount) return;
-  mount.innerHTML = `<button type="button" class="btn btn-link btn-compact" id="gov-open-feedback-lab">Improvement lab</button>`;
+  const total = summary?.total ?? 0;
+  const dim = total === 0 ? ' gov-lab-chip--dim' : '';
+  const countBadge = total > 0 ? `<span class="gov-lab-count">${total}</span>` : '';
+  mount.innerHTML = `<button type="button" class="gov-lab-chip${dim}" id="gov-open-feedback-lab" aria-label="Improve brief from feedback">
+    <span class="gov-lab-icon" aria-hidden="true">⚗</span>
+    <span class="gov-lab-label">Improve brief</span>
+    ${countBadge}
+  </button>`;
   mount.querySelector('#gov-open-feedback-lab')?.addEventListener('click', () => {
     openFeedbackImprovementCenter(project);
   });

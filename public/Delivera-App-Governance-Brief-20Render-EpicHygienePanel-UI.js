@@ -33,7 +33,7 @@ function openAdHocDrawer(brief) {
   });
 }
 
-function openSuggestionsDrawer(brief) {
+export function openSuggestionsDrawer(brief) {
   const suggestions = brief?.meta?.epicHygiene?.suggestions || [];
   const rows = suggestions.map((s) => `
     <li class="gov-epic-suggestion-row">
@@ -57,22 +57,24 @@ function openSuggestionsDrawer(brief) {
   return { close, el };
 }
 
-export function renderEpicHygienePanel(brief) {
+/** Inline row for PI strip (J4). */
+export function renderEpicHygieneInlineRow(brief) {
   const hygiene = brief?.meta?.epicHygiene;
   if (!hygiene || hygiene.epicCount === 0) return '';
   const weak = (hygiene.weak || []).length;
-  const squadChips = (hygiene.bySquad || []).map((r) => `
+  const squadChips = (hygiene.bySquad || []).slice(0, 4).map((r) => `
     <span class="gov-epic-score-chip" data-hover-proof="epic-score">${escapeHtml((r.squad || '').split(' ')[0])} ${r.score}%</span>`).join('');
-
   return `
-    <section class="gov-epic-hygiene" aria-label="Epic hygiene" data-hover-proof="epic-hygiene">
-      <div class="gov-epic-score-row">
-        <span class="gov-epic-score-main">Epic naming <strong>${hygiene.score != null ? `${hygiene.score}%` : '—'}</strong></span>
-        <span class="gov-epic-meta-chip">Weak: ${weak}</span>
-        <button type="button" class="btn btn-link btn-compact" id="gov-epic-suggestions-open">Suggestions →</button>
-      </div>
-      <div class="gov-epic-squad-chips">${squadChips}</div>
-    </section>`;
+    <div class="gov-pi-hygiene-row" data-hover-proof="epic-hygiene">
+      <span class="gov-epic-score-main">Epic naming <strong>${hygiene.score != null ? `${hygiene.score}%` : '—'}</strong></span>
+      <span class="gov-epic-meta-chip">Weak: ${weak}</span>
+      ${squadChips}
+      <button type="button" class="btn btn-link btn-compact" id="gov-epic-suggestions-open">Suggestions →</button>
+    </div>`;
+}
+
+export function renderEpicHygienePanel(brief) {
+  return '';
 }
 
 export function bindEpicHygieneInteractions(root, brief) {
@@ -83,6 +85,6 @@ export function bindEpicHygieneInteractions(root, brief) {
   });
 }
 
-export function renderAdHocEpicWatcher(brief) {
+export function renderAdHocEpicWatcher() {
   return '';
 }

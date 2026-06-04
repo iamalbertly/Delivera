@@ -23,19 +23,30 @@ export function renderCommandAnswerBar(brief, surfaces = null) {
   const ev = brief?.executiveView || {};
   const top = brief?.topRisks?.[0] || {};
   const tier = verdictTierFromBrief(brief);
-  const statusLabel = isSimpleMode() ? simpleStatusLabel(tier) : (ev.verdictLine?.split('.')[0] || deliveryStatusLabel(n.confidence));
+  const statusLabel = isSimpleMode()
+    ? simpleStatusLabel(tier, true)
+    : (ev.verdictLine?.split('.')[0] || deliveryStatusLabel(n.confidence));
   const ownerName = firstNameFromDisplay(top.assigneeName || top.decisionNeededFrom) || COPY.unassigned;
   const itemCount = surfaces?.drawerIssues?.length || brief?.topRisks?.length || 0;
   const squad = top.squad || brief?.projects?.[0] || '';
   const doFirst = surfaces?.doNowActions?.[0];
-  const doFirstLabel = doFirst?.actionPlain?.slice(0, 48) || top.recommendedAction?.slice(0, 48) || COPY.reviewActions;
+  const doFirstLabel = doFirst?.actionPlain?.slice(0, 56) || top.recommendedAction?.slice(0, 56) || COPY.reviewActions;
+  const doFirstUrl = doFirst?.issueUrl || top.issueUrl || '';
+  const showDoFirstStrip = tier === 'blocked' || doFirst?.escalation === 'act-today' || doFirst?.escalation === 'escalate';
   const evidenceCount = (brief?.evidencePack?.rows || []).length;
-  const since = brief?.meta?.sinceLastRun?.summary || '';
-  const narratedBy = brief?.meta?.narratedBy || n.narratedBy || 'template';
   const piForum = brief?.meta?.piForumAnswer || '';
   const readiness = sendReadinessBadge(brief);
   const fresh = freshnessShortLabel(brief?.freshness || {});
 
+  const doFirstStrip = showDoFirstStrip
+    ? `<div class="gov-do-first-strip" data-hover-proof="owner-lane">
+        <span class="gov-do-first-prefix">${escapeHtml(COPY.doFirst)}:</span>
+        <strong class="gov-do-first-action">${escapeHtml(doFirstLabel)}</strong>
+        ${doFirstUrl ? `<a class="btn btn-primary btn-compact" href="${escapeHtml(doFirstUrl)}" target="_blank" rel="noopener">Open →</a>` : ''}
+      </div>`
+    : '';
+
+  const narratedBy = brief?.meta?.narratedBy || n.narratedBy || 'template';
   const trustBadge = narratedBy === 'advisor'
     ? '<span class="gov-narration-badge gov-narration-badge--advisor" title="Advisor narration">Advisor</span>'
     : '<span class="gov-narration-badge gov-narration-badge--template" title="Template narration">Template</span>';
@@ -57,6 +68,7 @@ export function renderCommandAnswerBar(brief, surfaces = null) {
           <strong class="gov-answer-block-value">${escapeHtml(doFirstLabel)}</strong>
         </div>
       </div>
+      ${doFirstStrip}
       <div class="gov-trust-chip-row" role="group" aria-label="Trust summary">
         <span class="gov-trust-part" data-hover-proof="trust" title="Can I trust this answer?">Trust ${escapeHtml(trustTierLabel(brief))}</span>
         <span class="gov-trust-part" data-hover-proof="evidence-count">Proof ${evidenceCount}</span>
@@ -64,20 +76,37 @@ export function renderCommandAnswerBar(brief, surfaces = null) {
         <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">AI ${escapeHtml(narratedBy === 'advisor' ? 'Advisor' : 'Template')}</a>
         <span class="gov-send-badge gov-send-badge--${readiness.tier}" data-hover-proof="safe-send">${escapeHtml(readiness.label)}</span>
       </div>
-      ${since ? `<p class="gov-command-since gov-since-delta" data-hover-proof="since-last-run">${escapeHtml(since)}</p>` : ''}
       <p class="gov-command-answer-detail">${escapeHtml(sentence.slice(0, 200))}</p>
       <div class="gov-command-actions">
         <button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">${escapeHtml(COPY.reviewActions)}</button>
         <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-answer-inline">Copy answer</button>
-        <details class="gov-command-overflow">
-          <summary class="btn btn-secondary btn-compact">${escapeHtml(COPY.overflowMore)}</summary>
-          <div class="gov-command-overflow-menu">
+        <div class="gov-overflow-menu-wrap">
+          <button type="button" class="btn btn-secondary btn-compact" id="gov-overflow-toggle" aria-expanded="false" aria-haspopup="true">${escapeHtml(COPY.overflowMore)}</button>
+          <div class="gov-overflow-menu" id="gov-overflow-menu" hidden role="menu">
             <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-pi-forum" ${piForum ? '' : 'disabled'}>Copy PI forum answer</button>
             <button type="button" class="btn btn-link btn-compact" id="gov-protect-me">Protect-me wording</button>
             <button type="button" class="btn btn-link btn-compact" id="gov-fix-setup">Fix setup</button>
           </div>
-        </details>
+        </div>
       </div>
       <p id="gov-protect-me-line" class="gov-protect-me-line" hidden></p>
     </section>`;
+}
+
+export function bindCommandOverflowMenu(root) {
+  if (!root) return;
+  const toggle = root.querySelector('#gov-overflow-toggle');
+  const menu = root.querySelector('#gov-overflow-menu');
+  if (!toggle || !menu) return;
+  toggle.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    const open = menu.hidden;
+    menu.hidden = !open;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', (ev) => {
+    if (ev.target.closest('.gov-overflow-menu-wrap')) return;
+    menu.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+  });
 }
