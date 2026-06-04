@@ -80,11 +80,25 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await expect(page.locator('.gov-pi-gauge-track')).toHaveCount(0);
   });
 
-  test('epic hygiene inline in PI strip', async ({ page }) => {
+  test('epic hygiene inline in PI strip (no duplicate mount)', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await expect(page.locator('.gov-pi-hygiene-row')).toBeVisible();
-    await expect(page.locator('#gov-epic-hygiene-mount')).toBeEmpty();
+    await expect(page.locator('.gov-pi-hygiene-compact, .gov-pi-hygiene-row').first()).toBeVisible();
+    await expect(page.locator('#gov-epic-hygiene-mount')).toHaveCount(0);
+  });
+
+  test('PI baseline wizard exposes slide drop zone when AI key stored', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('delivera_ai_provider_pref_v1', JSON.stringify({ provider: 'openai', key: 'sk-test', host: '' }));
+    });
+    await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ method: 'board-epics', candidates: [], guidance: null }),
+    }));
+    await page.goto('/governance');
+    await page.locator('#gov-pi-fix-baseline').click();
+    await expect(page.locator('.gov-baseline-slide-drop')).toBeVisible();
   });
 
   test('do-first strip when blocked', async ({ page }) => {

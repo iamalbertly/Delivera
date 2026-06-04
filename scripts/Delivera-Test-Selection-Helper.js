@@ -96,6 +96,17 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
     '03-nav-sidebar',
     'delivera-shared-notifications-dock',
   ];
+  const piBaselineImpactedSpecs = [
+    'tests/Delivera-Governance-Visual-Clarity-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-PI-Intelligence-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-Brief-Evidence-Validation-Tests.spec.js',
+  ];
+  const piBaselineFileHints = [
+    'delivera-governance-pibaseline',
+    'pibaseline-slide-upload',
+    'epic-activity-intelligence',
+    'delivera-test-pibaseline-slide-upload',
+  ];
 
   const strongKeywords = [
     'preview',
@@ -138,6 +149,11 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
 
     if (chromeFileHints.some((hint) => changedBase.includes(hint) || changed.includes(hint))) {
       chromeImpactedSpecs.forEach((spec) => impacted.add(spec));
+      continue;
+    }
+
+    if (piBaselineFileHints.some((hint) => changedBase.includes(hint) || changed.includes(hint))) {
+      piBaselineImpactedSpecs.forEach((spec) => impacted.add(spec));
       continue;
     }
 

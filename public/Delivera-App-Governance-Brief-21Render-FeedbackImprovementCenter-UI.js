@@ -56,6 +56,12 @@ export async function openFeedbackImprovementCenter(project = '') {
 export function mountFeedbackLabButton(mount, project, summary = null) {
   if (!mount) return;
   const total = summary?.total ?? 0;
+  if (total === 0) {
+    mount.innerHTML = '';
+    mount.hidden = true;
+    return;
+  }
+  mount.hidden = false;
   const dim = total === 0 ? ' gov-lab-chip--dim' : '';
   const countBadge = total > 0 ? `<span class="gov-lab-count">${total}</span>` : '';
   mount.innerHTML = `<button type="button" class="gov-lab-chip${dim}" id="gov-open-feedback-lab" aria-label="Improve brief from feedback">

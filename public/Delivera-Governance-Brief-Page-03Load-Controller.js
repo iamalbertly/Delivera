@@ -197,7 +197,11 @@ export function renderBriefUi(brief) {
   }
   if (govPage.els.scriptMount) govPage.els.scriptMount.innerHTML = renderMeetingScript(brief);
   if (govPage.els.microSurveyMount) renderGovernanceMicroSurvey(govPage.els.microSurveyMount, projectsCsv().split(',')[0] || 'MPSA');
-  if (govPage.els.measurementMount) govPage.els.measurementMount.innerHTML = renderMeasurementStrip(brief, govPage.lastSurfaces);
+  if (govPage.els.measurementMount) {
+    const measurementHtml = renderMeasurementStrip(brief, govPage.lastSurfaces);
+    govPage.els.measurementMount.innerHTML = measurementHtml;
+    govPage.els.measurementMount.hidden = !measurementHtml;
+  }
   renderProofRisks(govPage.lastSurfaces.proofRows);
   renderEvidenceTable(brief);
   renderTechnicalDetails(brief);

@@ -38,6 +38,10 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let selected = readProjects();
   let quarters = [];
   let activeQuarter = quarterLabel || '';
+  try {
+    const storedQ = String(localStorage.getItem('delivera_gov_quarter_v1') || '').trim();
+    if (storedQ) activeQuarter = storedQ;
+  } catch (_) { /* ignore */ }
   let baselineWizard = null;
   let statusTier = 'watch';
   let inboxTotal = 0;
@@ -52,6 +56,12 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   try {
     statusTier = localStorage.getItem(LAST_VERDICT_KEY) || 'watch';
   } catch (_) { /* ignore */ }
+
+  function formatScopeProjects(list) {
+    if (!list.length) return '—';
+    if (list.length <= 3) return list.join(' + ');
+    return `${list.slice(0, 2).join(' + ')} +${list.length - 2}`;
+  }
 
   function render() {
     const periodLabel = activeQuarter || 'Current';
@@ -74,7 +84,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     mount.innerHTML = `
       ${accessBanner}
       <div class="gov-scope-capsule" aria-label="Brief scope">
-        <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(selected.join(' + '))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
+        <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
         <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}</span>
         <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
         <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
