@@ -75,8 +75,12 @@ async function disableSidebarPointerBlock(page) {
 
 /** Scope bar / top chrome can intercept summary clicks in CI viewports. */
 async function openGovernanceAgentQueueChrome(page) {
+  await openGovernanceDetails(page, 'gov-top-chrome-mount');
+}
+
+async function openGovernanceDetails(page, elementId) {
   await disableSidebarPointerBlock(page);
-  await page.evaluate(() => document.getElementById('gov-top-chrome-mount')?.setAttribute('open', ''));
+  await page.evaluate((id) => document.getElementById(id)?.setAttribute('open', ''), elementId);
 }
 
 const CATALOG_KEYS = ['MPSA', 'MAS', 'RPA', 'MVA', 'ASG', 'FIN', 'SD', 'MPSA2', 'TRS', 'VB', 'AMS2', 'BIO'];
@@ -293,7 +297,7 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-secondary-chrome summary').click();
+    await openGovernanceDetails(page, 'gov-secondary-chrome');
     await expect(page.locator('.gov-micro-survey')).toBeVisible();
   });
 
@@ -338,7 +342,7 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/adoption-metric', (r) => { posted = true; return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }); });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-secondary-chrome summary').click();
+    await openGovernanceDetails(page, 'gov-secondary-chrome');
     await page.locator('.gov-micro-pill[data-minutes="10"]').click();
     await expect.poll(() => posted).toBe(true);
   });
@@ -367,7 +371,7 @@ test.describe('Governance agentic worker — UI', () => {
     await page.addInitScript((key) => { localStorage.removeItem(key); }, GOVERNANCE_SURVEY_LAST_ASKED_KEY);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-secondary-chrome summary').click();
+    await openGovernanceDetails(page, 'gov-secondary-chrome');
     await disableSidebarPointerBlock(page);
     await page.locator('.gov-micro-pill[data-minutes="3"]').click({ force: true });
     await expect(page.locator('#gov-micro-survey-mount')).toHaveClass(/gov-micro-survey--done/);
@@ -384,7 +388,7 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-supporting-evidence summary').click();
+    await openGovernanceDetails(page, 'gov-supporting-evidence');
     await expect(page.locator('.governance-risk-lane')).toContainText(/Scrum Master/i);
   });
 
@@ -393,7 +397,8 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-scope-change').click();
+    await disableSidebarPointerBlock(page);
+    await page.locator('#gov-scope-change').click({ force: true });
     await expect(page.locator('#gov-scope-expanded .gov-scope-quarter-pill')).toHaveCount(1);
   });
 
