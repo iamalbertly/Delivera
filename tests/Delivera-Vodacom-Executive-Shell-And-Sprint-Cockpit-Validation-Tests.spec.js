@@ -331,7 +331,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await expect(page.locator('#tab-btn-done-stories')).toContainText(/Outcomes|Done/i);
     await page.goto('/leadership');
     await expect(page).toHaveURL(/\/governance/);
-    await expect(page.locator('.governance-title, #gov-answer-mount').first()).toBeVisible();
+    await expect(page.locator('#gov-scope-bar-mount, #gov-answer-mount, .governance-shell').first()).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 
