@@ -34,7 +34,7 @@ todos:
     status: completed
   - id: todo-header-tests
     content: Extend Playwright specs to assert header structure, sticky behavior, interactive map, and edge cases across viewports.
-    status: pending
+    status: completed
   - id: todo-orchestration
     content: Ensure header-focused tests are wired into focused runs and npm run test:all remains a fail-fast, visible gate.
     status: completed

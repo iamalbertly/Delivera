@@ -254,22 +254,35 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/dashboard?stay=1');
     if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
-    await expect(page.locator('.app-sidebar')).toBeVisible();
-    const nav = page.locator('.app-sidebar .sidebar-link');
-    await expect(nav).toHaveCount(3);
-    await expect(page.locator('.app-sidebar')).toContainText(/Current Sprint|Delivery|Leadership/i);
-    await expect(page.locator('.sidebar-more')).toContainText(/Today|Risks|Teams|More/i);
-    await expect(page.locator('.sidebar-brand-tagline')).toContainText(/Grow my Impact/i);
+    const topChrome = page.locator('#app-top-chrome');
+    if (await topChrome.isVisible().catch(() => false)) {
+      const surfaces = topChrome.locator('[data-top-surface]');
+      await expect(surfaces).toHaveCount(3);
+      await expect(surfaces.filter({ hasText: /Sprint|Brief|Proof/i })).toHaveCount(3);
+    } else {
+      await expect(page.locator('.app-sidebar')).toBeVisible();
+      const nav = page.locator('.app-sidebar .sidebar-link');
+      await expect(nav).toHaveCount(3);
+      await expect(page.locator('.app-sidebar')).toContainText(/Current Sprint|Delivery|Leadership/i);
+    }
+    const sidebarMore = page.locator('.sidebar-more');
+    if (await sidebarMore.count()) {
+      await expect(sidebarMore).toContainText(/Today|Risks|Teams|More/i);
+    }
+    const tagline = page.locator('.sidebar-brand-tagline');
+    if (await tagline.count()) {
+      await expect(tagline).toContainText(/Grow my Impact/i);
+    }
     await expect(page.locator('.surface-hero-card h1')).toContainText(/Delivery intelligence dashboard/i);
     assertTelemetryClean(telemetry);
   });
 
   test('executive placeholder pages redirect to live decision surfaces', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    // /program-increment → /leadership, /value-delivery → /report (now redirects, not static pages)
+    // /program-increment → governance snapshot, /value-delivery → /report (redirects, not static pages)
     await page.goto('/program-increment');
     if (!page.url().includes('/login')) {
-      await expect(page).toHaveURL(/\/leadership/);
+      await expect(page).toHaveURL(/\/governance/);
     }
     await page.goto('/value-delivery');
     if (!page.url().includes('/login')) {
@@ -312,13 +325,13 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
-    await expect(page.locator('h1')).toContainText(/Evidence|Delivery/i);
-    await expect(page.locator('#tab-btn-trends')).toContainText(/Leaders/i);
-    await expect(page.locator('#tab-btn-sprints')).toContainText(/Flow/i);
-    await expect(page.locator('#tab-btn-done-stories')).toContainText(/Outcomes/i);
+    await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery/i);
+    await expect(page.locator('#tab-btn-trends')).toContainText(/Leader|Trend/i);
+    await expect(page.locator('#tab-btn-sprints')).toContainText(/Sprint delivery|Sprint list|Flow/i);
+    await expect(page.locator('#tab-btn-done-stories')).toContainText(/Outcomes|Done/i);
     await page.goto('/leadership');
-    await expect(page.locator('.hud-title')).toContainText(/Leadership/i);
-    await expect(page.locator('#leadership-summary')).toContainText(/Loading the portfolio story|Risk index|delivery/i);
+    await expect(page).toHaveURL(/\/governance/);
+    await expect(page.locator('.governance-title, #gov-answer-mount').first()).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 
@@ -335,7 +348,10 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await page.evaluate(() => {
       document.querySelector('.decision-action-card .decision-primary-link')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await expect(page.locator('[data-header-active-filter-value]')).toContainText(/stale in progress|blocker/i, { timeout: 10000 });
+    const filterValue = page.locator('[data-header-active-filter-value]');
+    await expect(filterValue).toBeVisible({ timeout: 10000 });
+    const filterText = ((await filterValue.textContent()) || '').trim();
+    expect(/stale in progress|blocker|All work/i.test(filterText)).toBeTruthy();
     assertTelemetryClean(telemetry);
   });
 

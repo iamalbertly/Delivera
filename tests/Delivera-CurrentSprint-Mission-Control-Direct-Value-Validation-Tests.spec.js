@@ -762,6 +762,16 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('primary nav exposes three direct-to-value destinations', async ({ page }) => {
+    await loadSprintPage(page);
+    const topChrome = page.locator('#app-top-chrome');
+    if (await topChrome.isVisible().catch(() => false)) {
+      const surfaces = topChrome.locator('[data-top-surface]');
+      await expect(surfaces).toHaveCount(3);
+      await expect(surfaces.filter({ hasText: /Sprint/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Brief/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Proof/i })).toHaveCount(1);
+      return;
+    }
     const primaries = page.locator('.app-sidebar .sidebar-link');
     await expect(primaries).toHaveCount(3);
     await expect(primaries.filter({ hasText: /Current Sprint/i })).toHaveCount(1);

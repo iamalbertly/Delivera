@@ -2,11 +2,6 @@
   "version": 2,
   "installCommand": "npm install",
   "buildCommand": "npm run build:css",
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "{lib,routes,public,docs,data}/**"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",

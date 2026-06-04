@@ -68,6 +68,13 @@ export function deriveSprintVerdict(data) {
 
   const trustLabel = counts.totalStories > 0 ? 'Signals from live sprint data' : 'Waiting for sprint stories';
 
+  const noRiskSignals =
+    counts.stuckCount === 0
+    && counts.missingEstimate === 0
+    && counts.missingLogged === 0
+    && counts.unassignedParents === 0;
+  const justStarted = noRiskSignals && counts.totalStories > 0 && donePct === 0;
+
   return {
     verdict,
     color,
@@ -76,6 +83,7 @@ export function deriveSprintVerdict(data) {
     topRemediation,
     trackingReasons,
     trustLabel,
+    justStarted,
     stuckCount: counts.stuckCount,
     missingEstimate: counts.missingEstimate,
     missingLogged: counts.missingLogged,
