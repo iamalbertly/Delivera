@@ -41,10 +41,11 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
     return `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineLoading)}</p>`;
   }
 
-  function renderEmpty(guidance, jiraUrl) {
+  function renderEmpty(guidance, jiraUrl, projectsCsv) {
     const jiraBtn = jiraUrl
       ? `<a class="btn btn-secondary btn-compact" href="${escapeHtml(jiraUrl)}" target="_blank" rel="noopener">${escapeHtml(COPY.openInJira)}</a>`
       : '';
+    const createBtn = `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-projects="${escapeHtml(projectsCsv)}" data-outcome-context="Create PI epic work in Jira.">Create work</button>`;
     return `
       <div class="gov-baseline-wizard">
         <p class="gov-baseline-wizard-title">${escapeHtml(COPY.baselineTitle)}</p>
@@ -55,6 +56,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
         </ol>
         <p class="gov-inbox-hint">${escapeHtml(guidance || COPY.baselineEmptyHint)}</p>
         <div class="gov-baseline-actions">
+          ${createBtn}
           ${jiraBtn}
           <button type="button" class="btn btn-primary btn-compact" id="gov-baseline-refresh">${escapeHtml(COPY.refreshBrief)}</button>
           <button type="button" class="btn btn-link btn-compact" data-baseline-close>${escapeHtml(COPY.close)}</button>
@@ -85,7 +87,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
     el.querySelector('#gov-baseline-refresh')?.addEventListener('click', () => {
       close();
       onSaved?.();
-      open();
+      open(true);
     });
     el.querySelector('#gov-baseline-confirm')?.addEventListener('click', async () => {
       const checked = [...el.querySelectorAll('[data-candidate]:checked')];
@@ -114,7 +116,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
         const body = el.querySelector('.gov-right-drawer-body');
         if (body) {
           void resolveJiraBoardUrl(projects).then((jiraUrl) => {
-            body.innerHTML = renderEmpty(err?.message || COPY.baselineSaveFailed, jiraUrl);
+            body.innerHTML = renderEmpty(err?.message || COPY.baselineSaveFailed, jiraUrl, projects.join(','));
             bindPanel(body, data, projects);
           });
         }
@@ -122,7 +124,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
     });
   }
 
-  async function open() {
+  async function open(forceRefresh = false) {
     close();
     const csv = getProjectsCsv?.() || 'MPSA,MAS';
     const projects = csv.split(',').map((p) => p.trim()).filter(Boolean);
@@ -138,18 +140,19 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
 
     let data = { method: 'manual', candidates: [], guidance: null };
     const jiraUrlPromise = resolveJiraBoardUrl(projects);
+    const proposeQs = forceRefresh ? '&refresh=1' : '';
     try {
-      data = await fetchJson(`/api/governance/pi-baseline/propose?projects=${encodeURIComponent(csv)}`, {}, 'pi-baseline-propose');
+      data = await fetchJson(`/api/governance/pi-baseline/propose?projects=${encodeURIComponent(csv)}${proposeQs}`, {}, 'pi-baseline-propose');
     } catch (err) {
       const jiraUrl = await jiraUrlPromise;
-      body.innerHTML = renderEmpty(err?.message || COPY.baselineProposeFailed, jiraUrl);
+      body.innerHTML = renderEmpty(err?.message || COPY.baselineProposeFailed, jiraUrl, csv);
       bindPanel(body, data, projects);
       return;
     }
 
     if (!data.candidates?.length) {
       const jiraUrl = await jiraUrlPromise;
-      body.innerHTML = renderEmpty(data.guidance, jiraUrl);
+      body.innerHTML = renderEmpty(data.guidance, jiraUrl, csv);
       bindPanel(body, data, projects);
       return;
     }

@@ -14,7 +14,7 @@ function renderRiskTileDetail(squad, brief) {
   const pulse = squad.sprintPulse || {};
   const pulseHtml = squad.hidePulseBar ? '' : renderPulseBars(pulse);
   const risks = squad.cardRisks || [];
-  const riskLines = risks.slice(0, 5).map((r) => `<li>${escapeHtml(r.displayTitle || r.issueKey)}</li>`).join('');
+  const riskLines = risks.slice(0, 2).map((r) => `<li>${escapeHtml(r.displayTitle || r.issueKey)}</li>`).join('');
   const partial = (brief?.meta?.partialProjects || []).includes(squad.projectKey);
   return `
     <div class="gov-risk-tile-detail" data-tile-detail="${escapeHtml(squad.projectKey)}" hidden>

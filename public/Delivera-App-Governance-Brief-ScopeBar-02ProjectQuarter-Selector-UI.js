@@ -2,8 +2,7 @@
  * Governance scope — project + period selectors (scroll pills desktop, native select mobile).
  */
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-
-const FALLBACK_PROJECTS = ['MPSA', 'MAS', 'RPA', 'SD'];
+import { readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 export function unionProjectKeys(...lists) {
   const set = new Set();
@@ -16,10 +15,17 @@ export function unionProjectKeys(...lists) {
   return Array.from(set).sort();
 }
 
-export function renderProjectChips(projectKeys, selected) {
+export function catalogProjectKeys() {
+  return readCatalogKeys();
+}
+
+export function renderProjectChips(projectKeys, selected, accessByKey = {}) {
   return projectKeys.map((pk) => {
     const on = selected.includes(pk);
-    return `<button type="button" class="gov-scope-chip${on ? ' is-on' : ''}" data-project="${pk}" aria-pressed="${on}">${escapeHtml(pk)}</button>`;
+    const limited = accessByKey[pk] === false;
+    const cls = `gov-scope-chip${on ? ' is-on' : ''}${limited ? ' gov-scope-chip--limited' : ''}`;
+    const title = limited ? 'Jira access not confirmed for this project' : pk;
+    return `<button type="button" class="${cls}" data-project="${pk}" aria-pressed="${on}" title="${escapeHtml(title)}">${escapeHtml(pk)}</button>`;
   }).join('');
 }
 
@@ -34,12 +40,13 @@ export function renderQuarterStrip(quarters, activeQuarter) {
   }).join('');
 }
 
-export function renderMobileProjectChecklist(projectKeys, selected) {
+export function renderMobileProjectChecklist(projectKeys, selected, accessByKey = {}) {
   const checks = projectKeys.map((pk) => {
     const on = selected.includes(pk);
+    const limited = accessByKey[pk] === false ? ' (limited)' : '';
     return `<label class="gov-scope-mobile-check">
       <input type="checkbox" class="gov-scope-mobile-project-check" value="${escapeHtml(pk)}"${on ? ' checked' : ''} />
-      <span>${escapeHtml(pk)}</span>
+      <span>${escapeHtml(pk)}${escapeHtml(limited)}</span>
     </label>`;
   }).join('');
   return `<div class="gov-scope-mobile-projects" role="group" aria-label="Projects">${checks}</div>`;
@@ -63,9 +70,10 @@ export function renderExpandedSelectors({
   activeQuarter,
   advancedLabel,
   boardsWarn = '',
+  accessByKey = {},
 }) {
   const quarterPills = renderQuarterStrip(quarters, activeQuarter);
-  const chips = renderProjectChips(projectKeys, selected);
+  const chips = renderProjectChips(projectKeys, selected, accessByKey);
   return `
     <div class="gov-scope-bar-inner gov-scope-bar-inner--expanded">
       ${boardsWarn ? `<p class="gov-scope-boards-warn" role="status">${escapeHtml(boardsWarn)}</p>` : ''}
@@ -78,12 +86,10 @@ export function renderExpandedSelectors({
         </div>
       </div>
       <div class="gov-scope-mobile-only">
-        ${renderMobileProjectChecklist(projectKeys, selected)}
+        ${renderMobileProjectChecklist(projectKeys, selected, accessByKey)}
         ${renderMobileQuarterSelect(quarters, activeQuarter)}
       </div>
       <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">Set PI baseline</button>
       <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">${escapeHtml(advancedLabel)}</button>
     </div>`;
 }
-
-export { FALLBACK_PROJECTS };

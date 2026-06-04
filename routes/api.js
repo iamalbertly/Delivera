@@ -49,6 +49,9 @@ import { buildImpactPack, impactPackMonthKey } from '../lib/Delivera-Governance-
 import { clampConfidenceToFreshness } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
 import { readQuarterLabelIndex, rememberQuarterLabel } from '../lib/Delivera-Governance-Quarter-Labels-01Index-SSOT.js';
+import { PROJECT_CATALOG, readCatalogKeys } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
+import { getAccessMap } from '../lib/Delivera-Shared-Projects-Access-01Index-SSOT.js';
+import { refreshProjectsAccessBatch } from '../lib/Delivera-Shared-Projects-Access-02Refresh-Worker.js';
 import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
 import { buildJiraIssueUrl, escapeHtml } from '../lib/Delivera-Server-Url-And-Escape-Helpers.js';
 import { postIssueComment } from '../lib/Delivera-Jira-Issue-Comment-Post-Service.js';
@@ -830,6 +833,24 @@ router.get('/api/default-window', requireAuth, (req, res) => {
     res.json({ start: DEFAULT_WINDOW_START, end: DEFAULT_WINDOW_END });
 });
 
+router.get('/api/projects-catalog.json', requireAuth, async (req, res) => {
+    try {
+        const accessMap = await getAccessMap();
+        const projects = PROJECT_CATALOG.map((entry) => {
+            const row = accessMap.get(entry.key);
+            return {
+                ...entry,
+                accessible: row?.accessible ?? null,
+                lastChecked: row?.lastChecked ?? null,
+            };
+        });
+        return res.json({ projects, keys: readCatalogKeys() });
+    } catch (err) {
+        logger.warn('projects-catalog read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Catalog read failed' });
+    }
+});
+
 router.get('/api/boards.json', requireAuth, async (req, res) => {
     try {
         const projectsParam = req.query.projects;
@@ -869,7 +890,13 @@ router.get('/api/boards.json', requireAuth, async (req, res) => {
             boards: list,
             jiraBrowseHost: jiraHost ? String(jiraHost).replace(/\/$/, '') : null,
         };
-        if (projectErrors.length) payload.jiraErrors = projectErrors;
+        if (projectErrors.length) {
+            payload.jiraErrors = projectErrors;
+            payload.projectErrors = projectErrors.map((e) => ({
+                project: e.projectKey || e.project,
+                code: e.code || 'JIRA_ERROR',
+            }));
+        }
         res.json(payload);
     } catch (error) {
         logger.error('Error fetching boards', error);
@@ -1293,6 +1320,14 @@ function applyCachedFreshness(brief) {
     return brief;
 }
 
+async function getCachedGovernanceBrief(projects) {
+    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+    const cachedBrief = cached?.value || cached;
+    if (!cachedBrief) return null;
+    return { brief: applyCachedFreshness(cachedBrief), cached: true };
+}
+
 async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true, includePOReadiness = true }) {
     const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e${includeEvidence ? 1 : 0}:p${includePOReadiness ? 1 : 0}`;
     const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
@@ -1533,6 +1568,15 @@ router.get('/api/governance/jobs.json', requireAuth, async (req, res) => {
 router.get('/api/governance/scope-intelligence.json', requireAuth, async (req, res) => {
     try {
         const projects = parseGovernanceProjects(req);
+        const hit = await getCachedGovernanceBrief(projects);
+        if (hit?.brief?.meta?.scopeIntelligence) {
+            return res.json({
+                scope: hit.brief.meta.scopeIntelligence,
+                boards: hit.brief.meta?.boardsResolved || 0,
+                projectErrors: [],
+                cached: true,
+            });
+        }
         const agileClient = createAgileClient();
         const { boards, projectErrors } = await discoverBoardsWithCache(projects, agileClient);
         const { brief } = await getOrBuildGovernanceBrief({ projects, req, includeEvidence: false, includePOReadiness: false });
@@ -1542,7 +1586,7 @@ router.get('/api/governance/scope-intelligence.json', requireAuth, async (req, r
             selectedProjects: projects,
             projectErrors,
         });
-        return res.json({ scope, boards: boards.length, projectErrors });
+        return res.json({ scope, boards: boards.length, projectErrors, cached: false });
     } catch (err) {
         logger.warn('governance scope-intelligence failed', { error: err?.message });
         return res.status(500).json({ error: 'Scope intelligence failed' });
@@ -1552,12 +1596,14 @@ router.get('/api/governance/scope-intelligence.json', requireAuth, async (req, r
 router.get('/api/governance/pi-confidence.json', requireAuth, async (req, res) => {
     try {
         const projects = parseGovernanceProjects(req);
-        const { brief } = await getOrBuildGovernanceBrief({ projects, req });
+        const hit = await getCachedGovernanceBrief(projects);
+        const brief = hit?.brief || (await getOrBuildGovernanceBrief({ projects, req })).brief;
         const piConfidence = brief?.meta?.piConfidence || buildPIConfidenceStrip(brief);
         return res.json({
             piConfidence,
             piForumAnswer: brief?.meta?.piForumAnswer || '',
             protectMeAnswer: brief?.meta?.protectMeAnswer || '',
+            cached: Boolean(hit?.cached),
         });
     } catch (err) {
         logger.warn('governance pi-confidence failed', { error: err?.message });
@@ -1669,12 +1715,19 @@ router.post('/api/governance/profile', requireAuth, async (req, res) => {
 router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) => {
     try {
         const projects = parseGovernanceProjects(req);
+        const bypassCache = req.query.refresh === '1' || req.query.refresh === 'true';
+        const proposeKey = `${GOVERNANCE_NS}:propose:${projects.join(',')}`;
+        if (!bypassCache) {
+            const cached = await cache.get(proposeKey, { namespace: GOVERNANCE_NS });
+            const payload = cached?.value || cached;
+            if (payload?.candidates) return res.json({ ...payload, cached: true });
+        }
         const version3Client = createVersion3Client();
         const candidates = [];
         const quarterRe = /Q[1-4]|FY\d{2}|PI\s*\d/i;
         for (const pk of projects.slice(0, 3)) {
             try {
-                const jql = `project = ${pk} AND issuetype in (Epic, Story) ORDER BY updated DESC`;
+                const jql = `project = ${pk} AND issuetype = Epic ORDER BY updated DESC`;
                 const resJira = await version3Client.issueSearch.searchForIssuesUsingJql({
                     jql,
                     maxResults: 50,
@@ -1702,13 +1755,16 @@ router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) 
             }
         }
         const method = candidates.length ? 'fix-version-or-label' : 'manual';
-        return res.json({
+        const body = {
             method,
             candidates: candidates.slice(0, 42),
             guidance: candidates.length
                 ? null
-                : 'No quarter-labeled fix versions found. Enter PI items manually.',
-        });
+                : 'No quarter-labeled epics found. Add epics in Jira or use Create work.',
+            cached: false,
+        };
+        await cache.set(proposeKey, body, 20 * 60 * 1000, { namespace: GOVERNANCE_NS });
+        return res.json(body);
     } catch (err) {
         logger.warn('pi-baseline propose failed', { error: err?.message });
         return res.status(500).json({ error: 'Propose failed' });

@@ -73,8 +73,14 @@ async function disableSidebarPointerBlock(page) {
   });
 }
 
+const CATALOG_KEYS = ['MPSA', 'MAS', 'RPA', 'MVA', 'ASG', 'FIN', 'SD', 'MPSA2', 'TRS', 'VB', 'AMS2', 'BIO'];
+
 async function mockGovernancePage(page) {
   await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA'); });
+  await page.route('**/api/projects-catalog.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ projects: CATALOG_KEYS.map((key) => ({ key, label: key, accessible: true })) }),
+  }));
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_BRIEF) }));
   await page.route('**/api/quarters-list**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [{ label: 'Q1 FY26', isCurrent: true }] }) }));
   await page.route('**/api/governance/adoption-metrics.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ byMetric: {}, total: 0 }) }));

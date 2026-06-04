@@ -1,4 +1,5 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 
 const PROJECTS = ['MPSA', 'MAS', 'RPA', 'SD'];
 
@@ -75,6 +76,7 @@ const SINGLE_MOCK = {
 };
 
 async function mockApis(page, body) {
+  await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(body),
   }));
@@ -83,6 +85,10 @@ async function mockApis(page, body) {
   }));
   await page.route('**/api/governance/adoption-metrics.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: '{}',
+  }));
+  await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }),
   }));
 }
 
@@ -93,18 +99,19 @@ async function setProjects(page, csv) {
 }
 
 test.describe('Portfolio squad grid', () => {
-  test('multi-select shows leaderboard banner and four squad cards', async ({ page }) => {
+  test('multi-select shows rollup line and four heat tiles', async ({ page }) => {
     await setProjects(page, PROJECTS.join(','));
     await mockApis(page, PORTFOLIO_MOCK);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-portfolio-banner')).toBeVisible();
     await expect(page.locator('.gov-portfolio-banner-line')).toContainText(/4 squads/i);
-    await expect(page.locator('.gov-squad-card')).toHaveCount(4);
-    await expect(page.locator('.gov-squad-card[data-project="MPSA"] .gov-pulse-bars')).toBeVisible();
-    await expect(page.locator('.gov-squad-card[data-project="RPA"][data-verdict-tier="blocked"]')).toBeVisible();
+    await expect(page.locator('.gov-heat-tile')).toHaveCount(4);
+    await expect(page.locator('.gov-heat-tile[data-heat-tile="RPA"]')).toHaveClass(/blocked/);
+    await page.locator('.gov-heat-tile[data-heat-tile="MPSA"]').click();
+    await expect(page.locator('[data-tile-detail="MPSA"] .gov-pulse-bars')).toBeVisible();
     await expect(page.locator('.gov-verdict-zone')).toHaveCount(0);
-    await expect(page.locator('#gov-scope-bar-mount .gov-scope-chip.is-on')).toHaveCount(4);
+    await page.locator('#gov-scope-change').click();
+    await expect(page.locator('#gov-scope-expanded .gov-scope-chip.is-on')).toHaveCount(4);
   });
 
   test('single project keeps verdict zone', async ({ page }) => {
@@ -113,6 +120,6 @@ test.describe('Portfolio squad grid', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('.gov-verdict-zone')).toBeVisible();
-    await expect(page.locator('.gov-squad-grid')).toHaveCount(0);
+    await expect(page.locator('.gov-risk-heat-row')).toHaveCount(0);
   });
 });

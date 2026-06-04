@@ -195,6 +195,20 @@ test.describe('Governance Brief - deterministic logic (mocked Jira)', () => {
     const delivered = diff.items.find((i) => i.issueKey === 'MPSA-1');
     expect(delivered.verdict).toBe(BASELINE_VERDICTS.DELIVERED);
   });
+
+  test('PI baseline treats epic rollup as delivered when children are done', () => {
+    const baseline = {
+      piName: 'MPSA',
+      baselineDate: '2026-04-01',
+      committedItems: [{ issueKey: 'MPSA-EPIC', title: 'Epic committed' }],
+    };
+    const currentByKey = new Map([
+      ['MPSA-EPIC', { status: 'Done', epicRollup: true, title: 'Epic committed' }],
+    ]);
+    const diff = comparePIBaselineToNow({ baseline, currentByKey, currentKeys: ['MPSA-EPIC'] });
+    expect(diff.summary.delivered).toBe(1);
+    expect(diff.summary.removed).toBe(0);
+  });
 });
 
 test.describe('Governance Brief - UI surface (mocked brief)', () => {

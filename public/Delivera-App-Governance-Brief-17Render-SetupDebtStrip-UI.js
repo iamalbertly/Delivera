@@ -7,6 +7,7 @@ const ACTION_LABELS = {
   'map-board': 'Map board',
   'review-lanes': 'Review lanes',
   refresh: 'Refresh data',
+  'create-work': 'Create work in Jira',
 };
 
 const IMPACT_BY_ID = {

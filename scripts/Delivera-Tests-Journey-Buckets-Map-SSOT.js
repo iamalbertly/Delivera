@@ -126,6 +126,11 @@ export const specMetadata = {
     layer: 'data-contract',
     page: '/governance,/api/governance-brief.json',
   },
+  'tests/Delivera-Governance-Projects-Catalog-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance,/api/projects-catalog.json',
+  },
   'tests/Delivera-Governance-Agentic-Worker-Inbox-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'data-contract',

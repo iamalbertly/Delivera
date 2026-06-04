@@ -2,11 +2,12 @@
  * Governance Brief scope bar — persistent projects, period pills, refresh.
  */
 import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import {
-  FALLBACK_PROJECTS,
+  catalogProjectKeys,
   unionProjectKeys,
   renderExpandedSelectors,
 } from './Delivera-App-Governance-Brief-ScopeBar-02ProjectQuarter-Selector-UI.js';
@@ -15,7 +16,7 @@ const LAST_VERDICT_KEY = 'delivera_lastVerdictTier';
 
 function readProjects() {
   const list = readSharedProjectsCsv();
-  return list.length ? list : ['MPSA', 'MAS'];
+  return list.length ? list : defaultSelectedKeys();
 }
 
 function writeProjects(list) {
@@ -42,9 +43,11 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let inboxTotal = 0;
   let sinceDelta = '';
   let advancedWarnCount = 0;
-  let projectKeys = unionProjectKeys(FALLBACK_PROJECTS, selected);
+  let projectKeys = unionProjectKeys(catalogProjectKeys(), selected);
+  let accessByKey = {};
   let boardsWarn = '';
   let loadBriefSeq = 0;
+  let validateTimer = null;
 
   try {
     statusTier = localStorage.getItem(LAST_VERDICT_KEY) || 'watch';
@@ -71,7 +74,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
       </div>
       <div id="gov-scope-expanded" class="gov-scope-expanded"${expandedHidden ? ' hidden' : ''}>
-        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn })}
+        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn, accessByKey })}
       </div>`;
 
     mount.querySelectorAll('[data-project]').forEach((btn) => {
@@ -80,10 +83,11 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         if (!pk) return;
         if (selected.includes(pk)) selected = selected.filter((p) => p !== pk);
         else selected = [...selected, pk].sort();
-        if (!selected.length) selected = ['MPSA'];
+        if (!selected.length) selected = [defaultSelectedKeys()[0] || 'MPSA'];
         writeProjects(selected);
         render();
         onScopeChange?.(selected);
+        scheduleValidateSelected();
       });
     });
     mount.querySelectorAll('[data-quarter]').forEach((btn) => {
@@ -106,6 +110,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         writeProjects(selected);
         render();
         onScopeChange?.(selected);
+        scheduleValidateSelected();
       });
     });
     const mobileQuarter = mount.querySelector('.gov-scope-mobile-quarter');
@@ -120,29 +125,56 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       const panel = mount.querySelector('#gov-scope-expanded');
       if (panel) panel.toggleAttribute('hidden');
     });
-    mount.querySelector('#gov-scope-refresh')?.addEventListener('click', () => onRefresh?.());
+    mount.querySelector('#gov-scope-refresh')?.addEventListener('click', () => {
+      onRefresh?.();
+      scheduleValidateSelected(true);
+    });
     mount.querySelector('#gov-scope-advanced')?.addEventListener('click', () => onOpenDrawer?.());
     mount.querySelector('#gov-scope-baseline')?.addEventListener('click', () => baselineWizard?.open());
   }
 
-  async function loadBoardProjects() {
-    const probe = unionProjectKeys(FALLBACK_PROJECTS, selected, readSharedProjectsCsv()).join(',');
+  function scheduleValidateSelected(immediate = false) {
+    if (validateTimer) clearTimeout(validateTimer);
+    validateTimer = setTimeout(() => validateSelectedBoards(), immediate ? 0 : 600);
+  }
+
+  async function loadCatalogAccess() {
     try {
-      const data = await fetchJson(`/api/boards.json?projects=${encodeURIComponent(probe)}`);
-      const fromBoards = (data?.boards || []).map((b) => b.projectKey).filter(Boolean);
-      const fromErrors = (data?.projectErrors || []).map((e) => e.project).filter(Boolean);
-      projectKeys = unionProjectKeys(FALLBACK_PROJECTS, selected, fromBoards, fromErrors, readSharedProjectsCsv());
-      if (!fromBoards.length && data?.jiraErrors?.length) {
-        boardsWarn = 'Jira access limited — showing saved projects.';
-      } else {
+      const data = await fetchJson('/api/projects-catalog.json', {}, 'projects-catalog');
+      projectKeys = unionProjectKeys(catalogProjectKeys(), selected, readSharedProjectsCsv());
+      accessByKey = {};
+      for (const row of data?.projects || []) {
+        if (row?.key) accessByKey[row.key] = row.accessible;
+      }
+      if (!Object.values(accessByKey).some((v) => v === true) && !Object.values(accessByKey).some((v) => v === false)) {
         boardsWarn = '';
       }
     } catch (_) {
-      projectKeys = unionProjectKeys(FALLBACK_PROJECTS, selected, readSharedProjectsCsv());
-      boardsWarn = 'Could not load boards — using saved projects.';
+      projectKeys = unionProjectKeys(catalogProjectKeys(), selected, readSharedProjectsCsv());
+      boardsWarn = 'Could not load project catalog.';
     }
     render();
   }
+
+  async function validateSelectedBoards() {
+    if (!selected.length) return;
+    const probe = selected.join(',');
+    try {
+      const data = await fetchJson(`/api/boards.json?projects=${encodeURIComponent(probe)}`, {}, 'boards-validate');
+      const fromBoards = (data?.boards || []).map((b) => b.projectKey).filter(Boolean);
+      const fromErrors = (data?.projectErrors || []).map((e) => e.project).filter(Boolean);
+      for (const pk of [...fromBoards, ...fromErrors]) {
+        accessByKey[pk] = fromBoards.includes(pk);
+      }
+      boardsWarn = fromBoards.length ? '' : 'Jira access limited for selected projects.';
+    } catch (_) {
+      boardsWarn = 'Could not validate selected boards.';
+    }
+    render();
+  }
+
+  loadCatalogAccess();
+  scheduleValidateSelected(true);
 
   fetchJson('/api/quarters-list?count=20&includeCached=1')
     .then((data) => {
@@ -152,8 +184,6 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       render();
     })
     .catch(() => render());
-
-  loadBoardProjects();
 
   baselineWizard = mountPIBaselineWizard({
     getProjectsCsv: () => selected.join(','),

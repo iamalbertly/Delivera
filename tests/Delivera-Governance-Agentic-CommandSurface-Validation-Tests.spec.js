@@ -1,4 +1,5 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import {
   buildCommandAnswerSentence,
@@ -65,6 +66,7 @@ const COMMAND_BRIEF = {
 
 async function mockCommandSurfacePage(page) {
   await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA,MAS'); });
+  await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(COMMAND_BRIEF),
   }));
@@ -193,6 +195,8 @@ test.describe('Governance command surface — UI', () => {
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('.gov-owner-cluster')).toHaveCount(2);
     await expect(page.locator('.gov-owner-cluster-name').filter({ hasText: /Amani/ })).toHaveCount(1);
+    await expect(page.locator('.gov-cluster-nudge-primary')).toHaveCount(2);
+    await expect(page.locator('[data-grouped-nudge="0"]')).toContainText(/Draft nudge/i);
     await expect(page.locator('#gov-issues-drawer-mount')).toHaveCount(0);
   });
 

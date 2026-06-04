@@ -42,6 +42,8 @@ function closeSheet(sheet) {
  * @param {boolean} [opts.readOnly]
  * @param {object} [opts.meta]
  * @param {object} [opts.sprint]
+ * @param {string} [opts.initialDraft]
+ * @param {string} [opts.contextHeader]
  */
 export function openJiraNudgeReviewSheet({
   issueKey = '',
@@ -53,12 +55,15 @@ export function openJiraNudgeReviewSheet({
   readOnly = false,
   meta = null,
   sprint = null,
+  initialDraft = '',
+  contextHeader = '',
 } = {}) {
   const key = asText(issueKey);
   if (!key) return;
   const sheet = ensureSheet();
-  const sendAllowed = !readOnly && isSprintCommentSendAllowed(meta, sprint);
-  const draft = buildHumanNudgeDraft({
+  const governanceSend = meta?.governanceSend === true;
+  const sendAllowed = !readOnly && (governanceSend || isSprintCommentSendAllowed(meta, sprint));
+  const draft = asText(initialDraft) || buildHumanNudgeDraft({
     issueKey: key,
     issueSummary,
     issueStatus,
@@ -69,6 +74,9 @@ export function openJiraNudgeReviewSheet({
   let html = '<div class="jira-nudge-review-backdrop" data-review-close tabindex="-1"></div>';
   html += '<div class="jira-nudge-review-panel">';
   html += '<h2 id="jira-nudge-review-title" class="jira-nudge-review-title"><span aria-hidden="true">✏️</span> Review message</h2>';
+  if (contextHeader) {
+    html += '<p class="jira-nudge-review-context">' + escapeHtml(contextHeader) + '</p>';
+  }
   html += '<p class="jira-nudge-review-sub">' + escapeHtml(key) + (issueStatus ? ' · ' + escapeHtml(issueStatus) : '') + '</p>';
   if (!sendAllowed) {
     html += '<p class="jira-nudge-review-trust" role="alert">Live sprint required to post. Switch to live data or pick an active sprint.</p>';

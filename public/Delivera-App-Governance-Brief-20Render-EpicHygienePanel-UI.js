@@ -13,6 +13,7 @@ export function renderAdHocChip(brief) {
 
 function openAdHocDrawer(brief) {
   const adHoc = brief?.meta?.adHocEpics || [];
+  const projectsCsv = (brief?.projects || []).join(',') || 'MPSA,MAS';
   const rows = adHoc.map((e) => `
     <li class="gov-adhoc-item">
       <strong>${escapeHtml(e.issueKey)}</strong>
@@ -29,7 +30,10 @@ function openAdHocDrawer(brief) {
     </li>`).join('');
   openRightDrawer({
     title: `Ad-hoc epics (${adHoc.length})`,
-    bodyHtml: `<ul class="gov-adhoc-list">${rows}</ul>`,
+    bodyHtml: `<ul class="gov-adhoc-list">${rows}</ul>
+      <div class="gov-baseline-actions">
+        <button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-projects="${escapeHtml(projectsCsv)}" data-outcome-context="Create PI epic work in Jira.">Create work</button>
+      </div>`,
   });
 }
 

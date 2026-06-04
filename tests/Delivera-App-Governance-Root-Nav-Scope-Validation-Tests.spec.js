@@ -24,7 +24,13 @@ const MOCK_BRIEF = {
   meta: { narratedBy: 'template' },
 };
 
+const CATALOG_KEYS = ['MPSA', 'MAS', 'RPA', 'MVA', 'ASG', 'FIN', 'SD', 'MPSA2', 'TRS', 'VB', 'AMS2', 'BIO'];
+
 async function mockGovernanceApis(page) {
+  await page.route('**/api/projects-catalog.json**', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ projects: CATALOG_KEYS.map((key) => ({ key, label: key, accessible: true })) }),
+  }));
   await page.route('**/api/governance-brief.json**', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_BRIEF),
   }));
@@ -76,16 +82,15 @@ test.describe('Governance root, nav, and scope cockpit', () => {
       test.skip(true, 'Auth required');
       return;
     }
-    await expect(page.locator('#gov-scope-bar-mount .gov-scope-chip')).toHaveCount(4);
+    await page.locator('#gov-scope-change').click();
+    await expect(page.locator('#gov-scope-bar-mount .gov-scope-chip')).toHaveCount(CATALOG_KEYS.length);
     const verdict = page.locator('#gov-verdict-mount');
-    const drawer = page.locator('#gov-issues-drawer-mount');
+    const clusters = page.locator('#gov-action-clusters-mount');
     const proof = page.locator('#gov-proof-risks');
     const verdictBox = await verdict.boundingBox();
-    const drawerBox = await drawer.boundingBox();
-    const proofBox = await proof.boundingBox();
-    expect(verdictBox && drawerBox && proofBox).toBeTruthy();
-    expect(verdictBox.y).toBeLessThan(proofBox.y);
-    expect(drawerBox.y).toBeLessThan(proofBox.y);
+    const clustersBox = await clusters.boundingBox();
+    expect(verdictBox && clustersBox).toBeTruthy();
+    expect(verdictBox.y).toBeLessThan(clustersBox.y);
     await expect(page.locator('.gov-verdict-zone')).toBeVisible();
     await expect(page.locator('.governance-decisions-table')).toHaveCount(0);
   });

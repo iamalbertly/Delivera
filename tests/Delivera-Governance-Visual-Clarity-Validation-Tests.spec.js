@@ -1,4 +1,5 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 const CLARITY_BRIEF = {
@@ -30,6 +31,7 @@ const CLARITY_BRIEF = {
 
 async function mockClarityPage(page) {
   await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'SD'); });
+  await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(CLARITY_BRIEF),
   }));

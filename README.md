@@ -15,8 +15,10 @@ Primary surfaces:
 ### Brief (`/governance`) scope and queue
 
 - **Layout:** Main chrome respects the 240px sidebar (`margin-left: var(--sidebar-width)`); expand **Agent status & queue** for worker receipt and inbox.
-- **Scope:** Projects load from `/api/boards.json` (all keys you can access), not a hardcoded list. Period uses `/api/quarters-list?count=20&includeCached=1` (calendar + cached brief quarters). On narrow screens, native `<select>` controls replace chip grids.
-- **PI baseline:** **Set PI baseline** and fix cards open a right-drawer wizard (`/api/governance/pi-baseline/propose` → confirm).
+- **Scope:** Project picker uses `Delivera-Shared-Projects-Catalog-01SSOT.js` (same 12 squads as Proof/Report). `GET /api/projects-catalog.json` merges catalog labels with `data/Delivera-Shared-Projects-Access-Index.json` (worker-refreshed from your Jira token). Selected squads only hit `/api/boards.json` (debounced). Inaccessible keys show as `.gov-scope-chip--limited` but stay selectable.
+- **Cache-first Jira:** Brief load uses `governanceBrief:{projects}:e1:p1`; `scope-intelligence`, `pi-confidence`, and `pi-baseline/propose` read cached slices unless you **Refresh** (propose accepts `refresh=1`).
+- **PI baseline:** Epic-first propose/compare; **Create work** on empty baseline, setup gaps, and ad-hoc epic drawer (`data-open-outcome-modal`). Wizard: `/api/governance/pi-baseline/propose` → confirm.
+- **Actions:** One owner cluster per person — primary **Draft nudge** (guided text via `buildGuidedNudgeText`); issues collapsed by default. Orphan per-issue Do-now renderer retired.
 - **Inbox:** One **See queue (N)** chip opens a drawer with **icon tabs** (Ready / Nudges / PI drift / Confirm / …) so non-English users can switch sections in one tap. Icon actions (approve / review / dismiss). Cached preview items (`synthetic-*`) resolve without 400 console errors. **Claims to review** in the freshness line jumps straight to the Confirm tab.
 - **Mobile scope:** Multi-project checklist (not single-toggle select). Desktop keeps scroll pill strips.
 - **PI baseline:** Right-drawer wizard with loading state and **Open in Jira** when candidates are empty (`jiraBrowseHost` on `/api/boards.json`).

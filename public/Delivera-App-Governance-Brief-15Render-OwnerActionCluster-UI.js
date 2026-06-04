@@ -15,9 +15,10 @@ export function renderOwnerActionClusters(brief, groups = []) {
     const keys = g.issues.map((i) => i.issueKey).filter(Boolean);
     const proofText = proofChipSummary(brief, keys);
     const clusterReadiness = sendReadinessBadge(brief);
+    const firstUrl = g.issues.find((r) => r.issueUrl)?.issueUrl || '';
     const issueRows = g.issues.map((r) => {
       const age = Number(r.ageHours) || 0;
-      const ageChip = age >= 48 ? `<span class="gov-age-chip">${Math.round(age / 24)}d no movement</span>` : '';
+      const ageChip = age >= 48 ? `<span class="gov-age-chip">${Math.round(age / 24)}d</span>` : '';
       const keyHtml = r.issueKey
         ? `<a href="#" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a>`
         : '';
@@ -28,24 +29,25 @@ export function renderOwnerActionClusters(brief, groups = []) {
         ${ageChip}
       </li>`;
     }).join('');
+    const jiraBtn = firstUrl
+      ? `<a class="btn btn-link btn-compact gov-cluster-jira" href="${escapeHtml(firstUrl)}" target="_blank" rel="noopener" data-cluster-jira="${gi}">${escapeHtml(COPY.openInJira)}</a>`
+      : '';
     return `
       <article class="gov-owner-cluster" data-cluster-index="${gi}">
         <header class="gov-owner-cluster-head">
           <div>
             <h3 class="gov-owner-cluster-name">${escapeHtml(name)} · ${g.issues.length} action${g.issues.length > 1 ? 's' : ''}</h3>
-            <p class="gov-owner-cluster-meta">Assignee: ${escapeHtml(g.assigneeName || '—')} · Decision lane: ${escapeHtml(g.decisionLane || '—')}</p>
-            <p class="gov-owner-cluster-reason">Common: ${escapeHtml(g.commonReason || '')}</p>
+            <p class="gov-owner-cluster-meta">${escapeHtml(g.decisionLane || 'Decision lane')} · ${escapeHtml(g.commonReason || '')}</p>
           </div>
           <span class="gov-send-badge gov-send-badge--${clusterReadiness.tier}" data-hover-proof="safe-send">${escapeHtml(clusterReadiness.label)}</span>
         </header>
         <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}" data-hover-proof="evidence-count">${escapeHtml(proofText)}</button>
         <div class="gov-owner-cluster-actions">
-          <button type="button" class="btn btn-primary btn-compact" data-grouped-nudge="${gi}">Review grouped nudge</button>
-          <button type="button" class="btn btn-secondary btn-compact" data-cluster-toggle="${gi}" aria-expanded="false">Show issues</button>
+          <button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-nudge="${gi}" title="${escapeHtml(COPY.inboxReview)}">✉ ${escapeHtml(COPY.draftNudge)}</button>
+          <button type="button" class="btn btn-secondary btn-compact" data-cluster-toggle="${gi}" aria-expanded="false">${g.issues.length} issues</button>
+          ${jiraBtn}
           <div class="gov-cluster-dismiss-chips" role="group" aria-label="Dismiss">
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="handled" title="Handled">✓</button>
-            <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="wrong-owner" title="Wrong owner">?</button>
-            <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="bad-data" title="Bad data">!</button>
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="irrelevant" title="Irrelevant">✕</button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import { buildScopeIntelligence } from '../lib/Delivera-Governance-BoardIntelligence-01Scope-SSOT.js';
 import { buildPIConfidenceStrip, buildPIForumAnswer } from '../lib/Delivera-Governance-PIConfidence-01Strip-SSOT.js';
@@ -53,6 +54,7 @@ const PI_BRIEF = {
 
 async function mockPiPage(page) {
   await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA,MAS,RPA,SD,FOO'); });
+  await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(PI_BRIEF),
   }));

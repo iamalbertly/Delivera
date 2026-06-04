@@ -14790,6 +14790,11 @@ body.governance-page.sidebar-open .governance-shell {
   cursor: pointer;
 }
 .gov-scope-chip.is-on { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
+.gov-scope-chip--limited { border-color: #d97706; color: #92400e; background: #fffbeb; }
+.gov-scope-chip--limited.is-on { background: #b45309; color: #fff; border-color: #b45309; }
+.jira-nudge-review-context { font-size: 0.82rem; color: var(--muted, #6b7280); margin: 0 0 8px; }
+.gov-cluster-nudge-primary { font-weight: 600; }
+.gov-owner-cluster .gov-cluster-issues[hidden] { display: none; }
 .gov-scope-period { font-size: 0.78rem; display: inline-flex; align-items: center; gap: 6px; }
 .gov-scope-select { font: inherit; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border, #d1d5db); }
 .gov-scope-meta-line { max-width: 960px; margin: 6px auto 0; font-size: 0.72rem; color: var(--text-muted, #6b7280); }
