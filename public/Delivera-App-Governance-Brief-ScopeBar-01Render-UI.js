@@ -24,7 +24,7 @@ function escapeHtml(value) {
 /**
  * @param {object} opts
  */
-export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, onScopeChange, onOpenDrawer }) {
+export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, onScopeChange, onOpenDrawer, getScopeCounts }) {
   if (!mount) return { getProjects: readProjects, setQuarter: () => {}, getQuarterLabel: () => '' };
 
   let selected = readProjects();
@@ -44,20 +44,31 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         return `<button type="button" class="gov-scope-quarter-pill${on ? ' is-on' : ''}" data-quarter="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
       }).join('')
       : '<span class="gov-scope-quarter-pill is-on">Current</span>';
+    const periodLabel = activeQuarter || 'Current';
+    const squadCount = selected.length;
+    const counts = getScopeCounts?.() || {};
+    const intelLine = counts.available != null
+      ? ` · ${counts.available} available · ${counts.noSprint || 0} no sprint · ${counts.piCommitted || 0} PI`
+      : '';
 
     mount.innerHTML = `
-      <div class="gov-scope-bar-inner">
-        <span class="gov-scope-label">Scope</span>
-        <div class="gov-scope-chips" role="group" aria-label="Projects">${chips}</div>
-        <div class="gov-scope-period" role="group" aria-label="Period">
-          <span class="gov-scope-label">Period</span>
-          <div class="gov-scope-quarter-strip">${quarterPills}</div>
-        </div>
+      <div class="gov-scope-capsule" aria-label="Brief scope">
+        <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(selected.join(' + '))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
+        <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
         <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
-        <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">Set PI baseline</button>
-        <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">Scope settings</button>
       </div>
-      <p id="gov-scope-meta" class="gov-scope-meta-line" aria-live="polite">Projects: ${escapeHtml(selected.join(' + '))}</p>`;
+      <div id="gov-scope-expanded" class="gov-scope-expanded" hidden>
+        <div class="gov-scope-bar-inner">
+          <span class="gov-scope-label">Projects</span>
+          <div class="gov-scope-chips" role="group" aria-label="Projects">${chips}</div>
+          <div class="gov-scope-period" role="group" aria-label="Period">
+            <span class="gov-scope-label">Period</span>
+            <div class="gov-scope-quarter-strip">${quarterPills}</div>
+          </div>
+          <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">Set PI baseline</button>
+          <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">Advanced scope</button>
+        </div>
+      </div>`;
 
     mount.querySelectorAll('[data-project]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -77,6 +88,10 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         render();
         onRefresh?.();
       });
+    });
+    mount.querySelector('#gov-scope-change')?.addEventListener('click', () => {
+      const panel = mount.querySelector('#gov-scope-expanded');
+      if (panel) panel.toggleAttribute('hidden');
     });
     mount.querySelector('#gov-scope-refresh')?.addEventListener('click', () => onRefresh?.());
     mount.querySelector('#gov-scope-advanced')?.addEventListener('click', () => onOpenDrawer?.());
@@ -103,5 +118,6 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   return {
     getProjects: () => [...selected],
     getQuarterLabel: () => activeQuarter,
+    refreshCapsule: () => render(),
   };
 }

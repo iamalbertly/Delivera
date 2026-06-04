@@ -8,7 +8,9 @@
 </head>
 <body class="executive-surface-page governance-page">
   <div id="gov-scope-bar-mount" class="gov-scope-bar-sticky" aria-label="Brief scope"></div>
-  <div id="gov-inbox-mount" class="gov-inbox-mount" aria-label="Action inbox"></div>
+  <div id="gov-sticky-answer-mount" class="gov-sticky-answer-mount" aria-live="polite"></div>
+  <div id="gov-worker-receipt-mount"></div>
+  <div id="gov-queue-mount" class="gov-inbox-mount" aria-label="Agent queue"></div>
 
   <main class="governance-shell" id="main-content" role="main">
     <header class="governance-header">
@@ -18,19 +20,22 @@
           <h1 class="governance-title">Today's delivery answer</h1>
         </div>
         <div class="governance-actions" role="group" aria-label="Brief actions">
-          <button type="button" id="gov-copy-meeting" class="btn btn-primary btn-compact">Copy meeting answer</button>
           <button type="button" id="gov-export" class="btn btn-secondary btn-compact">Export brief</button>
         </div>
       </div>
       <div id="gov-freshness" class="governance-freshness" aria-live="polite"></div>
+      <div id="gov-pi-strip-mount"></div>
+      <div id="gov-answer-mount"></div>
+      <div id="gov-feedback-lab-mount"></div>
     </header>
 
+    <div id="gov-setup-debt-mount"></div>
     <div id="gov-verdict-mount"></div>
-    <div id="gov-donow-mount"></div>
-    <div id="gov-issues-drawer-mount"></div>
+    <div id="gov-action-clusters-mount"></div>
     <div id="gov-meeting-script-mount"></div>
     <div id="gov-micro-survey-mount"></div>
     <div id="gov-measurement-mount"></div>
+    <div id="gov-epic-hygiene-mount"></div>
 
     <details id="gov-supporting-evidence" class="governance-evidence-wrap">
       <summary class="governance-section-title governance-evidence-summary">Supporting evidence</summary>

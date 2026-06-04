@@ -36,6 +36,10 @@ import {
     readRecentJobs,
     groupInboxByType,
 } from '../lib/Delivera-Governance-Worker-02Jobs-IO.js';
+import { buildWorkerReceipt } from '../lib/Delivera-Governance-Worker-03Receipt-SSOT.js';
+import { buildScopeIntelligence } from '../lib/Delivera-Governance-BoardIntelligence-01Scope-SSOT.js';
+import { buildPIConfidenceStrip } from '../lib/Delivera-Governance-PIConfidence-01Strip-SSOT.js';
+import { buildFeedbackTriageSummary } from '../lib/Delivera-Governance-FeedbackTriage-01Agents-SSOT.js';
 import {
     resolveEffectiveGovernanceProfile,
     saveProfileOverride,
@@ -1469,6 +1473,103 @@ router.get('/api/governance/jobs.json', requireAuth, async (req, res) => {
     } catch (err) {
         logger.warn('governance jobs read failed', { error: err?.message });
         return res.status(500).json({ error: 'Jobs read failed' });
+    }
+});
+
+router.get('/api/governance/scope-intelligence.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const agileClient = createAgileClient();
+        const { boards, projectErrors } = await discoverBoardsWithCache(projects, agileClient);
+        const { brief } = await getOrBuildGovernanceBrief({ projects, req, includeEvidence: false, includePOReadiness: false });
+        const scope = brief?.meta?.scopeIntelligence || buildScopeIntelligence({
+            boards,
+            boardPayloads: [],
+            selectedProjects: projects,
+            projectErrors,
+        });
+        return res.json({ scope, boards: boards.length, projectErrors });
+    } catch (err) {
+        logger.warn('governance scope-intelligence failed', { error: err?.message });
+        return res.status(500).json({ error: 'Scope intelligence failed' });
+    }
+});
+
+router.get('/api/governance/pi-confidence.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const { brief } = await getOrBuildGovernanceBrief({ projects, req });
+        const piConfidence = brief?.meta?.piConfidence || buildPIConfidenceStrip(brief);
+        return res.json({
+            piConfidence,
+            piForumAnswer: brief?.meta?.piForumAnswer || '',
+            protectMeAnswer: brief?.meta?.protectMeAnswer || '',
+        });
+    } catch (err) {
+        logger.warn('governance pi-confidence failed', { error: err?.message });
+        return res.status(500).json({ error: 'PI confidence failed' });
+    }
+});
+
+router.get('/api/governance/feedback-summary.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const summary = await buildFeedbackTriageSummary({ project: projects[0] });
+        return res.json(summary);
+    } catch (err) {
+        logger.warn('governance feedback-summary failed', { error: err?.message });
+        return res.status(500).json({ error: 'Feedback summary failed' });
+    }
+});
+
+router.post('/api/governance/feedback-triage', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const projects = parseGovernanceProjects(req);
+        if (body.phrase) {
+            await recordNarrationPattern({
+                patternKey: body.patternKey || 'feedback-lab',
+                project: projects[0] || '*',
+                phrase: String(body.phrase).slice(0, 240),
+                source: body.source || 'feedback-lab',
+            });
+        }
+        if (body.metric && body.value != null) {
+            await recordAdoptionMetric({
+                project: projects[0] || 'MPSA',
+                metric: String(body.metric),
+                value: Number(body.value) || 0,
+                note: body.note || '',
+            });
+        }
+        const summary = await buildFeedbackTriageSummary({ project: projects[0] });
+        return res.json({ success: true, summary });
+    } catch (err) {
+        logger.warn('governance feedback-triage failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Feedback triage failed') });
+    }
+});
+
+router.get('/api/governance/worker-receipt.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const project = projects[0] || null;
+        const jobs = await readRecentJobs({ project, limit: 5 });
+        let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
+        const grouped = groupInboxByType(items);
+        const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+        const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+        const brief = cached?.value || cached || {};
+        const workerReceipt = await buildWorkerReceipt(brief, grouped, jobs);
+        return res.json({
+            workerReceipt,
+            jobs: jobs.slice(0, 3),
+            inboxTotal: items.length,
+            setupGaps: brief?.meta?.setupGaps || [],
+        });
+    } catch (err) {
+        logger.warn('governance worker-receipt failed', { error: err?.message });
+        return res.status(500).json({ error: 'Worker receipt read failed' });
     }
 });
 

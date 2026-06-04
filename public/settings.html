@@ -21,6 +21,7 @@
         <p>Comments sent from Current Sprint. Review what was posted and undo when Jira allows.</p>
         <div id="jira-activity-panel" class="jira-activity-panel"></div>
       </section>
+      <div id="gov-settings-ai-mount"></div>
       <section class="surface-grid surface-grid-three">
         <article class="surface-card">
           <h2>Context</h2>
@@ -39,8 +40,13 @@
   </div>
   <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
   <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
+  <script type="module" src="Delivera-App-Governance-GlobalAgentBar-02Bootstrap.js"></script>
   <script type="module" src="Delivera-Shared-UI-Header-Nav-Renderer.js"></script>
   <script type="module" src="Delivera-Executive-Surface-Init.js"></script>
   <script type="module" src="Delivera-Settings-JiraActivity-01Page-01Controller.js"></script>
+  <script type="module">
+    import { mountGovernanceAiHelper } from './Delivera-Settings-Governance-AI-01Helper-UI.js';
+    mountGovernanceAiHelper(document.getElementById('gov-settings-ai-mount'));
+  </script>
 </body>
 </html>

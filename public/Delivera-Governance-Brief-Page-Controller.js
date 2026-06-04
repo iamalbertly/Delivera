@@ -3,21 +3,32 @@
  */
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { mountGovernanceScopeBar } from './Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js';
-import { openGovernanceScopeDrawer } from './Delivera-App-Governance-Brief-ScopeDrawer-02Advanced-UI.js';
+import { openScopeIntelligenceDrawer, scopeCapsuleCounts } from './Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js';
 import {
   escapeHtml, truthChip, renderStructuredEvidence, briefToMarkdown,
 } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-import { partitionBriefSurfaces } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { partitionBriefSurfaces, groupDoNowByOwner } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 import { renderVerdictZone } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
-import { renderPortfolioGrid } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
-import { renderDoNow } from './Delivera-App-Governance-Brief-08Render-DoNow-UI.js';
-import { renderIssuesDrawer } from './Delivera-App-Governance-Brief-09Render-IssuesDrawer-UI.js';
+import { renderPortfolioGrid, bindRiskHeatInteractions } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
 import { renderMeasurementStrip } from './Delivera-App-Governance-Brief-10Render-MeasurementStrip-UI.js';
 import { renderMeetingScript, buildMeetingAnswerClipboard } from './Delivera-App-Governance-Brief-11Render-MeetingScript-UI.js';
+import { renderCommandAnswerBar } from './Delivera-App-Governance-Brief-13Render-CommandAnswerBar-UI.js';
+import { renderWorkerReceiptRail } from './Delivera-App-Governance-Brief-14Render-WorkerReceipt-UI.js';
+import { renderOwnerActionClusters } from './Delivera-App-Governance-Brief-15Render-OwnerActionCluster-UI.js';
+import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
+import { renderSetupDebtStrip } from './Delivera-App-Governance-Brief-17Render-SetupDebtStrip-UI.js';
+import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { COPY, freshnessPlainEnglish } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { wireGovernanceIssuePreview } from './Delivera-Shared-Issue-Preview-01Bridge.js';
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { renderGovernanceMicroSurvey } from './Delivera-App-Governance-Brief-12Render-MicroSurvey-UI.js';
+import { renderPIConfidenceStrip } from './Delivera-App-Governance-Brief-19Render-PIConfidenceStrip-UI.js';
+import { renderEpicHygienePanel } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
+import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js';
+import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
+import {
+  mountGlobalAgentBar, updateGlobalAgentBar, mountStickyMicroAnswer, updateStickyMicroAnswer, bindStickyScroll,
+} from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import { buildGuidedNudgeText } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 
@@ -27,6 +38,7 @@ let lastSurfaces = null;
 let proofRisks = [];
 let scopeBarApi = null;
 let inboxApi = null;
+let ownerGroups = [];
 
 const MARK_WRONG_REASONS = [
   { id: 'wrong-board', label: 'Wrong board' },
@@ -58,11 +70,7 @@ function renderFreshness(brief, confirmCount = 0) {
     : '';
   els.freshness.innerHTML = `<span class="governance-freshness-pill ${cls}">${escapeHtml(text)}${reviewBit}</span>`;
   els.freshness.querySelector('#gov-freshness-review')?.addEventListener('click', () => {
-    const toggle = document.getElementById('gov-inbox-toggle');
-    if (toggle) toggle.click();
-    setTimeout(() => {
-      document.querySelector('.gov-inbox-tab[data-tab="confirm"]')?.click();
-    }, 50);
+    document.querySelector('.gov-queue-chip[data-queue-tab="confirm"]')?.click();
   });
 }
 
@@ -336,26 +344,118 @@ function bindProofInteractions() {
   };
 }
 
-function bindDoNowInteractions() {
-  els.donowMount.onclick = (event) => {
-    const btn = event.target.closest('[data-donow-nudge]');
-    if (btn) openDoNowNudge(btn.getAttribute('data-donow-nudge'));
+function openGroupedNudge(groupIndex) {
+  const g = ownerGroups[groupIndex];
+  if (!g?.issues?.length) return;
+  const first = g.issues.find((r) => r.issueKey) || g.issues[0];
+  if (!first?.issueKey) return;
+  const stale = lastBrief?.freshness?.confidenceLimit === 'stale';
+  openJiraNudgeReviewSheet({
+    issueKey: first.issueKey,
+    issueSummary: first.summary || first.displayTitle,
+    issueStatus: first.status,
+    issueUrl: first.issueUrl,
+    useCase: riskToUseCase(first.riskType),
+    staleHours: first.ageHours,
+    readOnly: stale,
+    meta: { stale },
+    sprint: null,
+  });
+}
+
+function bindOwnerClusterInteractions() {
+  if (!els.actionClustersMount) return;
+  els.actionClustersMount.onclick = (event) => {
+    const proof = event.target.closest('[data-proof-cluster]');
+    if (proof) {
+      const gi = Number(proof.getAttribute('data-proof-cluster'));
+      const g = ownerGroups[gi];
+      openEvidenceDrawer(lastBrief, g?.issues || []);
+      return;
+    }
+    const nudge = event.target.closest('[data-grouped-nudge]');
+    if (nudge) {
+      openGroupedNudge(Number(nudge.getAttribute('data-grouped-nudge')));
+      return;
+    }
+    const toggle = event.target.closest('[data-cluster-toggle]');
+    if (toggle) {
+      const gi = toggle.getAttribute('data-cluster-toggle');
+      const list = els.actionClustersMount.querySelector(`[data-cluster-issues="${gi}"]`);
+      if (!list) return;
+      const show = list.hasAttribute('hidden');
+      list.toggleAttribute('hidden', !show);
+      toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
+      toggle.textContent = show ? 'Hide issues' : 'Show issues';
+    }
   };
 }
 
-function bindPortfolioGridInteractions() {
-  if (!els.verdictMount) return;
-  els.verdictMount.onclick = (event) => {
-    const btn = event.target.closest('[data-squad-risks-more]');
-    if (!btn) return;
-    const pk = btn.getAttribute('data-squad-risks');
-    const list = els.verdictMount.querySelector(`[data-squad-risks-list="${pk}"]`);
-    if (!list) return;
-    const expanded = list.classList.toggle('gov-squad-risks--expanded');
-    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    const hidden = list.querySelectorAll('.gov-squad-risk-item--extra').length;
-    btn.textContent = expanded ? 'Show less' : `+${hidden} more`;
-  };
+function bindCommandAnswerActions() {
+  if (!els.answerMount || els.answerMount.dataset.bound) return;
+  els.answerMount.dataset.bound = '1';
+  els.answerMount.addEventListener('click', async (event) => {
+    const review = event.target.closest('#gov-review-actions');
+    if (review) {
+      els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      els.actionClustersMount?.querySelector('.gov-owner-cluster')?.focus?.();
+      return;
+    }
+    const copyBtn = event.target.closest('#gov-copy-answer-inline');
+    if (copyBtn && lastBrief) {
+      try {
+        await navigator.clipboard.writeText(commandAnswerSentence(lastBrief));
+        void recordNarrationIfAdvisor();
+        const prev = copyBtn.textContent;
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => { copyBtn.textContent = prev || 'Copy answer'; }, 1500);
+      } catch (_) {
+        copyBtn.textContent = 'Copy failed';
+      }
+      return;
+    }
+    if (event.target.closest('#gov-fix-setup')) {
+      els.setupDebtMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    const piCopy = event.target.closest('#gov-copy-pi-forum');
+    if (piCopy && lastBrief) {
+      const text = lastBrief?.meta?.piForumAnswer || '';
+      if (text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          piCopy.textContent = 'PI copied';
+          setTimeout(() => { piCopy.textContent = 'Copy PI forum answer'; }, 1500);
+        } catch (_) { piCopy.textContent = 'Copy failed'; }
+      }
+      return;
+    }
+    const protect = event.target.closest('#gov-protect-me');
+    if (protect && lastBrief) {
+      const line = els.answerMount?.querySelector('#gov-protect-me-line');
+      const text = lastBrief?.meta?.protectMeAnswer || '';
+      if (line) {
+        line.hidden = false;
+        line.textContent = text;
+      }
+      protect.setAttribute('aria-pressed', 'true');
+    }
+  });
+}
+
+function bindSetupDebtActions() {
+  if (!els.setupDebtMount || els.setupDebtMount.dataset.bound) return;
+  els.setupDebtMount.dataset.bound = '1';
+  els.setupDebtMount.addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-setup-action]');
+    if (!chip) return;
+    const action = chip.getAttribute('data-setup-action');
+    if (action === 'set-baseline') document.getElementById('gov-scope-baseline')?.click();
+    else if (action === 'add-ai-key') window.location.href = '/settings#gov-ai-helper';
+    else if (action === 'map-board') document.getElementById('gov-scope-change')?.click();
+    else if (action === 'refresh') document.getElementById('gov-scope-refresh')?.click();
+    else if (action === 'review-lanes') els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth' });
+  });
 }
 
 async function recordNarrationIfAdvisor() {
@@ -429,27 +529,47 @@ function isPortfolioMode(brief) {
   return selectedProjects(brief).length >= 2;
 }
 
+function refreshScopeBarCounts() {
+  scopeBarApi?.refreshCapsule?.();
+}
+
 function renderBriefUi(brief) {
   lastSurfaces = partitionBriefSurfaces(brief);
+  ownerGroups = groupDoNowByOwner(lastSurfaces.drawerIssues);
+  if (els.piStripMount) els.piStripMount.innerHTML = renderPIConfidenceStrip(brief);
+  if (els.workerReceiptMount) els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief);
+  if (els.answerMount) els.answerMount.innerHTML = renderCommandAnswerBar(brief);
+  if (els.epicHygieneMount) els.epicHygieneMount.innerHTML = renderEpicHygienePanel(brief);
+  if (els.setupDebtMount) els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief);
   if (els.verdictMount) {
     els.verdictMount.innerHTML = isPortfolioMode(brief)
       ? renderPortfolioGrid(brief)
       : renderVerdictZone(brief);
+    if (isPortfolioMode(brief)) {
+      bindRiskHeatInteractions(els.verdictMount, brief, (keys, squad) => {
+        const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));
+        openEvidenceDrawer(brief, risks);
+      });
+    }
   }
-  if (els.donowMount) els.donowMount.innerHTML = renderDoNow(brief, lastSurfaces);
-  if (els.drawerMount) els.drawerMount.innerHTML = renderIssuesDrawer(lastSurfaces);
+  if (els.actionClustersMount) {
+    els.actionClustersMount.innerHTML = renderOwnerActionClusters(brief, ownerGroups);
+    bindOwnerClusterInteractions();
+  }
   if (els.scriptMount) els.scriptMount.innerHTML = renderMeetingScript(brief);
   if (els.microSurveyMount) renderGovernanceMicroSurvey(els.microSurveyMount, projectsCsv().split(',')[0] || 'MPSA');
-  if (els.measurementMount) els.measurementMount.innerHTML = renderMeasurementStrip(lastSurfaces);
+  if (els.measurementMount) els.measurementMount.innerHTML = renderMeasurementStrip(brief, lastSurfaces);
   renderProofRisks(lastSurfaces.proofRows);
   renderEvidenceTable(brief);
   renderTechnicalDetails(brief);
   renderReadiness(brief);
   renderBaseline(brief);
   bindProofInteractions();
-  bindDoNowInteractions();
-  bindPortfolioGridInteractions();
   wireGovernanceIssuePreview(brief, document);
+  bindHoverProofCards(document, brief);
+  updateGlobalAgentBar(brief);
+  updateStickyMicroAnswer(brief);
+  refreshScopeBarCounts();
 }
 
 async function loadBrief() {
@@ -473,9 +593,15 @@ async function loadBrief() {
 
 function init() {
   els.freshness = $('gov-freshness');
+  els.piStripMount = $('gov-pi-strip-mount');
+  els.stickyAnswerMount = $('gov-sticky-answer-mount');
+  els.feedbackLabMount = $('gov-feedback-lab-mount');
+  els.epicHygieneMount = $('gov-epic-hygiene-mount');
+  els.workerReceiptMount = $('gov-worker-receipt-mount');
+  els.answerMount = $('gov-answer-mount');
+  els.setupDebtMount = $('gov-setup-debt-mount');
   els.verdictMount = $('gov-verdict-mount');
-  els.donowMount = $('gov-donow-mount');
-  els.drawerMount = $('gov-issues-drawer-mount');
+  els.actionClustersMount = $('gov-action-clusters-mount');
   els.scriptMount = $('gov-meeting-script-mount');
   els.measurementMount = $('gov-measurement-mount');
   els.microSurveyMount = $('gov-micro-survey-mount');
@@ -487,21 +613,26 @@ function init() {
   els.scorecard = $('gov-scorecard');
   els.error = $('gov-error');
   els.export = $('gov-export');
-  els.copyMeeting = $('gov-copy-meeting');
   els.export?.addEventListener('click', copyBrief);
-  els.copyMeeting?.addEventListener('click', copyMeetingAnswer);
+  mountGlobalAgentBar();
+  mountStickyMicroAnswer(els.stickyAnswerMount);
+  bindStickyScroll(100);
+  mountFeedbackLabButton(els.feedbackLabMount, projectsCsv().split(',')[0]);
   scopeBarApi = mountGovernanceScopeBar({
     mount: $('gov-scope-bar-mount'),
     onRefresh: loadBrief,
     onScopeChange: () => loadBrief(),
-    onOpenDrawer: () => openGovernanceScopeDrawer({ onApply: loadBrief }),
+    onOpenDrawer: () => { if (lastBrief) openScopeIntelligenceDrawer(lastBrief); },
+    getScopeCounts: () => scopeCapsuleCounts(lastBrief) || {},
   });
   inboxApi = mountGovernanceInbox({
-    mount: $('gov-inbox-mount'),
+    mount: $('gov-queue-mount'),
     getProjectsCsv: projectsCsv,
     onFocusConfirm: () => {},
   });
   bindProofInteractions();
+  bindCommandAnswerActions();
+  bindSetupDebtActions();
   loadBrief();
 }
 
