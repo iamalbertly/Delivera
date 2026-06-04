@@ -12,9 +12,15 @@ Primary surfaces:
 
 `/leadership` redirects to the Brief leadership snapshot (`/governance#decision-snapshot`).
 
+### Global chrome (Jira-style top bar)
+
+- **`#app-top-chrome`** — persistent red top bar on all authenticated pages (`Delivera-Shared-Top-Chrome-01Render-UI.js`): sidebar toggle (desktop collapse + mobile drawer), **Brief · Sprint · Proof** switcher, workspace context line, contextual search (`#app-top-search`), **Create**, notifications, help, **Settings** gear (not duplicated in the left sidebar), account menu.
+- **Sidebar** — three primaries only (Brief, Sprint, Proof); settings live in the top bar gear.
+- **Tests:** `tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js` (`npm run test:journey:ux-core`).
+
 ### Brief (`/governance`) scope and queue
 
-- **Layout:** Main chrome respects the 240px sidebar (`margin-left: var(--sidebar-width)`); expand **Agent status & queue** for worker receipt and inbox.
+- **Layout:** Main chrome respects the sidebar (`margin-left: var(--sidebar-width)`; collapsible via top-bar toggle); expand **Agent status & queue** for worker receipt and inbox.
 - **Scope:** Project picker uses `Delivera-Shared-Projects-Catalog-01SSOT.js` (same 12 squads as Proof/Report). `GET /api/projects-catalog.json` merges catalog labels with `data/Delivera-Shared-Projects-Access-Index.json` (worker-refreshed from your Jira token). Selected squads only hit `/api/boards.json` (debounced). Inaccessible keys show as `.gov-scope-chip--limited` but stay selectable.
 - **Cache-first Jira:** Brief load uses `governanceBrief:{projects}:e1:p1`; `scope-intelligence`, `pi-confidence`, and `pi-baseline/propose` read cached slices unless you **Refresh** (propose accepts `refresh=1`).
 - **PI baseline:** Epic-first propose/compare; **Create work** on empty baseline, setup gaps, and ad-hoc epic drawer (`data-open-outcome-modal`). Wizard: `/api/governance/pi-baseline/propose` → confirm.

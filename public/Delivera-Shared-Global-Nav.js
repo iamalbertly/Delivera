@@ -1,5 +1,11 @@
 import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import {
+  ensureTopChrome,
+  refreshTopChromeBrand,
+  syncSidebarCollapsedFromStorage,
+  writeSidebarCollapsed,
+} from './Delivera-Shared-Top-Chrome-01Render-UI.js';
+import {
   readNotificationSummary,
   effectiveNotificationTotal,
   getTimeTrackingTotal,
@@ -19,8 +25,8 @@ const PAGE_SETTINGS = 'settings';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
-/** Direct-to-value primaries: decision brief · sprint · evidence · settings. */
-const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_REPORT, PAGE_SETTINGS];
+/** Direct-to-value primaries: decision brief · sprint · evidence (settings live in top chrome gear). */
+const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_REPORT];
 const MORE_NAV_KEYS = [];
 const NAV_HREF_OVERRIDES = {
   [PAGE_RISKS]: '/current-sprint#stuck-card',
@@ -187,7 +193,7 @@ function buildSidebarHTML() {
 function updateToggleState(toggle, isExpanded) {
   const value = isExpanded ? 'true' : 'false';
   if (toggle) toggle.setAttribute('aria-expanded', value);
-  document.querySelectorAll('.sidebar-toggle').forEach((node) => node.setAttribute('aria-expanded', value));
+  document.querySelectorAll('.sidebar-toggle, .app-top-sidebar-toggle').forEach((node) => node.setAttribute('aria-expanded', value));
 }
 
 function syncBodySidebarState(sidebar) {
@@ -318,46 +324,65 @@ function updateBottomNavBadge(itemKey, text, title) {
   if (title) el.setAttribute('title', title);
 }
 
+function getSidebarToggles() {
+  return Array.from(document.querySelectorAll('.sidebar-toggle, .app-top-sidebar-toggle'));
+}
+
+function handleSidebarToggleClick(sidebar, backdrop) {
+  const toggles = getSidebarToggles();
+  const toggle = toggles[0];
+  if (!isMobileViewport()) {
+    const collapsed = !document.body.classList.contains('sidebar-collapsed');
+    writeSidebarCollapsed(collapsed);
+    toggles.forEach((node) => node.setAttribute('aria-expanded', collapsed ? 'false' : 'true'));
+    return;
+  }
+  const open = sidebar.classList.contains('open');
+  if (open) {
+    closeSidebar(sidebar, toggle, backdrop);
+    toggle?.focus();
+  } else {
+    openSidebar(sidebar, toggle, backdrop);
+    const firstLink = sidebar.querySelector('a.sidebar-link, span.sidebar-link.current');
+    if (firstLink && typeof firstLink.focus === 'function') firstLink.focus();
+  }
+}
+
 function initSidebarController() {
   const sidebar = document.querySelector('.app-sidebar');
-  const toggle = document.querySelector('.sidebar-toggle');
   const backdrop = document.querySelector('.sidebar-backdrop');
-  if (!sidebar || !toggle || !backdrop || sidebar.dataset.sidebarBound === '1') return;
+  if (!sidebar || !backdrop || sidebar.dataset.sidebarBound === '1') return;
   sidebar.dataset.sidebarBound = '1';
+  syncSidebarCollapsedFromStorage();
 
-  toggle.addEventListener('click', () => {
-    if (!isMobileViewport()) return;
-    const open = sidebar.classList.contains('open');
-    if (open) {
-      closeSidebar(sidebar, toggle, backdrop);
-      toggle.focus();
-    } else {
-      openSidebar(sidebar, toggle, backdrop);
-      const firstLink = sidebar.querySelector('a.sidebar-link, span.sidebar-link.current');
-      if (firstLink && typeof firstLink.focus === 'function') firstLink.focus();
-    }
+  getSidebarToggles().forEach((toggle) => {
+    toggle.addEventListener('click', () => handleSidebarToggleClick(sidebar, backdrop));
   });
 
   backdrop.addEventListener('click', () => {
+    const toggle = getSidebarToggles()[0];
     closeSidebar(sidebar, toggle, backdrop);
-    toggle.focus();
+    toggle?.focus();
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      closeSidebar(sidebar, toggle, backdrop);
-      toggle.focus();
+      if (isMobileViewport() && sidebar.classList.contains('open')) {
+        const toggle = getSidebarToggles()[0];
+        closeSidebar(sidebar, toggle, backdrop);
+        toggle?.focus();
+      }
       return;
     }
-    trapSidebarFocus(event, sidebar, toggle);
+    trapSidebarFocus(event, sidebar, getSidebarToggles()[0]);
   });
 
   document.addEventListener('click', (event) => {
     if (!isMobileViewport() || !sidebar.classList.contains('open')) return;
     const insideSidebar = !!event.target.closest('.app-sidebar');
-    const onToggle = !!event.target.closest('.sidebar-toggle');
+    const onToggle = !!event.target.closest('.sidebar-toggle, .app-top-sidebar-toggle');
     if (!insideSidebar && !onToggle) {
-      closeSidebar(sidebar, toggle, backdrop);
+      closeSidebar(sidebar, getSidebarToggles()[0], backdrop);
     }
   }, { capture: true });
 
@@ -367,12 +392,13 @@ function initSidebarController() {
     const key = link.getAttribute('data-nav-key') || '';
     const href = link.getAttribute('href') || '/report';
     event.preventDefault();
-    if (isMobileViewport()) closeSidebar(sidebar, toggle, backdrop);
+    if (isMobileViewport()) closeSidebar(sidebar, getSidebarToggles()[0], backdrop);
     navigateTo(key, href);
   });
 
   window.addEventListener('resize', () => {
-    if (!isMobileViewport()) closeSidebar(sidebar, toggle, backdrop);
+    syncSidebarCollapsedFromStorage();
+    if (!isMobileViewport()) closeSidebar(sidebar, getSidebarToggles()[0], backdrop);
   });
   syncBodySidebarState(sidebar);
 }
@@ -418,19 +444,9 @@ function ensureGlobalNav() {
     delete sidebar.dataset.sidebarBound;
     renderSidebarContextCard();
 
-    const toggles = Array.from(document.querySelectorAll('.sidebar-toggle'));
-    toggles.slice(1).forEach((node) => node.remove());
-    let toggle = toggles[0] || null;
-    if (!toggle) {
-      toggle = document.createElement('button');
-      toggle.className = 'sidebar-toggle';
-      toggle.type = 'button';
-      toggle.setAttribute('aria-label', 'Toggle navigation');
-      toggle.setAttribute('aria-controls', 'app-sidebar');
-      toggle.setAttribute('aria-expanded', 'false');
-      toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>';
-      document.body.appendChild(toggle);
-    }
+    document.querySelectorAll('.sidebar-toggle').forEach((node) => node.remove());
+
+    ensureTopChrome();
 
     const backdrops = Array.from(document.querySelectorAll('.sidebar-backdrop'));
     backdrops.slice(1).forEach((node) => node.remove());
@@ -446,8 +462,10 @@ function ensureGlobalNav() {
 
     initSidebarController();
     ensureBottomNav();
-    updateToggleState(toggle, sidebar.classList.contains('open'));
+    const topToggle = document.querySelector('.app-top-sidebar-toggle');
+    updateToggleState(topToggle, isMobileViewport() ? sidebar.classList.contains('open') : !document.body.classList.contains('sidebar-collapsed'));
     initDataPulseListener();
+    refreshTopChromeBrand();
     window.dispatchEvent(new CustomEvent('app:nav-rendered', { detail: { current } }));
   } catch (_) {}
 }
@@ -528,8 +546,10 @@ function initDataPulseListener() {
   window.addEventListener('delivera:currentSprintPayloadReady', () => {
     try {
       renderSidebarContextCard();
+      refreshTopChromeBrand();
     } catch (_) {}
   });
+  window.addEventListener('app:top-chrome-rendered', () => refreshTopChromeBrand());
 }
 
 /** Brief queue badge on sidebar + mobile nav (B5). */

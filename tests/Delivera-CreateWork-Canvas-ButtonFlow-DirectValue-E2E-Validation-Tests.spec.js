@@ -53,7 +53,7 @@ const MOCK_STORY_DRAFT = {
 async function openCreateWork(page) {
   await page.goto('/current-sprint');
   await page.waitForSelector('.global-nav, #current-sprint-error', { timeout: 20000 }).catch(() => null);
-  const navBtn = page.locator('[data-action="open-create-work"], .global-nav-create-work, button:has-text("Create work")').first();
+  const navBtn = page.locator('[data-top-action="create-work"], [data-action="open-create-work"], .global-nav-create-work, button:has-text("Create work")').first();
   if (await navBtn.isVisible().catch(() => false)) {
     await navBtn.dispatchEvent('click');
     await page.waitForSelector('#wdd-source-textarea', { timeout: 10000 }).catch(() => null);

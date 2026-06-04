@@ -16,21 +16,21 @@ async function skipIfAuthRedirect(page) {
 
 async function openMobileSidebarReliably(page) {
   const sidebar = page.locator('.app-sidebar');
-  const toggle = page.locator('.sidebar-toggle');
-  await expect(toggle).toBeVisible();
-  await toggle.click();
+  const toggle = page.locator('.app-top-sidebar-toggle, .sidebar-toggle');
+  await expect(toggle.first()).toBeVisible();
+  await toggle.first().click();
   const openedFirstTry = await page.evaluate(() => {
     const sidebarEl = document.querySelector('.app-sidebar');
-    const toggleEl = document.querySelector('.sidebar-toggle');
+    const toggleEl = document.querySelector('.app-top-sidebar-toggle, .sidebar-toggle');
     return !!(sidebarEl && sidebarEl.classList.contains('open'))
       || (toggleEl?.getAttribute('aria-expanded') === 'true');
   }).catch(() => false);
   if (!openedFirstTry) {
-    await toggle.click({ force: true });
+    await toggle.first().click({ force: true });
   }
   const opened = await page.waitForFunction(() => {
     const sidebarEl = document.querySelector('.app-sidebar');
-    const toggleEl = document.querySelector('.sidebar-toggle');
+    const toggleEl = document.querySelector('.app-top-sidebar-toggle, .sidebar-toggle');
     return !!(sidebarEl && sidebarEl.classList.contains('open'))
       || (toggleEl?.getAttribute('aria-expanded') === 'true');
   }, null, { timeout: 5000 }).then(() => true).catch(() => false);

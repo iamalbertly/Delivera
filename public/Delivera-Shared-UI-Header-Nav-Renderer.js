@@ -23,6 +23,7 @@ function ensureExecutiveHeader(path) {
   if (!container) return;
   const main = container.querySelector('main');
   const pageTitle = document.body.getAttribute('data-surface-name') || 'Delivery';
+  const hasTopChrome = !!document.getElementById('app-top-chrome');
   const hasInlineCreateWork = !!document.querySelector('[data-open-outcome-modal]');
   const header = document.createElement('header');
   header.className = 'executive-shared-header';
@@ -34,7 +35,7 @@ function ensureExecutiveHeader(path) {
     + '</div>'
     + '<div id="executive-shared-header-actions" class="report-header-actions" role="group" aria-label="Page actions">'
     + '<button type="button" class="btn btn-primary btn-compact" data-shared-action="refresh-page">Refresh</button>'
-    + (hasInlineCreateWork ? '' : `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from ${pageTitle} context.">Create work</button>`)
+    + (hasTopChrome || hasInlineCreateWork ? '' : `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-context="Create work from ${pageTitle} context.">Create work</button>`)
     + '</div>'
     + '</div>';
   if (main) container.insertBefore(header, main);

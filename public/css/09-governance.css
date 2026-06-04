@@ -10,6 +10,13 @@ body.governance-page .governance-shell {
   width: calc(100% - var(--sidebar-width, 240px));
   box-sizing: border-box;
 }
+body.governance-page.has-top-chrome.sidebar-collapsed #gov-scope-bar-mount,
+body.governance-page.has-top-chrome.sidebar-collapsed #gov-sticky-answer-mount,
+body.governance-page.has-top-chrome.sidebar-collapsed #gov-top-chrome-mount,
+body.governance-page.has-top-chrome.sidebar-collapsed .governance-shell {
+  margin-left: 0;
+  width: 100%;
+}
 body.governance-page.sidebar-open #gov-scope-bar-mount,
 body.governance-page.sidebar-open #gov-sticky-answer-mount,
 body.governance-page.sidebar-open #gov-top-chrome-mount,

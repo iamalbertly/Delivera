@@ -58,6 +58,17 @@ test.describe('Governance root, nav, and scope cockpit', () => {
     expect(page.url()).toMatch(/\/governance/);
   });
 
+  test('sidebar omits settings; top chrome provides settings gear', async ({ page }) => {
+    await mockGovernanceApis(page);
+    await page.goto('/governance');
+    if (page.url().includes('/login')) {
+      test.skip(true, 'Auth required');
+      return;
+    }
+    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="settings"]')).toHaveCount(0);
+    await expect(page.locator('#app-top-chrome [data-top-action="settings"]')).toBeVisible();
+  });
+
   test('nav lists Brief before Proof', async ({ page }) => {
     await mockGovernanceApis(page);
     await page.goto('/governance');

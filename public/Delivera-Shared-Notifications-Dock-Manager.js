@@ -86,10 +86,13 @@ function ariaLabelForNotificationToggle(summary) {
 }
 
 function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
+  if (document.getElementById('app-top-chrome')) return;
   let toggle = document.getElementById(toggleId);
   const eff = effectiveNotificationTotal(summary);
   if (!toggle) {
-    const container = document.querySelector('header .header-row') || document.body;
+    const container = document.querySelector('#app-top-chrome [data-top-slot="actions"]')
+      || document.querySelector('header .header-row')
+      || document.body;
     toggle = document.createElement('button');
     toggle.id = toggleId;
     toggle.className = 'app-notification-toggle';

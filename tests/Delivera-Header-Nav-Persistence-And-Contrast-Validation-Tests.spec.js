@@ -22,6 +22,7 @@ test.describe('Header and nav persistence with contrast trust', () => {
         return;
       }
       await expect(page.locator('.app-sidebar')).toHaveCount(1);
+      await expect(page.locator('#app-top-chrome')).toHaveCount(1);
       await expect(page.locator('header')).toHaveCount(1);
       const contract = await page.locator('header').evaluate((node) => ({
         sticky: getComputedStyle(node).position,
@@ -131,6 +132,7 @@ test.describe('Header and nav persistence with contrast trust', () => {
       }
       await page.locator(selector).first().click();
       await expect(page.locator('.app-sidebar')).toHaveCount(1);
+      await expect(page.locator('#app-top-chrome')).toHaveCount(1);
       await expect(page.locator('header')).toHaveCount(1);
       const isShared = await page.locator('header').first().getAttribute('data-shared-header');
       expect(isShared).toBe('true');

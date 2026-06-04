@@ -254,6 +254,11 @@ export const specMetadata = {
     layer: 'layout/responsiveness',
     page: '/report,/current-sprint,/sprint-leadership',
   },
+  'tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'layout/responsiveness',
+    page: '/governance,/current-sprint,/report,/settings',
+  },
   'tests/Delivera-Mobile-Responsive-UX-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'layout/responsiveness',

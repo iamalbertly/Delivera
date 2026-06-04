@@ -39,7 +39,9 @@
   --focus: 0 0 0 3px rgba(230, 0, 0, 0.18);
   --radius: 10px;
   --radius-lg: 16px;
-  --sticky-global-nav-top: 64px;
+  --top-chrome-height: 56px;
+  --top-chrome-bg: var(--primary-strong);
+  --sticky-global-nav-top: var(--top-chrome-height);
   --sticky-summary-top: 72px;
   --sticky-table-head-top: 64px;
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
