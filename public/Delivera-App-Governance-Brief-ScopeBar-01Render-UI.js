@@ -58,15 +58,21 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const squadCount = selected.length;
     const counts = getScopeCounts?.() || {};
     const intelLine = counts.available != null
-      ? ` · ${counts.available} available · ${counts.noSprint || 0} no sprint · ${counts.piCommitted || 0} PI`
+      ? ` · ${counts.available} available · ${counts.noSprint || 0} no sprint · ${counts.piCommitted || 0} with epics`
       : '';
     const statusLabel = simpleStatusLabel(statusTier, true);
     const queuePart = inboxTotal > 0 ? ` (${inboxTotal} pending)` : '';
     const deltaPart = sinceDelta ? ` · ${escapeHtml(sinceDelta.slice(0, 48))}` : '';
     const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
     const expandedHidden = mount.querySelector('#gov-scope-expanded')?.hasAttribute('hidden') !== false;
+    const accessKeys = Object.keys(accessByKey);
+    const allInaccessible = accessKeys.length > 0 && accessKeys.every((k) => accessByKey[k] === false);
+    const accessBanner = allInaccessible
+      ? '<p class="gov-scope-access-banner" role="status">Jira access not confirmed for any catalog project — selections kept locally.</p>'
+      : '';
 
     mount.innerHTML = `
+      ${accessBanner}
       <div class="gov-scope-capsule" aria-label="Brief scope">
         <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(selected.join(' + '))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
         <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}</span>
@@ -93,6 +99,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     mount.querySelectorAll('[data-quarter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeQuarter = btn.getAttribute('data-quarter') || '';
+        try { localStorage.setItem('delivera_gov_quarter_v1', activeQuarter); } catch (_) { /* ignore */ }
         const seq = ++loadBriefSeq;
         render();
         Promise.resolve(onRefresh?.()).then(() => {
@@ -117,6 +124,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     if (mobileQuarter) {
       mobileQuarter.addEventListener('change', () => {
         activeQuarter = mobileQuarter.value || '';
+        try { localStorage.setItem('delivera_gov_quarter_v1', activeQuarter); } catch (_) { /* ignore */ }
         render();
         onRefresh?.();
       });
@@ -166,7 +174,14 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       for (const pk of [...fromBoards, ...fromErrors]) {
         accessByKey[pk] = fromBoards.includes(pk);
       }
-      boardsWarn = fromBoards.length ? '' : 'Jira access limited for selected projects.';
+      if (fromBoards.length) {
+        boardsWarn = '';
+      } else {
+        const names = selected.filter((pk) => accessByKey[pk] === false).join(', ');
+        boardsWarn = names
+          ? `No boards returned for ${names} — check catalog access or Jira permissions.`
+          : 'No boards returned for selected projects — check catalog access.';
+      }
     } catch (_) {
       boardsWarn = 'Could not validate selected boards.';
     }

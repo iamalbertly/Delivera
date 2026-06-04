@@ -2,7 +2,7 @@
  * Governance brief — proof, nudge, cluster, and command bindings.
  */
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
-import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { commandAnswerSentence, riskToUseCase } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { buildGuidedNudgeText } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
@@ -18,18 +18,6 @@ function riskByDoNowIndex(idx) {
   if (!action?.issueKey) return null;
   return govPage.proofRisks.find((r) => String(r.issueKey).toUpperCase() === String(action.issueKey).toUpperCase())
     || (govPage.lastBrief?.topRisks || []).find((r) => String(r.issueKey).toUpperCase() === String(action.issueKey).toUpperCase());
-}
-
-function riskToUseCase(riskType) {
-  switch (String(riskType || '').toLowerCase()) {
-    case 'late-scope': return 'scope';
-    case 'missing-owner': return 'unassigned';
-    case 'missing-estimate': return 'missing-estimate';
-    case 'no-log': return 'no-log';
-    case 'dependency':
-    case 'stale-in-progress': return 'blocker';
-    default: return 'ownership';
-  }
 }
 
 export function draftNudgeText(risk) {
@@ -236,10 +224,52 @@ async function recordNarrationIfAdvisor() {
   } catch (_) { /* non-blocking */ }
 }
 
+function scrollToFirstClusterNudge() {
+  const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-nudge]');
+  if (!btn) {
+    govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  btn.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  btn.focus?.();
+}
+
+export function openInboxNudgeReview(item) {
+  if (!item) return;
+  const payload = item.payload || {};
+  const issueKey = payload.issueKey || item.issueKey || '';
+  const draft = String(payload.draftText || '').trim()
+    || (issueKey ? buildGuidedNudgeText({
+      issueKey,
+      issueSummary: payload.summary || item.summary,
+      issueStatus: payload.status,
+      issueUrl: payload.issueUrl,
+      staleHours: payload.ageHours,
+    }) : '');
+  const who = firstNameFromDisplay(payload.owner || payload.assigneeName) || COPY.unassigned;
+  openJiraNudgeReviewSheet({
+    issueKey: issueKey || 'INBOX',
+    issueSummary: payload.summary || item.summary || issueKey,
+    issueStatus: payload.status,
+    issueUrl: payload.issueUrl,
+    useCase: riskToUseCase(payload.riskType || item.type),
+    staleHours: payload.ageHours,
+    readOnly: govPage.lastBrief?.freshness?.confidenceLimit === 'stale',
+    meta: { stale: govPage.lastBrief?.freshness?.confidenceLimit === 'stale', governanceSend: true },
+    sprint: null,
+    initialDraft: draft,
+    contextHeader: `To: ${who} · ${item.summary || 'Nudge review'}`,
+  });
+}
+
 export function bindCommandAnswerActions() {
   if (!govPage.els.answerMount || govPage.els.answerMount.dataset.bound) return;
   govPage.els.answerMount.dataset.bound = '1';
   govPage.els.answerMount.addEventListener('click', async (event) => {
+    if (event.target.closest('#gov-scroll-first-nudge')) {
+      scrollToFirstClusterNudge();
+      return;
+    }
     const review = event.target.closest('#gov-review-actions');
     if (review) {
       govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });

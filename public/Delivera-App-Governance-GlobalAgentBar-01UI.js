@@ -4,6 +4,7 @@ let stickyMount = null;
 let globalBarEl = null;
 
 export function mountGlobalAgentBar() {
+  if (document.body?.classList?.contains('governance-page')) return null;
   if (globalBarEl) return globalBarEl;
   globalBarEl = document.createElement('div');
   globalBarEl.id = 'gov-global-agent-bar';

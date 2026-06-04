@@ -19,9 +19,14 @@ export function hydrateReportProjectCheckboxes() {
     if (raw) stored = raw.split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
   } catch (_) { /* ignore */ }
   host.querySelectorAll('.checkbox-label').forEach((el) => el.remove());
-  const mount = document.createElement('div');
-  mount.id = 'projects-catalog-mount';
-  mount.setAttribute('aria-label', 'Project catalog');
+  let mount = host.querySelector('#projects-catalog-mount');
+  if (!mount) {
+    mount = document.createElement('div');
+    mount.id = 'projects-catalog-mount';
+    mount.setAttribute('aria-label', 'Project catalog');
+  } else {
+    mount.innerHTML = '';
+  }
   for (const entry of PROJECT_CATALOG) {
     const pk = entry.key;
     const checked = stored.length

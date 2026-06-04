@@ -301,6 +301,30 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
     expect(text).not.toContain('Brief ID');
   });
 
+  test('scope-intelligence and pi-confidence expose cached flag in JSON', async ({ page }) => {
+    if (!(await mockAndGo(page))) return;
+    await page.route('**/api/governance/scope-intelligence.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ scope: { cards: [] }, boards: 1, projectErrors: [], cached: true }),
+    }));
+    await page.route('**/api/governance/pi-confidence.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ piConfidence: { trusted: false }, piForumAnswer: '', protectMeAnswer: '', cached: true }),
+    }));
+    const scopeBody = await page.evaluate(async () => {
+      const r = await fetch('/api/governance/scope-intelligence.json?projects=MPSA');
+      return r.json();
+    });
+    expect(scopeBody.cached).toBe(true);
+    const piBody = await page.evaluate(async () => {
+      const r = await fetch('/api/governance/pi-confidence.json?projects=MPSA');
+      return r.json();
+    });
+    expect(piBody.cached).toBe(true);
+  });
+
   test('nudge is blocked when data is stale (trust guard)', async ({ page }) => {
     if (!(await mockAndGo(page))) return;
     await page.locator('#gov-supporting-evidence summary').click();

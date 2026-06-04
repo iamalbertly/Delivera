@@ -10,7 +10,7 @@ import { renderCommandAnswerBar, bindCommandOverflowMenu } from './Delivera-App-
 import { renderWorkerReceiptRail } from './Delivera-App-Governance-Brief-14Render-WorkerReceipt-UI.js';
 import { renderOwnerActionClusters } from './Delivera-App-Governance-Brief-15Render-OwnerActionCluster-UI.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
-import { renderSetupDebtStrip } from './Delivera-App-Governance-Brief-17Render-SetupDebtStrip-UI.js';
+import { renderSetupDebtStrip, bindSetupDebtStripExpand } from './Delivera-App-Governance-Brief-17Render-SetupDebtStrip-UI.js';
 import {
   escapeHtml, truthChip, renderStructuredEvidence, briefToMarkdown,
 } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
@@ -27,6 +27,8 @@ import {
   govPage, projectsCsv, isPortfolioMode, refreshScopeBarCounts, whyItMatters,
 } from './Delivera-Governance-Brief-Page-01Context.js';
 import { bindOwnerClusterInteractions, bindProofInteractions } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
+
+let loadBriefSeq = 0;
 
 function evidenceRowFor(brief, issueKey) {
   if (!issueKey) return null;
@@ -75,7 +77,7 @@ function renderProofRisks(risks) {
         <p class="gov-risk-proof-line"><strong>${escapeHtml(COPY.proofLine)}:</strong> ${escapeHtml(proofLine)}</p>
         <div class="governance-risk-tools">
           ${r.issueKey ? `<button type="button" class="btn btn-link btn-compact" data-copy-msg="${idx}">Copy message</button>` : ''}
-          ${r.issueKey ? `<button type="button" class="btn btn-secondary btn-compact" data-nudge="${idx}">Draft nudge</button>` : ''}
+          ${r.issueKey ? `<button type="button" class="btn btn-link btn-compact" data-nudge="${idx}">${escapeHtml(COPY.draftNudge)}</button>` : ''}
           <button type="button" class="btn btn-link btn-compact" data-mark-wrong="${idx}">${escapeHtml(COPY.markAsWrong)}</button>
           <button type="button" class="btn btn-link btn-compact" data-why="${idx}" aria-expanded="false">Why flagged?</button>
         </div>
@@ -169,11 +171,15 @@ export function renderBriefUi(brief) {
   }
   if (govPage.els.workerReceiptMount) govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
   if (govPage.els.answerMount) {
-    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces);
+    const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
+    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters });
     bindCommandOverflowMenu(govPage.els.answerMount);
   }
   if (govPage.els.epicHygieneMount) govPage.els.epicHygieneMount.innerHTML = '';
-  if (govPage.els.setupDebtMount) govPage.els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief);
+  if (govPage.els.setupDebtMount) {
+    govPage.els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief);
+    bindSetupDebtStripExpand(govPage.els.setupDebtMount);
+  }
   if (govPage.els.verdictMount) {
     govPage.els.verdictMount.innerHTML = isPortfolioMode(brief)
       ? renderPortfolioGrid(brief)
@@ -200,8 +206,10 @@ export function renderBriefUi(brief) {
   bindProofInteractions();
   wireGovernanceIssuePreview(brief, document);
   bindHoverProofCards(document, brief);
-  updateGlobalAgentBar(brief);
-  updateStickyMicroAnswer(brief);
+  if (!document.body?.classList?.contains('governance-page')) {
+    updateGlobalAgentBar(brief);
+    updateStickyMicroAnswer(brief);
+  }
   refreshScopeBarCounts();
   const createBtn = document.getElementById('gov-hidden-create-work');
   if (createBtn) createBtn.setAttribute('data-outcome-projects', projectsCsv());
@@ -216,6 +224,7 @@ export function renderBriefUi(brief) {
 
 export async function loadBrief() {
   govPage.els.error.hidden = true;
+  const seq = ++loadBriefSeq;
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
   const qs = new URLSearchParams({ projects: projectsCsv() });
   if (quarter) qs.set('quarter', quarter);
@@ -225,14 +234,17 @@ export async function loadBrief() {
       fetch(`/api/governance-brief.json?${qs.toString()}`),
       fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`),
     ]);
+    if (seq !== loadBriefSeq) return;
     if (!briefRes.ok) throw new Error(`HTTP ${briefRes.status}`);
     govPage.lastBrief = await briefRes.json();
     govPage.lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
     await govPage.inboxApi?.refresh?.();
+    if (seq !== loadBriefSeq) return;
     const confirmCount = govPage.inboxApi?.getConfirmCount?.() || 0;
     renderFreshness(govPage.lastBrief, confirmCount);
     renderBriefUi(govPage.lastBrief);
     await renderScorecard();
+    if (seq !== loadBriefSeq) return;
     document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
       document.getElementById('gov-open-feedback-lab')?.click();
     });

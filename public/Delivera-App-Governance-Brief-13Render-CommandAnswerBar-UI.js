@@ -17,7 +17,8 @@ function trustTierLabel(brief) {
   return 'Medium';
 }
 
-export function renderCommandAnswerBar(brief, surfaces = null) {
+export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
+  const hasOwnerClusters = Boolean(opts.hasOwnerClusters);
   const sentence = commandAnswerSentence(brief);
   const n = brief?.leadershipNarrative || {};
   const ev = brief?.executiveView || {};
@@ -38,13 +39,19 @@ export function renderCommandAnswerBar(brief, surfaces = null) {
   const readiness = sendReadinessBadge(brief);
   const fresh = freshnessShortLabel(brief?.freshness || {});
 
+  const doFirstCta = hasOwnerClusters
+    ? `<button type="button" class="btn btn-primary btn-compact" id="gov-scroll-first-nudge">${escapeHtml(COPY.draftNudge)} →</button>`
+    : (doFirstUrl
+      ? `<a class="btn btn-primary btn-compact" href="${escapeHtml(doFirstUrl)}" target="_blank" rel="noopener">Open →</a>`
+      : '');
   const doFirstStrip = showDoFirstStrip
     ? `<div class="gov-do-first-strip" data-hover-proof="owner-lane">
         <span class="gov-do-first-prefix">${escapeHtml(COPY.doFirst)}:</span>
         <strong class="gov-do-first-action">${escapeHtml(doFirstLabel)}</strong>
-        ${doFirstUrl ? `<a class="btn btn-primary btn-compact" href="${escapeHtml(doFirstUrl)}" target="_blank" rel="noopener">Open →</a>` : ''}
+        ${doFirstCta}
       </div>`
     : '';
+  const showActionBlock = !showDoFirstStrip;
 
   const narratedBy = brief?.meta?.narratedBy || n.narratedBy || 'template';
   const statusHead = String(statusLabel || '').toUpperCase();
@@ -67,10 +74,10 @@ export function renderCommandAnswerBar(brief, surfaces = null) {
           <span class="gov-answer-block-label">${escapeHtml(COPY.ownerLabel)}</span>
           <strong class="gov-answer-block-value">${escapeHtml(ownerName)} · ${itemCount} item${itemCount === 1 ? '' : 's'}${squad ? ` · ${escapeHtml(squad)}` : ''}</strong>
         </div>
-        <div class="gov-answer-block gov-answer-block--action">
+        ${showActionBlock ? `<div class="gov-answer-block gov-answer-block--action">
           <span class="gov-answer-block-label">${escapeHtml(COPY.doFirst)}</span>
           <strong class="gov-answer-block-value">${escapeHtml(doFirstLabel)}</strong>
-        </div>
+        </div>` : ''}
       </div>
       ${doFirstStrip}
       <div class="gov-trust-chip-row" role="group" aria-label="Trust summary">

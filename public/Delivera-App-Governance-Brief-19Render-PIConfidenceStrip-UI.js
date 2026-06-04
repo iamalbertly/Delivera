@@ -38,12 +38,18 @@ export function renderPIConfidenceStrip(brief) {
     ? `<div class="gov-pi-chip-row" role="list">${chips}</div>`
     : '<p class="gov-pi-empty">Set PI baseline to unlock timeline chips.</p>';
   const adHocChip = renderAdHocChip(brief);
-  const hygieneRow = renderEpicHygieneInlineRow(brief);
+  const hygieneRow = strip.trusted
+    ? (() => {
+      const hygiene = brief?.meta?.epicHygiene;
+      if (!hygiene?.epicCount) return '';
+      return `<p class="gov-pi-hygiene-compact" data-hover-proof="epic-hygiene">Epic naming <strong>${hygiene.score != null ? `${hygiene.score}%` : '—'}</strong> · weak ${(hygiene.weak || []).length}</p>`;
+    })()
+    : renderEpicHygieneInlineRow(brief);
 
   const gaugeBlock = noData
     ? `<div class="gov-pi-nodata" data-hover-proof="pi-gauge">
         <span class="gov-pi-nodata-icon" aria-hidden="true">○</span>
-        <p class="gov-pi-nodata-label">PI baseline not set</p>
+        <p class="gov-pi-nodata-label">${escapeHtml(COPY.baselinePiNotSet)}</p>
         <button type="button" class="btn btn-primary btn-compact" id="gov-pi-fix-baseline">Set baseline →</button>
       </div>`
     : `<div class="gov-pi-gauge-wrap">

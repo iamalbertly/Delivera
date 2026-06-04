@@ -23,6 +23,8 @@ export function proofChipSummary(brief, issueKeys = []) {
   return `Proof: ${matched.length || keys.size} keys · ${changelog} changelog checks · ${freshLabel}`;
 }
 
+export { riskToUseCase } from './Delivera-App-Governance-Brief-RiskToUseCase-01Map-SSOT.js';
+
 export function sendReadinessBadge(brief) {
   if (brief?.freshness?.confidenceLimit === 'stale') return { label: 'Stale — refresh first', tier: 'stale' };
   if (brief?.meta?.safeToSend === false) return { label: 'Needs edit', tier: 'weak' };

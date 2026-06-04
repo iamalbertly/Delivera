@@ -14,9 +14,10 @@ Primary surfaces:
 
 ### Global chrome (Jira-style top bar)
 
-- **`#app-top-chrome`** — persistent red top bar on all authenticated pages (`Delivera-Shared-Top-Chrome-01Render-UI.js`): sidebar toggle (desktop collapse + mobile drawer), **Brief · Sprint · Proof** switcher, workspace context line, contextual search (`#app-top-search`), **Create**, notifications, help, **Settings** gear (not duplicated in the left sidebar), account menu.
-- **Sidebar** — three primaries only (Brief, Sprint, Proof); settings live in the top bar gear.
-- **Tests:** `tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js` (`npm run test:journey:ux-core`).
+- **`#app-top-chrome`** — persistent red top bar on all authenticated pages (`Delivera-Shared-Top-Chrome-01Render-UI.js`): sidebar toggle (desktop collapse + mobile drawer), **Brief · Sprint · Proof** switcher, workspace context line, contextual search (`#app-top-search`), **Create**, notifications (dock opens in-place from the bell), help (links to `TESTING.md` + README), **Settings** gear (not duplicated in the left sidebar), avatar initials from `GET /api/session-meta.json`.
+- **Wayfinding SSOT** — surface switcher is primary; left sidebar keeps context card + data pulse only on desktop (nav links hidden); mobile bottom nav removed when top chrome is present; Proof hides `report-back-to-brief` (use switcher). Report and Brief default to **collapsed sidebar** on first visit (more table width).
+- **Skip link** — tab order: skip → top chrome → main (`Delivera-Shared-Global-Nav.js`).
+- **Tests (fail-fast):** `npm run build:css && npm run check:css`, then `tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js` (Tier 3 critical smoke), then nav/contrast specs; full UX gate: `npm run test:journey:ux-core`.
 
 ### Brief (`/governance`) scope and queue
 
@@ -24,13 +25,15 @@ Primary surfaces:
 - **Scope:** Project picker uses `Delivera-Shared-Projects-Catalog-01SSOT.js` (same 12 squads as Proof/Report). `GET /api/projects-catalog.json` merges catalog labels with `data/Delivera-Shared-Projects-Access-Index.json` (worker-refreshed from your Jira token). Selected squads only hit `/api/boards.json` (debounced). Inaccessible keys show as `.gov-scope-chip--limited` but stay selectable.
 - **Cache-first Jira:** Brief load uses `governanceBrief:{projects}:e1:p1`; `scope-intelligence`, `pi-confidence`, and `pi-baseline/propose` read cached slices unless you **Refresh** (propose accepts `refresh=1`).
 - **PI baseline:** Epic-first propose/compare; **Create work** on empty baseline, setup gaps, and ad-hoc epic drawer (`data-open-outcome-modal`). Wizard: `/api/governance/pi-baseline/propose` → confirm.
-- **Actions:** One owner cluster per person — primary **Draft nudge** (guided text via `buildGuidedNudgeText`); issues collapsed by default. Orphan per-issue Do-now renderer retired.
-- **Inbox:** One **See queue (N)** chip opens a drawer with **icon tabs** (Ready / Nudges / PI drift / Confirm / …) so non-English users can switch sections in one tap. Icon actions (approve / review / dismiss). Cached preview items (`synthetic-*`) resolve without 400 console errors. **Claims to review** in the freshness line jumps straight to the Confirm tab.
+- **Actions:** One owner cluster per person — primary **Draft nudge** (guided text via `buildGuidedNudgeText`); issues collapsed by default. Command **Do first** scrolls to the first cluster when clusters exist (no duplicate external Open link). Setup gaps cap at two cards with expand-in-place.
+- **Inbox:** One **See queue (N)** chip opens a drawer with **icon tabs** (Ready / Nudges / PI drift / Confirm / …). Nudges tab shows a two-line `draftText` excerpt; **Review** opens the guided nudge sheet (not silent approve). Cached preview items (`synthetic-*`) resolve without 400 console errors. **Claims to review** in the freshness line jumps straight to the Confirm tab.
+- **Catalog maintenance:** Edit `public/Delivera-Shared-Projects-Catalog-01SSOT.js` when Jira squads change; access index refreshes via governance worker (`lib/Delivera-Shared-Projects-Access-02Refresh-Worker.js`).
+- **Report projects:** `report.html` mounts checkboxes only via `Delivera-Report-Projects-Catalog-01Hydrate.js` (no static duplicate list).
 - **Mobile scope:** Multi-project checklist (not single-toggle select). Desktop keeps scroll pill strips.
 - **PI baseline:** Right-drawer wizard with loading state and **Open in Jira** when candidates are empty (`jiraBrowseHost` on `/api/boards.json`).
 - **Quarters:** `includeCached=1` merges calendar quarters plus labels persisted in `data/Delivera-Governance-Quarter-Labels-Index.json` when briefs build.
 - **Client errors:** Failed fetches log to `POST /api/client-log` (server `client-fetch-failure` line) via `Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js`.
-- **Above-fold clutter:** Eyebrow removed; sticky micro-answer and global agent bar hidden on `/governance` (status chip owns queue count).
+- **Above-fold clutter:** Feedback lab and micro-survey live in collapsed **Feedback & survey** details; scope capsule collapsed until **Change**; proof **Draft nudge** is link-style; PI hygiene compacts when PI trust is high; mobile hides the third answer block.
 - **Tests:** `npm run test:journey:governance` (Visual Clarity → PI Intelligence → Command Surface → Inbox first, `--max-failures=1`). Use `SKIP_WEBSERVER=true` when the app is already on port 3000.
 
 ## Quickstart
@@ -94,8 +97,9 @@ Detailed env matrix: [`docs/environment.md`](docs/environment.md)
 
 ### Testing
 
+- **Top-chrome fail-fast (after CSS build):** `npx playwright test tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js --workers=1 --max-failures=1`, then nav specs (`Delivera-App-Governance-Root-Nav-Scope-Validation-Tests.spec.js`, `Delivera-Header-Nav-Persistence-And-Contrast-Validation-Tests.spec.js`, `Delivera-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js`).
 - Full orchestration: `npm run test:all`
-- Smoke: `npm run test:smoke`
+- Smoke: `npm run test:smoke` (includes Jira top-chrome spec in Tier 3)
 - Current Sprint journey: `npm run test:journey:current-sprint`
 - Governance journey (fail-fast, visual-clarity specs first): `npm run test:journey:governance`
 - Warm server for Playwright: `SKIP_WEBSERVER=true` with `npm start` on port 3000

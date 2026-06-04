@@ -264,12 +264,47 @@ test.describe('Governance agentic worker — UI', () => {
     await expect(page.locator('.gov-inbox-group-card')).toContainText(/PI drift/i);
   });
 
-  test('micro-survey visible below meeting script', async ({ page }) => {
+  test('micro-survey visible in secondary chrome', async ({ page }) => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await page.locator('#gov-secondary-chrome summary').click();
     await expect(page.locator('.gov-micro-survey')).toBeVisible();
+  });
+
+  test('nudges tab shows draft excerpt and review opens sheet', async ({ page }) => {
+    await mockGovernancePage(page);
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        briefs: [],
+        nudges: [{
+          id: 'n-draft',
+          type: 'nudge',
+          summary: 'Nudge Sam on MPSA-2',
+          safeToSend: true,
+          approvalRequired: true,
+          payload: {
+            owner: 'Sam',
+            issueKey: 'MPSA-2',
+            draftText: 'Hi Sam — please confirm next step on MPSA-2 today.',
+            board: 'MPSA',
+          },
+        }],
+        piDrift: [], confirm: [], impact: [], poReadiness: [],
+      }),
+    }));
+    await page.goto('/governance');
+    if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('[data-queue-open]').click();
+    await page.locator('[data-queue-tab="nudges"]').click();
+    await expect(page.locator('.gov-inbox-draft-excerpt')).toContainText(/confirm next step/i);
+    await disableSidebarPointerBlock(page);
+    await page.locator('[data-group-review]').first().click();
+    await expect(page.locator('body')).toHaveClass(/jira-nudge-review-open/);
+    await expect(page.locator('#jira-nudge-review-text')).toHaveValue(/confirm next step/i);
   });
 
   test('adoption metric POST on survey click', async ({ page }) => {
@@ -279,6 +314,7 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/adoption-metric', (r) => { posted = true; return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }); });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await page.locator('#gov-secondary-chrome summary').click();
     await page.locator('.gov-micro-pill[data-minutes="10"]').click();
     await expect.poll(() => posted).toBe(true);
   });
@@ -307,6 +343,7 @@ test.describe('Governance agentic worker — UI', () => {
     await page.addInitScript((key) => { localStorage.removeItem(key); }, GOVERNANCE_SURVEY_LAST_ASKED_KEY);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await page.locator('#gov-secondary-chrome summary').click();
     await disableSidebarPointerBlock(page);
     await page.locator('.gov-micro-pill[data-minutes="3"]').click({ force: true });
     await expect(page.locator('#gov-micro-survey-mount')).toHaveClass(/gov-micro-survey--done/);

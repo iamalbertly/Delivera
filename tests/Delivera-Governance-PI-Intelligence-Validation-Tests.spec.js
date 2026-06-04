@@ -233,6 +233,7 @@ test.describe('Governance PI intelligence', () => {
   test('improvement lab opens from mount', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
+    await page.locator('#gov-secondary-chrome summary').click();
     await page.locator('#gov-open-feedback-lab').click();
     await expect(page.locator('#gov-right-drawer-title')).toContainText(/Feedback improvement/i);
   });

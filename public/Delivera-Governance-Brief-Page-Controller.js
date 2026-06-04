@@ -5,13 +5,11 @@ import { mountGovernanceScopeBar } from './Delivera-App-Governance-Brief-ScopeBa
 import { openScopeIntelligenceDrawer, scopeCapsuleCounts } from './Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js';
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
-import {
-  mountGlobalAgentBar, mountStickyMicroAnswer, bindStickyScroll,
-} from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
+import { mountStickyMicroAnswer, bindStickyScroll } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js';
 import { loadBrief, copyBrief } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
-import { bindGovernancePageInteractions } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
+import { bindGovernancePageInteractions, openInboxNudgeReview } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 
 function init() {
   govPage.els.freshness = $('gov-freshness');
@@ -36,7 +34,6 @@ function init() {
   govPage.els.error = $('gov-error');
   govPage.els.export = $('gov-export');
   govPage.els.export?.addEventListener('click', copyBrief);
-  mountGlobalAgentBar();
   mountStickyMicroAnswer(govPage.els.stickyAnswerMount);
   bindStickyScroll(100);
   mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], null);
@@ -52,6 +49,8 @@ function init() {
     getProjectsCsv: projectsCsv,
     onFocusConfirm: () => {},
     onRefreshBrief: loadBrief,
+    onOpenNudgeReview: openInboxNudgeReview,
+    briefLoading: () => !govPage.lastBrief,
   });
   govPage.els.actionClustersMount?.addEventListener('click', (event) => {
     if (event.target.closest('#gov-owner-check-setup')) {

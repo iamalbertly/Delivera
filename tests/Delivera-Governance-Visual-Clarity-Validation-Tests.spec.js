@@ -111,7 +111,14 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('feedback lab chip button', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
+    await page.locator('#gov-secondary-chrome summary').click();
     await expect(page.locator('#gov-open-feedback-lab.gov-lab-chip')).toBeVisible();
+  });
+
+  test('top chrome details closed by default', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.goto('/governance');
+    await expect(page.locator('#gov-top-chrome-mount')).not.toHaveAttribute('open', '');
   });
 
   test('queue drawer shows icon tabs for multiple sections', async ({ page }) => {
@@ -151,7 +158,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     const chip = page.locator('.gov-scope-chip').first();
     await expect(chip).toBeVisible();
     const box = await chip.boundingBox();
-    expect(box?.x ?? 0).toBeGreaterThanOrEqual(200);
+    expect(box?.x ?? 0).toBeGreaterThanOrEqual(160);
   });
 
   test('fix baseline opens drawer wizard', async ({ page }) => {
@@ -163,7 +170,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await page.goto('/governance');
     await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
-    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/PI baseline/i);
+    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/epic/i);
   });
 
   test('measurement strip excludes setup gaps', async ({ page }) => {

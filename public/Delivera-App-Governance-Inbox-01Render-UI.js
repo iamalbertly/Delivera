@@ -6,6 +6,7 @@ import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import { groupInboxByFingerprint } from './Delivera-App-Governance-Inbox-Group-01SSOT.js';
 import { isSyntheticInboxId } from './Delivera-App-Governance-Inbox-01Fingerprint-SSOT.js';
+import { buildGuidedNudgeText } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 
 function escapeHtml(v) {
@@ -50,7 +51,22 @@ function renderDrawerTabs(data, activeTabKey) {
   return `<nav class="gov-inbox-drawer-tabs" role="tablist" aria-label="${escapeHtml(COPY.agentQueue)}">${tabs}</nav>`;
 }
 
-function renderGroupedDrawer(items, showAll = false) {
+function nudgeDraftExcerpt(item) {
+  const payload = item?.payload || {};
+  const raw = String(payload.draftText || '').trim();
+  if (raw) return raw.slice(0, 160);
+  const issueKey = payload.issueKey || item?.issueKey;
+  if (!issueKey) return '';
+  return buildGuidedNudgeText({
+    issueKey,
+    issueSummary: payload.summary || item?.summary,
+    issueStatus: payload.status,
+    issueUrl: payload.issueUrl,
+    staleHours: payload.ageHours,
+  }).slice(0, 160);
+}
+
+function renderGroupedDrawer(items, showAll = false, tabKey = '') {
   const groups = groupInboxByFingerprint(items);
   const visible = showAll ? groups : groups.slice(0, 8);
   const hidden = showAll ? 0 : Math.max(0, groups.length - 8);
@@ -74,6 +90,14 @@ function renderGroupedDrawer(items, showAll = false) {
           <button type="button" class="gov-inbox-dismiss-chip" data-dismiss-reason="handled" data-group-dismiss="${escapeHtml(g.fingerprint)}" title="${escapeHtml(COPY.dismissHandled)}">✓̸</button>
         </div>`
       : `<span class="gov-inbox-hint gov-inbox-cached-hint">${escapeHtml(COPY.inboxCachedHint)}</span>`;
+    const draftLine = tabKey === 'nudges' && ex?.id
+      ? (() => {
+        const excerpt = nudgeDraftExcerpt(ex);
+        return excerpt
+          ? `<p class="gov-inbox-draft-excerpt">${escapeHtml(excerpt)}</p>`
+          : '';
+      })()
+      : '';
     return `
     <li class="gov-inbox-group-card" data-fingerprint="${escapeHtml(g.fingerprint)}">
       <div class="gov-inbox-group-head">
@@ -81,6 +105,7 @@ function renderGroupedDrawer(items, showAll = false) {
         <span class="gov-inbox-group-meta">${g.count} · ${escapeHtml(g.board || 'Portfolio')}</span>
       </div>
       <p class="gov-inbox-group-reason">${escapeHtml(g.exampleItem?.summary || g.reason || g.type)}</p>
+      ${draftLine}
       <div class="gov-inbox-group-actions">
         ${approveBtn}
         ${reviewBtn}
@@ -98,10 +123,10 @@ function renderGroupedDrawer(items, showAll = false) {
 
 function drawerBodyHtml(data, tabKey, showAll = false) {
   const items = data?.[tabKey] || [];
-  return `${renderDrawerTabs(data, tabKey)}<div class="gov-inbox-drawer-pane" role="tabpanel">${renderGroupedDrawer(items, showAll)}</div>`;
+  return `${renderDrawerTabs(data, tabKey)}<div class="gov-inbox-drawer-pane" role="tabpanel">${renderGroupedDrawer(items, showAll, tabKey)}</div>`;
 }
 
-export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, onRefreshBrief }) {
+export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, onRefreshBrief, onOpenNudgeReview, briefLoading }) {
   if (!mount) return { refresh: async () => {}, getConfirmCount: () => 0, getInboxTotal: () => 0, openQueueTab: () => {} };
 
   let lastData = null;
@@ -141,6 +166,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
 
   function bindDrawerActions(el, tabKey) {
     const items = lastData?.[tabKey] || [];
+    const openReview = onOpenNudgeReview;
     el.querySelectorAll('[data-group-dismiss]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const fp = btn.getAttribute('data-group-dismiss');
@@ -155,14 +181,19 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
       btn.addEventListener('click', () => {
         const fp = btn.getAttribute('data-group-review');
         const g = groupInboxByFingerprint(items).find((x) => x.fingerprint === fp);
-        if (g?.exampleItem?.id && isResolvableItem(g.exampleItem)) {
-          resolveItem(g.exampleItem.id, 'approved');
+        const ex = g?.exampleItem;
+        if (!ex) return;
+        if (tabKey === 'nudges' && openReview) {
+          drawerClose?.();
+          openReview(ex);
+          return;
         }
+        if (ex.id && isResolvableItem(ex)) resolveItem(ex.id, 'approved');
       });
     });
     el.querySelector('#gov-inbox-show-more')?.addEventListener('click', () => {
       const pane = el.querySelector('.gov-inbox-drawer-pane');
-      if (pane) pane.innerHTML = renderGroupedDrawer(items, true);
+      if (pane) pane.innerHTML = renderGroupedDrawer(items, true, tabKey);
       bindDrawerActions(el, tabKey);
     });
     el.querySelector('#gov-inbox-refresh-brief')?.addEventListener('click', () => {
@@ -219,12 +250,13 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
 
   function render() {
     const total = TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0);
+    const preparing = total === 0 && briefLoading?.();
     const chip = total > 0
       ? `<button type="button" class="gov-queue-chip gov-queue-chip--primary" data-queue-open="1" aria-label="${escapeHtml(COPY.seeQueue)}">
           <span class="gov-queue-chip-icon" aria-hidden="true">📋</span>
           ${escapeHtml(COPY.seeQueue)} (${total})
         </button>`
-      : `<span class="gov-inbox-hint">${escapeHtml(COPY.inboxPreparing)}</span>`;
+      : `<span class="gov-inbox-hint">${escapeHtml(preparing ? COPY.inboxPreparing : COPY.inboxUnavailable)}</span>`;
     mount.innerHTML = `
       <div class="gov-agent-queue" role="group" aria-label="${escapeHtml(COPY.agentQueue)}">
         ${chip}
