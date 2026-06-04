@@ -21,7 +21,7 @@ test.describe('Server errors and export validation', () => {
 
   test('report page loads without critical errors', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|Performance History/);
     await page.waitForLoadState('networkidle').catch(() => {});
 
     expect(telemetry.pageErrors).toEqual([]);

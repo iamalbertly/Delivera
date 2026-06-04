@@ -76,7 +76,7 @@ test.describe('Report chrome direct value realtime validation', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await test.step('01 load report shell', async () => {
-      await expect(page.locator('h1')).toContainText(/Delivery/i);
+      await expect(page.locator('h1')).toContainText(/Evidence|Delivery/i);
       await ensureReportFiltersVisible(page);
       await expect(page.locator('#preview-btn')).toBeVisible();
       assertTelemetryClean(telemetry);

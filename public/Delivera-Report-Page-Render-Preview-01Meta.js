@@ -9,6 +9,7 @@ import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Param
 import { buildCompactReportRangeLabel } from './Delivera-Shared-Context-From-Storage.js';
 import { deriveOutcomeRiskFromPreviewRows } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 import { renderAttentionQueue } from './Delivera-Shared-Attention-Queue.js';
+import { noOutcomesPlainEnglish } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 function summarizeProjectsList(projects) {
   const list = Array.isArray(projects)
@@ -217,7 +218,7 @@ export function buildPreviewMetaAndStatus(params) {
   let headerStoryText;
   let zeroOutcomeHint = '';
   if (rowsCount === 0) {
-    healthSentence = 'No outcome stories in this window (maintenance-only work)';
+    healthSentence = noOutcomesPlainEnglish();
     if (hasHistoricalSignal) {
       const projLabel = projectSummary.label || selectedProjectsLabel;
       headerStoryText = `${projLabel} delivered work across ${sprintsCount || lastRunSprints} sprint(s) — none tagged as outcomes in this window.`;
@@ -228,7 +229,7 @@ export function buildPreviewMetaAndStatus(params) {
         + '<button type="button" class="btn btn-secondary btn-compact preview-zero-action" data-preview-context-action="open-done-stories">Browse stories</button>'
         + '</p>';
     } else {
-      headerStoryText = 'No outcome stories matched this scope yet. Adjust projects or dates to recover signal.';
+      headerStoryText = noOutcomesPlainEnglish();
       zeroOutcomeHint =
         '<p class="preview-context-zero-hint">'
         + '<button type="button" class="btn btn-secondary btn-compact preview-zero-action" data-preview-context-action="open-range">Widen date range</button>'

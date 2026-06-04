@@ -1,0 +1,208 @@
+/* Meeting-first product surfaces — light, high-contrast, red as signal only */
+
+body.executive-surface-page,
+body.governance-page,
+body.report-page,
+body.current-sprint-page {
+  background: #f8f9fb;
+  color: #111827;
+}
+
+body.governance-page .governance-shell,
+body.governance-page .governance-narrative,
+body.governance-page .governance-risk,
+body.governance-page .gov-meeting-hero,
+body.governance-page .gov-action-card,
+body.governance-page .gov-scope-bar-sticky {
+  color: #111827;
+}
+
+body.governance-page .governance-title,
+body.governance-page .governance-headline,
+body.governance-page .governance-section-title,
+body.governance-page .gov-meeting-hero-text,
+body.governance-page .governance-decisions-table th,
+body.governance-page .governance-decisions-table td,
+body.governance-page .attention-queue-table th,
+body.governance-page .attention-queue-table td {
+  color: #111827;
+}
+
+body.governance-page .governance-paragraph,
+body.governance-page .governance-empty,
+body.governance-page .gov-chip-sentence,
+body.governance-page .governance-freshness-meta {
+  color: #374151;
+}
+
+body.governance-page .governance-narrative,
+body.governance-page .governance-risk,
+body.governance-page .gov-meeting-hero,
+body.governance-page .gov-action-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+body.governance-page .governance-risk[data-escalation="escalate"],
+body.governance-page .governance-risk[data-escalation="act-today"] {
+  border-left: 4px solid #dc2626;
+}
+
+body.governance-page .governance-risk-summary,
+body.governance-page .governance-risk-action,
+body.governance-page .gov-risk-proof-line {
+  color: #374151;
+}
+
+body.governance-page .gov-meeting-status-line.gov-status-at-risk strong,
+body.governance-page .gov-meeting-status-line.gov-status-at-risk {
+  color: #b91c1c;
+}
+
+body.governance-page .gov-meeting-status-line.gov-status-watch {
+  color: #b45309;
+}
+
+body.governance-page .gov-meeting-status-line.gov-status-on-track {
+  color: #047857;
+}
+
+body.governance-page .gov-what-to-say {
+  margin: 0;
+  padding: 14px 18px;
+  border-left: 4px solid #1e3a5f;
+  background: #f0f4f8;
+  border-radius: 0 10px 10px 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111827;
+}
+
+body.governance-page .gov-habit-strip {
+  padding: 10px 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #92400e;
+}
+
+body.governance-page .gov-meeting-hero {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+body.governance-page .gov-meeting-hero-text {
+  font-size: 1.1rem;
+  line-height: 1.45;
+  margin: 0;
+  font-weight: 600;
+}
+
+body.governance-page .gov-kpi-sentences {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+body.governance-page .gov-chip-sentence {
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
+
+body.governance-page .gov-action-cards {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+body.governance-page .gov-action-card {
+  padding: 14px 16px;
+}
+
+body.governance-page .gov-action-card-owner {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1e3a5f;
+}
+
+body.governance-page .gov-action-card-due {
+  font-size: 0.76rem;
+  color: #6b7280;
+}
+
+body.governance-page .gov-mark-wrong-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+body.governance-page .gov-mark-wrong-panel button {
+  margin: 4px 6px 4px 0;
+}
+
+body.governance-page .governance-freshness-pill.is-stale {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.attention-queue-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.attention-queue-table th,
+.attention-queue-table td {
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  text-align: left;
+  color: #111827;
+}
+
+.attention-queue-table th {
+  background: #f9fafb;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+body.report-page .report-proof-hero {
+  padding: 12px 0;
+  color: #111827;
+}
+
+body.report-page .preview-context-chip-scope,
+body.report-page .preview-context-chip-scope--combined {
+  display: none;
+}
+
+body.report-page .report-proof-summary {
+  margin: 8px 0;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+body.current-sprint-page .sprint-today-hero {
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #111827;
+}
+
+body.current-sprint-page .sprint-today-hero h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #111827;
+}

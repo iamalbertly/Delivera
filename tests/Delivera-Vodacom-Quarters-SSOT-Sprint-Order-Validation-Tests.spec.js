@@ -12,7 +12,7 @@ test.describe('Delivera - Vodacom Quarters SSOT Sprint Order Validation', () => 
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
 
-    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|High-Level Performance|Performance History/i);
+    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|High-Level Performance|Performance History/i);
     await expect(page.locator('.quick-range-strip')).toBeVisible();
     await page.waitForSelector('.quarter-pill', { timeout: 15000 }).catch(() => null);
     await expect(page.locator('.quarter-pill').first()).toContainText(/Q[1-4]/i);

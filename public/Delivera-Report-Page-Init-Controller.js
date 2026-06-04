@@ -27,6 +27,7 @@ import { initExportMenu as initReportExportMenu } from './Delivera-Report-Page-E
 import { getCurrentSelectionComplexity, shouldAutoPreviewOnInit, refreshPreviewButtonLabel, updateAppliedFiltersSummary, hydrateFromLastQuery } from './Delivera-Report-Page-Filters-Summary-Helpers.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
 import { initReportFiltersPanelState } from './Delivera-Report-Page-Init-Filters-Panel-State-Helpers.js';
+import { mountReportProofSummary } from './Delivera-Report-Proof-Summary-01Bridge.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { renderReportNamedViewsBar, wireReportNamedViews } from './Delivera-Report-Page-Named-Views.js';
 import { initOverlayManager } from './Delivera-Shared-Overlay-Manager.js';
@@ -625,6 +626,7 @@ function initReportPage() {
 
   initOutcomeIntake();
   initFeedbackPanel();
+  mountReportProofSummary();
 }
 
 // M2: Scroll-aware page identity — inject compact page name into sticky header when H1 scrolls away (X.com pattern)

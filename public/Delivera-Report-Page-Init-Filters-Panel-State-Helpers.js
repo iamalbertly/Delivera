@@ -48,7 +48,7 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
     const desktopDrawer = isDesktopDrawer();
     try {
       if (collapsed) sessionStorage.setItem(collapsedStorageKey, '1');
-      else sessionStorage.removeItem(collapsedStorageKey);
+      else sessionStorage.setItem(collapsedStorageKey, '0');
     } catch (_) {}
     panel.classList.toggle('collapsed', collapsed);
     panel.classList.toggle('expanded', !collapsed && desktopDrawer);
@@ -78,12 +78,12 @@ export function initReportFiltersPanelState({ collapsedStorageKey, skipTabRestor
   function applyStoredFiltersCollapsed() {
     if (!panel || !panelBody || !collapsedBar) return;
     if (isDesktopDrawer()) {
-      // Desktop drawer CSS uses pointer-events:none until .expanded; default expanded so
-      // #preview-btn and filter controls stay clickable (clicks otherwise hit #main-content).
-      let shouldCollapse = false;
+      // Evidence page: filters collapsed by default; user opens via Filters toggle (stored '0').
+      let shouldCollapse = true;
       try {
         const stored = sessionStorage.getItem(collapsedStorageKey);
-        shouldCollapse = stored === '1';
+        if (stored === '0') shouldCollapse = false;
+        else if (stored === '1') shouldCollapse = true;
       } catch (_) {}
       setFiltersPanelCollapsed(shouldCollapse);
       return;

@@ -4,7 +4,7 @@ import { runDefaultPreview } from './Delivera-Tests-Shared-PreviewExport-Helpers
 test.describe('Delivera - Column Titles & Tooltips', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('boards table column titles expose helpful tooltips', async ({ page }) => {

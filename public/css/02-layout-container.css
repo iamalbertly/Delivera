@@ -382,46 +382,7 @@ body.report-page .tab-btn {
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  body.executive-surface-page,
-  body.current-sprint-page,
-  body.report-page,
-  body.hud-mode {
-    background: linear-gradient(180deg, #170f10 0%, #120c0d 100%);
-    color: #581a1a;
-  }
-
-  .surface-hero-card,
-  .surface-card,
-  .report-executive-card {
-    background: linear-gradient(180deg, rgba(35, 25, 26, 0.96), rgba(20, 15, 16, 0.98));
-    border-color: rgba(255, 188, 188, 0.12);
-  }
-
-  .surface-card h2,
-  .surface-list li,
-  .surface-context-segment-value,
-  .report-executive-card h3 {
-    color: #581a1a;
-  }
-
-  .surface-lead,
-  .surface-summary-line,
-  .surface-card p,
-  .report-executive-card p {
-    color: #d6c0c0;
-  }
-
-  .surface-context-segment {
-    background: rgba(41, 29, 30, 0.94);
-    border-color: rgba(255, 188, 188, 0.14);
-  }
-
-  .report-executive-chip {
-    background: rgba(230, 0, 0, 0.18);
-    color: #fff3f3;
-  }
-}
+/* Product surfaces stay light/readable; meeting-first overrides in 10-meeting-first-surfaces.css */
 
 /* Epic key column CSS to prevent wrapping and make click-through easier */
 .data-table .epic-key { display: inline-block; min-width: 120px; }

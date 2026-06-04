@@ -7,7 +7,7 @@ test.describe('Delivera - Validation Plan (UI + Telemetry)', () => {
 
     await page.goto('/report');
 
-    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/i);
+    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|Performance History/i);
     await expect(page.locator('#project-mpsa')).toBeVisible();
     await expect(page.locator('#project-mas')).toBeVisible();
     await expect(page.locator('#start-date')).toBeVisible();

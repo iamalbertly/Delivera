@@ -26,6 +26,23 @@ import { jaccardSimilarity } from '../lib/Delivera-Outcome-Similarity-01Core.js'
 import { buildBoardStyleProfile } from '../lib/Delivera-Outcome-Board-Style-Profile.js';
 import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
 import { resolveProviderConfig, parseViaNarrative, testProviderConfig } from '../lib/Delivera-AI-Provider-Gateway.js';
+import { assembleGovernanceBrief } from '../lib/Delivera-Governance-Brief-03Assemble-Service.js';
+import { savePIBaseline, getLatestPIBaseline, listPIBaselines } from '../lib/Delivera-Governance-PIBaseline-01Store-IO.js';
+import { recordNarrationPattern } from '../lib/Delivera-Governance-Narration-Knowledge-IO.js';
+import { recordAdoptionMetric, summarizeAdoptionMetrics } from '../lib/Delivera-Governance-Adoption-Metrics-IO.js';
+import {
+    readPendingInboxItems,
+    resolveInboxItem,
+    readRecentJobs,
+    groupInboxByType,
+} from '../lib/Delivera-Governance-Worker-02Jobs-IO.js';
+import {
+    resolveEffectiveGovernanceProfile,
+    saveProfileOverride,
+    listProfileOverrides,
+} from '../lib/Delivera-Governance-Profile-01Resolve-SSOT.js';
+import { buildImpactPack, impactPackMonthKey } from '../lib/Delivera-Governance-Worker-05ImpactPack-Builder.js';
+import { clampConfidenceToFreshness } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
 import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
 import { buildJiraIssueUrl, escapeHtml } from '../lib/Delivera-Server-Url-And-Escape-Helpers.js';
@@ -1083,6 +1100,11 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         let missingEstimate = 0;
         let totalStories = 0;
         let doneStories = 0;
+        let totalSP = 0;
+        let doneSP = 0;
+        let priorDoneSP = 0;
+        let spBoardCount = 0;
+        let priorSpBoardCount = 0;
 
         for (const settled of boardPayloadsSettled) {
             if (settled.status !== 'fulfilled' || !settled.value) continue;
@@ -1095,6 +1117,18 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
             unownedOutcomes += Number(riskCounts.unownedOutcomes || 0);
             missingLogged += Number(payload?.summary?.subtaskMissingLogged || 0);
             missingEstimate += Number(payload?.summary?.subtaskMissingEstimate || 0);
+            const boardTotalSP = Number(payload?.summary?.totalSP || 0);
+            const boardDoneSP = Number(payload?.summary?.doneSP || 0);
+            if (boardTotalSP > 0) {
+                totalSP += boardTotalSP;
+                doneSP += boardDoneSP;
+                spBoardCount += 1;
+            }
+            const boardPriorDoneSP = Number(payload?.previousSprint?.doneSP || 0);
+            if (payload?.previousSprint && boardPriorDoneSP > 0) {
+                priorDoneSP += boardPriorDoneSP;
+                priorSpBoardCount += 1;
+            }
         }
 
         const completionPct = totalStories > 0 ? Math.round((doneStories / totalStories) * 100) : 0;
@@ -1102,6 +1136,28 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         const riskScore = Math.max(0, Math.min(100, Math.round(riskScoreRaw)));
         const deliveryRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, blockersOwned / 10) * 100)));
         const dataQualityRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, (unownedOutcomes + missingLogged + missingEstimate) / 30) * 100)));
+
+        // Honest metrics only: no fabricated values may reach a governance surface.
+        // Velocity = SP delivered in the current sprint window across squads (story-point backed only).
+        const spAvailable = spBoardCount > 0;
+        const velocity = spAvailable
+            ? {
+                avg: Math.round(doneSP),
+                trend: priorSpBoardCount > 0 && priorDoneSP > 0
+                    ? Math.round(((doneSP - priorDoneSP) / priorDoneSP) * 100)
+                    : null,
+                source: 'computed',
+                basis: 'currentSprintDoneSP',
+            }
+            : { avg: null, trend: null, source: 'unavailable', basis: 'noStoryPoints' };
+        // Predictability = delivered vs committed (SP when available, else story counts).
+        const predictability = spAvailable
+            ? { avg: totalSP > 0 ? Math.round((doneSP / totalSP) * 100) : 0, trend: null, source: 'computed', basis: 'spCompletionRatio' }
+            : (totalStories > 0
+                ? { avg: completionPct, trend: null, source: 'computed', basis: 'storyCompletionRatio' }
+                : { avg: null, trend: null, source: 'unavailable', basis: 'noStories' });
+        // Rework ratio is not computed in this portfolio rollup; never invent it.
+        const quality = { reworkPct: null, trend: null, source: 'unavailable', basis: 'notComputedInRollup' };
 
         const squads = boardPayloadsSettled.map((settled, idx) => {
             const board = activeBoards[idx];
@@ -1140,7 +1196,7 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         });
 
         const summary = {
-            velocity: { avg: 45, trend: 12 },
+            velocity,
             risk: {
                 score: riskScore,
                 trend: 0,
@@ -1151,8 +1207,8 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
                 deliveryRisk,
                 dataQualityRisk,
             },
-            quality: { reworkPct: 8.5, trend: 2 },
-            predictability: { avg: 82, trend: 4 },
+            quality,
+            predictability,
             squads,
             projectContext: projects.join(', '),
             generatedAt: new Date().toISOString()
@@ -1162,6 +1218,358 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
     } catch (err) {
         logger.error('Leadership HUD Error', err);
         res.status(500).json({ error: 'HUD computation failed' });
+    }
+});
+
+// ─── Governance brief surface ──────────────────────────────────────────────────
+
+const GOVERNANCE_BRIEF_TTL_MS = 30 * 60 * 1000; // 30 min: bounded Jira calls per run
+const GOVERNANCE_NS = 'governanceBrief';
+
+function parseGovernanceProjects(req) {
+    const raw = req.query.projects;
+    return raw != null
+        ? Array.from(new Set(String(raw).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)))
+        : ['MPSA', 'MAS'];
+}
+
+/** Re-stamp a cached brief with cached freshness and clamp confidence accordingly. */
+function applyCachedFreshness(brief) {
+    if (!brief?.freshness) return brief;
+    const generatedMs = brief.generatedAt ? new Date(brief.generatedAt).getTime() : Date.now();
+    const ageMin = Math.max(0, Math.round((Date.now() - generatedMs) / 60000));
+    brief.freshness = { ...brief.freshness, confidenceLimit: 'cached', cacheAgeMinutes: ageMin };
+    if (brief.leadershipNarrative?.confidence) {
+        brief.leadershipNarrative.confidence = clampConfidenceToFreshness(brief.leadershipNarrative.confidence, 'cached');
+    }
+    return brief;
+}
+
+async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true, includePOReadiness = true }) {
+    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e${includeEvidence ? 1 : 0}:p${includePOReadiness ? 1 : 0}`;
+    const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+    const cachedBrief = cached?.value || cached;
+    if (cachedBrief) return { brief: applyCachedFreshness(cachedBrief), cached: true };
+
+    const agileClient = createAgileClient();
+    const version3Client = createVersion3Client();
+    const fields = await discoverFieldsWithCache(version3Client);
+    const { boards } = await discoverBoardsWithCache(projects, agileClient);
+
+    let baseline = null;
+    try { baseline = await getLatestPIBaseline(`${projects.join('+')}`); } catch (_) { baseline = null; }
+
+    let profileOverrides = null;
+    try {
+        profileOverrides = await resolveEffectiveGovernanceProfile({
+            portfolioKey: projects.join('+'),
+            project: projects[0] || '',
+            userId: req.session?.user || null,
+        });
+    } catch (_) { profileOverrides = null; }
+
+    const providerConfig = resolveProviderConfig(req.headers || {});
+    const brief = await assembleGovernanceBrief({
+        projects, boards, agileClient, version3Client, fields,
+        period: { vodacomQuarter: null, sprintNames: [] },
+        cache, providerConfig, includeEvidence, includePOReadiness, baseline, profileOverrides,
+    });
+    await cache.set(cacheKey, brief, GOVERNANCE_BRIEF_TTL_MS, { namespace: GOVERNANCE_NS });
+    // Safe telemetry: counts only, never issue bodies.
+    logger.info('governance-brief built', {
+        projects: projects.join(','), boards: brief.meta?.boardsResolved,
+        risks: brief.risks?.length || 0, narratedBy: brief.meta?.narratedBy,
+        evidenceFetched: brief.meta?.evidenceFetched,
+    });
+    return { brief, cached: false };
+}
+
+async function serveStaleBriefOrError(res, projects, err) {
+    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    try {
+        const staleEntry = await cache.getWithStaleFallback(cacheKey);
+        if (staleEntry) {
+            const brief = staleEntry.value || staleEntry;
+            const ageMin = Math.max(0, Math.round((Number(staleEntry.staleAgeMs) || 0) / 60000));
+            brief.freshness = { ...(brief.freshness || {}), confidenceLimit: 'stale', cacheAgeMinutes: ageMin };
+            if (brief.leadershipNarrative?.confidence) {
+                brief.leadershipNarrative.confidence = clampConfidenceToFreshness(brief.leadershipNarrative.confidence, 'stale');
+            }
+            brief.meta = { ...(brief.meta || {}), servedStale: true, staleReason: err?.code || 'JIRA_UNREACHABLE' };
+            return res.json(brief);
+        }
+    } catch (_) { /* fall through */ }
+    return res.status(502).json({ error: 'Governance brief unavailable', code: 'GOVERNANCE_BRIEF_FAILED' });
+}
+
+router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    try {
+        const { brief } = await getOrBuildGovernanceBrief({ projects, req });
+        return res.json(brief);
+    } catch (err) {
+        logger.error('governance-brief failed', { error: err?.message });
+        return serveStaleBriefOrError(res, projects, err);
+    }
+});
+
+router.get('/api/governance/intervention-shortlist.json', requireAuth, async (req, res) => {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    try {
+        const { brief } = await getOrBuildGovernanceBrief({ projects, req, includeEvidence: false, includePOReadiness: false });
+        return res.json({
+            generatedAt: brief.generatedAt,
+            freshness: brief.freshness,
+            portfolio: brief.portfolio,
+            shortlist: brief.topRisks || [],
+        });
+    } catch (err) {
+        logger.error('intervention-shortlist failed', { error: err?.message });
+        return res.status(502).json({ error: 'Shortlist unavailable', code: 'SHORTLIST_FAILED' });
+    }
+});
+
+router.post('/api/governance/pi-baseline', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const projects = Array.isArray(body.projects) && body.projects.length
+            ? body.projects.map((p) => String(p).trim().toUpperCase())
+            : ['MPSA', 'MAS'];
+        const piName = String(body.piName || `${projects.join('+')}`).trim();
+        const row = await savePIBaseline({ ...body, piName, projects });
+        return res.json({ success: true, baseline: { id: row.id, piName: row.piName, committed: row.committedItems.length } });
+    } catch (err) {
+        logger.warn('pi-baseline save failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Baseline save failed'), code: 'PI_BASELINE_FAILED' });
+    }
+});
+
+router.get('/api/governance/pi-baseline', requireAuth, async (req, res) => {
+    try {
+        const piName = req.query.piName ? String(req.query.piName).trim() : '';
+        const project = req.query.project ? String(req.query.project).trim() : null;
+        if (piName) {
+            const baseline = await getLatestPIBaseline(piName);
+            return res.json({ baseline });
+        }
+        const baselines = await listPIBaselines({ project });
+        return res.json({ baselines });
+    } catch (err) {
+        logger.warn('pi-baseline read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Baseline read failed' });
+    }
+});
+
+router.post('/api/governance/narration-feedback', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const row = await recordNarrationPattern({
+            patternKey: body.patternKey,
+            phrase: body.phrase,
+            project: body.project,
+            briefId: body.briefId,
+            source: body.source || 'sm-accepted',
+        });
+        return res.json({ success: true, recorded: { patternKey: row.patternKey, project: row.project } });
+    } catch (err) {
+        logger.warn('narration-feedback failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Feedback failed'), code: 'NARRATION_FEEDBACK_FAILED' });
+    }
+});
+
+router.post('/api/governance/adoption-metric', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const row = await recordAdoptionMetric({
+            metric: body.metric,
+            value: body.value,
+            project: body.project,
+            user: req.session?.user || 'unknown',
+            note: body.note,
+        });
+        return res.json({ success: true, recorded: { metric: row.metric, value: row.value } });
+    } catch (err) {
+        logger.warn('adoption-metric failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Metric failed'), code: 'ADOPTION_METRIC_FAILED' });
+    }
+});
+
+router.get('/api/governance/adoption-metrics.json', requireAuth, async (req, res) => {
+    try {
+        const project = req.query.project ? String(req.query.project).trim() : null;
+        const summary = await summarizeAdoptionMetrics({ project });
+        return res.json(summary);
+    } catch (err) {
+        logger.warn('adoption-metrics read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Metrics read failed' });
+    }
+});
+
+router.get('/api/governance/inbox.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const project = projects[0] || null;
+        let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
+        if (!items.length) {
+            const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+            const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+            const cachedBrief = cached?.value || cached;
+            if (cachedBrief?.briefId) {
+                items = [{
+                    id: 'synthetic-cached-brief',
+                    type: 'brief',
+                    projects,
+                    summary: cachedBrief.leadershipNarrative?.meetingAnswer || 'Cached brief available',
+                    safeToSend: cachedBrief.meta?.safeToSend === true,
+                    approvalRequired: false,
+                    evidenceLinks: [],
+                    createdAt: cachedBrief.generatedAt || new Date().toISOString(),
+                    payload: { briefId: cachedBrief.briefId, synthetic: true },
+                }];
+            }
+        }
+        const grouped = groupInboxByType(items);
+        return res.json({ ...grouped, total: items.length });
+    } catch (err) {
+        logger.warn('governance inbox read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Inbox read failed' });
+    }
+});
+
+router.post('/api/governance/inbox/:id/resolve', requireAuth, async (req, res) => {
+    try {
+        const id = String(req.params.id || '').trim();
+        const resolution = String(req.body?.resolution || 'dismissed').trim();
+        const editedContent = String(req.body?.editedContent || '').trim();
+        const userId = req.session?.user || 'unknown';
+        const row = await resolveInboxItem(id, { resolution, editedContent, userId });
+        if (resolution === 'approved' && row.type === 'brief' && editedContent) {
+            const projects = parseGovernanceProjects(req);
+            await recordNarrationPattern({
+                patternKey: row.payload?.briefId || 'brief-approved',
+                phrase: editedContent,
+                project: projects[0] || '',
+                source: 'inbox-approved',
+            });
+        }
+        return res.json({ success: true, item: row });
+    } catch (err) {
+        logger.warn('inbox resolve failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Resolve failed') });
+    }
+});
+
+router.get('/api/governance/jobs.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const jobs = await readRecentJobs({ project: projects[0], limit: 5 });
+        return res.json({ jobs });
+    } catch (err) {
+        logger.warn('governance jobs read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Jobs read failed' });
+    }
+});
+
+router.get('/api/governance/profile', requireAuth, async (req, res) => {
+    try {
+        const scope = req.query.scope ? String(req.query.scope).trim() : '';
+        if (scope) {
+            const overrides = await listProfileOverrides({ scope });
+            return res.json({ scope, overrides });
+        }
+        const projects = parseGovernanceProjects(req);
+        const profile = await resolveEffectiveGovernanceProfile({
+            portfolioKey: projects.join('+'),
+            project: projects[0] || '',
+            userId: req.session?.user || null,
+        });
+        return res.json({ profile });
+    } catch (err) {
+        return res.status(500).json({ error: String(err?.message || 'Profile read failed') });
+    }
+});
+
+router.post('/api/governance/profile', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const row = await saveProfileOverride({
+            scope: body.scope,
+            key: body.key,
+            value: body.value,
+            approvedBy: req.session?.user || 'unknown',
+            phraseKey: body.phraseKey,
+            aliasKey: body.aliasKey,
+        });
+        return res.json({ success: true, override: row });
+    } catch (err) {
+        return res.status(400).json({ error: String(err?.message || 'Profile save failed') });
+    }
+});
+
+router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const version3Client = createVersion3Client();
+        const candidates = [];
+        const quarterRe = /Q[1-4]|FY\d{2}|PI\s*\d/i;
+        for (const pk of projects.slice(0, 3)) {
+            try {
+                const jql = `project = ${pk} AND issuetype in (Epic, Story) ORDER BY updated DESC`;
+                const resJira = await version3Client.issueSearch.searchForIssuesUsingJql({
+                    jql,
+                    maxResults: 50,
+                    fields: ['summary', 'status', 'fixVersions', 'labels'],
+                });
+                const issues = resJira?.issues || [];
+                for (const issue of issues) {
+                    const key = issue?.key || '';
+                    const fvs = (issue?.fields?.fixVersions || []).map((v) => v?.name || '').filter(Boolean);
+                    const matchFv = fvs.find((n) => quarterRe.test(n));
+                    const labels = issue?.fields?.labels || [];
+                    const matchLabel = labels.some((l) => quarterRe.test(String(l)));
+                    if (matchFv || matchLabel) {
+                        candidates.push({
+                            issueKey: key,
+                            title: issue?.fields?.summary || '',
+                            squad: pk,
+                            fixVersion: matchFv || '',
+                            method: matchFv ? 'fix-version' : 'label',
+                        });
+                    }
+                }
+            } catch (err) {
+                logger.warn('pi-baseline propose jql failed', { project: pk, error: err?.message });
+            }
+        }
+        const method = candidates.length ? 'fix-version-or-label' : 'manual';
+        return res.json({
+            method,
+            candidates: candidates.slice(0, 42),
+            guidance: candidates.length
+                ? null
+                : 'No quarter-labeled fix versions found. Enter PI items manually.',
+        });
+    } catch (err) {
+        logger.warn('pi-baseline propose failed', { error: err?.message });
+        return res.status(500).json({ error: 'Propose failed' });
+    }
+});
+
+router.get('/api/governance/impact-pack.json', requireAuth, async (req, res) => {
+    try {
+        const month = req.query.month ? String(req.query.month).trim() : impactPackMonthKey();
+        const projects = parseGovernanceProjects(req);
+        const result = await buildImpactPack({ project: projects[0] || 'MPSA', month });
+        return res.json({
+            month: result.month,
+            skipped: result.skipped,
+            markdown: result.markdown,
+        });
+    } catch (err) {
+        logger.warn('impact-pack failed', { error: err?.message });
+        return res.status(500).json({ error: 'Impact pack failed' });
     }
 });
 

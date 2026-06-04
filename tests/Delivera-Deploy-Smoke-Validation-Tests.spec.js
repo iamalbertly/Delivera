@@ -34,7 +34,7 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
       }
     }
 
-    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|Performance History/);
     await expect(page.locator('#preview-btn')).toBeVisible();
     await expect(page.locator('#project-mpsa')).toBeVisible();
     await expect(page.locator('#project-mas')).toBeVisible();

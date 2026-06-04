@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reports - Delivera</title>
+  <title>Proof - Delivera</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -14,13 +14,14 @@
     <header class="report-shell-top">
       <div class="header-row report-shell-top-row">
         <div class="report-shell-title-block">
-          <h1>Delivery</h1>
-          <p id="report-subtitle" class="subtitle">Preview report — Outcomes, delivery trend, and data trust across sprints.</p>
+          <h1>Proof for current Brief</h1>
+          <p id="report-subtitle" class="subtitle">Proof that supports today's delivery answer — drill down by sprint, data issues, and resolved work.</p>
         </div>
         <div id="report-header-actions" class="report-header-actions report-shared-header-actions"></div>
       </div>
-      <div id="report-filter-strip" class="report-filter-strip report-mission-strip" data-context-bar="true" aria-live="polite">
-        <div id="report-filter-strip-summary" class="report-filter-strip-summary">Filter by: projects, range, rules</div>
+      <div id="report-filter-strip" class="report-filter-strip report-mission-strip" data-context-bar="true" data-hide-scope-chips="true" aria-live="polite">
+        <a href="/governance" class="report-back-to-brief">← Back to Brief</a>
+        <div id="report-proof-summary" class="report-proof-summary" aria-live="polite"></div>
       </div>
       <div id="feedback-panel" class="feedback-panel" style="display: none;"></div>
     </header>
@@ -242,7 +243,7 @@
         <div class="tabs" role="tablist">
           <button id="tab-btn-project-epic-level" class="tab-btn active" data-tab="project-epic-level" role="tab"
             aria-selected="true" aria-controls="tab-project-epic-level" tabindex="0">
-            <span class="tab-btn-label">Value</span>
+            <span class="tab-btn-label">Delivery proof</span>
           </button>
           <button id="tab-btn-trends" class="tab-btn" data-tab="trends" role="tab" aria-selected="false"
             aria-controls="tab-trends" tabindex="-1">
@@ -250,15 +251,15 @@
           </button>
           <button id="tab-btn-sprints" class="tab-btn" data-tab="sprints" role="tab" aria-selected="false"
             aria-controls="tab-sprints" tabindex="-1">
-            <span class="tab-btn-label">Flow</span>
+            <span class="tab-btn-label">Sprint list</span>
           </button>
           <button id="tab-btn-done-stories" class="tab-btn" data-tab="done-stories" role="tab"
             aria-selected="false" aria-controls="tab-done-stories" tabindex="-1">
-            <span class="tab-btn-label">Outcomes</span>
+            <span class="tab-btn-label">Resolved work</span>
           </button>
           <button id="tab-btn-unusable-sprints" class="tab-btn" data-tab="unusable-sprints" role="tab"
             aria-selected="false" aria-controls="tab-unusable-sprints" tabindex="-1">
-            <span class="tab-btn-label">Trust</span>
+            <span class="tab-btn-label">Data issues</span>
           </button>
         </div>
         <div class="report-unified-tab-search">

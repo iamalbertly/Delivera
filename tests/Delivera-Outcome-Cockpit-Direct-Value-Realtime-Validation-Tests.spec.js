@@ -157,7 +157,7 @@ test.describe('Outcome cockpit direct value realtime validation', () => {
     }));
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('h1')).toContainText(/Delivery/i);
+    await expect(page.locator('h1')).toContainText(/Evidence|Delivery/i);
     await ensureReportFiltersVisible(page);
     await page.click('#preview-btn');
     await expect(page.locator('#preview-content')).toBeVisible({ timeout: 20000 });

@@ -25,8 +25,8 @@ test.describe('Delivera - General Performance Quarters UI Validation', () => {
     const title = await page.title();
     const h1Text = await h1.textContent().catch(() => '');
     const hasReportTitle =
-      (h1Text && /Delivery|General Performance|Performance History/i.test(h1Text))
-      || (title && /Reports - Delivera|General Performance/i.test(title));
+      (h1Text && /Evidence|Delivery|General Performance|Performance History/i.test(h1Text))
+      || (title && /Evidence - Delivera|Reports - Delivera|General Performance/i.test(title));
     expect(hasReportTitle).toBeTruthy();
 
     expect(telemetry.consoleErrors).toEqual([]);
@@ -180,7 +180,7 @@ test.describe('Delivera - General Performance Quarters UI Validation', () => {
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await expect(page.locator('h1')).toContainText('Current Sprint');
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Delivery|Report|High-Level Performance/i);
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Evidence|Delivery|Report|High-Level Performance/i);
 
     const alertsCard = page.locator('#notifications-card, [id*="notification"]');
     const hasAlerts = await alertsCard.isVisible().catch(() => false);

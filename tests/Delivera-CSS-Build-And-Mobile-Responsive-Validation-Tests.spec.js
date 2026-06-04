@@ -34,7 +34,7 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
       return h ? h.scrollWidth > h.clientWidth : false;
     });
     expect(headerOverflow).toBe(false);
-    await expect(page.locator('header h1')).toContainText(/Delivery|Reports|General Performance|High-Level/i);
+    await expect(page.locator('header h1')).toContainText(/Evidence|Delivery|Reports|General Performance|High-Level/i);
     const hasSubtitle = await page.locator('#report-subtitle').isVisible().catch(() => false);
     const hasHeaderActions = await page.locator('#report-header-actions').isVisible().catch(() => false);
     expect(hasSubtitle || hasHeaderActions).toBe(true);

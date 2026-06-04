@@ -44,6 +44,12 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Run Governance Decision Cockpit Journey',
+      command: 'npx',
+      args: pwJourneyArgs('journey.governance'),
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Data Integrity & API Contracts Journey',
       command: 'npx',
       args: pwJourneyArgs('journey.data-integrity'),

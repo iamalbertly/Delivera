@@ -43,7 +43,7 @@ test.describe('Delivera - Current Sprint UX and SSOT Validation', () => {
     await expect(page.locator('h1')).toContainText('Current Sprint');
     await expect(page.locator('#current-sprint-projects')).toBeVisible();
     await expect(page.locator('#board-select')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Delivery|Report|High-Level Performance/i);
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Evidence|Delivery|Report|High-Level Performance/i);
     const leadershipNav = page.locator('.app-sidebar a.sidebar-link[href="/sprint-leadership"], nav.app-nav a[href="/sprint-leadership"]');
     if (await leadershipNav.count()) {
       await expect(leadershipNav).toContainText(/Leadership/i);

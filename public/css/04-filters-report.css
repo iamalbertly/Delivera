@@ -504,6 +504,15 @@ body.report-page .report-filter-strip {
   margin-top: 6px;
 }
 
+body.report-page .report-back-to-brief {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  text-decoration: none;
+  white-space: nowrap;
+}
+body.report-page .report-back-to-brief:hover { text-decoration: underline; }
+
 body.report-page .report-mission-strip {
   gap: 10px;
   padding: 8px 10px;

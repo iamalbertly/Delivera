@@ -312,7 +312,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     if (page.url().includes('/login')) test.skip(true, 'Auth redirect active');
-    await expect(page.locator('h1')).toContainText(/Delivery/i);
+    await expect(page.locator('h1')).toContainText(/Evidence|Delivery/i);
     await expect(page.locator('#tab-btn-trends')).toContainText(/Leaders/i);
     await expect(page.locator('#tab-btn-sprints')).toContainText(/Flow/i);
     await expect(page.locator('#tab-btn-done-stories')).toContainText(/Outcomes/i);

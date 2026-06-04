@@ -4,11 +4,13 @@ import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Stor
 
 const LAST_ROUTE_KEY = 'delivera.lastRoute.v1';
 const ROUTE_LABELS = {
-  '/current-sprint': 'Current Sprint',
-  '/report': 'Delivery',
-  '/leadership': 'Leadership',
-  '/dashboard': 'Dashboard',
-  '/home': 'Dashboard',
+  '/governance': 'Brief',
+  '/brief': 'Brief',
+  '/current-sprint': 'Sprint',
+  '/report': 'Evidence',
+  '/leadership': 'Brief',
+  '/dashboard': 'Today',
+  '/home': 'Today',
 };
 
 function readLastRoute() {
@@ -35,7 +37,7 @@ function applyContinueCta() {
   const btn = document.getElementById('surface-continue-cta');
   if (!btn) return;
   const last = readLastRoute();
-  const path = last?.path || '/current-sprint';
+  const path = last?.path || '/governance';
   const label = ROUTE_LABELS[path] || 'your last view';
   btn.setAttribute('data-surface-nav', path);
   btn.textContent = `Continue to ${label}`;

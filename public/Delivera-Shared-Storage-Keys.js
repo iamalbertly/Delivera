@@ -35,6 +35,10 @@ export const LEADERSHIP_LAST_VIEW_KEY = 'leadership-last-view-v1';
 export const OUTCOME_ACTIVITY_LOG_KEY = 'delivera_outcomeActivityLog_v1';
 /** Stores preferred AI provider name in localStorage (key stored in sessionStorage separately). */
 export const AI_PROVIDER_PREF_KEY = 'delivera_ai_provider_pref_v1';
+/** Last time governance inbox was expanded (ISO) — badge shows only newer items. */
+export const GOVERNANCE_INBOX_LAST_SEEN_KEY = 'delivera_gov_inbox_seen_v1';
+/** Last time adoption micro-survey was shown (ISO). */
+export const GOVERNANCE_SURVEY_LAST_ASKED_KEY = 'delivera_gov_survey_asked_v1';
 
 const LEGACY_KEY_PAIRS = [
   [PROJECTS_SSOT_KEY, 'vodaAgileBoard_selectedProjects'],

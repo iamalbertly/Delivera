@@ -121,6 +121,38 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/leadership,/report#trends',
   },
+  'tests/Delivera-Governance-Brief-Evidence-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'data-contract',
+    page: '/governance,/api/governance-brief.json',
+  },
+  'tests/Delivera-Governance-Agentic-Worker-Inbox-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'data-contract',
+    page: '/governance,/api/governance/inbox.json',
+  },
+  'tests/Delivera-App-Governance-Root-Nav-Scope-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/,/governance',
+  },
+  'tests/Delivera-UX-Root-Brief-First.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/' },
+  'tests/Delivera-UX-Brief-Action-Cards.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Copy-Meeting-Answer.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Contrast-And-Readable-Copy.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Scope-Reuse-No-Duplication.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Stale-Data-Warnings.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Evidence-Proof-Linking.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/report' },
+  'tests/Delivera-UX-Executive-Brief-Pulse-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance',
+  },
+  'tests/Delivera-UX-Portfolio-Squad-Grid-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance',
+  },
 
   // Outcome intake and outcome-first UX
   'tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js': {
@@ -458,6 +490,13 @@ export const specMetadata = {
 };
 
 export const journeyBuckets = {
+  'journey.governance': {
+    id: 'journey.governance',
+    label: 'Governance – Decision cockpit root and brief',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance',
+    ),
+  },
   'journey.current-sprint': {
     id: 'journey.current-sprint',
     label: 'Current Sprint – Core & Risks',

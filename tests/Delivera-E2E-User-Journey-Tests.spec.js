@@ -22,7 +22,7 @@ async function hasAnyExportableRows(page) {
 test.describe('Delivera - E2E User Journey Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('should load report page with default filters', async ({ page }) => {

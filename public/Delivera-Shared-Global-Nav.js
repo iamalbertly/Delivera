@@ -13,33 +13,35 @@ const PAGE_SPRINTS = 'sprints';
 const PAGE_VALUE = 'value-delivery';
 const PAGE_RISKS = 'risks-blockers';
 const PAGE_LEADERSHIP = 'leadership';
+const PAGE_GOVERNANCE = 'governance';
 const PAGE_TEAMS = 'teams';
 const PAGE_SETTINGS = 'settings';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
-/** Direct-to-value primaries: now · proof · portfolio (Risks/Teams are deep links in More). */
-const PRIMARY_NAV_KEYS = [PAGE_SPRINTS, PAGE_REPORT, PAGE_LEADERSHIP];
-const MORE_NAV_KEYS = [PAGE_DASHBOARD, PAGE_RISKS, PAGE_TEAMS, PAGE_PI, PAGE_VALUE, PAGE_SETTINGS];
+/** Direct-to-value primaries: decision brief · sprint · evidence · settings. */
+const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_REPORT, PAGE_SETTINGS];
+const MORE_NAV_KEYS = [];
 const NAV_HREF_OVERRIDES = {
   [PAGE_RISKS]: '/current-sprint#stuck-card',
   [PAGE_TEAMS]: '/current-sprint',
 };
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
-  [PAGE_SPRINTS]: 'Current Sprint',
-  [PAGE_REPORT]: 'Delivery Report',
+  [PAGE_SPRINTS]: 'Sprint',
+  [PAGE_REPORT]: 'Proof',
   [PAGE_RISKS]: 'Risks',
   [PAGE_TEAMS]: 'Teams',
-  [PAGE_LEADERSHIP]: 'Leadership',
-  [PAGE_PI]: 'PI Goals',
-  [PAGE_VALUE]: 'Value Archive',
+  [PAGE_LEADERSHIP]: 'Brief',
+  [PAGE_GOVERNANCE]: 'Brief',
+  [PAGE_PI]: 'PI Baseline',
+  [PAGE_VALUE]: 'Outcomes',
   [PAGE_SETTINGS]: 'Settings',
 };
 const MOBILE_LABELS = {
+  [PAGE_GOVERNANCE]: 'Brief',
   [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_REPORT]: 'Delivery',
-  [PAGE_LEADERSHIP]: 'Lead',
+  [PAGE_REPORT]: 'Proof',
 };
 
 const NAV_ITEMS = [
@@ -80,6 +82,12 @@ const NAV_ITEMS = [
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7 4a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7-8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
   },
   {
+    key: PAGE_GOVERNANCE,
+    label: 'Governance Brief',
+    href: '/governance',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.6H8zm0 3.2h8v1.6H8zm0-6.4h4v1.6H8z"/></svg>',
+  },
+  {
     key: PAGE_TEAMS,
     label: 'Teams',
     href: '/current-sprint',
@@ -115,7 +123,8 @@ function getCurrentPage() {
   if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
   if (path === '/value-delivery' || path.endsWith('/value-delivery') || path === '/backlog-intake' || path.endsWith('/backlog-intake')) return PAGE_VALUE;
   if (path === '/risks-blockers' || path.endsWith('/risks-blockers')) return PAGE_RISKS;
-  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_LEADERSHIP;
+  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_GOVERNANCE;
+  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief')) return PAGE_GOVERNANCE;
   if (path === '/teams' || path.endsWith('/teams')) return PAGE_TEAMS;
   if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
   return PAGE_REPORT;
@@ -141,7 +150,7 @@ function getNavItems(current) {
 function buildSidebarHTML() {
   const current = getCurrentPage();
   const items = getNavItems(current);
-  const primaryItems = items.filter((item) => PRIMARY_NAV_KEYS.includes(item.key));
+  const primaryItems = PRIMARY_NAV_KEYS.map((key) => items.find((item) => item.key === key)).filter(Boolean);
   const moreItems = items.filter((item) => MORE_NAV_KEYS.includes(item.key));
   const moreIsActive = moreItems.some((item) => item.active);
   let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span></div>';
@@ -257,7 +266,7 @@ function navigateTo(itemKey, itemHref) {
 
 function buildBottomNavHTML() {
   const current = getCurrentPage();
-  const items = getNavItems(current).filter((item) => [PAGE_SPRINTS, PAGE_REPORT, PAGE_LEADERSHIP].includes(item.key));
+  const items = PRIMARY_NAV_KEYS.map((key) => getNavItems(current).find((item) => item.key === key)).filter(Boolean);
   let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
   for (const item of items) {
     const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');

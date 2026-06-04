@@ -2,11 +2,15 @@
 
 Delivery intelligence for scrum teams and leaders, backed by Jira data.
 
-Delivera focuses on three primary surfaces:
+Delivera tells delivery leaders **what to say, who to chase, and what proof to show** — in about 10 seconds on the Brief.
 
-- ` /report` for portfolio and performance reporting
-- ` /current-sprint` for squad mission-control transparency
-- ` /leadership` for leadership HUD and trend visibility
+Primary surfaces:
+
+- `/governance` (**Brief**) — single squad: verdict + pulse bars; **multi-select scope (2+ projects):** side-by-side squad insight cards with portfolio risk banner; do-now actions, hover issue drawer, proof on demand
+- `/current-sprint` (**Sprint**) — what must move today (blocker, owner, next move)
+- `/report` (**Proof**) — proof that supports the current Brief (filters collapsed by default)
+
+`/leadership` redirects to the Brief leadership snapshot (`/governance#decision-snapshot`).
 
 ## Quickstart
 
@@ -49,7 +53,7 @@ npm start
 
 Delivera supports three runtime modes:
 
-- **No auth (default local loop):** when legacy auth variables are not set, `/` redirects to report.
+- **No auth (default local loop):** when legacy auth variables are not set, `/` redirects to Brief (`/governance`).
 - **Legacy auth:** enable with `SESSION_SECRET`, `APP_LOGIN_USER`, `APP_LOGIN_PASSWORD`.
 - **SuperTokens auth:** enable with `SUPERTOKENS_ENABLED=true`; hybrid migration is supported with `SUPERTOKENS_HYBRID_MODE=true`.
 
@@ -72,6 +76,7 @@ Detailed env matrix: [`docs/environment.md`](docs/environment.md)
 - Full orchestration: `npm run test:all`
 - Smoke: `npm run test:smoke`
 - Current Sprint journey: `npm run test:journey:current-sprint`
+- Governance journey (fail-fast, runs first in `test:all`): `npm run test:journey:governance`
 - Leadership journey: `npm run test:journey:leadership`
 - Outcome intake journey: `npm run test:journey:outcome-intake`
 - UX core journey: `npm run test:journey:ux-core`

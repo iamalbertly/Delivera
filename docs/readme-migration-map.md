@@ -31,3 +31,4 @@ This map records how the previous `README.md` content was deduplicated into focu
 - Testing behavior is documented once in `TESTING.md`.
 - CSS source/build contract is documented once in `public/css/README.md`.
 - Architecture/state and SSOT boundaries are tracked in `context.md`.
+- Leadership HUD daily use → Brief leadership snapshot at `/governance#decision-snapshot` (`/leadership` redirects).

@@ -8,7 +8,16 @@
       "Bash(SKIP_WEBSERVER=true npx playwright test --max-failures=99 --workers=1 --reporter=list)",
       "Bash(tasklist /FI \"IMAGENAME eq node.exe\")",
       "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
-      "Bash(SKIP_WEBSERVER=true npx playwright test \"tests/Delivera-UX-19-DirectValue-Improvements-Validation-Tests.spec.js\" \"tests/Delivera-Current-Sprint-Intervention-Queue-Validation-Tests.spec.js\" --reporter=line)"
+      "Bash(SKIP_WEBSERVER=true npx playwright test \"tests/Delivera-UX-19-DirectValue-Improvements-Validation-Tests.spec.js\" \"tests/Delivera-Current-Sprint-Intervention-Queue-Validation-Tests.spec.js\" --reporter=line)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Shared\\\\Projects\\\\Delivera\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(npx jest *)",
+      "Bash(findstr /i \"test\\\\|jest\\\\|script\")",
+      "Bash(Get-Content \"C:/Users/oka/AppData/Local/Temp/claude/c--Shared-Projects-Delivera/0b948dbe-143a-4893-ba59-a22c8d2173c0/tasks/blc5yzl9j.output\" -Tail 5)",
+      "PowerShell(\\(Get-Item \"C:/Users/oka/AppData/Local/Temp/claude/c--Shared-Projects-Delivera/0b948dbe-143a-4893-ba59-a22c8d2173c0/tasks/blc5yzl9j.output\"\\).Length)",
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "Bash(git push *)",
+      "PowerShell($f = 'C:\\\\Users\\\\oka\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Shared-Projects-Delivera\\\\0b948dbe-143a-4893-ba59-a22c8d2173c0\\\\tasks\\\\biut389yv.output'; $lines = Get-Content $f; \"Total lines: $\\($lines.Count\\)\"; $lines | Select-Object -Last 10)"
     ]
   }
 }

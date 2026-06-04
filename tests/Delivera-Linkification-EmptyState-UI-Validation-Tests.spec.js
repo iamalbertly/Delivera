@@ -100,7 +100,7 @@ test.describe('Delivera - Linkification and Empty-state UI Validation', () => {
 
     await expect(page.locator('h1')).toContainText('Current Sprint');
     await expect(page.locator('#board-select')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Delivery|Report|High-Level Performance/i);
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Evidence|Delivery|Report|High-Level Performance/i);
 
     expect(telemetry.consoleErrors).toEqual([]);
     expect(telemetry.pageErrors).toEqual([]);
@@ -198,7 +198,7 @@ test.describe('Delivera - Linkification and Empty-state UI Validation', () => {
     } else {
       await expect(page.locator('h1')).toContainText(/Leadership|Delivery|Sprint Leadership|Performance - Leadership trends/i);
       await expect(page.locator('header button:has-text("Refresh"), [data-action="retry-leadership-preview"]').first()).toBeVisible();
-      await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Delivery|Report|High-Level Performance/i);
+      await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Evidence|Delivery|Report|High-Level Performance/i);
       await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a.sidebar-link[href="/current-sprint"]')).toContainText('Current Sprint');
     }
 

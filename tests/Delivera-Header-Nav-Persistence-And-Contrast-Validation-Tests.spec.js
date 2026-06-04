@@ -14,7 +14,7 @@ test.beforeEach(async ({}, testInfo) => {
 test.describe('Header and nav persistence with contrast trust', () => {
   test('all key pages keep top header and left menu persistent', async ({ page }) => {
     // /teams → /current-sprint, /value-delivery → /report (redirects — test the actual destinations)
-    const paths = ['/report', '/current-sprint', '/leadership', '/dashboard'];
+    const paths = ['/governance', '/current-sprint', '/report', '/dashboard'];
     for (const path of paths) {
       await page.goto(path);
       if (page.url().includes('login')) {
@@ -27,10 +27,7 @@ test.describe('Header and nav persistence with contrast trust', () => {
         sticky: getComputedStyle(node).position,
         shared: node.getAttribute('data-shared-header'),
       }));
-      // /leadership header is intentionally position:static on desktop (direct-to-value pass)
-      if (path !== '/leadership') {
-        expect(contract.sticky).toBe('sticky');
-      }
+      expect(contract.sticky).toBe('sticky');
       expect(contract.shared).toBe('true');
     }
   });
