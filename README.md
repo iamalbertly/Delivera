@@ -100,7 +100,7 @@ Ownership: [`public/css/README.md`](public/css/README.md)
 
 Pre-deploy: `npm run build:css`, `npm run check:css`, then your chosen test gate.
 
-**Vercel note:** If deploy fails with `functions.api/index.js.includeFiles should be string`, clear any **Functions** override in the Vercel project dashboard so git `vercel.json` is authoritative.
+**Vercel note:** `vercel.json` bundles `public/**` into the serverless function for HTML routes (`/governance`, etc.). If deploy fails on `includeFiles`, clear conflicting **Functions** overrides in the Vercel project dashboard.
 
 Full guide: [`docs/deployment.md`](docs/deployment.md)
 

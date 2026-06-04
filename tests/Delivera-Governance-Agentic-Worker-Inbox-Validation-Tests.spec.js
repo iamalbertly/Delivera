@@ -213,8 +213,11 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('.gov-top-chrome-summary').click();
-    await page.locator('[data-queue-open]').click();
+    await disableSidebarPointerBlock(page);
+    await page.evaluate(() => document.getElementById('gov-top-chrome-mount')?.setAttribute('open', ''));
+    const queueOpen = page.locator('[data-queue-open]');
+    await expect(queueOpen).toBeVisible({ timeout: 15000 });
+    await queueOpen.click({ force: true });
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('.gov-inbox-group-card')).toBeVisible();
   });

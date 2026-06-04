@@ -2,6 +2,12 @@ import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validat
 
 const testUser = process.env.TEST_LOGIN_USER || process.env.APP_LOGIN_USER || '';
 const testPass = process.env.TEST_LOGIN_PASSWORD || process.env.APP_LOGIN_PASSWORD || '';
+const prodBaseUrl = (
+  process.env.VERCEL_PROD_URL
+  || process.env.DELIVERA_PROD_BASE_URL
+  || process.env.VODAAGILEBOARD_PROD_BASE_URL
+  || 'https://vodaagileboard.vercel.app'
+).replace(/\/$/, '');
 
 function captureConsoleErrors(page) {
   const errors = [];
@@ -58,6 +64,38 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
     const hasContent = await page.locator('#preview-content').isVisible().catch(() => false);
     const hasError = await page.locator('#error').isVisible().catch(() => false);
     expect(hasContent || hasError).toBeTruthy();
+
+    const errorEvents = consoleErrors.filter((e) => e.type === 'error');
+    expect(errorEvents).toHaveLength(0);
+  });
+
+  test('governance brief page loads on production host', async ({ page }) => {
+    test.setTimeout(120000);
+    const consoleErrors = captureConsoleErrors(page);
+    const target = `${prodBaseUrl}/governance`;
+
+    const response = await page.goto(target, { waitUntil: 'domcontentloaded' });
+    expect(response?.status(), `Expected HTML from ${target}`).toBeLessThan(500);
+
+    const bodyText = await page.locator('body').innerText().catch(() => '');
+    expect(bodyText).not.toMatch(/Unexpected server failure/i);
+    expect(bodyText).not.toMatch(/"error"\s*:\s*"Internal server error"/i);
+
+    const hasLogin = await page.locator('#username').isVisible().catch(() => false);
+    if (hasLogin) {
+      if (!testUser || !testPass) {
+        test.skip(true, 'Auth enabled on production but no test credentials provided');
+        return;
+      }
+      await page.fill('#username', testUser);
+      await page.fill('#password', testPass);
+      await page.click('button[type="submit"]');
+      await page.waitForURL(/\/governance/, { timeout: 20000 });
+    }
+
+    await expect(page.locator('body.governance-page')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('h1.governance-title')).toContainText(/delivery answer/i);
+    await expect(page.locator('#gov-answer-mount')).toBeAttached();
 
     const errorEvents = consoleErrors.filter((e) => e.type === 'error');
     expect(errorEvents).toHaveLength(0);

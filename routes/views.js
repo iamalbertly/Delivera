@@ -3,6 +3,9 @@ import express from 'express';
 import { requireAuth, authEnabled, legacyAuthEnabled, superTokensEnabled, APP_LOGIN_USER, APP_LOGIN_PASSWORD } from '../lib/middleware.js';
 import { logger } from '../lib/Delivera-Server-Logging-Utility.js';
 import { buildReportUrlFromContext, readReportContextFromSession } from '../lib/Delivera-User-Context-SSOT.js';
+import { PUBLIC_DIR } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
+
+const PUBLIC_ROOT = PUBLIC_DIR;
 
 const router = express.Router();
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
@@ -38,14 +41,14 @@ router.get('/', (req, res) => {
     if (superTokensEnabled && !legacyAuthEnabled) return res.redirect('/auth');
     if (!authEnabled) return res.redirect(getPreferredReportRedirect(req));
     if (req.session && req.session.user) return res.redirect(getPreferredReportRedirect(req, req.query.redirect));
-    res.sendFile('login.html', { root: './public' });
+    res.sendFile('login.html', { root: PUBLIC_ROOT });
 });
 
 router.get('/login', (req, res) => {
     if (superTokensEnabled && !legacyAuthEnabled) return res.redirect('/auth');
     if (!authEnabled) return res.redirect(getPreferredReportRedirect(req));
     if (req.session && req.session.user) return res.redirect(getPreferredReportRedirect(req, req.query.redirect));
-    res.sendFile('login.html', { root: './public' });
+    res.sendFile('login.html', { root: PUBLIC_ROOT });
 });
 
 router.post('/login', (req, res) => {
@@ -95,7 +98,7 @@ router.post('/logout', (req, res) => {
  * GET /report - Serve the main report page (protected when auth enabled)
  */
 router.get('/report', requireAuth, (req, res) => {
-    res.sendFile('report.html', { root: './public' });
+    res.sendFile('report.html', { root: PUBLIC_ROOT });
 });
 
 // Legacy alias — /home → /dashboard 301 (keep for bookmarks and nav history).
@@ -104,7 +107,7 @@ router.get('/home', requireAuth, (req, res) => {
 });
 
 router.get('/dashboard', requireAuth, (req, res) => {
-    res.sendFile('home.html', { root: './public' });
+    res.sendFile('home.html', { root: PUBLIC_ROOT });
 });
 
 // Legacy alias — /backlog-intake merged into /value-delivery (2025-05). Keep for bookmarks.
@@ -134,7 +137,7 @@ router.get('/teams', requireAuth, (req, res) => {
 });
 
 router.get('/settings', requireAuth, (req, res) => {
-    res.sendFile('settings.html', { root: './public' });
+    res.sendFile('settings.html', { root: PUBLIC_ROOT });
 });
 
 /**
@@ -149,7 +152,7 @@ router.get('/reports', requireAuth, (req, res) => {
  * GET /current-sprint - Current sprint transparency page (squad view)
  */
 router.get('/current-sprint', requireAuth, (req, res) => {
-    res.sendFile('current-sprint.html', { root: './public' });
+    res.sendFile('current-sprint.html', { root: PUBLIC_ROOT });
 });
 
 // Legacy alias — /sprints → /current-sprint (2025-01). Keep for bookmarks.
@@ -168,7 +171,7 @@ router.get('/leadership', requireAuth, (req, res) => {
  * GET /governance - Weekly Delivery Intelligence Brief (governance layer)
  */
 router.get('/governance', requireAuth, (req, res) => {
-    res.sendFile('governance.html', { root: './public' });
+    res.sendFile('governance.html', { root: PUBLIC_ROOT });
 });
 
 // Alias — /brief → /governance for memorable links.
