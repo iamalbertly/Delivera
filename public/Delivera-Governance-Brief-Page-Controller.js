@@ -23,7 +23,7 @@ import { wireGovernanceIssuePreview } from './Delivera-Shared-Issue-Preview-01Br
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { renderGovernanceMicroSurvey } from './Delivera-App-Governance-Brief-12Render-MicroSurvey-UI.js';
 import { renderPIConfidenceStrip } from './Delivera-App-Governance-Brief-19Render-PIConfidenceStrip-UI.js';
-import { renderEpicHygienePanel } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
+import { renderEpicHygienePanel, bindEpicHygieneInteractions } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
 import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
 import {
@@ -363,9 +363,30 @@ function openGroupedNudge(groupIndex) {
   });
 }
 
+async function submitClusterDismiss(gi, reason) {
+  try {
+    await fetch('/api/governance/feedback-triage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phrase: `Cluster dismiss: ${reason}`, source: 'cluster-dismiss', patternKey: reason }),
+    });
+  } catch (_) { /* non-blocking */ }
+  const toggle = els.actionClustersMount?.querySelector(`[data-cluster-issues="${gi}"]`);
+  const article = els.actionClustersMount?.querySelector(`article[data-cluster-index="${gi}"]`);
+  if (article) article.hidden = true;
+  if (toggle) toggle.hidden = true;
+}
+
 function bindOwnerClusterInteractions() {
   if (!els.actionClustersMount) return;
   els.actionClustersMount.onclick = (event) => {
+    const dismiss = event.target.closest('[data-cluster-dismiss]');
+    if (dismiss) {
+      const gi = dismiss.getAttribute('data-cluster-dismiss');
+      const reason = els.actionClustersMount.querySelector(`[data-cluster-dismiss-reason="${gi}"]`)?.value || 'handled';
+      submitClusterDismiss(gi, reason);
+      return;
+    }
     const proof = event.target.closest('[data-proof-cluster]');
     if (proof) {
       const gi = Number(proof.getAttribute('data-proof-cluster'));
@@ -533,13 +554,31 @@ function refreshScopeBarCounts() {
   scopeBarApi?.refreshCapsule?.();
 }
 
+let lastFeedbackSummary = null;
+
+async function fetchFeedbackSummary() {
+  try {
+    const res = await fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(projectsCsv().split(',')[0] || 'MPSA')}`);
+    if (res.ok) return res.json();
+  } catch (_) { /* empty */ }
+  return null;
+}
+
 function renderBriefUi(brief) {
   lastSurfaces = partitionBriefSurfaces(brief);
   ownerGroups = groupDoNowByOwner(lastSurfaces.drawerIssues);
-  if (els.piStripMount) els.piStripMount.innerHTML = renderPIConfidenceStrip(brief);
-  if (els.workerReceiptMount) els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief);
-  if (els.answerMount) els.answerMount.innerHTML = renderCommandAnswerBar(brief);
-  if (els.epicHygieneMount) els.epicHygieneMount.innerHTML = renderEpicHygienePanel(brief);
+  if (els.piStripMount) {
+    els.piStripMount.innerHTML = renderPIConfidenceStrip(brief);
+    els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
+      document.getElementById('gov-scope-baseline')?.click();
+    });
+  }
+  if (els.workerReceiptMount) els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, lastFeedbackSummary);
+  if (els.answerMount) els.answerMount.innerHTML = renderCommandAnswerBar(brief, lastSurfaces);
+  if (els.epicHygieneMount) {
+    els.epicHygieneMount.innerHTML = renderEpicHygienePanel(brief);
+    bindEpicHygieneInteractions(els.epicHygieneMount, brief);
+  }
   if (els.setupDebtMount) els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief);
   if (els.verdictMount) {
     els.verdictMount.innerHTML = isPortfolioMode(brief)
@@ -583,9 +622,14 @@ async function loadBrief() {
     lastBrief = await res.json();
     const confirmCount = inboxApi?.getConfirmCount?.() || 0;
     renderFreshness(lastBrief, confirmCount);
+    lastFeedbackSummary = await fetchFeedbackSummary();
     renderBriefUi(lastBrief);
     renderScorecard();
     inboxApi?.refresh?.();
+    document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
+      mountFeedbackLabButton(els.feedbackLabMount, projectsCsv().split(',')[0]);
+      document.getElementById('gov-open-feedback-lab')?.click();
+    });
   } catch (err) {
     showError(`Could not load the brief: ${err.message}`);
   }

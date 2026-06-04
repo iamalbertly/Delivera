@@ -1,40 +1,82 @@
-import { COPY, deliveryStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import {
+  COPY,
+  deliveryStatusLabel,
+  firstNameFromDisplay,
+  freshnessShortLabel,
+  isSimpleMode,
+  simpleStatusLabel,
+  verdictTierFromBrief,
+} from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { commandAnswerSentence, sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 
-export function renderCommandAnswerBar(brief) {
+function trustTierLabel(brief) {
+  if (brief?.freshness?.confidenceLimit === 'stale') return 'Low';
+  if (brief?.meta?.safeToSend === true) return 'High';
+  if (brief?.meta?.safeToSend === false) return 'Low';
+  return 'Medium';
+}
+
+export function renderCommandAnswerBar(brief, surfaces = null) {
   const sentence = commandAnswerSentence(brief);
   const n = brief?.leadershipNarrative || {};
   const ev = brief?.executiveView || {};
   const top = brief?.topRisks?.[0] || {};
+  const tier = verdictTierFromBrief(brief);
+  const statusLabel = isSimpleMode() ? simpleStatusLabel(tier) : (ev.verdictLine?.split('.')[0] || deliveryStatusLabel(n.confidence));
+  const ownerName = firstNameFromDisplay(top.assigneeName || top.decisionNeededFrom) || COPY.unassigned;
+  const itemCount = surfaces?.drawerIssues?.length || brief?.topRisks?.length || 0;
+  const squad = top.squad || brief?.projects?.[0] || '';
+  const doFirst = surfaces?.doNowActions?.[0];
+  const doFirstLabel = doFirst?.actionPlain?.slice(0, 48) || top.recommendedAction?.slice(0, 48) || COPY.reviewActions;
   const evidenceCount = (brief?.evidencePack?.rows || []).length;
   const since = brief?.meta?.sinceLastRun?.summary || '';
-  const chips = [
-    `${COPY.deliveryStatus}: ${deliveryStatusLabel(n.confidence)}`,
-    ev.businessHeadline ? `Cause: ${ev.businessHeadline}` : '',
-    top.decisionNeededFrom ? `Owner lane: ${top.decisionNeededFrom}` : '',
-    top.recommendedAction ? `Next: ${String(top.recommendedAction).slice(0, 60)}` : '',
-    `Evidence: ${evidenceCount}`,
-  ].filter(Boolean);
-
   const narratedBy = brief?.meta?.narratedBy || n.narratedBy || 'template';
+  const piForum = brief?.meta?.piForumAnswer || '';
+  const readiness = sendReadinessBadge(brief);
+  const fresh = freshnessShortLabel(brief?.freshness || {});
+
   const trustBadge = narratedBy === 'advisor'
     ? '<span class="gov-narration-badge gov-narration-badge--advisor" title="Advisor narration">Advisor</span>'
     : '<span class="gov-narration-badge gov-narration-badge--template" title="Template narration">Template</span>';
-  const piForum = brief?.meta?.piForumAnswer || '';
 
   return `
     <section class="gov-command-answer" aria-label="${escapeHtml(COPY.briefTitle)}">
       <div class="gov-command-head">${trustBadge}</div>
-      <p class="gov-command-answer-text">${escapeHtml(sentence)}</p>
-      ${since ? `<p class="gov-command-since">${escapeHtml(since)}</p>` : ''}
-      <div class="gov-command-chips" role="group">${chips.map((c) => `<span class="gov-command-chip">${escapeHtml(c)}</span>`).join('')}</div>
+      <div class="gov-visual-answer-blocks" role="group" aria-label="Delivery decision">
+        <div class="gov-answer-block gov-answer-block--status gov-answer-block--${escapeHtml(tier)}" data-hover-proof="status" data-verdict-tier="${escapeHtml(tier)}">
+          <span class="gov-answer-block-label">${escapeHtml(COPY.statusLabel)}</span>
+          <strong class="gov-answer-block-value">${escapeHtml(statusLabel.slice(0, 40))}</strong>
+        </div>
+        <div class="gov-answer-block gov-answer-block--owner" data-hover-proof="owner-lane">
+          <span class="gov-answer-block-label">${escapeHtml(COPY.ownerLabel)}</span>
+          <strong class="gov-answer-block-value">${escapeHtml(ownerName)} · ${itemCount} item${itemCount === 1 ? '' : 's'}${squad ? ` · ${escapeHtml(squad)}` : ''}</strong>
+        </div>
+        <div class="gov-answer-block gov-answer-block--action">
+          <span class="gov-answer-block-label">${escapeHtml(COPY.doFirst)}</span>
+          <strong class="gov-answer-block-value">${escapeHtml(doFirstLabel)}</strong>
+        </div>
+      </div>
+      <div class="gov-trust-chip-row" role="group" aria-label="Trust summary">
+        <span class="gov-trust-part" data-hover-proof="trust" title="Can I trust this answer?">Trust ${escapeHtml(trustTierLabel(brief))}</span>
+        <span class="gov-trust-part" data-hover-proof="evidence-count">Proof ${evidenceCount}</span>
+        <span class="gov-trust-part" data-hover-proof="freshness">Data ${escapeHtml(fresh)}</span>
+        <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">AI ${escapeHtml(narratedBy === 'advisor' ? 'Advisor' : 'Template')}</a>
+        <span class="gov-send-badge gov-send-badge--${readiness.tier}" data-hover-proof="safe-send">${escapeHtml(readiness.label)}</span>
+      </div>
+      ${since ? `<p class="gov-command-since gov-since-delta" data-hover-proof="since-last-run">${escapeHtml(since)}</p>` : ''}
+      <p class="gov-command-answer-detail">${escapeHtml(sentence.slice(0, 200))}</p>
       <div class="gov-command-actions">
-        <button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">Review actions</button>
+        <button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">${escapeHtml(COPY.reviewActions)}</button>
         <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-answer-inline">Copy answer</button>
-        <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-pi-forum" ${piForum ? '' : 'disabled'}>Copy PI forum answer</button>
-        <button type="button" class="btn btn-link btn-compact" id="gov-protect-me">Protect-me wording</button>
-        <button type="button" class="btn btn-link btn-compact" id="gov-fix-setup">Fix setup</button>
+        <details class="gov-command-overflow">
+          <summary class="btn btn-secondary btn-compact">${escapeHtml(COPY.overflowMore)}</summary>
+          <div class="gov-command-overflow-menu">
+            <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-pi-forum" ${piForum ? '' : 'disabled'}>Copy PI forum answer</button>
+            <button type="button" class="btn btn-link btn-compact" id="gov-protect-me">Protect-me wording</button>
+            <button type="button" class="btn btn-link btn-compact" id="gov-fix-setup">Fix setup</button>
+          </div>
+        </details>
       </div>
       <p id="gov-protect-me-line" class="gov-protect-me-line" hidden></p>
     </section>`;

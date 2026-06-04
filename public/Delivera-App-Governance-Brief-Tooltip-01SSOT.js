@@ -8,6 +8,9 @@ export const GOV_TOOLTIPS = Object.freeze({
   protectMe: 'De-personalized wording safe for escalation forums.',
   narrationAdvisor: 'Advisor narration — copy records acceptance for phrase learning.',
   narrationTemplate: 'Deterministic template — always available without API key.',
+  safeToSend: 'Claim-verified against evidence pack and freshness gates.',
+  sinceLastRun: 'Changes since the last worker brief run.',
+  epicHygiene: 'Epic naming score based on FY/Q structured pattern.',
 });
 
 export function tooltipAttr(key) {

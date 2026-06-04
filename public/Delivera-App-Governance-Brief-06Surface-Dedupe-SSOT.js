@@ -72,3 +72,39 @@ function plainAction(risk) {
     .replace(/Confirm whether/gi, 'Check')
     .slice(0, 120);
 }
+
+function ownerKey(risk) {
+  const name = String(risk.assigneeName || risk.owner || '').trim();
+  if (name && !/^unassigned$/i.test(name)) return name;
+  return String(risk.decisionNeededFrom || 'Unassigned lane').trim();
+}
+
+/**
+ * Group delivery issues by assignee or decision lane for owner action clusters.
+ * @returns {Array<{ ownerKey, assigneeName, decisionLane, issues: object[], commonReason: string }>}
+ */
+export function groupDoNowByOwner(drawerIssues = []) {
+  const map = new Map();
+  for (const r of drawerIssues) {
+    if (!r.issueKey && !r.recommendedAction) continue;
+    const key = ownerKey(r);
+    if (!map.has(key)) {
+      map.set(key, {
+        ownerKey: key,
+        assigneeName: r.assigneeName || r.owner || '',
+        decisionLane: r.decisionNeededFrom || '',
+        issues: [],
+        commonReason: '',
+      });
+    }
+    map.get(key).issues.push(r);
+  }
+  for (const g of map.values()) {
+    const hours = g.issues.map((i) => Number(i.ageHours) || 0).filter((h) => h > 0);
+    const maxH = hours.length ? Math.max(...hours) : 0;
+    if (maxH >= 48) g.commonReason = `no progress for ${Math.round(maxH / 24)} days`;
+    else if (maxH >= 24) g.commonReason = `no progress for ${Math.round(maxH)} hours`;
+    else g.commonReason = g.issues[0]?.evidence?.slice(0, 80) || 'needs follow-up today';
+  }
+  return Array.from(map.values()).sort((a, b) => b.issues.length - a.issues.length);
+}

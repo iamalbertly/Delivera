@@ -36,7 +36,8 @@ const PI_BRIEF = {
     epicHygiene: { score: 72, epicCount: 4, summaryLine: 'MPSA 80% · MAS 65%', suggestions: [{ issueKey: 'MPSA-1', suggested: 'FY27 Q1 – X' }] },
     adHocEpics: [{ issueKey: 'MAS-99', summary: 'Ad hoc epic', reason: 'not in PI baseline' }],
     setupGaps: [],
-    workerReceipt: { line: 'Last run: 1m ago' },
+    workerReceipt: { line: 'Last run: 1m ago', inboxTotal: 3 },
+    sinceLastRun: { summary: 'Since last brief: +1 blocker' },
   },
   squadInsights: [
     { projectKey: 'MPSA', verdictTier: 'blocked', boardResolved: true, healthSignals: { sprintSetup: 'ok' } },
@@ -118,11 +119,12 @@ test.describe('Governance PI intelligence', () => {
     expect(text).toContain('FY27 Q1');
   });
 
-  test('page renders PI confidence strip', async ({ page }) => {
+  test('page renders PI confidence gauge', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
     await expect(page.locator('.gov-pi-strip')).toBeVisible();
-    await expect(page.locator('.gov-pi-strip-title')).toContainText(/PI Confidence/i);
+    await expect(page.locator('.gov-pi-gauge-track')).toBeVisible();
+    await expect(page.locator('.gov-pi-counter-row')).toBeVisible();
   });
 
   test('scope capsule shows available and no sprint counts', async ({ page }) => {
@@ -144,7 +146,7 @@ test.describe('Governance PI intelligence', () => {
     await mockPiPage(page);
     await page.goto('/governance');
     await expect(page.locator('.gov-epic-hygiene')).toBeVisible();
-    await expect(page.locator('.gov-adhoc-watcher')).toBeVisible();
+    await expect(page.locator('.gov-adhoc-chip')).toBeVisible();
   });
 
   test('comparison tray filters with 5 squads', async ({ page }) => {
@@ -155,11 +157,50 @@ test.describe('Governance PI intelligence', () => {
     await expect(page.locator('[data-heat-tile][data-verdict-tier="blocked"]')).toBeVisible();
   });
 
+  test('visual answer blocks and trust chip row', async ({ page }) => {
+    await mockPiPage(page);
+    await page.goto('/governance');
+    await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
+    await expect(page.locator('.gov-trust-chip-row')).toBeVisible();
+    await expect(page.locator('#gov-review-actions')).toBeVisible();
+  });
+
+  test('grouped inbox drawer shows group card', async ({ page }) => {
+    await mockPiPage(page);
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        briefs: Array.from({ length: 3 }, (_, i) => ({
+          id: `b${i}`, type: 'brief', summary: 'Ready brief', safeToSend: true,
+          approvalRequired: false, payload: { owner: 'Amani', riskType: 'stale', board: 'SD' },
+        })),
+        nudges: [], piDrift: [], confirm: [], impact: [], poReadiness: [],
+      }),
+    }));
+    await page.goto('/governance');
+    await page.locator('[data-queue-tab="briefs"]').click();
+    await expect(page.locator('.gov-inbox-group-card')).toBeVisible();
+    await expect(page.locator('.gov-inbox-group-card')).toContainText(/similar/i);
+  });
+
+  test('guided fix cards when setup gaps present', async ({ page }) => {
+    const withGaps = { ...PI_BRIEF, meta: { ...PI_BRIEF.meta, setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }] } };
+    await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA,MAS'); });
+    await page.route('**/api/governance-brief.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withGaps) }));
+    await page.route('**/api/quarters-list**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
+    await page.route('**/api/governance/adoption-metrics.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0 }) }));
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [] }) }));
+    await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, agents: [], lastImprovements: [] }) }));
+    await page.goto('/governance');
+    await expect(page.locator('.gov-fix-card')).toBeVisible();
+  });
+
   test('narration trust badge and PI forum copy', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await mockPiPage(page);
     await page.goto('/governance');
     await expect(page.locator('.gov-narration-badge--advisor')).toBeVisible();
+    await page.locator('.gov-command-overflow summary').click();
     await page.locator('#gov-copy-pi-forum').click();
     await expect(page.locator('#gov-copy-pi-forum')).toContainText(/copied/i);
   });
@@ -167,6 +208,7 @@ test.describe('Governance PI intelligence', () => {
   test('protect-me wording reveals safe line', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
+    await page.locator('.gov-command-overflow summary').click();
     await page.locator('#gov-protect-me').click();
     await expect(page.locator('#gov-protect-me-line')).toBeVisible();
     await expect(page.locator('#gov-protect-me-line')).toContainText(/Safest wording/i);

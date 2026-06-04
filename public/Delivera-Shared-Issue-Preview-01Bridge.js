@@ -15,14 +15,14 @@ function ensurePreviewHost() {
   return el;
 }
 
+function findRisk(brief, key) {
+  return [...(brief?.topRisks || []), ...(brief?.portfolioRisks || []), ...(brief?.risks || [])]
+    .find((r) => String(r.issueKey || '').toUpperCase() === key);
+}
+
 export function openGovernanceIssuePreview(brief, issueKey) {
   const key = String(issueKey || '').trim().toUpperCase();
-  const risk = [...(brief?.topRisks || []), ...(brief?.portfolioRisks || [])]
-    .find((r) => String(r.issueKey || '').toUpperCase() === key);
-  if (risk?.issueUrl) {
-    window.open(risk.issueUrl, '_blank', 'noopener');
-    return;
-  }
+  const risk = findRisk(brief, key);
   const ev = (brief?.evidencePack?.rows || []).find(
     (r) => String(r.issueKey).toUpperCase() === key,
   );
@@ -32,15 +32,16 @@ export function openGovernanceIssuePreview(brief, issueKey) {
     return;
   }
   host.hidden = false;
+  const url = ev?.issueUrl || risk?.issueUrl;
   host.innerHTML = `
     <button type="button" class="btn btn-link btn-compact" data-close-preview>Close</button>
     <h3>${escapeHtml(key)}</h3>
-    <p>${escapeHtml(ev?.summary || risk?.summary || '')}</p>
+    <p>${escapeHtml(risk?.displayTitle || ev?.summary || risk?.summary || '')}</p>
     <p><strong>Status:</strong> ${escapeHtml(ev?.statusNow || risk?.status || '')}</p>
-    <p>${escapeHtml(ev?.whyFlagged || risk?.evidence || '')}</p>
-    ${ev?.issueUrl || risk?.issueUrl
-      ? `<a href="${escapeHtml(ev?.issueUrl || risk.issueUrl)}" target="_blank" rel="noopener">Open in Jira</a>`
-      : ''}`;
+    <p><strong>Why:</strong> ${escapeHtml(ev?.whyFlagged || risk?.evidence || '')}</p>
+    ${risk?.recommendedAction ? `<p><strong>Next:</strong> ${escapeHtml(risk.recommendedAction)}</p>` : ''}
+    ${risk?.ageHours ? `<p><strong>Age:</strong> ${Math.round(risk.ageHours)}h</p>` : ''}
+    ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="btn btn-secondary btn-compact">Open in Jira</a>` : ''}`;
   host.querySelector('[data-close-preview]')?.addEventListener('click', () => { host.hidden = true; });
 }
 

@@ -280,7 +280,7 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
   test('copy meeting answer excludes technical labels', async ({ page, context }) => {
     if (!(await mockAndGo(page))) return;
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.locator('#gov-copy-meeting').click();
+    await page.locator('#gov-copy-answer-inline').click();
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toMatch(/DELIVERY BLOCKED|at risk/i);
     expect(text).not.toContain('narrated by');

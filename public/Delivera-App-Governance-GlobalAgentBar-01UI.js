@@ -1,5 +1,4 @@
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 
 let stickyMount = null;
 let globalBarEl = null;
@@ -26,11 +25,14 @@ export function updateGlobalAgentBar(brief) {
   const inbox = receipt.inboxTotal ?? receipt.pendingCount ?? 0;
   const gaps = (brief?.meta?.setupGaps || []).length;
   const pi = brief?.meta?.piConfidence?.headline || 'PI n/a';
+  const since = brief?.meta?.sinceLastRun?.summary || '';
+  const deltaPill = since
+    ? `<span class="gov-global-pill gov-since-delta">${escapeHtml(since.slice(0, 60))}</span>`
+    : `<span class="gov-global-pill">Queue ${inbox}</span>`;
   bar.innerHTML = `
-    <span class="gov-global-pill">${escapeHtml(commandAnswerSentence(brief).slice(0, 80))}</span>
-    <span class="gov-global-pill">Queue ${inbox}</span>
+    ${deltaPill}
     <span class="gov-global-pill">Gaps ${gaps}</span>
-    <span class="gov-global-pill">${escapeHtml(pi)}</span>`;
+    <span class="gov-global-pill">${escapeHtml(pi.slice(0, 50))}</span>`;
   bar.hidden = false;
 }
 
@@ -44,7 +46,9 @@ export function mountStickyMicroAnswer(mount) {
 
 export function updateStickyMicroAnswer(brief) {
   if (!stickyMount) return;
-  const line = commandAnswerSentence(brief);
+  const ev = brief?.executiveView || {};
+  const top = brief?.topRisks?.[0] || {};
+  const line = `${ev.verdictTier || 'watch'} · ${top.assigneeName || top.decisionNeededFrom || 'owner'} · ${(brief?.meta?.setupGaps || []).length ? 'setup gap' : 'ok'}`;
   stickyMount.textContent = line.slice(0, 120);
   stickyMount.hidden = !line;
 }

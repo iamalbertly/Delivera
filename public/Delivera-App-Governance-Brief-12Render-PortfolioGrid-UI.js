@@ -43,16 +43,22 @@ export function renderPortfolioGrid(brief) {
       <button type="button" class="gov-comparison-filter" data-comparison-filter="watch">Watch</button>
       <button type="button" class="gov-comparison-filter" data-comparison-filter="on-track">On track</button>
     </div>` : '';
-  const tiles = squads.map((s) => {
+  const maxVisible = showTray ? 8 : squads.length;
+  const visibleSquads = squads.slice(0, maxVisible);
+  const hiddenCount = squads.length - visibleSquads.length;
+  const tiles = visibleSquads.map((s) => {
     const pk = s.projectKey || '';
     const tier = s.verdictTier || 'watch';
     return `
-      <button type="button" class="gov-heat-tile gov-heat-tile--${escapeHtml(tier)}" data-heat-tile="${escapeHtml(pk)}" data-verdict-tier="${escapeHtml(tier)}" aria-expanded="false">
+      <button type="button" class="gov-heat-tile gov-heat-tile--${escapeHtml(tier)}" data-heat-tile="${escapeHtml(pk)}" data-verdict-tier="${escapeHtml(tier)}" style="--tile-tier:${escapeHtml(tier)}" aria-expanded="false">
         <span class="gov-heat-key">${escapeHtml(pk)}</span>
         <span class="gov-heat-verdict">${escapeHtml(heatLabel(s))}</span>
         ${showTray ? `<span class="gov-heat-pin" data-pin-tile="${escapeHtml(pk)}" role="button" tabindex="0" title="Pin tile">📌</span>` : ''}
       </button>`;
   }).join('');
+  const moreChip = hiddenCount > 0
+    ? `<button type="button" class="gov-heat-tile gov-heat-tile--more" id="gov-heat-show-more">+${hiddenCount} more</button>`
+    : '';
   const details = squads.map((s) => renderRiskTileDetail(s, brief)).join('');
   const line = rollup.summaryLine || COPY.portfolioRollupOk;
   return `
@@ -60,13 +66,17 @@ export function renderPortfolioGrid(brief) {
       <p class="gov-portfolio-banner-line">${escapeHtml(line)}</p>
       ${partialNote}
       ${filterBar}
-      <div class="gov-risk-heat-row" role="list">${tiles}</div>
+      <div class="gov-risk-heat-row" role="list">${tiles}${moreChip}</div>
       <div class="gov-risk-tile-details">${details}</div>
     </div>`;
 }
 
 export function bindRiskHeatInteractions(root, brief, onProofSquad) {
   if (!root) return;
+  root.querySelector('#gov-heat-show-more')?.addEventListener('click', () => {
+    root.querySelectorAll('[data-heat-tile]').forEach((t) => { t.hidden = false; });
+    root.querySelector('#gov-heat-show-more')?.remove();
+  });
   root.querySelectorAll('[data-comparison-filter]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const filter = btn.getAttribute('data-comparison-filter');

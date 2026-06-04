@@ -1,34 +1,24 @@
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 
-export function renderEpicHygienePanel(brief) {
-  const hygiene = brief?.meta?.epicHygiene;
-  if (!hygiene || hygiene.epicCount === 0) return '';
-  const rows = (hygiene.bySquad || []).map((r) => `
-    <li><strong>${escapeHtml(r.squad)}</strong> ${r.score}% (${r.epicCount} epics)</li>`).join('');
-  const suggestions = (hygiene.suggestions || []).slice(0, 3).map((s) => `
-    <li class="gov-epic-suggestion">
-      <span>${escapeHtml(s.issueKey)}: ${escapeHtml(s.current)}</span>
-      <em>→ ${escapeHtml(s.suggested || '')}</em>
-    </li>`).join('');
-
-  return `
-    <section class="gov-epic-hygiene" aria-label="Epic hygiene">
-      <h3 class="governance-subsection-title">Epic hygiene ${hygiene.score != null ? `${hygiene.score}%` : ''}</h3>
-      <p class="gov-epic-summary">${escapeHtml(hygiene.summaryLine || '')}</p>
-      <ul class="gov-epic-squad-scores">${rows}</ul>
-      ${suggestions ? `<ul class="gov-epic-suggestions">${suggestions}</ul>` : ''}
-    </section>`;
+export function renderAdHocChip(brief) {
+  const adHoc = brief?.meta?.adHocEpics || [];
+  const n = adHoc.length;
+  if (!n) {
+    return `<button type="button" class="gov-adhoc-chip gov-adhoc-chip--zero" data-hover-proof="ad-hoc">${COPY.adHocChip}: 0</button>`;
+  }
+  return `<button type="button" class="gov-adhoc-chip gov-adhoc-chip--alert" data-adhoc-open data-hover-proof="ad-hoc">${COPY.adHocChip}: ${n}</button>`;
 }
 
-export function renderAdHocEpicWatcher(brief) {
+function openAdHocDrawer(brief) {
   const adHoc = brief?.meta?.adHocEpics || [];
-  if (!adHoc.length) return '';
-  const rows = adHoc.slice(0, 5).map((e) => `
-    <li class="gov-adhoc-item" data-issue-key="${escapeHtml(e.issueKey)}">
+  const rows = adHoc.map((e) => `
+    <li class="gov-adhoc-item">
       <strong>${escapeHtml(e.issueKey)}</strong>
       <span>${escapeHtml(e.summary || '')}</span>
       <span class="gov-adhoc-reason">${escapeHtml(e.reason || '')}</span>
-      <select class="gov-adhoc-class" data-issue-key="${escapeHtml(e.issueKey)}" aria-label="Classify epic">
+      <select class="gov-adhoc-class" data-issue-key="${escapeHtml(e.issueKey)}" aria-label="Classify">
         <option value="unapproved-scope">Unapproved scope</option>
         <option value="operational-support">Operational support</option>
         <option value="incident">Incident</option>
@@ -37,10 +27,62 @@ export function renderAdHocEpicWatcher(brief) {
         <option value="pi-commitment">PI commitment</option>
       </select>
     </li>`).join('');
+  openRightDrawer({
+    title: `Ad-hoc epics (${adHoc.length})`,
+    bodyHtml: `<ul class="gov-adhoc-list">${rows}</ul>`,
+  });
+}
+
+function openSuggestionsDrawer(brief) {
+  const suggestions = brief?.meta?.epicHygiene?.suggestions || [];
+  const rows = suggestions.map((s) => `
+    <li class="gov-epic-suggestion-row">
+      <p><strong>${escapeHtml(s.issueKey)}</strong></p>
+      <p class="gov-epic-current">${escapeHtml(s.current)}</p>
+      <p class="gov-epic-suggested">→ ${escapeHtml(s.suggested || '')}</p>
+      <button type="button" class="btn btn-secondary btn-compact" data-copy-suggest="${escapeHtml(s.suggested || '')}">Copy suggested name</button>
+    </li>`).join('');
+  const { el, close } = openRightDrawer({
+    title: 'Epic name suggestions',
+    bodyHtml: `<ul class="gov-epic-suggestions-drawer">${rows || '<li>No suggestions</li>'}</ul>`,
+  });
+  el?.querySelectorAll('[data-copy-suggest]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.getAttribute('data-copy-suggest') || '');
+        btn.textContent = 'Copied';
+      } catch (_) { btn.textContent = 'Copy failed'; }
+    });
+  });
+  return { close, el };
+}
+
+export function renderEpicHygienePanel(brief) {
+  const hygiene = brief?.meta?.epicHygiene;
+  if (!hygiene || hygiene.epicCount === 0) return '';
+  const weak = (hygiene.weak || []).length;
+  const squadChips = (hygiene.bySquad || []).map((r) => `
+    <span class="gov-epic-score-chip" data-hover-proof="epic-score">${escapeHtml((r.squad || '').split(' ')[0])} ${r.score}%</span>`).join('');
 
   return `
-    <details class="gov-adhoc-watcher">
-      <summary>Ad-hoc epic watcher (${adHoc.length})</summary>
-      <ul class="gov-adhoc-list">${rows}</ul>
-    </details>`;
+    <section class="gov-epic-hygiene" aria-label="Epic hygiene" data-hover-proof="epic-hygiene">
+      <div class="gov-epic-score-row">
+        <span class="gov-epic-score-main">Epic naming <strong>${hygiene.score != null ? `${hygiene.score}%` : '—'}</strong></span>
+        <span class="gov-epic-meta-chip">Weak: ${weak}</span>
+        <button type="button" class="btn btn-link btn-compact" id="gov-epic-suggestions-open">Suggestions →</button>
+      </div>
+      <div class="gov-epic-squad-chips">${squadChips}</div>
+    </section>`;
+}
+
+export function bindEpicHygieneInteractions(root, brief) {
+  if (!root || !brief) return;
+  root.querySelector('#gov-epic-suggestions-open')?.addEventListener('click', () => openSuggestionsDrawer(brief));
+  root.querySelectorAll('[data-adhoc-open]').forEach((btn) => {
+    btn.addEventListener('click', () => openAdHocDrawer(brief));
+  });
+}
+
+export function renderAdHocEpicWatcher(brief) {
+  return '';
 }

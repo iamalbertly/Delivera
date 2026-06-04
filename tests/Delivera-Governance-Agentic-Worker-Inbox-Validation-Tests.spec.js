@@ -57,7 +57,13 @@ const MOCK_BRIEF = {
     confidence: 'low', headline: 'MPSA at low confidence', oneParagraph: 'One stale item.',
     meetingAnswer: 'DELIVERY BLOCKED', narratedBy: 'advisor', decisionsNeeded: [],
   },
-  meta: { narratedBy: 'advisor', safeToSend: true },
+  meta: {
+    narratedBy: 'advisor',
+    safeToSend: true,
+    commandAnswerSentence: 'DELIVERY BLOCKED',
+    workerReceipt: { line: 'Last run: 1m ago · Checked: Jira' },
+    setupGaps: [],
+  },
 };
 
 async function disableSidebarPointerBlock(page) {
@@ -135,11 +141,11 @@ test.describe('Governance agentic worker — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await expect(page.locator('#gov-inbox-mount #gov-inbox-toggle')).toBeVisible();
+    await expect(page.locator('#gov-queue-mount .gov-queue-chip')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
 
-  test('inbox expands on click', async ({ page }) => {
+  test('queue chip opens right drawer', async ({ page }) => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
       status: 200, contentType: 'application/json',
@@ -147,8 +153,9 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-inbox-toggle').click();
-    await expect(page.locator('.gov-inbox-tab')).toHaveCount(5);
+    await page.locator('.gov-queue-chip[data-queue-tab="briefs"]').click();
+    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await expect(page.locator('.gov-inbox-group-card')).toBeVisible();
   });
 
   test('inbox approve calls resolve API', async ({ page }) => {
@@ -158,17 +165,19 @@ test.describe('Governance agentic worker — UI', () => {
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ briefs: [], nudges: [{ id: 'n1', type: 'nudge', summary: 'Nudge MPSA-2', safeToSend: true, approvalRequired: true, createdAt: new Date().toISOString() }], piDrift: [], confirm: [], impact: [], total: 1 }),
     }));
-    await page.route('**/api/governance/inbox/n1/resolve', (r) => {
+    await page.route('**/api/governance/inbox/*/resolve', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
       resolved = true;
-      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
     });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-inbox-toggle').click();
-    await page.locator('.gov-inbox-tab[data-tab="nudges"]').click();
+    await page.locator('.gov-queue-chip[data-queue-tab="nudges"]').click();
+    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await expect(page.locator('[data-inbox-approve="n1"]')).toBeVisible();
     await disableSidebarPointerBlock(page);
-    await page.locator('[data-inbox-approve="n1"]').click({ force: true });
-    await expect.poll(() => resolved).toBe(true);
+    await page.locator('[data-inbox-approve="n1"]').dispatchEvent('click');
+    await expect.poll(() => resolved, { timeout: 8000 }).toBe(true);
   });
 
   test('PI drift tab shows confirm items', async ({ page }) => {
@@ -179,9 +188,8 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-inbox-toggle').click();
-    await page.locator('.gov-inbox-tab[data-tab="piDrift"]').click();
-    await expect(page.locator('.gov-inbox-row')).toContainText(/PI drift/i);
+    await page.locator('.gov-queue-chip[data-queue-tab="piDrift"]').click();
+    await expect(page.locator('.gov-inbox-group-card')).toContainText(/PI drift/i);
   });
 
   test('micro-survey visible below meeting script', async ({ page }) => {
@@ -215,7 +223,7 @@ test.describe('Governance agentic worker — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await page.locator('#gov-copy-meeting').click();
+    await page.locator('#gov-copy-answer-inline').click();
     await expect.poll(() => feedbackBody?.source, { timeout: 3000 }).toBe('sm-accepted');
     assertTelemetryClean(telemetry);
   });
@@ -247,12 +255,13 @@ test.describe('Governance agentic worker — UI', () => {
     await expect(page.locator('.governance-risk-lane')).toContainText(/Scrum Master/i);
   });
 
-  test('quarter pills in scope bar', async ({ page }) => {
+  test('quarter pills in scope drawer panel', async ({ page }) => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-scope-quarter-pill')).toHaveCount(1);
+    await page.locator('#gov-scope-change').click();
+    await expect(page.locator('#gov-scope-expanded .gov-scope-quarter-pill')).toHaveCount(1);
   });
 
   test('merged supporting evidence details', async ({ page }) => {

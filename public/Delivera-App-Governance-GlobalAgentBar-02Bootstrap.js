@@ -15,14 +15,23 @@ function projectsFromStorage() {
 async function bootstrap() {
   mountGlobalAgentBar();
   try {
-    const res = await fetch(`/api/governance/worker-receipt.json?projects=${encodeURIComponent(projectsFromStorage())}`, { credentials: 'include' });
-    if (!res.ok) return;
-    const data = await res.json();
+    const qs = `?projects=${encodeURIComponent(projectsFromStorage())}`;
+    const [receiptRes, piRes] = await Promise.all([
+      fetch(`/api/governance/worker-receipt.json${qs}`, { credentials: 'include' }),
+      fetch(`/api/governance/pi-confidence.json${qs}`, { credentials: 'include' }),
+    ]);
+    if (!receiptRes.ok) return;
+    const data = await receiptRes.json();
+    let piConfidence = null;
+    if (piRes.ok) {
+      const piData = await piRes.json();
+      piConfidence = piData.piConfidence;
+    }
     updateGlobalAgentBar({
       meta: {
         workerReceipt: data.workerReceipt,
         setupGaps: data.setupGaps || [],
-        piConfidence: { headline: data.workerReceipt?.line?.slice(0, 40) || 'Agent idle' },
+        piConfidence: piConfidence || { headline: 'PI n/a' },
       },
     });
   } catch (_) { /* non-blocking */ }

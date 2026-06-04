@@ -35,7 +35,9 @@ export const COPY = {
   verdictTooEarly: 'TOO EARLY',
   doNow: 'Do now',
   seeIssues: 'See issues',
-  measurementStrip: 'Fix how we measure',
+  measurementStrip: 'Data gaps weakening this brief',
+  agentQueue: 'Agent queue',
+  setupGaps: 'Setup gaps weakening this brief',
   meetingScript: 'Meeting script',
   sendNudge: 'Send nudge',
   openInJira: 'Open in Jira',
@@ -52,7 +54,42 @@ export const COPY = {
   leadTime: 'Lead time',
   productivity: 'Productivity',
   squadDataUnavailable: 'Sprint data unavailable — refresh or check board mapping',
+  statusLabel: 'Status',
+  ownerLabel: 'Who',
+  doFirst: 'Do first',
+  reviewActions: 'Review actions',
+  overflowMore: 'More',
+  statusBlocked: 'Blocked',
+  statusWatch: 'Watch',
+  statusOnTrack: 'OK',
+  statusSetup: 'Setup',
+  fixPiBaseline: 'Fix PI baseline',
+  adHocChip: 'Ad-hoc',
+  learningReceipt: 'Feedback improved',
+  openLab: 'Lab',
 };
+
+export function isSimpleMode() {
+  try { return localStorage.getItem('delivera_simpleMode') === '1'; } catch (_) { return false; }
+}
+
+export function simpleStatusLabel(tier = 'watch') {
+  const t = String(tier || '').toLowerCase();
+  if (t === 'blocked') return COPY.statusBlocked;
+  if (t === 'on-track' || t === 'ok') return COPY.statusOnTrack;
+  if (t === 'setup' || t === 'limited') return COPY.statusSetup;
+  return COPY.statusWatch;
+}
+
+export function verdictTierFromBrief(brief = {}) {
+  const ev = brief?.executiveView || {};
+  if (ev.verdictTier) return ev.verdictTier;
+  const line = String(ev.verdictLine || '').toLowerCase();
+  if (line.includes('blocked')) return 'blocked';
+  if (line.includes('watch')) return 'watch';
+  if (line.includes('track') || line.includes('ok')) return 'on-track';
+  return 'watch';
+}
 
 export function businessTitleFromSummary(summary = '', maxLen = 72) {
   let t = String(summary || '').trim();
@@ -76,6 +113,12 @@ export function initialsFromDisplay(name = '') {
 }
 
 export function deliveryStatusLabel(confidence) {
+  if (isSimpleMode()) {
+    const c = String(confidence || 'low').toLowerCase();
+    if (c === 'high') return COPY.statusOnTrack;
+    if (c === 'medium') return COPY.statusWatch;
+    return COPY.statusBlocked;
+  }
   const c = String(confidence || 'low').toLowerCase();
   if (c === 'high') return 'On track';
   if (c === 'medium') return 'Watch';
