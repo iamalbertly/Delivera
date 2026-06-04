@@ -447,7 +447,7 @@
   body.notification-dock-visible .container {
     padding-left: 0;
   }
-  .app-notification-dock {
+  body:not(.has-top-chrome) .app-notification-dock {
     top: auto;
     left: 12px;
     right: 12px;
@@ -455,7 +455,7 @@
     width: auto;
     max-width: none;
   }
-  .app-notification-toggle {
+  body:not(.has-top-chrome) .app-notification-toggle {
     top: auto;
     left: 12px;
     bottom: 12px;

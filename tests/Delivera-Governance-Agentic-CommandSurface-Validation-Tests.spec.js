@@ -167,7 +167,7 @@ test.describe('Governance command surface — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('#gov-inbox-toggle')).toHaveCount(0);
-    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('.gov-inbox-panel')).toHaveCount(0);
@@ -215,6 +215,17 @@ test.describe('Governance command surface — UI', () => {
     await expect(page.locator('.gov-setup-debt--compact')).toBeVisible();
     await page.locator('#gov-setup-gaps-expand').click();
     await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toBeVisible();
+  });
+
+  test('setup compact expand does not duplicate fix card rows', async ({ page }) => {
+    await mockCommandSurfacePage(page);
+    await page.goto('/governance');
+    if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await expect(page.locator('#gov-setup-gaps-expand')).toBeVisible();
+    await page.locator('#gov-setup-gaps-expand').click();
+    await expect(page.locator('#gov-setup-gaps-expand')).toHaveCount(0);
+    await expect(page.locator('#gov-setup-debt-mount .gov-fix-card')).toHaveCount(1);
+    await expect(page.locator('#gov-setup-debt-mount .gov-fix-card-row')).toHaveCount(1);
   });
 
   test('cluster issue without issueUrl uses preview key link only', async ({ page }) => {

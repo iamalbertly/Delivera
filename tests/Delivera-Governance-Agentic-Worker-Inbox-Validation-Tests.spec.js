@@ -159,6 +159,22 @@ test.describe('Governance agentic worker — UI', () => {
     assertTelemetryClean(telemetry);
   });
 
+  test('empty inbox while brief loads shows preparing copy', async ({ page }) => {
+    await mockGovernancePage(page);
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }),
+    }));
+    await page.route('**/api/governance-brief.json**', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_BRIEF) });
+    });
+    await page.goto('/governance');
+    if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
+    await expect(page.locator('#gov-queue-mount .gov-inbox-hint')).toContainText(/Brief is preparing/i);
+  });
+
   test('freshness review link opens confirm tab in drawer', async ({ page }) => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({

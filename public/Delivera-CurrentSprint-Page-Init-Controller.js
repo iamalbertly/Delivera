@@ -7,6 +7,7 @@ import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from '
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprintSnapshot } from './Delivera-CurrentSprint-Page-Snapshot.js';
 import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
+import { hydrateCurrentSprintProjectsSelect } from './Delivera-CurrentSprint-Projects-Catalog-01Hydrate.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -338,6 +339,7 @@ function safeInitBoot() {
 
 function init() {
   const { boardSelect, contentEl, projectsSelect, errorEl } = currentSprintDom;
+  hydrateCurrentSprintProjectsSelect();
   resetPerfMarks('current-sprint');
   try {
     if (window.history && 'scrollRestoration' in window.history) {

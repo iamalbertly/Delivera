@@ -1,4 +1,4 @@
-import { renderNotificationDock } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { refreshNotificationDockFromStore } from './Delivera-Shared-Notifications-Dock-Manager.js';
 import { updateNotificationStore } from './Delivera-CurrentSprint-Notifications-Helpers.js';
 import { showContent } from './Delivera-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Delivera-CurrentSprint-Render-Page.js';
@@ -301,8 +301,8 @@ function wireRenderedContent(data, onSelectSprintById) {
     renderSidebarContextCard();
     window.dispatchEvent(new CustomEvent('delivera:currentSprintPayloadReady'));
   } catch (_) {}
-  const summary = updateNotificationStore(data);
-  renderNotificationDock({ summary, pageContext: 'current-sprint' });
+  updateNotificationStore(data);
+  refreshNotificationDockFromStore();
   wireDynamicHandlers(data);
   wireHeaderBarHandlers();
   wireHealthDashboardHandlers();

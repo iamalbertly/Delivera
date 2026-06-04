@@ -7,7 +7,7 @@ import { initPreviewFlow, clearPreviewOnFilterChange, restoreLastPreviewFromStor
 import { wirePreviewContextActions } from './Delivera-Report-Page-Render-Preview.js';
 import { initSearchClearButtons } from './Delivera-Report-Page-Search-Clear.js';
 import { initFilters } from './Delivera-Report-Page-Filters-Pills-Manager.js';
-import { renderNotificationDock } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { refreshNotificationDockFromStore } from './Delivera-Shared-Notifications-Dock-Manager.js';
 import { getValidLastQuery, getContextDisplayString } from './Delivera-Shared-Context-From-Storage.js';
 import {
   REPORT_FILTERS_COLLAPSED_KEY,
@@ -398,7 +398,7 @@ function initReportPage() {
   }
   initFilters();
   initSearchClearButtons();
-  renderNotificationDock({ pageContext: 'report', collapsedByDefault: true });
+  refreshNotificationDockFromStore();
   applyDoneStoriesOptionalColumnsPreference();
 
   function initOutcomeIntake() {

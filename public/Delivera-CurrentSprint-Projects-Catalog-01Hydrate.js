@@ -1,0 +1,32 @@
+/**
+ * Hydrate Current Sprint project select from shared catalog SSOT.
+ */
+import { PROJECT_CATALOG } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
+import { currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
+
+function readStoredProjectKey() {
+  try {
+    const raw = localStorage.getItem(currentSprintKeys.projectsKey)
+      || localStorage.getItem('delivera_selectedProjects')
+      || '';
+    return String(raw).split(',')[0]?.trim().toUpperCase() || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+export function hydrateCurrentSprintProjectsSelect() {
+  const select = document.getElementById('current-sprint-projects');
+  if (!select) return;
+  const storedKey = readStoredProjectKey();
+  const fallbackKey = PROJECT_CATALOG.find((p) => p.defaultSelected)?.key || PROJECT_CATALOG[0]?.key || 'MPSA';
+  const selectedKey = storedKey || fallbackKey;
+  select.innerHTML = '';
+  for (const entry of PROJECT_CATALOG) {
+    const opt = document.createElement('option');
+    opt.value = entry.key;
+    opt.textContent = `${entry.key} - ${entry.label}`;
+    if (entry.key === selectedKey) opt.selected = true;
+    select.appendChild(opt);
+  }
+}

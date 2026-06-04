@@ -106,6 +106,7 @@ test.describe('Governance root, nav, and scope cockpit', () => {
     await expect(verdict).toBeVisible();
     await expect(page.locator('.gov-verdict-fold .gov-verdict-zone, #gov-verdict-mount .gov-verdict-zone').first()).toBeAttached();
     await expect(page.locator('.governance-decisions-table')).toHaveCount(0);
+    await expect(page.locator('.app-notification-toggle')).toHaveCount(0);
   });
 
   test('/leadership redirects to brief decision snapshot anchor', async ({ page }) => {

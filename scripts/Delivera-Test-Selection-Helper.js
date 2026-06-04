@@ -109,6 +109,24 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
     'epic-activity-intelligence',
     'delivera-test-pibaseline-slide-upload',
   ];
+  const governanceImpactedSpecs = [
+    'tests/Delivera-Governance-Visual-Clarity-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-PI-Intelligence-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-Agentic-CommandSurface-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-Agentic-Worker-Inbox-Validation-Tests.spec.js',
+    'tests/Delivera-App-Governance-Root-Nav-Scope-Validation-Tests.spec.js',
+    'tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js',
+  ];
+  const governanceFileHints = [
+    '09-governance',
+    'governance.html',
+    'delivera-app-governance',
+    'governance-brief',
+    'delivera-governance-brief',
+    'delivera-shared-notifications-dock',
+    '12-top-chrome',
+    'current-sprint-projects-catalog',
+  ];
 
   const strongKeywords = [
     'preview',
@@ -156,6 +174,11 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
 
     if (piBaselineFileHints.some((hint) => changedBase.includes(hint) || changed.includes(hint))) {
       piBaselineImpactedSpecs.forEach((spec) => impacted.add(spec));
+      continue;
+    }
+
+    if (governanceFileHints.some((hint) => changedBase.includes(hint) || changed.includes(hint))) {
+      governanceImpactedSpecs.forEach((spec) => impacted.add(spec));
       continue;
     }
 

@@ -183,6 +183,63 @@ test.describe('Jira-style top chrome E2E', () => {
     await expect(page).toHaveURL(/\/report/);
   });
 
+  test('notification dock mounts inside app notification slot', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('appNotificationsV1', JSON.stringify({
+        total: 1,
+        missingEstimate: 0,
+        missingLogged: 1,
+        boardName: 'MPSA',
+        sprintName: 'Sprint 1',
+      }));
+    });
+    await page.goto('/report');
+    if (await skipIfLogin(page)) return;
+    await page.locator('[data-top-action="notifications"]').click();
+    const dock = page.locator('#app-notification-dock');
+    await expect(dock).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#app-notification-slot')).toContainText(/Sprint|notification/i);
+    await expect(page.locator('#app-notification-slot #app-notification-dock')).toHaveCount(1);
+  });
+
+  test('governance bell opens dock with Brief queue link', async ({ page }) => {
+    await mockGovernanceBrief(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('appNotificationsV1', JSON.stringify({
+        total: 1,
+        missingEstimate: 0,
+        missingLogged: 1,
+        boardName: 'MPSA',
+        sprintName: 'Sprint 1',
+      }));
+    });
+    await page.goto('/governance');
+    if (await skipIfLogin(page)) return;
+    await page.locator('[data-top-action="notifications"]').click();
+    await expect(page.locator('#app-notification-dock')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.app-notification-link')).toContainText('Open Brief queue');
+    await expect(page).toHaveURL(/\/governance/);
+  });
+
+  test('dismiss removes notification-dock-visible from body', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('appNotificationsV1', JSON.stringify({
+        total: 1,
+        missingEstimate: 0,
+        missingLogged: 1,
+        boardName: 'MPSA',
+        sprintName: 'Sprint 1',
+      }));
+    });
+    await page.goto('/report');
+    if (await skipIfLogin(page)) return;
+    await page.locator('[data-top-action="notifications"]').click();
+    await expect(page.locator('#app-notification-dock')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('body')).toHaveClass(/notification-dock-visible/);
+    await page.locator('[data-notification-dismiss]').click();
+    await expect(page.locator('body')).not.toHaveClass(/notification-dock-visible/);
+  });
+
   test('report first paint hides duplicate back link and bottom nav', async ({ page }) => {
     await page.setViewportSize({ width: 1400, height: 900 });
     await page.goto('/report');

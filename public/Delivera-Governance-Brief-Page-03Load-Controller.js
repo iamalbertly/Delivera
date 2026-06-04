@@ -165,7 +165,10 @@ export function renderBriefUi(brief) {
   govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces.drawerIssues);
   const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
   if (govPage.els.piStripMount) {
-    govPage.els.piStripMount.innerHTML = renderPIConfidenceStrip(brief);
+    const piInner = renderPIConfidenceStrip(brief);
+    govPage.els.piStripMount.innerHTML = hasOwnerClusters && piInner
+      ? `<details class="gov-pi-strip-fold"><summary>PI confidence</summary>${piInner}</details>`
+      : piInner;
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
     govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
       govPage.scopeBarApi?.expandScopePanel?.();

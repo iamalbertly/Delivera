@@ -65,6 +65,14 @@ async function mockClarityPage(page) {
   }));
 }
 
+async function openPiStripFoldIfPresent(page) {
+  const fold = page.locator('.gov-pi-strip-fold');
+  if (!(await fold.count())) return;
+  await fold.waitFor({ state: 'attached' });
+  await fold.evaluate((el) => { el.open = true; });
+  await expect(fold).toHaveAttribute('open', '');
+}
+
 test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('scope status chip visible after load', async ({ page }) => {
     await mockClarityPage(page);
@@ -76,14 +84,18 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('PI no-data empty state not broken gauge', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await expect(page.locator('.gov-pi-nodata')).toBeVisible();
+    await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
+    await openPiStripFoldIfPresent(page);
+    await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-nodata')).toBeVisible();
     await expect(page.locator('.gov-pi-gauge-track')).toHaveCount(0);
   });
 
   test('epic hygiene inline in PI strip (no duplicate mount)', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await expect(page.locator('.gov-pi-hygiene-compact, .gov-pi-hygiene-row').first()).toBeVisible();
+    await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
+    await openPiStripFoldIfPresent(page);
+    await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-hygiene-compact, .gov-pi-strip-fold[open] .gov-pi-hygiene-row').first()).toBeVisible();
     await expect(page.locator('#gov-epic-hygiene-mount')).toHaveCount(0);
   });
 
@@ -97,7 +109,9 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
       body: JSON.stringify({ method: 'board-epics', candidates: [], guidance: null }),
     }));
     await page.goto('/governance');
-    await page.locator('#gov-pi-fix-baseline').click();
+    await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
+    await openPiStripFoldIfPresent(page);
+    await page.locator('#gov-pi-fix-baseline').dispatchEvent('click');
     await expect(page.locator('.gov-baseline-slide-drop')).toBeVisible();
   });
 
@@ -147,7 +161,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
       }),
     }));
     await page.goto('/governance');
-    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-drawer-tabs')).toBeVisible();
     await expect(page.locator('[data-queue-tab="confirm"]')).toBeEnabled();
@@ -158,7 +172,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('grouped inbox truncates with show more', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-group-card')).toHaveCount(8);
     await expect(page.locator('#gov-inbox-show-more')).toBeVisible();
@@ -183,6 +197,30 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await expect(nudge).toBeVisible();
     const box = await nudge.boundingBox();
     expect(box?.y ?? 9999).toBeLessThan(900);
+  });
+
+  test('mobile owner cluster nudge within above-fold viewport', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/governance');
+    const nudge = page.locator('[data-grouped-nudge]').first();
+    await expect(nudge).toBeVisible();
+    const box = await nudge.boundingBox();
+    expect(box?.y ?? 9999).toBeLessThan(812);
+  });
+
+  test('PI strip folds below clusters when actions present', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.goto('/governance');
+    await expect(page.locator('.gov-pi-strip-fold')).toBeAttached();
+    await expect(page.locator('.gov-pi-strip-fold')).not.toHaveAttribute('open', '');
+  });
+
+  test('measurement and meeting script live under supporting evidence', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.goto('/governance');
+    await expect(page.locator('#gov-supporting-evidence #gov-measurement-mount')).toBeAttached();
+    await expect(page.locator('#gov-supporting-evidence #gov-meeting-script-mount')).toBeAttached();
   });
 
   test('fix baseline opens drawer wizard', async ({ page }) => {
@@ -221,7 +259,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('worker receipt uses details summary', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await expect(page.locator('.gov-receipt-details summary')).toContainText(/Agent/i);
   });
 

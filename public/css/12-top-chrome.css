@@ -483,6 +483,18 @@ body.has-top-chrome.governance-page [data-top-action="agent"] {
   display: none !important;
 }
 
+body.governance-page .app-notification-slot {
+  position: sticky;
+  top: var(--top-chrome-height, 56px);
+  z-index: 1275;
+  min-height: 0;
+}
+
+body.governance-page .app-notification-slot .app-notification-dock {
+  top: 4px;
+  right: 8px;
+}
+
 @media (max-width: 1200px) {
   body.has-top-chrome:not(.login-page) .container {
     margin-left: 0;
