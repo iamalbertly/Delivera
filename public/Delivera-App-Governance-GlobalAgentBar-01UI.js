@@ -55,6 +55,10 @@ export function mountStickyMicroAnswer(mount) {
 
 export function updateStickyMicroAnswer(brief) {
   if (!stickyMount) return;
+  if (document.body?.classList?.contains('governance-page')) {
+    stickyMount.hidden = true;
+    return;
+  }
   const ev = brief?.executiveView || {};
   const top = brief?.topRisks?.[0] || {};
   const line = `${ev.verdictTier || 'watch'} · ${top.assigneeName || top.decisionNeededFrom || 'owner'} · ${(brief?.meta?.setupGaps || []).length ? 'setup gap' : 'ok'}`;

@@ -17,8 +17,13 @@ Primary surfaces:
 - **Layout:** Main chrome respects the 240px sidebar (`margin-left: var(--sidebar-width)`); expand **Agent status & queue** for worker receipt and inbox.
 - **Scope:** Projects load from `/api/boards.json` (all keys you can access), not a hardcoded list. Period uses `/api/quarters-list?count=20&includeCached=1` (calendar + cached brief quarters). On narrow screens, native `<select>` controls replace chip grids.
 - **PI baseline:** **Set PI baseline** and fix cards open a right-drawer wizard (`/api/governance/pi-baseline/propose` → confirm).
-- **Inbox:** One **See queue (N)** chip; icon actions (approve / review / dismiss). Cached preview items (`synthetic-*`) resolve without 400 console errors.
-- **Tests:** `npm run test:journey:governance` (Visual Clarity → PI Intelligence → Command Surface → Inbox first). Use `SKIP_WEBSERVER=true` when the app is already on port 3000.
+- **Inbox:** One **See queue (N)** chip opens a drawer with **icon tabs** (Ready / Nudges / PI drift / Confirm / …) so non-English users can switch sections in one tap. Icon actions (approve / review / dismiss). Cached preview items (`synthetic-*`) resolve without 400 console errors. **Claims to review** in the freshness line jumps straight to the Confirm tab.
+- **Mobile scope:** Multi-project checklist (not single-toggle select). Desktop keeps scroll pill strips.
+- **PI baseline:** Right-drawer wizard with loading state and **Open in Jira** when candidates are empty (`jiraBrowseHost` on `/api/boards.json`).
+- **Quarters:** `includeCached=1` merges calendar quarters plus labels persisted in `data/Delivera-Governance-Quarter-Labels-Index.json` when briefs build.
+- **Client errors:** Failed fetches log to `POST /api/client-log` (server `client-fetch-failure` line) via `Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js`.
+- **Above-fold clutter:** Eyebrow removed; sticky micro-answer and global agent bar hidden on `/governance` (status chip owns queue count).
+- **Tests:** `npm run test:journey:governance` (Visual Clarity → PI Intelligence → Command Surface → Inbox first, `--max-failures=1`). Use `SKIP_WEBSERVER=true` when the app is already on port 3000.
 
 ## Quickstart
 

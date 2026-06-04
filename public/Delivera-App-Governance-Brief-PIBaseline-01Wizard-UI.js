@@ -10,6 +10,18 @@ function escapeHtml(v) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+async function resolveJiraBoardUrl(projects) {
+  const csv = (projects || []).join(',') || 'MPSA';
+  try {
+    const data = await fetchJson(`/api/boards.json?projects=${encodeURIComponent(csv)}`, {}, 'baseline-boards');
+    const host = data?.jiraBrowseHost;
+    const board = (data?.boards || [])[0];
+    const key = board?.projectKey || projects[0];
+    if (host && key) return `${host}/browse/${key}`;
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
 /**
  * @param {object} opts
  * @param {() => string} opts.getProjectsCsv
@@ -18,16 +30,21 @@ function escapeHtml(v) {
 export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
   let drawerClose = null;
   let drawerEl = null;
-  let panelData = null;
 
   function close() {
     drawerClose?.();
     drawerClose = null;
     drawerEl = null;
-    panelData = null;
   }
 
-  function renderEmpty(guidance) {
+  function renderLoading() {
+    return `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineLoading)}</p>`;
+  }
+
+  function renderEmpty(guidance, jiraUrl) {
+    const jiraBtn = jiraUrl
+      ? `<a class="btn btn-secondary btn-compact" href="${escapeHtml(jiraUrl)}" target="_blank" rel="noopener">${escapeHtml(COPY.openInJira)}</a>`
+      : '';
     return `
       <div class="gov-baseline-wizard">
         <p class="gov-baseline-wizard-title">${escapeHtml(COPY.baselineTitle)}</p>
@@ -38,6 +55,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
         </ol>
         <p class="gov-inbox-hint">${escapeHtml(guidance || COPY.baselineEmptyHint)}</p>
         <div class="gov-baseline-actions">
+          ${jiraBtn}
           <button type="button" class="btn btn-primary btn-compact" id="gov-baseline-refresh">${escapeHtml(COPY.refreshBrief)}</button>
           <button type="button" class="btn btn-link btn-compact" data-baseline-close>${escapeHtml(COPY.close)}</button>
         </div>
@@ -89,16 +107,16 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
             committedItems: items,
             approvedBy: 'governance-wizard',
           }),
-        });
+        }, 'pi-baseline-save');
         close();
         onSaved?.();
       } catch (err) {
         const body = el.querySelector('.gov-right-drawer-body');
         if (body) {
-          body.innerHTML = `${renderEmpty(err?.message || COPY.baselineSaveFailed)}
-            <button type="button" class="btn btn-secondary btn-compact" id="gov-baseline-retry">${escapeHtml(COPY.baselineRetry)}</button>`;
-          body.querySelector('#gov-baseline-retry')?.addEventListener('click', () => open());
-          bindPanel(body, data, projects);
+          void resolveJiraBoardUrl(projects).then((jiraUrl) => {
+            body.innerHTML = renderEmpty(err?.message || COPY.baselineSaveFailed, jiraUrl);
+            bindPanel(body, data, projects);
+          });
         }
       }
     });
@@ -111,7 +129,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
 
     const { close: closeFn, el } = openRightDrawer({
       title: COPY.baselineTitle,
-      bodyHtml: '<p class="gov-inbox-hint">Loading…</p>',
+      bodyHtml: renderLoading(),
     });
     drawerClose = closeFn;
     drawerEl = el;
@@ -119,17 +137,19 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
     if (!body) return;
 
     let data = { method: 'manual', candidates: [], guidance: null };
+    const jiraUrlPromise = resolveJiraBoardUrl(projects);
     try {
-      data = await fetchJson(`/api/governance/pi-baseline/propose?projects=${encodeURIComponent(csv)}`);
+      data = await fetchJson(`/api/governance/pi-baseline/propose?projects=${encodeURIComponent(csv)}`, {}, 'pi-baseline-propose');
     } catch (err) {
-      body.innerHTML = renderEmpty(err?.message || COPY.baselineProposeFailed);
+      const jiraUrl = await jiraUrlPromise;
+      body.innerHTML = renderEmpty(err?.message || COPY.baselineProposeFailed, jiraUrl);
       bindPanel(body, data, projects);
       return;
     }
-    panelData = data;
 
     if (!data.candidates?.length) {
-      body.innerHTML = renderEmpty(data.guidance);
+      const jiraUrl = await jiraUrlPromise;
+      body.innerHTML = renderEmpty(data.guidance, jiraUrl);
       bindPanel(body, data, projects);
       return;
     }

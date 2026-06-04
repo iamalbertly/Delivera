@@ -71,7 +71,7 @@ function renderFreshness(brief, confirmCount = 0) {
     : '';
   els.freshness.innerHTML = `<span class="governance-freshness-pill ${cls}">${escapeHtml(text)}${reviewBit}</span>`;
   els.freshness.querySelector('#gov-freshness-review')?.addEventListener('click', () => {
-    document.querySelector('.gov-queue-chip[data-queue-tab="confirm"]')?.click();
+    inboxApi?.openQueueTab?.('confirm');
   });
 }
 
@@ -384,7 +384,7 @@ function bindOwnerClusterInteractions() {
     const dismiss = event.target.closest('[data-cluster-dismiss]');
     if (dismiss) {
       const gi = dismiss.getAttribute('data-cluster-dismiss');
-      const reason = els.actionClustersMount.querySelector(`[data-cluster-dismiss-reason="${gi}"]`)?.value || 'handled';
+      const reason = dismiss.getAttribute('data-dismiss-reason') || 'handled';
       submitClusterDismiss(gi, reason);
       return;
     }
@@ -630,11 +630,11 @@ async function loadBrief() {
     if (!briefRes.ok) throw new Error(`HTTP ${briefRes.status}`);
     lastBrief = await briefRes.json();
     lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
+    await inboxApi?.refresh?.();
     const confirmCount = inboxApi?.getConfirmCount?.() || 0;
     renderFreshness(lastBrief, confirmCount);
     renderBriefUi(lastBrief);
     renderScorecard();
-    inboxApi?.refresh?.();
     document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
       document.getElementById('gov-open-feedback-lab')?.click();
     });

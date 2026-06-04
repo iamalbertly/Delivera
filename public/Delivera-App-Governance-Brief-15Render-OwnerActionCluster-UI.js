@@ -42,13 +42,12 @@ export function renderOwnerActionClusters(brief, groups = []) {
         <div class="gov-owner-cluster-actions">
           <button type="button" class="btn btn-primary btn-compact" data-grouped-nudge="${gi}">Review grouped nudge</button>
           <button type="button" class="btn btn-secondary btn-compact" data-cluster-toggle="${gi}" aria-expanded="false">Show issues</button>
-          <select class="gov-cluster-dismiss-reason" data-cluster-dismiss-reason="${gi}" aria-label="Dismiss reason">
-            <option value="handled">Handled</option>
-            <option value="wrong-owner">Wrong owner</option>
-            <option value="bad-data">Bad data</option>
-            <option value="irrelevant">Irrelevant</option>
-          </select>
-          <button type="button" class="btn btn-link btn-compact" data-cluster-dismiss="${gi}">Dismiss</button>
+          <div class="gov-cluster-dismiss-chips" role="group" aria-label="Dismiss">
+            <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="handled" title="Handled">✓</button>
+            <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="wrong-owner" title="Wrong owner">?</button>
+            <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="bad-data" title="Bad data">!</button>
+            <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="irrelevant" title="Irrelevant">✕</button>
+          </div>
         </div>
         <ul class="gov-cluster-issues" data-cluster-issues="${gi}" hidden>${issueRows}</ul>
       </article>`;

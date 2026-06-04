@@ -96,19 +96,18 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         });
       });
     });
-    const mobileProject = mount.querySelector('.gov-scope-mobile-project');
-    if (mobileProject) {
-      mobileProject.addEventListener('change', () => {
-        const pk = mobileProject.value;
-        if (pk) {
-          selected = selected.includes(pk) ? selected.filter((p) => p !== pk) : [...selected, pk].sort();
-          if (!selected.length) selected = [pk];
-          writeProjects(selected);
-          render();
-          onScopeChange?.(selected);
-        }
+    mount.querySelectorAll('.gov-scope-mobile-project-check').forEach((inp) => {
+      inp.addEventListener('change', () => {
+        const pk = String(inp.value || '').trim().toUpperCase();
+        if (!pk) return;
+        if (inp.checked) selected = [...new Set([...selected, pk])].sort();
+        else selected = selected.filter((p) => p !== pk);
+        if (!selected.length) selected = [pk];
+        writeProjects(selected);
+        render();
+        onScopeChange?.(selected);
       });
-    }
+    });
     const mobileQuarter = mount.querySelector('.gov-scope-mobile-quarter');
     if (mobileQuarter) {
       mobileQuarter.addEventListener('change', () => {

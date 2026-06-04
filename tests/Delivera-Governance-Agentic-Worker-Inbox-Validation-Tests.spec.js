@@ -153,6 +153,36 @@ test.describe('Governance agentic worker — UI', () => {
     assertTelemetryClean(telemetry);
   });
 
+  test('freshness review link opens confirm tab in drawer', async ({ page }) => {
+    await mockGovernancePage(page);
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        briefs: [], nudges: [], piDrift: [],
+        confirm: [{ id: 'c1', type: 'confirm', summary: 'Stale claim', payload: { owner: 'X', board: 'MPSA' } }],
+        impact: [], poReadiness: [], total: 1,
+      }),
+    }));
+    await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        briefId: 'INBOX-CONFIRM',
+        projects: ['MPSA'],
+        executiveView: { verdictTier: 'watch' },
+        leadershipNarrative: { confidence: 'medium', meetingAnswer: 'Watch' },
+        meta: { workerReceipt: { inboxTotal: 1 } },
+        freshness: { confidenceLimit: 'live' },
+        topRisks: [],
+        evidencePack: { rows: [] },
+      }),
+    }));
+    await page.goto('/governance');
+    if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await page.locator('#gov-freshness-review').click();
+    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await expect(page.locator('[data-queue-tab="confirm"].is-active')).toBeVisible();
+  });
+
   test('queue chip opens right drawer', async ({ page }) => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({

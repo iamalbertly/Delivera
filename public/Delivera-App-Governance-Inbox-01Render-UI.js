@@ -1,5 +1,5 @@
 /**
- * Agent queue — grouped fingerprint cards in drawer.
+ * Agent queue — grouped fingerprint cards in drawer with icon tab picker.
  */
 import { GOVERNANCE_INBOX_LAST_SEEN_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
@@ -23,7 +23,34 @@ function isResolvableItem(item) {
   return true;
 }
 
-function renderGroupedDrawer(items, showAll = false, drawerHost = null) {
+const TAB_META = [
+  ['briefs', '📋', 'queueTabReady'],
+  ['nudges', '✉', 'queueTabNudges'],
+  ['piDrift', '↔', 'queueTabPiDrift'],
+  ['confirm', '✓', 'queueTabConfirm'],
+  ['impact', '◎', 'queueTabImpact'],
+  ['poReadiness', '◇', 'queueTabPo'],
+];
+
+function tabCount(data, key) {
+  return (data?.[key] || []).length;
+}
+
+function renderDrawerTabs(data, activeTabKey) {
+  const tabs = TAB_META.map(([key, icon, copyKey]) => {
+    const count = tabCount(data, key);
+    const active = key === activeTabKey ? ' is-active' : '';
+    const empty = count === 0 ? ' is-empty' : '';
+    const label = COPY[copyKey] || key;
+    return `<button type="button" class="gov-inbox-drawer-tab${active}${empty}" data-queue-tab="${key}" role="tab" aria-selected="${key === activeTabKey}" aria-label="${escapeHtml(label)} (${count})"${count === 0 ? ' disabled' : ''}>
+      <span class="gov-inbox-drawer-tab-icon" aria-hidden="true">${icon}</span>
+      <span class="gov-inbox-drawer-tab-count">${count || '·'}</span>
+    </button>`;
+  }).join('');
+  return `<nav class="gov-inbox-drawer-tabs" role="tablist" aria-label="${escapeHtml(COPY.agentQueue)}">${tabs}</nav>`;
+}
+
+function renderGroupedDrawer(items, showAll = false) {
   const groups = groupInboxByFingerprint(items);
   const visible = showAll ? groups : groups.slice(0, 8);
   const hidden = showAll ? 0 : Math.max(0, groups.length - 8);
@@ -46,7 +73,7 @@ function renderGroupedDrawer(items, showAll = false, drawerHost = null) {
           <button type="button" class="gov-inbox-dismiss-chip" data-dismiss-reason="irrelevant" data-group-dismiss="${escapeHtml(g.fingerprint)}" title="${escapeHtml(COPY.dismissIrrelevant)}">✕</button>
           <button type="button" class="gov-inbox-dismiss-chip" data-dismiss-reason="handled" data-group-dismiss="${escapeHtml(g.fingerprint)}" title="${escapeHtml(COPY.dismissHandled)}">✓̸</button>
         </div>`
-      : `<span class="gov-inbox-hint">${escapeHtml(COPY.inboxCachedHint)}</span>`;
+      : `<span class="gov-inbox-hint gov-inbox-cached-hint">${escapeHtml(COPY.inboxCachedHint)}</span>`;
     return `
     <li class="gov-inbox-group-card" data-fingerprint="${escapeHtml(g.fingerprint)}">
       <div class="gov-inbox-group-head">
@@ -69,17 +96,13 @@ function renderGroupedDrawer(items, showAll = false, drawerHost = null) {
   return `<ul class="gov-inbox-group-list">${cards}</ul>${more}`;
 }
 
-const TAB_META = [
-  ['briefs', 'Ready'],
-  ['nudges', 'Nudges'],
-  ['piDrift', 'PI drift'],
-  ['confirm', 'Confirm'],
-  ['impact', 'Impact'],
-  ['poReadiness', 'PO readiness'],
-];
+function drawerBodyHtml(data, tabKey, showAll = false) {
+  const items = data?.[tabKey] || [];
+  return `${renderDrawerTabs(data, tabKey)}<div class="gov-inbox-drawer-pane" role="tabpanel">${renderGroupedDrawer(items, showAll)}</div>`;
+}
 
 export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, onRefreshBrief }) {
-  if (!mount) return { refresh: async () => {}, getConfirmCount: () => 0, getInboxTotal: () => 0 };
+  if (!mount) return { refresh: async () => {}, getConfirmCount: () => 0, getInboxTotal: () => 0, openQueueTab: () => {} };
 
   let lastData = null;
   let drawerClose = null;
@@ -88,7 +111,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
 
   async function fetchInbox() {
     const csv = getProjectsCsv?.() || 'MPSA,MAS';
-    return fetchJson(`/api/governance/inbox.json?projects=${encodeURIComponent(csv)}`);
+    return fetchJson(`/api/governance/inbox.json?projects=${encodeURIComponent(csv)}`, {}, 'governance-inbox');
   }
 
   async function resolveItem(id, resolution, dismissReason = '') {
@@ -98,7 +121,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resolution, dismissReason }),
-      });
+      }, 'inbox-resolve');
       await refresh();
       drawerClose?.();
     } catch (err) {
@@ -138,8 +161,8 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
       });
     });
     el.querySelector('#gov-inbox-show-more')?.addEventListener('click', () => {
-      const body = el.querySelector('.gov-right-drawer-body');
-      if (body) body.innerHTML = renderGroupedDrawer(items, true, el);
+      const pane = el.querySelector('.gov-inbox-drawer-pane');
+      if (pane) pane.innerHTML = renderGroupedDrawer(items, true);
       bindDrawerActions(el, tabKey);
     });
     el.querySelector('#gov-inbox-refresh-brief')?.addEventListener('click', () => {
@@ -148,31 +171,54 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     });
   }
 
-  function openQueueDrawer(tabKey) {
-    const data = lastData || {};
-    const items = data[tabKey] || [];
-    const label = TAB_META.find(([k]) => k === tabKey)?.[1] || tabKey;
-    if (tabKey === 'confirm') onFocusConfirm?.();
-    writeLastSeen();
-    activeTabKey = tabKey;
-
-    const { close, el } = openRightDrawer({
-      title: `${COPY.agentQueue} — ${label} (${items.length})`,
-      bodyHtml: renderGroupedDrawer(items, false),
+  function bindDrawerTabs(el) {
+    el.querySelectorAll('[data-queue-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-queue-tab');
+        if (!key || tabCount(lastData, key) === 0) return;
+        switchDrawerTab(el, key);
+      });
     });
-    drawerClose = close;
-    drawerEl = el;
+  }
+
+  function switchDrawerTab(el, tabKey) {
+    activeTabKey = tabKey;
+    if (tabKey === 'confirm') onFocusConfirm?.();
+    const body = el.querySelector('.gov-right-drawer-body');
+    if (!body) return;
+    body.innerHTML = drawerBodyHtml(lastData, tabKey, false);
+    bindDrawerTabs(el);
     bindDrawerActions(el, tabKey);
   }
 
-  function openCombinedDrawer() {
-    const total = TAB_META.reduce((n, [k]) => n + (lastData?.[k]?.length || 0), 0);
-    const firstTab = TAB_META.find(([k]) => (lastData?.[k]?.length || 0) > 0)?.[0] || 'briefs';
-    openQueueDrawer(firstTab);
+  function openQueueDrawer(tabKey) {
+    const data = lastData || {};
+    const items = data[tabKey] || [];
+    const label = COPY[TAB_META.find(([k]) => k === tabKey)?.[2]] || tabKey;
+    writeLastSeen();
+    activeTabKey = tabKey;
+    if (tabKey === 'confirm') onFocusConfirm?.();
+
+    const { close, el } = openRightDrawer({
+      title: `${COPY.agentQueue} — ${label} (${items.length})`,
+      bodyHtml: drawerBodyHtml(data, tabKey, false),
+    });
+    drawerClose = close;
+    drawerEl = el;
+    bindDrawerTabs(el);
+    bindDrawerActions(el, tabKey);
+  }
+
+  function openCombinedDrawer(preferredTab) {
+    const data = lastData || {};
+    const tabKey = preferredTab && tabCount(data, preferredTab) > 0
+      ? preferredTab
+      : (TAB_META.find(([k]) => tabCount(data, k) > 0)?.[0] || 'briefs');
+    openQueueDrawer(tabKey);
   }
 
   function render() {
-    const total = TAB_META.reduce((n, [k]) => n + (lastData?.[k]?.length || 0), 0);
+    const total = TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0);
     const chip = total > 0
       ? `<button type="button" class="gov-queue-chip gov-queue-chip--primary" data-queue-open="1" aria-label="${escapeHtml(COPY.seeQueue)}">
           <span class="gov-queue-chip-icon" aria-hidden="true">📋</span>
@@ -183,7 +229,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
       <div class="gov-agent-queue" role="group" aria-label="${escapeHtml(COPY.agentQueue)}">
         ${chip}
       </div>`;
-    mount.querySelector('[data-queue-open]')?.addEventListener('click', openCombinedDrawer);
+    mount.querySelector('[data-queue-open]')?.addEventListener('click', () => openCombinedDrawer());
   }
 
   async function refresh() {
@@ -199,7 +245,11 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
   return {
     refresh,
     getConfirmCount: () => (lastData?.confirm || []).length,
-    getInboxTotal: () => TAB_META.reduce((n, [k]) => n + (lastData?.[k]?.length || 0), 0),
-    openQueue: openCombinedDrawer,
+    getInboxTotal: () => TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0),
+    openQueue: () => openCombinedDrawer(),
+    openQueueTab: (tabKey) => {
+      document.getElementById('gov-top-chrome-mount')?.setAttribute('open', '');
+      openCombinedDrawer(tabKey);
+    },
   };
 }

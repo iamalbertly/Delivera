@@ -112,6 +112,26 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await expect(page.locator('#gov-open-feedback-lab.gov-lab-chip')).toBeVisible();
   });
 
+  test('queue drawer shows icon tabs for multiple sections', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        briefs: [{ id: 'b1', type: 'brief', summary: 'Ready', safeToSend: true, approvalRequired: false, payload: { owner: 'A', board: 'SD' } }],
+        nudges: [{ id: 'n1', type: 'nudge', summary: 'Nudge', payload: { owner: 'B', board: 'SD' } }],
+        confirm: [{ id: 'c1', type: 'confirm', summary: 'Confirm', payload: { owner: 'C', board: 'SD' } }],
+        piDrift: [], impact: [], poReadiness: [],
+      }),
+    }));
+    await page.goto('/governance');
+    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('[data-queue-open]').click();
+    await expect(page.locator('.gov-inbox-drawer-tabs')).toBeVisible();
+    await expect(page.locator('[data-queue-tab="confirm"]')).toBeEnabled();
+    await page.locator('[data-queue-tab="confirm"]').click();
+    await expect(page.locator('.gov-inbox-group-card')).toContainText(/Confirm/i);
+  });
+
   test('grouped inbox truncates with show more', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');

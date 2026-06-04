@@ -34,14 +34,15 @@ export function renderQuarterStrip(quarters, activeQuarter) {
   }).join('');
 }
 
-export function renderMobileProjectSelect(projectKeys, selected) {
-  const opts = projectKeys.map((pk) => {
+export function renderMobileProjectChecklist(projectKeys, selected) {
+  const checks = projectKeys.map((pk) => {
     const on = selected.includes(pk);
-    return `<option value="${escapeHtml(pk)}"${on ? ' selected' : ''}>${escapeHtml(pk)}</option>`;
+    return `<label class="gov-scope-mobile-check">
+      <input type="checkbox" class="gov-scope-mobile-project-check" value="${escapeHtml(pk)}"${on ? ' checked' : ''} />
+      <span>${escapeHtml(pk)}</span>
+    </label>`;
   }).join('');
-  return `<label class="gov-scope-mobile-field">Project
-    <select class="gov-scope-select gov-scope-mobile-project" aria-label="Project">${opts}</select>
-  </label>`;
+  return `<div class="gov-scope-mobile-projects" role="group" aria-label="Projects">${checks}</div>`;
 }
 
 export function renderMobileQuarterSelect(quarters, activeQuarter) {
@@ -77,7 +78,7 @@ export function renderExpandedSelectors({
         </div>
       </div>
       <div class="gov-scope-mobile-only">
-        ${renderMobileProjectSelect(projectKeys, selected)}
+        ${renderMobileProjectChecklist(projectKeys, selected)}
         ${renderMobileQuarterSelect(quarters, activeQuarter)}
       </div>
       <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">Set PI baseline</button>

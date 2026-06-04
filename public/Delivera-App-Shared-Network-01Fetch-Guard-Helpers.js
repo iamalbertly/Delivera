@@ -2,7 +2,15 @@
  * Client fetch helpers — surface API errors without silent console-only failures.
  */
 
-export async function fetchJson(url, options = {}) {
+export function logClientFetchFailure({ url = '', status = null, message = '', context = '' } = {}) {
+  void fetch('/api/client-log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, status, message, context }),
+  }).catch(() => {});
+}
+
+export async function fetchJson(url, options = {}, logContext = '') {
   const res = await fetch(url, options);
   let body = null;
   try {
@@ -15,6 +23,7 @@ export async function fetchJson(url, options = {}) {
     const err = new Error(msg);
     err.status = res.status;
     err.body = body;
+    logClientFetchFailure({ url, status: res.status, message: msg, context: logContext });
     throw err;
   }
   return body;

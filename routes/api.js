@@ -48,6 +48,7 @@ import {
 import { buildImpactPack, impactPackMonthKey } from '../lib/Delivera-Governance-Worker-05ImpactPack-Builder.js';
 import { clampConfidenceToFreshness } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
+import { readQuarterLabelIndex, rememberQuarterLabel } from '../lib/Delivera-Governance-Quarter-Labels-01Index-SSOT.js';
 import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
 import { buildJiraIssueUrl, escapeHtml } from '../lib/Delivera-Server-Url-And-Escape-Helpers.js';
 import { postIssueComment } from '../lib/Delivera-Jira-Issue-Comment-Post-Service.js';
@@ -777,6 +778,9 @@ router.get('/api/format-date-range', requireAuth, (req, res) => {
 
 async function getCachedGovernanceQuarterLabels() {
     const labels = new Set();
+    for (const label of await readQuarterLabelIndex()) {
+        if (label) labels.add(label);
+    }
     try {
         const entries = await cache.entries({ namespace: 'governanceBrief' });
         for (const entry of entries) {
@@ -789,6 +793,18 @@ async function getCachedGovernanceQuarterLabels() {
     }
     return Array.from(labels);
 }
+
+router.post('/api/client-log', requireAuth, (req, res) => {
+    const body = req.body || {};
+    logger.info('client-fetch-failure', {
+        url: String(body.url || '').slice(0, 240),
+        status: body.status ?? null,
+        message: String(body.message || '').slice(0, 240),
+        context: String(body.context || '').slice(0, 80),
+        user: req.session?.user || 'unknown',
+    });
+    return res.json({ ok: true });
+});
 
 router.get('/api/quarters-list', requireAuth, async (req, res) => {
     const count = Math.min(20, Math.max(1, parseInt(req.query.count, 10) || 8));
@@ -847,7 +863,12 @@ router.get('/api/boards.json', requireAuth, async (req, res) => {
                 boards: [],
             });
         }
-        const payload = { projects: selectedProjects, boards: list };
+        const jiraHost = resolveJiraHostFromEnv();
+        const payload = {
+            projects: selectedProjects,
+            boards: list,
+            jiraBrowseHost: jiraHost ? String(jiraHost).replace(/\/$/, '') : null,
+        };
         if (projectErrors.length) payload.jiraErrors = projectErrors;
         res.json(payload);
     } catch (error) {
@@ -1302,6 +1323,12 @@ async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true
         cache, providerConfig, includeEvidence, includePOReadiness, baseline, profileOverrides,
     });
     await cache.set(cacheKey, brief, GOVERNANCE_BRIEF_TTL_MS, { namespace: GOVERNANCE_NS });
+    const quarterLabel = brief?.period?.vodacomQuarter;
+    if (quarterLabel) {
+        void rememberQuarterLabel(quarterLabel, projects).catch((err) => {
+            logger.warn('quarter label index write failed', { error: err?.message });
+        });
+    }
     // Safe telemetry: counts only, never issue bodies.
     logger.info('governance-brief built', {
         projects: projects.join(','), boards: brief.meta?.boardsResolved,
