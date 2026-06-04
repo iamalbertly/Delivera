@@ -9,5 +9,11 @@
     "api/index.js": {
       "includeFiles": "{public,data}/**"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index"
+    }
+  ]
 }

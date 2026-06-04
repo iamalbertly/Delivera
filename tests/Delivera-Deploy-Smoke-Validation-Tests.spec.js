@@ -97,6 +97,10 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
     await expect(page.locator('h1.governance-title')).toContainText(/delivery answer/i);
     await expect(page.locator('#gov-answer-mount')).toBeAttached();
 
+    const briefApi = await page.request.get(`${prodBaseUrl}/api/governance-brief.json?projects=MPSA`);
+    expect(briefApi.status(), 'Governance brief API should be routed to Express').toBeLessThan(500);
+    expect(briefApi.status()).not.toBe(404);
+
     const errorEvents = consoleErrors.filter((e) => e.type === 'error');
     expect(errorEvents).toHaveLength(0);
   });
