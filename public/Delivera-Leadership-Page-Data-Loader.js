@@ -191,13 +191,27 @@ async function loadPreview() {
     } catch (_) {}
   }, LEADERSHIP_PREVIEW_TIMEOUT_MS);
   try {
-    const response = await fetch(url, {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-      signal: leadershipInFlightController.signal,
-    });
+    const { projectsSelect } = leadershipDom;
+    const squadProjects = (projectsSelect?.value || '').trim();
+    const squadUrl = squadProjects
+      ? `/api/leadership-summary.json?projects=${encodeURIComponent(squadProjects)}`
+      : '/api/leadership-summary.json';
+    const [response, squadRes] = await Promise.all([
+      fetch(url, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        signal: leadershipInFlightController.signal,
+      }),
+      fetch(squadUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).catch(() => null),
+    ]);
     if (requestId !== leadershipRequestSeq) return;
     const body = await response.json().catch(() => ({}));
+    if (squadRes?.ok) {
+      try {
+        const squadData = await squadRes.json();
+        if (Array.isArray(squadData.squads)) body.squads = squadData.squads;
+      } catch (_) {}
+    }
     if (!response.ok) {
       if (response.status === 401) {
         showError({
@@ -332,5 +346,6 @@ export function tryAutoRunPreviewOnce() {
 }
 
 export function renderLeadershipLoading() {
+  if (leadershipInFlightController) return;
   showLoading('Trends load when you pick a quarter or date range.');
 }

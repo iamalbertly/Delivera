@@ -48,8 +48,14 @@ export const test = base.extend({
       if (isExpectedOutcomeDraftClientError) return;
       const isExpectedPreviewHttpRecovery =
         /preview\.json/i.test(url || text || '') &&
-        /status of (401|403|429|502)\b/i.test(text || '');
+        (/status of (401|403|429|502)\b/i.test(text || '') || /502 \(Bad Gateway\)/i.test(text || ''));
       if (isExpectedPreviewHttpRecovery) return;
+      const isExpectedCiDummyJiraGatewayFailure =
+        process.env.CI === 'true' &&
+        /example\.atlassian\.net/i.test(process.env.JIRA_HOST || '') &&
+        /502 \(Bad Gateway\)/i.test(text || '') &&
+        /failed to load resource/i.test(text || '');
+      if (isExpectedCiDummyJiraGatewayFailure) return;
       const allowHttpStatusConsole = getAllowHttpStatusConsole();
       const isAllowedHttpStatusConsole = Array.from(allowHttpStatusConsole).some((statusCode) =>
         new RegExp(`status of ${statusCode}\\b`, 'i').test(text || '')

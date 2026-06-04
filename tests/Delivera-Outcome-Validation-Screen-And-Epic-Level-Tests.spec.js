@@ -15,18 +15,22 @@ const QUARTERLY_EPIC_LINES = [
 ].join('\n');
 
 test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
-  test('quarterly lines are interpreted as top-level epics intent', async ({ page }) => {
+  test('quarterly lines are interpreted as top-level epics in canvas', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#report-outcome-text').fill(QUARTERLY_EPIC_LINES);
-    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/top-level epics/i);
-    await expect(page.locator('#report-outcome-intake-create')).toContainText(/top-level epics/i);
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill(QUARTERLY_EPIC_LINES);
+    // Quick preview or server draft should show canvas items
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    // At least one epic chip should be present
+    await expect(page.locator('#wdd-canvas .wdc-type-chip[data-type="E"]').first()).toBeVisible();
+    await expect(page.locator('#wdd-send-counts')).toContainText(/Ready:/i);
     assertTelemetryClean(telemetry);
   });
 
-  test('validation screen shows pass checks for verified create', async ({ page }) => {
+  test('follow-up shows verification pass checks after successful create', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.route('**/api/outcome-from-narrative', async (route) => {
       await route.fulfill({
@@ -41,7 +45,7 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
           verification: {
             fetchVerified: true,
             missingKeys: [],
-            backlogVisibleKeys: ['MPSA-1', 'MPSA-2', 'MPSA-3', 'MPSA-4', 'MPSA-5', 'MPSA-6'],
+            backlogVisibleKeys: ['MPSA-1', 'MPSA-2'],
             backlogTopVerified: true,
             boardName: 'DMS Squad Board',
             hierarchyVerified: true,
@@ -58,15 +62,17 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#report-outcome-text').fill(QUARTERLY_EPIC_LINES);
-    await page.locator('#report-outcome-intake-create').click();
-    await expect(page.locator('#report-outcome-validation-screen')).toBeVisible();
-    await expect(page.locator('#report-outcome-validation-screen')).toContainText(/6\/6 checks passed/i);
-    await expect(page.locator('#report-outcome-validation-screen')).toContainText(/PASS/);
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill(QUARTERLY_EPIC_LINES);
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('#wdd-create-safe-btn').dispatchEvent('click');
+    await expect(page.locator('#wdd-follow-up')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#wdd-follow-up')).toContainText(/checks passed/i);
+    await expect(page.locator('#wdd-follow-up')).toContainText(/PASS/);
     assertTelemetryClean(telemetry);
   });
 
-  test('validation screen surfaces hierarchy mismatch edge case', async ({ page }) => {
+  test('follow-up surfaces hierarchy mismatch from verification', async ({ page }) => {
     await page.route('**/api/outcome-from-narrative', async (route) => {
       await route.fulfill({
         status: 200,
@@ -94,13 +100,16 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#report-outcome-text').fill(QUARTERLY_EPIC_LINES);
-    await page.locator('#report-outcome-intake-create').click();
-    await expect(page.locator('#report-outcome-validation-screen')).toContainText(/FAIL/);
-    await expect(page.locator('#report-outcome-validation-screen')).toContainText(/Hierarchy mismatches/i);
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill(QUARTERLY_EPIC_LINES);
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('#wdd-create-safe-btn').dispatchEvent('click');
+    await expect(page.locator('#wdd-follow-up')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#wdd-follow-up')).toContainText(/FAIL/);
+    await expect(page.locator('#wdd-follow-up')).toContainText(/Hierarchy mismatches/i);
   });
 
-  test('validation screen flags backlog rank edge case', async ({ page }) => {
+  test('follow-up flags backlog rank edge case', async ({ page }) => {
     await page.route('**/api/outcome-from-narrative', async (route) => {
       await route.fulfill({
         status: 200,
@@ -128,12 +137,15 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#report-outcome-text').fill(QUARTERLY_EPIC_LINES);
-    await page.locator('#report-outcome-intake-create').click();
-    await expect(page.locator('#report-outcome-validation-screen')).toContainText(/Not top-ranked yet/i);
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill(QUARTERLY_EPIC_LINES);
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('#wdd-create-safe-btn').dispatchEvent('click');
+    await expect(page.locator('#wdd-follow-up')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#wdd-follow-up')).toContainText(/Not top-ranked yet/i);
   });
 
-  test('draft API duplicate-line warning edge case is rendered', async ({ page }) => {
+  test('draft precheck message shows in parse status for duplicate-line warning', async ({ page }) => {
     await page.route('**/api/outcome-draft', async (route) => {
       await route.fulfill({
         status: 200,
@@ -150,7 +162,7 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
               kind: 'EPIC',
               title: 'FY27 Q1 - DMS - NBA - Territory Daily Report',
               confidence: 0.9,
-              confidenceLabel: 'high confidence',
+              isParent: true,
               duplicate: { suggestedAction: 'createNew' },
               warnings: [],
               selected: true,
@@ -162,7 +174,7 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
               kind: 'EPIC',
               title: 'FY27 Q1 - DMS - NBA - Territory Daily Report',
               confidence: 0.9,
-              confidenceLabel: 'high confidence',
+              isParent: false,
               duplicate: { suggestedAction: 'createNew' },
               warnings: [{ code: 'DUPLICATE_LINE_IN_INPUT', message: 'This line duplicates another line in your draft and will be unselected by default.' }],
               selected: false,
@@ -174,10 +186,12 @@ test.describe('Delivera Outcome Validation Screen And Epic Level Tests', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#report-outcome-text').fill(QUARTERLY_EPIC_LINES);
-    await page.locator('#report-outcome-generate-draft').click();
-    await expect(page.locator('#report-outcome-draft-precheck')).toContainText(/Quarterly epic batch detected/i);
-    await expect(page.locator('#report-outcome-draft-tbody')).toContainText(/duplicates another line/i);
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill(QUARTERLY_EPIC_LINES);
+    // Wait for auto-draft to fire and canvas to populate
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(2, { timeout: 4000 });
+    await expect(page.locator('#wdd-parse-status')).toContainText(/Quarterly epic batch detected/i);
+    await expect(page.locator('#wdd-canvas .wdc-repair-chip')).toBeVisible();
+    await expect(page.locator('#wdd-canvas')).toContainText(/duplicates another line/i);
   });
 });
-

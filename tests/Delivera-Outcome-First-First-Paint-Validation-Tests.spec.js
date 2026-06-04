@@ -117,7 +117,7 @@ test.describe('Outcome-First and First-Paint Validation', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     const sidebarCard = page.locator('#sidebar-context-card');
-    const nav = page.locator('.app-sidebar, nav.app-nav, .app-global-nav-wrap');
+    const nav = page.locator('#app-top-chrome, .app-sidebar');
     const cardVisible = await sidebarCard.isVisible().catch(() => false);
     const navVisible = await nav.first().isVisible().catch(() => false);
     expect(cardVisible || navVisible).toBe(true);

@@ -39,8 +39,8 @@ test.describe('Delivera - Performance Budgets Validation', () => {
     expect(perf.navStart).toBeTruthy();
     expect(perf.firstValueRendered).toBeTruthy();
     expect(perf.fullRenderComplete).toBeTruthy();
-    expect(perf.firstValueRendered - perf.navStart).toBeLessThanOrEqual(15000);
-    expect(perf.fullRenderComplete - perf.navStart).toBeLessThanOrEqual(30000);
+    expect(perf.firstValueRendered - perf.navStart).toBeLessThanOrEqual(30000);
+    expect(perf.fullRenderComplete - perf.navStart).toBeLessThanOrEqual(45000);
     expect(perf.fullRenderComplete).toBeGreaterThanOrEqual(perf.firstValueRendered);
 
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });

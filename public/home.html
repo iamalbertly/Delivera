@@ -12,46 +12,33 @@
       <section class="surface-hero-card">
         <p class="surface-eyebrow">Grow my Impact</p>
         <h1>Delivery intelligence dashboard</h1>
-        <p class="surface-lead">One executive entry point for sprint health, portfolio direction, backlog readiness, and team follow-through.</p>
+        <p class="surface-lead">Sprint health, portfolio direction, and team follow-through — one entry point, no Jira context-switching.</p>
         <div id="surface-context-bar"></div>
         <p id="surface-summary-line" class="surface-summary-line"></p>
         <div class="surface-hero-actions">
-          <button type="button" class="btn btn-primary" id="surface-continue-cta" data-surface-nav="/current-sprint">Continue to Current Sprint</button>
-          <button type="button" class="btn btn-secondary" data-open-outcome-modal data-outcome-context="Create actionable work from the Delivera dashboard context.">Create work</button>
+          <button type="button" class="btn btn-primary" data-surface-nav="/governance">Open Brief</button>
+          <button type="button" class="btn btn-secondary" id="surface-continue-cta" data-surface-nav="/governance">Continue to Brief</button>
         </div>
       </section>
 
+      <div id="home-sprint-pulse" class="home-sprint-pulse-card" hidden aria-live="polite"></div>
+
       <section class="surface-grid surface-grid-three">
-        <article class="surface-card">
-          <p class="surface-card-kicker">Customer</p>
-          <h2>Outcome-first command path</h2>
-          <p>Jump directly into the sprint or portfolio conversation with the least context switching possible.</p>
-          <ul class="surface-list">
-            <li>Current Sprint for immediate execution risk</li>
-            <li>Reports for historical proof and export</li>
-            <li>Leadership for portfolio-level prioritisation</li>
-          </ul>
-        </article>
-        <article class="surface-card">
-          <p class="surface-card-kicker">Realism &amp; Simplicity</p>
-          <h2>Signals over noise</h2>
-          <p>Keep the work visible in a way that supports real conversations, not a Jira-style inventory dump.</p>
-          <ul class="surface-list">
-            <li>Decision-ready cards with plain language</li>
-            <li>Risk-focused CTAs instead of long activity logs</li>
-            <li>Shared context across pages</li>
-          </ul>
-        </article>
-        <article class="surface-card">
-          <p class="surface-card-kicker">Speed &amp; Trust</p>
-          <h2>Faster follow-through</h2>
-          <p>Every surface keeps a clear next move, visible confidence level, and a path back to Jira-backed detail.</p>
-          <ul class="surface-list">
-            <li>Outcome modal available from every executive surface</li>
-            <li>Consistent navigation and data context</li>
-            <li>Explicit risk and freshness cues</li>
-          </ul>
-        </article>
+        <a href="/governance" class="surface-card surface-card--linked">
+          <p class="surface-card-kicker">Brief</p>
+          <h2>Decision review first</h2>
+          <p>Confidence, top decisions, risks with evidence — ready for leadership action.</p>
+        </a>
+        <a href="/current-sprint" class="surface-card surface-card--linked">
+          <p class="surface-card-kicker">Sprint</p>
+          <h2>Squad execution</h2>
+          <p>Stuck work, scope changes, and review-before-post nudges.</p>
+        </a>
+        <a href="/report" class="surface-card surface-card--linked">
+          <p class="surface-card-kicker">Evidence</p>
+          <h2>Proof when challenged</h2>
+          <p>Historical delivery data and exports that support the brief.</p>
+        </a>
       </section>
     </main>
   </div>

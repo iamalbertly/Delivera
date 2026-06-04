@@ -18,12 +18,11 @@ test.describe('Trust State Consistency Validation', () => {
     expect(bodyText).not.toMatch(/Generated just now|Generated \d+/i);
     expect(bodyText).not.toMatch(/Open in Jira: undefined/i);
 
-    const freshnessMatches = bodyText.match(/Just updated|Updated \d+ min ago|Older snapshot|Unavailable/gi) || [];
+    const freshnessMatches = bodyText.match(/Just updated|Updated \d+ min ago|Older snapshot|Unavailable|Filters changed/gi) || [];
     expect(freshnessMatches.length).toBeGreaterThan(0);
 
-    const hasJustUpdated = /Just updated/i.test(bodyText);
-    const hasStale = /Older snapshot/i.test(bodyText);
-    expect(hasJustUpdated && hasStale).toBe(false);
+    const justUpdatedCount = (bodyText.match(/Just updated/gi) || []).length;
+    expect(justUpdatedCount).toBeLessThanOrEqual(1);
     assertTelemetryClean(telemetry);
   });
 });

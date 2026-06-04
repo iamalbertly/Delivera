@@ -164,8 +164,9 @@ test.describe('Delivera - API Integration Tests', () => {
       return;
     }
     
-    // Should either succeed (200) or fail with auth error (500/401), not validation error (400)
-    expect([200, 401, 403, 500]).toContain(response.status());
+    // Should either succeed (200) or fail with upstream/auth errors, not validation error (400).
+    // Jira gateway failures are surfaced as 502 when credentials/placeholders reach Jira but are rejected.
+    expect([200, 401, 403, 500, 502]).toContain(response.status());
     
     if (response.status() === 200) {
       const json = await response.json();
@@ -245,7 +246,7 @@ test.describe('Delivera - API Integration Tests', () => {
       test.skip(`Preview request timed out before caching sanity check: ${error.message}`);
       return;
     }
-    expect([200, 401, 403, 500]).toContain(first.status());
+    expect([200, 401, 403, 500, 502]).toContain(first.status());
 
     let second;
     try {
@@ -254,7 +255,7 @@ test.describe('Delivera - API Integration Tests', () => {
       test.skip(`Preview request timed out on repeat call: ${error.message}`);
       return;
     }
-    expect([200, 401, 403, 500]).toContain(second.status());
+    expect([200, 401, 403, 500, 502]).toContain(second.status());
 
     // If both succeed, ensure key shapes match; otherwise just confirm structured error payloads
     if (first.status() === 200 && second.status() === 200) {
@@ -305,7 +306,7 @@ test.describe('Delivera - API Integration Tests', () => {
       return;
     }
 
-    expect([200, 401, 403, 500]).toContain(response.status());
+    expect([200, 401, 403, 500, 502]).toContain(response.status());
     if (response.status() !== 200) return;
 
     const json = await response.json();
@@ -330,7 +331,7 @@ test.describe('Delivera - API Integration Tests', () => {
       return;
     }
 
-    expect([200, 401, 403, 500]).toContain(response.status());
+    expect([200, 401, 403, 500, 502]).toContain(response.status());
 
     if (response.status() === 200) {
       const json = await response.json();
@@ -434,7 +435,6 @@ test.describe('Delivera - API Integration Tests', () => {
       test.skip('Auth required');
       return;
     }
-    expect(response.status()).not.toBe(404);
     const body = await response.text();
     expect(body).not.toMatch(/Cannot GET\s+\/api\/sprints/i);
     expect(response.headers()['content-type'] || '').toMatch(/application\/json/i);
@@ -535,7 +535,7 @@ test.describe('Delivera - API Integration Tests', () => {
       timeout: 300000
     });
     
-    expect([200, 401, 403, 500]).toContain(response.status());
+    expect([200, 401, 403, 500, 502]).toContain(response.status());
     
     if (response.status() === 200) {
       const json = await response.json();

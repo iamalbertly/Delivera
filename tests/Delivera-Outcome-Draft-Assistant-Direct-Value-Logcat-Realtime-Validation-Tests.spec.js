@@ -1,6 +1,8 @@
 /**
- * Outcome draft assistant — staged UI + network + console (logcat-equivalent) validation.
+ * Outcome draft assistant — staged drawer + canvas + console (logcat-equivalent) validation.
  * Fail-fast on browser warnings/errors via Delivera-Playwright-Console-Guard-Global-Validation-Helpers.
+ * Updated for right-side drawer (Delivera-Work-Draft-Canvas.js): auto-draft replaces generate button,
+ * canvas items replace draft table rows, send-bar chips replace separate controls.
  */
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
@@ -10,20 +12,20 @@ import {
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Delivera Outcome Draft Assistant Direct Value Logcat Realtime Validation Tests', () => {
-  test('report modal: stages validate draft API shape, readiness strip, and bulk controls', async ({ page }) => {
+  test('drawer: stages validate auto-draft, canvas items, review toggle, and close', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
 
-    await test.step('Stage 01: open report and outcome modal shell', async () => {
+    await test.step('Stage 01: open report and work-draft drawer shell', async () => {
       await page.goto('/report');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await page.locator('[data-open-outcome-modal]').first().click();
-      await expect(page.locator('#global-outcome-modal')).toBeVisible();
-      await expect(page.locator('#report-outcome-text')).toBeVisible();
-      await expect(page.locator('#report-outcome-generate-draft')).toBeVisible();
+      await expect(page.locator('#work-draft-drawer')).toBeVisible();
+      await expect(page.locator('#wdd-source-textarea')).toBeVisible();
+      // Drawer uses auto-draft — no explicit generate button
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage 02: intercept draft and assert UI binds rows + readiness', async () => {
+    await test.step('Stage 02: intercept draft and assert canvas items + send bar counts', async () => {
       await page.route('**/api/outcome-draft', async (route) => {
         await route.fulfill({
           status: 200,
@@ -37,7 +39,6 @@ test.describe('Delivera Outcome Draft Assistant Direct Value Logcat Realtime Val
             readinessWarnings: [
               { code: 'MISSING_QUARTER', message: 'No quarter label detected.' },
             ],
-            epicHintDefault: 'FY27 Q1 - DMS - Sample epic',
             rows: [
               {
                 id: 'r0',
@@ -46,8 +47,8 @@ test.describe('Delivera Outcome Draft Assistant Direct Value Logcat Realtime Val
                 kind: 'EPIC',
                 title: 'Parent theme',
                 confidence: 0.7,
-                confidenceLabel: 'high confidence',
-                duplicate: { suggestedAction: 'createNew', primaryReason: 'none', completedRecently: null },
+                isParent: true,
+                duplicate: null,
                 warnings: [],
                 selected: true,
               },
@@ -58,54 +59,51 @@ test.describe('Delivera Outcome Draft Assistant Direct Value Logcat Realtime Val
                 kind: 'STORY',
                 title: 'Child backlog item',
                 confidence: 0.7,
-                confidenceLabel: 'high confidence',
-                duplicate: { suggestedAction: 'mergeIntoExistingStory', primaryReason: 'story_match', completedRecently: null },
+                isParent: false,
+                duplicate: null,
                 warnings: [{ code: 'DUPLICATE_STORY', message: 'Similar open issue: TEST-1' }],
                 selected: true,
               },
             ],
-            profileMeta: { degraded: false, degradeReason: '', sampleCounts: { used: 5 } },
           }),
         });
       });
 
-      await page.locator('#report-outcome-text').fill('Q1 needs feature work plus fix login bugs for support.\n- Story one\n- Story two');
-      await page.locator('#report-outcome-generate-draft').click();
-      await expect(page.locator('#report-outcome-draft-panel')).toBeVisible();
-      await expect(page.locator('#report-outcome-draft-precheck')).toContainText(/Mixed notes/i);
-      await expect(page.locator('#report-outcome-readiness')).toBeVisible();
-      await expect(page.locator('#report-outcome-readiness')).toContainText(/quarter/i);
-      await expect(page.locator('#report-outcome-draft-tbody tr')).toHaveCount(2);
-      await expect(page.locator('.outcome-confidence-score').first()).toHaveText('0.70');
-      await expect(page.locator('.outcome-confidence-score').nth(1)).toHaveText('0.70');
+      await page.locator('#wdd-source-textarea').fill('Q1 needs feature work plus fix login bugs for support.\n- Story one\n- Story two');
+      // Auto-draft fires after 800ms debounce; wait up to 4s for canvas items
+      await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(2, { timeout: 4000 });
+      // Precheck message appears in parse status
+      await expect(page.locator('#wdd-parse-status')).toContainText(/Mixed notes/i);
+      // Send bar shows ready (1 safe item) and needs-review (1 warning item)
+      await expect(page.locator('#wdd-send-counts')).toContainText(/Ready: 1/i);
+      await expect(page.locator('#wdd-send-counts')).toContainText(/Needs review: 1/i);
+      // Warning item has a repair chip
+      await expect(page.locator('.wdc-repair-chip')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage 03: Review warnings only filters table and focuses first warning Details', async () => {
-      await page.locator('#report-outcome-review-warnings').click();
-      await expect(page.locator('#report-outcome-draft-tbody tr')).toHaveCount(1);
-      await expect(page.locator('#report-outcome-draft-tbody')).toContainText(/Child backlog item/i);
-      const warnDetails = page.locator('#report-outcome-draft-tbody tr.has-warning .report-outcome-draft-expand').first();
-      await expect(warnDetails).toBeVisible();
-      await expect(warnDetails).toBeFocused();
+    await test.step('Stage 03: review-toggle filters canvas to warning items only', async () => {
+      await page.locator('#work-draft-drawer').locator('[data-action="toggle-review"]').dispatchEvent('click');
+      await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(1);
+      await expect(page.locator('#wdd-canvas .wdc-title').first()).toHaveValue(/Child backlog item/i);
+      await expect(page.locator('#wdd-canvas .wdc-repair-chip')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage 04: Accept all safe restores rows', async () => {
-      await page.locator('#report-outcome-accept-safe').click();
-      await expect(page.locator('#report-outcome-draft-tbody tr')).toHaveCount(2);
+    await test.step('Stage 04: toggle review again restores all canvas items', async () => {
+      await page.locator('#work-draft-drawer').locator('[data-action="toggle-review"]').dispatchEvent('click');
+      await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(2);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage 05: Details expand inserts detail row', async () => {
-      await page.locator('#report-outcome-draft-tbody .report-outcome-draft-expand').first().click();
-      await expect(page.locator('.report-outcome-draft-detail-tr')).toHaveCount(1);
+    await test.step('Stage 05: repair chip visible on warning item', async () => {
+      await expect(page.locator('.wdc-repair-chip').first()).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage 06: Cancel draft hides panel', async () => {
-      await page.locator('#report-outcome-cancel-draft').click();
-      await expect(page.locator('#report-outcome-draft-panel')).toBeHidden();
+    await test.step('Stage 06: close button hides drawer', async () => {
+      await page.locator('#work-draft-drawer').locator('#wdd-close-btn').dispatchEvent('click');
+      await expect(page.locator('#work-draft-drawer')).not.toHaveClass(/is-open/);
       assertTelemetryClean(telemetry);
     });
   });

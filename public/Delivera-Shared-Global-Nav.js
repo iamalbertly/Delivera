@@ -1,9 +1,16 @@
 import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import {
+  ensureTopChrome,
+  refreshTopChromeBrand,
+  syncSidebarCollapsedFromStorage,
+  writeSidebarCollapsed,
+} from './Delivera-Shared-Top-Chrome-01Render-UI.js';
+import {
   readNotificationSummary,
   effectiveNotificationTotal,
   getTimeTrackingTotal,
   getRuntimeAlertCount,
+  refreshNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 
 const PAGE_DASHBOARD = 'dashboard';
@@ -13,33 +20,35 @@ const PAGE_SPRINTS = 'sprints';
 const PAGE_VALUE = 'value-delivery';
 const PAGE_RISKS = 'risks-blockers';
 const PAGE_LEADERSHIP = 'leadership';
+const PAGE_GOVERNANCE = 'governance';
 const PAGE_TEAMS = 'teams';
 const PAGE_SETTINGS = 'settings';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
-/** Direct-to-value primaries: now · proof · portfolio (Risks/Teams are deep links in More). */
-const PRIMARY_NAV_KEYS = [PAGE_SPRINTS, PAGE_REPORT, PAGE_LEADERSHIP];
-const MORE_NAV_KEYS = [PAGE_DASHBOARD, PAGE_RISKS, PAGE_TEAMS, PAGE_PI, PAGE_VALUE, PAGE_SETTINGS];
+/** Direct-to-value primaries: decision brief · sprint · evidence (settings live in top chrome gear). */
+const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_REPORT];
+const MORE_NAV_KEYS = [];
 const NAV_HREF_OVERRIDES = {
   [PAGE_RISKS]: '/current-sprint#stuck-card',
   [PAGE_TEAMS]: '/current-sprint',
 };
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
-  [PAGE_SPRINTS]: 'Current Sprint',
-  [PAGE_REPORT]: 'Delivery',
+  [PAGE_SPRINTS]: 'Sprint',
+  [PAGE_REPORT]: 'Proof',
   [PAGE_RISKS]: 'Risks',
   [PAGE_TEAMS]: 'Teams',
-  [PAGE_LEADERSHIP]: 'Leadership',
-  [PAGE_PI]: 'PI Goals',
-  [PAGE_VALUE]: 'Value Archive',
+  [PAGE_LEADERSHIP]: 'Brief',
+  [PAGE_GOVERNANCE]: 'Brief',
+  [PAGE_PI]: 'PI Baseline',
+  [PAGE_VALUE]: 'Outcomes',
   [PAGE_SETTINGS]: 'Settings',
 };
 const MOBILE_LABELS = {
+  [PAGE_GOVERNANCE]: 'Brief',
   [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_REPORT]: 'Delivery',
-  [PAGE_LEADERSHIP]: 'Lead',
+  [PAGE_REPORT]: 'Proof',
 };
 
 const NAV_ITEMS = [
@@ -51,8 +60,8 @@ const NAV_ITEMS = [
   },
   {
     key: PAGE_PI,
-    label: 'Program Increment (PI)',
-    href: '/program-increment',
+    label: 'PI Goals',
+    href: '/leadership',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 5v5l4 2-.9 1.6-4.6-2.3V7Z"/></svg>',
   },
   {
@@ -64,13 +73,13 @@ const NAV_ITEMS = [
   {
     key: PAGE_VALUE,
     label: 'Value Delivery',
-    href: '/value-delivery',
+    href: '/report',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2H7zm-2 4h14v2H5zm0 5h14v2H5zm0 5h10v2H5z"/></svg>',
   },
   {
     key: PAGE_RISKS,
     label: 'Risks & Blockers',
-    href: '/risks-blockers',
+    href: '/current-sprint#stuck-card',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4ZM11 9h2v5h-2Zm0 6.5h2v2h-2Z"/></svg>',
   },
   {
@@ -80,9 +89,15 @@ const NAV_ITEMS = [
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7 4a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7-8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
   },
   {
+    key: PAGE_GOVERNANCE,
+    label: 'Governance Brief',
+    href: '/governance',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.6H8zm0 3.2h8v1.6H8zm0-6.4h4v1.6H8z"/></svg>',
+  },
+  {
     key: PAGE_TEAMS,
     label: 'Teams',
-    href: '/teams',
+    href: '/current-sprint',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11.5a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm9 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3ZM3 20v-1.2A4.8 4.8 0 0 1 7.8 14h-.6A4.8 4.8 0 0 1 12 18.8V20Zm9 0v-1.2A4.8 4.8 0 0 1 16.8 14h-.6A4.8 4.8 0 0 1 21 18.8V20Z"/></svg>',
   },
   {
@@ -115,7 +130,8 @@ function getCurrentPage() {
   if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
   if (path === '/value-delivery' || path.endsWith('/value-delivery') || path === '/backlog-intake' || path.endsWith('/backlog-intake')) return PAGE_VALUE;
   if (path === '/risks-blockers' || path.endsWith('/risks-blockers')) return PAGE_RISKS;
-  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_LEADERSHIP;
+  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_GOVERNANCE;
+  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief')) return PAGE_GOVERNANCE;
   if (path === '/teams' || path.endsWith('/teams')) return PAGE_TEAMS;
   if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
   return PAGE_REPORT;
@@ -141,17 +157,18 @@ function getNavItems(current) {
 function buildSidebarHTML() {
   const current = getCurrentPage();
   const items = getNavItems(current);
-  const primaryItems = items.filter((item) => PRIMARY_NAV_KEYS.includes(item.key));
+  const primaryItems = PRIMARY_NAV_KEYS.map((key) => items.find((item) => item.key === key)).filter(Boolean);
   const moreItems = items.filter((item) => MORE_NAV_KEYS.includes(item.key));
   const moreIsActive = moreItems.some((item) => item.active);
   let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span></div>';
   html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
   for (const item of primaryItems) {
     const className = 'sidebar-link' + (item.active ? ' active current' : '');
+    const badge = item.key === PAGE_GOVERNANCE ? '<span class="sidebar-nav-badge" data-sidebar-badge="governance" hidden></span>' : '';
     if (item.active) {
-      html += '<span class="' + className + '" aria-current="page" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></span>';
+      html += '<span class="' + className + '" aria-current="page" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span>' + badge + '</span>';
     } else {
-      html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span></a>';
+      html += '<a class="' + className + '" href="' + item.href + '" data-nav-key="' + item.key + '">' + item.icon + '<span>' + item.label + '</span>' + badge + '</a>';
     }
   }
   if (moreItems.length) {
@@ -177,7 +194,7 @@ function buildSidebarHTML() {
 function updateToggleState(toggle, isExpanded) {
   const value = isExpanded ? 'true' : 'false';
   if (toggle) toggle.setAttribute('aria-expanded', value);
-  document.querySelectorAll('.sidebar-toggle').forEach((node) => node.setAttribute('aria-expanded', value));
+  document.querySelectorAll('.sidebar-toggle, .app-top-sidebar-toggle').forEach((node) => node.setAttribute('aria-expanded', value));
 }
 
 function syncBodySidebarState(sidebar) {
@@ -257,7 +274,7 @@ function navigateTo(itemKey, itemHref) {
 
 function buildBottomNavHTML() {
   const current = getCurrentPage();
-  const items = getNavItems(current).filter((item) => [PAGE_SPRINTS, PAGE_REPORT, PAGE_LEADERSHIP].includes(item.key));
+  const items = PRIMARY_NAV_KEYS.map((key) => getNavItems(current).find((item) => item.key === key)).filter(Boolean);
   let html = '<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">';
   for (const item of items) {
     const className = 'mobile-bottom-nav-item' + (item.active ? ' active' : '');
@@ -274,7 +291,7 @@ function buildBottomNavHTML() {
 
 function ensureBottomNav() {
   const current = getCurrentPage();
-  if (current === PAGE_LOGIN) {
+  if (current === PAGE_LOGIN || document.getElementById('app-top-chrome')) {
     document.querySelector('.mobile-bottom-nav-wrap')?.remove();
     return;
   }
@@ -308,46 +325,65 @@ function updateBottomNavBadge(itemKey, text, title) {
   if (title) el.setAttribute('title', title);
 }
 
+function getSidebarToggles() {
+  return Array.from(document.querySelectorAll('.sidebar-toggle, .app-top-sidebar-toggle'));
+}
+
+function handleSidebarToggleClick(sidebar, backdrop) {
+  const toggles = getSidebarToggles();
+  const toggle = toggles[0];
+  if (!isMobileViewport()) {
+    const collapsed = !document.body.classList.contains('sidebar-collapsed');
+    writeSidebarCollapsed(collapsed);
+    toggles.forEach((node) => node.setAttribute('aria-expanded', collapsed ? 'false' : 'true'));
+    return;
+  }
+  const open = sidebar.classList.contains('open');
+  if (open) {
+    closeSidebar(sidebar, toggle, backdrop);
+    toggle?.focus();
+  } else {
+    openSidebar(sidebar, toggle, backdrop);
+    const firstLink = sidebar.querySelector('a.sidebar-link, span.sidebar-link.current');
+    if (firstLink && typeof firstLink.focus === 'function') firstLink.focus();
+  }
+}
+
 function initSidebarController() {
   const sidebar = document.querySelector('.app-sidebar');
-  const toggle = document.querySelector('.sidebar-toggle');
   const backdrop = document.querySelector('.sidebar-backdrop');
-  if (!sidebar || !toggle || !backdrop || sidebar.dataset.sidebarBound === '1') return;
+  if (!sidebar || !backdrop || sidebar.dataset.sidebarBound === '1') return;
   sidebar.dataset.sidebarBound = '1';
+  syncSidebarCollapsedFromStorage();
 
-  toggle.addEventListener('click', () => {
-    if (!isMobileViewport()) return;
-    const open = sidebar.classList.contains('open');
-    if (open) {
-      closeSidebar(sidebar, toggle, backdrop);
-      toggle.focus();
-    } else {
-      openSidebar(sidebar, toggle, backdrop);
-      const firstLink = sidebar.querySelector('a.sidebar-link, span.sidebar-link.current');
-      if (firstLink && typeof firstLink.focus === 'function') firstLink.focus();
-    }
+  getSidebarToggles().forEach((toggle) => {
+    toggle.addEventListener('click', () => handleSidebarToggleClick(sidebar, backdrop));
   });
 
   backdrop.addEventListener('click', () => {
+    const toggle = getSidebarToggles()[0];
     closeSidebar(sidebar, toggle, backdrop);
-    toggle.focus();
+    toggle?.focus();
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      closeSidebar(sidebar, toggle, backdrop);
-      toggle.focus();
+      if (isMobileViewport() && sidebar.classList.contains('open')) {
+        const toggle = getSidebarToggles()[0];
+        closeSidebar(sidebar, toggle, backdrop);
+        toggle?.focus();
+      }
       return;
     }
-    trapSidebarFocus(event, sidebar, toggle);
+    trapSidebarFocus(event, sidebar, getSidebarToggles()[0]);
   });
 
   document.addEventListener('click', (event) => {
     if (!isMobileViewport() || !sidebar.classList.contains('open')) return;
     const insideSidebar = !!event.target.closest('.app-sidebar');
-    const onToggle = !!event.target.closest('.sidebar-toggle');
+    const onToggle = !!event.target.closest('.sidebar-toggle, .app-top-sidebar-toggle');
     if (!insideSidebar && !onToggle) {
-      closeSidebar(sidebar, toggle, backdrop);
+      closeSidebar(sidebar, getSidebarToggles()[0], backdrop);
     }
   }, { capture: true });
 
@@ -357,12 +393,13 @@ function initSidebarController() {
     const key = link.getAttribute('data-nav-key') || '';
     const href = link.getAttribute('href') || '/report';
     event.preventDefault();
-    if (isMobileViewport()) closeSidebar(sidebar, toggle, backdrop);
+    if (isMobileViewport()) closeSidebar(sidebar, getSidebarToggles()[0], backdrop);
     navigateTo(key, href);
   });
 
   window.addEventListener('resize', () => {
-    if (!isMobileViewport()) closeSidebar(sidebar, toggle, backdrop);
+    syncSidebarCollapsedFromStorage();
+    if (!isMobileViewport()) closeSidebar(sidebar, getSidebarToggles()[0], backdrop);
   });
   syncBodySidebarState(sidebar);
 }
@@ -382,6 +419,7 @@ function ensureGlobalNav() {
       document.querySelector('.mobile-bottom-nav-wrap')?.remove();
       document.body.classList.remove('sidebar-open');
       document.body.classList.remove('sidebar-scroll-lock');
+      ensureTopChrome();
       return;
     }
 
@@ -408,18 +446,15 @@ function ensureGlobalNav() {
     delete sidebar.dataset.sidebarBound;
     renderSidebarContextCard();
 
-    const toggles = Array.from(document.querySelectorAll('.sidebar-toggle'));
-    toggles.slice(1).forEach((node) => node.remove());
-    let toggle = toggles[0] || null;
-    if (!toggle) {
-      toggle = document.createElement('button');
-      toggle.className = 'sidebar-toggle';
-      toggle.type = 'button';
-      toggle.setAttribute('aria-label', 'Toggle navigation');
-      toggle.setAttribute('aria-controls', 'app-sidebar');
-      toggle.setAttribute('aria-expanded', 'false');
-      toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>';
-      document.body.appendChild(toggle);
+    document.querySelectorAll('.sidebar-toggle').forEach((node) => node.remove());
+
+    ensureTopChrome();
+    refreshNotificationDockFromStore();
+    const topChrome = document.getElementById('app-top-chrome');
+    if (topChrome && skipLink && skipLink.parentNode) {
+      if (skipLink.nextElementSibling !== topChrome) {
+        skipLink.insertAdjacentElement('afterend', topChrome);
+      }
     }
 
     const backdrops = Array.from(document.querySelectorAll('.sidebar-backdrop'));
@@ -436,8 +471,10 @@ function ensureGlobalNav() {
 
     initSidebarController();
     ensureBottomNav();
-    updateToggleState(toggle, sidebar.classList.contains('open'));
+    const topToggle = document.querySelector('.app-top-sidebar-toggle');
+    updateToggleState(topToggle, isMobileViewport() ? sidebar.classList.contains('open') : !document.body.classList.contains('sidebar-collapsed'));
     initDataPulseListener();
+    refreshTopChromeBrand();
     window.dispatchEvent(new CustomEvent('app:nav-rendered', { detail: { current } }));
   } catch (_) {}
 }
@@ -518,8 +555,28 @@ function initDataPulseListener() {
   window.addEventListener('delivera:currentSprintPayloadReady', () => {
     try {
       renderSidebarContextCard();
+      refreshTopChromeBrand();
     } catch (_) {}
   });
+  window.addEventListener('app:top-chrome-rendered', () => refreshTopChromeBrand());
+}
+
+/** Brief queue badge on sidebar + mobile nav (B5). */
+export function setBriefNavBadge(inboxTotal = 0) {
+  const n = Number(inboxTotal) || 0;
+  const label = n > 0 ? String(n) : '';
+  const el = document.querySelector('[data-sidebar-badge="governance"]');
+  if (el) {
+    if (label) {
+      el.hidden = false;
+      el.textContent = label;
+      el.setAttribute('title', `${n} items in agent queue`);
+    } else {
+      el.hidden = true;
+      el.textContent = '';
+    }
+  }
+  updateBottomNavBadge(PAGE_GOVERNANCE, label, n > 0 ? `${n} queue items` : '');
 }
 
 if (typeof document !== 'undefined') {

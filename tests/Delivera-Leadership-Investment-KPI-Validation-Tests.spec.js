@@ -74,4 +74,76 @@ test.describe('Leadership investment KPI and trust surfaces', () => {
       allowConsolePatterns: [/Quarterly KPI summary request failed/i],
     });
   });
+
+  test('leadership-summary.json includes squads[] with sprint state per board', async ({ page }) => {
+    const consoleErrors = [];
+    page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+
+    const [response] = await Promise.all([
+      page.waitForResponse('**/api/leadership-summary.json', { timeout: 15000 }).catch(() => null),
+      page.goto('/leadership'),
+    ]);
+
+    if (!response || response.status() === 401) {
+      test.skip(true, 'Auth required or leadership-summary not available');
+      return;
+    }
+
+    if (!response.ok()) {
+      test.skip(true, `leadership-summary returned ${response.status()}`);
+      return;
+    }
+
+    const body = await response.json().catch(() => null);
+    if (!body) {
+      test.skip(true, 'Could not parse leadership-summary response');
+      return;
+    }
+
+    expect(Array.isArray(body.squads), 'squads array should be present in response').toBe(true);
+    if (body.squads.length > 0) {
+      const firstSquad = body.squads[0];
+      expect(firstSquad).toHaveProperty('boardName');
+      expect(firstSquad).toHaveProperty('sprintState');
+      expect(firstSquad).toHaveProperty('hasActiveSprintFallback');
+      expect(typeof firstSquad.hasActiveSprintFallback).toBe('boolean');
+    }
+
+    expect(consoleErrors.filter(e => !/Quarterly KPI/.test(e))).toHaveLength(0);
+  });
+
+  test('squad stall alert chip renders in HUD when mocked stalled squad is present', async ({ page }) => {
+    const consoleErrors = [];
+    page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+
+    await page.route('**/api/leadership-summary.json', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          velocity: { avg: 42, trend: 3 },
+          risk: { score: 15, trend: 0, blockersOwned: 1, unownedOutcomes: 0, missingLogged: 0, missingEstimate: 0, deliveryRisk: 10, dataQualityRisk: 5 },
+          quality: { reworkPct: 7, trend: 1 },
+          predictability: { avg: 80, trend: 2 },
+          squads: [
+            { boardId: 1, boardName: 'MPSA Board', sprintState: 'active', sprintName: 'Sprint 42', sprintStartDate: '2026-05-15', hasActiveSprintFallback: false, nextSprintCandidate: null, nextSprintStartOverdue: false, suggestStartSprint: false, doneStories: 5, totalStories: 10 },
+            { boardId: 2, boardName: 'MAS Board', sprintState: 'closed', sprintName: null, sprintStartDate: null, hasActiveSprintFallback: true, nextSprintCandidate: { id: 99, name: 'Sprint 8', startDate: '2026-05-20' }, nextSprintStartOverdue: true, suggestStartSprint: true, doneStories: 0, totalStories: 0 },
+          ],
+          projectContext: 'MPSA, MAS',
+          generatedAt: new Date().toISOString(),
+        }),
+      });
+    });
+
+    await page.goto('/leadership');
+    await page.waitForTimeout(2000);
+
+    const alertChip = page.locator('.hud-squad-alert');
+    if (await alertChip.isVisible().catch(() => false)) {
+      const text = await alertChip.textContent();
+      expect(text).toMatch(/squad.*without active sprint/i);
+    }
+
+    expect(consoleErrors.filter(e => !/Quarterly KPI/.test(e))).toHaveLength(0);
+  });
 });

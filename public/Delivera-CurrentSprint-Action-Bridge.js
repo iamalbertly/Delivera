@@ -138,8 +138,10 @@ export function shouldSuppressSend(issueKey, commentBody) {
 
 export function isSprintCommentSendAllowed(meta = null, sprint = null) {
   const snapshot = meta?.fromSnapshot === true;
+  const stale = meta?.stale === true;
   const state = String(sprint?.state || '').toLowerCase();
   if (snapshot) return false;
+  if (stale) return false;
   if (state && state !== 'active') return false;
   return true;
 }
@@ -336,24 +338,88 @@ export function getCurrentSprintSummaryContext() {
 }
 
 export function buildGuidedNudgeText(opts = {}) {
-  return buildHumanNudgeDraft({
-    issueKey: opts.issueKey,
-    issueSummary: opts.issueSummary,
-    issueStatus: opts.issueStatus,
-    useCase: 'ownership',
-    staleHours: opts.staleHours ?? null,
-  });
+  const issueKey = asText(opts.issueKey);
+  const issueSummary = asText(opts.issueSummary);
+  const issueStatus = asText(opts.issueStatus);
+  const issueUrl = asText(opts.issueUrl);
+  const ctx = opts.summaryContext && typeof opts.summaryContext === 'object' ? opts.summaryContext : null;
+
+  // Role resolution — prefer already-resolved context over re-reading localStorage
+  const rm = ctx?.roleMode || readRoleMode();
+  const rl = roleLabel(rm);
+  const actionHint = asText(ctx?.topAction) || roleActionHint(rm);
+  const simpleEnglish = ctx?.simpleEnglishMode ?? readSimpleEnglishMode();
+
+  // Dedup suppression — same issue key within 20 min is suppressed (key-only bucket avoids false positives from action text variance)
+  if (shouldSuppressNudge(issueKey, issueKey)) {
+    return `Duplicate nudge suppressed for ${issueKey || 'this issue'}. Allow 20 min before re-sending to the same item.`;
+  }
+
+  // Confidence label from evidence band — always use "Confidence:" as the structured field name
+  // since this text goes into a Jira comment and must be machine-readable
+  const band = ctx?.evidenceBand || 'emerging';
+  const confidenceMap = { low: 'Low', snapshot: 'Low', emerging: 'Medium', actionable: 'High' };
+  const confidenceLabel = confidenceMap[band] || 'Medium';
+  const doNowWord = simpleEnglish ? 'Do now' : 'Recommended action now';
+
+  // Base nudge line from existing human-text builder
+  const base = buildHumanNudgeDraft({ issueKey, issueSummary, issueStatus, useCase: 'ownership', staleHours: opts.staleHours ?? null });
+
+  // Done-criteria line — concise mode shortens to a terse past-tense phrase; guide/assist get the full prompt
+  const coachingLevel = ctx?.coachingLevel ?? readCoachingLevel();
+  const isConcise = coachingLevel === 'concise';
+  let doneLine;
+  if (issueUrl) {
+    doneLine = `Done: Confirm resolved and link updated → ${issueUrl}`;
+  } else if (isConcise) {
+    // Derive terse past-tense shorthand: "Assign owner" → "owner set", "Update status" → "status updated"
+    const verbPastMap = { assign: 'set', set: 'set', update: 'updated', confirm: 'confirmed', add: 'added', resolve: 'resolved', close: 'closed' };
+    const actionLower = asText(actionHint).toLowerCase();
+    const verbMatch = actionLower.match(/^(assign|set|update|confirm|add|resolve|close)\s+(.+)/);
+    let shortDone;
+    if (verbMatch) {
+      const past = verbPastMap[verbMatch[1]] || verbMatch[1] + 'ed';
+      const noun = verbMatch[2].trim();
+      shortDone = `${noun} ${past}`;
+    } else {
+      shortDone = actionLower.length > 0 && actionLower.length < 30 ? actionLower : 'status updated';
+    }
+    doneLine = `Done: ${shortDone}`;
+  } else {
+    doneLine = `Done: Confirm status is updated in Jira before next stand-up.`;
+  }
+
+  // Guide mode includes scope and capacity context for richer stakeholder nudges
+  const isGuide = coachingLevel === 'guide';
+  const scopeSignal = isGuide && ctx?.scope ? `Scope signal: ${ctx.scope}` : null;
+  const capacitySignal = isGuide && ctx?.capacity ? `Capacity signal: ${ctx.capacity}` : null;
+
+  return truncate([
+    `[${rl}] ${base}`,
+    `${doNowWord}: ${actionHint}`,
+    `Confidence: ${confidenceLabel}`,
+    scopeSignal,
+    capacitySignal,
+    doneLine,
+  ].filter(Boolean).join('\n'), 500);
 }
 
 export { shortenIssueSummaryHuman as shortenIssueSummary };
 
 export function buildBasicNudgeText(opts = {}) {
-  return buildHumanNudgeDraft({
+  const ctx = opts.summaryContext && typeof opts.summaryContext === 'object' ? opts.summaryContext : null;
+  const rm = ctx?.roleMode || readRoleMode();
+  const rl = roleLabel(rm);
+  const base = buildHumanNudgeDraft({
     issueKey: opts.issueKey,
     issueSummary: opts.issueSummary,
     issueStatus: opts.issueStatus,
     useCase: 'ownership',
   });
+  const doNow = opts.issueUrl
+    ? `Do now: Assign an owner and update in Jira → ${opts.issueUrl}`
+    : `Do now: Assign an owner and update the status in Jira before stand-up.`;
+  return `[${rl}]\n${base}\n${doNow}`;
 }
 
 export function showSprintActionToast(message, tone = 'info') {

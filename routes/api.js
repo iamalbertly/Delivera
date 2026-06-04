@@ -15,7 +15,7 @@ import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resol
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
 import { getUnifiedRiskCounts } from '../public/Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { appEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
+import { appEnvConfig, jiraEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 import {
     readReportContextFromSession,
     writeReportContextToSession,
@@ -25,7 +25,43 @@ import { parseOutcomeIntake } from '../public/Delivera-Shared-Outcome-Intake-Par
 import { jaccardSimilarity } from '../lib/Delivera-Outcome-Similarity-01Core.js';
 import { buildBoardStyleProfile } from '../lib/Delivera-Outcome-Board-Style-Profile.js';
 import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
+import { resolveProviderConfig, parseViaNarrative, testProviderConfig } from '../lib/Delivera-AI-Provider-Gateway.js';
+import { assembleGovernanceBrief } from '../lib/Delivera-Governance-Brief-03Assemble-Service.js';
+import { savePIBaseline, getLatestPIBaseline, listPIBaselines } from '../lib/Delivera-Governance-PIBaseline-01Store-IO.js';
+import {
+    runProposePipeline,
+    proposeFromSlideImage,
+    proposeFromBoardCache,
+} from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
+import {
+    loadEpicActivityFromBriefCache,
+    enrichCandidatesWithEpicActivity,
+    enrichActivityFromJiraExistence,
+} from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
+import { recordNarrationPattern } from '../lib/Delivera-Governance-Narration-Knowledge-IO.js';
+import { recordAdoptionMetric, summarizeAdoptionMetrics } from '../lib/Delivera-Governance-Adoption-Metrics-IO.js';
+import {
+    readPendingInboxItems,
+    resolveInboxItem,
+    readRecentJobs,
+    groupInboxByType,
+} from '../lib/Delivera-Governance-Worker-02Jobs-IO.js';
+import { buildWorkerReceipt } from '../lib/Delivera-Governance-Worker-03Receipt-SSOT.js';
+import { buildScopeIntelligence } from '../lib/Delivera-Governance-BoardIntelligence-01Scope-SSOT.js';
+import { buildPIConfidenceStrip } from '../lib/Delivera-Governance-PIConfidence-01Strip-SSOT.js';
+import { buildFeedbackTriageSummary } from '../lib/Delivera-Governance-FeedbackTriage-01Agents-SSOT.js';
+import {
+    resolveEffectiveGovernanceProfile,
+    saveProfileOverride,
+    listProfileOverrides,
+} from '../lib/Delivera-Governance-Profile-01Resolve-SSOT.js';
+import { buildImpactPack, impactPackMonthKey } from '../lib/Delivera-Governance-Worker-05ImpactPack-Builder.js';
+import { clampConfidenceToFreshness } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
+import { readQuarterLabelIndex, rememberQuarterLabel } from '../lib/Delivera-Governance-Quarter-Labels-01Index-SSOT.js';
+import { PROJECT_CATALOG, readCatalogKeys } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
+import { getAccessMap } from '../lib/Delivera-Shared-Projects-Access-01Index-SSOT.js';
+import { refreshProjectsAccessBatch } from '../lib/Delivera-Shared-Projects-Access-02Refresh-Worker.js';
 import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
 import { buildJiraIssueUrl, escapeHtml } from '../lib/Delivera-Server-Url-And-Escape-Helpers.js';
 import { postIssueComment } from '../lib/Delivera-Jira-Issue-Comment-Post-Service.js';
@@ -753,20 +789,92 @@ router.get('/api/format-date-range', requireAuth, (req, res) => {
     res.json({ dateRange });
 });
 
-router.get('/api/quarters-list', requireAuth, (req, res) => {
+async function getCachedGovernanceQuarterLabels() {
+    const labels = new Set();
+    for (const label of await readQuarterLabelIndex()) {
+        if (label) labels.add(label);
+    }
+    try {
+        const entries = await cache.entries({ namespace: 'governanceBrief' });
+        for (const entry of entries) {
+            const brief = entry?.value || entry;
+            const label = brief?.period?.vodacomQuarter;
+            if (label) labels.add(String(label).trim());
+        }
+    } catch (err) {
+        logger.warn('quarters-list cached scan failed', { error: err?.message });
+    }
+    return Array.from(labels);
+}
+
+router.get('/api/session-meta.json', requireAuth, (req, res) => {
+    const email = jiraEnvConfig.email || '';
+    let initials = 'DL';
+    if (email) {
+        const local = email.split('@')[0] || '';
+        const parts = local.split(/[._-]+/).filter(Boolean);
+        initials = parts.length >= 2
+            ? `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase()
+            : local.slice(0, 2).toUpperCase();
+    }
+    const emailMasked = email
+        ? email.replace(/^(.).+(@.+)$/, '$1***$2')
+        : '';
+    return res.json({ initials: initials || 'DL', emailMasked });
+});
+
+router.post('/api/client-log', requireAuth, (req, res) => {
+    const body = req.body || {};
+    logger.info('client-fetch-failure', {
+        url: String(body.url || '').slice(0, 240),
+        status: body.status ?? null,
+        message: String(body.message || '').slice(0, 240),
+        context: String(body.context || '').slice(0, 80),
+        user: req.session?.user || 'unknown',
+    });
+    return res.json({ ok: true });
+});
+
+router.get('/api/quarters-list', requireAuth, async (req, res) => {
     const count = Math.min(20, Math.max(1, parseInt(req.query.count, 10) || 8));
-    const quarters = getQuartersUpToCurrent(count).map((q) => ({
+    const calendar = getQuartersUpToCurrent(count).map((q) => ({
         start: q.startISO,
         end: q.endISO,
         label: q.label,
         period: q.period,
         isCurrent: q.isCurrent,
     }));
+    const byLabel = new Map(calendar.map((q) => [q.label, q]));
+    if (req.query.includeCached === '1' || req.query.includeCached === 'true') {
+        for (const label of await getCachedGovernanceQuarterLabels()) {
+            if (!label || byLabel.has(label)) continue;
+            byLabel.set(label, { start: '', end: '', label, period: label, isCurrent: false, fromCache: true });
+        }
+    }
+    const quarters = Array.from(byLabel.values()).sort((a, b) => String(a.label).localeCompare(String(b.label)));
     res.json({ quarters });
 });
 
 router.get('/api/default-window', requireAuth, (req, res) => {
     res.json({ start: DEFAULT_WINDOW_START, end: DEFAULT_WINDOW_END });
+});
+
+router.get('/api/projects-catalog.json', requireAuth, async (req, res) => {
+    try {
+        const accessMap = await getAccessMap();
+        const projects = PROJECT_CATALOG.map((entry) => {
+            const row = accessMap.get(entry.key);
+            return {
+                ...entry,
+                accessible: row?.accessible ?? null,
+                lastChecked: row?.lastChecked ?? null,
+            };
+        });
+        return res.json({ projects, keys: readCatalogKeys() });
+    } catch (err) {
+        logger.warn('projects-catalog read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Catalog read failed' });
+    }
 });
 
 router.get('/api/boards.json', requireAuth, async (req, res) => {
@@ -802,8 +910,19 @@ router.get('/api/boards.json', requireAuth, async (req, res) => {
                 boards: [],
             });
         }
-        const payload = { projects: selectedProjects, boards: list };
-        if (projectErrors.length) payload.jiraErrors = projectErrors;
+        const jiraHost = resolveJiraHostFromEnv();
+        const payload = {
+            projects: selectedProjects,
+            boards: list,
+            jiraBrowseHost: jiraHost ? String(jiraHost).replace(/\/$/, '') : null,
+        };
+        if (projectErrors.length) {
+            payload.jiraErrors = projectErrors;
+            payload.projectErrors = projectErrors.map((e) => ({
+                project: e.projectKey || e.project,
+                code: e.code || 'JIRA_ERROR',
+            }));
+        }
         res.json(payload);
     } catch (error) {
         logger.error('Error fetching boards', error);
@@ -864,6 +983,7 @@ router.get('/api/sprints', requireAuth, getSprintsHandler);
 router.get('/api/sprints.json', requireAuth, getSprintsHandler);
 
 router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
+    let snapshotKey = null;
     try {
         const boardIdParam = req.query.boardId;
         const sprintIdParam = req.query.sprintId;
@@ -892,7 +1012,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         const completionAnchor = (req.query.completionAnchor || 'resolution').toLowerCase();
         const supportedAnchors = ['resolution', 'lastsubtask', 'statusdone'];
         const anchor = supportedAnchors.includes(completionAnchor) ? completionAnchor : 'resolution';
-        const snapshotKey = buildCurrentSprintSnapshotCacheKey({
+        snapshotKey = buildCurrentSprintSnapshotCacheKey({
             boardId,
             sprintId: sprintId != null && !Number.isNaN(sprintId) ? sprintId : null,
             projectKeys,
@@ -939,10 +1059,30 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         payload.meta.partialPermissions = false;
 
         const selectedSprintState = String(payload?.sprint?.state || '').toLowerCase();
-        const noActiveSprintFallback = !sprintId && selectedSprintState === 'closed' && Number(payload?.meta?.activeSprintCount || 0) === 0;
+        const activeCount = Number(payload?.meta?.activeSprintCount || 0);
+        const noActiveSprintFallback = !sprintId && selectedSprintState === 'closed' && activeCount === 0;
         if (noActiveSprintFallback) {
             payload.meta.noActiveSprintFallback = true;
-            payload.meta.explanatoryLine = 'No active sprint - showing last completed sprint.';
+            const next = payload.nextSprint;
+            if (next?.id) {
+                // Team has a future sprint planned but hasn't started it — smart limbo detection
+                const nextName = String(next.name || '').trim();
+                const nextStart = next.startDate ? new Date(next.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+                payload.meta.explanatoryLine = nextName
+                    ? `No active sprint — showing last completed. "${nextName}" is planned${nextStart ? ' from ' + nextStart : ''} but not yet started.`
+                    : 'No active sprint — showing last completed. A future sprint is planned but not yet started.';
+                payload.meta.nextSprintCandidate = { id: next.id, name: nextName, startDate: next.startDate || '', goal: next.goal || '' };
+                payload.meta.suggestStartSprint = true;
+                // Detect overdue start: planned start date has already passed but sprint was never started
+                if (next.startDate) {
+                    const plannedStart = new Date(next.startDate).getTime();
+                    if (Number.isFinite(plannedStart) && plannedStart < Date.now()) {
+                        payload.meta.nextSprintStartOverdue = true;
+                    }
+                }
+            } else {
+                payload.meta.explanatoryLine = 'No active sprint — showing last completed sprint.';
+            }
         }
 
         writeReportContextToSession(req, buildCurrentSprintSessionContext(projectKeys, boardId, payload?.sprint?.id || sprintId));
@@ -958,6 +1098,22 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         const mapped = mapCurrentSprintError(error);
         if (mapped.httpStatus === 401 || mapped.httpStatus === 403) {
             await cache.invalidateCurrentSprintSnapshot({ boardId }).catch(() => {});
+        }
+        // Serve stale snapshot on Jira outage (502/503) so teams see data, not an error screen
+        const isJiraOutage = mapped.httpStatus === 502 || mapped.httpStatus === 503;
+        if (isJiraOutage && snapshotKey) {
+            const staleEntry = await cache.getWithStaleFallback(snapshotKey, 8 * 60 * 60 * 1000).catch(() => null);
+            if (staleEntry) {
+                const out = staleEntry.value ?? staleEntry;
+                if (out && typeof out === 'object') {
+                    out.meta = out.meta || {};
+                    out.meta.stale = true;
+                    out.meta.staleAgeMs = staleEntry.staleAgeMs || 0;
+                    out.meta.staleReason = 'JIRA_UNREACHABLE';
+                    logger.warn('Serving stale current-sprint during Jira outage', buildRequestLogContext(req, { boardId, staleAgeMs: staleEntry.staleAgeMs }));
+                    return res.json(out);
+                }
+            }
         }
         logger.error('Error generating current-sprint payload', {
             ...buildRequestLogContext(req, { boardId, status: mapped.httpStatus }),
@@ -1045,6 +1201,11 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         let missingEstimate = 0;
         let totalStories = 0;
         let doneStories = 0;
+        let totalSP = 0;
+        let doneSP = 0;
+        let priorDoneSP = 0;
+        let spBoardCount = 0;
+        let priorSpBoardCount = 0;
 
         for (const settled of boardPayloadsSettled) {
             if (settled.status !== 'fulfilled' || !settled.value) continue;
@@ -1057,6 +1218,18 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
             unownedOutcomes += Number(riskCounts.unownedOutcomes || 0);
             missingLogged += Number(payload?.summary?.subtaskMissingLogged || 0);
             missingEstimate += Number(payload?.summary?.subtaskMissingEstimate || 0);
+            const boardTotalSP = Number(payload?.summary?.totalSP || 0);
+            const boardDoneSP = Number(payload?.summary?.doneSP || 0);
+            if (boardTotalSP > 0) {
+                totalSP += boardTotalSP;
+                doneSP += boardDoneSP;
+                spBoardCount += 1;
+            }
+            const boardPriorDoneSP = Number(payload?.previousSprint?.doneSP || 0);
+            if (payload?.previousSprint && boardPriorDoneSP > 0) {
+                priorDoneSP += boardPriorDoneSP;
+                priorSpBoardCount += 1;
+            }
         }
 
         const completionPct = totalStories > 0 ? Math.round((doneStories / totalStories) * 100) : 0;
@@ -1065,8 +1238,66 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         const deliveryRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, blockersOwned / 10) * 100)));
         const dataQualityRisk = Math.max(0, Math.min(100, Math.round(Math.min(1, (unownedOutcomes + missingLogged + missingEstimate) / 30) * 100)));
 
+        // Honest metrics only: no fabricated values may reach a governance surface.
+        // Velocity = SP delivered in the current sprint window across squads (story-point backed only).
+        const spAvailable = spBoardCount > 0;
+        const velocity = spAvailable
+            ? {
+                avg: Math.round(doneSP),
+                trend: priorSpBoardCount > 0 && priorDoneSP > 0
+                    ? Math.round(((doneSP - priorDoneSP) / priorDoneSP) * 100)
+                    : null,
+                source: 'computed',
+                basis: 'currentSprintDoneSP',
+            }
+            : { avg: null, trend: null, source: 'unavailable', basis: 'noStoryPoints' };
+        // Predictability = delivered vs committed (SP when available, else story counts).
+        const predictability = spAvailable
+            ? { avg: totalSP > 0 ? Math.round((doneSP / totalSP) * 100) : 0, trend: null, source: 'computed', basis: 'spCompletionRatio' }
+            : (totalStories > 0
+                ? { avg: completionPct, trend: null, source: 'computed', basis: 'storyCompletionRatio' }
+                : { avg: null, trend: null, source: 'unavailable', basis: 'noStories' });
+        // Rework ratio is not computed in this portfolio rollup; never invent it.
+        const quality = { reworkPct: null, trend: null, source: 'unavailable', basis: 'notComputedInRollup' };
+
+        const squads = boardPayloadsSettled.map((settled, idx) => {
+            const board = activeBoards[idx];
+            if (settled.status !== 'fulfilled' || !settled.value) {
+                return { boardId: board?.id, boardName: board?.name || 'Unknown', sprintState: 'unavailable', error: 'Jira unreachable' };
+            }
+            const payload = settled.value;
+            const meta = payload.meta || {};
+            const sprint = payload.sprint || {};
+            const nextSprint = payload.nextSprint || {};
+            const selectedSprintState = String(sprint.state || '').toLowerCase();
+            const activeCount = Number(meta.activeSprintCount || 0);
+            const noActiveFallback = selectedSprintState === 'closed' && activeCount === 0;
+            let nextSprintStartOverdue = false;
+            if (noActiveFallback && nextSprint.startDate) {
+                const plannedStart = new Date(nextSprint.startDate).getTime();
+                if (Number.isFinite(plannedStart) && plannedStart < Date.now()) nextSprintStartOverdue = true;
+            }
+            const storyList = payload.stories || [];
+            const boardDone = storyList.filter((s) => String(s?.status || '').toLowerCase().includes('done')).length;
+            return {
+                boardId: board?.id,
+                boardName: board?.name || 'Unknown',
+                sprintState: sprint.state || 'none',
+                sprintName: sprint.name || null,
+                sprintStartDate: sprint.startDate || null,
+                hasActiveSprintFallback: noActiveFallback,
+                nextSprintCandidate: (noActiveFallback && nextSprint.id)
+                    ? { id: nextSprint.id, name: nextSprint.name || '', startDate: nextSprint.startDate || '' }
+                    : null,
+                nextSprintStartOverdue,
+                suggestStartSprint: noActiveFallback && !!nextSprint.id,
+                doneStories: boardDone,
+                totalStories: storyList.length,
+            };
+        });
+
         const summary = {
-            velocity: { avg: 45, trend: 12 },
+            velocity,
             risk: {
                 score: riskScore,
                 trend: 0,
@@ -1077,8 +1308,9 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
                 deliveryRisk,
                 dataQualityRisk,
             },
-            quality: { reworkPct: 8.5, trend: 2 },
-            predictability: { avg: 82, trend: 4 },
+            quality,
+            predictability,
+            squads,
             projectContext: projects.join(', '),
             generatedAt: new Date().toISOString()
         };
@@ -1087,6 +1319,538 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
     } catch (err) {
         logger.error('Leadership HUD Error', err);
         res.status(500).json({ error: 'HUD computation failed' });
+    }
+});
+
+// ─── Governance brief surface ──────────────────────────────────────────────────
+
+const GOVERNANCE_BRIEF_TTL_MS = 30 * 60 * 1000; // 30 min: bounded Jira calls per run
+const GOVERNANCE_NS = 'governanceBrief';
+
+function parseGovernanceProjects(req) {
+    const raw = req.query.projects;
+    return raw != null
+        ? Array.from(new Set(String(raw).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)))
+        : ['MPSA', 'MAS'];
+}
+
+/** Re-stamp a cached brief with cached freshness and clamp confidence accordingly. */
+function applyCachedFreshness(brief) {
+    if (!brief?.freshness) return brief;
+    const generatedMs = brief.generatedAt ? new Date(brief.generatedAt).getTime() : Date.now();
+    const ageMin = Math.max(0, Math.round((Date.now() - generatedMs) / 60000));
+    brief.freshness = { ...brief.freshness, confidenceLimit: 'cached', cacheAgeMinutes: ageMin };
+    if (brief.leadershipNarrative?.confidence) {
+        brief.leadershipNarrative.confidence = clampConfidenceToFreshness(brief.leadershipNarrative.confidence, 'cached');
+    }
+    return brief;
+}
+
+async function getCachedGovernanceBrief(projects) {
+    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+    const cachedBrief = cached?.value || cached;
+    if (!cachedBrief) return null;
+    return { brief: applyCachedFreshness(cachedBrief), cached: true };
+}
+
+async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true, includePOReadiness = true }) {
+    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e${includeEvidence ? 1 : 0}:p${includePOReadiness ? 1 : 0}`;
+    const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+    const cachedBrief = cached?.value || cached;
+    if (cachedBrief) return { brief: applyCachedFreshness(cachedBrief), cached: true };
+
+    const agileClient = createAgileClient();
+    const version3Client = createVersion3Client();
+    const fields = await discoverFieldsWithCache(version3Client);
+    const { boards } = await discoverBoardsWithCache(projects, agileClient);
+
+    let baseline = null;
+    try { baseline = await getLatestPIBaseline(`${projects.join('+')}`); } catch (_) { baseline = null; }
+
+    let profileOverrides = null;
+    try {
+        profileOverrides = await resolveEffectiveGovernanceProfile({
+            portfolioKey: projects.join('+'),
+            project: projects[0] || '',
+            userId: req.session?.user || null,
+        });
+    } catch (_) { profileOverrides = null; }
+
+    const providerConfig = resolveProviderConfig(req.headers || {});
+    const brief = await assembleGovernanceBrief({
+        projects, boards, agileClient, version3Client, fields,
+        period: { vodacomQuarter: null, sprintNames: [] },
+        cache, providerConfig, includeEvidence, includePOReadiness, baseline, profileOverrides,
+    });
+    await cache.set(cacheKey, brief, GOVERNANCE_BRIEF_TTL_MS, { namespace: GOVERNANCE_NS });
+    const quarterLabel = brief?.period?.vodacomQuarter;
+    if (quarterLabel) {
+        void rememberQuarterLabel(quarterLabel, projects).catch((err) => {
+            logger.warn('quarter label index write failed', { error: err?.message });
+        });
+    }
+    // Safe telemetry: counts only, never issue bodies.
+    logger.info('governance-brief built', {
+        projects: projects.join(','), boards: brief.meta?.boardsResolved,
+        risks: brief.risks?.length || 0, narratedBy: brief.meta?.narratedBy,
+        evidenceFetched: brief.meta?.evidenceFetched,
+    });
+    return { brief, cached: false };
+}
+
+async function serveStaleBriefOrError(res, projects, err) {
+    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    try {
+        const staleEntry = await cache.getWithStaleFallback(cacheKey);
+        if (staleEntry) {
+            const brief = staleEntry.value || staleEntry;
+            const ageMin = Math.max(0, Math.round((Number(staleEntry.staleAgeMs) || 0) / 60000));
+            brief.freshness = { ...(brief.freshness || {}), confidenceLimit: 'stale', cacheAgeMinutes: ageMin };
+            if (brief.leadershipNarrative?.confidence) {
+                brief.leadershipNarrative.confidence = clampConfidenceToFreshness(brief.leadershipNarrative.confidence, 'stale');
+            }
+            brief.meta = { ...(brief.meta || {}), servedStale: true, staleReason: err?.code || 'JIRA_UNREACHABLE' };
+            return res.json(brief);
+        }
+    } catch (_) { /* fall through */ }
+    return res.status(502).json({ error: 'Governance brief unavailable', code: 'GOVERNANCE_BRIEF_FAILED' });
+}
+
+router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    try {
+        const { brief } = await getOrBuildGovernanceBrief({ projects, req });
+        return res.json(brief);
+    } catch (err) {
+        logger.error('governance-brief failed', { error: err?.message });
+        return serveStaleBriefOrError(res, projects, err);
+    }
+});
+
+router.get('/api/governance/intervention-shortlist.json', requireAuth, async (req, res) => {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    try {
+        const { brief } = await getOrBuildGovernanceBrief({ projects, req, includeEvidence: false, includePOReadiness: false });
+        return res.json({
+            generatedAt: brief.generatedAt,
+            freshness: brief.freshness,
+            portfolio: brief.portfolio,
+            shortlist: brief.topRisks || [],
+        });
+    } catch (err) {
+        logger.error('intervention-shortlist failed', { error: err?.message });
+        return res.status(502).json({ error: 'Shortlist unavailable', code: 'SHORTLIST_FAILED' });
+    }
+});
+
+router.post('/api/governance/pi-baseline', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const projects = Array.isArray(body.projects) && body.projects.length
+            ? body.projects.map((p) => String(p).trim().toUpperCase())
+            : ['MPSA', 'MAS'];
+        const piName = String(body.piName || `${projects.join('+')}`).trim();
+        const row = await savePIBaseline({ ...body, piName, projects });
+        return res.json({ success: true, baseline: { id: row.id, piName: row.piName, committed: row.committedItems.length } });
+    } catch (err) {
+        logger.warn('pi-baseline save failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Baseline save failed'), code: 'PI_BASELINE_FAILED' });
+    }
+});
+
+router.get('/api/governance/pi-baseline', requireAuth, async (req, res) => {
+    try {
+        const piName = req.query.piName ? String(req.query.piName).trim() : '';
+        const project = req.query.project ? String(req.query.project).trim() : null;
+        if (piName) {
+            const baseline = await getLatestPIBaseline(piName);
+            return res.json({ baseline });
+        }
+        const baselines = await listPIBaselines({ project });
+        return res.json({ baselines });
+    } catch (err) {
+        logger.warn('pi-baseline read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Baseline read failed' });
+    }
+});
+
+router.post('/api/governance/narration-feedback', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const row = await recordNarrationPattern({
+            patternKey: body.patternKey,
+            phrase: body.phrase,
+            project: body.project,
+            briefId: body.briefId,
+            source: body.source || 'sm-accepted',
+        });
+        return res.json({ success: true, recorded: { patternKey: row.patternKey, project: row.project } });
+    } catch (err) {
+        logger.warn('narration-feedback failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Feedback failed'), code: 'NARRATION_FEEDBACK_FAILED' });
+    }
+});
+
+router.post('/api/governance/adoption-metric', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const row = await recordAdoptionMetric({
+            metric: body.metric,
+            value: body.value,
+            project: body.project,
+            user: req.session?.user || 'unknown',
+            note: body.note,
+        });
+        return res.json({ success: true, recorded: { metric: row.metric, value: row.value } });
+    } catch (err) {
+        logger.warn('adoption-metric failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Metric failed'), code: 'ADOPTION_METRIC_FAILED' });
+    }
+});
+
+router.get('/api/governance/adoption-metrics.json', requireAuth, async (req, res) => {
+    try {
+        const project = req.query.project ? String(req.query.project).trim() : null;
+        const summary = await summarizeAdoptionMetrics({ project });
+        return res.json(summary);
+    } catch (err) {
+        logger.warn('adoption-metrics read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Metrics read failed' });
+    }
+});
+
+router.get('/api/governance/inbox.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const project = projects[0] || null;
+        let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
+        if (!items.length) {
+            const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+            const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+            const cachedBrief = cached?.value || cached;
+            if (cachedBrief?.briefId) {
+                items = [{
+                    id: 'synthetic-cached-brief',
+                    type: 'brief',
+                    projects,
+                    summary: cachedBrief.leadershipNarrative?.meetingAnswer || 'Cached brief available',
+                    safeToSend: cachedBrief.meta?.safeToSend === true,
+                    approvalRequired: false,
+                    evidenceLinks: [],
+                    createdAt: cachedBrief.generatedAt || new Date().toISOString(),
+                    payload: { briefId: cachedBrief.briefId, synthetic: true },
+                }];
+            }
+        }
+        const grouped = groupInboxByType(items);
+        return res.json({ ...grouped, total: items.length });
+    } catch (err) {
+        logger.warn('governance inbox read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Inbox read failed' });
+    }
+});
+
+router.post('/api/governance/inbox/:id/resolve', requireAuth, async (req, res) => {
+    try {
+        const id = String(req.params.id || '').trim();
+        if (id.startsWith('synthetic-')) {
+            logger.info('inbox resolve synthetic no-op', { id });
+            return res.json({ success: true, synthetic: true });
+        }
+        const resolution = String(req.body?.resolution || 'dismissed').trim();
+        const editedContent = String(req.body?.editedContent || '').trim();
+        const userId = req.session?.user || 'unknown';
+        const row = await resolveInboxItem(id, { resolution, editedContent, userId });
+        if (resolution === 'approved' && row.type === 'brief' && editedContent) {
+            const projects = parseGovernanceProjects(req);
+            await recordNarrationPattern({
+                patternKey: row.payload?.briefId || 'brief-approved',
+                phrase: editedContent,
+                project: projects[0] || '',
+                source: 'inbox-approved',
+            });
+        }
+        return res.json({ success: true, item: row });
+    } catch (err) {
+        logger.warn('inbox resolve failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Resolve failed') });
+    }
+});
+
+router.get('/api/governance/jobs.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const jobs = await readRecentJobs({ project: projects[0], limit: 5 });
+        return res.json({ jobs });
+    } catch (err) {
+        logger.warn('governance jobs read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Jobs read failed' });
+    }
+});
+
+router.get('/api/governance/scope-intelligence.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const hit = await getCachedGovernanceBrief(projects);
+        if (hit?.brief?.meta?.scopeIntelligence) {
+            return res.json({
+                scope: hit.brief.meta.scopeIntelligence,
+                boards: hit.brief.meta?.boardsResolved || 0,
+                projectErrors: [],
+                cached: true,
+            });
+        }
+        const agileClient = createAgileClient();
+        const { boards, projectErrors } = await discoverBoardsWithCache(projects, agileClient);
+        const { brief } = await getOrBuildGovernanceBrief({ projects, req, includeEvidence: false, includePOReadiness: false });
+        const scope = brief?.meta?.scopeIntelligence || buildScopeIntelligence({
+            boards,
+            boardPayloads: [],
+            selectedProjects: projects,
+            projectErrors,
+        });
+        return res.json({ scope, boards: boards.length, projectErrors, cached: false });
+    } catch (err) {
+        logger.warn('governance scope-intelligence failed', { error: err?.message });
+        return res.status(500).json({ error: 'Scope intelligence failed' });
+    }
+});
+
+router.get('/api/governance/pi-confidence.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const hit = await getCachedGovernanceBrief(projects);
+        const brief = hit?.brief || (await getOrBuildGovernanceBrief({ projects, req })).brief;
+        const piConfidence = brief?.meta?.piConfidence || buildPIConfidenceStrip(brief);
+        return res.json({
+            piConfidence,
+            piForumAnswer: brief?.meta?.piForumAnswer || '',
+            protectMeAnswer: brief?.meta?.protectMeAnswer || '',
+            cached: Boolean(hit?.cached),
+        });
+    } catch (err) {
+        logger.warn('governance pi-confidence failed', { error: err?.message });
+        return res.status(500).json({ error: 'PI confidence failed' });
+    }
+});
+
+router.get('/api/governance/feedback-summary.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const summary = await buildFeedbackTriageSummary({ project: projects[0] });
+        return res.json(summary);
+    } catch (err) {
+        logger.warn('governance feedback-summary failed', { error: err?.message });
+        return res.status(500).json({ error: 'Feedback summary failed' });
+    }
+});
+
+router.post('/api/governance/feedback-triage', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const projects = parseGovernanceProjects(req);
+        if (body.phrase) {
+            await recordNarrationPattern({
+                patternKey: body.patternKey || 'feedback-lab',
+                project: projects[0] || '*',
+                phrase: String(body.phrase).slice(0, 240),
+                source: body.source || 'feedback-lab',
+            });
+        }
+        if (body.metric && body.value != null) {
+            await recordAdoptionMetric({
+                project: projects[0] || 'MPSA',
+                metric: String(body.metric),
+                value: Number(body.value) || 0,
+                note: body.note || '',
+            });
+        }
+        const summary = await buildFeedbackTriageSummary({ project: projects[0] });
+        return res.json({ success: true, summary });
+    } catch (err) {
+        logger.warn('governance feedback-triage failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Feedback triage failed') });
+    }
+});
+
+router.get('/api/governance/worker-receipt.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const project = projects[0] || null;
+        const jobs = await readRecentJobs({ project, limit: 5 });
+        let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
+        const grouped = groupInboxByType(items);
+        const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+        const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
+        const brief = cached?.value || cached || {};
+        const workerReceipt = await buildWorkerReceipt(brief, grouped, jobs);
+        return res.json({
+            workerReceipt,
+            jobs: jobs.slice(0, 3),
+            inboxTotal: items.length,
+            setupGaps: brief?.meta?.setupGaps || [],
+            sinceLastRun: brief?.meta?.sinceLastRun || null,
+            piConfidence: brief?.meta?.piConfidence || null,
+            poReadiness: brief?.poReadiness || brief?.meta?.poReadiness || null,
+        });
+    } catch (err) {
+        logger.warn('governance worker-receipt failed', { error: err?.message });
+        return res.status(500).json({ error: 'Worker receipt read failed' });
+    }
+});
+
+router.get('/api/governance/profile', requireAuth, async (req, res) => {
+    try {
+        const scope = req.query.scope ? String(req.query.scope).trim() : '';
+        if (scope) {
+            const overrides = await listProfileOverrides({ scope });
+            return res.json({ scope, overrides });
+        }
+        const projects = parseGovernanceProjects(req);
+        const profile = await resolveEffectiveGovernanceProfile({
+            portfolioKey: projects.join('+'),
+            project: projects[0] || '',
+            userId: req.session?.user || null,
+        });
+        return res.json({ profile });
+    } catch (err) {
+        return res.status(500).json({ error: String(err?.message || 'Profile read failed') });
+    }
+});
+
+router.post('/api/governance/profile', requireAuth, async (req, res) => {
+    try {
+        const body = req.body || {};
+        const row = await saveProfileOverride({
+            scope: body.scope,
+            key: body.key,
+            value: body.value,
+            approvedBy: req.session?.user || 'unknown',
+            phraseKey: body.phraseKey,
+            aliasKey: body.aliasKey,
+        });
+        return res.json({ success: true, override: row });
+    } catch (err) {
+        return res.status(400).json({ error: String(err?.message || 'Profile save failed') });
+    }
+});
+
+router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const quarter = String(req.query.quarter || req.query.vodacomQuarter || '').trim();
+        const bypassCache = req.query.refresh === '1' || req.query.refresh === 'true';
+        const proposeKey = `${GOVERNANCE_NS}:propose:${projects.join(',')}:${quarter}`;
+        if (!bypassCache) {
+            const cached = await cache.get(proposeKey, { namespace: GOVERNANCE_NS });
+            const payload = cached?.value || cached;
+            if (payload?.candidates) return res.json({ ...payload, cached: true });
+        }
+        const providerConfig = resolveProviderConfig(req.headers || {});
+        let version3Client = null;
+        try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
+        const body = await runProposePipeline({
+            projects,
+            cache,
+            version3Client,
+            quarter,
+            providerConfig,
+        });
+        await cache.set(proposeKey, body, 20 * 60 * 1000, { namespace: GOVERNANCE_NS });
+        return res.json(body);
+    } catch (err) {
+        logger.warn('pi-baseline propose failed', { error: err?.message });
+        return res.status(500).json({ error: 'Propose failed' });
+    }
+});
+
+router.post('/api/governance/pi-baseline/propose-from-image', requireAuth, async (req, res) => {
+    try {
+        const imageBase64 = String(req.body?.imageBase64 || '').trim();
+        const mimeType = String(req.body?.mimeType || 'image/png').trim();
+        const projects = Array.isArray(req.body?.projects) && req.body.projects.length
+            ? req.body.projects.map((p) => String(p).trim().toUpperCase()).filter(Boolean)
+            : (req.body?.projectsCsv
+                ? String(req.body.projectsCsv).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)
+                : parseGovernanceProjects(req));
+        const quarter = String(req.body?.quarter || '').trim();
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'imageBase64 is required', code: 'MISSING_IMAGE' });
+        }
+        if (imageBase64.length > 6_000_000) {
+            return res.status(400).json({ error: 'Image too large (max ~4MB)', code: 'IMAGE_TOO_LARGE' });
+        }
+        const providerConfig = resolveProviderConfig(req.headers || {});
+        if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
+            return res.status(400).json({
+                error: 'AI provider key required for slide reading. Add OpenAI or Claude key in Settings.',
+                code: 'AI_KEY_REQUIRED',
+            });
+        }
+        const board = await proposeFromBoardCache({ projects, cache, quarter });
+        const boardEpics = (board.candidates || []).map((c) => ({
+            issueKey: c.issueKey,
+            title: c.title,
+            summary: c.title,
+        }));
+        let result = await proposeFromSlideImage({
+            imageBase64,
+            mimeType,
+            projects,
+            quarter,
+            providerConfig,
+            boardEpics,
+        });
+        let activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
+        let version3Client = null;
+        try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
+        if (version3Client) {
+            activity = await enrichActivityFromJiraExistence(result.candidates || [], activity, version3Client, 10);
+        }
+        result = {
+            ...result,
+            candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),
+        };
+        return res.json({ ...result, cached: false });
+    } catch (err) {
+        logger.warn('pi-baseline propose-from-image failed', { error: err?.message });
+        return res.status(500).json({ error: String(err?.message || 'Slide propose failed') });
+    }
+});
+
+router.get('/api/governance/impact-pack.json', requireAuth, async (req, res) => {
+    try {
+        const month = req.query.month ? String(req.query.month).trim() : impactPackMonthKey();
+        const projects = parseGovernanceProjects(req);
+        const result = await buildImpactPack({ project: projects[0] || 'MPSA', month });
+        return res.json({
+            month: result.month,
+            skipped: result.skipped,
+            markdown: result.markdown,
+        });
+    } catch (err) {
+        logger.warn('impact-pack failed', { error: err?.message });
+        return res.status(500).json({ error: 'Impact pack failed' });
+    }
+});
+
+router.post('/api/settings/ai-provider', requireAuth, async (req, res) => {
+    try {
+        const provider = String(req.body?.provider || req.headers?.['x-ai-provider'] || 'built-in').trim().toLowerCase();
+        const action = String(req.body?.action || 'test').trim();
+        const apiKey = String(req.headers?.['x-ai-key'] || req.body?.apiKey || '').trim();
+        const host = String(req.headers?.['x-ai-host'] || req.body?.host || '').trim();
+        if (action === 'test') {
+            const result = await testProviderConfig(provider, apiKey, host);
+            return res.json(result);
+        }
+        return res.status(400).json({ error: 'Unknown action', code: 'UNKNOWN_ACTION' });
+    } catch (error) {
+        logger.error('ai-provider settings error', { error: error?.message });
+        return res.status(500).json({ valid: false, error: String(error?.message || 'Test failed') });
     }
 });
 
@@ -1126,16 +1890,22 @@ router.post('/api/outcome-draft', requireAuth, async (req, res) => {
         } catch (error) {
             logger.warn('outcome-draft profile skipped', { error: error?.message });
         }
-        const draft = await buildOutcomeDraft({
+        const providerConfig = resolveProviderConfig(req.headers || {});
+        const draft = await parseViaNarrative(
             rawNarrative,
-            projectKey,
-            boardId: Number.isFinite(boardId) ? boardId : null,
-            inputMode,
-            quarterHint,
-            version3Client,
-            host,
-            profile,
-        });
+            { projectKey, boardStyleProfile: profile, quarterHint },
+            providerConfig,
+            () => buildOutcomeDraft({
+                rawNarrative,
+                projectKey,
+                boardId: Number.isFinite(boardId) ? boardId : null,
+                inputMode,
+                quarterHint,
+                version3Client,
+                host,
+                profile,
+            }),
+        );
         return res.json(draft);
     } catch (error) {
         logger.error('outcome-draft failed', { error: error?.message });
@@ -1153,6 +1923,12 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
         const createAnyway = req.body?.createAnyway === true;
         const requestedStructureMode = typeof req.body?.structureMode === 'string' ? req.body.structureMode.trim() : '';
         const requestedConfidenceScore = Number(req.body?.confidenceScore || 0);
+        // Per-item estimate hours: { "0": 2, "3": 4 } — keyed by sourceLineIndex
+        const itemEstimates = (req.body?.itemEstimates && typeof req.body.itemEstimates === 'object' && !Array.isArray(req.body.itemEstimates))
+            ? req.body.itemEstimates : {};
+        // Per-item story points from rich Teams chat format: { "0": 13, "2": 5 }
+        const itemStoryPoints = (req.body?.itemStoryPoints && typeof req.body.itemStoryPoints === 'object' && !Array.isArray(req.body.itemStoryPoints))
+            ? req.body.itemStoryPoints : {};
         if (!rawNarrative) {
             return res.status(400).json({ error: 'Narrative text is required', code: 'MISSING_NARRATIVE' });
         }
@@ -1424,6 +2200,20 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
             }
         };
 
+        // Builds Jira estimate + story-points fields for a given line index
+        const estimateFieldsForIndex = (lineIndex) => {
+            const result = {};
+            const hours = lineIndex >= 0 ? Number(itemEstimates[String(lineIndex)]) : NaN;
+            if (Number.isFinite(hours) && hours > 0) {
+                result.timeoriginalestimate = Math.round(hours * 3600);
+            }
+            const sp = lineIndex >= 0 ? Number(itemStoryPoints[String(lineIndex)]) : NaN;
+            if (Number.isFinite(sp) && sp > 0 && fields?.storyPointsFieldId) {
+                result[fields.storyPointsFieldId] = sp;
+            }
+            return result;
+        };
+
         const createIssue = async (issueFields, issueTypeMeta = null, createContext = {}) => {
             try {
                 const created = await withOutcomeTimeout('issue creation', () => version3Client.issues.createIssue({ fields: issueFields }));
@@ -1468,7 +2258,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                     .filter((entry) => entry.key && entry.summary)
                     .map((entry) => [normalizeOutcomeTitle(entry.summary), entry])
             );
-            for (const item of parsedIntake.items) {
+            for (const [itemIdx, item] of parsedIntake.items.entries()) {
                 const normalizedTitle = normalizeOutcomeTitle(item.title);
                 if (!normalizedTitle) continue;
                 if (duplicateTitleSeen.has(normalizedTitle)) {
@@ -1499,6 +2289,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                         project: { key: projectKey },
                         issuetype: { name: standaloneIssueTypeName },
                         labels: ensureLabels([...(item.labels || []), itemHashLabel], projectKey),
+                        ...estimateFieldsForIndex(commitChildIndices[itemIdx] ?? -1),
                     }, selectedStandaloneType, { role: 'standalone', title: item.title });
                     createdStandalone.push({ ...createdItem, title: item.title });
                     if (createdItem?.key) expectedLevelsByKey[createdItem.key] = 'standalone';
@@ -1515,7 +2306,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                 labels,
             }, selectedParentType, { role: 'parent' });
             if (primary?.key) expectedLevelsByKey[primary.key] = 'parent';
-            for (const item of parsedIntake.items) {
+            for (const [childIdx, item] of parsedIntake.items.entries()) {
                 const itemLabels = ensureLabels(
                     [...labels, ...(Array.isArray(item.labels) ? item.labels : [])].filter((label) => !/^OutcomeHash_/i.test(label)),
                     projectKey,
@@ -1544,6 +2335,7 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
                     project: { key: projectKey },
                     issuetype: { name: childIssueTypeName },
                     labels: itemLabels,
+                    ...estimateFieldsForIndex(commitChildIndices[childIdx] ?? -1),
                 };
                 if (childLinkMode === 'parent') childFields.parent = { key: primary.key };
                 else if (childLinkMode === 'epicLink' && childLinkFieldId) childFields[childLinkFieldId] = primary.key;

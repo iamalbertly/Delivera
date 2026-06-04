@@ -1,0 +1,100 @@
+/**
+ * Settings — AI keys (browser-only) for narration, Create work, and PI slide reading.
+ */
+import {
+  readAiProviderPref,
+  saveAiProviderPref,
+  clearAiProviderPref,
+} from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+
+function escapeHtml(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+export function mountGovernanceAiHelper(mount) {
+  if (!mount) return;
+
+  function render() {
+    const ai = readAiProviderPref();
+    const hasKey = Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
+    mount.innerHTML = `
+      <section id="gov-ai-helper" class="surface-card gov-ai-helper-card">
+        <h2>Connections</h2>
+        <p class="gov-ai-helper-lead">Keys stay in <strong>this browser only</strong>. Delivera does not store them on the server. Jira uses your login session and <code>.env</code> on the host.</p>
+
+        <h3 class="gov-ai-helper-sub">AI for Brief wording &amp; PI plans</h3>
+        <p class="gov-ai-helper-note">Used for: clearer Brief text, Create work parsing, and reading PI plan slides (screenshots).</p>
+        ${hasKey
+    ? `<p class="gov-ai-helper-status gov-ai-helper-status--ok">Provider connected in this browser.</p>`
+    : `<p class="gov-ai-helper-status">No key — built-in templates only.</p>`}
+        <label class="gov-ai-helper-field">
+          <span>Provider</span>
+          <select id="gov-ai-provider" class="gov-ai-helper-select">
+            <option value="built-in" ${ai.provider === 'built-in' || !ai.provider ? 'selected' : ''}>Built-in (no key)</option>
+            <option value="openai" ${ai.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+            <option value="claude" ${ai.provider === 'claude' ? 'selected' : ''}>Claude</option>
+            <option value="gemini" ${ai.provider === 'gemini' ? 'selected' : ''}>Gemini</option>
+          </select>
+        </label>
+        <label class="gov-ai-helper-field">
+          <span>API key</span>
+          <input type="password" id="gov-ai-key" class="gov-ai-helper-input" placeholder="Paste key…" autocomplete="off" value="${hasKey ? '●●●●●●●●' : ''}">
+        </label>
+        <div class="gov-ai-helper-actions">
+          <button type="button" class="btn btn-primary btn-compact" id="gov-ai-save">Save in browser</button>
+          <button type="button" class="btn btn-secondary btn-compact" id="gov-ai-test">Test</button>
+          <button type="button" class="btn btn-link btn-compact" id="gov-ai-clear">Clear</button>
+        </div>
+        <p id="gov-ai-test-result" class="gov-ai-helper-result" aria-live="polite"></p>
+
+        <h3 class="gov-ai-helper-sub">Jira</h3>
+        <p class="gov-ai-helper-note">Jira credentials are configured by your administrator in environment variables. If boards look empty, check project access and refresh the Brief.</p>
+      </section>`;
+
+    mount.querySelector('#gov-ai-save')?.addEventListener('click', () => {
+      const provider = mount.querySelector('#gov-ai-provider')?.value || 'built-in';
+      const keyInput = mount.querySelector('#gov-ai-key');
+      const raw = keyInput?.value || '';
+      const key = raw.includes('●') ? (readAiProviderPref().key || '') : raw.trim();
+      saveAiProviderPref({ provider, key: provider === 'built-in' ? '' : key });
+      render();
+    });
+
+    mount.querySelector('#gov-ai-clear')?.addEventListener('click', () => {
+      clearAiProviderPref();
+      render();
+    });
+
+    mount.querySelector('#gov-ai-test')?.addEventListener('click', async () => {
+      const result = mount.querySelector('#gov-ai-test-result');
+      const ai = readAiProviderPref();
+      if (!ai.key || ai.provider === 'built-in') {
+        if (result) result.textContent = 'Built-in template is always available.';
+        return;
+      }
+      if (result) result.textContent = 'Testing…';
+      try {
+        const res = await fetch('/api/settings/ai-provider', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ai-key': ai.key,
+            'x-ai-provider': ai.provider,
+          },
+          body: JSON.stringify({ action: 'test', provider: ai.provider }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (result) {
+          result.textContent = res.ok
+            ? `OK — ${escapeHtml(data.message || 'Provider responded')}`
+            : `Failed — ${escapeHtml(data.error || res.status)}`;
+        }
+      } catch (err) {
+        if (result) result.textContent = `Failed — ${err.message}`;
+      }
+    });
+  }
+
+  render();
+}

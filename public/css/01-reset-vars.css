@@ -39,9 +39,24 @@
   --focus: 0 0 0 3px rgba(230, 0, 0, 0.18);
   --radius: 10px;
   --radius-lg: 16px;
-  --sticky-global-nav-top: 64px;
+  --top-chrome-height: 56px;
+  --top-chrome-bg: var(--primary-strong);
+  --sticky-global-nav-top: var(--top-chrome-height);
   --sticky-summary-top: 72px;
   --sticky-table-head-top: 64px;
+  /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
+  --sidebar-width: 240px;
+  /* Work draft canvas — type chip colours */
+  --chip-epic: #6d28d9;
+  --chip-epic-bg: #f5f3ff;
+  --chip-story: #187a53;
+  --chip-story-bg: #eefbf3;
+  --chip-task: #0369a1;
+  --chip-task-bg: #eff6ff;
+  --chip-note: #92400e;
+  --chip-note-bg: #fffbeb;
+  --chip-ignore: #6b7280;
+  --chip-ignore-bg: #f3f4f6;
 }
 
 * {

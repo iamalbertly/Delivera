@@ -30,14 +30,14 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     const headerOverflow = await page.evaluate(() => {
-      const h = document.querySelector('header');
+      const h = document.querySelector('header.report-shell-top');
       return h ? h.scrollWidth > h.clientWidth : false;
     });
     expect(headerOverflow).toBe(false);
-    await expect(page.locator('header h1')).toContainText(/Delivery|Reports|General Performance|High-Level/i);
-    const hasSubtitle = await page.locator('#report-subtitle').isVisible().catch(() => false);
+    await expect(page.locator('header.report-shell-top h1')).toContainText(/Evidence|Delivery|Reports|General Performance|High-Level|Proof/i);
     const hasHeaderActions = await page.locator('#report-header-actions').isVisible().catch(() => false);
-    expect(hasSubtitle || hasHeaderActions).toBe(true);
+    const hasTopChrome = await page.locator('#app-top-chrome').isVisible().catch(() => false);
+    expect(hasHeaderActions || hasTopChrome).toBe(true);
     assertTelemetryClean(telemetry);
   });
 
@@ -61,7 +61,7 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    const hasNav = await page.locator('.app-sidebar, .sidebar-toggle, nav.app-nav, .app-global-nav-wrap').first().isVisible().catch(() => false);
+    const hasNav = await page.locator('#app-top-chrome, .app-top-sidebar-toggle, .app-sidebar').first().isVisible().catch(() => false);
     const hasFilters = await page.locator('#filters-panel-collapsed-bar, #filters-panel-body, [data-action="toggle-filters"]').first().isVisible().catch(() => false);
     expect(hasNav || hasFilters).toBe(true);
     assertTelemetryClean(telemetry);
@@ -96,12 +96,21 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/sprint-leadership');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    const clipping = await getViewportClippingReport(page, {
-      selectors: ['.hud-shell', '.hud-header-mission-control', '#hud-grid', '#project-context'],
-      maxLeftGapPx: 40,
-    });
-    expect(clipping.offenders).toEqual([]);
-    await expect(page.locator('#leadership-header-actions')).toBeVisible();
+    if (page.url().includes('/governance')) {
+      const clipping = await getViewportClippingReport(page, {
+        selectors: ['.governance-shell', '#gov-scope-bar-mount', '#app-top-chrome'],
+        maxLeftGapPx: 40,
+      });
+      expect(clipping.offenders).toEqual([]);
+      await expect(page.locator('#app-top-chrome')).toBeVisible();
+    } else {
+      const clipping = await getViewportClippingReport(page, {
+        selectors: ['.hud-shell', '.hud-header-mission-control', '#hud-grid', '#project-context'],
+        maxLeftGapPx: 40,
+      });
+      expect(clipping.offenders).toEqual([]);
+      await expect(page.locator('#leadership-header-actions')).toBeVisible();
+    }
     assertTelemetryClean(telemetry);
   });
 
@@ -134,8 +143,6 @@ test.describe('CSS Build And Mobile Responsive Validation', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#report-header-preview-btn')).toBeVisible();
     await expect(page.locator('[data-action="toggle-filters"]')).toHaveCount(0);
-    await page.locator('#report-header-actions details.report-header-more-menu summary').click();
-    await expect(page.locator('.report-header-more-panel [data-action="toggle-filters"]')).toHaveCount(0);
     const collapsedBarVisible = await page.locator('#filters-panel-collapsed-bar').isVisible().catch(() => false);
     expect(collapsedBarVisible).toBe(false);
     assertTelemetryClean(telemetry);

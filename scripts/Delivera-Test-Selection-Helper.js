@@ -83,6 +83,51 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
     base: basename(specPath).toLowerCase(),
   }));
 
+  const chromeImpactedSpecs = [
+    'tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js',
+    'tests/Delivera-Header-Nav-Persistence-And-Contrast-Validation-Tests.spec.js',
+    'tests/Delivera-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js',
+    'tests/Delivera-App-Governance-Root-Nav-Scope-Validation-Tests.spec.js',
+  ];
+  const chromeFileHints = [
+    'delivera-shared-top-chrome',
+    'delivera-shared-global-nav',
+    '12-top-chrome',
+    '03-nav-sidebar',
+    'delivera-shared-notifications-dock',
+  ];
+  const piBaselineImpactedSpecs = [
+    'tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-Visual-Clarity-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-PI-Intelligence-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-Brief-Evidence-Validation-Tests.spec.js',
+  ];
+  const piBaselineFileHints = [
+    'delivera-governance-pibaseline',
+    'pibaseline-slide-upload',
+    'pibaseline-slide-upload-validation',
+    'epic-activity-intelligence',
+    'delivera-test-pibaseline-slide-upload',
+  ];
+  const governanceImpactedSpecs = [
+    'tests/Delivera-Governance-Visual-Clarity-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-PI-Intelligence-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-Agentic-CommandSurface-Validation-Tests.spec.js',
+    'tests/Delivera-Governance-Agentic-Worker-Inbox-Validation-Tests.spec.js',
+    'tests/Delivera-App-Governance-Root-Nav-Scope-Validation-Tests.spec.js',
+    'tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js',
+  ];
+  const governanceFileHints = [
+    '09-governance',
+    'governance.html',
+    'delivera-app-governance',
+    'governance-brief',
+    'delivera-governance-brief',
+    'delivera-shared-notifications-dock',
+    '12-top-chrome',
+    'current-sprint-projects-catalog',
+  ];
+
   const strongKeywords = [
     'preview',
     'current',
@@ -121,6 +166,21 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
 
     const changedBase = basename(changed).toLowerCase();
     if (!changedBase) continue;
+
+    if (chromeFileHints.some((hint) => changedBase.includes(hint) || changed.includes(hint))) {
+      chromeImpactedSpecs.forEach((spec) => impacted.add(spec));
+      continue;
+    }
+
+    if (piBaselineFileHints.some((hint) => changedBase.includes(hint) || changed.includes(hint))) {
+      piBaselineImpactedSpecs.forEach((spec) => impacted.add(spec));
+      continue;
+    }
+
+    if (governanceFileHints.some((hint) => changedBase.includes(hint) || changed.includes(hint))) {
+      governanceImpactedSpecs.forEach((spec) => impacted.add(spec));
+      continue;
+    }
 
     // Tokenize the changed file name on non-alphanumeric boundaries.
     const tokens = changedBase

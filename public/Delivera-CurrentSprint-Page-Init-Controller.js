@@ -4,9 +4,10 @@ import { loadBoards, loadCurrentSprint } from './Delivera-CurrentSprint-Page-Dat
 import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Delivera-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
 import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Delivera-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
-import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprintSnapshot } from './Delivera-CurrentSprint-Page-Snapshot.js';
 import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
+import { hydrateCurrentSprintProjectsSelect } from './Delivera-CurrentSprint-Projects-Catalog-01Hydrate.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -329,7 +330,7 @@ function safeInitBoot() {
     // Surface a clear, user-facing error instead of leaving the page stuck in a welcome state.
     try {
       // eslint-disable-next-line no-console
-      console.error('Current Sprint init failed', error);
+      console.warn('Current Sprint init failed', error);
     } catch (_) {}
     const message = (error && error.message) ? error.message : 'Unexpected error during Current Sprint setup.';
     showError('Could not initialise Current Sprint view: ' + message);
@@ -338,6 +339,7 @@ function safeInitBoot() {
 
 function init() {
   const { boardSelect, contentEl, projectsSelect, errorEl } = currentSprintDom;
+  hydrateCurrentSprintProjectsSelect();
   resetPerfMarks('current-sprint');
   try {
     if (window.history && 'scrollRestoration' in window.history) {
@@ -349,7 +351,14 @@ function init() {
   const preferredSprintId = getPreferredSprintId();
   syncProjectsSelect(getStoredProjects());
   const initialSnapshot = readCurrentSprintSnapshot(getProjectsParam(), preferredId);
-  if (initialSnapshot?.data) {
+  // Only show snapshot if it matches the URL-specified sprint (prevents stale data flash
+  // when user navigates to /current-sprint?boardId=X&sprintId=Y with explicit params)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlHasBoardOrSprint = urlParams.has('boardId') || urlParams.has('sprintId');
+  const snapshotSprintId = String(initialSnapshot?.data?.sprint?.id || '');
+  const snapshotMatchesUrl = !urlHasBoardOrSprint
+    || (!preferredSprintId || snapshotSprintId === String(preferredSprintId));
+  if (initialSnapshot?.data && snapshotMatchesUrl) {
     showCurrentSprintRenderedContent(initialSnapshot.data, (sprintId) => initHandlers.selectSprintById(sprintId), { source: 'snapshot' });
   }
   initGlobalOutcomeModal({

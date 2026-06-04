@@ -9,4 +9,5 @@ export const reportState = {
   previewHasRows: false,
   predictabilityPerSprint: null,
   previewInProgress: false,
+  squadStallItems: [],
 };

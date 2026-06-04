@@ -1,8 +1,11 @@
 const BULLET_PREFIX_RE = /^\s*(?:[-*•]+|\d+\s*[:.)-])\s*/;
+const NUMBERED_PREFIX_RE = /^\s*\d+\s*[:.)-]\s*/;
+const LETTER_PREFIX_RE = /^\s*[a-zA-Z]\s*[:.)-]\s*/;
 const JIRA_KEY_RE = /\b([A-Z][A-Z0-9]+-\d+)\b/ig;
 const TABLE_HEADER_RE = /^(key|summary|description|status|owner|assignee)$/i;
-const ACTION_WORD_RE = /\b(add|fix|update|wire|send|display|enable|filter|create|build|implement|validate|show|hide|refactor|split|link|copy|export|notify)\b/i;
-const STARTS_WITH_ACTION_WORD_RE = /^(add|fix|update|wire|send|display|enable|filter|create|build|implement|validate|show|hide|refactor|split|link|copy|export|notify)\b/i;
+// Extended with technical/DevOps verbs common in developer task lists
+const ACTION_WORD_RE = /\b(add|fix|update|wire|send|display|enable|filter|create|build|implement|validate|show|hide|refactor|split|link|copy|export|notify|clean|clear|load|reload|sync|migrate|deploy|run|check|test|verify|configure|setup|remove|delete|restore|refresh|reset|seed|import|map|align)\b/i;
+const STARTS_WITH_ACTION_WORD_RE = /^(add|fix|update|wire|send|display|enable|filter|create|build|implement|validate|show|hide|refactor|split|link|copy|export|notify|clean|clear|load|reload|sync|migrate|deploy|run|check|test|verify|configure|setup|remove|delete|restore|refresh|reset|seed|import|map|align)\b/i;
 const THEME_WORD_RE = /\b(users?|experience|platform|strategy|planning|feedback|journey|system|flow|initiative|improve|quarter|quarterly|customer|capability)\b/i;
 const USER_STORY_RE = /\bas a\b.+\bi want\b.+\bso that\b/i;
 const QUARTER_EPIC_LINE_RE = /\bfy\s*\d{2}\s*q[1-4]\b/i;
@@ -14,10 +17,17 @@ export const OUTCOME_STRUCTURE_MODE = Object.freeze({
   STORY_WITH_SUBTASKS: 'STORY_WITH_SUBTASKS',
   MULTIPLE_EPICS: 'MULTIPLE_EPICS',
   TABLE_ISSUES: 'TABLE_ISSUES',
+  SEQUENTIAL_TASK_CLUSTER: 'SEQUENTIAL_TASK_CLUSTER',
 });
 
 function isParentChildMode(mode) {
   return mode === OUTCOME_STRUCTURE_MODE.EPIC_WITH_STORIES || mode === OUTCOME_STRUCTURE_MODE.STORY_WITH_SUBTASKS;
+}
+
+function isFlatListMode(mode) {
+  return mode === OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS
+    || mode === OUTCOME_STRUCTURE_MODE.TABLE_ISSUES
+    || mode === OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER;
 }
 
 function normalizeWhitespace(value) {
@@ -86,7 +96,9 @@ function splitTitleAndDescription(rawLine) {
   if (separatorIndex > 0) {
     const before = line.slice(0, separatorIndex).trim();
     const after = line.slice(separatorIndex + 2).trim();
-    if (before && after.length >= 12 && !after.match(/^[A-Z][A-Z0-9]+-\d+$/i)) {
+    // Don't split when "before" is just a list number (e.g. "0: Clean..." → title should be "Clean...")
+    const beforeIsNumber = /^\d+$/.test(before);
+    if (before && !beforeIsNumber && after.length >= 12 && !after.match(/^[A-Z][A-Z0-9]+-\d+$/i)) {
       return {
         title: rewriteTitle(before),
         description: normalizeWhitespace(after),
@@ -113,12 +125,16 @@ function getLineSignals(text) {
 }
 
 function buildRow(raw, description = '') {
-  const split = splitTitleAndDescription(raw);
-  const title = split.title || rewriteTitle(raw);
+  // Strip numbered or letter list prefix before splitting (e.g. "0: Clean..." or "a: Clean..." → "Clean...")
+  const strippedRaw = NUMBERED_PREFIX_RE.test(raw)
+    ? raw.replace(NUMBERED_PREFIX_RE, '')
+    : (LETTER_PREFIX_RE.test(raw) ? raw.replace(LETTER_PREFIX_RE, '') : raw);
+  const split = splitTitleAndDescription(strippedRaw);
+  const title = split.title || rewriteTitle(strippedRaw);
   const body = normalizeWhitespace(description || split.description || '');
   const signals = getLineSignals(title);
   return {
-    raw,
+    raw,  // keep original for NUMBERED_PREFIX_RE detection in decideStructureMode
     clean: title,
     description: body,
     jiraKeys: extractJiraKeys(raw),
@@ -194,6 +210,16 @@ function decideStructureMode(rows, inputKind) {
     && rows.every((row) => QUARTER_EPIC_LINE_RE.test(row.clean))
     && rows.every((row) => !row.signals.startsWithAction);
 
+  // Pre-compute numbered/letter-list metrics — used before parent-child checks
+  const numberedCount = rows.filter((r) => NUMBERED_PREFIX_RE.test(r.raw)).length;
+  const letterCount = rows.filter((r) => LETTER_PREFIX_RE.test(r.raw)).length;
+  const allNumbered = rows.length >= 3 && rows.every((row) => NUMBERED_PREFIX_RE.test(row.raw));
+  // allLettered requires meaningful content after the prefix (not just 1-2 words)
+  const allLettered = rows.length >= 3
+    && rows.every((row) => LETTER_PREFIX_RE.test(row.raw))
+    && rows.every((row) => row.clean.split(/\s+/).length >= 2);
+  const allActionRatio = rows.filter((r) => r.signals.startsWithAction).length / rows.length;
+
   if (quarterlyEpicBatch) {
     return {
       structureMode: OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS,
@@ -207,6 +233,34 @@ function decideStructureMode(rows, inputKind) {
       structureMode: OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS,
       confidenceScore: 0.68,
       rationale: 'Each line looks thematic rather than atomic, so they are treated as separate epics.',
+    };
+  }
+
+  // Numbered/letter-prefixed sequential task cluster: developer checklist or ordered procedure.
+  // Checked BEFORE parent-child patterns — list prefixes signal siblings, not hierarchy.
+  if (allNumbered && allActionRatio >= 0.6) {
+    return {
+      structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
+      confidenceScore: clamp01(0.60 + (allActionRatio * 0.20)),
+      rationale: 'Numbered action-verb steps detected — each becomes a flat sprint-ready task (no parent/child hierarchy).',
+    };
+  }
+
+  if (allLettered && allActionRatio >= 0.5) {
+    return {
+      structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
+      confidenceScore: clamp01(0.52 + (allActionRatio * 0.18)),
+      rationale: 'Alphabetically-prefixed action-verb steps detected — each becomes a flat sprint-ready task.',
+    };
+  }
+
+  // Mixed numeric + letter prefixes: ≥60% numbered, ≥20% lettered, majority action-verb
+  if (rows.length >= 3 && numberedCount >= Math.ceil(rows.length * 0.6) && letterCount >= Math.ceil(rows.length * 0.2) && allActionRatio >= 0.5) {
+    const mixedRatio = (numberedCount + letterCount) / rows.length;
+    return {
+      structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
+      confidenceScore: clamp01(0.48 + (mixedRatio * 0.15)),
+      rationale: 'Mixed numeric and letter list prefixes with action-verb majority — treated as flat task cluster.',
     };
   }
 
@@ -234,6 +288,17 @@ function decideStructureMode(rows, inputKind) {
     };
   }
 
+  // Partial list: ≥60% of lines have numeric or letter prefixes, majority action-verb.
+  // Treat as flat task cluster with slightly lower confidence.
+  const someNumbered = numberedCount + letterCount;
+  if (rows.length >= 3 && someNumbered >= Math.ceil(rows.length * 0.6) && allActionRatio >= 0.55) {
+    return {
+      structureMode: OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER,
+      confidenceScore: clamp01(0.52 + (allActionRatio * 0.18)),
+      rationale: 'Partially prefixed action-verb steps — treated as sprint-ready tasks.',
+    };
+  }
+
   return {
     structureMode: OUTCOME_STRUCTURE_MODE.EPIC_WITH_STORIES,
     confidenceScore: 0.34,
@@ -251,6 +316,17 @@ function reorderRowsForParent(rows, parentIndex) {
 }
 
 function buildPreviewRows(rows, structureMode) {
+  if (structureMode === OUTCOME_STRUCTURE_MODE.SEQUENTIAL_TASK_CLUSTER) {
+    return rows.map((row) => ({
+      kind: 'STORY',
+      issueType: 'Task',
+      title: row.clean,
+      description: row.description,
+      jiraKeys: row.jiraKeys,
+      labels: row.labels,
+    }));
+  }
+
   if (structureMode === OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS || structureMode === OUTCOME_STRUCTURE_MODE.TABLE_ISSUES) {
     return rows.map((row) => ({
       kind: structureMode === OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS ? 'EPIC' : 'ISSUE',
@@ -350,7 +426,8 @@ export function parseOutcomeIntake(rawText, options = {}) {
     ? pickSingleIssueType(reorderedRows[0])
     : (structureMode === OUTCOME_STRUCTURE_MODE.STORY_WITH_SUBTASKS ? 'Story' : 'Epic');
 
-  const epic = (structureMode === OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS || structureMode === OUTCOME_STRUCTURE_MODE.TABLE_ISSUES)
+  const isFlatList = isFlatListMode(structureMode);
+  const epic = isFlatList
     ? null
     : {
       title: reorderedRows[0]?.clean || 'Outcome from narrative',
@@ -360,8 +437,8 @@ export function parseOutcomeIntake(rawText, options = {}) {
 
   const items = structureMode === OUTCOME_STRUCTURE_MODE.SINGLE_ISSUE
     ? []
-    : (structureMode === OUTCOME_STRUCTURE_MODE.MULTIPLE_EPICS || structureMode === OUTCOME_STRUCTURE_MODE.TABLE_ISSUES)
-      ? reorderedRows.map((row, index) => ({ index: index + 1, title: row.clean, description: row.description, jiraKeys: row.jiraKeys, labels: row.labels }))
+    : isFlatList
+      ? reorderedRows.map((row, index) => ({ index: index + 1, title: row.clean, description: row.description, jiraKeys: row.jiraKeys, labels: row.labels, issueType: row.issueType }))
       : reorderedRows.slice(1).map((row, index) => ({ index: index + 1, title: row.clean, description: row.description, jiraKeys: row.jiraKeys, labels: row.labels }));
 
   return {

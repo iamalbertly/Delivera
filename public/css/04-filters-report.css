@@ -504,6 +504,25 @@ body.report-page .report-filter-strip {
   margin-top: 6px;
 }
 
+body.report-page .report-back-to-brief {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  text-decoration: none;
+  white-space: nowrap;
+}
+body.report-page .report-back-to-brief:hover { text-decoration: underline; }
+body.has-top-chrome.report-page .report-back-to-brief {
+  display: none !important;
+}
+body.has-top-chrome.report-page .report-shell-top h1 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+body.has-top-chrome.report-page .report-shell-top .subtitle {
+  display: none;
+}
+
 body.report-page .report-mission-strip {
   gap: 10px;
   padding: 8px 10px;
@@ -1974,7 +1993,8 @@ body.report-page #report-load-latest-wrap {
   font-weight: 600;
 }
 
-.app-notification-dock {
+/* Notification dock SSOT: public/css/12-top-chrome.css (slot under #app-top-chrome). Legacy pages without top chrome only. */
+body:not(.has-top-chrome) .app-notification-dock {
   position: fixed;
   top: 82px;
   left: 16px;
@@ -1988,13 +2008,13 @@ body.report-page #report-load-latest-wrap {
   max-width: calc(100vw - 32px);
 }
 
-.app-notification-dock.is-collapsed .app-notification-body,
-.app-notification-dock.is-collapsed .app-notification-sub,
-.app-notification-dock.is-collapsed .app-notification-link {
+body:not(.has-top-chrome) .app-notification-dock.is-collapsed .app-notification-body,
+body:not(.has-top-chrome) .app-notification-dock.is-collapsed .app-notification-sub,
+body:not(.has-top-chrome) .app-notification-dock.is-collapsed .app-notification-link {
   display: none;
 }
 
-.app-notification-title {
+body:not(.has-top-chrome) .app-notification-title {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2003,26 +2023,14 @@ body.report-page #report-load-latest-wrap {
   margin-bottom: 6px;
 }
 
-.app-notification-actions {
+body:not(.has-top-chrome) .app-notification-actions {
   margin-left: auto;
   display: inline-flex;
   gap: 6px;
   align-items: center;
 }
 
-.btn-ghost {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.85em;
-}
-
-.btn-ghost:hover {
-  color: var(--primary);
-}
-
-.app-notification-toggle {
+body:not(.has-top-chrome) .app-notification-toggle {
   position: fixed;
   left: 16px;
   top: 82px;
@@ -2036,14 +2044,14 @@ body.report-page #report-load-latest-wrap {
 }
 
 /* Report: keep bell off the filter/context strip (was overlapping #preview-meta / strip). */
-body.report-page .app-notification-toggle {
+body.report-page:not(.has-top-chrome) .app-notification-toggle {
   top: auto;
   bottom: 18px;
   left: 16px;
   z-index: 850;
 }
 
-body.report-page .app-notification-dock:not(.is-collapsed) {
+body.report-page:not(.has-top-chrome) .app-notification-dock:not(.is-collapsed) {
   top: auto;
   bottom: 56px;
   left: 16px;
@@ -3356,6 +3364,19 @@ body.report-page .preview-status-strip[data-state="fresh"] {
 
 @media (min-width: 1025px) {
   body.report-page.preview-active .report-filters-status-bar {
+    display: none !important;
+  }
+
+  body.report-page.preview-active #preview-status-strip[data-state="fresh"],
+  body.report-page.preview-active #preview-status-strip[data-state="up-to-date"] {
+    display: none !important;
+  }
+
+  body.report-page.preview-active #report-filter-strip-summary .context-summary-secondary {
+    display: none !important;
+  }
+
+  body.report-page.preview-active #report-one-click-cta-wrap {
     display: none !important;
   }
 }

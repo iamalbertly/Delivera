@@ -1,4 +1,6 @@
 import { escapeHtml, renderIssueKeyLink } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { cockpitRisksToAttentionItems, renderAttentionQueueTable } from './Delivera-Shared-Attention-Queue.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { formatDayLabel, formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
 import { buildDeliveredImpactBullets, deriveSprintGoal } from './Delivera-CurrentSprint-Value-Helpers.js';
 
@@ -281,9 +283,32 @@ export function renderDecisionCockpit(data, options = {}) {
   const collapseSummary = `${health.status || 'On Track'} — ${health.message || 'Expand for sprint drill-down.'}`;
 
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
+  const quickCreateChip = '<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context." style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>';
+  const blocker = topRisks[0] || {};
+  const verdictLabel = health.tone === 'critical'
+    ? COPY.verdictBlocked
+    : health.tone === 'warning'
+      ? COPY.verdictWatch
+      : COPY.verdictOnTrack;
+  const sprintTodayHero = ''
+    + '<section class="sprint-today-hero" aria-label="Sprint today">'
+    + '<h2>Sprint today</h2>'
+    + `<p class="sprint-today-verdict"><strong>${escapeHtml(verdictLabel)}</strong></p>`
+    + `<p class="sprint-today-answer">${escapeHtml(health.message || 'Review sprint signals.')}</p>`
+    + (blocker.issueKey ? `<p><strong>Main blocker:</strong> ${escapeHtml(blocker.issueKey)}</p>` : '')
+    + (nextBestAction.issueKey ? `<p><strong>Who to chase:</strong> ${escapeHtml(nextBestAction.assignee || nextBestAction.issueKey || 'Owner in Jira')}</p>` : '')
+    + `<p><strong>Next move:</strong> ${escapeHtml(nextBestAction.ctaLabel || nextBestAction.summary || 'Review work queue')}</p>`
+    + '</section>';
+  const attentionQueueHtml = renderAttentionQueueTable({
+    title: COPY.attentionQueue,
+    items: cockpitRisksToAttentionItems(topRisks),
+    maxRows: 5,
+  });
   return ''
+    + sprintTodayHero
+    + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
-    + (viewportLean ? '' : buildSummaryStrip(data, cockpit))
+    + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))
     + '<details class="decision-cockpit-details"' + (viewportLean ? '' : ' open') + '>'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'
@@ -363,6 +388,8 @@ export function wireDecisionCockpitHandlers() {
         }));
       } catch (_) {}
     }
+    const details = root.querySelector('.decision-cockpit-details');
+    if (details && !details.open) details.open = true;
     const target = document.querySelector(targetSelector);
     if (target) {
       event.preventDefault();

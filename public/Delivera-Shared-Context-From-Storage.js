@@ -140,7 +140,9 @@ export function getContextPieces(overrides = {}) {
   const rangeStart = overrides.rangeStart || live?.startIso || ctx?.start || '';
   const rangeEnd = overrides.rangeEnd || live?.endIso || ctx?.end || '';
   const last = overrides.lastRun === undefined ? getLastRunSummary() : overrides.lastRun;
-  const freshness = overrides.freshness === undefined ? freshnessInfo.label : overrides.freshness;
+  const freshness = overrides.freshness === undefined
+    ? (filtersStale ? 'Filters changed — refresh' : freshnessInfo.label)
+    : overrides.freshness;
 
   let filtersStaleLabel = 'Filters changed since last run — tap Refresh when ready';
   try {
@@ -156,7 +158,9 @@ export function getContextPieces(overrides = {}) {
     freshness,
     filtersStale,
     filtersStaleLabel,
-    freshnessIsStale: overrides.freshnessIsStale === undefined ? freshnessInfo.isStale : !!overrides.freshnessIsStale,
+    freshnessIsStale: overrides.freshnessIsStale === undefined
+      ? (filtersStale || freshnessInfo.isStale)
+      : !!overrides.freshnessIsStale,
   };
 }
 
@@ -392,6 +396,8 @@ export function getContextCardHtml() {
 
   if (previewActive) {
     const compactParts = [];
+    const filterStripOwnsFreshness = isReportPage
+      && !!document.getElementById('report-filter-strip-summary')?.querySelector('.app-context-bar');
     if (pieces.filtersStale) {
       compactParts.push({
         label: 'Context',
@@ -400,7 +406,7 @@ export function getContextCardHtml() {
         isAction: true,
       });
     }
-    if (pieces.freshness) {
+    if (pieces.freshness && !filterStripOwnsFreshness) {
       compactParts.push({
         label: 'Freshness',
         value: pieces.freshness,

@@ -447,7 +447,7 @@
   body.notification-dock-visible .container {
     padding-left: 0;
   }
-  .app-notification-dock {
+  body:not(.has-top-chrome) .app-notification-dock {
     top: auto;
     left: 12px;
     right: 12px;
@@ -455,7 +455,7 @@
     width: auto;
     max-width: none;
   }
-  .app-notification-toggle {
+  body:not(.has-top-chrome) .app-notification-toggle {
     top: auto;
     left: 12px;
     bottom: 12px;
@@ -830,7 +830,7 @@ body.hud-mode .hud-grid {
   }
 
   body.hud-mode .leadership-header-more {
-    display: none;
+    display: none; /* kept for backward-compat; element removed from HTML 2026-05 */
   }
 
   body.hud-mode #project-context {
@@ -881,4 +881,472 @@ body.hud-mode .hud-grid {
     min-height: 0;
     padding: 14px 16px;
   }
+}
+
+/* Mobile above-fold: collapse leadership non-essential labels to keep KPI cards visible */
+@media (max-width: 640px) {
+  .leadership-direct-value-eyebrow,
+  .leadership-mission-eyebrow {
+    display: none;
+  }
+  .leadership-mission-trust-line {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+  .leadership-mission-strip {
+    padding: 8px;
+    gap: 4px;
+  }
+  .leadership-direct-value-card,
+  .leadership-trust-card,
+  .leadership-kpi-strip,
+  .leadership-summary-strip-wrap,
+  .leadership-attention-wrap,
+  .leadership-outliers,
+  .leadership-governance-footer {
+    padding: 10px 12px;
+  }
+  .leadership-direct-answer {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .leadership-direct-answer article {
+    padding: 10px 12px;
+  }
+  .leadership-onboarding-empty {
+    padding: 10px;
+  }
+  body.hud-mode .hud-subtitle {
+    display: none;
+  }
+  body.hud-mode .hud-summary-line {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Migrated from inline <style> in leadership.html (TD-04) */
+body.hud-mode {
+  background: linear-gradient(180deg, #fffdfd 0%, #f6f2f1 100%);
+  color: #231717;
+  margin: 0;
+  min-height: 100vh;
+}
+.hud-shell {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.hud-header-mission-control {
+  position: sticky;
+  top: var(--sticky-global-nav-top, 0px);
+  z-index: 40;
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(157, 114, 114, 0.24);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,246,246,0.96));
+  box-shadow: 0 12px 28px rgba(72, 22, 22, 0.08);
+  backdrop-filter: none;
+  isolation: isolate;
+}
+.hud-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hud-title {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+.hud-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  color: #6d5757;
+}
+.hud-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hud-status-pill,
+.hud-freshness-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(157, 114, 114, 0.28);
+  background: rgba(255,255,255,0.9);
+  font-size: 0.78rem;
+  color: #5d4444;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.hud-status-pill.is-live {
+  color: #187a53;
+  border-color: rgba(24, 122, 83, 0.35);
+  background: rgba(240, 253, 244, 0.96);
+}
+.hud-status-pill.is-offline {
+  color: #b20000;
+  border-color: rgba(230, 0, 0, 0.3);
+  background: rgba(254, 242, 242, 0.96);
+}
+.hud-summary-line {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+.hud-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+.hud-card {
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(157, 114, 114, 0.18);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(72, 22, 22, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.hud-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(72, 22, 22, 0.08);
+}
+.hud-answer-row {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(2, minmax(0, 0.8fr));
+  gap: 10px;
+}
+.hud-answer-card {
+  padding: 14px;
+  border: 1px solid rgba(230, 0, 0, 0.12);
+  border-radius: 16px;
+  background: #fff;
+}
+.hud-answer-card span {
+  display: block;
+  margin-bottom: 5px;
+  color: #6d5757;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.hud-answer-card strong {
+  display: block;
+  color: #e60000;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+.hud-answer-card p {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+.hud-card-shell {
+  display: grid;
+  gap: 14px;
+}
+.hud-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.hud-metric-card {
+  background: rgba(255,255,255,0.96);
+  border: 1px solid rgba(157, 114, 114, 0.18);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+}
+.metric-label {
+  font-size: 0.76rem;
+  color: #7c6666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.metric-value {
+  font-size: clamp(1.2rem, 0.9rem + 1.4vw, 2rem);
+  font-weight: 700;
+  color: #231717;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.metric-value-inline {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #231717;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.metric-unit {
+  font-size: 0.95rem;
+  color: #7c6666;
+  font-weight: 500;
+  margin-left: 4px;
+}
+.metric-trend {
+  font-size: 0.82rem;
+  margin-top: 10px;
+  display: grid;
+  gap: 4px;
+}
+.trend-up { color: #187a53; }
+.trend-down { color: #b20000; }
+.trend-neutral { color: #6d5757; }
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+@media (max-width: 768px) {
+  .hud-shell { padding: 14px; }
+  .hud-header-mission-control {
+    position: static;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .hud-title { font-size: 1.05rem; }
+  .hud-subtitle { display: none; }
+  .metric-value { font-size: 1.7rem; }
+  .hud-metric-grid { grid-template-columns: 1fr; }
+  .hud-answer-row { grid-template-columns: 1fr; }
+}
+
+/* ── Leadership above-fold compression: 2-column KPI grid, tighter card padding ── */
+
+/* Cap at 2-wide on desktop so KPIs are immediately scannable without horizontal scroll */
+.leadership-kpi-project-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  max-width: 100%;
+  gap: 8px;
+}
+
+@media (min-width: 900px) {
+  .leadership-kpi-project-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tighter card padding — data-dense but still legible */
+.leadership-kpi-project-card,
+.leadership-outlier-panel {
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.leadership-kpi-project-card header {
+  margin-bottom: 6px;
+}
+
+/* Narrower KPI mini-grid so 4 values fit per card on a single scan line */
+.leadership-kpi-mini-grid,
+.leadership-trust-grid {
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 5px 8px;
+}
+
+.leadership-kpi-mini-grid dt,
+.leadership-trust-grid span {
+  font-size: 0.70rem;
+}
+
+.leadership-kpi-mini-grid dd,
+.leadership-trust-grid strong {
+  font-size: 0.9rem;
+  margin-top: 1px;
+}
+
+/* Mobile: single-column KPI cards so no horizontal scroll needed */
+@media (max-width: 720px) {
+  .leadership-kpi-project-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .leadership-kpi-project-card,
+  .leadership-outlier-panel {
+    padding: 7px 9px;
+  }
+
+  .leadership-kpi-mini-grid,
+  .leadership-trust-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Multi-card shimmer skeleton (UX-09) */
+.hud-skeleton-card {
+  min-height: 80px;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    rgba(157,114,114,0.06) 25%,
+    rgba(157,114,114,0.12) 50%,
+    rgba(157,114,114,0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: hud-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes hud-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Squad activation status (Teams Activity section) */
+.squad-activation-status-card {
+  margin-bottom: 8px;
+}
+
+.squad-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.squad-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.88rem;
+}
+
+.squad-status-row:last-child {
+  border-bottom: none;
+}
+
+.squad-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 84px;
+  justify-content: center;
+}
+
+.squad-badge--active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.squad-badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.squad-badge--stalled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.squad-badge--unknown {
+  background: var(--card-muted);
+  color: var(--text-muted);
+}
+
+.squad-row-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.squad-row-detail {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.squad-row-progress {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.squad-status-alert {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  color: #92400e;
+  margin: 0 0 8px;
+}
+
+/* HUD squad alert chip */
+.hud-squad-alert {
+  background: #fee2e2;
+  border: 1px solid #f87171;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #991b1b;
+  cursor: default;
+}
+
+/* Epic progress line in KPI cards */
+.kpi-epic-progress {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.kpi-epic-progress.tone-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.kpi-epic-progress.tone-ok {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+/* Desktop: 3-column KPI cards on very wide screens */
+@media (min-width: 1400px) {
+  .leadership-kpi-project-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .squad-status-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+  }
+  .squad-status-row {
+    border-bottom: 1px dashed var(--border);
+  }
+}
+
+.kpi-create-btn {
+  margin-left: auto;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  height: 22px;
 }

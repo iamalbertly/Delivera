@@ -734,7 +734,7 @@ async function exportDashboardAsPng(data, btn) {
     a.click();
     setButtonStatus(btn, 'Downloaded!', originalText);
   } catch (error) {
-    console.error('PNG snapshot export error:', error);
+    console.warn('PNG snapshot export error:', error); // eslint-disable-line no-console
     const errorEl = document.getElementById('current-sprint-error');
     if (errorEl) {
       setActionErrorOnEl(errorEl, {
@@ -759,7 +759,7 @@ async function copyDashboardAsText(data, btn) {
     setButtonStatus(btn, 'Copied!', originalText);
     setLastExportStatus('Copy detail', 'Detailed sprint text copied');
   } catch (error) {
-    console.error('Copy text error:', error);
+    console.warn('Copy text error:', error); // eslint-disable-line no-console
     setButtonStatus(btn, 'Copy failed', originalText);
   }
 }
@@ -789,7 +789,7 @@ async function copyDashboardSummary(data, btn) {
     setButtonStatus(btn, 'Copied!', originalText);
     setLastExportStatus('Copy summary', 'Sprint summary copied for stand-up, review, and leadership updates');
   } catch (error) {
-    console.error('Copy summary error:', error);
+    console.warn('Copy summary error:', error); // eslint-disable-line no-console
     setButtonStatus(btn, 'Copy failed', originalText);
   }
 }
@@ -831,7 +831,7 @@ async function copyDashboardAsStandup(data, btn) {
     setButtonStatus(btn, 'Copied!', originalText);
     setLastExportStatus('Stand-up script', text);
   } catch (error) {
-    console.error('Copy stand-up script error:', error);
+    console.warn('Copy stand-up script error:', error); // eslint-disable-line no-console
     setButtonStatus(btn, 'Copy failed', originalText);
   }
 }
@@ -851,7 +851,7 @@ async function exportDashboardAsMarkdown(data, btn) {
     setButtonStatus(btn, 'Exported!', originalText);
     setLastExportStatus('Markdown', `File sprint-${model.meta.sprintName || 'export'}.md`);
   } catch (error) {
-    console.error('Markdown export error:', error);
+    console.warn('Markdown export error:', error); // eslint-disable-line no-console
     setButtonStatus(btn, 'Export failed', originalText);
   }
 }
@@ -872,7 +872,7 @@ async function copyDashboardLink(data, btn) {
     setButtonStatus(btn, 'Link copied!', originalText);
     setLastExportStatus('Copy link', url);
   } catch (error) {
-    console.error('Copy link error:', error);
+    console.warn('Copy link error:', error); // eslint-disable-line no-console
     setButtonStatus(btn, 'Copy failed', originalText);
     setLastExportStatus('Copy link failed', 'Try Copy summary instead.');
   }
@@ -898,7 +898,7 @@ async function emailDashboard(data, btn) {
       setLastExportStatus('Email failed', 'Use Copy summary or Markdown export instead.');
     }
   } catch (error) {
-    console.error('Email error:', error);
+    console.warn('Email error:', error); // eslint-disable-line no-console
     setButtonStatus(btn, 'Email unavailable', originalText);
     setLastExportStatus('Email unavailable', 'Share via Copy summary or Markdown.');
   }

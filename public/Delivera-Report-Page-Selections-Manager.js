@@ -1,5 +1,6 @@
 import { reportDom } from './Delivera-Report-Page-Context.js';
 import { PROJECTS_SSOT_KEY, REPORT_ADVANCED_OPTIONS_OPEN_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { hydrateReportProjectCheckboxes } from './Delivera-Report-Projects-Catalog-01Hydrate.js';
 
 export function getSelectedProjects() {
   return Array.from(document.querySelectorAll('.project-checkbox[data-project]:checked'))
@@ -100,6 +101,7 @@ function initAdvancedOptionsToggle() {
 }
 
 export function initProjectSelection() {
+  hydrateReportProjectCheckboxes();
   try {
     const stored = localStorage.getItem(PROJECTS_SSOT_KEY);
     if (stored && typeof stored === 'string') {

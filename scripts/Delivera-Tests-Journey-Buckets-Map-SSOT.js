@@ -121,6 +121,63 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/leadership,/report#trends',
   },
+  'tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance,/api/governance/pi-baseline/propose-from-image',
+  },
+  'tests/Delivera-Governance-Brief-Evidence-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'data-contract',
+    page: '/governance,/api/governance-brief.json',
+  },
+  'tests/Delivera-Governance-Projects-Catalog-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance,/api/projects-catalog.json',
+  },
+  'tests/Delivera-Governance-Agentic-Worker-Inbox-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'data-contract',
+    page: '/governance,/api/governance/inbox.json',
+  },
+  'tests/Delivera-Governance-Visual-Clarity-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance',
+  },
+  'tests/Delivera-Governance-PI-Intelligence-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance',
+  },
+  'tests/Delivera-Governance-Agentic-CommandSurface-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance,/settings,/api/governance/worker-receipt.json',
+  },
+  'tests/Delivera-App-Governance-Root-Nav-Scope-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/,/governance',
+  },
+  'tests/Delivera-UX-Root-Brief-First.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/' },
+  'tests/Delivera-UX-Brief-Action-Cards.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Copy-Meeting-Answer.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Contrast-And-Readable-Copy.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Scope-Reuse-No-Duplication.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Stale-Data-Warnings.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-UX-Evidence-Proof-Linking.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/report' },
+  'tests/Delivera-UX-Executive-Brief-Pulse-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance',
+  },
+  'tests/Delivera-UX-Portfolio-Squad-Grid-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance',
+  },
 
   // Outcome intake and outcome-first UX
   'tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js': {
@@ -132,6 +189,18 @@ export const specMetadata = {
     journey: 'journey.outcome-intake',
     layer: 'page-ux',
     page: '/report',
+  },
+  'tests/Delivera-CreateWork-Canvas-ButtonFlow-DirectValue-E2E-Validation-Tests.spec.js': {
+    journey: 'journey.outcome-intake',
+    layer: 'page-ux',
+    page: '/current-sprint',
+    priority: 1,
+  },
+  'tests/Delivera-CreateWork-Intelligence-Confidence-Assignee-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.outcome-intake',
+    layer: 'api-contract',
+    page: '/current-sprint',
+    priority: 1,
   },
   'tests/Delivera-Outcome-Validation-Screen-And-Epic-Level-Tests.spec.js': {
     journey: 'journey.outcome-intake',
@@ -185,20 +254,15 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/login,/report,/current-sprint,/sprint-leadership',
   },
-  'tests/Delivera-Customer-Speed-Simplicity-Trust-Realtime-Validation-Tests.spec.js': {
-    journey: 'journey.ux-core',
-    layer: 'page-ux',
-    page: '/report,/current-sprint,/sprint-leadership',
-  },
-  'tests/Delivera-Customer-Simplicity-Trust-Recovery-Validation-Tests.spec.js': {
-    journey: 'journey.ux-core',
-    layer: 'page-ux',
-    page: '/report',
-  },
   'tests/Delivera-Navigation-Consistency-Mobile-Trust-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'layout/responsiveness',
     page: '/report,/current-sprint,/sprint-leadership',
+  },
+  'tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'layout/responsiveness',
+    page: '/governance,/current-sprint,/report,/settings',
   },
   'tests/Delivera-Mobile-Responsive-UX-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
@@ -260,6 +324,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report',
   },
+  'tests/Delivera-Growth-Direct-Value-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'cross-surface-ux',
+    page: '/report,/current-sprint,/home,/leadership',
+  },
   'tests/Delivera-UX-AllSurfaces-DirectValue-Polish-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'page-ux',
@@ -294,6 +363,11 @@ export const specMetadata = {
     journey: 'journey.ux-core',
     layer: 'page-ux',
     page: '/report',
+  },
+  'tests/Delivera-Mission-Strip-Compression-Validation-Tests.spec.js': {
+    journey: 'journey.current-sprint',
+    layer: 'page-ux',
+    page: '/current-sprint,/report,/leadership',
   },
 
   // API + data integrity, exports, contracts
@@ -446,6 +520,13 @@ export const specMetadata = {
 };
 
 export const journeyBuckets = {
+  'journey.governance': {
+    id: 'journey.governance',
+    label: 'Governance – Decision cockpit root and brief',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance',
+    ),
+  },
   'journey.current-sprint': {
     id: 'journey.current-sprint',
     label: 'Current Sprint – Core & Risks',
@@ -507,9 +588,20 @@ export const journeyBuckets = {
   },
 };
 
+const GOVERNANCE_FIRST_SPEC = 'tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js';
+
 export function getJourneySpecs(journeyId) {
   const bucket = journeyBuckets[journeyId];
-  return bucket ? bucket.specs.slice() : [];
+  if (!bucket) return [];
+  const specs = bucket.specs.slice();
+  if (journeyId === 'journey.governance') {
+    const idx = specs.indexOf(GOVERNANCE_FIRST_SPEC);
+    if (idx > 0) {
+      specs.splice(idx, 1);
+      specs.unshift(GOVERNANCE_FIRST_SPEC);
+    }
+  }
+  return specs;
 }
 
 export function getSpecMeta(specPath) {

@@ -122,8 +122,14 @@ export function restoreLastPreviewFromStorage() {
     markPerf('report', 'firstValueRendered', { firstValueSource: 'last-success-cache' });
     markPerf('report', 'fullRenderComplete');
     if (reportDom.previewContent) reportDom.previewContent.style.display = 'block';
-    if (reportDom.exportExcelBtn) reportDom.exportExcelBtn.hidden = true;
-    if (reportDom.exportDropdownTrigger) reportDom.exportDropdownTrigger.hidden = true;
+    if (reportDom.exportExcelBtn) {
+      reportDom.exportExcelBtn.hidden = true;
+      reportDom.exportExcelBtn.title = 'Export will refresh after you run a new preview';
+    }
+    if (reportDom.exportDropdownTrigger) {
+      reportDom.exportDropdownTrigger.hidden = true;
+      reportDom.exportDropdownTrigger.title = 'Export will refresh after you run a new preview';
+    }
     const statusEl = document.getElementById('preview-status');
     if (statusEl) {
       statusEl.innerHTML = '<div class="status-banner warning">Older snapshot — tap Preview for latest<button type="button" class="status-close" aria-label="Dismiss">x</button></div>';
@@ -634,10 +640,12 @@ export function initPreviewFlow() {
       } catch (_) {}
       if (exportExcelBtn) {
         exportExcelBtn.disabled = !reportState.previewHasRows;
+        exportExcelBtn.hidden = false;
         exportExcelBtn.style.display = '';
       }
       if (exportDropdownTrigger) {
         exportDropdownTrigger.disabled = !reportState.previewHasRows;
+        exportDropdownTrigger.hidden = false;
         exportDropdownTrigger.style.display = '';
       }
       updateExportHint();
@@ -659,8 +667,13 @@ export function initPreviewFlow() {
 
     const fetchStartMs = Date.now();
     try {
-      setLoadingStage(1, 'Gathering sprint history…');
-      startTheaterGathering(() => Date.now() - fetchStartMs);
+      if (!hasExistingPreview) {
+        setLoadingStage(1, 'Gathering sprint history…');
+        startTheaterGathering(() => Date.now() - fetchStartMs);
+      } else if (loadingEl) {
+        loadingEl.style.display = 'none';
+        loadingEl.setAttribute('aria-hidden', 'true');
+      }
 
       const controller = new AbortController();
       currentPreviewController = controller;
@@ -749,6 +762,15 @@ export function initPreviewFlow() {
       setLoadingStage(4, 'Final checks…');
       if (runIdForThisRequest === previewRunId) {
         applyPreviewPayload(responseJson);
+        // Jira outage stale-data notice — served cached data when Jira was unreachable
+        if (responseJson?.meta?.stale && statusEl) {
+          const staleAgeH = responseJson.meta.staleAgeMs > 0
+            ? Math.round(responseJson.meta.staleAgeMs / 3600000)
+            : null;
+          const ageText = staleAgeH != null ? ` from ${staleAgeH}h ago` : '';
+          statusEl.innerHTML = `<div class="status-banner warning">Showing cached data${ageText} — Jira was unreachable when this loaded. <button type="button" class="status-close" aria-label="Dismiss">✕</button></div>`;
+          statusEl.style.display = 'block';
+        }
       }
       try {
         warmCurrentSprintJourney(responseJson?.meta?.selectedProjects || []);
@@ -853,7 +875,7 @@ export function initPreviewFlow() {
             } catch (_) {}
           }
         } catch (innerErr) {
-          console.error('Error rendering preview error UI', innerErr);
+          console.warn('Error rendering preview error UI', innerErr); // eslint-disable-line no-console
           setActionErrorOnEl(errorEl, {
             title: 'Server error',
             message: 'Please try again or use a smaller date range.',
@@ -922,10 +944,12 @@ export function initPreviewFlow() {
       const hasRows = Array.isArray(reportState.previewRows) && reportState.previewRows.length > 0;
       if (exportDropdownTrigger) {
         exportDropdownTrigger.disabled = !hasRows;
+        exportDropdownTrigger.hidden = false;
         exportDropdownTrigger.style.display = '';
       }
       if (exportExcelBtn) {
         exportExcelBtn.disabled = !hasRows;
+        exportExcelBtn.hidden = false;
         exportExcelBtn.style.display = '';
       }
       updateExportHint();

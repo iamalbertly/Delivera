@@ -67,7 +67,7 @@ test.describe('UX Trust and Export Validation (telemetry + UI per step)', () => 
     await expect(page.locator('#export-dropdown-trigger')).toBeHidden();
     await expect(page.locator('#preview-content')).toBeHidden();
     await expect(page.locator('.app-sidebar .app-nav, nav.app-nav')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a[href="/current-sprint"]')).toContainText('Current Sprint');
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/current-sprint"], nav.app-nav a.sidebar-link[href="/current-sprint"]')).toContainText('Current Sprint');
 
     assertTelemetryClean(telemetry);
   });

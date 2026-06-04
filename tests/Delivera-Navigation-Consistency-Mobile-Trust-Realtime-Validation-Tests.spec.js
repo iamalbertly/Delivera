@@ -14,23 +14,27 @@ async function skipIfAuthRedirect(page) {
   return false;
 }
 
+async function expectActiveSwitcher(page, surface) {
+  await expect(page.locator(`.app-top-switcher-item.is-active[data-top-surface="${surface}"]`)).toBeVisible();
+}
+
 async function openMobileSidebarReliably(page) {
   const sidebar = page.locator('.app-sidebar');
-  const toggle = page.locator('.sidebar-toggle');
-  await expect(toggle).toBeVisible();
-  await toggle.click();
+  const toggle = page.locator('.app-top-sidebar-toggle, .sidebar-toggle');
+  await expect(toggle.first()).toBeVisible();
+  await toggle.first().click();
   const openedFirstTry = await page.evaluate(() => {
     const sidebarEl = document.querySelector('.app-sidebar');
-    const toggleEl = document.querySelector('.sidebar-toggle');
+    const toggleEl = document.querySelector('.app-top-sidebar-toggle, .sidebar-toggle');
     return !!(sidebarEl && sidebarEl.classList.contains('open'))
       || (toggleEl?.getAttribute('aria-expanded') === 'true');
   }).catch(() => false);
   if (!openedFirstTry) {
-    await toggle.click({ force: true });
+    await toggle.first().click({ force: true });
   }
   const opened = await page.waitForFunction(() => {
     const sidebarEl = document.querySelector('.app-sidebar');
-    const toggleEl = document.querySelector('.sidebar-toggle');
+    const toggleEl = document.querySelector('.app-top-sidebar-toggle, .sidebar-toggle');
     return !!(sidebarEl && sidebarEl.classList.contains('open'))
       || (toggleEl?.getAttribute('aria-expanded') === 'true');
   }, null, { timeout: 5000 }).then(() => true).catch(() => false);
@@ -45,10 +49,11 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await expect(page.locator('.app-sidebar')).toBeVisible();
-    await expect(page.locator('.app-sidebar .sidebar-link[data-nav-key="report"]')).toBeVisible();
-    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="sprints"]')).toBeVisible();
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
+    await expect(page.locator('.app-sidebar')).toBeAttached();
+    await expect(page.locator('#app-top-chrome')).toBeVisible();
+    await expect(page.locator('.app-top-switcher-item[data-top-surface="report"]')).toBeVisible();
+    await expect(page.locator('.app-top-switcher-item[data-top-surface="sprints"]')).toBeVisible();
+    await expectActiveSwitcher(page, 'report');
     assertTelemetryClean(telemetry);
   });
 
@@ -60,7 +65,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await page.click('#tab-btn-trends');
     await expect(page).toHaveURL(/\/report#trends/);
     await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
+    await expectActiveSwitcher(page, 'report');
     assertTelemetryClean(telemetry);
   });
 
@@ -70,7 +75,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     if (await skipIfAuthRedirect(page)) return;
 
     await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
+    await expectActiveSwitcher(page, 'report');
     assertTelemetryClean(telemetry);
   });
 
@@ -81,7 +86,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
 
     await page.click('#tab-btn-project-epic-level');
     await expect(page).toHaveURL(/\/report$/);
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="report"]')).toBeVisible();
+    await expectActiveSwitcher(page, 'report');
     assertTelemetryClean(telemetry);
   });
 
@@ -90,8 +95,9 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await page.goto('/current-sprint');
     if (await skipIfAuthRedirect(page)) return;
 
-    await expect(page.locator('.app-sidebar')).toBeVisible();
-    await expect(page.locator('.app-sidebar .sidebar-link.current[data-nav-key="sprints"]')).toBeVisible();
+    await expect(page.locator('.app-sidebar')).toBeAttached();
+    await expect(page.locator('#app-top-chrome')).toBeVisible();
+    await expectActiveSwitcher(page, 'sprints');
     assertTelemetryClean(telemetry);
   });
 
@@ -100,7 +106,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await page.goto('/current-sprint');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="report"]');
+    await page.locator('.app-top-switcher-item[data-top-surface="report"]').click();
     await expect(page).toHaveURL(/\/report$/);
     assertTelemetryClean(telemetry);
   });
@@ -119,7 +125,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     const navOpenState = await page.evaluate(() => {
       const backdrop = document.querySelector('.sidebar-backdrop');
       const sidebar = document.querySelector('.app-sidebar');
-      const toggle = document.querySelector('.sidebar-toggle');
+      const toggle = document.querySelector('.app-top-sidebar-toggle, .sidebar-toggle');
       return {
         sidebarOpen: !!(sidebar && sidebar.classList.contains('open')),
         backdropActive: !!(backdrop && backdrop.classList.contains('active')),
@@ -166,7 +172,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await expect.poll(async () => {
       return page.evaluate(() => {
         const sidebar = document.querySelector('.app-sidebar');
-        const toggle = document.querySelector('.sidebar-toggle');
+        const toggle = document.querySelector('.app-top-sidebar-toggle, .sidebar-toggle');
         const bodyClass = document.body.className || '';
         return (
           !(sidebar && sidebar.classList.contains('open'))
@@ -193,7 +199,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await expect.poll(async () => {
       return page.evaluate(() => {
         const sidebar = document.querySelector('.app-sidebar');
-        const toggle = document.querySelector('.sidebar-toggle');
+        const toggle = document.querySelector('.app-top-sidebar-toggle, .sidebar-toggle');
         return !(sidebar && sidebar.classList.contains('open')) && toggle?.getAttribute('aria-expanded') !== 'true';
       });
     }, { timeout: 5000 }).toBe(true);
@@ -207,9 +213,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     if (await skipIfAuthRedirect(page)) return;
 
     await openMobileSidebarReliably(page);
-    const currentSprintLink = page.locator('.app-sidebar a.sidebar-link[data-nav-key="sprints"]');
-    await currentSprintLink.scrollIntoViewIfNeeded();
-    await currentSprintLink.dispatchEvent('click');
+    await page.locator('.app-top-switcher-item[data-top-surface="sprints"]').click();
     await expect(page).toHaveURL(/\/current-sprint/);
     await expect(page.locator('.sidebar-backdrop')).not.toHaveClass(/active/);
     assertTelemetryClean(telemetry);
@@ -222,7 +226,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     if (await skipIfAuthRedirect(page)) return;
 
     const report = await getViewportClippingReport(page, {
-      selectors: ['body', '.container', 'header', '.main-layout', '.sidebar-toggle'],
+      selectors: ['body', '.container', 'header', '.main-layout', '#app-top-chrome'],
       maxLeftGapPx: 12,
       maxRightOverflowPx: 1,
     });
@@ -238,6 +242,8 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     if (page.url().includes('/report')) {
       await expect(page).toHaveURL(/\/report#trends/);
       await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
+    } else if (page.url().includes('/governance')) {
+      await expect(page).toHaveURL(/\/governance/);
     } else {
       await expect(page).toHaveURL(/\/leadership/);
       await expect(page.locator('#project-context')).toBeAttached();
@@ -250,9 +256,9 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="sprints"]');
+    await page.locator('.app-top-switcher-item[data-top-surface="sprints"]').click();
     await expect(page).toHaveURL(/\/current-sprint/);
-    await page.click('.app-sidebar a.sidebar-link[data-nav-key="report"]');
+    await page.locator('.app-top-switcher-item[data-top-surface="report"]').click();
     await expect(page).toHaveURL(/\/report$/);
     await page.click('#tab-btn-project-epic-level');
     await expect(page).toHaveURL(/\/report(#.*)?$/);

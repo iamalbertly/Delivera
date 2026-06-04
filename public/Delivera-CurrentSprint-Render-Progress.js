@@ -3,7 +3,7 @@ import { formatDate, formatDayLabel, formatNumber } from './Delivera-Shared-Form
 import { renderEmptyStateHtml } from './Delivera-Shared-Empty-State-Helpers.js';
 import { resolveResponsiveRowLimit } from './Delivera-Shared-Responsive-Helpers.js';
 import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { hasOutcomeLabel, isOutcomeStoryLike } from './Delivera-Shared-Outcome-Risk-Semantics.js';
+import { hasOutcomeLabel, isOutcomeStoryLike, deriveDeliveryProgressTone } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 import { renderWorkRisksMerged } from './Delivera-CurrentSprint-Render-Subtasks.js';
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 import {
@@ -340,14 +340,15 @@ export function renderStories(data) {
   }
 
   function renderStorySignalCard(label, value, copy, progress = null, tone = '') {
-    const toneClass = tone ? ' ' + tone : '';
+    const progressTone = progress != null ? deriveDeliveryProgressTone(progress) : '';
+    const toneClass = (tone || progressTone) ? ' ' + (tone || progressTone).trim() : '';
     let cardHtml = '<article class="sprint-story-signal-card' + toneClass + '">';
     cardHtml += '<p class="sprint-story-signal-label">' + escapeHtml(label) + '</p>';
     cardHtml += '<strong>' + escapeHtml(value) + '</strong>';
     cardHtml += '<p>' + escapeHtml(copy) + '</p>';
     if (progress != null) {
       const width = Math.max(0, Math.min(100, Number(progress) || 0));
-      cardHtml += '<div class="sprint-story-signal-bar"><span style="width:' + width + '%;"></span></div>';
+      cardHtml += '<div class="sprint-story-signal-bar' + progressTone + '"><span style="width:' + width + '%;"></span></div>';
     }
     cardHtml += '</article>';
     return cardHtml;
@@ -484,7 +485,11 @@ export function renderStories(data) {
   }
 
   html += '<section class="sprint-story-signals-row" aria-label="Value-first sprint signals">';
-  html += renderStorySignalCard('Delivery Progress', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', 'Focus on delivered value, not raw activity.', Number(data?.summary?.percentDone || 0));
+  const headerBarPresent = typeof document !== 'undefined'
+    && document.querySelector('.current-sprint-header-bar');
+  if (!headerBarPresent) {
+    html += renderStorySignalCard('Delivery Progress', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', 'Focus on delivered value, not raw activity.', Number(data?.summary?.percentDone || 0));
+  }
   html += renderStorySignalCard('Value Delivered', valueDoneCount + '/' + groupedStories.value.length + ' value stories', 'User-facing change completed this sprint.', groupedStories.value.length > 0 ? (valueDoneCount / groupedStories.value.length) * 100 : 0);
   html += renderStorySignalCard('Spillover Tracker', spilloverCount + ' stories', spilloverPct + '% of sprint scope is still open.', spilloverPct, spilloverPct > 35 ? ' is-warning' : '');
   html += '</section>';

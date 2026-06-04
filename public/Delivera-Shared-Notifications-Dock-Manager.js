@@ -2,6 +2,8 @@ const DEFAULT_NOTIFICATION_STORE_KEY = 'appNotificationsV1';
 const DEFAULT_NOTIFICATION_DOCK_STATE_KEY = 'appNotificationsDockStateV1';
 const DEFAULT_TOGGLE_ID = 'app-notification-toggle';
 const DEFAULT_DOCK_ID = 'app-notification-dock';
+/** Matches `NOTIFICATION_SLOT_ID` in Delivera-Shared-Top-Chrome-01Render-UI.js (no import — avoids cycle). */
+const NOTIFICATION_SLOT_ID = 'app-notification-slot';
 
 export function readNotificationSummary(storageKey = DEFAULT_NOTIFICATION_STORE_KEY) {
   try {
@@ -85,7 +87,86 @@ function ariaLabelForNotificationToggle(summary) {
   return `Show notifications: ${parts.join(' · ')}`;
 }
 
+function pageContextFromPath() {
+  const path = typeof window !== 'undefined' && window.location ? window.location.pathname || '' : '';
+  if (path.includes('governance') || path.includes('/brief')) return 'governance';
+  if (path.includes('settings')) return 'settings';
+  if (path.includes('current-sprint')) return 'current-sprint';
+  if (path.includes('leadership')) return 'leadership';
+  return 'report';
+}
+
+function notificationFocusLink(pageContext) {
+  if (pageContext === 'governance') return { href: '/governance', label: 'Open Brief queue' };
+  if (pageContext === 'settings') return { href: '/settings', label: 'Open settings' };
+  if (pageContext === 'current-sprint') return { href: '/current-sprint#stories-card', label: 'Focus sprint work' };
+  if (pageContext === 'leadership') return { href: '/governance#decision-snapshot', label: 'Open Brief snapshot' };
+  return { href: '/report', label: 'Open proof view' };
+}
+
+function mountNotificationDockElement(summary, pageContext = 'report') {
+  const tt = getTimeTrackingTotal(summary);
+  const rt = getRuntimeAlertCount(summary);
+  const eff = effectiveNotificationTotal(summary);
+  let dock = document.getElementById(DEFAULT_DOCK_ID);
+  if (dock) dock.remove();
+
+  dock = document.createElement('aside');
+  dock.id = DEFAULT_DOCK_ID;
+  dock.className = 'app-notification-dock';
+  dock.setAttribute('aria-label', 'Notifications');
+  const parts = [];
+  if (tt > 0) parts.push(`Sprint logging: ${tt}`);
+  if (rt > 0) parts.push(`Console/runtime: ${rt}`);
+  const meta = [summary?.boardName, summary?.sprintName].filter(Boolean).join(' · ');
+  dock.innerHTML = ''
+    + '<div class="app-notification-title">'
+    + `<span>Alerts (${eff})</span>`
+    + '<div class="app-notification-actions">'
+    + '<button type="button" class="btn-ghost" data-notification-collapse aria-label="Collapse">−</button>'
+    + '<button type="button" class="btn-ghost" data-notification-dismiss aria-label="Dismiss">×</button>'
+    + '</div></div>'
+    + `<div class="app-notification-body">${parts.join(' · ') || 'No alert detail'}</div>`
+    + (meta ? `<div class="app-notification-sub">${meta}</div>` : '')
+    + `<a class="app-notification-link" href="${notificationFocusLink(pageContext).href}">${notificationFocusLink(pageContext).label}</a>`;
+
+  dock.querySelector('[data-notification-collapse]')?.addEventListener('click', () => {
+    dock.classList.toggle('is-collapsed');
+    const state = readNotificationDockState();
+    writeNotificationDockState({ ...state, collapsed: dock.classList.contains('is-collapsed'), hidden: false });
+  });
+  dock.querySelector('[data-notification-dismiss]')?.addEventListener('click', () => {
+    const state = readNotificationDockState();
+    writeNotificationDockState({ ...state, hidden: true }, DEFAULT_NOTIFICATION_DOCK_STATE_KEY);
+    dock.remove();
+    document.body.classList.remove('notification-dock-visible');
+  });
+
+  const slot = document.getElementById(NOTIFICATION_SLOT_ID);
+  (slot || document.body).appendChild(dock);
+  document.body.classList.add('notification-dock-visible');
+  updateSidebarAlertFooter(summary || { total: 0 }, pageContext);
+  window.dispatchEvent(new CustomEvent('app:notification-summary-updated'));
+  return dock;
+}
+
+/** Open dock in-place (top chrome bell) without page navigation. */
+export function openNotificationDockFromStore(options = {}) {
+  const summary = options.summary || readNotificationSummary(options.storageKey);
+  const eff = effectiveNotificationTotal(summary);
+  const pageContext = options.pageContext || pageContextFromPath();
+  const stateKey = options.stateKey || DEFAULT_NOTIFICATION_DOCK_STATE_KEY;
+  const state = readNotificationDockState(stateKey);
+  writeNotificationDockState({ ...state, hidden: false, collapsed: false }, stateKey);
+  if (eff <= 0) {
+    mountNotificationDockElement({ total: 0, runtimeAlerts: [] }, pageContext);
+    return null;
+  }
+  return mountNotificationDockElement(summary, pageContext);
+}
+
 function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
+  if (document.getElementById('app-top-chrome')) return;
   let toggle = document.getElementById(toggleId);
   const eff = effectiveNotificationTotal(summary);
   if (!toggle) {
@@ -101,6 +182,7 @@ function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {
       writeNotificationDockState({ ...state, hidden: false }, stateKey);
       toggle.remove();
       if (onShow) onShow();
+      else openNotificationDockFromStore({ summary, stateKey });
     });
     container.appendChild(toggle);
   } else if (summary) {
@@ -126,17 +208,27 @@ function updateSidebarAlertFooter(summary, pageContext = 'report') {
     if (rt > 0) parts.push(`Console/runtime: ${rt}`);
     label = `Alerts — ${parts.join(' · ')}${trustLabel ? ` | ${trustLabel}` : ''}`;
   }
-  el.innerHTML = `<button type="button" class="sidebar-alert-footer-chip${healthy ? ' is-healthy' : ''}" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Work risks">${label}</button>`;
+  el.innerHTML = `<button type="button" class="sidebar-alert-footer-chip${healthy ? ' is-healthy' : ''}" data-sidebar-alert-jump="true" title="Open notifications">`
+    + `${label}</button>`;
   const btn = el.querySelector('[data-sidebar-alert-jump]');
   if (!btn) return;
   btn.addEventListener('click', () => {
     try {
+      if (document.getElementById('app-top-chrome')) {
+        openNotificationDockFromStore({ summary, pageContext });
+        return;
+      }
+      if (pageContext === 'governance') {
+        document.querySelector('[data-queue-open], [data-gov-inbox-open]')?.click?.()
+          || document.getElementById('gov-top-chrome-mount')?.scrollIntoView?.({ behavior: 'smooth' });
+        return;
+      }
       if (pageContext === 'current-sprint') {
         const target = document.getElementById('stories-card') || document.getElementById('stuck-card');
         if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(target);
         else target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } else {
-        window.location.href = '/current-sprint#stories-card';
+        window.location.href = notificationFocusLink(pageContext).href;
       }
     } catch (_) {}
   });
@@ -149,7 +241,7 @@ export function renderNotificationDock(options = {}) {
     stateKey = DEFAULT_NOTIFICATION_DOCK_STATE_KEY,
     dockId = DEFAULT_DOCK_ID,
     toggleId = DEFAULT_TOGGLE_ID,
-    pageContext = 'report',
+    pageContext = pageContextFromPath(),
     collapsedByDefault = false,
   } = options;
   const resolvedSummary = summary || readNotificationSummary(storageKey);
@@ -169,7 +261,9 @@ export function renderNotificationDock(options = {}) {
   if (existing) existing.remove();
   const toggle = document.getElementById(toggleId);
   if (toggle) toggle.remove();
-  document.body.classList.remove('notification-dock-visible');
+  if (state.hidden) {
+    document.body.classList.remove('notification-dock-visible');
+  }
 
   const sprintNavLink = document.querySelector('.app-nav a[href*="current-sprint"]');
   if (sprintNavLink) {
@@ -184,25 +278,32 @@ export function renderNotificationDock(options = {}) {
 
   updateSidebarAlertFooter(resolvedSummary || { total: 0 }, pageContext);
 
+  if (document.getElementById('app-top-chrome')) {
+    window.dispatchEvent(new CustomEvent('app:notification-summary-updated'));
+    return;
+  }
+
   if (eff <= 0) return;
+  if (!state.hidden) {
+    mountNotificationDockElement(resolvedSummary, pageContext);
+    if (state.collapsed) {
+      document.getElementById(dockId)?.classList.add('is-collapsed');
+    }
+    return;
+  }
   renderToggleButton({ toggleId, stateKey, summary: resolvedSummary });
 }
 
 /**
  * Re-render dock from localStorage after runtime alerts or external updates.
- * Safe to call from localhost console bridge; no-ops on paths without app chrome.
  */
 export function refreshNotificationDockFromStore() {
   if (typeof window === 'undefined' || !window.location) return;
   const path = window.location.pathname || '';
   if (path.includes('/login') || path.endsWith('login')) return;
-  if (path.includes('current-sprint')) {
-    renderNotificationDock({ pageContext: 'current-sprint', collapsedByDefault: false });
-  } else if (path.includes('leadership')) {
-    renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
-  } else {
-    renderNotificationDock({ pageContext: 'report', collapsedByDefault: true });
-  }
+  const pageContext = pageContextFromPath();
+  const collapsedByDefault = pageContext !== 'current-sprint';
+  renderNotificationDock({ pageContext, collapsedByDefault });
 }
 
 export const NOTIFICATION_STORE_KEY = DEFAULT_NOTIFICATION_STORE_KEY;

@@ -7,18 +7,31 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await page.locator('[data-open-outcome-modal]').first().click();
-    await expect(page.locator('#global-outcome-modal')).toBeVisible();
-    const textarea = page.locator('#global-outcome-modal #report-outcome-text');
-    const createBtn = page.locator('#global-outcome-modal #report-outcome-intake-create');
-    const status = page.locator('#report-outcome-intake-status');
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    const textarea = page.locator('#wdd-source-textarea');
+    const createBtn = page.locator('#wdd-create-safe-btn');
+    const status = page.locator('#wdd-parse-status');
 
     await textarea.fill('Please continue work on SD-5022 and update the acceptance criteria.');
     await expect(createBtn).toBeDisabled();
-    await expect(status).toContainText(/already has a Jira issue|Detected Jira issue key/i);
+    await expect(status).toContainText(/Jira key.*detected|will be linked/i);
   });
 
-  test('outcome intake dedupe suggests use-existing and supports create-anyway', async ({ page }) => {
+  test('outcome intake dedupe suggests create-anyway on 409 conflict', async ({ page }) => {
     let callCount = 0;
+    await page.route('**/api/outcome-draft', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          rows: [
+            { id: 'r0', index: 0, kind: 'EPIC', title: 'Customer feedback improvements', confidence: 0.9, isParent: true, warnings: [], selected: true },
+            { id: 'r1', index: 1, kind: 'STORY', title: 'Add customer number to feedback', confidence: 0.9, isParent: false, warnings: [], selected: true },
+          ],
+        }),
+      });
+    });
     await page.route('**/api/outcome-from-narrative', async (route) => {
       callCount += 1;
       const body = route.request().postDataJSON?.() || {};
@@ -28,6 +41,7 @@ test.describe('Outcome Intake And Readiness Validation', () => {
           contentType: 'application/json',
           body: JSON.stringify({
             code: 'POSSIBLE_DUPLICATE_OUTCOME',
+            message: 'Possible duplicate detected.',
             duplicate: {
               key: 'SD-5043',
               url: 'https://jira.example.com/browse/SD-5043',
@@ -50,22 +64,30 @@ test.describe('Outcome Intake And Readiness Validation', () => {
 
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.locator('#project-mas').uncheck().catch(() => {});
     await page.locator('[data-open-outcome-modal]').first().click();
-    await expect(page.locator('#global-outcome-modal')).toBeVisible();
-    await page.locator('#global-outcome-modal #report-outcome-text').fill('New sites performance narrative without a Jira key.');
-    await page.locator('#global-outcome-modal #report-outcome-intake-create').click();
-    await expect(page.locator('#report-outcome-intake-status')).toContainText(/already exists|Use existing|Create anyway/i);
-    await page.locator('[data-outcome-action="create-anyway"]').click();
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill([
+      'Customer feedback improvements',
+      'Add customer number to feedback',
+    ].join('\n'));
+    // Wait for canvas items from mocked draft before clicking create
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)')).toHaveCount(2, { timeout: 4000 });
+    await page.locator('#wdd-create-safe-btn').dispatchEvent('click');
+    await expect(page.locator('#wdd-submit-status')).toContainText(/Possible duplicate|Create anyway/i);
+    // Wait for the second request before asserting — dispatchEvent is async; fetch fires async
+    const secondResponsePromise = page.waitForResponse('**/api/outcome-from-narrative', { timeout: 5000 });
+    await page.locator('.wdd-conflict-action-btn').dispatchEvent('click');
+    await secondResponsePromise;
     expect(callCount).toBe(2);
   });
 
-  test('outcome intake previews epic plus stories with mode and confidence', async ({ page }) => {
+  test('outcome intake shows canvas items and send bar counts for epic-plus-stories narrative', async ({ page }) => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await page.locator('[data-open-outcome-modal]').first().click();
-    const textarea = page.locator('#global-outcome-modal #report-outcome-text');
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    const textarea = page.locator('#wdd-source-textarea');
     await textarea.fill([
       '1: Users walio-share feedback(On Display and Export):',
       '2: Add Customer Number on Feedback(On Display and Export)',
@@ -74,21 +96,20 @@ test.describe('Outcome Intake And Readiness Validation', () => {
       '5: Fix SMS notification',
     ].join('\n'));
 
-    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Will create 4 backlog items under 1 parent issue/i);
-    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Mode: epic with stories/i);
-    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/score|confidence/i);
-    await expect(page.locator('#report-outcome-overrides')).toContainText(/Adjust|Hide options/i);
-    await expect(page.locator('#report-outcome-overrides [data-outcome-structure="AUTO"]')).toBeVisible();
-    await expect(page.locator('#report-outcome-overrides #report-outcome-issue-type')).toHaveCount(0);
-    await expect(page.locator('#report-outcome-intake-create')).toContainText(/Create 5 Jira issues from this list/i);
+    // Quick preview populates canvas immediately from client-side parser
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#wdd-send-counts')).toContainText(/Ready:/i);
+    // At least one epic-type chip should appear as the parent line
+    await expect(page.locator('#wdd-canvas .wdc-type-chip[data-type="E"]').first()).toBeVisible();
   });
 
-  test('outcome intake flips to story plus subtasks for concrete user story with steps', async ({ page }) => {
+  test('outcome intake shows T-type chips for story-with-subtasks narrative', async ({ page }) => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill([
       'As a customer I want to receive an SMS when feedback is shared so that I know it was sent',
       'Add the SMS event trigger',
       'Wire the notification handler',
@@ -96,26 +117,27 @@ test.describe('Outcome Intake And Readiness Validation', () => {
       'Validate the delivery retry path',
     ].join('\n'));
 
-    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Mode: story with subtasks/i);
-    await expect(page.locator('#report-outcome-intake-create')).toContainText(/Create parent \+ child items/i);
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#wdd-send-counts')).toContainText(/Ready:/i);
   });
 
-  test('outcome intake handles table input as issues with descriptions', async ({ page }) => {
+  test('outcome intake shows canvas items for table input', async ({ page }) => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill([
       'Summary\tDescription',
       'Fix SMS notification\tWhen a user shares feedback, they get a confirmation SMS',
       'Filter feedback by category\tAdd category selection and persistence',
     ].join('\n'));
 
-    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Detected table input/i);
-    await expect(page.locator('#report-outcome-parse-summary')).toContainText(/Mode: table issues/i);
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#wdd-send-counts')).toContainText(/Ready:/i);
   });
 
-  test('outcome intake surfaces partial failures without hiding successes', async ({ page }) => {
+  test('outcome intake surfaces partial failures in submit status', async ({ page }) => {
     await page.route('**/api/outcome-from-narrative', async (route) => {
       await route.fulfill({
         status: 200,
@@ -130,7 +152,6 @@ test.describe('Outcome Intake And Readiness Validation', () => {
           createdCount: 2,
           expectedCreateCount: 3,
           failures: [{ title: 'Fix SMS notification flow for feedback events', reason: 'Permission denied' }],
-          summaryHtml: 'Created epic <a href="https://jira.example.com/browse/SD-100" target="_blank" rel="noopener">SD-100</a> with 1 linked stories in project SD backlog. Created 2 of 3. Failed on: Fix SMS notification flow for feedback events.',
         }),
       });
     });
@@ -138,14 +159,17 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill([
       'Customer feedback improvements',
       'Add customer number',
       'Fix SMS notification',
     ].join('\n'));
-    await page.locator('#global-outcome-modal #report-outcome-intake-create').click();
-    await expect(page.locator('#report-outcome-intake-status')).toContainText(/Created 2 of 3/i);
-    await expect(page.locator('#report-outcome-intake-status')).toContainText(/Fix SMS notification/i);
+    // Wait for canvas items to appear then create
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('#wdd-create-safe-btn').dispatchEvent('click');
+    await expect(page.locator('#wdd-submit-status')).toContainText(/Created 2 of 3/i);
+    await expect(page.locator('#wdd-submit-status')).toContainText(/Fix SMS notification/i);
   });
 
   test('outcome intake shows Jira configuration gaps without generic 500 copy', async ({ page }) => {
@@ -169,15 +193,17 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.locator('[data-open-outcome-modal]').first().click();
-    await page.locator('#global-outcome-modal #report-outcome-text').fill([
+    await expect(page.locator('#work-draft-drawer')).toBeVisible();
+    await page.locator('#wdd-source-textarea').fill([
       'Customer feedback improvements',
       'Add customer number',
       'Fix SMS notification',
     ].join('\n'));
-    await page.locator('#global-outcome-modal #report-outcome-intake-create').click();
-    await expect(page.locator('#report-outcome-intake-status')).toContainText(/Project SD needs extra Jira create fields/i);
-    await expect(page.locator('#report-outcome-intake-status')).toContainText(/parent Feature needs Team, Business Owner/i);
-    await expect(page.locator('#report-outcome-intake-status')).toContainText(/child Story needs Parent link field/i);
+    await expect(page.locator('#wdd-canvas .wdc-item:not(.wdc-add-row)').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('#wdd-create-safe-btn').dispatchEvent('click');
+    await expect(page.locator('#wdd-submit-status')).toContainText(/Project SD needs extra Jira create fields/i);
+    await expect(page.locator('#wdd-submit-status')).toContainText(/parent Feature needs Team, Business Owner/i);
+    await expect(page.locator('#wdd-submit-status')).toContainText(/child Story needs Parent link field/i);
   });
 
   test('current sprint shows readiness verdict in header and supports paste Jira jump', async ({ page }) => {

@@ -23,14 +23,19 @@ test.describe('Viewport compression and layering', () => {
 
     await expect(page.locator('.tab-hint')).toBeHidden();
     await expect(page.locator('#report-filter-strip')).toBeVisible();
-    await expect(page.locator('#report-filter-strip .context-summary-strip')).toBeVisible();
+    await expect(page.locator('body')).toHaveClass(/preview-active/);
     await expect(page.locator('#preview-content .preview-context-bar[role="group"]').first()).toBeVisible();
+    const filterStripContext = page.locator('#report-filter-strip-summary .context-summary-strip');
+    if (await filterStripContext.count()) {
+      await expect(filterStripContext.first()).toBeVisible();
+    }
 
     const bodyText = await page.locator('body').textContent().catch(() => '');
     expect(bodyText).not.toMatch(/\bcache\./i);
 
     await expect(page.locator('#report-header-preview-btn')).toBeVisible();
-    await expect(page.locator('#report-header-actions .report-outcome-intake-create-btn').first()).toBeVisible();
+    await expect(page.locator('#app-top-chrome [data-top-action="create-work"]')).toBeVisible();
+    await expect(page.locator('#report-header-actions .report-outcome-intake-create-btn').first()).toBeHidden();
     await expect(page.locator('#report-header-export-btn')).toBeVisible();
     await expect(page.locator('.report-header-more-menu > summary')).toBeVisible();
 
@@ -113,8 +118,12 @@ test.describe('Viewport compression and layering', () => {
     }
     await expect(page.locator('.current-sprint-header-bar').first()).toBeVisible();
     await expect(page.locator('#stories-card')).toBeVisible();
-    await expect(page.locator('.current-sprint-advanced-controls')).toBeVisible();
-    await expect(page.locator('.current-sprint-advanced-controls')).not.toHaveAttribute('open', /./);
+    const sprintChrome = page.locator('.current-sprint-advanced-controls, .sprint-switcher-card-inline').first();
+    await expect(sprintChrome).toBeVisible();
+    const advancedControls = page.locator('.current-sprint-advanced-controls');
+    if (await advancedControls.count()) {
+      await expect(advancedControls).not.toHaveAttribute('open', /./);
+    }
     await expect(page.locator('.decision-metrics-row .decision-metric-card')).toHaveCount(4);
     await expect(page.locator('.sprint-hud-carousel-inline')).toHaveCount(0);
     await expect(page.locator('.mobile-secondary-details')).toHaveCount(0);
@@ -190,6 +199,27 @@ test.describe('Viewport compression and layering', () => {
     await expect(page.locator('.report-tabs-shell .tabs')).toBeVisible();
     await expect(page.locator('.report-tabs-shell .report-unified-tab-search')).toBeVisible();
     await expect(page.locator('#report-context-line')).toBeHidden();
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('governance first paint keeps agent queue and secondary chrome collapsed', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    await expect(page.locator('#gov-top-chrome-mount')).not.toHaveAttribute('open', /.+/);
+    await expect(page.locator('#gov-secondary-chrome')).not.toHaveAttribute('open', /.+/);
+    await expect(page.locator('#gov-supporting-evidence')).not.toHaveAttribute('open', /.+/);
+    await expect(page.locator('#app-top-chrome')).toBeVisible();
+    await expect(page.locator('[data-top-action="agent"]')).toHaveCount(0);
+
+    const answerMount = page.locator('#gov-answer-mount');
+    if (await answerMount.locator('.gov-command-answer, .gov-visual-answer-blocks').count()) {
+      const box = await answerMount.boundingBox();
+      expect(box?.y ?? 9999).toBeLessThan(900);
+    }
 
     assertTelemetryClean(telemetry);
   });

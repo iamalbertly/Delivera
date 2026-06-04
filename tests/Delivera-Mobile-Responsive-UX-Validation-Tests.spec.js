@@ -163,7 +163,7 @@ test.describe('Delivera - Mobile Responsive UX Validation', () => {
       return h ? h.scrollWidth > h.clientWidth : false;
     });
     expect(reportHeaderOverflow).toBe(false);
-    await expect(page.locator('header h1')).toContainText(/Delivery|General Performance|High-Level/i);
+    await expect(page.locator('header h1')).toContainText(/Evidence|Delivery|General Performance|High-Level/i);
     const subtitleVisible = await page.locator('#report-subtitle').isVisible().catch(() => false);
     if (!subtitleVisible) {
       await expect(page.locator('#preview-outcome-line, #report-one-click-cta-wrap').first()).toBeVisible();

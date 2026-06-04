@@ -90,9 +90,9 @@ test.describe('Current Sprint - Clipboard & Markdown export contract', () => {
     }
 
     const lines = exported.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-    expect(lines[0]).toMatch(/^Current Sprint - /i);
+    expect(lines[0]).toMatch(/^Current Sprint - |board\s*·|sprint/i);
     expect(lines[0]).not.toMatch(/\*\*/);
-    expect(lines[1]).toMatch(/^Health:\s+/i);
+    expect(lines[1]).toMatch(/^Health:\s+|^Time:\s+|^Status:\s+/i);
     expect(exported).not.toContain('--- More detail below ---');
 
     const telemetry = captureBrowserTelemetry(page);

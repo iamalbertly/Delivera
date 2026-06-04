@@ -66,6 +66,18 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     expect(bodyText).toMatch(/showing last completed sprint|Pick a recent sprint|Pick a board|Create work|Open report|previous sprint/i);
   });
 
+  test('project select hydrates from shared catalog SSOT', async ({ page }) => {
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+    const select = page.locator('#current-sprint-projects');
+    await expect(select).toBeVisible();
+    await expect(select.locator('option')).not.toHaveCount(1);
+    await expect(select.locator('option').first()).not.toContainText(/Loading squads/i);
+    const values = await select.locator('option').evaluateAll((opts) => opts.map((o) => o.value).filter(Boolean));
+    expect(values.length).toBeGreaterThan(3);
+    expect(values).toContain('MPSA');
+  });
+
   test('projects SSOT sync applies silently and normalizes to one project for current sprint', async ({ page }) => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;

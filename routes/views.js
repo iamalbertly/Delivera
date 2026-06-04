@@ -9,10 +9,28 @@ const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
 const loginFailuresByIp = new Map(); // ip -> { count, resetAt }
 
-function getPreferredReportRedirect(req, explicitRedirect = '') {
-    const safeRedirect = String(explicitRedirect || '').startsWith('/report') ? String(explicitRedirect) : '';
+const DEFAULT_APP_LANDING = '/governance';
+
+function resolveExplicitRedirect(explicitRedirect = '') {
+    const raw = String(explicitRedirect || '').trim();
+    if (!raw || !raw.startsWith('/')) return '';
+    if (raw.startsWith('/report')) return raw;
+    if (raw.startsWith('/governance') || raw.startsWith('/brief')) return raw.startsWith('/brief') ? '/governance' : raw;
+    if (raw.startsWith('/current-sprint') || raw.startsWith('/sprints')) return raw;
+    if (raw.startsWith('/settings')) return raw;
+    if (raw.startsWith('/dashboard') || raw.startsWith('/home')) return raw;
+    return '';
+}
+
+function getPreferredAppRedirect(req, explicitRedirect = '') {
+    const safeRedirect = resolveExplicitRedirect(explicitRedirect);
     if (safeRedirect) return safeRedirect;
-    return buildReportUrlFromContext(readReportContextFromSession(req) || {}, '/report');
+    return buildReportUrlFromContext(readReportContextFromSession(req) || {}, DEFAULT_APP_LANDING);
+}
+
+/** @deprecated use getPreferredAppRedirect */
+function getPreferredReportRedirect(req, explicitRedirect = '') {
+    return getPreferredAppRedirect(req, explicitRedirect);
 }
 
 // Login: first screen for unauthenticated users
@@ -32,7 +50,7 @@ router.get('/login', (req, res) => {
 
 router.post('/login', (req, res) => {
     if (superTokensEnabled && !legacyAuthEnabled) return res.redirect('/auth');
-    if (!authEnabled) return res.redirect('/report');
+    if (!authEnabled) return res.redirect(DEFAULT_APP_LANDING);
     const redirect = getPreferredReportRedirect(req, req.body.redirect);
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
     const now = Date.now();
@@ -80,36 +98,39 @@ router.get('/report', requireAuth, (req, res) => {
     res.sendFile('report.html', { root: './public' });
 });
 
+// Legacy alias — /home → /dashboard 301 (keep for bookmarks and nav history).
 router.get('/home', requireAuth, (req, res) => {
-    res.sendFile('home.html', { root: './public' });
+    res.redirect(301, '/dashboard');
 });
 
 router.get('/dashboard', requireAuth, (req, res) => {
     res.sendFile('home.html', { root: './public' });
 });
 
+// Legacy alias — /backlog-intake merged into /value-delivery (2025-05). Keep for bookmarks.
 router.get('/backlog-intake', requireAuth, (req, res) => {
     res.redirect('/value-delivery');
 });
 
+// Legacy alias — /roadmap → /program-increment (2025-03). Keep for bookmarks.
 router.get('/roadmap', requireAuth, (req, res) => {
     res.redirect('/program-increment');
 });
 
 router.get('/program-increment', requireAuth, (req, res) => {
-    res.sendFile('program-increment.html', { root: './public' });
+    res.redirect(302, '/leadership');
 });
 
 router.get('/value-delivery', requireAuth, (req, res) => {
-    res.sendFile('value-delivery.html', { root: './public' });
+    res.redirect(302, '/report');
 });
 
 router.get('/risks-blockers', requireAuth, (req, res) => {
-    res.sendFile('risks-blockers.html', { root: './public' });
+    res.redirect(302, '/current-sprint#stuck-card');
 });
 
 router.get('/teams', requireAuth, (req, res) => {
-    res.sendFile('teams.html', { root: './public' });
+    res.redirect(302, '/current-sprint');
 });
 
 router.get('/settings', requireAuth, (req, res) => {
@@ -131,20 +152,33 @@ router.get('/current-sprint', requireAuth, (req, res) => {
     res.sendFile('current-sprint.html', { root: './public' });
 });
 
+// Legacy alias — /sprints → /current-sprint (2025-01). Keep for bookmarks.
 router.get('/sprints', requireAuth, (req, res) => {
     res.redirect('/current-sprint');
 });
 
 /**
- * GET /leadership - Executive HUD
+ * GET /leadership - merged into Brief decision snapshot (bookmark-safe redirect)
  */
 router.get('/leadership', requireAuth, (req, res) => {
-    res.sendFile('leadership.html', { root: './public' });
+    res.redirect(302, '/governance#decision-snapshot');
 });
 
-// Legacy Redirect
+/**
+ * GET /governance - Weekly Delivery Intelligence Brief (governance layer)
+ */
+router.get('/governance', requireAuth, (req, res) => {
+    res.sendFile('governance.html', { root: './public' });
+});
+
+// Alias — /brief → /governance for memorable links.
+router.get('/brief', requireAuth, (req, res) => {
+    res.redirect('/governance');
+});
+
+// Legacy alias — /sprint-leadership → /leadership (2024-12). Keep for bookmarks.
 router.get('/sprint-leadership', requireAuth, (req, res) => {
-    res.redirect('/leadership');
+    res.redirect(302, '/governance#decision-snapshot');
 });
 
 export default router;

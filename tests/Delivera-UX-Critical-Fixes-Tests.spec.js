@@ -25,7 +25,7 @@ async function clickAndWaitForDownload(page, selector, timeout = 15000) {
 test.describe('Delivera - UX Critical Fixes Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('should display Epic Title and Summary in Stories done report when epicLinkFieldId exists', async ({ page }) => {

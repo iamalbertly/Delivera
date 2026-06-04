@@ -254,6 +254,25 @@ body.report-page .report-shell-title-block h1 {
   font-size: clamp(1.5rem, 2vw, 2rem);
 }
 
+/* Desktop: collapse title + subtitle into one inline row to free vertical space above the fold */
+@media (min-width: 900px) {
+  body.report-page .report-shell-top { padding: 10px 16px; }
+  body.report-page .report-shell-title-block {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  body.report-page .report-shell-title-block h1 { font-size: 1.25rem; }
+  body.report-page .report-shell-title-block .subtitle {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 body.report-page .report-filter-strip {
   margin-top: 8px;
   border-color: rgba(230, 0, 0, 0.16);
@@ -363,46 +382,7 @@ body.report-page .tab-btn {
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  body.executive-surface-page,
-  body.current-sprint-page,
-  body.report-page,
-  body.hud-mode {
-    background: linear-gradient(180deg, #170f10 0%, #120c0d 100%);
-    color: #581a1a;
-  }
-
-  .surface-hero-card,
-  .surface-card,
-  .report-executive-card {
-    background: linear-gradient(180deg, rgba(35, 25, 26, 0.96), rgba(20, 15, 16, 0.98));
-    border-color: rgba(255, 188, 188, 0.12);
-  }
-
-  .surface-card h2,
-  .surface-list li,
-  .surface-context-segment-value,
-  .report-executive-card h3 {
-    color: #581a1a;
-  }
-
-  .surface-lead,
-  .surface-summary-line,
-  .surface-card p,
-  .report-executive-card p {
-    color: #d6c0c0;
-  }
-
-  .surface-context-segment {
-    background: rgba(41, 29, 30, 0.94);
-    border-color: rgba(255, 188, 188, 0.14);
-  }
-
-  .report-executive-chip {
-    background: rgba(230, 0, 0, 0.18);
-    color: #fff3f3;
-  }
-}
+/* Product surfaces stay light/readable; meeting-first overrides in 10-meeting-first-surfaces.css */
 
 /* Epic key column CSS to prevent wrapping and make click-through easier */
 .data-table .epic-key { display: inline-block; min-width: 120px; }
@@ -548,6 +528,35 @@ header .subtitle {
   }
 }
 
+/* Mobile-first clutter reduction: surface the CTA as fast as possible */
+@media (max-width: 640px) {
+  .surface-eyebrow {
+    display: none;
+  }
+  .surface-lead {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.85rem;
+  }
+  .surface-summary-line {
+    display: none;
+  }
+  .surface-hero-card {
+    padding: 16px;
+  }
+  .surface-hero-actions {
+    margin-top: 14px;
+  }
+  .surface-list {
+    display: none;
+  }
+  .surface-card {
+    padding: 14px 16px;
+  }
+}
+
 /* M2: Scroll-aware page identity — compact page name fades in as H1 scrolls off (X.com pattern) */
 .header-page-context {
   font-size: 0.78rem;
@@ -569,4 +578,53 @@ header .subtitle {
 @media (min-width: 769px) {
   /* Desktop shows page name via breadcrumbs/title; hide the scroll pill */
   .header-page-context { display: none; }
+}
+
+/* Clickable surface cards (UX-02) */
+a.surface-card--linked {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.12s;
+}
+a.surface-card--linked:hover {
+  box-shadow: var(--shadow-gloss);
+  transform: translateY(-1px);
+}
+a.surface-card--linked .surface-card-kicker {
+  transition: color 0.12s;
+}
+a.surface-card--linked:hover .surface-card-kicker {
+  color: var(--primary-dark, var(--primary));
+}
+
+/* Per-page surface accent tokens (UX-11) — body[data-surface-name] already present in HTML */
+[data-surface-name="Program Increment"] .surface-hero-card { --surface-accent: rgba(16,185,129,0.10); }
+[data-surface-name="Value Delivery"] .surface-hero-card     { --surface-accent: rgba(14,165,233,0.10); }
+[data-surface-name="Risks & Blockers"] .surface-hero-card   { --surface-accent: rgba(239,68,68,0.10); }
+[data-surface-name="Dashboard"] .surface-hero-card          { --surface-accent: rgba(99,102,241,0.10); }
+
+.surface-hero-card::before {
+  background: radial-gradient(circle, var(--surface-accent, rgba(230,0,0,0.12)), transparent 70%);
+}
+
+/* Context hints on surface cards (UX-12) */
+.surface-card-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+/* Cross-page navigation links inside surface cards (UX-13) */
+.surface-card-action-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 8px;
+}
+.surface-card-action-link:hover {
+  text-decoration: underline;
 }

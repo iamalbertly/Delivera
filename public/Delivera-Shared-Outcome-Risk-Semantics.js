@@ -113,3 +113,12 @@ export function deriveOutcomeRiskFromPreviewRows(rows) {
     unownedOutcomes: unownedOutcomeKeys.size,
   };
 }
+
+/** Progress bar tone for sprint signal cards: success at ≥80%, warning below 40%. */
+export function deriveDeliveryProgressTone(percent) {
+  const n = Number(percent);
+  if (Number.isNaN(n)) return '';
+  if (n >= 80) return ' is-success';
+  if (n < 40) return ' is-warning';
+  return '';
+}

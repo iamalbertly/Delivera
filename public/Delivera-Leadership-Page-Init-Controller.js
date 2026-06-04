@@ -1,21 +1,19 @@
-import { renderNotificationDock } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { refreshNotificationDockFromStore } from './Delivera-Shared-Notifications-Dock-Manager.js';
 import { initLeadershipDefaults, initLeadershipFilters, tryAutoRunPreviewOnce, renderLeadershipLoading } from './Delivera-Leadership-Page-Data-Loader.js';
-import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
+import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { wireLeadershipContentInteractions } from './Delivera-Leadership-Shared-Actions.js';
+import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
 function initLeadershipPage() {
-  renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
+  refreshNotificationDockFromStore();
   initGlobalOutcomeModal({
-    getSelectedProjects: () => {
-      const projectsSelect = document.getElementById('leadership-projects');
-      return String(projectsSelect?.value || '').split(',').map((value) => value.trim()).filter(Boolean);
-    },
+    getSelectedProjects: readSharedProjectsCsv,
     getOutcomeDraftContext: () => ({ boardId: null, quarterHint: '' }),
   });
   initLeadershipDefaults();
   initLeadershipFilters();
-  tryAutoRunPreviewOnce();
   renderLeadershipLoading();
+  tryAutoRunPreviewOnce();
   wireLeadershipContentInteractions(document);
 }
 

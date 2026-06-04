@@ -31,8 +31,8 @@ test.describe('Outcome Context and Report Range Trust Validation', () => {
     }
 
     const text = (await contextLine.textContent().catch(() => '') || '').trim();
-    expect(text).toContain('Active filters: Projects');
-    expect(text).toContain('Report range:');
+    expect(text).toMatch(/Projects:|Active filters/i);
+    expect(text).toMatch(/Range:|Report range:/i);
     expect(text.toLowerCase()).not.toContain('query window');
 
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });
@@ -52,8 +52,8 @@ test.describe('Outcome Context and Report Range Trust Validation', () => {
     }
 
     const text = (await leadershipContext.textContent().catch(() => '') || '').trim();
-    expect(text).toContain('Active filters: Projects');
-    expect(text).toContain('Report range:');
+    expect(text).toMatch(/Projects:|Active filters/i);
+    expect(text).toMatch(/Range:|Report range:/i);
     expect(text.toLowerCase()).not.toContain('query window');
 
     assertTelemetryClean(telemetry, { excludePreviewAbort: true });

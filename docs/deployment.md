@@ -31,15 +31,27 @@ Recommended production env:
   - `CACHE_BACKEND=redis`
   - `REDIS_URL`
 
-## Vercel (Node server mode)
+## Vercel (serverless Express mode)
 
-If deploying as a Node server:
+The repository includes:
 
-- Framework preset: `Node.js` or `Other`
-- Root directory: repository root
-- Build command: `npm install`
-- Start command: `npm start`
-- Set the same required environment variables as production
+- `api/index.js` — Vercel serverless entrypoint exporting the Express app.
+- `vercel.json` — routes all requests through the Express app (`api/index.js`). Node file tracing bundles imported server code; static assets under `public/` are served by Express.
+- `.github/workflows/vercel-preview.yml` — preview deployment workflow that runs only when Vercel repository secrets are configured.
+
+Use Vercel when you want a quick beta URL. Keep these limits in mind:
+
+- Background snapshot workers are disabled in serverless mode; use Render or another always-on host for scheduled workers.
+- Set production environment variables in Vercel Project Settings, never in git.
+- Required Vercel project env: `NODE_ENV=production`, `JIRA_HOST`, `JIRA_EMAIL`, `JIRA_API_TOKEN`.
+- Auth env for a shareable beta: either SuperTokens variables or legacy `APP_LOGIN_USER`, `APP_LOGIN_PASSWORD`, `SESSION_SECRET`.
+- GitHub preview deploy secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+
+Manual local deploy after `vercel login`:
+
+```bash
+npm run vercel:deploy
+```
 
 ## Pre-deploy checks
 

@@ -1,14 +1,16 @@
 import { buildContextSegmentList, getContextPieces, renderContextPartList } from './Delivera-Shared-Context-From-Storage.js';
-import { initGlobalOutcomeModal } from './Delivera-Shared-Outcome-Modal.js';
-import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
+import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
 const LAST_ROUTE_KEY = 'delivera.lastRoute.v1';
 const ROUTE_LABELS = {
-  '/current-sprint': 'Current Sprint',
-  '/report': 'Delivery',
-  '/leadership': 'Leadership',
-  '/dashboard': 'Dashboard',
-  '/home': 'Dashboard',
+  '/governance': 'Brief',
+  '/brief': 'Brief',
+  '/current-sprint': 'Sprint',
+  '/report': 'Evidence',
+  '/leadership': 'Brief',
+  '/dashboard': 'Today',
+  '/home': 'Today',
 };
 
 function readLastRoute() {
@@ -35,22 +37,13 @@ function applyContinueCta() {
   const btn = document.getElementById('surface-continue-cta');
   if (!btn) return;
   const last = readLastRoute();
-  const path = last?.path || '/current-sprint';
+  const path = last?.path || '/governance';
   const label = ROUTE_LABELS[path] || 'your last view';
   btn.setAttribute('data-surface-nav', path);
   btn.textContent = `Continue to ${label}`;
 }
 
-function readSelectedProjects() {
-  try {
-    return (window.localStorage.getItem(PROJECTS_SSOT_KEY) || '')
-      .split(',')
-      .map((value) => String(value || '').trim())
-      .filter(Boolean);
-  } catch (_) {
-    return [];
-  }
-}
+const readSelectedProjects = readSharedProjectsCsv;
 
 function buildSurfaceSummary(projects) {
   const pageName = document.body.getAttribute('data-surface-name') || 'Executive surface';
@@ -104,6 +97,7 @@ function maybeRedirectExecutiveShell() {
     const path = window.location.pathname || '';
     const target = EXECUTIVE_SHELL_REDIRECTS[path];
     if (!target) return false;
+    document.body.setAttribute('aria-hidden', 'true');
     window.location.replace(target);
     return true;
   } catch (_) {
@@ -112,18 +106,7 @@ function maybeRedirectExecutiveShell() {
 }
 
 function maybeRedirectDashboardToLastRoute() {
-  try {
-    const path = window.location.pathname || '';
-    if (path !== '/dashboard' && path !== '/home') return false;
-    const params = new URLSearchParams(window.location.search || '');
-    if (params.get('stay') === '1') return false;
-    const last = readLastRoute();
-    if (!last?.path || last.path === '/dashboard' || last.path === '/home') return false;
-    window.location.replace(last.path);
-    return true;
-  } catch (_) {
-    return false;
-  }
+  return false;
 }
 
 try {
@@ -138,17 +121,76 @@ function initSurfacePage() {
   applyContinueCta();
   initQuickNavigation();
   initGlobalOutcomeModal({
-    getSelectedProjects: () => {
-      const selected = readSelectedProjects();
-      return selected.length ? selected : ['MPSA'];
-    },
+    getSelectedProjects: readSelectedProjects,
     getOutcomeDraftContext: () => ({ boardId: null, quarterHint: '' }),
   });
+}
+
+async function initHomeDashboardSprintPulse() {
+  const pulseEl = document.getElementById('home-sprint-pulse');
+  if (!pulseEl) return;
+  const projects = readSelectedProjects();
+  if (!projects.length) return;
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const qs = new URLSearchParams({ projects: projects.join(',') }).toString();
+    const [sprintRes, squadRes] = await Promise.all([
+      fetch(`/api/current-sprint.json?${qs}`, { credentials: 'same-origin', signal: ctrl.signal }),
+      fetch(`/api/leadership-summary.json?${qs}`, { credentials: 'same-origin', signal: ctrl.signal }).catch(() => null),
+    ]);
+    clearTimeout(timeout);
+    if (!sprintRes.ok) return;
+    const data = await sprintRes.json().catch(() => null);
+    if (!data) return;
+    let stalledCount = 0;
+    if (squadRes?.ok) {
+      const squadData = await squadRes.json().catch(() => null);
+      stalledCount = Array.isArray(squadData?.squads)
+        ? squadData.squads.filter((s) => s?.hasActiveSprintFallback).length
+        : 0;
+    }
+    const noActive = data?.meta?.noActiveSprintFallback || data?.meta?.suggestStartSprint;
+    if (stalledCount > 0 || noActive) {
+      pulseEl.innerHTML = `
+        <div class="home-sprint-pulse-inner home-sprint-pulse-inner--stalled">
+          <span class="home-sprint-pulse-name">Team idle</span>
+          <span class="home-sprint-pulse-risk">${stalledCount || 1} squad${(stalledCount || 1) > 1 ? 's' : ''} without active sprint</span>
+          <a href="/current-sprint" class="home-sprint-pulse-cta">Open sprint cockpit →</a>
+        </div>`;
+      pulseEl.hidden = false;
+      const continueBtn = document.getElementById('surface-continue-cta');
+      if (continueBtn) {
+        continueBtn.setAttribute('data-surface-nav', '/current-sprint');
+        continueBtn.textContent = 'Resolve sprint stall';
+        continueBtn.classList.add('btn-primary');
+        continueBtn.classList.remove('btn-secondary');
+      }
+      return;
+    }
+    const sprintName = data.sprint?.name || 'Active sprint';
+    const totalStories = (data.stories || []).length;
+    const doneStories = (data.stories || []).filter((s) => String(s?.status || '').toLowerCase().includes('done')).length;
+    const pct = totalStories > 0 ? Math.round((doneStories / totalStories) * 100) : 0;
+    const blockersOwned = data.risks?.blockersOwned ?? 0;
+    pulseEl.innerHTML = `
+      <div class="home-sprint-pulse-inner">
+        <span class="home-sprint-pulse-name">${sprintName}</span>
+        <span class="home-sprint-pulse-pct home-sprint-pulse-pct--${pct >= 70 ? 'good' : pct >= 40 ? 'mid' : 'low'}">${pct}% done</span>
+        <span class="home-sprint-pulse-stories">${totalStories} items</span>
+        ${blockersOwned > 0 ? `<span class="home-sprint-pulse-risk">${blockersOwned} blockers</span>` : ''}
+        <a href="/current-sprint" class="home-sprint-pulse-cta">Open sprint →</a>
+      </div>`;
+    pulseEl.hidden = false;
+  } catch (_) {
+    clearTimeout(timeout);
+  }
 }
 
 function bootExecutiveSurface() {
   if (maybeRedirectExecutiveShell() || maybeRedirectDashboardToLastRoute()) return;
   initSurfacePage();
+  initHomeDashboardSprintPulse();
 }
 
 if (document.readyState === 'loading') {

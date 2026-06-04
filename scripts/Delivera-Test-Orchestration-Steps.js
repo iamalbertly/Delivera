@@ -44,21 +44,39 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'PI Baseline Propose Agent Unit Tests',
+      command: 'node',
+      args: ['--test', 'tests/Delivera-Governance-PIBaseline-Propose-Agent-Unit.mjs'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'PI Baseline Slide Upload Probe (WhatsApp JPEG)',
+      command: 'node',
+      args: ['scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Governance Decision Cockpit Journey',
+      command: 'npx',
+      args: pwJourneyArgs('journey.governance'),
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Data Integrity & API Contracts Journey',
       command: 'npx',
       args: pwJourneyArgs('journey.data-integrity'),
       cwd: projectRoot,
     },
     {
-      name: 'Run UX Core Journeys (Navigation, Trust, Responsiveness)',
+      name: 'Run Outcome Intake & Create Work Journey (covers most-recently-changed files)',
       command: 'npx',
-      args: pwJourneyArgs('journey.ux-core'),
+      args: pwJourneyArgs('journey.outcome-intake'),
       cwd: projectRoot,
     },
     {
-      name: 'Run Outcome Intake & Outcome-First Readiness Journey',
+      name: 'Run UX Core Journeys (Navigation, Trust, Responsiveness)',
       command: 'npx',
-      args: pwJourneyArgs('journey.outcome-intake'),
+      args: pwJourneyArgs('journey.ux-core'),
       cwd: projectRoot,
     },
     {

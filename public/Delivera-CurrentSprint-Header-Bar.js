@@ -82,9 +82,13 @@ function renderHeaderActiveFilterLabel() {
   });
 }
 
-function getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness }) {
-  const freshnessText = freshnessLabel || (statusBadge === SPRINT_COPY.statusLive ? SPRINT_COPY.liveDataShort : SPRINT_COPY.statusSnapshot);
-  return `${freshnessText} | ${exportReadiness}`;
+function getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness, isHistoricalSprint = false, closedDateLabel = '' }) {
+  if (isHistoricalSprint) {
+    const closed = closedDateLabel ? ` · closed ${closedDateLabel}` : '';
+    return `Snapshot${closed} · ${exportReadiness}`;
+  }
+  const freshnessText = freshnessLabel || SPRINT_COPY.liveDataShort;
+  return `Live · ${freshnessText} · ${exportReadiness}`;
 }
 
 function getVerdictPresentation({ verdictInfo, remainingChipLabel, remainingDays, donePercentage }) {
@@ -152,7 +156,8 @@ function renderHeaderIdentityMetricsRow({ donePct, issuesCount, logH, estH, delt
     ? ('<span class="' + escapeHtml(delta.className) + '" title="' + escapeHtml(delta.title) + '">' + escapeHtml(delta.short) + '</span>')
     : '';
   const doneInner = escapeHtml(String(donePct)) + '%' + (delta ? ' ' + deltaHtml : '');
-  return '<div class="header-identity-metrics" role="group" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintMetrics) + '" data-header-metric-row="1">'
+  const showHours = (Number(logH) > 0 || Number(estH) > 0);
+  let row = '<div class="header-identity-metrics" role="group" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintMetrics) + '" data-header-metric-row="1">'
     + '<div class="header-metric header-metric-tile" data-metric="done">'
     + '<span class="metric-label">' + escapeHtml(SPRINT_COPY.metricDone) + '</span>'
     + '<span class="metric-value">' + doneInner + '</span>'
@@ -160,12 +165,15 @@ function renderHeaderIdentityMetricsRow({ donePct, issuesCount, logH, estH, delt
     + '<div class="header-metric header-metric-tile" data-metric="issues">'
     + '<span class="metric-label">' + escapeHtml(SPRINT_COPY.metricWorkItems) + '</span>'
     + '<span class="metric-value">' + escapeHtml(String(issuesCount)) + '</span>'
-    + '</div>'
-    + '<div class="header-metric header-metric-tile" data-metric="hours">'
-    + '<span class="metric-label">' + escapeHtml(SPRINT_COPY.metricLoggedEst) + '</span>'
-    + '<span class="metric-value">' + escapeHtml(logH.toFixed(1)) + 'h / ' + escapeHtml(estH.toFixed(1)) + 'h</span>'
-    + '</div>'
     + '</div>';
+  if (showHours) {
+    row += '<div class="header-metric header-metric-tile" data-metric="hours">'
+      + '<span class="metric-label">' + escapeHtml(SPRINT_COPY.metricLoggedEst) + '</span>'
+      + '<span class="metric-value">' + escapeHtml(logH.toFixed(1)) + 'h / ' + escapeHtml(estH.toFixed(1)) + 'h</span>'
+      + '</div>';
+  }
+  row += '</div>';
+  return row;
 }
 
 function buildHeaderContextStrip(data, freshnessLabel) {
@@ -314,7 +322,13 @@ export function renderHeaderBar(data, options = {}) {
     remainingDays,
     donePercentage,
   });
-  const statusSummary = getHeaderStatusSummary({ statusBadge, freshnessLabel, exportReadiness });
+  const statusSummary = getHeaderStatusSummary({
+    statusBadge,
+    freshnessLabel,
+    exportReadiness,
+    isHistoricalSprint,
+    closedDateLabel: isHistoricalSprint ? sprintDatesLabel.split(' - ')[1]?.trim() || '' : '',
+  });
   const followUpSummary = !isHistoricalSprint
     ? (loggingAlertTotal > 0 ? SPRINT_COPY.loggingNudges(loggingAlertTotal) : SPRINT_COPY.loggingHealthy)
     : SPRINT_COPY.historical;
@@ -556,7 +570,8 @@ export function renderHeaderBar(data, options = {}) {
     });
     html += '</div>';
   }
-  if (issuesCount > 0 && !viewportLean) {
+  const showIntelligenceStrip = issuesCount > 0 && !viewportLean && (edgeStateAttr !== 'none' || stuckCount > 0);
+  if (showIntelligenceStrip) {
     html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
     html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(capacityTone) + '" data-header-insight="capacity">';
     html += '<span class="header-intelligence-eyebrow">Now</span>';
