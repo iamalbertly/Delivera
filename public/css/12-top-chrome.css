@@ -420,11 +420,63 @@ body.report-page.top-search-active .filter-group-who .search-input-wrap {
   opacity: 0.45;
 }
 
+.app-notification-slot {
+  position: relative;
+  z-index: 1280;
+  min-height: 0;
+  pointer-events: none;
+}
+
+.app-notification-slot .app-notification-dock {
+  pointer-events: auto;
+}
+
+body.has-top-chrome .app-notification-slot .app-notification-dock,
 body.has-top-chrome .app-notification-dock {
-  top: calc(var(--top-chrome-height, 56px) + 12px);
+  position: absolute;
+  top: 8px;
   left: auto;
   right: 16px;
   z-index: 1280;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 14px 30px rgba(15, 76, 129, 0.12);
+}
+
+body.has-top-chrome .app-notification-dock.is-collapsed .app-notification-body,
+body.has-top-chrome .app-notification-dock.is-collapsed .app-notification-sub,
+body.has-top-chrome .app-notification-dock.is-collapsed .app-notification-link {
+  display: none;
+}
+
+body.has-top-chrome .app-notification-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+body.has-top-chrome .app-notification-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+}
+
+body.has-top-chrome .app-notification-dock .btn-ghost {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+body.has-top-chrome .app-notification-dock .btn-ghost:hover {
+  color: var(--primary, #2563eb);
 }
 
 body.has-top-chrome.governance-page [data-top-action="agent"] {

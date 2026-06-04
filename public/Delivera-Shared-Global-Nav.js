@@ -10,6 +10,7 @@ import {
   effectiveNotificationTotal,
   getTimeTrackingTotal,
   getRuntimeAlertCount,
+  refreshNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 
 const PAGE_DASHBOARD = 'dashboard';
@@ -448,6 +449,7 @@ function ensureGlobalNav() {
     document.querySelectorAll('.sidebar-toggle').forEach((node) => node.remove());
 
     ensureTopChrome();
+    refreshNotificationDockFromStore();
     const topChrome = document.getElementById('app-top-chrome');
     if (topChrome && skipLink && skipLink.parentNode) {
       if (skipLink.nextElementSibling !== topChrome) {

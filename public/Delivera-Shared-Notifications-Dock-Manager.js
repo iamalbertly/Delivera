@@ -2,6 +2,8 @@ const DEFAULT_NOTIFICATION_STORE_KEY = 'appNotificationsV1';
 const DEFAULT_NOTIFICATION_DOCK_STATE_KEY = 'appNotificationsDockStateV1';
 const DEFAULT_TOGGLE_ID = 'app-notification-toggle';
 const DEFAULT_DOCK_ID = 'app-notification-dock';
+/** Matches `NOTIFICATION_SLOT_ID` in Delivera-Shared-Top-Chrome-01Render-UI.js (no import — avoids cycle). */
+const NOTIFICATION_SLOT_ID = 'app-notification-slot';
 
 export function readNotificationSummary(storageKey = DEFAULT_NOTIFICATION_STORE_KEY) {
   try {
@@ -87,9 +89,19 @@ function ariaLabelForNotificationToggle(summary) {
 
 function pageContextFromPath() {
   const path = typeof window !== 'undefined' && window.location ? window.location.pathname || '' : '';
+  if (path.includes('governance') || path.includes('/brief')) return 'governance';
+  if (path.includes('settings')) return 'settings';
   if (path.includes('current-sprint')) return 'current-sprint';
   if (path.includes('leadership')) return 'leadership';
   return 'report';
+}
+
+function notificationFocusLink(pageContext) {
+  if (pageContext === 'governance') return { href: '/governance', label: 'Open Brief queue' };
+  if (pageContext === 'settings') return { href: '/settings', label: 'Open settings' };
+  if (pageContext === 'current-sprint') return { href: '/current-sprint#stories-card', label: 'Focus sprint work' };
+  if (pageContext === 'leadership') return { href: '/governance#decision-snapshot', label: 'Open Brief snapshot' };
+  return { href: '/report', label: 'Open proof view' };
 }
 
 function mountNotificationDockElement(summary, pageContext = 'report') {
@@ -116,7 +128,7 @@ function mountNotificationDockElement(summary, pageContext = 'report') {
     + '</div></div>'
     + `<div class="app-notification-body">${parts.join(' · ') || 'No alert detail'}</div>`
     + (meta ? `<div class="app-notification-sub">${meta}</div>` : '')
-    + '<a class="app-notification-link" href="/current-sprint#stories-card">Focus sprint work</a>';
+    + `<a class="app-notification-link" href="${notificationFocusLink(pageContext).href}">${notificationFocusLink(pageContext).label}</a>`;
 
   dock.querySelector('[data-notification-collapse]')?.addEventListener('click', () => {
     dock.classList.toggle('is-collapsed');
@@ -130,7 +142,8 @@ function mountNotificationDockElement(summary, pageContext = 'report') {
     document.body.classList.remove('notification-dock-visible');
   });
 
-  document.body.appendChild(dock);
+  const slot = document.getElementById(NOTIFICATION_SLOT_ID);
+  (slot || document.body).appendChild(dock);
   document.body.classList.add('notification-dock-visible');
   updateSidebarAlertFooter(summary || { total: 0 }, pageContext);
   window.dispatchEvent(new CustomEvent('app:notification-summary-updated'));
@@ -205,12 +218,17 @@ function updateSidebarAlertFooter(summary, pageContext = 'report') {
         openNotificationDockFromStore({ summary, pageContext });
         return;
       }
+      if (pageContext === 'governance') {
+        document.querySelector('[data-queue-open], [data-gov-inbox-open]')?.click?.()
+          || document.getElementById('gov-top-chrome-mount')?.scrollIntoView?.({ behavior: 'smooth' });
+        return;
+      }
       if (pageContext === 'current-sprint') {
         const target = document.getElementById('stories-card') || document.getElementById('stuck-card');
         if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(target);
         else target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } else {
-        window.location.href = '/current-sprint#stories-card';
+        window.location.href = notificationFocusLink(pageContext).href;
       }
     } catch (_) {}
   });
@@ -223,7 +241,7 @@ export function renderNotificationDock(options = {}) {
     stateKey = DEFAULT_NOTIFICATION_DOCK_STATE_KEY,
     dockId = DEFAULT_DOCK_ID,
     toggleId = DEFAULT_TOGGLE_ID,
-    pageContext = 'report',
+    pageContext = pageContextFromPath(),
     collapsedByDefault = false,
   } = options;
   const resolvedSummary = summary || readNotificationSummary(storageKey);
@@ -283,13 +301,9 @@ export function refreshNotificationDockFromStore() {
   if (typeof window === 'undefined' || !window.location) return;
   const path = window.location.pathname || '';
   if (path.includes('/login') || path.endsWith('login')) return;
-  if (path.includes('current-sprint')) {
-    renderNotificationDock({ pageContext: 'current-sprint', collapsedByDefault: false });
-  } else if (path.includes('leadership')) {
-    renderNotificationDock({ pageContext: 'leadership', collapsedByDefault: true });
-  } else {
-    renderNotificationDock({ pageContext: 'report', collapsedByDefault: true });
-  }
+  const pageContext = pageContextFromPath();
+  const collapsedByDefault = pageContext !== 'current-sprint';
+  renderNotificationDock({ pageContext, collapsedByDefault });
 }
 
 export const NOTIFICATION_STORE_KEY = DEFAULT_NOTIFICATION_STORE_KEY;

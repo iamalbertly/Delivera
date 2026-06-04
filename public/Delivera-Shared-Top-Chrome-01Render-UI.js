@@ -10,6 +10,7 @@ import {
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 
 export const TOP_CHROME_ID = 'app-top-chrome';
+export const NOTIFICATION_SLOT_ID = 'app-notification-slot';
 export const TOP_CHROME_SELECTORS = {
   root: `#${TOP_CHROME_ID}`,
   toggle: '[data-top-action="sidebar-toggle"]',
@@ -363,10 +364,27 @@ export function refreshTopChromeBrand() {
   el.setAttribute('title', line);
 }
 
+export function ensureNotificationSlot() {
+  const chrome = document.getElementById(TOP_CHROME_ID);
+  if (!chrome) return null;
+  let slot = document.getElementById(NOTIFICATION_SLOT_ID);
+  if (!slot) {
+    slot = document.createElement('div');
+    slot.id = NOTIFICATION_SLOT_ID;
+    slot.className = 'app-notification-slot';
+    slot.setAttribute('aria-live', 'polite');
+  }
+  if (slot.previousElementSibling?.id !== TOP_CHROME_ID) {
+    chrome.insertAdjacentElement('afterend', slot);
+  }
+  return slot;
+}
+
 export function ensureTopChrome() {
   const current = getCurrentPageForChrome();
   if (current === PAGE_LOGIN) {
     document.getElementById(TOP_CHROME_ID)?.remove();
+    document.getElementById(NOTIFICATION_SLOT_ID)?.remove();
     document.body.classList.remove('has-top-chrome', 'chrome-suppress-page-create');
     return null;
   }
@@ -379,6 +397,7 @@ export function ensureTopChrome() {
     chrome.setAttribute('role', 'banner');
     document.body.insertBefore(chrome, document.body.firstChild);
   }
+  ensureNotificationSlot();
 
   delete chrome.dataset.topChromeBound;
   chrome.innerHTML = buildTopChromeHTML(current);

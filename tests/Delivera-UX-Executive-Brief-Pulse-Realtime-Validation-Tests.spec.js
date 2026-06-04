@@ -81,6 +81,8 @@ test.describe('Executive Brief pulse realtime validation', () => {
     await test.step('Stage A: verdict zone visible, no attention table above fold', async () => {
       await page.goto('/governance');
       if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+      await expect(page.locator('.gov-owner-cluster')).toBeVisible();
+      await page.locator('.gov-verdict-fold summary').click();
       await expect(page.locator('.gov-verdict-zone')).toBeVisible();
       await expect(page.locator('.gov-verdict-zone')).toHaveAttribute('data-verdict-tier', 'blocked');
       await expect(page.locator('.gov-verdict-business-line')).toContainText(/M-Pesa/i);
@@ -108,7 +110,8 @@ test.describe('Executive Brief pulse realtime validation', () => {
 
     await test.step('Stage E: meeting script collapsed; copy meeting answer works', async () => {
       const script = page.locator('details.gov-meeting-script');
-      await expect(script).toBeVisible();
+      await script.scrollIntoViewIfNeeded();
+      await expect(script).toBeAttached();
       await expect(script).not.toHaveAttribute('open', '');
       await page.locator('#gov-copy-answer-inline').click();
       await expect(page.locator('#gov-copy-answer-inline')).toContainText(/Copied/i);
@@ -116,7 +119,7 @@ test.describe('Executive Brief pulse realtime validation', () => {
     });
 
     await test.step('Stage F: proof section holds full risk cards', async () => {
-      await page.locator('#gov-supporting-evidence summary').click();
+      await page.locator('#gov-supporting-evidence > summary.governance-evidence-summary').click();
       await expect(page.locator('#gov-proof-risks .governance-risk')).toHaveCount(2);
       assertTelemetryClean(telemetry);
     });

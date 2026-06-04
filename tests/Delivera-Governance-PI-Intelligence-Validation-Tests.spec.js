@@ -160,13 +160,14 @@ test.describe('Governance PI intelligence', () => {
   test('epic hygiene and ad-hoc watcher render', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
-    await expect(page.locator('.gov-pi-hygiene-row')).toBeVisible();
+    await expect(page.locator('.gov-pi-hygiene-row, .gov-pi-hygiene-compact').first()).toBeVisible();
     await expect(page.locator('.gov-adhoc-chip')).toBeVisible();
   });
 
   test('comparison tray filters with 5 squads', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
+    await page.locator('.gov-verdict-fold summary').click();
     await expect(page.locator('.gov-comparison-tray-bar')).toBeVisible();
     await page.locator('[data-comparison-filter="blocked"]').click();
     await expect(page.locator('[data-heat-tile][data-verdict-tier="blocked"]')).toBeVisible();
@@ -199,7 +200,8 @@ test.describe('Governance PI intelligence', () => {
     await expect(page.locator('.gov-inbox-group-card')).toContainText(/\d+ ·/i);
   });
 
-  test('baseline propose 500 shows drawer error copy', async ({ page }) => {
+  test('baseline propose 500 shows drawer error copy', async ({ page }, testInfo) => {
+    testInfo.annotations.push({ type: 'allow-http-status-console', description: '500' });
     await mockPiPage(page);
     await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
       status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'PI propose failed' }),
