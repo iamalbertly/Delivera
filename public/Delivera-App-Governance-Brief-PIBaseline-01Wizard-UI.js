@@ -4,7 +4,7 @@
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
-import { aiProviderRequestHeaders, hasAiProviderKey } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { aiProviderRequestHeaders, hasAiProviderKey, readAiProviderPref } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { resizeImageFileToBase64, bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
 
 function escapeHtml(v) {
@@ -104,11 +104,15 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
       </div>`;
   }
 
-  function renderSlideReview(data) {
+  function renderSlideReview(data, projectsCsv = '') {
     const extracted = (data.extracted || []).slice(0, 12).map((r) => `
       <li>${escapeHtml([r.month, r.theme, r.bullet].filter(Boolean).join(' · '))}</li>`).join('');
     const unmatched = (data.unmatched || []).map((c, i) => candidateRow(c, `u-${i}`)).join('');
     const rows = (data.candidates || []).map((c, i) => candidateRow(c, i)).join('');
+    const hasConfirmable = (data.candidates || []).some((c) => c.issueKey);
+    const createBtn = (!hasConfirmable && (extracted || unmatched))
+      ? `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-projects="${escapeHtml(projectsCsv)}" data-outcome-context="Create PI epic work in Jira.">Create work</button>`
+      : '';
     return `
       <div class="gov-baseline-wizard">
         <p class="gov-baseline-wizard-title">${escapeHtml(COPY.baselineSlideMethod)}</p>
@@ -118,7 +122,8 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
         <div class="gov-baseline-list">${rows}</div>
         ${slideUploadBlock()}
         <div class="gov-baseline-actions">
-          <button type="button" class="btn btn-primary btn-compact" id="gov-baseline-confirm">${escapeHtml(COPY.baselineConfirmBtn)}</button>
+          ${createBtn}
+          ${hasConfirmable ? `<button type="button" class="btn btn-primary btn-compact" id="gov-baseline-confirm">${escapeHtml(COPY.baselineConfirmBtn)}</button>` : ''}
           <button type="button" class="btn btn-link btn-compact" data-baseline-close>${escapeHtml(COPY.close)}</button>
         </div>
       </div>`;
@@ -145,6 +150,11 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
       showInlineToast(bodyEl, 'Add OpenAI or Claude key in Settings first.', 'error');
       return;
     }
+    const pref = readAiProviderPref();
+    if (pref.provider === 'gemini') {
+      showInlineToast(bodyEl, 'Slide reading needs OpenAI or Claude. Change provider in Settings.', 'error');
+      return;
+    }
     bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}</p>`;
     try {
       const { base64, mimeType } = await resizeImageFileToBase64(file);
@@ -167,7 +177,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
         bindPanel(bodyEl, priorData || data, projects, csv);
         return;
       }
-      bodyEl.innerHTML = renderSlideReview(data);
+      bodyEl.innerHTML = renderSlideReview(data, csv);
       bindPanel(bodyEl, data, projects, csv);
     } catch (err) {
       showInlineToast(bodyEl, err?.message || COPY.baselineProposeFailed, 'error');
@@ -198,7 +208,19 @@ export function mountPIBaselineWizard({ getProjectsCsv, onSaved }) {
         const idx = inp.getAttribute('data-candidate');
         const c = data.candidates[Number(idx)] || data.candidates.find((_, i) => String(i) === idx);
         if (!c) return null;
-        return { issueKey: c.issueKey, title: c.title, squad: c.squad || projects[0] };
+        const act = c.epicActivity;
+        return {
+          issueKey: c.issueKey,
+          title: c.title,
+          squad: c.squad || projects[0],
+          ...(act ? {
+            epicActivity: {
+              lifecycle: act.lifecycle,
+              sprintCount: act.sprintCount,
+              firstActiveSprintStart: act.firstActiveSprintStart,
+            },
+          } : {}),
+        };
       }).filter((i) => i?.issueKey);
       if (!items.length) {
         showInlineToast(el, 'Select at least one epic with a Jira key.', 'error');

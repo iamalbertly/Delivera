@@ -97,6 +97,7 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
     'delivera-shared-notifications-dock',
   ];
   const piBaselineImpactedSpecs = [
+    'tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js',
     'tests/Delivera-Governance-Visual-Clarity-Validation-Tests.spec.js',
     'tests/Delivera-Governance-PI-Intelligence-Validation-Tests.spec.js',
     'tests/Delivera-Governance-Brief-Evidence-Validation-Tests.spec.js',
@@ -104,6 +105,7 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
   const piBaselineFileHints = [
     'delivera-governance-pibaseline',
     'pibaseline-slide-upload',
+    'pibaseline-slide-upload-validation',
     'epic-activity-intelligence',
     'delivera-test-pibaseline-slide-upload',
   ];

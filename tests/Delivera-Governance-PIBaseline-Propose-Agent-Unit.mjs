@@ -10,6 +10,7 @@ import {
 import {
   buildEpicActivityByKey,
   enrichCandidatesWithEpicActivity,
+  loadEpicActivityFromBriefCache,
 } from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
 
 function mockCache(briefByKey = {}) {
@@ -139,5 +140,44 @@ describe('PI baseline propose agent', () => {
       }),
       /OpenAI or Claude/i,
     );
+  });
+
+  it('runProposePipeline falls back to Jira when brief cache is cold', async () => {
+    const version3Client = {
+      issueSearch: {
+        searchForIssuesUsingJql: async () => ({
+          issues: [{
+            key: 'SD-50',
+            fields: { summary: 'FY27 Q1 – DMS – Goal', fixVersions: [], labels: [] },
+          }],
+        }),
+      },
+    };
+    const body = await runProposePipeline({
+      projects: ['SD'],
+      cache: mockCache({}),
+      version3Client,
+      quarter: 'FY27 Q1',
+      providerConfig: { provider: 'built-in', apiKey: '' },
+    });
+    assert.ok(body.candidates.some((c) => c.issueKey === 'SD-50'));
+    assert.equal(body.method, 'epic-title');
+  });
+
+  it('loadEpicActivityFromBriefCache merges SD and MPSA brief caches', async () => {
+    const sdBrief = {
+      meta: {
+        boardEpicIndex: [{ issueKey: 'SD-1', title: 'SD Epic', projectKey: 'SD' }],
+      },
+    };
+    const mpsaBrief = {
+      meta: {
+        boardEpicIndex: [{ issueKey: 'MPSA-2', title: 'MPSA Epic', projectKey: 'MPSA' }],
+      },
+    };
+    const cache = mockCache({ 'SD:e1:p1': sdBrief, 'MPSA:e1:p1': mpsaBrief });
+    const map = await loadEpicActivityFromBriefCache({ projects: ['SD', 'MPSA'], cache });
+    assert.ok(map.has('SD-1'));
+    assert.ok(map.has('MPSA-2'));
   });
 });

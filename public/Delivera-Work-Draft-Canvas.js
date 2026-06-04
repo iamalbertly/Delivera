@@ -8,6 +8,7 @@ import {
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { resizeImageFileToBase64, bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
+import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const LAST_PROJECT_KEY = 'report_last_outcome_project_v1';
@@ -196,18 +197,18 @@ function ensureDrawer() {
 </div>
 <div class="wdd-trust-strip" id="wdd-trust-strip"></div>
 <div class="wdd-body" id="wdd-body">
+  <label class="wdd-slide-upload" id="wdd-slide-upload-label">
+    <span>${esc(COPY.baselineSlideUpload || 'Upload PI plan slide')}</span>
+    <span class="gov-baseline-slide-hint">Drag &amp; drop or click</span>
+    <input type="file" id="wdd-slide-input" accept="image/png,image/jpeg,image/webp" />
+  </label>
+  <p class="wdd-slide-status" id="wdd-slide-status" hidden aria-live="polite"></p>
   <div class="wdd-source is-open" id="wdd-source">
     <button class="wdd-source-toggle" id="wdd-source-toggle" aria-label="Toggle source text">▲ Source</button>
     <textarea class="wdd-source-textarea" id="wdd-source-textarea" rows="5"
       placeholder="Paste goals or notes — AI structures them into Jira tasks based on project history…"
       aria-label="Narrative source text"
       spellcheck="true"></textarea>
-    <label class="wdd-slide-upload" id="wdd-slide-upload-label">
-      <span>${esc(COPY.baselineSlideUpload || 'Upload PI plan slide')}</span>
-      <span class="gov-baseline-slide-hint">Drag &amp; drop or click</span>
-      <input type="file" id="wdd-slide-input" accept="image/png,image/jpeg,image/webp" />
-    </label>
-    <p class="wdd-slide-status" id="wdd-slide-status" hidden aria-live="polite"></p>
   </div>
   <div class="wdd-parse-status" id="wdd-parse-status" hidden></div>
   <div class="wdd-capacity-hint" id="wdd-capacity-hint" hidden aria-live="polite"></div>
@@ -1718,7 +1719,9 @@ function wireEvents() {
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       if (status) status.textContent = `${COPY.baselineSlideMethod || 'From slide'}: ${lines.length} items`;
     } catch (err) {
-      if (status) status.textContent = err?.message || 'Slide read failed';
+      const body = document.getElementById('wdd-body');
+      if (body) showInlineToast(body, err?.message || 'Slide read failed', 'error');
+      if (status) status.textContent = '';
     }
   }
 

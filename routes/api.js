@@ -36,6 +36,7 @@ import {
 import {
     loadEpicActivityFromBriefCache,
     enrichCandidatesWithEpicActivity,
+    enrichActivityFromJiraExistence,
 } from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
 import { recordNarrationPattern } from '../lib/Delivera-Governance-Narration-Knowledge-IO.js';
 import { recordAdoptionMetric, summarizeAdoptionMetrics } from '../lib/Delivera-Governance-Adoption-Metrics-IO.js';
@@ -1803,7 +1804,12 @@ router.post('/api/governance/pi-baseline/propose-from-image', requireAuth, async
             providerConfig,
             boardEpics,
         });
-        const activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
+        let activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
+        let version3Client = null;
+        try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
+        if (version3Client) {
+            activity = await enrichActivityFromJiraExistence(result.candidates || [], activity, version3Client, 10);
+        }
         result = {
             ...result,
             candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),

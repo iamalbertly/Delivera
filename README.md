@@ -30,11 +30,11 @@ Primary surfaces:
 - **Catalog maintenance:** Edit `public/Delivera-Shared-Projects-Catalog-01SSOT.js` when Jira squads change; access index refreshes via governance worker (`lib/Delivera-Shared-Projects-Access-02Refresh-Worker.js`).
 - **Report projects:** `report.html` mounts checkboxes only via `Delivera-Report-Projects-Catalog-01Hydrate.js` (no static duplicate list).
 - **Mobile scope:** Multi-project checklist (not single-toggle select). Desktop keeps scroll pill strips.
-- **PI baseline:** Right-drawer wizard with loading state, slide drop zone (when AI key present), epic activity sublines, and **Open in Jira** when candidates are empty (`jiraBrowseHost` on `/api/boards.json`). Probe: `node scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js` (WhatsApp JPEG in `data/`).
+- **PI baseline:** Right-drawer wizard with loading state, slide drop zone (when AI key present), epic activity sublines, and **Open in Jira** when candidates are empty (`jiraBrowseHost` on `/api/boards.json`). **Probe:** `node scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js` (reads `data/WhatsApp Image 2026-06-04 at 15.35.55.jpeg`; set `DELIVERA_REQUIRE_AI_PROBE=true` to fail CI without `.env` keys). **E2E:** `tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js` uses `setInputFiles` on that JPEG. Baseline save stores optional `epicActivity` on each committed epic.
 - **Quarters:** `includeCached=1` merges calendar quarters plus labels persisted in `data/Delivera-Governance-Quarter-Labels-Index.json` when briefs build.
 - **Client errors:** Failed fetches log to `POST /api/client-log` (server `client-fetch-failure` line) via `Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js`.
 - **Above-fold clutter:** Feedback lab and micro-survey live in collapsed **Feedback & survey** details; scope capsule collapsed until **Change**; proof **Draft nudge** is link-style; PI hygiene compacts when PI trust is high; mobile hides the third answer block.
-- **Tests:** `npm run test:journey:governance` (Visual Clarity → PI Intelligence → Command Surface → Inbox first, `--max-failures=1`). Use `SKIP_WEBSERVER=true` when the app is already on port 3000.
+- **Tests (fail-fast):** orchestration runs `build:css` → `check:css` → PI propose unit (`node --test tests/Delivera-Governance-PIBaseline-Propose-Agent-Unit.mjs`) → slide probe → governance Playwright (slide upload spec first). `npm run test:journey:governance` includes slide upload + Visual Clarity + PI Intelligence (`--max-failures=1`). Use `SKIP_WEBSERVER=true` when the app is already on port 3000.
 
 ## Quickstart
 

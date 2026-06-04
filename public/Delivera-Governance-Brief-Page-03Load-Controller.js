@@ -44,7 +44,8 @@ export function renderFreshness(brief, confirmCount = 0) {
   const reviewBit = confirmCount > 0
     ? ` · <button type="button" class="gov-freshness-review-link" id="gov-freshness-review">${confirmCount} claim${confirmCount > 1 ? 's' : ''} to review</button>`
     : '';
-  govPage.els.freshness.innerHTML = `<span class="governance-freshness-pill ${cls}">${escapeHtml(text)}${reviewBit}</span>`;
+  const shortText = text.length > 72 ? `${text.slice(0, 69)}…` : text;
+  govPage.els.freshness.innerHTML = `<span class="governance-freshness-pill ${cls} governance-freshness-pill--ellipsis" title="${escapeHtml(text)}">${escapeHtml(shortText)}${reviewBit}</span>`;
   govPage.els.freshness.querySelector('#gov-freshness-review')?.addEventListener('click', () => {
     govPage.inboxApi?.openQueueTab?.('confirm');
   });
@@ -155,12 +156,14 @@ export async function renderScorecard() {
 function showError(message) {
   govPage.els.error.hidden = false;
   govPage.els.error.textContent = message;
+  if (govPage.els.export) govPage.els.export.hidden = true;
 }
 
 export function renderBriefUi(brief) {
   govPage.lastBrief = brief;
   govPage.lastSurfaces = partitionBriefSurfaces(brief);
   govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces.drawerIssues);
+  const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
   if (govPage.els.piStripMount) {
     govPage.els.piStripMount.innerHTML = renderPIConfidenceStrip(brief);
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
@@ -171,19 +174,25 @@ export function renderBriefUi(brief) {
   }
   if (govPage.els.workerReceiptMount) govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
   if (govPage.els.answerMount) {
-    const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
     govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters });
     bindCommandOverflowMenu(govPage.els.answerMount);
   }
-  if (govPage.els.epicHygieneMount) govPage.els.epicHygieneMount.innerHTML = '';
+  if (govPage.els.actionClustersMount) {
+    govPage.els.actionClustersMount.innerHTML = renderOwnerActionClusters(brief, govPage.ownerGroups);
+    bindOwnerClusterInteractions();
+  }
   if (govPage.els.setupDebtMount) {
-    govPage.els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief);
-    bindSetupDebtStripExpand(govPage.els.setupDebtMount);
+    govPage.els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief, { compact: hasOwnerClusters });
+    bindSetupDebtStripExpand(govPage.els.setupDebtMount, brief);
   }
   if (govPage.els.verdictMount) {
-    govPage.els.verdictMount.innerHTML = isPortfolioMode(brief)
+    const verdictInner = isPortfolioMode(brief)
       ? renderPortfolioGrid(brief)
       : renderVerdictZone(brief);
+    const verdictSummary = isPortfolioMode(brief) ? 'Portfolio heat map' : 'Squad verdict';
+    govPage.els.verdictMount.innerHTML = hasOwnerClusters
+      ? `<details class="gov-verdict-fold"><summary>${verdictSummary}</summary>${verdictInner}</details>`
+      : verdictInner;
     if (isPortfolioMode(brief)) {
       bindRiskHeatInteractions(govPage.els.verdictMount, brief, (_keys, squad) => {
         const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));
@@ -191,11 +200,11 @@ export function renderBriefUi(brief) {
       });
     }
   }
-  if (govPage.els.actionClustersMount) {
-    govPage.els.actionClustersMount.innerHTML = renderOwnerActionClusters(brief, govPage.ownerGroups);
-    bindOwnerClusterInteractions();
+  if (govPage.els.scriptMount) {
+    const scriptHtml = renderMeetingScript(brief);
+    govPage.els.scriptMount.innerHTML = scriptHtml;
+    govPage.els.scriptMount.hidden = !scriptHtml;
   }
-  if (govPage.els.scriptMount) govPage.els.scriptMount.innerHTML = renderMeetingScript(brief);
   if (govPage.els.microSurveyMount) renderGovernanceMicroSurvey(govPage.els.microSurveyMount, projectsCsv().split(',')[0] || 'MPSA');
   if (govPage.els.measurementMount) {
     const measurementHtml = renderMeasurementStrip(brief, govPage.lastSurfaces);
@@ -228,6 +237,7 @@ export function renderBriefUi(brief) {
 
 export async function loadBrief() {
   govPage.els.error.hidden = true;
+  if (govPage.els.export) govPage.els.export.hidden = false;
   const seq = ++loadBriefSeq;
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
   const qs = new URLSearchParams({ projects: projectsCsv() });

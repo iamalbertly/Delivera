@@ -121,6 +121,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/leadership,/report#trends',
   },
+  'tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance,/api/governance/pi-baseline/propose-from-image',
+  },
   'tests/Delivera-Governance-Brief-Evidence-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'data-contract',
@@ -583,9 +588,20 @@ export const journeyBuckets = {
   },
 };
 
+const GOVERNANCE_FIRST_SPEC = 'tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js';
+
 export function getJourneySpecs(journeyId) {
   const bucket = journeyBuckets[journeyId];
-  return bucket ? bucket.specs.slice() : [];
+  if (!bucket) return [];
+  const specs = bucket.specs.slice();
+  if (journeyId === 'journey.governance') {
+    const idx = specs.indexOf(GOVERNANCE_FIRST_SPEC);
+    if (idx > 0) {
+      specs.splice(idx, 1);
+      specs.unshift(GOVERNANCE_FIRST_SPEC);
+    }
+  }
+  return specs;
 }
 
 export function getSpecMeta(specPath) {

@@ -16,7 +16,6 @@ function init() {
   govPage.els.piStripMount = $('gov-pi-strip-mount');
   govPage.els.stickyAnswerMount = $('gov-sticky-answer-mount');
   govPage.els.feedbackLabMount = $('gov-feedback-lab-mount');
-  govPage.els.epicHygieneMount = $('gov-epic-hygiene-mount');
   govPage.els.workerReceiptMount = $('gov-worker-receipt-mount');
   govPage.els.answerMount = $('gov-answer-mount');
   govPage.els.setupDebtMount = $('gov-setup-debt-mount');

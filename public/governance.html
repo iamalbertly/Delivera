@@ -9,7 +9,7 @@
 <body class="executive-surface-page governance-page">
   <div id="gov-scope-bar-mount" class="gov-scope-bar-sticky" aria-label="Brief scope"></div>
   <div id="gov-sticky-answer-mount" class="gov-sticky-answer-mount" aria-live="polite"></div>
-  <details id="gov-top-chrome-mount" class="gov-top-chrome-details">
+  <details id="gov-top-chrome-mount" class="gov-top-chrome-details" aria-expanded="false">
     <summary class="gov-top-chrome-summary">Agent status &amp; queue</summary>
     <div id="gov-worker-receipt-mount"></div>
     <div id="gov-queue-mount" class="gov-inbox-mount" aria-label="Agent queue"></div>
@@ -26,7 +26,6 @@
         </div>
       </div>
       <div id="gov-freshness" class="governance-freshness" aria-live="polite"></div>
-      <div id="gov-pi-strip-mount"></div>
       <div id="gov-answer-mount"></div>
       <details id="gov-secondary-chrome" class="gov-secondary-chrome">
         <summary class="gov-secondary-chrome-summary">Feedback &amp; survey</summary>
@@ -35,14 +34,15 @@
       </details>
     </header>
 
+    <div id="gov-action-clusters-mount"></div>
     <div id="gov-setup-debt-mount"></div>
     <div id="gov-verdict-mount"></div>
-    <div id="gov-action-clusters-mount"></div>
-    <div id="gov-meeting-script-mount"></div>
+    <div id="gov-pi-strip-mount"></div>
     <div id="gov-measurement-mount"></div>
 
     <details id="gov-supporting-evidence" class="governance-evidence-wrap">
       <summary class="governance-section-title governance-evidence-summary">Supporting evidence</summary>
+      <div id="gov-meeting-script-mount"></div>
       <section id="gov-proof-risks" class="governance-risks" aria-label="Proof detail"></section>
       <div id="gov-evidence" class="governance-evidence-table-wrap"></div>
       <div id="gov-technical-details" class="gov-technical-details"></div>

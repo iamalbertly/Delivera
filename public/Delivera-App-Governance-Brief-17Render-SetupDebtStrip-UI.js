@@ -32,9 +32,17 @@ function renderGapCard(g, hidden = false) {
       </article>`;
 }
 
-export function renderSetupDebtStrip(brief) {
+export function renderSetupDebtStrip(brief, opts = {}) {
   const gaps = brief?.meta?.setupGaps || [];
   if (!gaps.length) return '';
+  if (opts.compact) {
+    const n = gaps.length;
+    return `
+    <section class="gov-setup-debt gov-setup-debt--compact" aria-label="Setup gaps">
+      <button type="button" class="btn btn-link btn-compact" id="gov-setup-gaps-expand">${n} setup gap${n > 1 ? 's' : ''} — show</button>
+      <div class="gov-setup-debt-full" hidden></div>
+    </section>`;
+  }
   const visible = gaps.slice(0, VISIBLE_GAP_COUNT);
   const hidden = gaps.slice(VISIBLE_GAP_COUNT);
   const cards = visible.map((g) => renderGapCard(g)).join('')
@@ -50,8 +58,17 @@ export function renderSetupDebtStrip(brief) {
     </section>`;
 }
 
-export function bindSetupDebtStripExpand(root) {
+export function bindSetupDebtStripExpand(root, brief) {
   if (!root) return;
+  root.querySelector('#gov-setup-gaps-expand')?.addEventListener('click', () => {
+    const full = root.querySelector('.gov-setup-debt-full');
+    if (!full || !brief) return;
+    full.hidden = false;
+    full.innerHTML = renderSetupDebtStrip(brief);
+    bindSetupDebtStripExpand(full, brief);
+    root.querySelector('#gov-setup-gaps-expand')?.remove();
+    root.classList.remove('gov-setup-debt--compact');
+  });
   root.querySelector('#gov-setup-gaps-more')?.addEventListener('click', () => {
     root.querySelectorAll('[data-setup-gap-card][hidden]').forEach((el) => el.removeAttribute('hidden'));
     root.querySelector('#gov-setup-gaps-more')?.remove();

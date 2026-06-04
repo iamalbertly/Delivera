@@ -83,7 +83,7 @@ test.describe('Governance root, nav, and scope cockpit', () => {
     expect(proofIdx).toBeGreaterThan(briefIdx);
   });
 
-  test('scope bar visible without overlay; verdict precedes proof risks in DOM', async ({ page }) => {
+  test('scope bar visible without overlay; action clusters precede verdict in DOM', async ({ page }) => {
     await mockGovernanceApis(page);
     await page.addInitScript(() => {
       localStorage.setItem('delivera_selectedProjects', 'MPSA');
@@ -101,8 +101,10 @@ test.describe('Governance root, nav, and scope cockpit', () => {
     const verdictBox = await verdict.boundingBox();
     const clustersBox = await clusters.boundingBox();
     expect(verdictBox && clustersBox).toBeTruthy();
-    expect(verdictBox.y).toBeLessThan(clustersBox.y);
-    await expect(page.locator('.gov-verdict-zone')).toBeVisible();
+    expect(clustersBox.y).toBeLessThan(verdictBox.y);
+    await expect(proof).toBeAttached();
+    await expect(verdict).toBeVisible();
+    await expect(page.locator('.gov-verdict-fold .gov-verdict-zone, #gov-verdict-mount .gov-verdict-zone').first()).toBeAttached();
     await expect(page.locator('.governance-decisions-table')).toHaveCount(0);
   });
 

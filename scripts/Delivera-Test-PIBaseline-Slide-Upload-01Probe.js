@@ -27,9 +27,10 @@ async function main() {
     process.exit(1);
   }
   const providerConfig = pickProviderConfig();
+  const requireProbe = process.env.DELIVERA_REQUIRE_AI_PROBE === 'true';
   if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
     console.log('[probe] SKIP — set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env');
-    process.exit(0);
+    process.exit(requireProbe ? 1 : 0);
   }
   if (providerConfig.provider === 'gemini') {
     console.log('[probe] SKIP — slide vision needs OpenAI or Claude');

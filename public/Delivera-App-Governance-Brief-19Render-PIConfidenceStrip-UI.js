@@ -38,19 +38,29 @@ export function renderPIConfidenceStrip(brief) {
     ? `<div class="gov-pi-chip-row" role="list">${chips}</div>`
     : '<p class="gov-pi-empty">Set PI baseline to unlock timeline chips.</p>';
   const adHocChip = renderAdHocChip(brief);
-  const hygieneRow = strip.trusted
-    ? (() => {
-      const hygiene = brief?.meta?.epicHygiene;
-      if (!hygiene?.epicCount) return '';
-      return `<p class="gov-pi-hygiene-compact" data-hover-proof="epic-hygiene">Epic naming <strong>${hygiene.score != null ? `${hygiene.score}%` : '—'}</strong> · weak ${(hygiene.weak || []).length}</p>`;
-    })()
-    : renderEpicHygieneInlineRow(brief);
+  const hygiene = brief?.meta?.epicHygiene;
+  const hygieneRow = noData
+    ? (hygiene?.epicCount
+      ? `<p class="gov-pi-hygiene-compact" data-hover-proof="epic-hygiene">Epic naming <strong>${hygiene.score != null ? `${hygiene.score}%` : '—'}</strong> · weak ${(hygiene.weak || []).length}</p>`
+      : '')
+    : strip.trusted
+      ? (hygiene?.epicCount
+        ? `<p class="gov-pi-hygiene-compact" data-hover-proof="epic-hygiene">Epic naming <strong>${hygiene.score != null ? `${hygiene.score}%` : '—'}</strong> · weak ${(hygiene.weak || []).length}</p>`
+        : '')
+      : renderEpicHygieneInlineRow(brief);
+  const chipCount = (strip.timelineChips || []).length;
+  const timelineDetails = !noData && chipCount > 0
+    ? `<details class="gov-pi-strip-details">
+        <summary>Timeline (${chipCount})</summary>
+        ${chipsBlock}
+      </details>`
+    : '';
 
   const gaugeBlock = noData
     ? `<div class="gov-pi-nodata" data-hover-proof="pi-gauge">
         <span class="gov-pi-nodata-icon" aria-hidden="true">○</span>
         <p class="gov-pi-nodata-label">${escapeHtml(COPY.baselinePiNotSet)}</p>
-        <button type="button" class="btn btn-primary btn-compact" id="gov-pi-fix-baseline">Set baseline →</button>
+        <button type="button" class="btn btn-primary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>
       </div>`
     : `<div class="gov-pi-gauge-wrap">
         <span class="gov-pi-gauge-label">PI Trust</span>
@@ -67,16 +77,13 @@ export function renderPIConfidenceStrip(brief) {
         ${adHocChip}
         ${noData ? '' : `<button type="button" class="btn btn-secondary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>`}
       </div>
-      <dl class="gov-pi-counter-row">
+      ${strip.trusted ? '' : `<dl class="gov-pi-counter-row">
         <div><dt>Confirmed</dt><dd>${c.committed ?? 0}</dd></div>
         <div data-hover-proof="pi-candidates"><dt>Candidates</dt><dd>${(c.offPlan || 0) + (c.onTrack || 0)}</dd></div>
         <div><dt>Missing dates</dt><dd>${c.missingDates ?? 0}</dd></div>
         <div><dt>At risk</dt><dd>${c.atRisk ?? 0}</dd></div>
-      </dl>
+      </dl>`}
       ${hygieneRow}
-      <details class="gov-pi-strip-details">
-        <summary>Timeline (${(strip.timelineChips || []).length})</summary>
-        ${chipsBlock}
-      </details>
+      ${timelineDetails}
     </section>`;
 }

@@ -212,8 +212,45 @@ test.describe('Governance command surface — UI', () => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-setup-debt')).toBeVisible();
+    await expect(page.locator('.gov-setup-debt--compact')).toBeVisible();
+    await page.locator('#gov-setup-gaps-expand').click();
     await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toBeVisible();
+  });
+
+  test('cluster issue without issueUrl uses preview key link only', async ({ page }) => {
+    const noUrl = {
+      ...COMMAND_BRIEF,
+      topRisks: [{
+        issueKey: 'MPSA-7', assigneeName: 'Sam', decisionNeededFrom: 'Tech Lead',
+        recommendedAction: 'Unblock', ageHours: 40, escalation: 'act-today',
+        displayTitle: 'No URL risk', summary: 'No URL',
+      }],
+    };
+    await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA'); });
+    await routeProjectsCatalog(page);
+    await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify(noUrl),
+    }));
+    await page.route('**/api/quarters-list**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [{ label: 'Q1', isCurrent: true }] }),
+    }));
+    await page.route('**/api/governance/adoption-metrics.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0 }),
+    }));
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [] }),
+    }));
+    await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0 }),
+    }));
+    await page.goto('/governance');
+    if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await page.locator('[data-cluster-toggle="0"]').click();
+    const keyLink = page.locator('.gov-cluster-issue-key.gov-issue-key-link').first();
+    await expect(keyLink).toBeVisible();
+    await expect(keyLink).toHaveAttribute('href', '#');
+    await expect(page.locator('.gov-cluster-issue a[href^="http"]')).toHaveCount(0);
   });
 
   test('send readiness badge when stale brief', async ({ page }) => {

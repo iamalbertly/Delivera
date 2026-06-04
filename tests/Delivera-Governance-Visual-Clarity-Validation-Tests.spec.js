@@ -175,6 +175,16 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     expect(box?.x ?? 0).toBeGreaterThanOrEqual(160);
   });
 
+  test('owner cluster nudge within above-fold viewport after DOM reorder', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/governance');
+    const nudge = page.locator('[data-grouped-nudge]').first();
+    await expect(nudge).toBeVisible();
+    const box = await nudge.boundingBox();
+    expect(box?.y ?? 9999).toBeLessThan(900);
+  });
+
   test('fix baseline opens drawer wizard', async ({ page }) => {
     await mockClarityPage(page);
     await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
@@ -182,6 +192,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
       body: JSON.stringify({ method: 'manual', candidates: [], guidance: 'Add PI items in Jira.' }),
     }));
     await page.goto('/governance');
+    await page.locator('#gov-setup-gaps-expand').click();
     await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/epic/i);

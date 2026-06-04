@@ -199,6 +199,43 @@ test.describe('Governance PI intelligence', () => {
     await expect(page.locator('.gov-inbox-group-card')).toContainText(/\d+ ·/i);
   });
 
+  test('baseline propose 500 shows drawer error copy', async ({ page }) => {
+    await mockPiPage(page);
+    await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
+      status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'PI propose failed' }),
+    }));
+    await page.route('**/api/boards.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ projects: ['MPSA'], boards: [{ id: 1, name: 'MPSA', projectKey: 'MPSA' }], projectErrors: [] }),
+    }));
+    await page.goto('/governance');
+    await page.locator('#gov-pi-fix-baseline').click();
+    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await expect(page.locator('.gov-right-drawer-body')).toContainText(/PI propose failed|Could not load PI candidates/i);
+  });
+
+  test('trusted PI strip hides counter row', async ({ page }) => {
+    const trusted = {
+      ...PI_BRIEF,
+      meta: {
+        ...PI_BRIEF.meta,
+        piConfidence: {
+          trusted: true,
+          confidencePct: 82,
+          timelineChips: [],
+          counts: { committed: 3, onTrack: 2, atRisk: 0, offPlan: 0, missingDates: 0 },
+        },
+      },
+    };
+    await mockPiPage(page);
+    await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify(trusted),
+    }));
+    await page.goto('/governance');
+    await expect(page.locator('.gov-pi-strip.is-trusted')).toBeVisible();
+    await expect(page.locator('.gov-pi-counter-row')).toHaveCount(0);
+  });
+
   test('guided fix cards when setup gaps present', async ({ page }) => {
     const withGaps = { ...PI_BRIEF, meta: { ...PI_BRIEF.meta, setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }] } };
     await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA,MAS'); });
@@ -208,6 +245,7 @@ test.describe('Governance PI intelligence', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [] }) }));
     await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, agents: [], lastImprovements: [] }) }));
     await page.goto('/governance');
+    await page.locator('#gov-setup-gaps-expand').click();
     await expect(page.locator('.gov-fix-card')).toBeVisible();
   });
 
