@@ -4,7 +4,11 @@ import { proofChipSummary, sendReadinessBadge } from './Delivera-App-Governance-
 
 export function renderOwnerActionClusters(brief, groups = []) {
   if (!groups.length) {
-    return `<section class="gov-action-clusters" aria-label="Actions"><p class="governance-empty">No urgent person actions — check setup gaps if data looks wrong.</p></section>`;
+    const hasGaps = (brief?.meta?.setupGaps || []).length > 0;
+    const link = hasGaps
+      ? `<button type="button" class="btn btn-link btn-compact" id="gov-owner-check-setup">${escapeHtml(COPY.checkSetup)}</button>`
+      : '<span class="gov-inbox-hint">Brief is healthy.</span>';
+    return `<section class="gov-action-clusters" aria-label="Actions"><p class="governance-empty">No urgent person actions.</p>${link}</section>`;
   }
   const cards = groups.map((g, gi) => {
     const name = firstNameFromDisplay(g.assigneeName) || g.ownerKey || COPY.unassigned;

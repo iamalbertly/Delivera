@@ -775,15 +775,38 @@ router.get('/api/format-date-range', requireAuth, (req, res) => {
     res.json({ dateRange });
 });
 
-router.get('/api/quarters-list', requireAuth, (req, res) => {
+async function getCachedGovernanceQuarterLabels() {
+    const labels = new Set();
+    try {
+        const entries = await cache.entries({ namespace: 'governanceBrief' });
+        for (const entry of entries) {
+            const brief = entry?.value || entry;
+            const label = brief?.period?.vodacomQuarter;
+            if (label) labels.add(String(label).trim());
+        }
+    } catch (err) {
+        logger.warn('quarters-list cached scan failed', { error: err?.message });
+    }
+    return Array.from(labels);
+}
+
+router.get('/api/quarters-list', requireAuth, async (req, res) => {
     const count = Math.min(20, Math.max(1, parseInt(req.query.count, 10) || 8));
-    const quarters = getQuartersUpToCurrent(count).map((q) => ({
+    const calendar = getQuartersUpToCurrent(count).map((q) => ({
         start: q.startISO,
         end: q.endISO,
         label: q.label,
         period: q.period,
         isCurrent: q.isCurrent,
     }));
+    const byLabel = new Map(calendar.map((q) => [q.label, q]));
+    if (req.query.includeCached === '1' || req.query.includeCached === 'true') {
+        for (const label of await getCachedGovernanceQuarterLabels()) {
+            if (!label || byLabel.has(label)) continue;
+            byLabel.set(label, { start: '', end: '', label, period: label, isCurrent: false, fromCache: true });
+        }
+    }
+    const quarters = Array.from(byLabel.values()).sort((a, b) => String(a.label).localeCompare(String(b.label)));
     res.json({ quarters });
 });
 
@@ -1445,6 +1468,10 @@ router.get('/api/governance/inbox.json', requireAuth, async (req, res) => {
 router.post('/api/governance/inbox/:id/resolve', requireAuth, async (req, res) => {
     try {
         const id = String(req.params.id || '').trim();
+        if (id.startsWith('synthetic-')) {
+            logger.info('inbox resolve synthetic no-op', { id });
+            return res.json({ success: true, synthetic: true });
+        }
         const resolution = String(req.body?.resolution || 'dismissed').trim();
         const editedContent = String(req.body?.editedContent || '').trim();
         const userId = req.session?.user || 'unknown';

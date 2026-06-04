@@ -12,6 +12,14 @@ Primary surfaces:
 
 `/leadership` redirects to the Brief leadership snapshot (`/governance#decision-snapshot`).
 
+### Brief (`/governance`) scope and queue
+
+- **Layout:** Main chrome respects the 240px sidebar (`margin-left: var(--sidebar-width)`); expand **Agent status & queue** for worker receipt and inbox.
+- **Scope:** Projects load from `/api/boards.json` (all keys you can access), not a hardcoded list. Period uses `/api/quarters-list?count=20&includeCached=1` (calendar + cached brief quarters). On narrow screens, native `<select>` controls replace chip grids.
+- **PI baseline:** **Set PI baseline** and fix cards open a right-drawer wizard (`/api/governance/pi-baseline/propose` → confirm).
+- **Inbox:** One **See queue (N)** chip; icon actions (approve / review / dismiss). Cached preview items (`synthetic-*`) resolve without 400 console errors.
+- **Tests:** `npm run test:journey:governance` (Visual Clarity → PI Intelligence → Command Surface → Inbox first). Use `SKIP_WEBSERVER=true` when the app is already on port 3000.
+
 ## Quickstart
 
 ### Prerequisites
@@ -76,7 +84,8 @@ Detailed env matrix: [`docs/environment.md`](docs/environment.md)
 - Full orchestration: `npm run test:all`
 - Smoke: `npm run test:smoke`
 - Current Sprint journey: `npm run test:journey:current-sprint`
-- Governance journey (fail-fast, runs first in `test:all`): `npm run test:journey:governance`
+- Governance journey (fail-fast, visual-clarity specs first): `npm run test:journey:governance`
+- Warm server for Playwright: `SKIP_WEBSERVER=true` with `npm start` on port 3000
 - Leadership journey: `npm run test:journey:leadership`
 - Outcome intake journey: `npm run test:journey:outcome-intake`
 - UX core journey: `npm run test:journey:ux-core`

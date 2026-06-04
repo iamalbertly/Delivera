@@ -57,6 +57,10 @@ async function mockClarityPage(page) {
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ scope: { cards: [{ projectKey: 'SD', health: 'blocked', sprint: 'active', epicCount: 1 }] }, boards: 1 }),
   }));
+  await page.route('**/api/boards.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD' }], projectErrors: [] }),
+  }));
 }
 
 test.describe('Governance visual clarity (Phase 3.6)', () => {
@@ -111,9 +115,33 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('grouped inbox truncates with show more', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await page.locator('[data-queue-tab="briefs"]').click();
+    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-group-card')).toHaveCount(8);
     await expect(page.locator('#gov-inbox-show-more')).toBeVisible();
+  });
+
+  test('scope chips clear of left sidebar on desktop', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/governance');
+    await page.locator('#gov-scope-change').click();
+    const chip = page.locator('.gov-scope-chip').first();
+    await expect(chip).toBeVisible();
+    const box = await chip.boundingBox();
+    expect(box?.x ?? 0).toBeGreaterThanOrEqual(200);
+  });
+
+  test('fix baseline opens drawer wizard', async ({ page }) => {
+    await mockClarityPage(page);
+    await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ method: 'manual', candidates: [], guidance: 'Add PI items in Jira.' }),
+    }));
+    await page.goto('/governance');
+    await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
+    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/PI baseline/i);
   });
 
   test('measurement strip excludes setup gaps', async ({ page }) => {
@@ -139,6 +167,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('worker receipt uses details summary', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
+    await page.locator('.gov-top-chrome-summary').click();
     await expect(page.locator('.gov-receipt-details summary')).toContainText(/Agent/i);
   });
 

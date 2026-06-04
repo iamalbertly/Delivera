@@ -1,14 +1,9 @@
 /**
- * Client SSOT: inbox fingerprint grouping (mirrors server grouping intent).
+ * Client SSOT: inbox fingerprint grouping (mirrors server).
  */
+import { inboxItemFingerprint } from './Delivera-App-Governance-Inbox-01Fingerprint-SSOT.js';
 
-export function inboxItemFingerprint(item = {}) {
-  const p = item.payload || {};
-  const owner = String(p.owner || p.assigneeName || p.decisionNeededFrom || '').trim();
-  const board = String(p.board || item.projects?.[0] || '').trim().toUpperCase();
-  const riskType = String(p.riskType || p.reason || '').trim();
-  return `${item.type || 'item'}:${owner}:${riskType}:${board}`;
-}
+export { inboxItemFingerprint };
 
 export function groupInboxByFingerprint(items = []) {
   const map = new Map();

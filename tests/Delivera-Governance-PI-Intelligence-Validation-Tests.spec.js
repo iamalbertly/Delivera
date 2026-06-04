@@ -74,6 +74,19 @@ async function mockPiPage(page) {
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ scope: PI_BRIEF.meta.scopeIntelligence, boards: 5, projectErrors: [] }),
   }));
+  await page.route('**/api/boards.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      projects: ['MPSA', 'MAS', 'RPA', 'SD'],
+      boards: [
+        { id: 1, name: 'MPSA', projectKey: 'MPSA' },
+        { id: 2, name: 'MAS', projectKey: 'MAS' },
+        { id: 3, name: 'RPA', projectKey: 'RPA' },
+        { id: 4, name: 'SD', projectKey: 'SD' },
+      ],
+      projectErrors: [],
+    }),
+  }));
 }
 
 test.describe('Governance PI intelligence', () => {
@@ -178,9 +191,10 @@ test.describe('Governance PI intelligence', () => {
       }),
     }));
     await page.goto('/governance');
-    await page.locator('[data-queue-tab="briefs"]').click();
+    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-group-card')).toBeVisible();
-    await expect(page.locator('.gov-inbox-group-card')).toContainText(/similar/i);
+    await expect(page.locator('.gov-inbox-group-card')).toContainText(/\d+ ·/i);
   });
 
   test('guided fix cards when setup gaps present', async ({ page }) => {
@@ -221,10 +235,11 @@ test.describe('Governance PI intelligence', () => {
     await expect(page.locator('#gov-right-drawer-title')).toContainText(/Feedback improvement/i);
   });
 
-  test('global agent bar visible on governance', async ({ page }) => {
+  test('global agent bar hidden on governance (scope chip owns queue)', async ({ page }) => {
     await mockPiPage(page);
     await page.goto('/governance');
-    await expect(page.locator('#gov-global-agent-bar')).toBeVisible();
+    await expect(page.locator('#gov-global-agent-bar')).toBeHidden();
+    await expect(page.locator('.gov-scope-status-chip')).toBeVisible();
   });
 
   test('sticky answer mount exists', async ({ page }) => {

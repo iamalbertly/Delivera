@@ -17,6 +17,10 @@ export function mountGlobalAgentBar() {
 
 export function updateGlobalAgentBar(brief) {
   const bar = mountGlobalAgentBar();
+  if (document.body?.classList?.contains('governance-page')) {
+    bar.hidden = true;
+    return;
+  }
   if (!brief) {
     bar.hidden = true;
     return;

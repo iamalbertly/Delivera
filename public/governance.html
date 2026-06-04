@@ -9,8 +9,11 @@
 <body class="executive-surface-page governance-page">
   <div id="gov-scope-bar-mount" class="gov-scope-bar-sticky" aria-label="Brief scope"></div>
   <div id="gov-sticky-answer-mount" class="gov-sticky-answer-mount" aria-live="polite"></div>
-  <div id="gov-worker-receipt-mount"></div>
-  <div id="gov-queue-mount" class="gov-inbox-mount" aria-label="Agent queue"></div>
+  <details id="gov-top-chrome-mount" class="gov-top-chrome-details">
+    <summary class="gov-top-chrome-summary">Agent status &amp; queue</summary>
+    <div id="gov-worker-receipt-mount"></div>
+    <div id="gov-queue-mount" class="gov-inbox-mount" aria-label="Agent queue"></div>
+  </details>
 
   <main class="governance-shell" id="main-content" role="main">
     <header class="governance-header">

@@ -4,10 +4,14 @@
 import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
+import {
+  FALLBACK_PROJECTS,
+  unionProjectKeys,
+  renderExpandedSelectors,
+} from './Delivera-App-Governance-Brief-ScopeBar-02ProjectQuarter-Selector-UI.js';
 
 const LAST_VERDICT_KEY = 'delivera_lastVerdictTier';
-
-const KNOWN_PROJECTS = ['MPSA', 'MAS', 'RPA', 'SD'];
 
 function readProjects() {
   const list = readSharedProjectsCsv();
@@ -38,23 +42,15 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let inboxTotal = 0;
   let sinceDelta = '';
   let advancedWarnCount = 0;
+  let projectKeys = unionProjectKeys(FALLBACK_PROJECTS, selected);
+  let boardsWarn = '';
+  let loadBriefSeq = 0;
 
   try {
     statusTier = localStorage.getItem(LAST_VERDICT_KEY) || 'watch';
   } catch (_) { /* ignore */ }
 
   function render() {
-    const chips = KNOWN_PROJECTS.map((pk) => {
-      const on = selected.includes(pk);
-      return `<button type="button" class="gov-scope-chip${on ? ' is-on' : ''}" data-project="${pk}" aria-pressed="${on}">${pk}</button>`;
-    }).join('');
-    const quarterPills = quarters.length
-      ? quarters.map((q) => {
-        const label = q.label || q.period || '';
-        const on = label === activeQuarter || (!activeQuarter && q.isCurrent);
-        return `<button type="button" class="gov-scope-quarter-pill${on ? ' is-on' : ''}" data-quarter="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
-      }).join('')
-      : '<span class="gov-scope-quarter-pill is-on">Current</span>';
     const periodLabel = activeQuarter || 'Current';
     const squadCount = selected.length;
     const counts = getScopeCounts?.() || {};
@@ -65,6 +61,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const queuePart = inboxTotal > 0 ? ` (${inboxTotal} pending)` : '';
     const deltaPart = sinceDelta ? ` · ${escapeHtml(sinceDelta.slice(0, 48))}` : '';
     const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
+    const expandedHidden = mount.querySelector('#gov-scope-expanded')?.hasAttribute('hidden') !== false;
 
     mount.innerHTML = `
       <div class="gov-scope-capsule" aria-label="Brief scope">
@@ -73,17 +70,8 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
         <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
       </div>
-      <div id="gov-scope-expanded" class="gov-scope-expanded" hidden>
-        <div class="gov-scope-bar-inner">
-          <span class="gov-scope-label">Projects</span>
-          <div class="gov-scope-chips" role="group" aria-label="Projects">${chips}</div>
-          <div class="gov-scope-period" role="group" aria-label="Period">
-            <span class="gov-scope-label">Period</span>
-            <div class="gov-scope-quarter-strip">${quarterPills}</div>
-          </div>
-          <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">Set PI baseline</button>
-          <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">${escapeHtml(advLabel)}</button>
-        </div>
+      <div id="gov-scope-expanded" class="gov-scope-expanded"${expandedHidden ? ' hidden' : ''}>
+        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn })}
       </div>`;
 
     mount.querySelectorAll('[data-project]').forEach((btn) => {
@@ -101,10 +89,34 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     mount.querySelectorAll('[data-quarter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeQuarter = btn.getAttribute('data-quarter') || '';
+        const seq = ++loadBriefSeq;
+        render();
+        Promise.resolve(onRefresh?.()).then(() => {
+          if (seq !== loadBriefSeq) return;
+        });
+      });
+    });
+    const mobileProject = mount.querySelector('.gov-scope-mobile-project');
+    if (mobileProject) {
+      mobileProject.addEventListener('change', () => {
+        const pk = mobileProject.value;
+        if (pk) {
+          selected = selected.includes(pk) ? selected.filter((p) => p !== pk) : [...selected, pk].sort();
+          if (!selected.length) selected = [pk];
+          writeProjects(selected);
+          render();
+          onScopeChange?.(selected);
+        }
+      });
+    }
+    const mobileQuarter = mount.querySelector('.gov-scope-mobile-quarter');
+    if (mobileQuarter) {
+      mobileQuarter.addEventListener('change', () => {
+        activeQuarter = mobileQuarter.value || '';
         render();
         onRefresh?.();
       });
-    });
+    }
     mount.querySelector('#gov-scope-change')?.addEventListener('click', () => {
       const panel = mount.querySelector('#gov-scope-expanded');
       if (panel) panel.toggleAttribute('hidden');
@@ -114,8 +126,26 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     mount.querySelector('#gov-scope-baseline')?.addEventListener('click', () => baselineWizard?.open());
   }
 
-  fetch('/api/quarters-list?count=8')
-    .then((r) => (r.ok ? r.json() : { quarters: [] }))
+  async function loadBoardProjects() {
+    const probe = unionProjectKeys(FALLBACK_PROJECTS, selected, readSharedProjectsCsv()).join(',');
+    try {
+      const data = await fetchJson(`/api/boards.json?projects=${encodeURIComponent(probe)}`);
+      const fromBoards = (data?.boards || []).map((b) => b.projectKey).filter(Boolean);
+      const fromErrors = (data?.projectErrors || []).map((e) => e.project).filter(Boolean);
+      projectKeys = unionProjectKeys(FALLBACK_PROJECTS, selected, fromBoards, fromErrors, readSharedProjectsCsv());
+      if (!fromBoards.length && data?.jiraErrors?.length) {
+        boardsWarn = 'Jira access limited — showing saved projects.';
+      } else {
+        boardsWarn = '';
+      }
+    } catch (_) {
+      projectKeys = unionProjectKeys(FALLBACK_PROJECTS, selected, readSharedProjectsCsv());
+      boardsWarn = 'Could not load boards — using saved projects.';
+    }
+    render();
+  }
+
+  fetchJson('/api/quarters-list?count=20&includeCached=1')
     .then((data) => {
       quarters = Array.isArray(data?.quarters) ? data.quarters : [];
       const current = quarters.find((q) => q.isCurrent);
@@ -124,8 +154,9 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     })
     .catch(() => render());
 
+  loadBoardProjects();
+
   baselineWizard = mountPIBaselineWizard({
-    anchor: mount,
     getProjectsCsv: () => selected.join(','),
     onSaved: () => onRefresh?.(),
   });
@@ -135,6 +166,12 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     getProjects: () => [...selected],
     getQuarterLabel: () => activeQuarter,
     refreshCapsule: () => render(),
+    openBaselineWizard: () => baselineWizard?.open(),
+    expandScopePanel: () => {
+      const panel = mount.querySelector('#gov-scope-expanded');
+      if (panel) panel.removeAttribute('hidden');
+      mount.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    },
     updateStatus(tier, queue = 0, sinceSummary = '') {
       statusTier = tier || 'watch';
       inboxTotal = Number(queue) || 0;

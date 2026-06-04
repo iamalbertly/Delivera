@@ -1,6 +1,32 @@
 /* ── Governance Brief surface ──────────────────────────────────────────────
    Weekly Delivery Intelligence Brief. Trust-first, scannable, OpCo-portable. */
 
+/* Sidebar-safe shell (governance.html has no .container wrapper) */
+body.governance-page #gov-scope-bar-mount,
+body.governance-page #gov-sticky-answer-mount,
+body.governance-page #gov-top-chrome-mount,
+body.governance-page .governance-shell {
+  margin-left: var(--sidebar-width, 240px);
+  width: calc(100% - var(--sidebar-width, 240px));
+  box-sizing: border-box;
+}
+body.governance-page.sidebar-open #gov-scope-bar-mount,
+body.governance-page.sidebar-open #gov-sticky-answer-mount,
+body.governance-page.sidebar-open #gov-top-chrome-mount,
+body.governance-page.sidebar-open .governance-shell {
+  margin-left: 0;
+  width: 100%;
+}
+@media (max-width: 1200px) {
+  body.governance-page #gov-scope-bar-mount,
+  body.governance-page #gov-sticky-answer-mount,
+  body.governance-page #gov-top-chrome-mount,
+  body.governance-page .governance-shell {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 .gov-scope-bar-sticky {
   position: sticky;
   top: 0;
@@ -88,7 +114,7 @@
 .gov-inbox-row-actions { grid-column: 1 / -1; display: flex; gap: 6px; }
 .gov-inbox-empty-tab { font-size: 0.82rem; color: var(--text-muted, #6b7280); margin: 0; }
 
-.gov-scope-quarter-strip { display: flex; gap: 4px; flex-wrap: wrap; max-width: 280px; overflow-x: auto; }
+/* quarter strip scroll — see Phase 3.7 block below */
 .gov-scope-quarter-pill {
   border: 1px solid var(--border, #d1d5db);
   background: #fff;
@@ -466,7 +492,7 @@ body.gov-right-drawer-open { overflow: hidden; }
 }
 .gov-global-pill { background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 999px; }
 .gov-proof-popover {
-  position: fixed; z-index: 200; max-width: 300px; padding: 10px 12px;
+  position: fixed; z-index: 1300; max-width: 300px; padding: 10px 12px;
   background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12); font-size: 0.8rem;
 }
@@ -562,6 +588,31 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-lab-chip--dim { opacity: 0.55; }
 .gov-lab-count { background: #1e3a5f; color: #fff; font-size: 0.68rem; padding: 2px 6px; border-radius: 999px; }
 .sidebar-nav-badge { margin-left: 6px; background: #dc2626; color: #fff; font-size: 0.65rem; padding: 1px 5px; border-radius: 999px; vertical-align: middle; }
+
+/* Phase 3.7 — Layout, scope selectors, inbox clarity */
+.gov-top-chrome-details { max-width: 960px; margin: 0 auto 8px; padding: 0 14px; }
+.gov-top-chrome-summary { font-size: 0.78rem; font-weight: 600; color: #6b7280; cursor: pointer; list-style: none; }
+.gov-top-chrome-summary::-webkit-details-marker { display: none; }
+.gov-scope-chips--scroll { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
+.gov-scope-quarter-strip { display: flex; gap: 4px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
+.gov-scope-boards-warn { font-size: 0.76rem; color: #b45309; margin: 0 0 6px; }
+.gov-scope-desktop-only { display: block; }
+.gov-scope-mobile-only { display: none; }
+.gov-scope-mobile-field { display: block; font-size: 0.82rem; margin: 8px 0; }
+.gov-scope-mobile-field .gov-scope-select { width: 100%; margin-top: 4px; }
+.gov-queue-chip--primary { font-weight: 700; }
+.gov-queue-chip-icon { margin-right: 4px; }
+.gov-inbox-btn-icon { min-width: 40px; font-size: 1rem; line-height: 1; }
+.gov-inbox-dismiss-chips { display: flex; gap: 4px; }
+.gov-inbox-dismiss-chip { border: 1px solid #d1d5db; background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 1rem; }
+.gov-inline-toast { font-size: 0.78rem; color: #b91c1c; margin: 0 0 8px; }
+.gov-inline-toast--error { color: #b91c1c; }
+.gov-baseline-steps { margin: 8px 0; padding-left: 1.2rem; font-size: 0.82rem; }
+
+@media (max-width: 600px) {
+  .gov-scope-desktop-only { display: none; }
+  .gov-scope-mobile-only { display: block; }
+}
 
 @media (pointer: coarse) {
   .gov-proof-popover, [data-hover-proof] { min-height: 44px; min-width: 44px; }

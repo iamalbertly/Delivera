@@ -47,6 +47,10 @@ export function renderCommandAnswerBar(brief, surfaces = null) {
     : '';
 
   const narratedBy = brief?.meta?.narratedBy || n.narratedBy || 'template';
+  const statusHead = String(statusLabel || '').toUpperCase();
+  const detailLine = sentence && statusHead && String(sentence).toUpperCase().startsWith(statusHead)
+    ? ''
+    : sentence;
   const trustBadge = narratedBy === 'advisor'
     ? '<span class="gov-narration-badge gov-narration-badge--advisor" title="Advisor narration">Advisor</span>'
     : '<span class="gov-narration-badge gov-narration-badge--template" title="Template narration">Template</span>';
@@ -76,7 +80,7 @@ export function renderCommandAnswerBar(brief, surfaces = null) {
         <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">AI ${escapeHtml(narratedBy === 'advisor' ? 'Advisor' : 'Template')}</a>
         <span class="gov-send-badge gov-send-badge--${readiness.tier}" data-hover-proof="safe-send">${escapeHtml(readiness.label)}</span>
       </div>
-      <p class="gov-command-answer-detail">${escapeHtml(sentence.slice(0, 200))}</p>
+      ${detailLine ? `<p class="gov-command-answer-detail">${escapeHtml(detailLine.slice(0, 200))}</p>` : ''}
       <div class="gov-command-actions">
         <button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">${escapeHtml(COPY.reviewActions)}</button>
         <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-answer-inline">Copy answer</button>

@@ -85,6 +85,13 @@ async function mockCommandSurfacePage(page) {
   await page.route('**/api/leadership-summary.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ velocity: { source: 'unavailable' } }),
   }));
+  await page.route('**/api/boards.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ projects: ['MPSA', 'MAS'], boards: [{ id: 1, projectKey: 'MPSA' }, { id: 2, projectKey: 'MAS' }], projectErrors: [] }),
+  }));
+  await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, agents: [], lastImprovements: [] }),
+  }));
 }
 
 test.describe('Governance command surface — unit', () => {
@@ -142,7 +149,7 @@ test.describe('Governance command surface — UI', () => {
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
     await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
-    await expect(page.locator('.gov-command-answer-detail')).toContainText(/DELIVERY BLOCKED/i);
+    await expect(page.locator('.gov-answer-block--status')).toContainText(/Blocked|DELIVERY BLOCKED/i);
     assertTelemetryClean(telemetry);
   });
 
@@ -158,7 +165,8 @@ test.describe('Governance command surface — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('#gov-inbox-toggle')).toHaveCount(0);
-    await page.locator('.gov-queue-chip[data-queue-tab="briefs"]').click();
+    await page.locator('.gov-top-chrome-summary').click();
+    await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('.gov-inbox-panel')).toHaveCount(0);
   });
@@ -227,7 +235,6 @@ test.describe('Governance command surface — UI', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('.gov-command-overflow summary').click();
     await page.locator('#gov-copy-answer-inline').click();
     await expect(page.locator('#gov-copy-answer-inline')).toContainText(/Copied/i);
   });

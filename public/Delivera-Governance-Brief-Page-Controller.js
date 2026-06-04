@@ -472,7 +472,10 @@ function bindSetupDebtActions() {
     const chip = event.target.closest('[data-setup-action]');
     if (!chip) return;
     const action = chip.getAttribute('data-setup-action');
-    if (action === 'set-baseline') document.getElementById('gov-scope-baseline')?.click();
+    if (action === 'set-baseline') {
+      scopeBarApi?.expandScopePanel?.();
+      scopeBarApi?.openBaselineWizard?.();
+    }
     else if (action === 'add-ai-key') window.location.href = '/settings#gov-ai-helper';
     else if (action === 'map-board') document.getElementById('gov-scope-change')?.click();
     else if (action === 'refresh') document.getElementById('gov-scope-refresh')?.click();
@@ -564,7 +567,8 @@ function renderBriefUi(brief) {
     els.piStripMount.innerHTML = renderPIConfidenceStrip(brief);
     bindEpicHygieneInteractions(els.piStripMount, brief);
     els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
-      document.getElementById('gov-scope-baseline')?.click();
+      scopeBarApi?.expandScopePanel?.();
+      scopeBarApi?.openBaselineWizard?.();
     });
   }
   if (els.workerReceiptMount) els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, lastFeedbackSummary);
@@ -677,6 +681,12 @@ function init() {
     mount: $('gov-queue-mount'),
     getProjectsCsv: projectsCsv,
     onFocusConfirm: () => {},
+    onRefreshBrief: loadBrief,
+  });
+  els.actionClustersMount?.addEventListener('click', (event) => {
+    if (event.target.closest('#gov-owner-check-setup')) {
+      els.setupDebtMount?.scrollIntoView?.({ behavior: 'smooth' });
+    }
   });
   bindProofInteractions();
   bindCommandAnswerActions();
