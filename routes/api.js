@@ -15,7 +15,7 @@ import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resol
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
 import { getUnifiedRiskCounts } from '../public/Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { appEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
+import { appEnvConfig, jiraEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 import {
     readReportContextFromSession,
     writeReportContextToSession,
@@ -28,6 +28,15 @@ import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
 import { resolveProviderConfig, parseViaNarrative, testProviderConfig } from '../lib/Delivera-AI-Provider-Gateway.js';
 import { assembleGovernanceBrief } from '../lib/Delivera-Governance-Brief-03Assemble-Service.js';
 import { savePIBaseline, getLatestPIBaseline, listPIBaselines } from '../lib/Delivera-Governance-PIBaseline-01Store-IO.js';
+import {
+    runProposePipeline,
+    proposeFromSlideImage,
+    proposeFromBoardCache,
+} from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
+import {
+    loadEpicActivityFromBriefCache,
+    enrichCandidatesWithEpicActivity,
+} from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
 import { recordNarrationPattern } from '../lib/Delivera-Governance-Narration-Knowledge-IO.js';
 import { recordAdoptionMetric, summarizeAdoptionMetrics } from '../lib/Delivera-Governance-Adoption-Metrics-IO.js';
 import {
@@ -796,6 +805,22 @@ async function getCachedGovernanceQuarterLabels() {
     }
     return Array.from(labels);
 }
+
+router.get('/api/session-meta.json', requireAuth, (req, res) => {
+    const email = jiraEnvConfig.email || '';
+    let initials = 'DL';
+    if (email) {
+        const local = email.split('@')[0] || '';
+        const parts = local.split(/[._-]+/).filter(Boolean);
+        initials = parts.length >= 2
+            ? `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase()
+            : local.slice(0, 2).toUpperCase();
+    }
+    const emailMasked = email
+        ? email.replace(/^(.).+(@.+)$/, '$1***$2')
+        : '';
+    return res.json({ initials: initials || 'DL', emailMasked });
+});
 
 router.post('/api/client-log', requireAuth, (req, res) => {
     const body = req.body || {};
@@ -1715,59 +1740,78 @@ router.post('/api/governance/profile', requireAuth, async (req, res) => {
 router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) => {
     try {
         const projects = parseGovernanceProjects(req);
+        const quarter = String(req.query.quarter || req.query.vodacomQuarter || '').trim();
         const bypassCache = req.query.refresh === '1' || req.query.refresh === 'true';
-        const proposeKey = `${GOVERNANCE_NS}:propose:${projects.join(',')}`;
+        const proposeKey = `${GOVERNANCE_NS}:propose:${projects.join(',')}:${quarter}`;
         if (!bypassCache) {
             const cached = await cache.get(proposeKey, { namespace: GOVERNANCE_NS });
             const payload = cached?.value || cached;
             if (payload?.candidates) return res.json({ ...payload, cached: true });
         }
-        const version3Client = createVersion3Client();
-        const candidates = [];
-        const quarterRe = /Q[1-4]|FY\d{2}|PI\s*\d/i;
-        for (const pk of projects.slice(0, 3)) {
-            try {
-                const jql = `project = ${pk} AND issuetype = Epic ORDER BY updated DESC`;
-                const resJira = await version3Client.issueSearch.searchForIssuesUsingJql({
-                    jql,
-                    maxResults: 50,
-                    fields: ['summary', 'status', 'fixVersions', 'labels'],
-                });
-                const issues = resJira?.issues || [];
-                for (const issue of issues) {
-                    const key = issue?.key || '';
-                    const fvs = (issue?.fields?.fixVersions || []).map((v) => v?.name || '').filter(Boolean);
-                    const matchFv = fvs.find((n) => quarterRe.test(n));
-                    const labels = issue?.fields?.labels || [];
-                    const matchLabel = labels.some((l) => quarterRe.test(String(l)));
-                    if (matchFv || matchLabel) {
-                        candidates.push({
-                            issueKey: key,
-                            title: issue?.fields?.summary || '',
-                            squad: pk,
-                            fixVersion: matchFv || '',
-                            method: matchFv ? 'fix-version' : 'label',
-                        });
-                    }
-                }
-            } catch (err) {
-                logger.warn('pi-baseline propose jql failed', { project: pk, error: err?.message });
-            }
-        }
-        const method = candidates.length ? 'fix-version-or-label' : 'manual';
-        const body = {
-            method,
-            candidates: candidates.slice(0, 42),
-            guidance: candidates.length
-                ? null
-                : 'No quarter-labeled epics found. Add epics in Jira or use Create work.',
-            cached: false,
-        };
+        const providerConfig = resolveProviderConfig(req.headers || {});
+        let version3Client = null;
+        try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
+        const body = await runProposePipeline({
+            projects,
+            cache,
+            version3Client,
+            quarter,
+            providerConfig,
+        });
         await cache.set(proposeKey, body, 20 * 60 * 1000, { namespace: GOVERNANCE_NS });
         return res.json(body);
     } catch (err) {
         logger.warn('pi-baseline propose failed', { error: err?.message });
         return res.status(500).json({ error: 'Propose failed' });
+    }
+});
+
+router.post('/api/governance/pi-baseline/propose-from-image', requireAuth, async (req, res) => {
+    try {
+        const imageBase64 = String(req.body?.imageBase64 || '').trim();
+        const mimeType = String(req.body?.mimeType || 'image/png').trim();
+        const projects = Array.isArray(req.body?.projects) && req.body.projects.length
+            ? req.body.projects.map((p) => String(p).trim().toUpperCase()).filter(Boolean)
+            : (req.body?.projectsCsv
+                ? String(req.body.projectsCsv).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)
+                : parseGovernanceProjects(req));
+        const quarter = String(req.body?.quarter || '').trim();
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'imageBase64 is required', code: 'MISSING_IMAGE' });
+        }
+        if (imageBase64.length > 6_000_000) {
+            return res.status(400).json({ error: 'Image too large (max ~4MB)', code: 'IMAGE_TOO_LARGE' });
+        }
+        const providerConfig = resolveProviderConfig(req.headers || {});
+        if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
+            return res.status(400).json({
+                error: 'AI provider key required for slide reading. Add OpenAI or Claude key in Settings.',
+                code: 'AI_KEY_REQUIRED',
+            });
+        }
+        const board = await proposeFromBoardCache({ projects, cache, quarter });
+        const boardEpics = (board.candidates || []).map((c) => ({
+            issueKey: c.issueKey,
+            title: c.title,
+            summary: c.title,
+        }));
+        let result = await proposeFromSlideImage({
+            imageBase64,
+            mimeType,
+            projects,
+            quarter,
+            providerConfig,
+            boardEpics,
+        });
+        const activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
+        result = {
+            ...result,
+            candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),
+        };
+        return res.json({ ...result, cached: false });
+    } catch (err) {
+        logger.warn('pi-baseline propose-from-image failed', { error: err?.message });
+        return res.status(500).json({ error: String(err?.message || 'Slide propose failed') });
     }
 });
 

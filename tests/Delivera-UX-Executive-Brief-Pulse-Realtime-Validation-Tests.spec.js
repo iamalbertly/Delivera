@@ -49,6 +49,12 @@ const SD_FIXTURE = {
     decisionsNeeded: [],
   },
   evidencePack: { rows: [] },
+  meta: {
+    commandAnswerSentence: 'DELIVERY BLOCKED. M-Pesa integration at risk',
+    workerReceipt: { line: 'Last run: 1m ago · Checked: Jira' },
+    setupGaps: [],
+    safeToSend: false,
+  },
 };
 
 test.describe('Executive Brief pulse realtime validation', () => {
@@ -67,6 +73,10 @@ test.describe('Executive Brief pulse realtime validation', () => {
     await page.route('**/api/governance/adoption-metrics.json**', (r) => r.fulfill({
       status: 200, contentType: 'application/json', body: '{}',
     }));
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }),
+    }));
 
     await test.step('Stage A: verdict zone visible, no attention table above fold', async () => {
       await page.goto('/governance');
@@ -78,28 +88,21 @@ test.describe('Executive Brief pulse realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage B: do-now cards with nudge', async () => {
-      await expect(page.locator('.gov-donow-card')).toHaveCount(1);
-      await expect(page.locator('[data-donow-nudge="0"]')).toBeVisible();
+    await test.step('Stage B: owner cluster with grouped nudge', async () => {
+      await expect(page.locator('.gov-owner-cluster')).toHaveCount(1);
+      await expect(page.locator('[data-grouped-nudge="0"]')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage C: issues drawer open with Jira link', async () => {
-      await expect(page.locator('details.gov-issues-drawer[open]')).toBeVisible();
-      const link = page.locator('.gov-issue-key-link').first();
-      await expect(link).toHaveAttribute('href', /browse\/SD-5184/i);
-      await page.evaluate(() => {
-        const sidebar = document.getElementById('app-sidebar');
-        if (sidebar) sidebar.style.pointerEvents = 'none';
-      });
-      await page.locator('.gov-issue-row').first().hover({ force: true });
-      await expect(page.locator('.gov-issue-row-detail').first()).toBeVisible();
+    await test.step('Stage C: cluster issue list expands', async () => {
+      await page.locator('[data-cluster-toggle="0"]').click();
+      await expect(page.locator('.gov-cluster-issue-key').first()).toContainText(/SD-5184/i);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage D: measurement risks not in do-now', async () => {
-      await expect(page.locator('.gov-donow-card')).not.toContainText(/DMS board/i);
-      await expect(page.locator('.gov-measurement-strip')).toContainText(/measure/i);
+    await test.step('Stage D: measurement risks not in owner cluster', async () => {
+      await expect(page.locator('.gov-owner-cluster')).not.toContainText(/DMS board/i);
+      await expect(page.locator('.gov-measurement-strip')).toContainText(/Data gaps|Story point/i);
       assertTelemetryClean(telemetry);
     });
 
@@ -107,8 +110,8 @@ test.describe('Executive Brief pulse realtime validation', () => {
       const script = page.locator('details.gov-meeting-script');
       await expect(script).toBeVisible();
       await expect(script).not.toHaveAttribute('open', '');
-      await page.locator('#gov-copy-meeting').click();
-      await expect(page.locator('#gov-copy-meeting')).toContainText(/Copied/i);
+      await page.locator('#gov-copy-answer-inline').click();
+      await expect(page.locator('#gov-copy-answer-inline')).toContainText(/Copied/i);
       assertTelemetryClean(telemetry);
     });
 

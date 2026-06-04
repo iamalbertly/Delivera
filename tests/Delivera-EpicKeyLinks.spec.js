@@ -17,7 +17,7 @@ async function ensureProjectEpicLevelTab(page) {
 test.describe('Epic Key linkification & column layout', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('Epic keys render as clickable links (open in new tab) in tables', async ({ page }) => {

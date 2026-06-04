@@ -512,6 +512,16 @@ body.report-page .report-back-to-brief {
   white-space: nowrap;
 }
 body.report-page .report-back-to-brief:hover { text-decoration: underline; }
+body.has-top-chrome.report-page .report-back-to-brief {
+  display: none !important;
+}
+body.has-top-chrome.report-page .report-shell-top h1 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+body.has-top-chrome.report-page .report-shell-top .subtitle {
+  display: none;
+}
 
 body.report-page .report-mission-strip {
   gap: 10px;

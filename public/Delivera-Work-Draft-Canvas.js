@@ -1,9 +1,15 @@
 import { parseOutcomeIntake, OUTCOME_STRUCTURE_MODE } from './Delivera-Shared-Outcome-Intake-Parser.js';
 import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
+import {
+  readAiProviderPref,
+  saveAiProviderPref,
+  aiProviderRequestHeaders,
+  hasAiProviderKey,
+} from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { resizeImageFileToBase64, bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const AI_PROVIDER_SESSION_KEY = 'wdd_ai_provider_v1';
 const LAST_PROJECT_KEY = 'report_last_outcome_project_v1';
 const SUBMIT_TIMEOUT_MS = 45000;
 const PARSE_DEBOUNCE_MS = 800;
@@ -99,14 +105,6 @@ function readLastProject() {
   try { return window.localStorage.getItem(LAST_PROJECT_KEY) || ''; } catch (_) { return ''; }
 }
 
-function readAiProvider() {
-  try { return JSON.parse(window.sessionStorage.getItem(AI_PROVIDER_SESSION_KEY) || 'null') || {}; } catch (_) { return {}; }
-}
-
-function saveAiProvider(data) {
-  try { window.sessionStorage.setItem(AI_PROVIDER_SESSION_KEY, JSON.stringify(data)); } catch (_) {}
-}
-
 function getAllowedProjects(prefill = {}) {
   const selected = typeof _config.getSelectedProjects === 'function' ? (_config.getSelectedProjects() || []) : [];
   // Layer 1: page-context projects + prefill
@@ -157,13 +155,7 @@ function extractCreatedIssues(payload) {
 async function postWithTimeout(url, body, extraHeaders = {}) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
-  const ai = readAiProvider();
-  const headers = { 'Content-Type': 'application/json', ...extraHeaders };
-  if (ai.provider && ai.provider !== 'built-in') {
-    headers['x-ai-provider'] = ai.provider;
-    if (ai.key) headers['x-ai-key'] = ai.key;
-    if (ai.host) headers['x-ai-host'] = ai.host;
-  }
+  const headers = { 'Content-Type': 'application/json', ...aiProviderRequestHeaders(), ...extraHeaders };
   try {
     return await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
   } catch (err) {
@@ -210,6 +202,12 @@ function ensureDrawer() {
       placeholder="Paste goals or notes — AI structures them into Jira tasks based on project history…"
       aria-label="Narrative source text"
       spellcheck="true"></textarea>
+    <label class="wdd-slide-upload" id="wdd-slide-upload-label">
+      <span>${esc(COPY.baselineSlideUpload || 'Upload PI plan slide')}</span>
+      <span class="gov-baseline-slide-hint">Drag &amp; drop or click</span>
+      <input type="file" id="wdd-slide-input" accept="image/png,image/jpeg,image/webp" />
+    </label>
+    <p class="wdd-slide-status" id="wdd-slide-status" hidden aria-live="polite"></p>
   </div>
   <div class="wdd-parse-status" id="wdd-parse-status" hidden></div>
   <div class="wdd-capacity-hint" id="wdd-capacity-hint" hidden aria-live="polite"></div>
@@ -257,6 +255,11 @@ export function openWorkDraftDrawer(prefill = {}) {
 
   const ta = document.getElementById('wdd-source-textarea');
   if (ta) ta.value = String(_prefill.narrative || '').trim();
+
+  const slideLabel = document.getElementById('wdd-slide-upload-label');
+  if (slideLabel) slideLabel.style.display = hasAiProviderKey() ? '' : 'none';
+  const slideStatus = document.getElementById('wdd-slide-status');
+  if (slideStatus) slideStatus.hidden = true;
 
   const followUp = document.getElementById('wdd-follow-up');
   if (followUp) { followUp.hidden = true; followUp.innerHTML = ''; }
@@ -1477,7 +1480,7 @@ function renderSettingsPanel() {
   }
   if (!panel) return;
 
-  const ai = readAiProvider();
+  const ai = readAiProviderPref();
   const providers = [
     { id: 'built-in', label: 'Built-in', hint: 'No API key required', hasKey: false, hasHost: false },
     { id: 'claude', label: 'Claude (Anthropic)', hint: 'Key stored in browser session only', hasKey: true, hasHost: false },
@@ -1508,21 +1511,21 @@ function renderSettingsPanel() {
 function onSettingsChange(e) {
   const radio = e.target.closest('input[name="wdd-ai-provider"]');
   if (radio instanceof HTMLInputElement) {
-    const current = readAiProvider();
-    saveAiProvider({ ...current, provider: radio.value, key: radio.value === current.provider ? (current.key || '') : '' });
+    const current = readAiProviderPref();
+    saveAiProviderPref({ ...current, provider: radio.value, key: radio.value === current.provider ? (current.key || '') : '' });
     renderSettingsPanel();
     return;
   }
   const keyInput = e.target.closest('[data-ai-key-for]');
   if (keyInput instanceof HTMLInputElement) {
-    const current = readAiProvider();
-    saveAiProvider({ ...current, key: keyInput.value });
+    const current = readAiProviderPref();
+    saveAiProviderPref({ ...current, key: keyInput.value });
     return;
   }
   const hostInput = e.target.closest('[data-ai-host-for]');
   if (hostInput instanceof HTMLInputElement) {
-    const current = readAiProvider();
-    saveAiProvider({ ...current, host: hostInput.value });
+    const current = readAiProviderPref();
+    saveAiProviderPref({ ...current, host: hostInput.value });
     return;
   }
 }
@@ -1531,7 +1534,7 @@ async function onAiTestClick(e) {
   const btn = e.target.closest('[data-ai-test]');
   if (!btn) return;
   const provider = btn.dataset.aiTest;
-  const ai = readAiProvider();
+  const ai = readAiProviderPref();
   const hintEl = btn.closest('.wdd-ai-provider-row, label')?.querySelector('.wdd-ai-provider-hint')
     ?? btn.parentElement?.querySelector('.wdd-ai-provider-hint');
   const originalHint = hintEl?.textContent || '';
@@ -1566,8 +1569,8 @@ async function onAiTestClick(e) {
 function onAiClearClick(e) {
   const btn = e.target.closest('[data-ai-clear]');
   if (!btn) return;
-  const current = readAiProvider();
-  saveAiProvider({ ...current, key: '' });
+  const current = readAiProviderPref();
+  saveAiProviderPref({ ...current, key: '' });
   renderSettingsPanel();
 }
 
@@ -1682,6 +1685,47 @@ function wireEvents() {
     if (!sourceEl) return;
     if (sourceEl.classList.contains('is-collapsed')) { expandSource(); } else { collapseSource(); }
   });
+
+  async function onWddSlideSelected(file) {
+    const status = document.getElementById('wdd-slide-status');
+    const ta = document.getElementById('wdd-source-textarea');
+    if (!file || !ta) return;
+    if (status) { status.hidden = false; status.textContent = COPY.baselineSlideReading || 'Reading slide…'; }
+    try {
+      const { base64, mimeType } = await resizeImageFileToBase64(file);
+      let quarter = '';
+      try { quarter = localStorage.getItem('delivera_gov_quarter_v1') || ''; } catch (_) { /* ignore */ }
+      const projects = _projectOptions.length ? _projectOptions : [_projectKey].filter(Boolean);
+      const res = await fetch('/api/governance/pi-baseline/propose-from-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...aiProviderRequestHeaders() },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mimeType,
+          projects,
+          projectsCsv: projects.join(','),
+          quarter,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Slide read failed');
+      const lines = (data.extracted || []).map((r) => {
+        const parts = [r.month, r.theme, r.bullet].filter(Boolean);
+        return parts.join(' — ');
+      });
+      const matched = (data.candidates || []).filter((c) => c.issueKey).map((c) => `${c.issueKey}: ${c.title}`);
+      ta.value = [...lines, ...matched].filter(Boolean).join('\n');
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      if (status) status.textContent = `${COPY.baselineSlideMethod || 'From slide'}: ${lines.length} items`;
+    } catch (err) {
+      if (status) status.textContent = err?.message || 'Slide read failed';
+    }
+  }
+
+  const wddSlideZone = document.getElementById('wdd-slide-upload-label');
+  if (wddSlideZone) {
+    bindSlideDropZone(wddSlideZone, (file) => { void onWddSlideSelected(file); });
+  }
 
   document.addEventListener('click', (e) => {
     const trigger = e.target?.closest('[data-open-outcome-modal]');

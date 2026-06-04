@@ -13,7 +13,7 @@ test('copy meeting answer has no technical labels', async ({ page, context }) =>
   await page.goto('/governance');
   if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.locator('#gov-copy-meeting').click();
+  await page.locator('#gov-copy-answer-inline').click();
   const text = await page.evaluate(() => navigator.clipboard.readText());
   expect(text).toContain('at risk');
   expect(text).not.toMatch(/narrated by|Brief ID|template/i);

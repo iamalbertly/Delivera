@@ -43,25 +43,6 @@
   cursor: default;
   box-shadow: 0 4px 10px rgba(11, 87, 163, 0.28);
 }
-.app-global-nav-wrap {
-  padding: 10px 20px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0;
-}
-.app-global-nav-wrap .app-nav {
-  margin-top: 0;
-}
-.app-nav .app-nav-brand {
-  font-weight: 700;
-  margin-right: 4px;
-}
-.app-nav .app-nav-sep {
-  color: var(--muted);
-  margin: 0 2px;
-  pointer-events: none;
-}
-
 .skip-to-content {
   position: fixed;
   left: 12px;
@@ -446,7 +427,19 @@ body:not(.login-page) .container {
   width: calc(100% - 240px);
 }
 
-body:not(.login-page) .app-global-nav-wrap {
+/* Top chrome is primary wayfinding — sidebar keeps context card + pulse only on desktop */
+@media (min-width: 1201px) {
+  body.has-top-chrome .app-sidebar .sidebar-brand,
+  body.has-top-chrome .app-sidebar-nav {
+    display: none;
+  }
+
+  body.has-top-chrome .app-sidebar {
+    width: 200px;
+  }
+}
+
+body.has-top-chrome .mobile-bottom-nav-wrap {
   display: none !important;
 }
 

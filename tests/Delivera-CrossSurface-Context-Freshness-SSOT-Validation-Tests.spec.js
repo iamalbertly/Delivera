@@ -15,19 +15,24 @@ test.describe('Delivera cross-surface context freshness SSOT', () => {
 
     await page.goto('/leadership');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('#project-context')).toBeVisible();
-    await expect(page.locator('#leadership-confidence-strip')).toContainText(/State:|Portfolio/i);
+    if (page.url().includes('/governance')) {
+      await expect(page.locator('#gov-scope-bar-mount, .gov-scope-bar').first()).toBeAttached();
+      await expect(page.locator('#app-top-chrome')).toBeVisible();
+    } else {
+      await expect(page.locator('#project-context')).toBeVisible();
+      await expect(page.locator('#leadership-confidence-strip')).toContainText(/State:|Portfolio/i);
 
-    const values = await page.evaluate(() => {
-      const context = document.getElementById('project-context')?.textContent || '';
-      const confidence = document.getElementById('leadership-confidence-strip')?.textContent || '';
-      return {
-        context: context.replace(/\s+/g, ' ').trim(),
-        confidence: confidence.replace(/\s+/g, ' ').trim(),
-      };
-    });
-    expect(values.context.length).toBeGreaterThan(8);
-    expect(values.confidence.length).toBeGreaterThan(8);
+      const values = await page.evaluate(() => {
+        const context = document.getElementById('project-context')?.textContent || '';
+        const confidence = document.getElementById('leadership-confidence-strip')?.textContent || '';
+        return {
+          context: context.replace(/\s+/g, ' ').trim(),
+          confidence: confidence.replace(/\s+/g, ' ').trim(),
+        };
+      });
+      expect(values.context.length).toBeGreaterThan(8);
+      expect(values.confidence.length).toBeGreaterThan(8);
+    }
     assertTelemetryClean(telemetry, {
       allowConsolePatterns: [/Quarterly KPI summary request failed/i],
     });

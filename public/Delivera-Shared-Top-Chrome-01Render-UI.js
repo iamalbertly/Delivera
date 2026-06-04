@@ -6,7 +6,7 @@ import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import {
   readNotificationSummary,
   effectiveNotificationTotal,
-  refreshNotificationDockFromStore,
+  openNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 
 export const TOP_CHROME_ID = 'app-top-chrome';
@@ -29,6 +29,7 @@ const PAGE_SPRINTS = 'sprints';
 const PAGE_REPORT = 'report';
 const PAGE_SETTINGS = 'settings';
 const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
+const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
 
 const SURFACE_SWITCHER = [
   { key: PAGE_GOVERNANCE, label: 'Brief', href: '/governance' },
@@ -93,6 +94,29 @@ export function syncSidebarCollapsedFromStorage() {
   writeSidebarCollapsed(readSidebarCollapsed());
 }
 
+function applyDefaultSidebarCollapsed(current) {
+  try {
+    if (localStorage.getItem(SIDEBAR_COLLAPSED_PRESET_KEY)) return;
+    if (current === PAGE_REPORT || current === PAGE_GOVERNANCE) {
+      writeSidebarCollapsed(true);
+      localStorage.setItem(SIDEBAR_COLLAPSED_PRESET_KEY, '1');
+    }
+  } catch (_) {}
+}
+
+async function loadSessionMetaIntoAvatar() {
+  const btn = document.querySelector('[data-top-action="avatar"]');
+  if (!btn) return;
+  try {
+    const res = await fetch('/api/session-meta.json', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const initials = String(data?.initials || 'DL').slice(0, 2).toUpperCase();
+    btn.textContent = initials;
+    if (data?.emailMasked) btn.setAttribute('title', data.emailMasked);
+  } catch (_) {}
+}
+
 function buildSwitcherHTML(current) {
   let html = '<div class="app-top-switcher" role="navigation" aria-label="Surfaces">';
   for (const item of SURFACE_SWITCHER) {
@@ -134,7 +158,7 @@ function buildTopChromeHTML(current) {
     + `<div data-top-slot="actions" role="group" aria-label="Global actions">`
     + `<button type="button" class="app-top-create" data-top-action="create-work" data-open-outcome-modal data-outcome-context="Create work from global chrome." data-outcome-projects="${escapeAttr(projects)}">`
     + '<span aria-hidden="true">+</span><span class="app-top-create-label">Create</span></button>'
-    + `<button type="button" class="app-top-agent-pill" data-top-action="agent" hidden>Agent</button>`
+    + (current === PAGE_GOVERNANCE ? '' : `<button type="button" class="app-top-agent-pill is-visible" data-top-action="agent">Agent</button>`)
     + `<button type="button" class="app-top-btn app-top-icon-btn" data-top-action="notifications" id="app-top-notifications-btn" aria-label="Notifications" title="Notifications">`
     + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"/></svg>'
     + '<span class="app-top-notify-badge" id="app-top-notify-badge" hidden></span></button>'
@@ -146,8 +170,9 @@ function buildTopChromeHTML(current) {
     + '</div></div>'
     + '<div id="app-top-help-popover" class="app-top-help-popover" hidden role="dialog" aria-label="Help">'
     + '<p><a href="/settings#gov-ai-helper">Governance AI helper</a></p>'
-    + '<p><a href="/settings#jira-activity">Jira activity</a></p>'
-    + '<p>Sprint: type issue key in search. Proof: filters projects.</p>'
+    + '<p><a href="/settings#jira-activity">Jira activity &amp; reconnect</a></p>'
+    + '<p><strong>Search:</strong> Brief squads · Sprint issue KEY · Proof projects.</p>'
+    + '<p><strong>Tests:</strong> <code>npm run test:journey:ux-core</code> · <code>npm run test:journey:governance</code></p>'
     + '</div>'
     + '<div id="app-top-avatar-menu" class="app-top-avatar-menu" hidden role="menu">'
     + '<a href="/settings" role="menuitem">Settings</a>'
@@ -266,6 +291,8 @@ function bindTopChromeInteractions(chrome, current) {
       delegateSearch(getCurrentPageForChrome(), search.value);
     }
   });
+  search?.addEventListener('focus', () => document.body.classList.add('top-search-active'));
+  search?.addEventListener('blur', () => document.body.classList.remove('top-search-active'));
 
   chrome.querySelector('[data-top-action="help"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -293,14 +320,7 @@ function bindTopChromeInteractions(chrome, current) {
   });
 
   chrome.querySelector('[data-top-action="notifications"]')?.addEventListener('click', () => {
-    refreshNotificationDockFromStore();
-    const path = window.location.pathname || '';
-    if (!path.includes('current-sprint')) {
-      window.location.href = '/current-sprint#stories-card';
-    } else {
-      (document.getElementById('stories-card') || document.getElementById('stuck-card'))
-        ?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-    }
+    openNotificationDockFromStore();
   });
 
   chrome.querySelector('[data-top-action="agent"]')?.addEventListener('click', () => {
@@ -333,14 +353,6 @@ function bindTopChromeInteractions(chrome, current) {
   });
   refreshCreateProjects();
 
-  if (current !== PAGE_GOVERNANCE) {
-    const agentBtn = chrome.querySelector('[data-top-action="agent"]');
-    if (agentBtn) {
-      agentBtn.hidden = false;
-      agentBtn.classList.add('is-visible');
-      agentBtn.textContent = 'Agent';
-    }
-  }
 }
 
 export function refreshTopChromeBrand() {
@@ -371,10 +383,12 @@ export function ensureTopChrome() {
   delete chrome.dataset.topChromeBound;
   chrome.innerHTML = buildTopChromeHTML(current);
   document.body.classList.add('has-top-chrome', 'chrome-suppress-page-create');
+  applyDefaultSidebarCollapsed(current);
   syncSidebarCollapsedFromStorage();
   bindTopChromeInteractions(chrome, current);
   updateNotificationBadge();
   refreshTopChromeBrand();
+  loadSessionMetaIntoAvatar();
 
   window.dispatchEvent(new CustomEvent('app:top-chrome-rendered', { detail: { current } }));
   return chrome;

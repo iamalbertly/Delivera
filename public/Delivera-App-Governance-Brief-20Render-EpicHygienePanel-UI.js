@@ -8,7 +8,8 @@ export function renderAdHocChip(brief) {
   if (!n) {
     return `<button type="button" class="gov-adhoc-chip gov-adhoc-chip--zero" data-hover-proof="ad-hoc">${COPY.adHocChip}: 0</button>`;
   }
-  return `<button type="button" class="gov-adhoc-chip gov-adhoc-chip--alert" data-adhoc-open data-hover-proof="ad-hoc">${COPY.adHocChip}: ${n}</button>`;
+  const hint = escapeHtml(COPY.adHocChipHint || '');
+  return `<button type="button" class="gov-adhoc-chip gov-adhoc-chip--alert" data-adhoc-open data-hover-proof="ad-hoc" title="${hint}">${COPY.adHocChip}: ${n}</button>`;
 }
 
 function openAdHocDrawer(brief) {

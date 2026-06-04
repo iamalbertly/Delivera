@@ -1,16 +1,11 @@
 /**
- * Settings — honest AI unlock helper for Governance Brief narration.
- * Reuses Work Draft session key storage (browser-only).
+ * Settings — AI keys (browser-only) for narration, Create work, and PI slide reading.
  */
-const AI_PROVIDER_SESSION_KEY = 'wdd_ai_provider_v1';
-
-function readAi() {
-  try { return JSON.parse(window.sessionStorage.getItem(AI_PROVIDER_SESSION_KEY) || 'null') || {}; } catch (_) { return {}; }
-}
-
-function saveAi(data) {
-  try { window.sessionStorage.setItem(AI_PROVIDER_SESSION_KEY, JSON.stringify(data)); } catch (_) {}
-}
+import {
+  readAiProviderPref,
+  saveAiProviderPref,
+  clearAiProviderPref,
+} from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 
 function escapeHtml(v) {
   return String(v == null ? '' : v)
@@ -21,60 +16,72 @@ export function mountGovernanceAiHelper(mount) {
   if (!mount) return;
 
   function render() {
-    const ai = readAi();
+    const ai = readAiProviderPref();
     const hasKey = Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
     mount.innerHTML = `
       <section id="gov-ai-helper" class="surface-card gov-ai-helper-card">
-        <h2>Governance Brief — AI wording</h2>
-        <p class="gov-ai-helper-lead">Delivera always shows evidence-backed facts. AI only rewrites the meeting answer into clearer language — it does not invent risks or counts.</p>
+        <h2>Connections</h2>
+        <p class="gov-ai-helper-lead">Keys stay in <strong>this browser only</strong>. Delivera does not store them on the server. Jira uses your login session and <code>.env</code> on the host.</p>
+
+        <h3 class="gov-ai-helper-sub">AI for Brief wording &amp; PI plans</h3>
+        <p class="gov-ai-helper-note">Used for: clearer Brief text, Create work parsing, and reading PI plan slides (screenshots).</p>
         ${hasKey
-    ? `<p class="gov-ai-helper-status gov-ai-helper-status--ok">Your key is stored in this browser session only. Built-in template wording is used if the provider fails.</p>`
-    : `<p class="gov-ai-helper-status">No key yet — Brief uses the built-in template. Add a key to unlock advisor-style narration.</p>`}
+    ? `<p class="gov-ai-helper-status gov-ai-helper-status--ok">Provider connected in this browser.</p>`
+    : `<p class="gov-ai-helper-status">No key — built-in templates only.</p>`}
         <label class="gov-ai-helper-field">
           <span>Provider</span>
           <select id="gov-ai-provider" class="gov-ai-helper-select">
-            <option value="built-in" ${ai.provider === 'built-in' || !ai.provider ? 'selected' : ''}>Built-in template (no key)</option>
+            <option value="built-in" ${ai.provider === 'built-in' || !ai.provider ? 'selected' : ''}>Built-in (no key)</option>
             <option value="openai" ${ai.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+            <option value="claude" ${ai.provider === 'claude' ? 'selected' : ''}>Claude</option>
+            <option value="gemini" ${ai.provider === 'gemini' ? 'selected' : ''}>Gemini</option>
           </select>
         </label>
         <label class="gov-ai-helper-field">
-          <span>API key (session only)</span>
-          <input type="password" id="gov-ai-key" class="gov-ai-helper-input" placeholder="sk-…" autocomplete="off" value="${hasKey ? '●●●●●●●●' : ''}">
+          <span>API key</span>
+          <input type="password" id="gov-ai-key" class="gov-ai-helper-input" placeholder="Paste key…" autocomplete="off" value="${hasKey ? '●●●●●●●●' : ''}">
         </label>
         <div class="gov-ai-helper-actions">
-          <button type="button" class="btn btn-primary btn-compact" id="gov-ai-save">Save for this session</button>
-          <button type="button" class="btn btn-secondary btn-compact" id="gov-ai-test">Test connection</button>
-          <button type="button" class="btn btn-link btn-compact" id="gov-ai-clear">Clear key</button>
+          <button type="button" class="btn btn-primary btn-compact" id="gov-ai-save">Save in browser</button>
+          <button type="button" class="btn btn-secondary btn-compact" id="gov-ai-test">Test</button>
+          <button type="button" class="btn btn-link btn-compact" id="gov-ai-clear">Clear</button>
         </div>
         <p id="gov-ai-test-result" class="gov-ai-helper-result" aria-live="polite"></p>
+
+        <h3 class="gov-ai-helper-sub">Jira</h3>
+        <p class="gov-ai-helper-note">Jira credentials are configured by your administrator in environment variables. If boards look empty, check project access and refresh the Brief.</p>
       </section>`;
 
     mount.querySelector('#gov-ai-save')?.addEventListener('click', () => {
       const provider = mount.querySelector('#gov-ai-provider')?.value || 'built-in';
       const keyInput = mount.querySelector('#gov-ai-key');
       const raw = keyInput?.value || '';
-      const key = raw.includes('●') ? (readAi().key || '') : raw.trim();
-      saveAi({ provider, key: provider === 'built-in' ? '' : key });
+      const key = raw.includes('●') ? (readAiProviderPref().key || '') : raw.trim();
+      saveAiProviderPref({ provider, key: provider === 'built-in' ? '' : key });
       render();
     });
 
     mount.querySelector('#gov-ai-clear')?.addEventListener('click', () => {
-      saveAi({ provider: 'built-in', key: '' });
+      clearAiProviderPref();
       render();
     });
 
     mount.querySelector('#gov-ai-test')?.addEventListener('click', async () => {
       const result = mount.querySelector('#gov-ai-test-result');
-      const ai = readAi();
+      const ai = readAiProviderPref();
       if (!ai.key || ai.provider === 'built-in') {
-        if (result) result.textContent = 'Built-in template is always available — no test needed.';
+        if (result) result.textContent = 'Built-in template is always available.';
         return;
       }
       if (result) result.textContent = 'Testing…';
       try {
         const res = await fetch('/api/settings/ai-provider', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-ai-key': ai.key, 'x-ai-provider': ai.provider },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ai-key': ai.key,
+            'x-ai-provider': ai.provider,
+          },
           body: JSON.stringify({ action: 'test', provider: ai.provider }),
         });
         const data = await res.json().catch(() => ({}));

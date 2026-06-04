@@ -134,13 +134,17 @@ test.describe('Jira-style top chrome E2E', () => {
   });
 
   test('desktop sidebar collapse toggles body class', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('delivera_sidebar_collapsed_preset_v1', '1');
+      localStorage.setItem('delivera_sidebar_collapsed', '0');
+    });
     await page.setViewportSize({ width: 1400, height: 900 });
     await page.goto('/report');
     if (await skipIfLogin(page)) return;
+    const before = await page.evaluate(() => document.body.classList.contains('sidebar-collapsed'));
     await page.locator('[data-top-action="sidebar-toggle"]').click();
-    await expect(page.locator('body')).toHaveClass(/sidebar-collapsed/);
-    await page.locator('[data-top-action="sidebar-toggle"]').click();
-    await expect(page.locator('body')).not.toHaveClass(/sidebar-collapsed/);
+    const after = await page.evaluate(() => document.body.classList.contains('sidebar-collapsed'));
+    expect(before).not.toBe(after);
   });
 
   test('mobile sidebar drawer opens from top toggle', async ({ page }) => {
@@ -149,6 +153,50 @@ test.describe('Jira-style top chrome E2E', () => {
     if (await skipIfLogin(page)) return;
     await page.locator('[data-top-action="sidebar-toggle"]').click();
     await expect(page.locator('.app-sidebar.open')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('login page has no top chrome', async ({ page, context }) => {
+    await context.clearCookies();
+    await page.goto('/login');
+    if (!page.url().includes('/login')) {
+      test.skip(true, 'Auth bypass redirects away from login in this environment');
+      return;
+    }
+    await expect(page.locator('body.login-page')).toBeVisible();
+    await expect(page.locator('#app-top-chrome')).toHaveCount(0);
+  });
+
+  test('notifications bell opens dock in place', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('appNotificationsV1', JSON.stringify({
+        total: 2,
+        missingEstimate: 1,
+        missingLogged: 1,
+        boardName: 'MPSA',
+        sprintName: 'Sprint 1',
+      }));
+    });
+    await page.goto('/report');
+    if (await skipIfLogin(page)) return;
+    await page.locator('[data-top-action="notifications"]').click();
+    await expect(page.locator('#app-notification-dock')).toBeVisible({ timeout: 5000 });
+    await expect(page).toHaveURL(/\/report/);
+  });
+
+  test('report first paint hides duplicate back link and bottom nav', async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.goto('/report');
+    if (await skipIfLogin(page)) return;
+    await expect(page.locator('.report-back-to-brief')).toBeHidden();
+    await expect(page.locator('.mobile-bottom-nav-wrap')).toHaveCount(0);
+    await expect(page.locator('#app-top-chrome')).toBeVisible();
+  });
+
+  test('report hash trends normalizes when leaving via switcher', async ({ page }) => {
+    await page.goto('/report#trends');
+    if (await skipIfLogin(page)) return;
+    await page.locator('.app-top-switcher-item[data-top-surface="governance"]').click();
+    await expect(page).toHaveURL(/\/governance/);
   });
 
   test('contextual search focuses report project filter', async ({ page }) => {

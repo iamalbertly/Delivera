@@ -22,14 +22,23 @@ test.describe('Header and nav persistence with contrast trust', () => {
         return;
       }
       await expect(page.locator('.app-sidebar')).toHaveCount(1);
-      await expect(page.locator('#app-top-chrome')).toHaveCount(1);
-      await expect(page.locator('header')).toHaveCount(1);
-      const contract = await page.locator('header').evaluate((node) => ({
-        sticky: getComputedStyle(node).position,
-        shared: node.getAttribute('data-shared-header'),
+      const topChrome = page.locator('#app-top-chrome');
+      await expect(topChrome).toHaveCount(1);
+      const chromeContract = await topChrome.evaluate((node) => ({
+        position: getComputedStyle(node).position,
+        role: node.getAttribute('role'),
       }));
-      expect(contract.sticky).toBe('sticky');
-      expect(contract.shared).toBe('true');
+      expect(chromeContract.position).toBe('fixed');
+      expect(chromeContract.role).toBe('banner');
+      const sharedHeader = page.locator('header[data-shared-header="true"]');
+      if (await sharedHeader.count() > 0) {
+        const contract = await sharedHeader.first().evaluate((node) => ({
+          sticky: getComputedStyle(node).position,
+          shared: node.getAttribute('data-shared-header'),
+        }));
+        expect(['sticky', 'fixed']).toContain(contract.sticky);
+        expect(contract.shared).toBe('true');
+      }
     }
   });
 
@@ -99,8 +108,11 @@ test.describe('Header and nav persistence with contrast trust', () => {
         getSample('.app-sidebar .sidebar-link:not(.active):not(.current)'),
         getSample('.app-sidebar .sidebar-link.active, .app-sidebar .sidebar-link.current'),
         getSample('.sidebar-context-card .context-card-segment'),
-        getSample('header h1'),
-        getSample('header .btn.btn-primary'),
+        getSample('header[data-shared-header="true"] h1'),
+        getSample('header[data-shared-header="true"] .btn.btn-primary'),
+        getSample('[data-top-action="help"]'),
+        getSample('[data-top-action="notifications"]'),
+        getSample('.app-top-create'),
       ].filter(Boolean);
     });
 
@@ -118,24 +130,18 @@ test.describe('Header and nav persistence with contrast trust', () => {
       test.skip(true, 'Redirected to login');
       return;
     }
-    const routeByKey = ['sprints', 'report', 'leadership', 'teams', 'dashboard'];
-    for (const key of routeByKey) {
-      const selector = `a[data-nav-key="${key}"], .sidebar-more-link[data-nav-key="${key}"]`;
-      const targetCount = await page.locator(selector).count();
-      if (targetCount < 1) continue;
-      if (key === 'dashboard' || key === 'teams') {
-        const moreSummary = page.locator('.sidebar-more-summary');
-        if (await moreSummary.count()) {
-          await moreSummary.first().click().catch(() => null);
-          await page.locator('.sidebar-more').evaluate((el) => { el.open = true; }).catch(() => null);
-        }
-      }
-      await page.locator(selector).first().click();
+    const switcherRoutes = [
+      { surface: 'sprints', url: /\/current-sprint/ },
+      { surface: 'governance', url: /\/governance/ },
+    ];
+    for (const route of switcherRoutes) {
+      const link = page.locator(`.app-top-switcher-item[data-top-surface="${route.surface}"]`);
+      if (await link.count() < 1) continue;
+      await link.first().click();
+      await expect(page).toHaveURL(route.url);
       await expect(page.locator('.app-sidebar')).toHaveCount(1);
       await expect(page.locator('#app-top-chrome')).toHaveCount(1);
-      await expect(page.locator('header')).toHaveCount(1);
-      const isShared = await page.locator('header').first().getAttribute('data-shared-header');
-      expect(isShared).toBe('true');
+      await expect(page.locator('#app-top-chrome')).toHaveAttribute('role', 'banner');
     }
   });
 

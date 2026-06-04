@@ -24,6 +24,7 @@ const LAST_FAILED_PATH = path.join(projectRoot, 'scripts', 'Delivera-Test-Last-F
 
 // Always verify these 3 pass regardless of what was touched — core value journeys.
 const CRITICAL_SMOKE_SPECS = [
+  'tests/Delivera-Jira-Top-Chrome-E2E-Validation-Tests.spec.js',
   'tests/Delivera-Data-Integrity-Coherence-Contracts.spec.js',
   'tests/Delivera-CurrentSprint-Mission-Control-Direct-Value-Validation-Tests.spec.js',
   'tests/Delivera-E2E-User-Journey-Tests.spec.js',

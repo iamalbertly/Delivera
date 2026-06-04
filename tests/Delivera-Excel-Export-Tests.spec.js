@@ -34,7 +34,7 @@ async function loadWorkbookFromDownload(download) {
 test.describe('Delivera - Excel Export Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('should generate Excel file with correct filename format', async ({ page }) => {

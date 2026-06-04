@@ -18,7 +18,7 @@ const IMPACT_BY_ID = {
   'stale-data': 'Do not send nudges yet',
 };
 
-const VISIBLE_GAP_COUNT = 2;
+const VISIBLE_GAP_COUNT = 1;
 
 function renderGapCard(g, hidden = false) {
   const act = ACTION_LABELS[g.action] || 'Open settings';

@@ -43,7 +43,7 @@ async function ensureReportFiltersExpanded(page) {
 test.describe('UX Reliability & Technical Debt Fixes', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('h1')).toContainText(/Evidence|Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery|Delivera|General Performance|Performance History/);
   });
 
   test('report context strip Projects chip matches live checkbox selection', async ({ page }) => {

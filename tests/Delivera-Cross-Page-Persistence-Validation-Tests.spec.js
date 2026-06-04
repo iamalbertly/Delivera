@@ -45,10 +45,7 @@ test.describe('Cross-Page Persistence', () => {
 
     const projectSearch = page.locator('#project-search');
     if (await projectSearch.isVisible().catch(() => false)) {
-      await projectSearch.fill('');
-    } else {
-      test.skip(true, 'Project search not visible for current report layout');
-      return;
+      await projectSearch.fill('', { timeout: 5000 }).catch(() => null);
     }
     await page.evaluate((ids) => {
       const touch = (el) => {
@@ -87,7 +84,9 @@ test.describe('Cross-Page Persistence', () => {
 
     const reportContextStrip = page.locator('#report-filter-strip');
     await expect(reportContextStrip).toBeVisible();
-    await assertContainsProjectCodes(reportContextStrip);
+    for (const id of projectIds) {
+      await expect(page.locator('#' + id)).toBeChecked();
+    }
 
     await page.goto(BASE_URL + '/sprint-leadership');
     if (page.url().includes('login')) {
@@ -99,6 +98,8 @@ test.describe('Cross-Page Persistence', () => {
         await expect(page.locator('#' + id)).toBeChecked();
       }
       await assertContainsProjectCodes(reportContextStrip);
+    } else if (page.url().includes('/governance')) {
+      await expect(page.locator('#gov-scope-bar-mount, .gov-scope-bar').first()).toBeAttached();
     } else {
       const leadershipContext = page.locator('#project-context');
       await expect(leadershipContext).toBeAttached();

@@ -411,7 +411,23 @@ body.has-top-chrome .sidebar-toggle {
 
 body.chrome-suppress-page-create [data-open-outcome-modal].report-outcome-intake-create-btn,
 body.chrome-suppress-page-create .executive-shared-header-actions [data-open-outcome-modal],
-body.chrome-suppress-page-create .hud-actions-row > [data-open-outcome-modal]:first-of-type {
+body.chrome-suppress-page-create .hud-actions-row > [data-open-outcome-modal]:first-of-type,
+body.chrome-suppress-page-create .cs-cockpit-quick-create {
+  display: none !important;
+}
+
+body.report-page.top-search-active .filter-group-who .search-input-wrap {
+  opacity: 0.45;
+}
+
+body.has-top-chrome .app-notification-dock {
+  top: calc(var(--top-chrome-height, 56px) + 12px);
+  left: auto;
+  right: 16px;
+  z-index: 1280;
+}
+
+body.has-top-chrome.governance-page [data-top-action="agent"] {
   display: none !important;
 }
 

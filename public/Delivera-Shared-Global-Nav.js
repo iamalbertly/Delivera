@@ -290,7 +290,7 @@ function buildBottomNavHTML() {
 
 function ensureBottomNav() {
   const current = getCurrentPage();
-  if (current === PAGE_LOGIN) {
+  if (current === PAGE_LOGIN || document.getElementById('app-top-chrome')) {
     document.querySelector('.mobile-bottom-nav-wrap')?.remove();
     return;
   }
@@ -418,6 +418,7 @@ function ensureGlobalNav() {
       document.querySelector('.mobile-bottom-nav-wrap')?.remove();
       document.body.classList.remove('sidebar-open');
       document.body.classList.remove('sidebar-scroll-lock');
+      ensureTopChrome();
       return;
     }
 
@@ -447,6 +448,12 @@ function ensureGlobalNav() {
     document.querySelectorAll('.sidebar-toggle').forEach((node) => node.remove());
 
     ensureTopChrome();
+    const topChrome = document.getElementById('app-top-chrome');
+    if (topChrome && skipLink && skipLink.parentNode) {
+      if (skipLink.nextElementSibling !== topChrome) {
+        skipLink.insertAdjacentElement('afterend', topChrome);
+      }
+    }
 
     const backdrops = Array.from(document.querySelectorAll('.sidebar-backdrop'));
     backdrops.slice(1).forEach((node) => node.remove());
