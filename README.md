@@ -32,10 +32,12 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - Shared project catalog (`Delivera-Shared-Projects-Catalog-01SSOT.js`, `GET /api/projects-catalog.json`)
 - Cache-first governance APIs; **Refresh** bypasses cache where supported
 - Above-fold order: answer → owner clusters → setup debt → verdict → PI strip; agent queue and feedback in collapsed `<details>`
+- Responsive layout: scope capsule, answer blocks, PI counters, and tables use auto-fit grids + `data-table-scroll-wrap` (no horizontal bleed on mobile)
+- Page-level **Export brief** hides when top chrome is present (export stays in command overflow menu)
 - PI baseline wizard with optional slide upload (OpenAI/Claude keys in Settings or `.env`)
 - Inbox drawer with icon tabs; guided nudge review (not silent approve)
 
-Details: [`context.md`](context.md), governance tests via `npm run test:journey:governance`.
+Details: [`context.md`](context.md). Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
 
 ## Quickstart
 
@@ -76,6 +78,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:all` | Full fail-fast orchestration |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
+| `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
 | `npm run test:journey:governance` | Brief / governance Playwright bundle |
 | `npm run test:journey:ux-core` | Cross-surface UX gate |
 | `npm run vercel:deploy` | Manual Vercel deploy after `vercel login` |

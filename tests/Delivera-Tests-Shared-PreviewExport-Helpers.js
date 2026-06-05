@@ -392,6 +392,64 @@ export async function getViewportClippingReport(page, options = {}) {
 }
 
 /**
+ * Detects visible element pairs whose bounding boxes intersect (layout overlap).
+ * @param {import('@playwright/test').Page} page
+ * @param {{ selectors?: string[], maxPairs?: number }} options
+ */
+export async function getLayoutOverlapReport(page, options = {}) {
+  const { selectors = [], maxPairs = 24 } = options;
+  return page.evaluate(({ selectors, maxPairs }) => {
+    const isVisible = (el) => {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      const st = getComputedStyle(el);
+      return r.width > 2 && r.height > 2
+        && st.visibility !== 'hidden'
+        && st.display !== 'none'
+        && Number(st.opacity) > 0.05;
+    };
+    const label = (el) => el.id || el.className?.toString?.().split(/\s+/).slice(0, 2).join('.') || el.tagName;
+    const nodes = selectors.flatMap((sel) => [...document.querySelectorAll(sel)]).filter(isVisible);
+    const overlaps = [];
+    for (let i = 0; i < nodes.length; i += 1) {
+      for (let j = i + 1; j < nodes.length; j += 1) {
+        const a = nodes[i];
+        const b = nodes[j];
+        if (a.contains(b) || b.contains(a)) continue;
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        const hit = ra.left < rb.right && ra.right > rb.left && ra.top < rb.bottom && ra.bottom > rb.top;
+        if (!hit) continue;
+        const area = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+        const areaY = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+        if (area <= 0 || areaY <= 0) continue;
+        overlaps.push({
+          a: label(a),
+          b: label(b),
+          overlapPx: Math.round(area * areaY),
+        });
+        if (overlaps.length >= maxPairs) return { overlaps, truncated: true };
+      }
+    }
+    return { overlaps, truncated: false };
+  }, { selectors, maxPairs });
+}
+
+/** Prevent fixed sidebar from intercepting governance details toggles in CI viewports. */
+export async function disableSidebarPointerBlock(page) {
+  await page.evaluate(() => {
+    const sidebar = document.getElementById('app-sidebar');
+    if (sidebar) sidebar.style.pointerEvents = 'none';
+  });
+}
+
+/** Programmatically open a governance <details> panel (avoids sticky overlay intercepts). */
+export async function openGovernanceDetailsPanel(page, elementId) {
+  await disableSidebarPointerBlock(page);
+  await page.evaluate((id) => document.getElementById(id)?.setAttribute('open', ''), elementId);
+}
+
+/**
  * If login form is visible (auth enabled), skip the test.
  * @param {import('@playwright/test').Page} page
  * @param {import('@playwright/test').Test} test - from test.info() or passed in

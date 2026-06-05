@@ -1017,6 +1017,19 @@
   min-width: 320px;
 }
 
+@media (max-width: 768px) {
+  .health-column,
+  .capacity-column,
+  .burndown-column,
+  .risks-stuck-column,
+  .risks-insights-column,
+  .countdown-column {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+  }
+}
+
 .sprint-cards-column {
   grid-column: 1 / -1;
 }

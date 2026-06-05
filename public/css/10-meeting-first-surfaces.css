@@ -154,8 +154,14 @@ body.governance-page .governance-freshness-pill.is-stale {
   border-color: #fecaca;
 }
 
+.attention-queue-table-wrap.data-table-scroll-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .attention-queue-table {
   width: 100%;
+  min-width: 520px;
   border-collapse: collapse;
   font-size: 0.84rem;
 }

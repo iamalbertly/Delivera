@@ -64,10 +64,12 @@ export function renderAttentionQueueTable({ title = 'Attention queue', items = [
   return `
     <section class="attention-queue attention-queue--table" aria-label="${escapeHtml(title)}">
       <h2 class="governance-section-title">${escapeHtml(title)}</h2>
-      <table class="attention-queue-table">
-        <thead><tr><th>Issue</th><th>Reason</th><th>Owner</th><th>Next move</th><th>Proof</th></tr></thead>
-        <tbody>${body}</tbody>
-      </table>
+      <div class="data-table-scroll-wrap attention-queue-table-wrap">
+        <table class="attention-queue-table">
+          <thead><tr><th>Issue</th><th>Reason</th><th>Owner</th><th>Next move</th><th>Proof</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
     </section>`;
 }
 

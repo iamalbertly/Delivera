@@ -92,6 +92,7 @@ function renderProofRisks(risks) {
 function renderEvidenceTable(brief) {
   const rows = brief?.evidencePack?.rows || [];
   if (!rows.length) {
+    govPage.els.evidence.classList.remove('data-table-scroll-wrap');
     govPage.els.evidence.innerHTML = '<p class="governance-empty">No proof rows for flagged items.</p>';
     return;
   }
@@ -102,6 +103,7 @@ function renderEvidenceTable(brief) {
       <td>${escapeHtml(r.statusLastWeek || '')}</td>
       <td>${escapeHtml(r.whyFlagged || '')}</td>
     </tr>`).join('');
+  govPage.els.evidence.classList.add('data-table-scroll-wrap');
   govPage.els.evidence.innerHTML = `<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
