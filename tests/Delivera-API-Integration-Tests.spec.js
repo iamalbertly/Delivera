@@ -79,8 +79,8 @@ test.describe('Delivera - API Integration Tests', () => {
     expect(response.headers()['content-type']).toContain('text/html');
     const body = await response.text();
     expect(body).toContain('Delivera');
-    expect(body).toContain('MPSA');
-    expect(body).toContain('MAS');
+    expect(body).toContain('id="preview-btn"');
+    expect(body).toContain('id="project-pills"');
   });
 
   test('GET /preview.json should validate empty projects', async ({ request }) => {

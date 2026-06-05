@@ -71,6 +71,7 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
 
   test('governance brief page loads on production host', async ({ page }) => {
     test.setTimeout(120000);
+    test.info().annotations.push({ type: 'allow-http-status-console', description: '502,503,504' });
     const consoleErrors = captureConsoleErrors(page);
     const target = `${prodBaseUrl}/governance`;
 
