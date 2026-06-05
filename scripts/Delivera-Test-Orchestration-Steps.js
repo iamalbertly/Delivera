@@ -44,6 +44,12 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Run Brief SSOT Loading And Scope Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:brief-ssot'],
+      cwd: projectRoot,
+    },
+    {
       name: 'PI Baseline Propose Agent Unit Tests',
       command: 'node',
       args: ['--test', 'tests/Delivera-Governance-PIBaseline-Propose-Agent-Unit.mjs'],

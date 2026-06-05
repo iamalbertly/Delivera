@@ -22,14 +22,16 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   const sentence = commandAnswerSentence(brief);
   const n = brief?.leadershipNarrative || {};
   const ev = brief?.executiveView || {};
-  const top = brief?.topRisks?.[0] || {};
+  const top = surfaces?.drawerIssues?.[0] || brief?.topRisks?.[0] || {};
   const tier = verdictTierFromBrief(brief);
   const statusLabel = isSimpleMode()
     ? simpleStatusLabel(tier, true)
     : (ev.verdictLine?.split('.')[0] || deliveryStatusLabel(n.confidence));
   const ownerName = firstNameFromDisplay(top.assigneeName || top.decisionNeededFrom) || COPY.unassigned;
-  const itemCount = surfaces?.drawerIssues?.length || brief?.topRisks?.length || 0;
-  const squad = top.squad || brief?.projects?.[0] || '';
+  const itemCount = surfaces?.drawerIssues?.length || 0;
+  const squad = top.squad
+    || (Array.isArray(brief?.projects) && brief.projects.length === 1 ? brief.projects[0] : '')
+    || '';
   const doFirst = surfaces?.doNowActions?.[0];
   const doFirstLabel = doFirst?.actionPlain?.slice(0, 56) || top.recommendedAction?.slice(0, 56) || COPY.reviewActions;
   const doFirstUrl = doFirst?.issueUrl || top.issueUrl || '';

@@ -1,7 +1,12 @@
 /**
  * Governance Brief scope bar — persistent projects, period pills, refresh.
  */
-import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { PROJECTS_SSOT_KEY, GOVERNANCE_QUARTER_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { notifyScopeChanged } from './Delivera-Shared-Scope-Notify-01Bridge.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { govPage } from './Delivera-Governance-Brief-Page-01Context.js';
+import { setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
+import { normalizeProjectsCsv } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
@@ -23,11 +28,15 @@ function readProjects() {
 function writeProjects(list) {
   const csv = (Array.isArray(list) ? list : []).map((p) => String(p).trim().toUpperCase()).filter(Boolean).join(',');
   try { localStorage.setItem(PROJECTS_SSOT_KEY, csv); } catch (_) { /* ignore */ }
+  notifyScopeChanged();
 }
 
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function briefMatchesSelected(projects = readProjects()) {
+  const brief = govPage.lastBrief;
+  if (!brief?.projects?.length) return true;
+  const selectedCsv = normalizeProjectsCsv(projects.join(','));
+  const briefCsv = normalizeProjectsCsv(brief.projects.join(','));
+  return selectedCsv === briefCsv;
 }
 
 /**
@@ -40,12 +49,13 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let quarters = [];
   let activeQuarter = quarterLabel || '';
   try {
-    const storedQ = String(localStorage.getItem('delivera_gov_quarter_v1') || '').trim();
+    const storedQ = String(localStorage.getItem(GOVERNANCE_QUARTER_KEY) || '').trim();
     if (storedQ) activeQuarter = storedQ;
   } catch (_) { /* ignore */ }
   let baselineWizard = null;
   let statusTier = 'watch';
   let inboxTotal = 0;
+  let confirmCount = 0;
   let sinceDelta = '';
   let advancedWarnCount = 0;
   let projectKeys = unionProjectKeys(catalogProjectKeys(), selected);
@@ -67,13 +77,19 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   function render() {
     const periodLabel = activeQuarter || 'Current';
     const squadCount = selected.length;
-    const counts = getScopeCounts?.() || {};
-    const intelLine = counts.available != null
-      ? ` · ${counts.available} available · ${counts.noSprint || 0} no sprint · ${counts.piCommitted || 0} with epics`
-      : '';
+    const counts = briefMatchesSelected(selected) ? (getScopeCounts?.() || {}) : {};
+    const intelStale = !briefMatchesSelected(selected);
+    const intelLine = intelStale
+      ? ' · updating…'
+      : (counts.available != null
+        ? ` · ${counts.available} available · ${counts.noSprint || 0} no sprint · ${counts.piCommitted || 0} with epics`
+        : '');
     const statusLabel = simpleStatusLabel(statusTier, true);
     const queuePart = inboxTotal > 0 ? ` (${inboxTotal} pending)` : '';
     const deltaPart = sinceDelta ? ` · ${escapeHtml(sinceDelta.slice(0, 48))}` : '';
+    const reviewPart = confirmCount > 0
+      ? ` · <button type="button" class="gov-freshness-review-link" id="gov-freshness-review">${confirmCount} claim${confirmCount > 1 ? 's' : ''} to review</button>`
+      : '';
     const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
     const expandedHidden = mount.querySelector('#gov-scope-expanded')?.hasAttribute('hidden') !== false;
     const accessKeys = Object.keys(accessByKey);
@@ -86,7 +102,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       ${accessBanner}
       <div class="gov-scope-capsule" aria-label="Brief scope">
         <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
-        <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}</span>
+        <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}${reviewPart}</span>
         <div class="gov-scope-actions" role="group" aria-label="Scope actions">
           <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
           <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
@@ -112,7 +128,8 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     mount.querySelectorAll('[data-quarter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeQuarter = btn.getAttribute('data-quarter') || '';
-        try { localStorage.setItem('delivera_gov_quarter_v1', activeQuarter); } catch (_) { /* ignore */ }
+        try { localStorage.setItem(GOVERNANCE_QUARTER_KEY, activeQuarter); } catch (_) { /* ignore */ }
+        notifyScopeChanged();
         const seq = ++loadBriefSeq;
         render();
         Promise.resolve(onRefresh?.()).then(() => {
@@ -137,17 +154,22 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     if (mobileQuarter) {
       mobileQuarter.addEventListener('change', () => {
         activeQuarter = mobileQuarter.value || '';
-        try { localStorage.setItem('delivera_gov_quarter_v1', activeQuarter); } catch (_) { /* ignore */ }
+        try { localStorage.setItem(GOVERNANCE_QUARTER_KEY, activeQuarter); } catch (_) { /* ignore */ }
+        notifyScopeChanged();
         render();
         onRefresh?.();
       });
     }
+    mount.querySelector('#gov-freshness-review')?.addEventListener('click', () => {
+      govPage.inboxApi?.openQueueTab?.('confirm');
+    });
     mount.querySelector('#gov-scope-change')?.addEventListener('click', () => {
       const panel = mount.querySelector('#gov-scope-expanded');
       if (panel) panel.toggleAttribute('hidden');
     });
     mount.querySelector('#gov-scope-refresh')?.addEventListener('click', () => {
-      onRefresh?.();
+      setLoadBriefForce(true);
+      onRefresh?.({ force: true });
       scheduleValidateSelected(true);
     });
     mount.querySelector('#gov-scope-advanced')?.addEventListener('click', () => onOpenDrawer?.());
@@ -218,6 +240,17 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     onSaved: () => onRefresh?.(),
   });
 
+  window.addEventListener('storage', (ev) => {
+    if (ev.key !== PROJECTS_SSOT_KEY) return;
+    const next = readProjects();
+    const csv = next.join(',');
+    if (csv === selected.join(',')) return;
+    selected = next;
+    render();
+    onScopeChange?.(selected);
+    onRefresh?.();
+  });
+
   render();
   return {
     getProjects: () => [...selected],
@@ -229,9 +262,10 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       if (panel) panel.removeAttribute('hidden');
       mount.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     },
-    updateStatus(tier, queue = 0, sinceSummary = '') {
+    updateStatus(tier, queue = 0, sinceSummary = '', confirms = 0) {
       statusTier = tier || 'watch';
       inboxTotal = Number(queue) || 0;
+      confirmCount = Math.max(0, Number(confirms) || 0);
       sinceDelta = sinceSummary || '';
       try { localStorage.setItem(LAST_VERDICT_KEY, statusTier); } catch (_) { /* ignore */ }
       render();

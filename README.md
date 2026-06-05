@@ -35,16 +35,18 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 ## Brief highlights
 
 - Shared project catalog (`Delivera-Shared-Projects-Catalog-01SSOT.js`, `GET /api/projects-catalog.json`)
-- Cache-first governance APIs; **Refresh** bypasses cache where supported
+- **Loading shell:** `#gov-loading` reuses Sprint spinner markup (`Delivera-Governance-Brief-Page-02Loading-State.js`); cache hit paints instantly with a scope-bar “Refreshing…” chip (`preserveContent` pattern)
+- **Cache-first paint:** `peekGovernanceBriefCache` renders the last scoped answer before network; **Refresh** calls `invalidateBriefCacheEntry` + `?refresh=1` on client and server
+- **Scope SSOT:** project changes call `notifyScopeChanged()` (`Delivera-Shared-Scope-Notify-01Bridge.js`) so sidebar, top chrome, and scope bar stay aligned; quarter key is `GOVERNANCE_QUARTER_KEY` in `Delivera-Shared-Storage-Keys.js`
 - Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) and deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
 - Brief load runs inbox + brief in parallel; scorecard defers until evidence `<details>` opens
 - Above-fold order: answer → owner clusters → setup debt → verdict → PI strip; agent queue and feedback in collapsed `<details>`
 - Responsive layout: scope capsule, answer blocks, PI counters, and tables use auto-fit grids + `data-table-scroll-wrap` (no horizontal bleed on mobile)
 - Page-level **Export brief** hides when top chrome is present (export stays in command overflow menu)
-- PI baseline wizard with optional slide upload (OpenAI/Claude keys in Settings or `.env`)
+- PI baseline wizard with optional slide upload; AI keys live in **Settings** (`/settings#gov-ai-helper`) or `.env` — providers: OpenAI, Claude, **OpenRouter** (`OPENROUTER_API_KEY`). Work-draft canvas links to Settings (no duplicate key UI).
 - Inbox drawer with icon tabs; guided nudge review (not silent approve)
 
-Details: [`context.md`](context.md). Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
+Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brief-ssot`. Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
 
 ## Quickstart
 
@@ -91,6 +93,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:all` | Full fail-fast orchestration |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
+| `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync, Refresh bypass |
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
 | `npm run test:journey:governance` | Brief / governance Playwright bundle |
 | `npm run test:journey:ux-core` | Cross-surface UX gate |

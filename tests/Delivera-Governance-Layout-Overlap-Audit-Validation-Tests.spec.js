@@ -171,6 +171,31 @@ test.describe('Governance layout overlap audit', () => {
     });
   }
 
+  test('governance loading shell visible before brief resolves', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'SD'); });
+    await routeProjectsCatalog(page);
+    await page.route('**/api/governance-brief.json**', async (route) => {
+      await new Promise((r) => setTimeout(r, 500));
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LAYOUT_BRIEF) });
+    });
+    await page.route('**/api/quarters-list**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [{ label: 'FY27 Q1', isCurrent: true }] }),
+    }));
+    await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    await page.route('**/api/boards.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD' }], projectErrors: [] }),
+    }));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('#gov-loading')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#gov-loading')).toBeHidden();
+    assertTelemetryClean(telemetry);
+  });
+
   test('governance collapsed chrome stays closed before scroll', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);

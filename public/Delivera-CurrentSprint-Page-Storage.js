@@ -1,5 +1,6 @@
 import { currentSprintDom, currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
 import { REPORT_CONTEXT_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { notifyScopeChanged } from './Delivera-Shared-Scope-Notify-01Bridge.js';
 
 function normalizeForCurrentSprint(value) {
   const raw = (value || '').trim();
@@ -66,6 +67,7 @@ export function persistProjectsSelection(value) {
     const prev = localStorage.getItem(currentSprintKeys.projectsKey);
     if (prev === cleaned) return;
     localStorage.setItem(currentSprintKeys.projectsKey, cleaned);
+    notifyScopeChanged();
   } catch (_) {}
 }
 

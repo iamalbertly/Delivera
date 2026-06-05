@@ -1438,7 +1438,12 @@ async function serveStaleBriefOrError(res, projects, err) {
 router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
     const projects = parseGovernanceProjects(req);
     if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    const forceRefresh = String(req.query.refresh || '').trim() === '1';
     try {
+        if (forceRefresh) {
+            const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+            await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
+        }
         const { brief } = await getOrBuildGovernanceBrief({ projects, req });
         return res.json(brief);
     } catch (err) {

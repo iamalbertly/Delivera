@@ -31,6 +31,32 @@ function writeEntry(projects, quarter, brief, ttlMs = DEFAULT_TTL_MS) {
   } catch (_) {}
 }
 
+export function normalizeProjectsCsv(projects) {
+  return String(projects || '')
+    .split(',')
+    .map((p) => p.trim().toUpperCase())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
+export function briefMatchesProjects(brief, projectsCsv) {
+  const requested = normalizeProjectsCsv(projectsCsv);
+  const fromBrief = normalizeProjectsCsv((brief?.projects || []).join(','));
+  if (!fromBrief) return true;
+  return Boolean(requested && requested === fromBrief);
+}
+
+export function invalidateBriefCacheEntry(projects, quarter = '') {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    const map = JSON.parse(raw);
+    delete map[cacheKey(projects, quarter)];
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(map));
+  } catch (_) { /* ignore */ }
+}
+
 /**
  * @param {{ projects: string, quarter?: string, force?: boolean }} opts
  * @returns {Promise<object|null>}
@@ -38,12 +64,14 @@ function writeEntry(projects, quarter, brief, ttlMs = DEFAULT_TTL_MS) {
 export async function fetchGovernanceBriefCached({ projects, quarter = '', force = false } = {}) {
   const pk = String(projects || '').trim();
   if (!pk) return null;
+  if (force) invalidateBriefCacheEntry(pk, quarter);
   if (!force) {
     const hit = readEntry(pk, quarter);
-    if (hit?.brief) return hit.brief;
+    if (hit?.brief && briefMatchesProjects(hit.brief, pk)) return hit.brief;
   }
   const qs = new URLSearchParams({ projects: pk });
   if (quarter) qs.set('quarter', quarter);
+  if (force) qs.set('refresh', '1');
   const res = await fetch(`/api/governance-brief.json?${qs.toString()}`, { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const brief = await res.json();
@@ -52,5 +80,8 @@ export async function fetchGovernanceBriefCached({ projects, quarter = '', force
 }
 
 export function peekGovernanceBriefCache(projects, quarter = '') {
-  return readEntry(projects, quarter)?.brief || null;
+  const brief = readEntry(projects, quarter)?.brief || null;
+  if (!brief) return null;
+  if (!briefMatchesProjects(brief, projects)) return null;
+  return brief;
 }

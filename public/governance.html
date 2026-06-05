@@ -15,7 +15,12 @@
     <div id="gov-queue-mount" class="gov-inbox-mount" aria-label="Agent queue"></div>
   </details>
 
-  <main class="governance-shell" id="main-content" role="main">
+  <main class="governance-shell" id="main-content" role="main" data-gov-brief-state="loading">
+    <div id="gov-loading" class="current-sprint-loading-with-spinner" aria-live="polite">
+      <div class="current-sprint-loading-spinner" aria-hidden="true"></div>
+      <p class="current-sprint-loading-msg gov-loading-msg">Loading your delivery answer&hellip;</p>
+    </div>
+    <div id="gov-brief-content">
     <header class="governance-header gov-header-compact">
       <div class="governance-header-top">
         <div>
@@ -54,6 +59,7 @@
       <section id="gov-scorecard" class="governance-scorecard" aria-label="Pilot scorecard"></section>
     </details>
 
+    </div>
     <div id="gov-error" class="alert-banner" hidden role="alert"></div>
     <button type="button" id="gov-hidden-create-work" hidden data-open-outcome-modal data-outcome-projects="MPSA,MAS" data-outcome-context="Create work in Jira for selected squads.">Create work</button>
   </main>

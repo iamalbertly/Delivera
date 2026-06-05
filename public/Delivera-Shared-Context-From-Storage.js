@@ -11,6 +11,7 @@ import {
   REPORT_LAST_RUN_KEY,
   REPORT_LAST_META_KEY,
   REPORT_FILTERS_STALE_KEY,
+  readSharedProjectsCsv,
 } from './Delivera-Shared-Storage-Keys.js';
 import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Params.js';
 import { reportState } from './Delivera-Report-Page-State.js';
@@ -133,10 +134,12 @@ export function getContextPieces(overrides = {}) {
   const freshnessInfo = getLastMetaFreshnessInfo();
   const filtersStale = getFiltersStaleFlag();
   const live = getLiveReportFilterSnapshot();
+  const isGovernancePage = typeof document !== 'undefined' && document.body?.classList?.contains('governance-page');
+  const governanceProjectsCsv = isGovernancePage ? readSharedProjectsCsv().join(',') : '';
 
   const projects = typeof overrides.projects === 'string'
     ? overrides.projects.trim()
-    : (live?.projectsCsv || ctx?.projects || '');
+    : (live?.projectsCsv || governanceProjectsCsv || ctx?.projects || '');
   const rangeStart = overrides.rangeStart || live?.startIso || ctx?.start || '';
   const rangeEnd = overrides.rangeEnd || live?.endIso || ctx?.end || '';
   const last = overrides.lastRun === undefined ? getLastRunSummary() : overrides.lastRun;

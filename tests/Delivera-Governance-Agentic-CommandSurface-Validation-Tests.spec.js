@@ -231,6 +231,7 @@ test.describe('Governance command surface — UI', () => {
   test('cluster issue without issueUrl uses preview key link only', async ({ page }) => {
     const noUrl = {
       ...COMMAND_BRIEF,
+      projects: ['MPSA'],
       topRisks: [{
         issueKey: 'MPSA-7', assigneeName: 'Sam', decisionNeededFrom: 'Tech Lead',
         recommendedAction: 'Unblock', ageHours: 40, escalation: 'act-today',

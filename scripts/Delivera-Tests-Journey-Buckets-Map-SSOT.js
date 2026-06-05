@@ -165,7 +165,11 @@ export const specMetadata = {
   'tests/Delivera-UX-Brief-Action-Cards.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
   'tests/Delivera-UX-Copy-Meeting-Answer.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
   'tests/Delivera-UX-Contrast-And-Readable-Copy.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
-  'tests/Delivera-UX-Scope-Reuse-No-Duplication.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
+  'tests/Delivera-Governance-Brief-SSOT-Loading-Scope-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance',
+  },
   'tests/Delivera-UX-Stale-Data-Warnings.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/governance' },
   'tests/Delivera-UX-Evidence-Proof-Linking.spec.js': { journey: 'journey.governance', layer: 'page-ux', page: '/report' },
   'tests/Delivera-UX-Executive-Brief-Pulse-Realtime-Validation-Tests.spec.js': {

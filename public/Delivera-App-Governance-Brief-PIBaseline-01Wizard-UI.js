@@ -5,6 +5,7 @@ import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { aiProviderRequestHeaders, hasAiProviderKey, readAiProviderPref } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { GOVERNANCE_QUARTER_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { resizeImageFileToBase64, bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
 
 function escapeHtml(v) {
@@ -41,7 +42,7 @@ async function resolveJiraBoardUrl(projects) {
 
 function readQuarterHint() {
   try {
-    return String(localStorage.getItem('delivera_gov_quarter_v1') || '').trim();
+    return String(localStorage.getItem(GOVERNANCE_QUARTER_KEY) || '').trim();
   } catch (_) {
     return '';
   }

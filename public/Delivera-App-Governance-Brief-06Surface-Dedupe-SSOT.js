@@ -22,15 +22,36 @@ function sortRisks(list) {
   return [...list].sort((a, b) => (ESC_ORDER[a.escalation] ?? 3) - (ESC_ORDER[b.escalation] ?? 3));
 }
 
+function normPk(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+/** Client port of risksForSquad — filter risks to selected project keys. */
+export function filterRisksForProjects(risks = [], projectKeys = []) {
+  const keys = (Array.isArray(projectKeys) ? projectKeys : [])
+    .map(normPk)
+    .filter(Boolean);
+  if (!keys.length || keys.length > 1) return risks;
+  const PK = keys[0];
+  const prefix = `${PK}-`;
+  return risks.filter((r) => {
+    const ik = normPk(r.issueKey);
+    if (ik && ik.startsWith(prefix)) return true;
+    const squad = normPk(r.squad);
+    if (squad && (squad.includes(PK) || PK.includes(squad.split(/\s/)[0] || ''))) return true;
+    return false;
+  });
+}
+
 /**
  * @returns {{ doNowActions, drawerIssues, measurementRisks, proofRows }}
  */
-export function partitionBriefSurfaces(brief) {
+export function partitionBriefSurfaces(brief, projectKeys = null) {
   const seen = new Set();
-  const all = sortRisks([
-    ...(brief?.topRisks || []),
-    ...(brief?.portfolioRisks || []),
-  ]);
+  const selected = projectKeys ?? (Array.isArray(brief?.projects) ? brief.projects : []);
+  const poolTop = filterRisksForProjects(brief?.topRisks || [], selected);
+  const poolPortfolio = filterRisksForProjects(brief?.portfolioRisks || [], selected);
+  const all = sortRisks([...poolTop, ...poolPortfolio]);
 
   const measurementRisks = all.filter(isMeasurement).slice(0, 4);
   const deliveryPool = all.filter((r) => isDelivery(r) && !isMeasurement(r));
@@ -56,11 +77,8 @@ export function partitionBriefSurfaces(brief) {
   }
 
   const proofRows = [];
-  for (const r of sortRisks([
-    ...(brief?.topRisks || []),
-    ...(brief?.portfolioRisks || []),
-    ...(brief?.risks || []),
-  ])) {
+  const poolRisks = filterRisksForProjects(brief?.risks || [], selected);
+  for (const r of sortRisks([...poolTop, ...poolPortfolio, ...poolRisks])) {
     const key = riskKey(r);
     if (seen.has(key)) continue;
     seen.add(key);

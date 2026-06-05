@@ -1,6 +1,21 @@
 /* ── Governance Brief surface ──────────────────────────────────────────────
    Weekly Delivery Intelligence Brief. Trust-first, scannable, OpCo-portable. */
 
+body.governance-page #gov-loading {
+  padding: 32px 16px;
+  text-align: center;
+}
+body.governance-page #gov-loading[hidden] {
+  display: none !important;
+}
+body.governance-page #gov-brief-content[data-scope-stale="true"] {
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+}
+body.governance-page.gov-brief-loading #gov-brief-content[data-scope-stale="true"] {
+  opacity: 0.85;
+}
+
 /* Sidebar-safe shell (governance.html has no .container wrapper) */
 body.governance-page #gov-scope-bar-mount,
 body.governance-page #gov-sticky-answer-mount,

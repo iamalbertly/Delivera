@@ -1,5 +1,5 @@
 import { parseOutcomeIntake, OUTCOME_STRUCTURE_MODE } from './Delivera-Shared-Outcome-Intake-Parser.js';
-import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY, GOVERNANCE_QUARTER_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {
   readAiProviderPref,
   saveAiProviderPref,
@@ -1482,30 +1482,11 @@ function renderSettingsPanel() {
   if (!panel) return;
 
   const ai = readAiProviderPref();
-  const providers = [
-    { id: 'built-in', label: 'Built-in', hint: 'No API key required', hasKey: false, hasHost: false },
-    { id: 'claude', label: 'Claude (Anthropic)', hint: 'Key stored in browser session only', hasKey: true, hasHost: false },
-    { id: 'openai', label: 'OpenAI', hint: 'Key stored in browser session only', hasKey: true, hasHost: false },
-    { id: 'gemini', label: 'Google Gemini', hint: 'Key stored in browser session only', hasKey: true, hasHost: false },
-    { id: 'ollama', label: 'Ollama (local)', hint: 'Runs locally — no API key needed', hasKey: false, hasHost: true },
-  ];
-
+  const connected = Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
   panel.innerHTML = `<div class="wdd-settings-title">AI Processing <button class="wdd-settings-close" aria-label="Close settings">✕</button></div>`
-    + providers.map((p) => {
-      const checked = (ai.provider || 'built-in') === p.id;
-      const keyVal = checked && ai.key ? ai.key.replace(/./g, '●') : '';
-      const hostVal = checked && ai.host ? ai.host : 'http://localhost:11434';
-      return `<div class="wdd-ai-provider-row">
-        <label class="wdd-ai-provider-label">
-          <input type="radio" name="wdd-ai-provider" value="${esc(p.id)}"${checked ? ' checked' : ''}> ${esc(p.label)}
-        </label>
-        ${p.hasKey && checked ? `<input class="wdd-ai-key-input" type="password" placeholder="sk-…" value="${esc(keyVal)}" data-ai-key-for="${esc(p.id)}" autocomplete="off">
-          <button class="wdd-ai-test-btn" data-ai-test="${esc(p.id)}">Test</button>
-          <button class="wdd-ai-clear-btn" data-ai-clear="${esc(p.id)}">Clear</button>` : ''}
-        ${p.hasHost && checked ? `<input class="wdd-ai-key-input" type="text" placeholder="http://localhost:11434" value="${esc(hostVal)}" data-ai-host-for="${esc(p.id)}">` : ''}
-        <span class="wdd-ai-provider-hint">${esc(p.hint)}</span>
-      </div>`;
-    }).join('');
+    + `<p class="wdd-ai-settings-link-lead">Manage API keys in one place — Settings → Connections.</p>`
+    + `<p class="wdd-ai-provider-hint">${connected ? `Using ${esc(ai.provider)} in this browser.` : 'Built-in templates only until you add a key.'}</p>`
+    + `<a class="btn btn-secondary btn-compact" href="/settings#gov-ai-helper">Open Settings</a>`;
 }
 
 // Handles radio change and key/host input change — NOT click (avoids double-fire on radio buttons)
@@ -1695,7 +1676,7 @@ function wireEvents() {
     try {
       const { base64, mimeType } = await resizeImageFileToBase64(file);
       let quarter = '';
-      try { quarter = localStorage.getItem('delivera_gov_quarter_v1') || ''; } catch (_) { /* ignore */ }
+      try { quarter = localStorage.getItem(GOVERNANCE_QUARTER_KEY) || ''; } catch (_) { /* ignore */ }
       const projects = _projectOptions.length ? _projectOptions : [_projectKey].filter(Boolean);
       const res = await fetch('/api/governance/pi-baseline/propose-from-image', {
         method: 'POST',

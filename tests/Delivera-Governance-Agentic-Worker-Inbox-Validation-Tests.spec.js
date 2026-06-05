@@ -388,8 +388,9 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await expect(page.locator('.gov-owner-cluster')).toContainText(/Scrum Master/i);
     await openGovernanceDetails(page, 'gov-supporting-evidence');
-    await expect(page.locator('.governance-risk-lane')).toContainText(/Scrum Master/i);
+    await expect(page.locator('#gov-proof-risks')).toBeAttached();
   });
 
   test('quarter pills in scope drawer panel', async ({ page }) => {

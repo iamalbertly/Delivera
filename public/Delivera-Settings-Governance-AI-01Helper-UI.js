@@ -35,6 +35,7 @@ export function mountGovernanceAiHelper(mount) {
             <option value="openai" ${ai.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
             <option value="claude" ${ai.provider === 'claude' ? 'selected' : ''}>Claude</option>
             <option value="gemini" ${ai.provider === 'gemini' ? 'selected' : ''}>Gemini</option>
+            <option value="openrouter" ${ai.provider === 'openrouter' ? 'selected' : ''}>OpenRouter</option>
           </select>
         </label>
         <label class="gov-ai-helper-field">
