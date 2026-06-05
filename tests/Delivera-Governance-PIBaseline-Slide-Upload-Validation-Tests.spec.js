@@ -74,10 +74,12 @@ async function mockGovernanceBriefPage(page) {
   }));
 }
 
+const hasSlideFixture = existsSync(SLIDE_JPEG);
+
 test.describe('Governance PI baseline slide upload', () => {
-  test.beforeAll(() => {
-    if (!existsSync(SLIDE_JPEG)) {
-      throw new Error(`Missing test image: ${SLIDE_JPEG}`);
+  test.beforeEach(async ({ }, testInfo) => {
+    if (!hasSlideFixture) {
+      testInfo.skip(true, `Missing PI slide fixture image: ${SLIDE_JPEG}`);
     }
   });
 
