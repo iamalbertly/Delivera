@@ -433,6 +433,7 @@ export function renderHeaderBar(data, options = {}) {
 
   const leanAttr = viewportLean ? ' data-viewport-lean="true"' : '';
   let html = `<div class="current-sprint-header-bar"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
+  html += '<div class="header-scope-mount" id="current-sprint-scope-mount" aria-label="Sprint scope"></div>';
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintNameCompact)}</span>`;
@@ -613,10 +614,25 @@ export function renderHeaderBar(data, options = {}) {
   return html;
 }
 
+export function relocateSprintScopeIntoHeaderBar() {
+  const headerBar = document.querySelector('#current-sprint-content .current-sprint-header-bar')
+    || document.querySelector('.current-sprint-header-bar');
+  const mount = headerBar?.querySelector('#current-sprint-scope-mount');
+  const scopeStack = document.querySelector('.current-sprint-scope-stack');
+  if (!mount || !scopeStack || scopeStack.dataset.relocated === '1') return;
+  mount.appendChild(scopeStack);
+  scopeStack.dataset.relocated = '1';
+  const pageHeader = document.querySelector('body.current-sprint-page > .container > header');
+  if (pageHeader) pageHeader.classList.add('current-sprint-header-sr-only');
+  document.body.classList.add('current-sprint-scope-in-hud');
+  window.dispatchEvent(new CustomEvent('delivera:currentSprintScopeRelocated'));
+}
+
 export function wireHeaderBarHandlers() {
   const headerBar = document.querySelector('#current-sprint-content .current-sprint-header-bar')
     || document.querySelector('.current-sprint-header-bar');
   if (!headerBar) return;
+  relocateSprintScopeIntoHeaderBar();
   // Remove duplicate header bars if multiple instances rendered (dedupe visual chrome)
   try {
     const headerBarsAll = Array.from(document.querySelectorAll('#current-sprint-content .current-sprint-header-bar, .current-sprint-header-bar'));

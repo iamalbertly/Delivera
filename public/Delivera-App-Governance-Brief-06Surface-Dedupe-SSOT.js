@@ -55,11 +55,17 @@ export function partitionBriefSurfaces(brief) {
     }
   }
 
-  const proofRows = sortRisks([
+  const proofRows = [];
+  for (const r of sortRisks([
     ...(brief?.topRisks || []),
     ...(brief?.portfolioRisks || []),
     ...(brief?.risks || []),
-  ]);
+  ])) {
+    const key = riskKey(r);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    proofRows.push(r);
+  }
 
   return { doNowActions, drawerIssues, measurementRisks, proofRows };
 }

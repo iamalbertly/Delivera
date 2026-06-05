@@ -310,9 +310,26 @@ body.report-page .tab-btn {
   }
 }
 
+@media (max-width: 768px) {
+  body.report-page .report-executive-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 4px 0 8px;
+  }
+
+  body.report-page .report-executive-card {
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  body.report-page .report-executive-card:nth-child(n+3) {
+    display: none;
+  }
+}
+
 @media (max-width: 560px) {
   body.report-page .report-executive-hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

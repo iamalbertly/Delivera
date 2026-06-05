@@ -27,6 +27,7 @@ import {
   govPage, projectsCsv, isPortfolioMode, refreshScopeBarCounts, whyItMatters,
 } from './Delivera-Governance-Brief-Page-01Context.js';
 import { bindOwnerClusterInteractions, bindProofInteractions } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
+import { fetchGovernanceBriefCached } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 
 let loadBriefSeq = 0;
 
@@ -38,6 +39,10 @@ function evidenceRowFor(brief, issueKey) {
 }
 
 export function renderFreshness(brief, confirmCount = 0) {
+  if (document.querySelector('#gov-scope-bar-mount .gov-scope-status-chip')) {
+    govPage.els.freshness.innerHTML = '';
+    return;
+  }
   const f = brief?.freshness || {};
   const text = freshnessPlainEnglish(f);
   const cls = f.confidenceLimit === 'stale' ? 'is-stale' : f.confidenceLimit === 'live' ? 'is-live' : 'is-cached';
@@ -141,6 +146,27 @@ function renderBaseline(brief) {
       ${truthChip('On track', s.onTrack, '')}
       ${truthChip('Delayed', s.delayed, s.delayed > 0 ? 'warn' : '')}
     </div>`;
+}
+
+let scorecardBound = false;
+
+function deferScorecardUntilEvidenceOpen() {
+  if (!govPage.els.scorecard || scorecardBound) return;
+  const details = document.getElementById('gov-supporting-evidence');
+  if (!details) {
+    renderScorecard();
+    return;
+  }
+  scorecardBound = true;
+  const run = () => {
+    renderScorecard();
+    details.removeEventListener('toggle', onToggle);
+  };
+  const onToggle = () => {
+    if (details.open) run();
+  };
+  if (details.open) run();
+  else details.addEventListener('toggle', onToggle);
 }
 
 export async function renderScorecard() {
@@ -249,20 +275,20 @@ export async function loadBrief() {
   if (quarter) qs.set('quarter', quarter);
   const pk = projectsCsv().split(',')[0] || 'MPSA';
   try {
-    const [briefRes, feedbackRes] = await Promise.all([
-      fetch(`/api/governance-brief.json?${qs.toString()}`),
+    const inboxRefresh = govPage.inboxApi?.refresh?.();
+    const [brief, feedbackRes] = await Promise.all([
+      fetchGovernanceBriefCached({ projects: projectsCsv(), quarter }),
       fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`),
+      inboxRefresh,
     ]);
     if (seq !== loadBriefSeq) return;
-    if (!briefRes.ok) throw new Error(`HTTP ${briefRes.status}`);
-    govPage.lastBrief = await briefRes.json();
+    govPage.lastBrief = brief;
     govPage.lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
-    await govPage.inboxApi?.refresh?.();
     if (seq !== loadBriefSeq) return;
     const confirmCount = govPage.inboxApi?.getConfirmCount?.() || 0;
     renderFreshness(govPage.lastBrief, confirmCount);
     renderBriefUi(govPage.lastBrief);
-    await renderScorecard();
+    deferScorecardUntilEvidenceOpen();
     if (seq !== loadBriefSeq) return;
     document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
       document.getElementById('gov-open-feedback-lab')?.click();

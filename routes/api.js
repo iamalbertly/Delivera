@@ -87,7 +87,25 @@ const LEGACY_OUTCOME_INTAKE_LOG_FILE = join(FEEDBACK_DIR, 'JiraReporting-Outcome
 const OUTCOME_CREATE_META_TTL = 20 * 60 * 1000;
 
 const router = express.Router();
+const serverStartTime = Date.now();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
+
+router.get('/healthz', async (req, res) => {
+  let redis = null;
+  try {
+    redis = await cache.pingRedis();
+  } catch (_) {
+    redis = false;
+  }
+
+  res.status(200).json({
+    ok: true,
+    ready: true,
+    instanceId: appEnvConfig.instanceId,
+    uptime: Math.floor((Date.now() - serverStartTime) / 1000),
+    redis,
+  });
+});
 
 function getErrorStatusCode(error) {
     return error?.statusCode

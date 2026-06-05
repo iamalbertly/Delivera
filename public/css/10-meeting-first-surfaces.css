@@ -190,12 +190,16 @@ body.report-page .preview-context-chip-scope--combined {
   display: none;
 }
 
-body.report-page .report-proof-summary {
-  margin: 8px 0;
-  padding: 12px 14px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+body.report-page .report-filter-strip-summary {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+body.report-page .report-mission-strip.is-placeholder {
+  display: none;
 }
 
 body.current-sprint-page .sprint-today-hero {

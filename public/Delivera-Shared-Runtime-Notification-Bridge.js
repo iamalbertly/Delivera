@@ -102,4 +102,68 @@ export function initRuntimeNotificationBridge() {
   });
 }
 
+const RECONNECT_DELAYS_MS = [1000, 2000, 4000];
+let reconnectToastVisible = false;
+
+function shouldRetryFetch(response, error) {
+  if (error) return true;
+  if (!response) return false;
+  return response.status === 502 || response.status === 503 || response.status === 504;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function showReconnectToast(message) {
+  try {
+    appendRuntimeAlert({ level: 'warn', message, source: 'reconnect' });
+    reconnectToastVisible = true;
+  } catch (_) {}
+}
+
+function clearReconnectToast() {
+  if (!reconnectToastVisible) return;
+  reconnectToastVisible = false;
+  try {
+    window.dispatchEvent(new CustomEvent('delivera:server-back'));
+  } catch (_) {}
+}
+
+async function fetchWithReconnect(input, init) {
+  const nativeFetch = fetchWithReconnect.__native || window.fetch.bind(window);
+  let lastError = null;
+  let lastResponse = null;
+
+  for (let attempt = 0; attempt <= RECONNECT_DELAYS_MS.length; attempt++) {
+    try {
+      const response = await nativeFetch(input, init);
+      lastResponse = response;
+      if (!shouldRetryFetch(response, null) || attempt >= RECONNECT_DELAYS_MS.length) {
+        if (response?.ok) clearReconnectToast();
+        return response;
+      }
+      showReconnectToast('Reconnecting to server…');
+      await sleep(RECONNECT_DELAYS_MS[attempt] || 4000);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= RECONNECT_DELAYS_MS.length) break;
+      showReconnectToast('Reconnecting to server…');
+      await sleep(RECONNECT_DELAYS_MS[attempt] || 4000);
+    }
+  }
+
+  if (lastError) throw lastError;
+  if (lastResponse) return lastResponse;
+  return nativeFetch(input, init);
+}
+
+export function initFetchReconnectBridge() {
+  if (typeof window === 'undefined' || fetchWithReconnect.__patched) return;
+  fetchWithReconnect.__native = window.fetch.bind(window);
+  fetchWithReconnect.__patched = true;
+  window.fetch = fetchWithReconnect;
+}
+
 initRuntimeNotificationBridge();
+initFetchReconnectBridge();

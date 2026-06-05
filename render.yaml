@@ -2,8 +2,10 @@ services:
   - type: web
     runtime: node
     name: delivera
-    buildCommand: npm install
+    buildCommand: npm install && npm run build:css
     startCommand: npm start
+    healthCheckPath: /healthz
+    maxShutdownDelaySeconds: 30
     plan: free
     envVars:
       - key: NODE_ENV

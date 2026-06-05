@@ -1,0 +1,76 @@
+/* Global sub-chrome slot — status pills below top chrome (SSOT with Sub-Chrome bootstrap) */
+
+#app-sub-chrome-slot {
+  position: fixed;
+  top: var(--top-chrome-height, 56px);
+  left: var(--sidebar-width, 240px);
+  right: 0;
+  z-index: 1200;
+  background: #0f172a;
+}
+
+body.has-top-chrome.sidebar-collapsed #app-sub-chrome-slot,
+body.sidebar-open #app-sub-chrome-slot {
+  left: 0;
+}
+
+#app-sub-chrome-slot:empty {
+  display: none;
+}
+
+#app-sub-chrome-slot .gov-global-agent-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 6px 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  margin: 0;
+}
+
+#app-sub-chrome-slot .gov-global-agent-bar::-webkit-scrollbar {
+  display: none;
+}
+
+#app-sub-chrome-slot .gov-global-pill {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+body.governance-page #app-sub-chrome-slot {
+  display: none !important;
+}
+
+body.has-top-chrome.has-sub-chrome {
+  padding-top: calc(var(--top-chrome-height, 56px) + var(--sub-chrome-height, 32px));
+}
+
+body.has-sub-chrome {
+  --sticky-global-nav-top: calc(var(--top-chrome-height, 56px) + var(--sub-chrome-height, 32px));
+}
+
+@media (max-width: 1200px) {
+  #app-sub-chrome-slot {
+    left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  #app-sub-chrome-slot .gov-global-agent-bar {
+    padding: 5px 10px;
+    font-size: 0.68rem;
+  }
+}
+
+body.top-search-active #app-sub-chrome-slot {
+  top: 98px;
+}
+
+body.top-search-active.has-sub-chrome {
+  padding-top: calc(98px + var(--sub-chrome-height, 32px));
+}

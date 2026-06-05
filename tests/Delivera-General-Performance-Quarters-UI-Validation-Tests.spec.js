@@ -4,15 +4,10 @@
  */
 
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { runDefaultPreview, waitForPreview, captureBrowserTelemetry, skipIfRedirectedToLogin } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
+import { runDefaultPreview, waitForPreview, captureBrowserTelemetry, skipIfRedirectedToLogin, ensureReportFiltersVisible } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 async function ensureFiltersVisible(page) {
-  const strip = page.locator('.quick-range-strip, [aria-label="Vodacom quarters"]').first();
-  if (await strip.isVisible().catch(() => false)) return;
-  const toggle = page.locator('#filters-panel-collapsed-bar [data-action="toggle-filters"], #report-header-actions [data-action="toggle-filters"]').first();
-  if (await toggle.isVisible().catch(() => false)) {
-    await toggle.click({ force: true }).catch(() => null);
-  }
+  await ensureReportFiltersVisible(page);
 }
 
 test.describe('Delivera - General Performance Quarters UI Validation', () => {
@@ -25,8 +20,8 @@ test.describe('Delivera - General Performance Quarters UI Validation', () => {
     const title = await page.title();
     const h1Text = await h1.textContent().catch(() => '');
     const hasReportTitle =
-      (h1Text && /Evidence|Delivery|General Performance|Performance History/i.test(h1Text))
-      || (title && /Evidence - Delivera|Reports - Delivera|General Performance/i.test(title));
+      (h1Text && /Proof|Evidence|Delivery|General Performance|Performance History/i.test(h1Text))
+      || (title && /Proof - Delivera|Evidence - Delivera|Reports - Delivera|General Performance/i.test(title));
     expect(hasReportTitle).toBeTruthy();
 
     expect(telemetry.consoleErrors).toEqual([]);
@@ -123,9 +118,11 @@ test.describe('Delivera - General Performance Quarters UI Validation', () => {
     await page.goto('/sprint-leadership');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    // /sprint-leadership redirects to /leadership (HUD); quarter pills are SSOT on /report filters.
-    if (page.url().includes('/leadership')) {
-      await expect(page.locator('#project-context')).toBeVisible({ timeout: 15000 });
+    // Legacy /sprint-leadership → /governance#decision-snapshot; quarter pills SSOT on /report filters.
+    const url = page.url();
+    if (url.includes('/governance') || url.includes('/leadership')) {
+      const governanceScope = page.locator('[aria-label="Brief scope"], #gov-scope-bar, #project-context').first();
+      await expect(governanceScope).toBeVisible({ timeout: 15000 });
       expect(telemetry.consoleErrors).toEqual([]);
       expect(telemetry.pageErrors).toEqual([]);
       return;
@@ -180,7 +177,7 @@ test.describe('Delivera - General Performance Quarters UI Validation', () => {
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await expect(page.locator('h1')).toContainText('Current Sprint');
-    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Evidence|Delivery|Report|High-Level Performance/i);
+    await expect(page.locator('.app-sidebar a.sidebar-link[href="/report"], nav.app-nav a[href="/report"]')).toContainText(/Proof|Evidence|Delivery|Report|High-Level Performance/i);
 
     const alertsCard = page.locator('#notifications-card, [id*="notification"]');
     const hasAlerts = await alertsCard.isVisible().catch(() => false);

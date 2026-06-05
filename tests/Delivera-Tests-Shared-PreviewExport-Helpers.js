@@ -22,6 +22,13 @@ export const IGNORE_REQUEST_PATTERNS = [
 /** Shared timeout for Excel export download wait (ms). Use in Server Errors and Excel Export specs. */
 export const EXCEL_DOWNLOAD_TIMEOUT_MS = 180000;
 
+/** Primary report preview/refresh control (header when top chrome present, else sidebar). */
+export async function getReportPreviewTrigger(page) {
+  const header = page.locator('#report-header-preview-btn');
+  if (await header.isVisible().catch(() => false)) return header;
+  return page.locator('#preview-btn');
+}
+
 /**
  * Captures browser console errors, page errors, and failed requests for assertion in tests.
  * @param {import('@playwright/test').Page} page

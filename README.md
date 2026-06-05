@@ -12,6 +12,8 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 | `/current-sprint` | **Sprint** | What must move today (blockers, owners, nudges) |
 | `/report` | **Proof** | Evidence and drill-down for the current Brief |
 
+**Proof (report) above-fold:** header **Refresh** / **Export** replace duplicate sidebar Preview when top chrome is present; filter summary lives in the mission strip (sidebar summary hidden when chips exist); scorecard and heavy widgets defer until opened.
+
 **Bookmarks:** `/brief` → `/governance`. `/leadership` and `/program-increment` → `/governance#decision-snapshot`. `/value-delivery` → `/report`. `/teams` and `/risks-blockers` → `/current-sprint` (with `#stuck-card` where applicable).
 
 Root `/` lands on Brief when auth is off; otherwise follows your configured auth landing.
@@ -24,6 +26,9 @@ Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Share
 - Sidebar toggle, workspace context, search, **Create**, notifications, help, settings, avatar
 - Left sidebar: context card + data pulse only (nav links hidden on desktop)
 - Duplicate page-level **Create** buttons are suppressed when top chrome is present
+- **Mobile/tablet (≤768px):** search collapses to a 36px icon (`.is-collapsed`); brand slot hides; focus expands search to a second row (`body.top-search-active`) and grows chrome height to 98px. Help and avatar hide at ≤480px. `Escape` dismisses expanded search.
+- **Brief notifications:** dock stays collapsed until the bell is tapped; on governance mobile it opens as a bottom sheet so it does not cover the scope **Refresh** row.
+- **Brief mobile with owner clusters:** full command card hides; owner action clusters become the primary above-fold surface.
 
 Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Shared-Notifications-Dock-Manager.js`).
 
@@ -31,6 +36,8 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 
 - Shared project catalog (`Delivera-Shared-Projects-Catalog-01SSOT.js`, `GET /api/projects-catalog.json`)
 - Cache-first governance APIs; **Refresh** bypasses cache where supported
+- Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) and deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
+- Brief load runs inbox + brief in parallel; scorecard defers until evidence `<details>` opens
 - Above-fold order: answer → owner clusters → setup debt → verdict → PI strip; agent queue and feedback in collapsed `<details>`
 - Responsive layout: scope capsule, answer blocks, PI counters, and tables use auto-fit grids + `data-table-scroll-wrap` (no horizontal bleed on mobile)
 - Page-level **Export brief** hides when top chrome is present (export stays in command overflow menu)
@@ -46,10 +53,13 @@ Details: [`context.md`](context.md). Layout gate: `npm run test:journey:layout-o
 ```bash
 npm install
 cp .env.example .env   # set JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN
+npm run dev:safe       # recommended: port guard + CSS watch + API reload (one server per machine)
 npm run dev            # or npm run dev:hot for CSS watch + nodemon
 ```
 
 Production-style: `npm start` (runs `build:css` first).
+
+**Dev port conflicts:** `dev:safe` refuses to start when ports 3000–3002 are already bound. Use `npm run dev:safe:force` to clear listeners, or set `PORT=3010 npm run dev:safe` when another process owns 3000.
 
 Playwright against an already-running server:
 
@@ -58,6 +68,8 @@ npm start
 # another terminal:
 BASE_URL=http://localhost:3000 SKIP_WEBSERVER=true npm run test:smoke
 ```
+
+**Health probe:** `GET /healthz` returns `{ ok: true, ready: true }` when the process is listening (used by Render and deploy smoke tests).
 
 ## Auth modes
 
@@ -74,6 +86,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run build:css` | Compile `public/css/*` → `public/styles.css` |
 | `npm run check:css` | Fail if `styles.css` is out of sync |
 | `npm run validate:jira-env` | Probe Jira `/myself` with `.env` |
+| `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
 | `npm run test:all` | Full fail-fast orchestration |
 | `npm run test:smoke` | Short UX smoke |
@@ -121,10 +134,13 @@ Full guide: [`docs/deployment.md`](docs/deployment.md)
 
 ## Architecture (short)
 
-- Entry: [`server.js`](server.js)
+- Entry: [`server.js`](server.js) — `listenWithRetry`, graceful SIGTERM/SIGINT drain, deferred background workers
+- Lifecycle: [`lib/Delivera-Server-Lifecycle-01Graceful.js`](lib/Delivera-Server-Lifecycle-01Graceful.js)
+- Worker leader lock (multi-instance): [`lib/Delivera-Worker-Leader-01Lock.js`](lib/Delivera-Worker-Leader-01Lock.js) when `WORKER_LEADER_LOCK=1` or `INSTANCE_COUNT>1`
 - App factory: [`lib/Delivera-Express-Core-App-Factory-Handler.js`](lib/Delivera-Express-Core-App-Factory-Handler.js)
-- Routes: [`routes/views.js`](routes/views.js), [`routes/api.js`](routes/api.js)
+- Routes: [`routes/views.js`](routes/views.js), [`routes/api.js`](routes/api.js) (`GET /healthz`)
 - UI: `public/*.html`, `public/Delivera-*.js`, compiled `public/styles.css`
+- Fetch retry on 502/503: [`public/Delivera-Shared-Runtime-Notification-Bridge.js`](public/Delivera-Shared-Runtime-Notification-Bridge.js)
 
 ## License
 

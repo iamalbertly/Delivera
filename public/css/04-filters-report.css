@@ -414,6 +414,21 @@ body.report-page .report-header-actions {
   flex-wrap: wrap;
 }
 
+@media (min-width: 769px) {
+  body.report-page.has-top-chrome .filters-actions .report-one-click-cta {
+    display: none;
+  }
+  body.report-page.has-top-chrome .filters-actions #preview-btn {
+    font-size: 0.82rem;
+    padding: 6px 10px;
+    opacity: 0.85;
+  }
+  body.report-page.has-top-chrome #applied-filters-summary[hidden],
+  body.report-page.has-top-chrome #applied-filters-chips[hidden] {
+    display: none !important;
+  }
+}
+
 body.report-page .report-shell-top {
   display: grid;
   gap: 10px;
@@ -476,8 +491,15 @@ body.report-page .report-header-named-views {
 
 body.report-page .report-header-named-views .named-views-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 6px;
+}
+
+body.report-page .report-header-named-views .named-views-bar::-webkit-scrollbar {
+  display: none;
 }
 
 body.report-page .report-header-named-views .named-view-chip {
@@ -2058,8 +2080,12 @@ body.report-page:not(.has-top-chrome) .app-notification-dock:not(.is-collapsed) 
   z-index: 860;
 }
 
-body.notification-dock-visible .container {
+body.notification-dock-visible:not(.has-top-chrome) .container {
   padding-left: 300px;
+}
+
+body.has-top-chrome.notification-dock-visible .container {
+  padding-left: inherit;
 }
 
 .app-notification-badge {
@@ -3362,6 +3388,21 @@ body.report-page .preview-status-strip[data-state="fresh"] {
   display: none;
 }
 
+@media (max-width: 768px) {
+  body.report-page.preview-active .report-filters-status-bar {
+    display: none !important;
+  }
+
+  body.report-page.preview-active #preview-status-strip[data-state="fresh"],
+  body.report-page.preview-active #preview-status-strip[data-state="up-to-date"] {
+    display: none !important;
+  }
+
+  body.report-page.preview-active .date-range-summary-wrap {
+    display: none !important;
+  }
+}
+
 @media (min-width: 1025px) {
   body.report-page.preview-active .report-filters-status-bar {
     display: none !important;
@@ -3661,5 +3702,56 @@ a.signals-rail-tile:hover {
 
   body.report-page .date-range-summary-wrap {
     display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  body.has-top-chrome.report-page .report-shell-top h1,
+  body.report-page .report-shell-title-block h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  body.report-page .report-shell-top {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    gap: 6px;
+  }
+
+  body.report-page .report-shell-top-row {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  body.report-page .report-header-actions {
+    flex-wrap: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  body.report-page .report-outcome-intake-status {
+    font-size: 0.68rem;
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.report-page .report-header-named-views {
+    padding-top: 4px;
+  }
+
+  body.report-page .report-mission-strip:not(.is-placeholder) {
+    padding: 6px 8px;
   }
 }

@@ -18,6 +18,7 @@ import { isRangeValid, updateRangeHint } from './Delivera-Report-Page-DateRange-
 import { reportState } from './Delivera-Report-Page-State.js';
 import { renderContextBar } from './Delivera-Shared-ContextBar-Renderer.js';
 import { REPORT_CONTEXT_BAR_TITLE, buildUnifiedReportContextChips } from './Delivera-Report-Page-ContextBar-Build.js';
+import { getCachedBriefSummary } from './Delivera-Report-Proof-Summary-01Bridge.js';
 
 const CONTEXT_SEPARATOR = ' | ';
 
@@ -137,6 +138,9 @@ export function updateAppliedFiltersSummary() {
     const rangeSummary = compactRangeLabel || 'no range';
     summaryEl.textContent = `Scope: ${projectSummary} | ${rangeSummary}`;
     summaryEl.title = summaryText;
+    const stripHasChips = filterStripSummaryEl && filterStripSummaryEl.querySelector('.context-bar-chip, .report-context-chip');
+    summaryEl.hidden = !!stripHasChips;
+    if (chipsEl) chipsEl.hidden = !!stripHasChips;
   }
   if (chipsEl) {
     const chips = [];
@@ -154,17 +158,27 @@ export function updateAppliedFiltersSummary() {
       typeof outcomesCount === 'number' ? { outcomesCount } : {},
     );
     const previewActive = document.body?.classList.contains('preview-active');
-    const secondary = previewActive
+    const briefLine = getCachedBriefSummary();
+    let secondary = previewActive
       ? ''
       : (reportState.previewData
         ? 'Results reflect the last preview for this scope.'
         : 'Run preview once to load numbers for the scope in the chips.');
+    if (briefLine && !previewActive) {
+      secondary = briefLine;
+    } else if (!briefLine && !previewActive && !reportState.previewData) {
+      secondary = 'Load a report preview to see proof aligned with the Brief.';
+    }
     filterStripSummaryEl.innerHTML = renderContextBar({
       title: REPORT_CONTEXT_BAR_TITLE,
       chips,
       secondary,
     });
     filterStripSummaryEl.title = summaryText;
+    const missionStrip = filterStripSummaryEl.closest('.report-mission-strip');
+    if (missionStrip) {
+      missionStrip.classList.toggle('is-placeholder', !briefLine && !reportState.previewData && !previewActive);
+    }
   }
   if (rulesSummaryInlineEl) {
     rulesSummaryInlineEl.textContent = options.length ? `${options.length} active` : 'Optional';

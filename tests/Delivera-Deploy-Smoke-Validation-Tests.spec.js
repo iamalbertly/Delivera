@@ -18,6 +18,16 @@ function captureConsoleErrors(page) {
 }
 
 test.describe('Delivera – Deploy Smoke Tests', () => {
+  test('healthz endpoint is ready before page flows', async ({ request }) => {
+    const base = (process.env.BASE_URL || prodBaseUrl).replace(/\/$/, '');
+    const res = await request.get(`${base}/healthz`);
+    expect(res.status(), 'healthz should be reachable without auth').toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, ready: true });
+    expect(typeof body.instanceId).toBe('string');
+    expect(typeof body.uptime).toBe('number');
+  });
+
   test('core sprint report flow works on current BASE_URL', async ({ page }) => {
     test.setTimeout(300000);
     const consoleErrors = captureConsoleErrors(page);
@@ -41,16 +51,27 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
     }
 
     await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery|Delivera|General Performance|Performance History/);
-    await expect(page.locator('#preview-btn')).toBeVisible();
-    await expect(page.locator('#project-mpsa')).toBeVisible();
-    await expect(page.locator('#project-mas')).toBeVisible();
+    const headerRefresh = page.locator('#report-header-preview-btn');
+    const sidebarPreview = page.locator('#preview-btn');
+    const hasHeaderRefresh = await headerRefresh.isVisible().catch(() => false);
+    if (hasHeaderRefresh) {
+      await expect(headerRefresh).toBeVisible();
+    } else {
+      await expect(sidebarPreview).toBeVisible();
+    }
+    await expect(page.locator('#project-mpsa')).toBeAttached();
+    await expect(page.locator('#project-mas')).toBeAttached();
 
-    await page.click('#preview-btn').catch(async () => {
-      await page.evaluate(() => {
-        const btn = document.getElementById('preview-btn');
-        if (btn && !btn.hasAttribute('disabled')) btn.click();
+    if (hasHeaderRefresh) {
+      await headerRefresh.click();
+    } else {
+      await page.click('#preview-btn').catch(async () => {
+        await page.evaluate(() => {
+          const btn = document.getElementById('preview-btn');
+          if (btn && !btn.hasAttribute('disabled')) btn.click();
+        });
       });
-    });
+    }
 
     await Promise.race([
       page.waitForSelector('#loading', { state: 'visible', timeout: 10000 }).catch(() => null),

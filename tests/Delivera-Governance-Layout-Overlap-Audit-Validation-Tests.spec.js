@@ -6,6 +6,7 @@ import {
   getLayoutOverlapReport,
   getViewportClippingReport,
   openGovernanceDetailsPanel,
+  selectFirstBoard,
   skipIfRedirectedToLogin,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
@@ -105,7 +106,17 @@ test.describe('Governance layout overlap audit', () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
 
-      await expect(page.locator('.gov-visual-answer-blocks, .gov-command-answer').first()).toBeVisible({ timeout: 15000 });
+      await page.waitForFunction(() => (
+        document.querySelector('.gov-owner-cluster')
+        || document.querySelector('.gov-visual-answer-blocks')
+        || document.querySelector('.gov-command-answer')
+      ), { timeout: 15000 });
+      const hasOwnerCluster = await page.locator('.gov-owner-cluster').count() > 0;
+      if (hasOwnerCluster && vp.width <= 768) {
+        await expect(page.locator('.gov-owner-cluster').first()).toBeVisible();
+      } else {
+        await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible();
+      }
 
       const clipping = await getViewportClippingReport(page, {
         selectors: ['.governance-shell', '#gov-scope-bar-mount', '#gov-answer-mount', '#app-top-chrome'],
@@ -116,7 +127,7 @@ test.describe('Governance layout overlap audit', () => {
         Number(e?.right || 0) > Number(clipping.viewportWidth || 0) + 1);
       expect(hardOffenders, JSON.stringify(hardOffenders)).toEqual([]);
 
-      const overlap = await getLayoutOverlapReport(page, {
+      const contentOverlap = await getLayoutOverlapReport(page, {
         selectors: [
           '#gov-scope-bar-mount .gov-scope-capsule-text',
           '#gov-scope-bar-mount .gov-scope-status-chip',
@@ -124,9 +135,37 @@ test.describe('Governance layout overlap audit', () => {
           '.gov-visual-answer-blocks .gov-answer-block',
           '.gov-trust-chip-row .gov-send-badge',
           '.gov-do-first-strip',
+          '.gov-do-first-prefix',
+          '.gov-do-first-action',
+          '.gov-do-first-strip .btn',
+          '.gov-owner-cluster-head',
+          '.gov-owner-cluster-head .gov-send-badge',
         ],
       });
-      expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
+      expect(contentOverlap.overlaps, JSON.stringify(contentOverlap.overlaps)).toEqual([]);
+
+      if (vp.width <= 768) {
+        const chromeOverlap = await getLayoutOverlapReport(page, {
+          selectors: [
+            '#app-top-chrome .app-top-switcher-item',
+            '#app-top-chrome .app-top-search-wrap',
+            '#app-top-chrome [data-top-action="create-work"]',
+            '#app-top-chrome [data-top-action="notifications"]',
+          ],
+        });
+        expect(chromeOverlap.overlaps, JSON.stringify(chromeOverlap.overlaps)).toEqual([]);
+
+        const scopeOverlap = await getLayoutOverlapReport(page, {
+          selectors: [
+            '#gov-scope-refresh',
+            '#gov-scope-change',
+            '#app-notification-dock',
+            '.gov-command-answer',
+            '.gov-owner-cluster-head',
+          ],
+        });
+        expect(scopeOverlap.overlaps, JSON.stringify(scopeOverlap.overlaps)).toEqual([]);
+      }
 
       assertTelemetryClean(telemetry);
     });
@@ -186,6 +225,79 @@ test.describe('Governance layout overlap audit', () => {
     assertTelemetryClean(telemetry);
   });
 
+  test('governance mobile owner clusters appear above fold without command CTA overlap', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await mockLayoutGovernancePage(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    const cluster = page.locator('.gov-owner-cluster').first();
+    await expect(cluster).toBeVisible({ timeout: 15000 });
+
+    const aboveFold = await page.evaluate(() => {
+      const el = document.querySelector('.gov-owner-cluster');
+      if (!el) return false;
+      const top = el.getBoundingClientRect().top;
+      return top < window.innerHeight * 0.55;
+    });
+    expect(aboveFold).toBeTruthy();
+
+    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
+    await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
+    await expect(page.locator('#gov-review-actions')).toHaveCount(0);
+
+    const overlap = await getLayoutOverlapReport(page, {
+      selectors: ['#gov-scope-refresh', '.gov-command-actions', '.gov-owner-cluster', '#gov-action-clusters-mount'],
+      maxPairs: 32,
+    });
+    expect(overlap.truncated).toBeFalsy();
+    expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('governance mobile owner clusters hide duplicate do-first strip CTA', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await mockLayoutGovernancePage(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    await expect(page.locator('.gov-owner-cluster')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
+    await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('governance mobile seeded notifications keep dock off scope refresh on first paint', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('appNotificationsV1', JSON.stringify({
+        total: 2,
+        missingEstimate: 1,
+        missingLogged: 1,
+        boardName: 'SD',
+        sprintName: 'Sprint 1',
+      }));
+    });
+    await mockLayoutGovernancePage(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    await expect(page.locator('#gov-scope-refresh')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#app-notification-dock')).toHaveCount(0);
+
+    const overlap = await getLayoutOverlapReport(page, {
+      selectors: ['#gov-scope-refresh', '#app-notification-dock', '.gov-command-answer'],
+    });
+    expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
+
+    assertTelemetryClean(telemetry);
+  });
+
   test('governance mobile keeps agent queue summary reachable', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
@@ -200,19 +312,102 @@ test.describe('Governance layout overlap audit', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('report mobile shell has no horizontal clip', async ({ page }) => {
+  for (const vp of GOV_VIEWPORTS) {
+    test(`report ${vp.label} sub-chrome and shell have no clip or overlap`, async ({ page }) => {
+      const telemetry = captureBrowserTelemetry(page);
+      await page.route('**/api/governance/worker-receipt.json**', (r) => r.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ workerReceipt: { inboxTotal: 2 }, setupGaps: [], sinceLastRun: { summary: 'Since last brief: +1' } }),
+      }));
+      await page.route('**/api/governance/pi-confidence.json**', (r) => r.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ piConfidence: { headline: 'PI n/a' } }),
+      }));
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/report');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+
+      await expect(page.locator('#app-top-chrome')).toBeAttached({ timeout: 15000 });
+      await expect(page.locator('#app-sub-chrome-slot')).toBeAttached({ timeout: 15000 });
+      await expect(page.locator('#report-filter-strip-summary')).toBeAttached();
+
+      const clipping = await getViewportClippingReport(page, {
+        selectors: ['.container', 'header', '#app-sub-chrome-slot'],
+        maxLeftGapPx: vp.width >= 1200 ? 40 : (vp.width <= 390 ? 16 : 28),
+      });
+      expect(clipping.offenders).toEqual([]);
+
+      const overlap = await getLayoutOverlapReport(page, {
+        selectors: [
+          '#app-top-chrome .app-top-switcher-item',
+          '#app-top-chrome .app-top-search-wrap',
+          '#app-top-chrome [data-top-action="notifications"]',
+          '#app-sub-chrome-slot .gov-global-pill',
+          '#report-filter-strip',
+        ],
+        maxPairs: 40,
+      });
+      expect(overlap.truncated).toBeFalsy();
+      expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
+
+      assertTelemetryClean(telemetry);
+    });
+  }
+
+  test('report mobile context bar uses unified filter strip summary', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/report');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    const clipping = await getViewportClippingReport(page, {
-      selectors: ['.container', 'header', '.main-layout'],
-      maxLeftGapPx: 16,
-    });
-    expect(clipping.offenders).toEqual([]);
+    await expect(page.locator('#report-filter-strip-summary')).toBeVisible();
+    await expect(page.locator('#report-proof-summary')).toHaveCount(0);
+
     assertTelemetryClean(telemetry);
   });
+
+  for (const vp of GOV_VIEWPORTS) {
+    test(`current-sprint ${vp.label} sub-chrome and header have no clip or overlap`, async ({ page }) => {
+      const telemetry = captureBrowserTelemetry(page);
+      await page.route('**/api/governance/worker-receipt.json**', (r) => r.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ workerReceipt: { inboxTotal: 1 }, setupGaps: [{ id: 'g1' }], sinceLastRun: null }),
+      }));
+      await page.route('**/api/governance/pi-confidence.json**', (r) => r.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ piConfidence: { headline: 'PI Confidence: Limited' } }),
+      }));
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/current-sprint');
+      if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+
+      await expect(page.locator('#app-top-chrome')).toBeAttached({ timeout: 15000 });
+      await expect(page.locator('#app-sub-chrome-slot')).toBeAttached({ timeout: 15000 });
+
+      const clipping = await getViewportClippingReport(page, {
+        selectors: ['.container', 'main', '#app-sub-chrome-slot'],
+        maxLeftGapPx: vp.width >= 1200 ? 40 : 16,
+        checkScrollSelectors: ['body'],
+      });
+      const bodyOverflow = (clipping.horizontalOverflow || []).filter((e) => e.selector === 'body');
+      expect(bodyOverflow).toEqual([]);
+
+      const overlap = await getLayoutOverlapReport(page, {
+        selectors: [
+          '#app-top-chrome .app-top-switcher-item',
+          '#app-top-chrome .app-top-search-wrap',
+          '#app-sub-chrome-slot .gov-global-pill',
+          '.current-sprint-header-bar',
+          '#app-top-chrome [data-top-action="notifications"]',
+        ],
+        maxPairs: 40,
+      });
+      expect(overlap.truncated).toBeFalsy();
+      expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
+
+      assertTelemetryClean(telemetry);
+    });
+  }
 
   test('current-sprint mobile columns drop fixed min-width', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
@@ -226,13 +421,62 @@ test.describe('Governance layout overlap audit', () => {
     });
     expect(minWidth === '0px' || minWidth === 'auto').toBeTruthy();
 
-    const clipping = await getViewportClippingReport(page, {
-      selectors: ['.container', 'header', 'main'],
-      maxLeftGapPx: 16,
-      checkScrollSelectors: ['body'],
+    assertTelemetryClean(telemetry);
+  });
+
+  test('current-sprint loads global status pills in sub-chrome slot', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.route('**/api/governance/worker-receipt.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ workerReceipt: { inboxTotal: 4 }, setupGaps: [], sinceLastRun: null }),
+    }));
+    await page.route('**/api/governance/pi-confidence.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ piConfidence: { headline: 'PI n/a' } }),
+    }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+
+    await expect(page.locator('#app-sub-chrome-slot #gov-global-agent-bar')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#app-sub-chrome-slot .gov-global-pill').first()).toBeVisible();
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('current-sprint mobile header compact strip above fold after load', async ({ page }) => {
+    test.setTimeout(120000);
+    const telemetry = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
+
+    const boardValue = await selectFirstBoard(page, { timeout: 20000 });
+    if (!boardValue) {
+      test.skip(true, 'No current sprint board available');
+      return;
+    }
+
+    await page.waitForSelector('.current-sprint-header-bar, #current-sprint-error', { timeout: 45000 }).catch(() => null);
+    const headerBar = page.locator('.current-sprint-header-bar').first();
+    if (!(await headerBar.isVisible().catch(() => false))) {
+      test.skip(true, 'Sprint header unavailable for current dataset');
+      return;
+    }
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    const aboveFold = await page.evaluate(() => {
+      const el = document.querySelector('.current-sprint-header-bar .header-compact-strip')
+        || document.querySelector('.current-sprint-header-bar .header-band-main');
+      if (!el) return false;
+      const subChrome = document.getElementById('app-sub-chrome-slot');
+      const chromeBottom = subChrome
+        ? subChrome.getBoundingClientRect().bottom
+        : (document.getElementById('app-top-chrome')?.getBoundingClientRect().bottom || 56);
+      return el.getBoundingClientRect().top < chromeBottom + window.innerHeight * 0.42;
     });
-    const bodyOverflow = (clipping.horizontalOverflow || []).filter((e) => e.selector === 'body');
-    expect(bodyOverflow).toEqual([]);
+    expect(aboveFold).toBeTruthy();
 
     assertTelemetryClean(telemetry);
   });

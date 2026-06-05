@@ -273,7 +273,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     }
   }
 
-  refresh();
+  render();
   return {
     refresh,
     getConfirmCount: () => (lastData?.confirm || []).length,

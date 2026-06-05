@@ -134,17 +134,25 @@ function mountNotificationDockElement(summary, pageContext = 'report') {
     dock.classList.toggle('is-collapsed');
     const state = readNotificationDockState();
     writeNotificationDockState({ ...state, collapsed: dock.classList.contains('is-collapsed'), hidden: false });
+    if (dock.classList.contains('is-collapsed')) {
+      document.body.classList.remove('notification-dock-open');
+    } else {
+      document.body.classList.add('notification-dock-open');
+    }
   });
   dock.querySelector('[data-notification-dismiss]')?.addEventListener('click', () => {
     const state = readNotificationDockState();
     writeNotificationDockState({ ...state, hidden: true }, DEFAULT_NOTIFICATION_DOCK_STATE_KEY);
     dock.remove();
-    document.body.classList.remove('notification-dock-visible');
+    document.body.classList.remove('notification-dock-visible', 'notification-dock-open');
   });
 
   const slot = document.getElementById(NOTIFICATION_SLOT_ID);
   (slot || document.body).appendChild(dock);
   document.body.classList.add('notification-dock-visible');
+  if (pageContext === 'governance' && !dock.classList.contains('is-collapsed')) {
+    document.body.classList.add('notification-dock-open');
+  }
   updateSidebarAlertFooter(summary || { total: 0 }, pageContext);
   window.dispatchEvent(new CustomEvent('app:notification-summary-updated'));
   return dock;
@@ -159,10 +167,13 @@ export function openNotificationDockFromStore(options = {}) {
   const state = readNotificationDockState(stateKey);
   writeNotificationDockState({ ...state, hidden: false, collapsed: false }, stateKey);
   if (eff <= 0) {
-    mountNotificationDockElement({ total: 0, runtimeAlerts: [] }, pageContext);
-    return null;
+    const dock = mountNotificationDockElement({ total: 0, runtimeAlerts: [] }, pageContext);
+    if (pageContext === 'governance') document.body.classList.add('notification-dock-open');
+    return dock;
   }
-  return mountNotificationDockElement(summary, pageContext);
+  const dock = mountNotificationDockElement(summary, pageContext);
+  if (pageContext === 'governance') document.body.classList.add('notification-dock-open');
+  return dock;
 }
 
 function renderToggleButton({ toggleId, stateKey, onShow, summary } = {}) {

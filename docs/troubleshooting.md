@@ -6,10 +6,13 @@ Use this page for common run and validation issues.
 
 ### Port in use
 
-- Symptom: startup fails with `EADDRINUSE`
+- Symptom: startup fails with `EADDRINUSE` or nodemon shows `app crashed - waiting for file changes`
+- Common cause: multiple `npm run dev` terminals on the same machine (ports 3000–3002)
 - Fix:
-  - stop the process using the same port, or
-  - set another `PORT` and restart
+  - use **one** dev server: `npm run dev:safe` (checks the port before start)
+  - stop duplicate `node`/`nodemon` processes, or set another `PORT` in `.env` and restart
+  - on Windows, if needed: `taskkill /PID <pid> /F` (PID printed by the port guard)
+- Note: CSS/HTML edits no longer restart the API when using `dev:safe` / `dev:hot`; only `server.js`, `lib/`, `routes/`, and `api/` changes trigger nodemon
 
 ## Jira connection issues
 

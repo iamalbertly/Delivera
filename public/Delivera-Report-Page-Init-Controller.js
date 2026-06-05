@@ -3,7 +3,7 @@ import { initFeedbackPanel } from './Delivera-Report-UI-Feedback.js';
 import { initTabs } from './Delivera-Report-UI-Tabs.js';
 import { initProjectSelection, getSelectedProjects } from './Delivera-Report-Page-Selections-Manager.js';
 import { initDateRangeControls } from './Delivera-Report-Page-DateRange-Controller.js';
-import { initPreviewFlow, clearPreviewOnFilterChange, restoreLastPreviewFromStorage } from './Delivera-Report-Page-Preview-Flow.js';
+import { initPreviewFlow, clearPreviewOnFilterChange, restoreLastPreviewFromStorage, showReportError } from './Delivera-Report-Page-Preview-Flow.js';
 import { wirePreviewContextActions } from './Delivera-Report-Page-Render-Preview.js';
 import { initSearchClearButtons } from './Delivera-Report-Page-Search-Clear.js';
 import { initFilters } from './Delivera-Report-Page-Filters-Pills-Manager.js';
@@ -78,8 +78,10 @@ function initReportPage() {
     }
     try {
       collectFilterParams();
-    } catch (_) {
-      setReportActionStatus('Complete scope and date filters before refresh.', 'warning');
+    } catch (error) {
+      const message = (error && typeof error.message === 'string') ? error.message : 'Complete scope and date filters before refresh.';
+      showReportError('Check filters', message);
+      setReportActionStatus(message, 'warning');
       return false;
     }
     setReportActionStatus('Refreshing live report context...', 'info');
@@ -388,7 +390,6 @@ function initReportPage() {
     syncHeaderLoadLatestVisibility(true);
   }
   updateAppliedFiltersSummary();
-  initReportExportMenu();
   initPreviewFlow();
   wirePreviewContextActions();
   const cacheRestored = restoreLastPreviewFromStorage();
@@ -431,15 +432,16 @@ function initReportPage() {
       const query = params.toString();
       if (query) currentSprintHref += '?' + query;
     } catch (_) {}
+    const hasTopChrome = document.body?.classList?.contains('has-top-chrome');
     wrap.innerHTML = ''
       + '<button type="button" id="report-header-preview-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Refresh</button>'
       + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary" data-action="load-latest-preview" hidden>Refresh latest</button>'
-      + '<div class="report-outcome-intake report-outcome-intake-inline">'
+      + (hasTopChrome ? '' : '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'
       + '<button type="button" class="btn btn-primary btn-compact report-outcome-intake-create-btn" data-shared-action-tier="primary" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
-      + '</div>'
+      + '</div>')
       + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Export</button>'
-      + '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Sprint</a>'
+      + (hasTopChrome ? '' : '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Sprint</a>')
       + '<details class="report-header-more-menu">'
       + '<summary class="btn btn-secondary btn-compact" aria-label="More report actions">More</summary>'
       + '<div class="report-header-more-panel" role="group" aria-label="Secondary report actions">'

@@ -6,6 +6,7 @@ import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.j
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
+import { fetchQuartersListMemo } from './Delivera-Shared-Quarters-List-01Fetch-Memo.js';
 import {
   catalogProjectKeys,
   unionProjectKeys,
@@ -86,8 +87,10 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       <div class="gov-scope-capsule" aria-label="Brief scope">
         <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
         <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}</span>
-        <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
-        <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
+        <div class="gov-scope-actions" role="group" aria-label="Scope actions">
+          <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
+          <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
+        </div>
       </div>
       <div id="gov-scope-expanded" class="gov-scope-expanded"${expandedHidden ? ' hidden' : ''}>
         ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn, accessByKey })}
@@ -201,7 +204,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   loadCatalogAccess();
   scheduleValidateSelected(true);
 
-  fetchJson('/api/quarters-list?count=20&includeCached=1')
+  fetchQuartersListMemo(20, { includeCached: true })
     .then((data) => {
       quarters = Array.isArray(data?.quarters) ? data.quarters : [];
       const current = quarters.find((q) => q.isCurrent);

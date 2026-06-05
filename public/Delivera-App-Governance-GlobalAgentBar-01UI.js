@@ -1,4 +1,5 @@
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { ensureSubChromeSlot, SUB_CHROME_SLOT_ID } from './Delivera-Shared-Top-Chrome-01Render-UI.js';
 
 let stickyMount = null;
 let globalBarEl = null;
@@ -6,24 +7,28 @@ let globalBarEl = null;
 export function mountGlobalAgentBar() {
   if (document.body?.classList?.contains('governance-page')) return null;
   if (globalBarEl) return globalBarEl;
+  const slot = ensureSubChromeSlot() || document.getElementById(SUB_CHROME_SLOT_ID);
+  if (!slot) return null;
   globalBarEl = document.createElement('div');
   globalBarEl.id = 'gov-global-agent-bar';
   globalBarEl.className = 'gov-global-agent-bar';
   globalBarEl.setAttribute('role', 'status');
   globalBarEl.setAttribute('aria-live', 'polite');
   globalBarEl.hidden = true;
-  document.body.prepend(globalBarEl);
+  slot.appendChild(globalBarEl);
   return globalBarEl;
 }
 
 export function updateGlobalAgentBar(brief) {
   const bar = mountGlobalAgentBar();
-  if (document.body?.classList?.contains('governance-page')) {
-    bar.hidden = true;
+  if (!bar || document.body?.classList?.contains('governance-page')) {
+    if (bar) bar.hidden = true;
+    document.body.classList.remove('has-sub-chrome');
     return;
   }
   if (!brief) {
     bar.hidden = true;
+    document.body.classList.remove('has-sub-chrome');
     return;
   }
   const receipt = brief?.meta?.workerReceipt || {};
@@ -44,6 +49,7 @@ export function updateGlobalAgentBar(brief) {
     <span class="gov-global-pill">Gaps ${gaps}</span>
     <span class="gov-global-pill">${escapeHtml(pi.slice(0, 50))}</span>`;
   bar.hidden = false;
+  document.body.classList.add('has-sub-chrome');
 }
 
 export function mountStickyMicroAnswer(mount) {

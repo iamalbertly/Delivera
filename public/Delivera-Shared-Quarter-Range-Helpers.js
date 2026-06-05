@@ -195,10 +195,7 @@ export function initQuarterStrip(containerSelector, startInput, endInput, option
   endInput.addEventListener('change', clearSelection);
   endInput.addEventListener('input', clearSelection);
 
-  fetch('/api/quarters-list?count=8', { credentials: 'same-origin' })
-    .then((res) => (res.ok ? res.json() : { quarters: [] }))
-    .catch(() => ({ quarters: [] }))
-    .then((data) => {
+  import('./Delivera-Shared-Quarters-List-01Fetch-Memo.js').then(({ fetchQuartersListMemo }) => fetchQuartersListMemo(8)).then((data) => {
       const quarters = data.quarters || [];
       const now = Date.now();
       const filteredQuarters = quarters.filter((q) => {

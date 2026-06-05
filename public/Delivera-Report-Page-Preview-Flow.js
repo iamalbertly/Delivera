@@ -68,7 +68,7 @@ function narrowDateWindow(endDateInputValue, currentStartInputValue) {
   return { adjustedStart, effectiveEnd };
 }
 
-function showReportError(shortText, detailsText) {
+export function showReportError(shortText, detailsText) {
   const errorEl = reportDom.errorEl;
   if (!errorEl) return;
   const fullMessage = (detailsText && detailsText.trim()) ? detailsText.trim() : (shortText || 'Please fix the issue above.');

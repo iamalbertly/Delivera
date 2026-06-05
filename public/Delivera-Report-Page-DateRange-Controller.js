@@ -151,10 +151,7 @@ function tryFirstRunAutoSetRange(startInput, endInput) {
     }
   }
   if (rangeDays <= 180) return;
-  fetch('/api/quarters-list?count=8', { credentials: 'same-origin' })
-    .then((res) => (res.ok ? res.json() : { quarters: [] }))
-    .catch(() => ({ quarters: [] }))
-    .then((data) => {
+  import('./Delivera-Shared-Quarters-List-01Fetch-Memo.js').then(({ fetchQuartersListMemo }) => fetchQuartersListMemo(8)).then((data) => {
       const quarters = data.quarters || [];
       if (quarters.length === 0) return;
       const now = Date.now();

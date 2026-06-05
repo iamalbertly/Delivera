@@ -4,7 +4,7 @@ import { showContent } from './Delivera-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Delivera-CurrentSprint-Render-Page.js';
 import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { wireHeaderBarHandlers } from './Delivera-CurrentSprint-Header-Bar.js';
+import { wireHeaderBarHandlers, relocateSprintScopeIntoHeaderBar } from './Delivera-CurrentSprint-Header-Bar.js';
 import { wireDynamicHandlers } from './Delivera-CurrentSprint-Page-Handlers.js';
 import { wireHealthDashboardHandlers } from './Delivera-CurrentSprint-Health-Dashboard.js';
 import { wireRisksAndInsightsHandlers } from './Delivera-CurrentSprint-Risks-Insights.js';
@@ -336,6 +336,10 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById, optio
 
   const parts = renderCurrentSprintPageParts(data);
   showContent(parts.initialHtml);
+  requestAnimationFrame(() => {
+    relocateSprintScopeIntoHeaderBar();
+    wireHeaderBarHandlers();
+  });
   markPerf('current-sprint', 'firstValueRendered', { firstValueSource: options.source || 'live' });
 
   if (!parts.hasDeferredSections) {

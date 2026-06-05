@@ -5,6 +5,8 @@ import {
   syncSidebarCollapsedFromStorage,
   writeSidebarCollapsed,
 } from './Delivera-Shared-Top-Chrome-01Render-UI.js';
+import { bootstrapSubChrome } from './Delivera-Shared-Sub-Chrome-01Bootstrap.js';
+import { initStickyOffsetMeasure } from './Delivera-Shared-Sticky-Offset-01Measure.js';
 import {
   readNotificationSummary,
   effectiveNotificationTotal,
@@ -449,6 +451,8 @@ function ensureGlobalNav() {
     document.querySelectorAll('.sidebar-toggle').forEach((node) => node.remove());
 
     ensureTopChrome();
+    bootstrapSubChrome();
+    initStickyOffsetMeasure();
     refreshNotificationDockFromStore();
     const topChrome = document.getElementById('app-top-chrome');
     if (topChrome && skipLink && skipLink.parentNode) {

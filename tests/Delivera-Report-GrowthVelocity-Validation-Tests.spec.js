@@ -20,9 +20,15 @@ test.describe('Growth & Velocity Plan Validation', () => {
         const velocityValue = page.locator('.hud-card:has-text("Velocity") .metric-value');
         const hasLegacyHud = await velocityValue.count();
         if (!hasLegacyHud) {
-            // Current flow routes leadership to report trends.
-            await expect(page).toHaveURL(/\/report|\/leadership/);
-            await expect(page.locator('h1')).toContainText(/Delivery|General Performance|Leadership/i);
+            // Legacy leadership routes to Brief decision snapshot or Proof trends.
+            await expect(page).toHaveURL(/\/governance|\/report|\/leadership/);
+            const h1Text = ((await page.locator('h1').first().textContent().catch(() => '')) || '').trim();
+            const onGovernance = page.url().includes('/governance');
+            if (onGovernance) {
+                await expect(page.locator('[aria-label="Brief scope"], #gov-scope-bar').first()).toBeVisible({ timeout: 15000 });
+            } else {
+                await expect(h1Text).toMatch(/Proof|Delivery|General Performance|Leadership/i);
+            }
             return;
         }
         const connectionText = ((await connectionStatus.textContent().catch(() => '')) || '').trim();

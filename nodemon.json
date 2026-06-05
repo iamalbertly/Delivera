@@ -1,6 +1,6 @@
 {
-  "watch": ["server.js", "api", "lib", "routes", "public"],
-  "ext": "js,json,html,css,mjs",
+  "watch": ["server.js", "api", "lib", "routes"],
+  "ext": "js,json,mjs",
   "delay": 500,
   "signal": "SIGTERM"
 }

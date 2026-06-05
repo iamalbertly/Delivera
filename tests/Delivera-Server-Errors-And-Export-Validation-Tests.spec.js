@@ -7,6 +7,8 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
   captureBrowserTelemetry,
+  ensureReportFiltersVisible,
+  getReportPreviewTrigger,
   runDefaultPreview,
   waitForPreview,
   IGNORE_CONSOLE_ERRORS,
@@ -122,10 +124,12 @@ test.describe('Server errors and export validation', () => {
 
   test('date validation: start >= end shows error without sending preview request', async ({ page }) => {
     await page.goto('/report');
-    await expect(page.locator('#preview-btn')).toBeVisible();
-    await page.fill('#start-date', '2025-09-30T23:59');
-    await page.fill('#end-date', '2025-07-01T00:00');
-    await page.click('#preview-btn');
+    await ensureReportFiltersVisible(page);
+    const previewTrigger = await getReportPreviewTrigger(page);
+    await expect(previewTrigger).toBeVisible();
+    await page.fill('#start-date', '2025-09-30T23:59', { force: true });
+    await page.fill('#end-date', '2025-07-01T00:00', { force: true });
+    await previewTrigger.click();
     await expect(page.locator('#error')).toBeVisible({ timeout: 5000 });
     const errorText = await page.locator('#error').textContent();
     expect(errorText).toMatch(/Start date|before end date/i);

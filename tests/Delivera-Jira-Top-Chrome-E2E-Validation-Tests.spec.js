@@ -2,6 +2,7 @@ import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validat
 import {
   assertTelemetryClean,
   captureBrowserTelemetry,
+  getLayoutOverlapReport,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 
@@ -145,6 +146,69 @@ test.describe('Jira-style top chrome E2E', () => {
     await page.locator('[data-top-action="sidebar-toggle"]').click();
     const after = await page.evaluate(() => document.body.classList.contains('sidebar-collapsed'));
     expect(before).not.toBe(after);
+  });
+
+  test('mobile governance search collapses by default without switcher overlap', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await mockGovernanceBrief(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/governance');
+    if (await skipIfLogin(page)) return;
+
+    const searchWrap = page.locator('.app-top-search-wrap');
+    await expect(searchWrap).toHaveClass(/is-collapsed/);
+    await expect(page.locator('[data-top-slot="brand"]')).toBeHidden();
+
+    const overlap = await getLayoutOverlapReport(page, {
+      selectors: [
+        '#app-top-chrome .app-top-switcher-item',
+        '#app-top-chrome .app-top-search-wrap',
+        '#app-top-chrome [data-top-action="notifications"]',
+      ],
+    });
+    expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
+
+    await page.locator('#app-top-search').focus();
+    await expect(searchWrap).not.toHaveClass(/is-collapsed/);
+    await expect(page.locator('body')).toHaveClass(/top-search-active/);
+
+    const expandedOverlap = await getLayoutOverlapReport(page, {
+      selectors: [
+        '#app-top-chrome .app-top-search-wrap',
+        '#gov-scope-bar-mount',
+        '#app-top-chrome .app-top-switcher-item',
+      ],
+      maxPairs: 16,
+    });
+    expect(expandedOverlap.truncated).toBeFalsy();
+    expect(expandedOverlap.overlaps, JSON.stringify(expandedOverlap.overlaps)).toEqual([]);
+
+    assertTelemetryClean(telemetry);
+  });
+
+  test('tablet governance top chrome has no switcher overlap at 768px', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await mockGovernanceBrief(page);
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto('/governance');
+    if (await skipIfLogin(page)) return;
+
+    await expect(page.locator('.app-top-search-wrap')).toHaveClass(/is-collapsed/);
+    await expect(page.locator('[data-top-slot="brand"]')).toBeHidden();
+
+    const overlap = await getLayoutOverlapReport(page, {
+      selectors: [
+        '#app-top-chrome .app-top-switcher-item',
+        '#app-top-chrome .app-top-search-wrap',
+        '#app-top-chrome [data-top-action="notifications"]',
+        '#app-top-chrome [data-top-action="create-work"]',
+      ],
+      maxPairs: 24,
+    });
+    expect(overlap.truncated).toBeFalsy();
+    expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
+
+    assertTelemetryClean(telemetry);
   });
 
   test('mobile sidebar drawer opens from top toggle', async ({ page }) => {

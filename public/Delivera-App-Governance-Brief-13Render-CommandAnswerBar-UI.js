@@ -40,11 +40,11 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   const fresh = freshnessShortLabel(brief?.freshness || {});
 
   const doFirstCta = hasOwnerClusters
-    ? `<button type="button" class="btn btn-primary btn-compact" id="gov-scroll-first-nudge">${escapeHtml(COPY.draftNudge)} →</button>`
+    ? ''
     : (doFirstUrl
       ? `<a class="btn btn-primary btn-compact" href="${escapeHtml(doFirstUrl)}" target="_blank" rel="noopener">Open →</a>`
       : '');
-  const doFirstStrip = showDoFirstStrip
+  const doFirstStrip = showDoFirstStrip && !hasOwnerClusters
     ? `<div class="gov-do-first-strip" data-hover-proof="owner-lane">
         <span class="gov-do-first-prefix">${escapeHtml(COPY.doFirst)}:</span>
         <strong class="gov-do-first-action">${escapeHtml(doFirstLabel)}</strong>
@@ -62,8 +62,13 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     ? '<span class="gov-narration-badge gov-narration-badge--advisor" title="Advisor narration">Advisor</span>'
     : '<span class="gov-narration-badge gov-narration-badge--template" title="Template narration">Template</span>';
 
+  const showReviewActions = !hasOwnerClusters && !showDoFirstStrip;
+  const reviewActionsBtn = showReviewActions
+    ? `<button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">${escapeHtml(COPY.reviewActions)}</button>`
+    : '';
+
   return `
-    <section class="gov-command-answer" aria-label="${escapeHtml(COPY.briefTitle)}">
+    <section class="gov-command-answer" aria-label="${escapeHtml(COPY.briefTitle)}"${hasOwnerClusters ? ' data-has-owner-clusters="true"' : ''}>
       <div class="gov-command-head">${trustBadge}</div>
       <div class="gov-visual-answer-blocks" role="group" aria-label="Delivery decision">
         <div class="gov-answer-block gov-answer-block--status gov-answer-block--${escapeHtml(tier)}" data-hover-proof="status" data-verdict-tier="${escapeHtml(tier)}">
@@ -89,7 +94,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
       </div>
       ${detailLine ? `<p class="gov-command-answer-detail">${escapeHtml(detailLine.slice(0, 200))}</p>` : ''}
       <div class="gov-command-actions">
-        <button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">${escapeHtml(COPY.reviewActions)}</button>
+        ${reviewActionsBtn}
         <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-answer-inline">Copy answer</button>
         <div class="gov-overflow-menu-wrap">
           <button type="button" class="btn btn-secondary btn-compact" id="gov-overflow-toggle" aria-expanded="false" aria-haspopup="true">${escapeHtml(COPY.overflowMore)}</button>

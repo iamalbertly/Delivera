@@ -11,6 +11,7 @@ import {
 
 export const TOP_CHROME_ID = 'app-top-chrome';
 export const NOTIFICATION_SLOT_ID = 'app-notification-slot';
+export const SUB_CHROME_SLOT_ID = 'app-sub-chrome-slot';
 export const TOP_CHROME_SELECTORS = {
   root: `#${TOP_CHROME_ID}`,
   toggle: '[data-top-action="sidebar-toggle"]',
@@ -274,11 +275,39 @@ function updateNotificationBadge() {
   }
 }
 
+function isMobileTopChrome() {
+  return typeof window !== 'undefined'
+    && window.matchMedia
+    && window.matchMedia('(max-width: 768px)').matches;
+}
+
+function dismissTopSearchActive(chrome) {
+  const search = chrome?.querySelector('#app-top-search');
+  if (search && document.activeElement === search) search.blur();
+  document.body.classList.remove('top-search-active');
+  syncMobileSearchCollapse(chrome);
+}
+
+function syncMobileSearchCollapse(chrome) {
+  const wrap = chrome?.querySelector('.app-top-search-wrap');
+  const search = chrome?.querySelector('#app-top-search');
+  if (!wrap || !search) return;
+  const mobile = isMobileTopChrome();
+  const active = document.body.classList.contains('top-search-active');
+  if (!mobile || active) {
+    wrap.classList.remove('is-collapsed');
+    return;
+  }
+  wrap.classList.add('is-collapsed');
+  if (document.activeElement === search) search.blur();
+}
+
 function bindTopChromeInteractions(chrome, current) {
   if (chrome.dataset.topChromeBound === '1') return;
   chrome.dataset.topChromeBound = '1';
 
   const search = chrome.querySelector('#app-top-search');
+  const searchWrap = chrome.querySelector('.app-top-search-wrap');
   let searchTimer = 0;
   search?.addEventListener('input', () => {
     if (searchTimer) window.clearTimeout(searchTimer);
@@ -292,8 +321,32 @@ function bindTopChromeInteractions(chrome, current) {
       delegateSearch(getCurrentPageForChrome(), search.value);
     }
   });
-  search?.addEventListener('focus', () => document.body.classList.add('top-search-active'));
-  search?.addEventListener('blur', () => document.body.classList.remove('top-search-active'));
+  search?.addEventListener('focus', () => {
+    document.body.classList.add('top-search-active');
+    searchWrap?.classList.remove('is-collapsed');
+  });
+  search?.addEventListener('blur', () => {
+    window.setTimeout(() => {
+      if (document.activeElement === search) return;
+      dismissTopSearchActive(chrome);
+    }, 0);
+  });
+  if (!window.__deliveraTopChromeEscapeBound) {
+    window.__deliveraTopChromeEscapeBound = true;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !document.body.classList.contains('top-search-active')) return;
+      const el = document.getElementById(TOP_CHROME_ID);
+      if (el) dismissTopSearchActive(el);
+    });
+  }
+  if (!window.__deliveraTopChromeResizeBound) {
+    window.__deliveraTopChromeResizeBound = true;
+    window.addEventListener('resize', () => {
+      const el = document.getElementById(TOP_CHROME_ID);
+      if (el) syncMobileSearchCollapse(el);
+    });
+  }
+  syncMobileSearchCollapse(chrome);
 
   chrome.querySelector('[data-top-action="help"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -380,12 +433,29 @@ export function ensureNotificationSlot() {
   return slot;
 }
 
+export function ensureSubChromeSlot() {
+  const notifySlot = ensureNotificationSlot();
+  if (!notifySlot) return null;
+  let slot = document.getElementById(SUB_CHROME_SLOT_ID);
+  if (!slot) {
+    slot = document.createElement('div');
+    slot.id = SUB_CHROME_SLOT_ID;
+    slot.className = 'app-sub-chrome-slot';
+    slot.setAttribute('aria-live', 'polite');
+  }
+  if (slot.previousElementSibling?.id !== NOTIFICATION_SLOT_ID) {
+    notifySlot.insertAdjacentElement('afterend', slot);
+  }
+  return slot;
+}
+
 export function ensureTopChrome() {
   const current = getCurrentPageForChrome();
   if (current === PAGE_LOGIN) {
     document.getElementById(TOP_CHROME_ID)?.remove();
     document.getElementById(NOTIFICATION_SLOT_ID)?.remove();
-    document.body.classList.remove('has-top-chrome', 'chrome-suppress-page-create');
+    document.getElementById(SUB_CHROME_SLOT_ID)?.remove();
+    document.body.classList.remove('has-top-chrome', 'chrome-suppress-page-create', 'has-sub-chrome');
     return null;
   }
 
@@ -398,6 +468,7 @@ export function ensureTopChrome() {
     document.body.insertBefore(chrome, document.body.firstChild);
   }
   ensureNotificationSlot();
+  ensureSubChromeSlot();
 
   delete chrome.dataset.topChromeBound;
   chrome.innerHTML = buildTopChromeHTML(current);
@@ -405,6 +476,7 @@ export function ensureTopChrome() {
   applyDefaultSidebarCollapsed(current);
   syncSidebarCollapsedFromStorage();
   bindTopChromeInteractions(chrome, current);
+  syncMobileSearchCollapse(chrome);
   updateNotificationBadge();
   refreshTopChromeBrand();
   loadSessionMetaIntoAvatar();

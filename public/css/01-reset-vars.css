@@ -41,8 +41,9 @@
   --radius-lg: 16px;
   --top-chrome-height: 56px;
   --top-chrome-bg: var(--primary-strong);
+  --sub-chrome-height: 0px;
   --sticky-global-nav-top: var(--top-chrome-height);
-  --sticky-summary-top: 72px;
+  --sticky-summary-top: calc(var(--sticky-global-nav-top) + 8px);
   --sticky-table-head-top: 64px;
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
