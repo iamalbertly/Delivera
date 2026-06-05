@@ -126,6 +126,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/governance,/api/governance/pi-baseline/propose-from-image',
   },
+  'tests/Delivera-Governance-PIBaseline-Wizard-Direct-Value-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'page-ux',
+    page: '/governance,/api/governance/pi-baseline/propose,/api/governance/pi-baseline',
+  },
   'tests/Delivera-Governance-Brief-Evidence-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'data-contract',

@@ -237,6 +237,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
 
   baselineWizard = mountPIBaselineWizard({
     getProjectsCsv: () => selected.join(','),
+    getQuarterLabel: () => activeQuarter,
     onSaved: () => onRefresh?.(),
   });
 
@@ -247,6 +248,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     if (csv === selected.join(',')) return;
     selected = next;
     render();
+    notifyScopeChanged();
     onScopeChange?.(selected);
     onRefresh?.();
   });
@@ -257,6 +259,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     getQuarterLabel: () => activeQuarter,
     refreshCapsule: () => render(),
     openBaselineWizard: () => baselineWizard?.open(),
+    openPiBaselineWizard: () => baselineWizard?.open(),
     expandScopePanel: () => {
       const panel = mount.querySelector('#gov-scope-expanded');
       if (panel) panel.removeAttribute('hidden');

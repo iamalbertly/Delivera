@@ -1,4 +1,4 @@
-import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, businessTitleFromSummary } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
 import { renderAdHocChip, renderEpicHygieneInlineRow } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
@@ -13,7 +13,7 @@ function chipHtml(chip) {
         <span class="gov-pi-chip-key">${escapeHtml(chip.issueKey || '')}</span>
         <span class="gov-pi-chip-conf gov-pi-conf--${escapeHtml(String(conf).toLowerCase())}">${escapeHtml(conf)}</span>
       </header>
-      <p class="gov-pi-chip-title">${escapeHtml(chip.title || '')}</p>
+      <p class="gov-pi-chip-title">${escapeHtml(businessTitleFromSummary(chip.title || '', 72))}</p>
       <div class="gov-pi-chip-bars">
         <span class="gov-pi-bar-label">Time</span>
         <div class="gov-pi-bar"><span style="width:${chip.elapsedPct || 0}%"></span></div>
@@ -36,7 +36,7 @@ export function renderPIConfidenceStrip(brief) {
   const chips = (strip.timelineChips || []).map(chipHtml).join('');
   const chipsBlock = chips
     ? `<div class="gov-pi-chip-row" role="list">${chips}</div>`
-    : '<p class="gov-pi-empty">Set PI baseline to unlock timeline chips.</p>';
+    : `<p class="gov-pi-empty">${escapeHtml(COPY.piBaselineTimelineLocked)}</p>`;
   const adHocChip = renderAdHocChip(brief);
   const hygiene = brief?.meta?.epicHygiene;
   const hygieneRow = noData
@@ -78,8 +78,8 @@ export function renderPIConfidenceStrip(brief) {
         ${noData ? '' : `<button type="button" class="btn btn-secondary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>`}
       </div>
       ${strip.trusted ? '' : `<dl class="gov-pi-counter-row">
-        <div><dt>Confirmed</dt><dd>${c.committed ?? 0}</dd></div>
-        <div data-hover-proof="pi-candidates"><dt>Candidates</dt><dd>${(c.offPlan || 0) + (c.onTrack || 0)}</dd></div>
+        <div><dt>${escapeHtml(COPY.piBaselinePromised)}</dt><dd>${c.committed ?? 0}</dd></div>
+        <div data-hover-proof="pi-candidates"><dt>${escapeHtml(COPY.piBaselineNotSaved)}</dt><dd>${(c.offPlan || 0) + (c.onTrack || 0)}</dd></div>
         <div><dt>Missing dates</dt><dd>${c.missingDates ?? 0}</dd></div>
         <div><dt>At risk</dt><dd>${c.atRisk ?? 0}</dd></div>
       </dl>`}

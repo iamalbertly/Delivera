@@ -2,6 +2,7 @@
  * Governance scope — project + period selectors (scroll pills desktop, native select mobile).
  */
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 export function unionProjectKeys(...lists) {
@@ -89,7 +90,7 @@ export function renderExpandedSelectors({
         ${renderMobileProjectChecklist(projectKeys, selected, accessByKey)}
         ${renderMobileQuarterSelect(quarters, activeQuarter)}
       </div>
-      <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">Set PI baseline</button>
+      <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">${escapeHtml(COPY.piBaselineCta)}</button>
       <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">${escapeHtml(advancedLabel)}</button>
     </div>`;
 }

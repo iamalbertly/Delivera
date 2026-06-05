@@ -91,7 +91,19 @@ describe('PI baseline propose agent', () => {
     });
     assert.ok(body.candidates.length >= 1);
     assert.equal(body.method, 'board-epics');
-    assert.equal(body.guidance, null);
+    assert.equal(body.guidanceCode, null);
+  });
+
+  it('runProposePipeline returns guidanceCode when no candidates on board', async () => {
+    const body = await runProposePipeline({
+      projects: ['SD'],
+      cache: mockCache({}),
+      version3Client: null,
+      quarter: 'FY27 Q1',
+      providerConfig: { provider: 'built-in', apiKey: '' },
+    });
+    assert.equal(body.candidates.length, 0);
+    assert.equal(body.guidanceCode, 'no-board-epics');
   });
 
   it('parseSlideExtraction returns parseError on invalid JSON', () => {

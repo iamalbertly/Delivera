@@ -59,7 +59,7 @@ const COMMAND_BRIEF = {
     safeToSend: true,
     commandAnswerSentence: 'DELIVERY BLOCKED — two stale items need decisions today.',
     workerReceipt: { line: 'Last run: 2m ago · Checked: Jira, sprint, evidence · Prepared: 1 brief, 2 nudges · Needs: pi baseline' },
-    setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }],
+    setupGaps: [{ id: 'pi-baseline', action: 'set-baseline', severity: 'high' }],
     sinceLastRun: { summary: 'Since last brief: +1 blocker, MPSA-2 unchanged' },
   },
 };
@@ -151,7 +151,7 @@ test.describe('Governance command surface — UI', () => {
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
     await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
-    await expect(page.locator('.gov-answer-block--status')).toContainText(/Blocked|DELIVERY BLOCKED/i);
+    await expect(page.locator('.gov-scope-status-chip, .gov-answer-block--status').first()).toContainText(/Blocked|DELIVERY BLOCKED|✕/i);
     assertTelemetryClean(telemetry);
   });
 
@@ -215,6 +215,16 @@ test.describe('Governance command surface — UI', () => {
     await expect(page.locator('.gov-setup-debt--compact')).toBeVisible();
     await page.locator('#gov-setup-gaps-expand').click();
     await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toBeVisible();
+    await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toContainText(/Confirm promised work/i);
+  });
+
+  test('safe send blocked until promised work saved', async ({ page }) => {
+    await mockCommandSurfacePage(page);
+    await page.goto('/governance');
+    if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    const badge = page.locator('.gov-command-answer .gov-send-badge');
+    await expect(badge.first()).toContainText(/Fix promised work first/i);
+    await expect(badge).not.toContainText(/Safe to send/i);
   });
 
   test('setup compact expand does not duplicate fix card rows', async ({ page }) => {

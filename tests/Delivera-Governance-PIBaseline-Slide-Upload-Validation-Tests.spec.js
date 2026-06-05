@@ -23,7 +23,7 @@ const CLARITY_BRIEF = {
       timelineChips: [],
       counts: { committed: 0, offPlan: 1, onTrack: 0, missingDates: 0, atRisk: 0 },
     },
-    setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }],
+    setupGaps: [{ id: 'pi-baseline', action: 'set-baseline', severity: 'high' }],
     workerReceipt: { line: 'Last run: 1m ago', inboxTotal: 0 },
   },
   topRisks: [],
@@ -70,7 +70,7 @@ async function mockGovernanceBriefPage(page) {
   }));
   await page.route('**/api/governance/pi-baseline/propose?**', (r) => r.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ method: 'board-epics', candidates: [], guidance: null }),
+    body: JSON.stringify({ method: 'board-epics', candidates: [], guidanceCode: null }),
   }));
 }
 

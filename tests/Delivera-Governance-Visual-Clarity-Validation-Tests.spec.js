@@ -21,7 +21,7 @@ const CLARITY_BRIEF = {
     },
     epicHygiene: { score: 40, epicCount: 4, weak: [{ issueKey: 'SD-1' }], bySquad: [{ squad: 'SD board', score: 40 }], suggestions: [] },
     adHocEpics: [{ issueKey: 'SD-99', summary: 'Ad hoc', reason: 'not baseline' }],
-    setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }],
+    setupGaps: [{ id: 'pi-baseline', action: 'set-baseline', severity: 'high' }],
     workerReceipt: { line: 'Last run: 1m ago', inboxTotal: 2 },
   },
   topRisks: [{ issueKey: 'SD-1', assigneeName: 'Amani', decisionNeededFrom: 'Leadership', recommendedAction: 'Ping Amani', escalation: 'act-today', issueUrl: 'https://example/SD-1' }],
@@ -106,19 +106,21 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     });
     await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify({ method: 'board-epics', candidates: [], guidance: null }),
+      body: JSON.stringify({ method: 'board-epics', candidates: [], guidanceCode: 'no-board-epics' }),
     }));
     await page.goto('/governance');
     await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
     await openPiStripFoldIfPresent(page);
     await page.locator('#gov-pi-fix-baseline').dispatchEvent('click');
-    await expect(page.locator('.gov-baseline-slide-drop')).toBeVisible();
+    await expect(page.locator('.gov-baseline-optional .gov-baseline-slide-drop, .gov-baseline-slide-drop').first()).toBeVisible();
   });
 
-  test('do-first strip when blocked', async ({ page }) => {
+  test('owner cluster primary CTA when blocked', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await expect(page.locator('.gov-do-first-strip')).toBeVisible();
+    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
+    await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
+    await expect(page.locator('.gov-owner-cluster')).toContainText(/Leadership|Amani/i);
   });
 
   test('overflow menu is positioned dropdown not details', async ({ page }) => {
@@ -172,7 +174,9 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('grouped inbox truncates with show more', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
+    await expect(page.locator('#gov-top-chrome-mount.gov-top-chrome--has-queue')).toBeAttached();
     await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
+    await expect(page.locator('[data-queue-open]')).toBeVisible();
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-group-card')).toHaveCount(8);
     await expect(page.locator('#gov-inbox-show-more')).toBeVisible();
@@ -227,13 +231,13 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await mockClarityPage(page);
     await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify({ method: 'manual', candidates: [], guidance: 'Add PI items in Jira.' }),
+      body: JSON.stringify({ method: 'manual', candidates: [], guidanceCode: 'no-board-epics' }),
     }));
     await page.goto('/governance');
     await page.locator('#gov-setup-gaps-expand').click();
     await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
-    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/epic/i);
+    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/Promised work/i);
   });
 
   test('measurement strip excludes setup gaps', async ({ page }) => {

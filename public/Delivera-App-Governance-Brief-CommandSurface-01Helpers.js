@@ -25,8 +25,15 @@ export function proofChipSummary(brief, issueKeys = []) {
 
 export { riskToUseCase } from './Delivera-App-Governance-Brief-RiskToUseCase-01Map-SSOT.js';
 
+function hasPiBaselineGap(brief = {}) {
+  if (brief?.baselineComparison) return false;
+  const gaps = brief?.meta?.setupGaps || [];
+  return gaps.some((g) => String(g.id || '').toLowerCase() === 'pi-baseline');
+}
+
 export function sendReadinessBadge(brief) {
   if (brief?.freshness?.confidenceLimit === 'stale') return { label: 'Stale — refresh first', tier: 'stale' };
+  if (hasPiBaselineGap(brief)) return { label: COPY.piBaselineFixFirst, tier: 'setup' };
   if (brief?.meta?.safeToSend === false) return { label: 'Needs edit', tier: 'weak' };
   if (brief?.meta?.safeToSend === true) return { label: 'Safe to send', tier: 'safe' };
   return { label: 'Weak evidence', tier: 'weak' };

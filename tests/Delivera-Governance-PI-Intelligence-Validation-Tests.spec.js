@@ -150,6 +150,8 @@ test.describe('Governance PI intelligence', () => {
     await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-strip')).toBeVisible();
     await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-gauge-track, .gov-pi-strip-fold[open] .gov-pi-nodata')).toBeVisible();
     await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-counter-row')).toBeVisible();
+    await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-counter-row')).toContainText(/Promised/i);
+    await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-counter-row')).toContainText(/Not saved yet/i);
   });
 
   test('scope capsule shows available and no sprint counts', async ({ page }) => {
@@ -191,7 +193,8 @@ test.describe('Governance PI intelligence', () => {
     await page.goto('/governance');
     await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
     await expect(page.locator('.gov-trust-chip-row')).toBeVisible();
-    await expect(page.locator('#gov-review-actions')).toBeVisible();
+    await expect(page.locator('#gov-review-actions')).toHaveCount(0);
+    await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
   });
 
   test('grouped inbox drawer shows group card', async ({ page }) => {
@@ -256,14 +259,11 @@ test.describe('Governance PI intelligence', () => {
   });
 
   test('guided fix cards when setup gaps present', async ({ page }) => {
-    const withGaps = { ...PI_BRIEF, meta: { ...PI_BRIEF.meta, setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }] } };
-    await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA,MAS'); });
+    const withGaps = { ...PI_BRIEF, meta: { ...PI_BRIEF.meta, setupGaps: [{ id: 'pi-baseline', action: 'set-baseline', severity: 'high' }] } };
+    await mockPiPage(page);
     await page.route('**/api/governance-brief.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withGaps) }));
-    await page.route('**/api/quarters-list**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
-    await page.route('**/api/governance/adoption-metrics.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0 }) }));
-    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [] }) }));
-    await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, agents: [], lastImprovements: [] }) }));
     await page.goto('/governance');
+    await expect(page.locator('#gov-setup-gaps-expand')).toBeVisible();
     await page.locator('#gov-setup-gaps-expand').click();
     await expect(page.locator('.gov-fix-card')).toBeVisible();
   });

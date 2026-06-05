@@ -7,7 +7,7 @@ import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-
 import { buildGuidedNudgeText } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-import { govPage, MARK_WRONG_REASONS, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js';
+import { govPage, MARK_WRONG_REASONS, openPiBaselineWizard, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js';
 
 function riskByProofIndex(idx) {
   return govPage.proofRisks[Number(idx)];
@@ -323,8 +323,7 @@ export function bindSetupDebtActions() {
     if (!chip) return;
     const action = chip.getAttribute('data-setup-action');
     if (action === 'set-baseline') {
-      govPage.scopeBarApi?.expandScopePanel?.();
-      govPage.scopeBarApi?.openBaselineWizard?.();
+      openPiBaselineWizard();
     } else if (action === 'add-ai-key') window.location.href = '/settings#gov-ai-helper';
     else if (action === 'create-work') document.getElementById('gov-hidden-create-work')?.click();
     else if (action === 'map-board') document.getElementById('gov-scope-change')?.click();

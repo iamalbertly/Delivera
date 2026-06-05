@@ -51,6 +51,12 @@ export function refreshScopeBarCounts() {
   govPage.scopeBarApi?.refreshCapsule?.();
 }
 
+/** Single entry — opens promised-work wizard without expanding scope panel. */
+export function openPiBaselineWizard() {
+  govPage.scopeBarApi?.openPiBaselineWizard?.()
+    || govPage.scopeBarApi?.openBaselineWizard?.();
+}
+
 export function whyItMatters(risk) {
   if (risk.riskType === 'insufficient-delivery-evidence') {
     return 'Progress cannot be verified from Jira for this scope.';

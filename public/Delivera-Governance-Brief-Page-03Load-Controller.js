@@ -26,7 +26,7 @@ import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-Ho
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
 import { updateGlobalAgentBar, updateStickyMicroAnswer } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import {
-  govPage, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
+  govPage, openPiBaselineWizard, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
 } from './Delivera-Governance-Brief-Page-01Context.js';
 import { bindOwnerClusterInteractions, bindProofInteractions } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import {
@@ -94,14 +94,14 @@ export function renderBriefUi(brief) {
       : piInner;
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
     govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
-      govPage.scopeBarApi?.expandScopePanel?.();
-      govPage.scopeBarApi?.openBaselineWizard?.();
+      openPiBaselineWizard();
     });
   }
   if (govPage.els.workerReceiptMount) govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
   if (govPage.els.answerMount) {
     govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters });
     bindCommandOverflowMenu(govPage.els.answerMount);
+    govPage.els.answerMount.querySelector('#gov-export-overflow')?.addEventListener('click', copyBrief);
   }
   if (govPage.els.actionClustersMount) {
     govPage.els.actionClustersMount.innerHTML = renderOwnerActionClusters(brief, govPage.ownerGroups);
@@ -159,7 +159,14 @@ export function renderBriefUi(brief) {
   const warnCards = (brief?.meta?.scopeIntelligence?.cards || []).filter((c) => c.health && c.health !== 'ok').length;
   govPage.scopeBarApi?.setAdvancedWarnCount?.(warnCards);
   setBriefNavBadge(inboxTotal);
+  const topChrome = document.getElementById('gov-top-chrome-mount');
+  if (topChrome) topChrome.classList.toggle('gov-top-chrome--has-queue', inboxTotal > 0);
   mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], govPage.lastFeedbackSummary);
+  const secondaryChrome = document.getElementById('gov-secondary-chrome');
+  if (secondaryChrome) {
+    secondaryChrome.classList.toggle('gov-secondary-chrome--has-content',
+      Boolean(govPage.els.feedbackLabMount?.innerHTML?.trim() || govPage.els.microSurveyMount?.innerHTML?.trim()));
+  }
 }
 
 export async function loadBrief(options = {}) {

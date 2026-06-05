@@ -1,5 +1,5 @@
 import { parseOutcomeIntake, OUTCOME_STRUCTURE_MODE } from './Delivera-Shared-Outcome-Intake-Parser.js';
-import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY, GOVERNANCE_QUARTER_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {
   readAiProviderPref,
   saveAiProviderPref,
@@ -7,7 +7,8 @@ import {
   hasAiProviderKey,
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { resizeImageFileToBase64, bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
+import { postSlidePropose } from './Delivera-App-Shared-PIBaseline-Slide-01Client-Helper.js';
+import { bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
 import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1674,23 +1675,8 @@ function wireEvents() {
     if (!file || !ta) return;
     if (status) { status.hidden = false; status.textContent = COPY.baselineSlideReading || 'Reading slide…'; }
     try {
-      const { base64, mimeType } = await resizeImageFileToBase64(file);
-      let quarter = '';
-      try { quarter = localStorage.getItem(GOVERNANCE_QUARTER_KEY) || ''; } catch (_) { /* ignore */ }
       const projects = _projectOptions.length ? _projectOptions : [_projectKey].filter(Boolean);
-      const res = await fetch('/api/governance/pi-baseline/propose-from-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...aiProviderRequestHeaders() },
-        body: JSON.stringify({
-          imageBase64: base64,
-          mimeType,
-          projects,
-          projectsCsv: projects.join(','),
-          quarter,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Slide read failed');
+      const data = await postSlidePropose({ file, projects, projectsCsv: projects.join(',') });
       const lines = (data.extracted || []).map((r) => {
         const parts = [r.month, r.theme, r.bullet].filter(Boolean);
         return parts.join(' — ');

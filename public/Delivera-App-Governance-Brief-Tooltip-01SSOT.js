@@ -1,6 +1,6 @@
 /** Tooltip copy SSOT for governance PI surfaces. */
 export const GOV_TOOLTIPS = Object.freeze({
-  piConfidence: 'PI confidence compares baseline commitments to current Jira status.',
+  piConfidence: 'Compares promised work this quarter to what is on the board now.',
   piChipElapsed: 'Time elapsed between planned start and today.',
   piChipDelivery: 'Delivery progress from baseline verdict.',
   adHocEpic: 'Epic active in sprint but not in approved PI baseline.',

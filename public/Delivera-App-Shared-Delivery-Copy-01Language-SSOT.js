@@ -67,7 +67,24 @@ export const COPY = {
   statusIconWatch: '⚠ Watch',
   statusIconOnTrack: '✓ OK',
   statusIconSetup: '○ Setup',
-  fixPiBaseline: 'Confirm epics',
+  fixPiBaseline: 'Confirm promised work',
+  piBaselineCta: 'Confirm promised work',
+  piBaselineWhy: 'Save what your squad agreed to deliver this quarter.',
+  piBaselineImpact: 'Without this, carryover and removed work cannot be proven.',
+  piBaselineDrawerTitle: 'Promised work this quarter',
+  piBaselineConfirmBtn: 'Save promised work',
+  piBaselineInclusionHint: 'All items are pre-selected. Remove any work your squad did NOT promise this quarter.',
+  piBaselineFewItems: 'Only {n} items found. If your quarter plan has more, upload the PI slide or refresh after adding work in Jira.',
+  piBaselineOptionalSlide: 'Optional: match your PI plan slide',
+  piBaselineStep1: 'We read promised work from your board (stories link to these items)',
+  piBaselineStep2: 'Tick what your squad promised this quarter',
+  piBaselineStep3: 'Save — carryover and removed scope become provable',
+  piBaselinePromised: 'Promised',
+  piBaselineNotSaved: 'Not saved yet',
+  piBaselineTimelineLocked: 'Save promised work to unlock timeline.',
+  piBaselineFixFirst: 'Fix promised work first',
+  piBaselineGapTitle: 'Promised work not saved',
+  aiKeyRequiredSlide: 'Add an OpenAI or Claude key in Settings to read PI plan slides.',
   adHocChip: 'Not confirmed',
   adHocChipHint: 'In Jira, not saved in Delivera yet',
   learningReceipt: 'Feedback improved',
@@ -79,7 +96,7 @@ export const COPY = {
   queueTabConfirm: 'Confirm',
   queueTabImpact: 'Impact',
   queueTabPo: 'PO',
-  baselineLoading: 'Loading PI candidates…',
+  baselineLoading: 'Loading promised work…',
   inboxPreparing: 'Brief is preparing — refresh shortly.',
   inboxUnavailable: 'Queue unavailable — refresh the brief.',
   inboxCachedHint: 'Cached preview — refresh for live queue.',
@@ -93,20 +110,20 @@ export const COPY = {
   inboxResolveFailed: 'Could not update queue',
   refreshBrief: 'Refresh',
   close: 'Close',
-  baselineTitle: 'Confirm this quarter\'s epics',
-  baselineStep1: 'Epics are read from your board (no extra labels needed)',
-  baselineStep2: 'Optional: upload PI plan slide below',
-  baselineStep3: 'Tick epics → Confirm',
-  baselineEmptyHint: 'No epics on the board yet. Use Create work to add them first.',
-  baselineEmptyHintPartial: 'Epics found in Jira — upload your PI plan or pick manually below.',
-  baselineConfirmTitle: 'Confirm quarter epics',
-  baselineConfirmHint: 'Uncheck items that are not PI commitments. Source:',
-  baselineConfirmBtn: 'Confirm epics',
+  baselineTitle: 'Promised work this quarter',
+  baselineStep1: 'We read promised work from your board (stories link to these items)',
+  baselineStep2: 'Tick what your squad promised this quarter',
+  baselineStep3: 'Save — carryover and removed scope become provable',
+  baselineEmptyHint: 'No promised work on the board yet. Use Create work to add it first.',
+  baselineEmptyHintPartial: 'Work found in Jira — upload your PI plan or pick manually below.',
+  baselineConfirmTitle: 'Promised work',
+  baselineConfirmHint: 'All items are pre-selected. Remove any work your squad did NOT promise this quarter.',
+  baselineConfirmBtn: 'Save promised work',
   baselineSlideUpload: 'Upload PI plan slide (screenshot or export)',
   baselineSlideReading: 'Reading slide…',
   baselineSlideMethod: 'Found from slide',
-  baselinePiNotSet: 'Step missing: confirm this quarter\'s epics',
-  baselineProposeFailed: 'Could not load PI candidates',
+  baselinePiNotSet: 'Step missing: save promised work for this quarter',
+  baselineProposeFailed: 'Could not load promised work',
   baselineSaveFailed: 'Could not save baseline',
   baselineRetry: 'Retry',
   checkSetup: 'Check setup',
@@ -145,6 +162,47 @@ export function businessTitleFromSummary(summary = '', maxLen = 72) {
   t = t.replace(/\s+/g, ' ').trim();
   if (t.length > maxLen) t = `${t.slice(0, maxLen - 1)}…`;
   return t || 'Work item needs attention';
+}
+
+/** Human rollup for epic rows — stories are proof, not the commitment label. */
+export function humanEpicActivityLabel(act = {}) {
+  const storyCount = Number(act.storyCount) || 0;
+  const doneCount = Number(act.doneCount) || 0;
+  const lifecycle = String(act.lifecycle || '').toLowerCase();
+  if (!storyCount && lifecycle === 'missing') return 'Not on board — create in Jira first';
+  if (!storyCount || lifecycle === 'not-started') return 'Not in sprint yet';
+  if (lifecycle === 'complete' || (doneCount > 0 && doneCount >= storyCount)) return `All ${storyCount} stories done`;
+  if (doneCount > 0) {
+    return `${storyCount} stories in sprint · ${doneCount} done`;
+  }
+  return `${storyCount} ${storyCount === 1 ? 'story' : 'stories'} in sprint`;
+}
+
+export function setupGapTitle(gap = {}) {
+  const id = String(gap.id || '').toLowerCase();
+  if (id === 'pi-baseline') return COPY.piBaselineGapTitle;
+  return String(gap.label || '').split('—')[0].trim() || gap.id || 'Setup gap';
+}
+
+export function setupGapImpact(gap = {}) {
+  const id = String(gap.id || '').toLowerCase();
+  const map = {
+    'pi-baseline': COPY.piBaselineImpact,
+    'ai-key': 'Template wording only',
+    'no-sprint': 'Delivery invisible for squad',
+    unassigned: 'Owner confidence low',
+    'stale-data': 'Do not send nudges yet',
+  };
+  return map[id] || 'Brief confidence is limited';
+}
+
+export function guidanceCodeToHint(code = '') {
+  const map = {
+    'no-board-epics': COPY.baselineEmptyHint,
+    'jira-unmatched': COPY.baselineEmptyHintPartial,
+    'quarter-filter-empty': COPY.baselineEmptyHintPartial,
+  };
+  return map[String(code || '')] || null;
 }
 
 export function firstNameFromDisplay(name = '') {

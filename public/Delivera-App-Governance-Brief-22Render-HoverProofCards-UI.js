@@ -1,6 +1,6 @@
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
-import { freshnessShortLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, freshnessShortLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 
 let popoverEl = null;
@@ -30,11 +30,11 @@ function proofCardHtml(risk, evidenceRow) {
 }
 
 const STATIC_HELP = {
-  'pi-gauge': () => `<p><strong>PI baseline</strong></p><p>${GOV_TOOLTIPS.piConfidence}</p><p>Without baseline: carryover and removed scope cannot be proven.</p>`,
+  'pi-gauge': () => `<p><strong>Promised work</strong></p><p>${GOV_TOOLTIPS.piConfidence}</p><p>${escapeHtml(COPY.piBaselineImpact)}</p>`,
   'pi-candidates': (brief) => {
     const c = brief?.meta?.piConfidence?.counts || {};
     const n = (c.offPlan || 0) + (c.onTrack || 0);
-    return `<p><strong>Candidates (${n})</strong></p><p>Not yet confirmed in PI baseline. Set baseline to classify as committed or removed.</p>`;
+    return `<p><strong>${escapeHtml(COPY.piBaselineNotSaved)} (${n})</strong></p><p>Not saved yet. ${escapeHtml(COPY.piBaselineWhy)}</p>`;
   },
   'evidence-count': (brief) => {
     const n = (brief?.evidencePack?.rows || []).length;
@@ -44,7 +44,7 @@ const STATIC_HELP = {
     const top = brief?.topRisks?.[0] || {};
     return `<p><strong>Owner lane</strong></p><p>${escapeHtml(top.decisionNeededFrom || 'Scrum Master')}</p><p>Why: ${escapeHtml(top.riskLabel || 'risk needs lane decision')}</p>`;
   },
-  'setup-gap': () => `<p><strong>Setup gap</strong></p><p>${GOV_TOOLTIPS.piConfidence}</p>`,
+  'setup-gap': () => `<p><strong>Setup gap</strong></p><p>${escapeHtml(COPY.piBaselineWhy)} ${escapeHtml(COPY.piBaselineImpact)}</p>`,
   'safe-send': (brief) => {
     const b = sendReadinessBadge(brief);
     return `<p><strong>${escapeHtml(b.label)}</strong></p><p>Claims verified against evidence pack.</p>`;
