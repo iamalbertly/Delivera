@@ -21,11 +21,21 @@ function hoursFromBoardSummaries(meta = {}) {
   const summaries = meta.boardSummaries;
   if (!summaries || typeof summaries !== 'object') return null;
   let registered = 0;
-  for (const row of Object.values(summaries)) {
+  let priorRegistered = 0;
+  const rows = Object.values(summaries);
+  if (!rows.length) return null;
+  for (const row of rows) {
     registered += Number(row?.registeredWorkHours) || 0;
+    priorRegistered += Number(row?.priorRegisteredWorkHours) || 0;
   }
-  if (!registered) return null;
-  return { piHours: Math.round(registered * 0.6), offPlan: Math.round(registered * 0.15), planned: registered };
+  const delta = priorRegistered > 0 ? registered - priorRegistered : 0;
+  const trend = delta > 4 ? '↑' : delta < -4 ? '↓' : '→';
+  return {
+    piHours: Math.round(registered * 0.6),
+    offPlan: Math.round(registered * 0.15),
+    planned: registered,
+    trend,
+  };
 }
 
 function partialSuffix(brief) {
@@ -35,13 +45,13 @@ function partialSuffix(brief) {
 export function renderInvestmentBodyHtml(brief) {
   const squads = Array.isArray(brief?.squadInsights) ? brief.squadInsights : [];
   const fromBoards = hoursFromBoardSummaries(brief?.meta);
-  const { piHours, offPlan, planned } = fromBoards || sumSquadHours(squads);
+  const { piHours, offPlan, planned, trend: boardTrend } = fromBoards || { ...sumSquadHours(squads), trend: '' };
   const period = brief?.meta?.periodWindow || '28d';
   const partial = partialSuffix(brief);
   const rows = [
     { key: 'pi', label: 'PI commitment', hours: piHours, trend: '' },
     { key: 'planned', label: 'Planned epics', hours: planned, trend: '' },
-    { key: 'adhoc', label: COPY.adHocWork, hours: offPlan, trend: offPlan >= 8 ? '↑' : '→' },
+    { key: 'adhoc', label: COPY.adHocWork, hours: offPlan, trend: boardTrend || (offPlan >= 8 ? '↑' : '→') },
   ];
   const list = rows.map((r) => `
     <tr data-investment-row="${escapeHtml(r.key)}">

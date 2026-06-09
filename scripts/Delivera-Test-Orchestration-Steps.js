@@ -62,6 +62,18 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Run Layout Overlap Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:layout-overlap'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Current Sprint Dedupe Fold Journey',
+      command: 'npm',
+      args: ['run', 'test:current-sprint:dedupe-fold'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Brief SSOT Loading And Scope Journey',
       command: 'npm',
       args: ['run', 'test:journey:brief-ssot'],

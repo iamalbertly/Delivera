@@ -95,7 +95,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan cross-surface validation |
-| `npm run test:journey:value-retention` | Value retention master plan (feedback, squad leaderboard, alignment, investment drawer) |
+| `npm run test:journey:value-retention` | Value retention master plan (`journey.value-retention`: desktop 1024px density, alignment, investment drawer, period lens) |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
 | `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync, Refresh bypass |
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
@@ -105,7 +105,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 
 Orchestration, journeys, and `SKIP_WEBSERVER`: [`TESTING.md`](TESTING.md)
 
-**Journey buckets (SSOT):** Spec-to-journey mapping lives in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js`. Run a bucket with `node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId>` (e.g. `journey.ux-core`, `journey.governance`) or the matching `npm run test:journey:*` alias. The journey runner builds CSS before Playwright. `npm run test:focused` runs only specs tagged `@focused` in the test title. `npm run test:all` runs value-retention → direct-value-masterplan → focused immediately after `check:css` (fail-fast). Direct Value spec owns evidence-tab restore; Value Retention spec owns squad portfolio, investment drawer, and period lens.
+**Journey buckets (SSOT):** Spec-to-journey mapping lives in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js`. Run a bucket with `node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId>` (e.g. `journey.value-retention`, `journey.ux-core`, `journey.governance`) or the matching `npm run test:journey:*` alias. The journey runner builds CSS before Playwright. `npm run test:focused` runs only specs tagged `@focused` in the test title. **Phase 3 desktop density:** governance brief and current sprint use a 2-column grid from 1024px (shared `--brief-desktop-cols` / `--brief-desktop-gap` in `01-reset-vars.css`). `npm run test:all` runs value-retention → direct-value-masterplan → focused → layout-overlap → current-sprint:dedupe-fold immediately after `check:css` (fail-fast). Direct Value spec owns evidence-tab restore; Value Retention spec owns squad portfolio, investment drawer, and period lens.
 
 ## CSS contract
 

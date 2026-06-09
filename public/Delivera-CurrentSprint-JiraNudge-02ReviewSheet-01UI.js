@@ -79,7 +79,10 @@ export function openJiraNudgeReviewSheet({
   }
   html += '<p class="jira-nudge-review-sub">' + escapeHtml(key) + (issueStatus ? ' · ' + escapeHtml(issueStatus) : '') + '</p>';
   if (!sendAllowed) {
-    html += '<p class="jira-nudge-review-trust" role="alert">Live sprint required to post. Switch to live data or pick an active sprint.</p>';
+    const staleNote = readOnly
+      ? 'Stale brief — review only. Refresh governance data before sending.'
+      : 'Live sprint required to post. Switch to live data or pick an active sprint.';
+    html += '<p class="jira-nudge-review-trust" role="alert">' + escapeHtml(staleNote) + '</p>';
   }
   const roster = Array.isArray(meta?.teamRoster) ? meta.teamRoster.slice(0, 8) : [];
   if (roster.length && sendAllowed) {

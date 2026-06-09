@@ -134,8 +134,6 @@ test.describe('Value retention master plan realtime validation', () => {
     });
 
     await test.step('04 heat tiles sorted blocked first', async () => {
-      const fold = page.locator('.gov-verdict-fold summary');
-      if (await fold.count()) await fold.click();
       await expect(page.locator('[data-heat-tile]').first()).toHaveAttribute('data-verdict-tier', 'blocked');
       assertTelemetryClean(telemetry);
     });
@@ -235,22 +233,25 @@ test.describe('Value retention master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('11 stale banner and readOnly nudge', async () => {
+    await test.step('11 stale banner period combo and readOnly nudge', async () => {
       await page.route(/\/api\/governance-brief\.json/, async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: stubRetentionBrief({ freshness: { confidenceLimit: 'stale', generatedAt: new Date().toISOString() } }),
+          body: stubRetentionBrief({
+            freshness: { confidenceLimit: 'stale', generatedAt: new Date().toISOString() },
+            meta: { periodWindow: '14d', teamRoster: [{ displayName: 'Alex Morgan' }] },
+          }),
         });
       });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      const fold = page.locator('.gov-verdict-fold summary');
-      if (await fold.count()) await fold.click();
       await expect(page.locator('[data-portfolio-banner]')).toContainText(/stale/i);
+      await expect(page.locator('[data-portfolio-banner]')).toContainText(/Window: 14d/i);
       await page.locator('[data-heat-tile="SD"]').click();
       await page.locator('[data-squad-nudge="SD"]').click({ force: true });
       await expect(page.locator('#delivera-jira-nudge-review-sheet [data-review-send]')).toBeDisabled();
+      await expect(page.locator('#delivera-jira-nudge-review-sheet .jira-nudge-review-trust')).toContainText(/stale brief/i);
       await page.locator('[data-review-cancel]').click();
       assertTelemetryClean(telemetry);
     });
@@ -282,6 +283,160 @@ test.describe('Value retention master plan realtime validation', () => {
       if (await skipIfRedirectedToLogin(page, test)) return;
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
       expect(overflow).toBe(false);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('16 desktop 1024 governance two-column density', async () => {
+      await page.setViewportSize({ width: 1024, height: 768 });
+      await page.addInitScript((projectsKey) => {
+        try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
+      }, PROJECTS_SSOT_KEY);
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: stubRetentionBrief() });
+      });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const gridActive = await page.evaluate(() => {
+        const shell = document.querySelector('.governance-shell--has-clusters');
+        if (!shell) return false;
+        const cols = getComputedStyle(shell).gridTemplateColumns;
+        return Boolean(cols && cols.includes(' '));
+      });
+      expect(gridActive).toBe(true);
+      await expect(page.locator('[data-heat-tile]').first()).toBeVisible();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('17 desktop 1024 sprint stories and cockpit side by side', async () => {
+      await page.setViewportSize({ width: 1024, height: 768 });
+      await page.goto('/current-sprint');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const sideBySide = await page.evaluate(() => {
+        const stories = document.querySelector('.sprint-cards-column');
+        const cockpit = document.querySelector('.sprint-cockpit-column');
+        if (!stories || !cockpit) return false;
+        return stories.getBoundingClientRect().left < cockpit.getBoundingClientRect().left;
+      });
+      expect(sideBySide).toBe(true);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('18 period window drift changes banner', async () => {
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.addInitScript(() => {
+        try { sessionStorage.setItem('gov-period-window', '28d'); } catch (_) {}
+      });
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        const url = new URL(route.request().url());
+        const periodWindow = url.searchParams.get('periodWindow') || '28d';
+        const offPlanHours = periodWindow === '14d' ? 4 : 12;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: stubRetentionBrief({
+            freshness: { confidenceLimit: 'live', generatedAt: new Date().toISOString() },
+            meta: { periodWindow, teamRoster: [{ displayName: 'Alex Morgan' }] },
+            squadInsights: [
+              {
+                projectKey: 'SD',
+                verdictTier: 'blocked',
+                boardResolved: true,
+                offPlanHours,
+                offPlanEpicCount: 2,
+                piCommitted: 5,
+                piDone: 1,
+                cardRisks: [{ issueKey: 'SD-1' }],
+              },
+              {
+                projectKey: 'DMS',
+                verdictTier: 'watch',
+                boardResolved: true,
+                offPlanHours: 2,
+                piCommitted: 3,
+                piDone: 2,
+                cardRisks: [],
+              },
+            ],
+          }),
+        });
+      });
+      await page.evaluate(() => {
+        try {
+          sessionStorage.setItem('gov-period-window', '28d');
+          sessionStorage.removeItem('delivera:brief:cache:v1');
+        } catch (_) {}
+      });
+      await page.goto('/governance?refresh=1');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('[data-portfolio-banner]')).toContainText(/Window: 28d/i);
+      await page.locator('[data-period-chip="14d"]').click({ force: true });
+      await expect(page.locator('[data-portfolio-banner]')).toContainText(/Window: 14d/i, { timeout: 15000 });
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('19 empty roster nudge opens without crash', async () => {
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: stubRetentionBrief({
+            freshness: { confidenceLimit: 'live', generatedAt: new Date().toISOString() },
+            meta: { teamRoster: [], periodWindow: '28d' },
+          }),
+        });
+      });
+      await page.evaluate(() => {
+        try { sessionStorage.removeItem('delivera:brief:cache:v1'); } catch (_) {}
+      });
+      await page.goto('/governance?refresh=1');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.evaluate(() => { try { window.__deliveraCurrentSprintPayload = null; } catch (_) {} });
+      await page.locator('[data-heat-tile="SD"]').click();
+      const detail = page.locator('[data-tile-detail="SD"]');
+      if (!(await detail.isVisible())) await page.locator('[data-heat-tile="SD"]').click();
+      await expect(page.locator('[data-squad-nudge="SD"]')).toBeVisible();
+      await page.locator('[data-squad-nudge="SD"]').click();
+      await expect(page.locator('#jira-nudge-review-text')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.jira-nudge-mention-row')).toHaveCount(0);
+      await page.locator('[data-review-cancel]').click();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('20 zero investment hours drawer stable', async () => {
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: stubRetentionBrief({
+            projects: ['SD'],
+            portfolioRollup: { summaryLine: 'Out of 1 squads · on track', behindPiCount: 0 },
+            squadInsights: [
+              {
+                projectKey: 'SD',
+                verdictTier: 'watch',
+                boardResolved: true,
+                offPlanHours: 0,
+                piCommitted: 0,
+                piDone: 0,
+                cardRisks: [],
+              },
+            ],
+            meta: {
+              teamRoster: [],
+              periodWindow: '28d',
+              boardSummaries: { 1: { registeredWorkHours: 0 } },
+            },
+          }),
+        });
+      });
+      await page.evaluate(() => {
+        try { sessionStorage.removeItem('delivera:brief:cache:v1'); } catch (_) {}
+      });
+      await page.goto('/governance?refresh=1');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.locator('[data-investment-open]').click();
+      await page.locator('[data-drawer-tab="investment"]').click();
+      await expect(page.locator('[data-investment-row="pi"] strong')).toContainText(/0h/);
       assertTelemetryClean(telemetry);
     });
   });

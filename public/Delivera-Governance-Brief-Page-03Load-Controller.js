@@ -93,11 +93,13 @@ export function renderBriefUi(brief) {
     const piInner = renderPIConfidenceStrip(brief);
     const compactBadge = renderPICompactBadge(brief);
     const rollupBehind = Number(brief?.portfolioRollup?.behindPiCount || 0) > 0;
-    govPage.els.piStripMount.innerHTML = (hasOwnerClusters && rollupBehind)
+    const piStripHtml = (hasOwnerClusters && rollupBehind)
       ? ''
       : (hasOwnerClusters && piInner
-        ? `${compactBadge}<details class="gov-pi-strip-fold"><summary>PI confidence</summary>${piInner}</details>`
+        ? `${compactBadge}<details class="gov-pi-strip-fold" open><summary>PI confidence</summary>${piInner}</details>`
         : piInner);
+    govPage.els.piStripMount.innerHTML = piStripHtml;
+    govPage.els.piStripMount.toggleAttribute('data-pi-strip-empty', !piStripHtml.trim());
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
     govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
       openPiBaselineWizard();
@@ -126,16 +128,11 @@ export function renderBriefUi(brief) {
     const verdictInner = showHeatMap
       ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1 })
       : renderVerdictZone(brief);
-    const verdictSummary = showHeatMap ? 'Portfolio heat map' : 'Squad verdict';
     const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
     const inlineVerdict = showHeatMap && squadCount === 1;
     govPage.els.verdictMount.innerHTML = skipStandaloneVerdict
       ? ''
-      : (inlineVerdict
-        ? verdictInner
-        : (hasOwnerClusters
-          ? `<details class="gov-verdict-fold"><summary>${verdictSummary}</summary>${verdictInner}</details>`
-          : verdictInner));
+      : verdictInner;
     if (showHeatMap) bindPortfolioHeatMap(govPage.els.verdictMount, brief);
   }
   if (govPage.els.scriptMount) {
@@ -151,6 +148,11 @@ export function renderBriefUi(brief) {
   }
   renderProofRisks(govPage.lastSurfaces.proofRows);
   renderEvidenceTable(brief);
+  const evidenceSummary = document.querySelector('#gov-supporting-evidence .governance-evidence-summary');
+  const evidenceRows = brief?.evidencePack?.rows?.length || 0;
+  if (evidenceSummary && evidenceRows > 0) {
+    evidenceSummary.textContent = `Supporting evidence (${evidenceRows} rows)`;
+  }
   renderTechnicalDetails(brief);
   renderReadiness(brief);
   renderBaseline(brief);

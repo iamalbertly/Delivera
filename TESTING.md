@@ -9,6 +9,16 @@ This project uses Playwright for end-to-end and integration tests. The root orch
 - `npm run test:current-sprint:dedupe-fold` also runs `npm run check:css` first for a faster Current Sprint gate.
 - CSS ownership/source-of-truth details live in `public/css/README.md` (do not duplicate them in this file).
 
+### Fail-fast gate order (after CSS)
+
+`npm run test:all` runs these Playwright gates in order before the wider journey bundles:
+
+1. `npm run test:journey:value-retention` — `journey.value-retention` bucket (desktop density, alignment SSOT, investment drawer, period lens)
+2. `npm run test:journey:direct-value-masterplan` — cross-surface direct value contracts
+3. `npm run test:focused` — specs tagged `@focused`
+4. `npm run test:journey:layout-overlap` — governance/report/sprint overlap + mobile clip
+5. `npm run test:current-sprint:dedupe-fold` — sprint header/viewport declutter gate
+
 ### Default behavior
 
 - `npm run test:all` is the full regression entrypoint.

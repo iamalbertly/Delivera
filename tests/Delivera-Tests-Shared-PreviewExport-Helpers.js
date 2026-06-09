@@ -498,7 +498,17 @@ export async function selectFirstBoard(page, options = {}) {
   await page.waitForSelector('#board-select option[value]:not([value=""])', { timeout }).catch(() => null);
   const firstOpt = await page.locator('#board-select option[value]:not([value=""])').first().getAttribute('value').catch(() => null);
   if (!firstOpt) return null;
-  await page.selectOption('#board-select', firstOpt);
+  const selectVisible = await page.locator('#board-select').isVisible().catch(() => false);
+  if (selectVisible) {
+    await page.selectOption('#board-select', firstOpt);
+  } else {
+    await page.evaluate((val) => {
+      const sel = document.getElementById('board-select');
+      if (!sel) return;
+      sel.value = val;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }, firstOpt);
+  }
   return firstOpt;
 }
 

@@ -344,7 +344,7 @@ export const specMetadata = {
     page: '/governance,/current-sprint,/report,/settings',
   },
   'tests/Delivera-Value-Retention-MasterPlan-Realtime-Validation-Tests.spec.js': {
-    journey: 'journey.ux-core',
+    journey: 'journey.value-retention',
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/report',
   },
@@ -572,6 +572,13 @@ export const journeyBuckets = {
     label: 'UX Core – Navigation, Trust, Responsiveness',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.ux-core',
+    ),
+  },
+  'journey.value-retention': {
+    id: 'journey.value-retention',
+    label: 'Value Retention – Desktop density, alignment, investment fidelity',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.value-retention',
     ),
   },
   'journey.shell-direct-value': {

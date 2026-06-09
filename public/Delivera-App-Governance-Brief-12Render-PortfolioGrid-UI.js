@@ -1,6 +1,7 @@
 import { COPY, initialsFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { renderPulseBars } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
+import { classifyWorkAlignment, renderAlignmentChip } from './Delivera-Shared-WorkAlignment-01Chip-SSOT.js';
 
 function heatLabel(squad) {
   if (squad.healthSignals?.sprintSetup === 'limited') return 'Needs setup';
@@ -33,11 +34,23 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false } = {}) {
   const piPct = piCommitted > 0 ? Math.round((piDone / piCommitted) * 100) : 0;
   const topRiskKey = risks[0]?.issueKey || '';
   const hiddenAttr = autoExpand ? '' : ' hidden';
+  const baselineKeys = brief?.meta?.piBaselineCommittedKeys || [];
+  const adHocKeys = brief?.meta?.adHocEpics || [];
+  const driftAlignment = (Number(squad.offPlanEpicCount) || 0) > 0
+    ? classifyWorkAlignment({
+      epicKey: risks[0]?.epicKey || '',
+      piBaselineCommittedKeys: baselineKeys,
+      adHocEpicKeys: adHocKeys,
+    })
+    : null;
+  const driftChip = driftAlignment && driftAlignment.tier !== 'pi'
+    ? ` ${renderAlignmentChip(driftAlignment)}`
+    : '';
   return `
     <div class="gov-risk-tile-detail" data-tile-detail="${escapeHtml(squad.projectKey)}"${hiddenAttr}>
       ${pulseHtml}
       <p data-squad-pi-row="1"><strong>PI:</strong> ${piDone}/${piCommitted} committed · ${piPct}% delivered</p>
-      <p data-squad-drift-row="1"><strong>${escapeHtml(COPY.unplannedTime)}:</strong> ${Number(squad.offPlanHours) || 0}h ad-hoc · ${Number(squad.offPlanEpicCount) || 0} off-PI epics${squad.driftSince ? ` · since ${escapeHtml(squad.driftSince)}` : ''}</p>
+      <p data-squad-drift-row="1"><strong>${escapeHtml(COPY.unplannedTime)}:</strong> ${Number(squad.offPlanHours) || 0}h ad-hoc · ${Number(squad.offPlanEpicCount) || 0} off-PI epics${driftChip}${squad.driftSince ? ` · since ${escapeHtml(squad.driftSince)}` : ''}</p>
       ${rolesHtml}
       <p><strong>Cause:</strong> ${escapeHtml(squad.bottleneckLine || squad.statusLine || '—')}</p>
       <p><strong>Action:</strong> ${escapeHtml(squad.productivityLine || '')}</p>
@@ -89,11 +102,13 @@ export function renderPortfolioGrid(brief, { singleSquad = false } = {}) {
     : '';
   const details = squads.map((s, idx) => renderRiskTileDetail(s, brief, { autoExpand: singleSquad && idx === 0 })).join('');
   const line = rollup.summaryLine || COPY.portfolioRollupOk;
+  const periodWindow = brief?.meta?.periodWindow || '28d';
+  const periodNote = ` · Window: ${periodWindow}`;
   const isStale = String(brief?.freshness?.confidenceLimit || '').toLowerCase() === 'stale';
   const staleNote = isStale ? ` · ${COPY.portfolioStaleHint}` : '';
   return `
     <div class="gov-portfolio-grid-wrap${showTray ? ' gov-portfolio-grid-wrap--tray' : ''}" aria-label="${escapeHtml(COPY.executiveLeaderboard)}">
-      <p class="gov-portfolio-banner-line${isStale ? ' is-stale' : ''}" data-portfolio-banner="1">${escapeHtml(line)}${cacheNote}${escapeHtml(staleNote)}</p>
+      <p class="gov-portfolio-banner-line${isStale ? ' is-stale' : ''}" data-portfolio-banner="1">${escapeHtml(line)}${escapeHtml(periodNote)}${cacheNote}${escapeHtml(staleNote)}</p>
       ${partialNote}
       ${filterBar}
       <div class="gov-risk-heat-row" role="list">${tiles}${moreChip}</div>
@@ -134,16 +149,24 @@ export function bindRiskHeatInteractions(root, brief, onProofSquad, onSquadNudge
       tile.parentElement?.prepend(tile);
     });
   });
+  const toggleHeatTile = (btn) => {
+    const pk = btn.getAttribute('data-heat-tile');
+    if (!pk || btn.classList.contains('gov-heat-tile--more')) return;
+    const detail = root.querySelector(`[data-tile-detail="${pk}"]`);
+    const open = detail?.hasAttribute('hidden');
+    root.querySelectorAll('[data-tile-detail]').forEach((d) => d.setAttribute('hidden', ''));
+    root.querySelectorAll('[data-heat-tile]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    if (open && detail) {
+      detail.removeAttribute('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  };
   root.querySelectorAll('[data-heat-tile]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const pk = btn.getAttribute('data-heat-tile');
-      const detail = root.querySelector(`[data-tile-detail="${pk}"]`);
-      const open = detail?.hasAttribute('hidden');
-      root.querySelectorAll('[data-tile-detail]').forEach((d) => d.setAttribute('hidden', ''));
-      root.querySelectorAll('[data-heat-tile]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
-      if (open && detail) {
-        detail.removeAttribute('hidden');
-        btn.setAttribute('aria-expanded', 'true');
+    btn.addEventListener('click', () => toggleHeatTile(btn));
+    btn.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        toggleHeatTile(btn);
       }
     });
   });

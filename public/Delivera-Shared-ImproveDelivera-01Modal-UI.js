@@ -4,6 +4,7 @@
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { getContextDisplayString } from './Delivera-Shared-Context-From-Storage.js';
+import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { getCurrentPageForChrome } from './Delivera-Shared-Top-Chrome-01Render-UI.js';
 import { showSprintActionToast } from './Delivera-CurrentSprint-Action-Bridge.js';
 
@@ -23,10 +24,20 @@ function ensureModal() {
   return el;
 }
 
+function resolveSquadContext() {
+  const fromStorage = readSharedProjectsCsv?.() || '';
+  if (fromStorage) return fromStorage;
+  const scopeChips = Array.from(document.querySelectorAll('#gov-scope-bar-mount .gov-scope-chip.is-on[data-project]'))
+    .map((el) => el.getAttribute('data-project') || '')
+    .filter(Boolean);
+  if (scopeChips.length) return scopeChips.join(',');
+  return getContextDisplayString();
+}
+
 function buildContext(includeContext) {
   if (!includeContext) return null;
   const page = getCurrentPageForChrome();
-  const squad = getContextDisplayString();
+  const squad = resolveSquadContext();
   const jump = document.getElementById('issue-jump-input');
   const issueKey = jump?.value?.trim() || '';
   return { page, squad, issueKey: issueKey || undefined };

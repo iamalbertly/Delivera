@@ -453,9 +453,6 @@ export function renderHeaderBar(data, options = {}) {
   }
   html += '</div>';
   html += '</div>';
-  if (viewportLean && missionBriefing && edgeStateAttr === 'none') {
-    html += renderMissionBriefingHtml(missionBriefing, escapeHtml);
-  }
   html += '<div class="header-band-actions">';
   html += renderExportButton(true);
   html += '<details class="header-view-drawer">';
@@ -593,12 +590,18 @@ export function renderHeaderBar(data, options = {}) {
     html += headerContextStripHtml;
   }
   const roleModesRowHtml = renderHeaderRoleModesRow(effectiveHeaderRoleViews);
-  if (roleModesRowHtml) {
-    if (viewportLean) {
-      html += '<details class="header-role-modes-details"><summary>' + escapeHtml(SPRINT_COPY.viewAsLabel) + '</summary>' + roleModesRowHtml + '</details>';
-    } else {
-      html += roleModesRowHtml;
+  const missionHtml = (viewportLean && missionBriefing && edgeStateAttr === 'none')
+    ? renderMissionBriefingHtml(missionBriefing, escapeHtml)
+    : '';
+  if (viewportLean && (missionHtml || roleModesRowHtml)) {
+    html += '<details class="header-mobile-filters-fold"><summary>Briefing &amp; filters</summary><div class="header-mobile-filters-body">';
+    if (missionHtml) html += '<div class="header-mission-briefing-wrap">' + missionHtml + '</div>';
+    if (roleModesRowHtml) {
+      html += '<div class="header-role-modes-row-wrap" aria-label="' + escapeHtml(SPRINT_COPY.ariaViewAsRole) + '">' + roleModesRowHtml + '</div>';
     }
+    html += '</div></details>';
+  } else if (roleModesRowHtml) {
+    html += roleModesRowHtml;
   }
   /* ALB-30: Mini mode hides the full compact strip; surface History report first so it stays above squad identity. */
   html += '<div class="header-mini-strip" aria-hidden="true">';

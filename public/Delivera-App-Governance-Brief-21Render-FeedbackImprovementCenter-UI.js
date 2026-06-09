@@ -24,9 +24,22 @@ export async function openFeedbackImprovementCenter(project = '') {
     if (res.ok) summary = await res.json();
   } catch (_) { /* empty */ }
 
+  const userFeedbackHtml = (summary.recentUserFeedback || []).length
+    ? `<section class="gov-feedback-recent" aria-label="Recent user feedback">
+        <h4>Recent submissions</h4>
+        <ul>${(summary.recentUserFeedback || []).map((row) => `
+          <li>
+            <strong>${escapeHtml(row.message || '')}</strong>
+            <span class="gov-feedback-why">${escapeHtml([row.page, row.squad, row.issueKey].filter(Boolean).join(' · '))}</span>
+          </li>`).join('')}
+        </ul>
+      </section>`
+    : '';
+
   const body = `
     <p class="gov-feedback-intro">Feedback routes to sub-agents — no LLM in this path.</p>
     <p>Total signals: <strong>${summary.total || 0}</strong></p>
+    ${userFeedbackHtml}
     ${(summary.lastImprovements || []).map((l) => `<p class="gov-feedback-last">· ${escapeHtml(l)}</p>`).join('')}
     ${(summary.agents || []).map(agentBlock).join('')}
     <form id="gov-feedback-form" class="gov-feedback-form">

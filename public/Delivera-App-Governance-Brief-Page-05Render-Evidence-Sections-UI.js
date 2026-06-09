@@ -172,7 +172,7 @@ export function mountEvidenceTabShell() {
   panels.className = 'gov-evidence-tab-panels';
 
   const proofPanel = document.createElement('div');
-  proofPanel.className = 'gov-evidence-tab-panel is-active';
+  proofPanel.className = 'gov-evidence-tab-panel gov-tab-panel is-active';
   proofPanel.dataset.evidencePanel = 'proof';
   if (measurement) proofPanel.appendChild(measurement);
   if (script) proofPanel.appendChild(script);
@@ -181,14 +181,14 @@ export function mountEvidenceTabShell() {
   if (technical) proofPanel.appendChild(technical);
 
   const planPanel = document.createElement('div');
-  planPanel.className = 'gov-evidence-tab-panel';
+  planPanel.className = 'gov-evidence-tab-panel gov-tab-panel';
   planPanel.dataset.evidencePanel = 'plan';
   planPanel.hidden = true;
   if (readiness) planPanel.appendChild(readiness);
   if (baseline) planPanel.appendChild(baseline);
 
   const pilotPanel = document.createElement('div');
-  pilotPanel.className = 'gov-evidence-tab-panel';
+  pilotPanel.className = 'gov-evidence-tab-panel gov-tab-panel';
   pilotPanel.dataset.evidencePanel = 'pilot';
   pilotPanel.hidden = true;
   if (scorecard) pilotPanel.appendChild(scorecard);
