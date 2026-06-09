@@ -167,7 +167,6 @@ test.describe('Governance command surface — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('#gov-inbox-toggle')).toHaveCount(0);
-    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('.gov-inbox-panel')).toHaveCount(0);

@@ -18,8 +18,29 @@ body.governance-page .app-top-brand-context {
   white-space: nowrap;
 }
 
-.app-top-ai-trust-pill[data-ai-trust-pill="browser"] {
+.app-top-ai-trust-pill[data-ai-trust-pill="browser"],
+.app-top-ai-trust-pill[data-ai-trust-pill="server"] {
   background: rgba(120, 220, 160, 0.22);
+}
+.app-top-ai-trust-pill--dot {
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  justify-content: center;
+}
+.app-top-ai-trust-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  display: inline-block;
+}
+.app-top-ai-trust-pill[data-ai-trust-pill="server"] .app-top-ai-trust-dot,
+.app-top-ai-trust-pill[data-ai-trust-pill="browser"] .app-top-ai-trust-dot {
+  background: #86efac;
+}
+.app-top-ai-trust-pill[data-ai-trust-pill="template"] .app-top-ai-trust-dot {
+  background: #fcd34d;
 }
 
 .app-top-chrome {

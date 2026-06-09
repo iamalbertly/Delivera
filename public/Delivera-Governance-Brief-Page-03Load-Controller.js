@@ -25,6 +25,7 @@ import { renderPICompactBadge, renderPIConfidenceStrip } from './Delivera-App-Go
 import { bindEpicHygieneInteractions } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
 import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
+import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { updateGlobalAgentBar, updateStickyMicroAnswer } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import {
   govPage, openPiBaselineWizard, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
@@ -66,15 +67,20 @@ function showError(message) {
   hideGovernanceLoading();
   govPage.els.error.hidden = false;
   govPage.els.error.textContent = message;
-  if (govPage.els.export) govPage.els.export.hidden = true;
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'error');
 }
 
-function applyBriefToUi(brief, feedbackSummary = null) {
+async function applyBriefToUi(brief, feedbackSummary = null) {
   if (!brief) return false;
   govPage.lastFeedbackSummary = feedbackSummary;
   const confirmCount = govPage.inboxApi?.getConfirmCount?.() || 0;
   renderFreshness(brief, confirmCount);
+  try {
+    const trust = await resolveAiTrustDisplay();
+    govPage.aiTrustState = trust;
+  } catch (_) {
+    govPage.aiTrustState = null;
+  }
   renderBriefUi(brief);
   deferScorecardUntilEvidenceOpen();
   hideGovernanceLoading();
@@ -110,8 +116,13 @@ export function renderBriefUi(brief) {
   if (govPage.els.workerReceiptMount) govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
   if (govPage.els.answerMount) {
     const tier = verdictTierFromBrief(brief);
-    const promotedScript = tier === 'blocked' ? renderMeetingScript(brief, { openByDefault: true }) : '';
-    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters })
+    const suppressAdvisor = Boolean(
+      brief?.meta?._aiProviderFallback
+      || brief?.meta?._advisorError
+      || govPage.aiTrustState?.suppressAdvisorBadge,
+    );
+    const promotedScript = tier === 'blocked' ? renderMeetingScript(brief, { openByDefault: false }) : '';
+    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters, suppressAdvisorBadge: suppressAdvisor })
       + (promotedScript ? `<div class="gov-promoted-meeting-script" data-promoted-script="1">${promotedScript}</div>` : '');
     bindCommandOverflowMenu(govPage.els.answerMount);
     govPage.els.answerMount.querySelector('#gov-export-overflow')?.addEventListener('click', copyBrief);
@@ -125,7 +136,9 @@ export function renderBriefUi(brief) {
     bindSetupDebtStripExpand(govPage.els.setupDebtMount, brief);
   }
   const supportingEvidence = document.getElementById('gov-supporting-evidence');
-  if (supportingEvidence && hasOwnerClusters) supportingEvidence.open = false;
+  if (supportingEvidence && hasOwnerClusters && !supportingEvidence.open) {
+    supportingEvidence.open = false;
+  }
 
   if (govPage.els.verdictMount) {
     const squadCount = selectedProjects(brief).length;
@@ -180,12 +193,13 @@ export function renderBriefUi(brief) {
   const warnCards = (brief?.meta?.scopeIntelligence?.cards || []).filter((c) => c.health && c.health !== 'ok').length;
   govPage.scopeBarApi?.setAdvancedWarnCount?.(warnCards);
   setBriefNavBadge(inboxTotal);
-  const topChrome = document.getElementById('gov-top-chrome-mount');
-  const hasReceipt = Boolean(govPage.els.workerReceiptMount?.innerHTML?.trim());
-  if (topChrome) {
-    topChrome.classList.toggle('gov-top-chrome--has-queue', inboxTotal > 0);
-    topChrome.classList.toggle('gov-top-chrome--has-receipt', hasReceipt);
-    if (inboxTotal > 0) topChrome.open = true;
+  const rightRail = document.getElementById('gov-right-rail-mount');
+  if (rightRail) {
+    if (inboxTotal > 0) rightRail.setAttribute('data-right-rail-has-queue', 'true');
+    else rightRail.removeAttribute('data-right-rail-has-queue');
+    const hasReceipt = Boolean(govPage.els.workerReceiptMount?.innerHTML?.trim());
+    if (hasReceipt) rightRail.setAttribute('data-right-rail-has-receipt', 'true');
+    else rightRail.removeAttribute('data-right-rail-has-receipt');
   }
   mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], govPage.lastFeedbackSummary);
   const secondaryChrome = document.getElementById('gov-secondary-chrome');
@@ -204,7 +218,6 @@ export async function loadBrief(options = {}) {
   const force = options.force === true || loadBriefForce;
   loadBriefForce = false;
   govPage.els.error.hidden = true;
-  if (govPage.els.export) govPage.els.export.hidden = false;
   const seq = ++loadBriefSeq;
   const requested = projectsCsv();
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
@@ -219,7 +232,7 @@ export async function loadBrief(options = {}) {
 
   const cached = !force ? peekGovernanceBriefCache(requested, quarter, periodWindow) : null;
   if (cached && briefMatchesProjects(cached, requested)) {
-    applyBriefToUi(cached, govPage.lastFeedbackSummary);
+    await applyBriefToUi(cached, govPage.lastFeedbackSummary);
   }
 
   try {
@@ -234,7 +247,7 @@ export async function loadBrief(options = {}) {
     govPage.lastBrief = brief;
     govPage.lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
     if (seq !== loadBriefSeq) return;
-    applyBriefToUi(brief, govPage.lastFeedbackSummary);
+    await applyBriefToUi(brief, govPage.lastFeedbackSummary);
     if (seq !== loadBriefSeq) return;
     document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
       document.getElementById('gov-open-feedback-lab')?.click();
@@ -259,12 +272,16 @@ async function fetchImpactSection() {
 
 export async function copyBrief() {
   if (!govPage.lastBrief) return;
+  const btn = document.getElementById('gov-copy-answer-inline');
   try {
     const impact = await fetchImpactSection();
     await navigator.clipboard.writeText(briefToMarkdown(govPage.lastBrief, projectsCsv(), impact));
-    govPage.els.export.textContent = 'Copied';
-    setTimeout(() => { govPage.els.export.textContent = COPY.exportBrief; }, 1500);
+    if (btn) {
+      const prior = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = prior || 'Copy answer'; }, 1500);
+    }
   } catch (_) {
-    govPage.els.export.textContent = 'Copy failed';
+    if (btn) btn.textContent = 'Copy failed';
   }
 }

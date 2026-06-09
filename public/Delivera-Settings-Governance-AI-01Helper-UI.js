@@ -6,6 +6,7 @@ import {
   saveAiProviderPref,
   clearAiProviderPref,
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 const AI_USED_FOR = [
@@ -24,38 +25,22 @@ const AI_NEVER_FOR = [
   'Risk truth',
 ];
 
-async function fetchAiUsageStats() {
-  try {
-    const res = await fetch('/api/settings/ai-usage.json?hours=24');
-    if (!res.ok) return null;
-    return res.json();
-  } catch (_) {
-    return null;
-  }
-}
-
 export function mountGovernanceAiHelper(mount) {
   if (!mount) return;
 
   async function render() {
     const ai = readAiProviderPref();
     const hasKey = Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
-    const usage = await fetchAiUsageStats();
-    const providerLabel = ai.provider === 'openrouter' ? 'OpenRouter' : (ai.provider || 'Built-in');
-    const callsLine = usage
-      ? `Last 24h: ${usage.totalCalls || 0} calls · Fallbacks: ${usage.fallbacks || 0}`
-      : '';
+    const trust = await resolveAiTrustDisplay({ forceStatus: true });
 
     mount.innerHTML = `
       <section id="gov-ai-helper" class="surface-card gov-ai-helper-card">
         <h2>Connections</h2>
-        <p class="gov-ai-helper-lead">Keys stay in <strong>this browser only</strong>. Delivera does not store them on the server. Jira uses your login session and <code>.env</code> on the host.</p>
+        <p class="gov-ai-helper-lead">Browser keys stay local. Server AI is configured by your administrator in <code>.env</code>. Jira uses your login session.</p>
 
         <h3 class="gov-ai-helper-sub">AI reasoning layer</h3>
-        ${hasKey
-    ? `<p class="gov-ai-helper-status gov-ai-helper-status--ok">AI connected: ${escapeHtml(providerLabel)}</p>`
-    : `<p class="gov-ai-helper-status">No key — built-in templates only.</p>`}
-        ${callsLine ? `<p class="gov-ai-helper-note">${escapeHtml(callsLine)}</p>` : ''}
+        ${trust.statusLineHtml}
+        ${trust.usageLineHtml || ''}
         <div class="gov-ai-helper-lists">
           <div>
             <strong>Used for:</strong>

@@ -73,9 +73,9 @@ async function disableSidebarPointerBlock(page) {
   });
 }
 
-/** Scope bar / top chrome can intercept summary clicks in CI viewports. */
+/** Scroll right rail into view when queue chip is below fold in CI viewports. */
 async function openGovernanceAgentQueueChrome(page) {
-  await openGovernanceDetails(page, 'gov-top-chrome-mount');
+  await page.locator('#gov-right-rail-mount').scrollIntoViewIfNeeded();
 }
 
 async function openGovernanceDetails(page, elementId) {
@@ -164,7 +164,6 @@ test.describe('Governance agentic worker — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await expect(page.locator('#gov-queue-mount [data-queue-open]')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
@@ -181,7 +180,6 @@ test.describe('Governance agentic worker — UI', () => {
     });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await expect(page.locator('#gov-queue-mount .gov-inbox-hint')).toContainText(/Brief is preparing/i);
   });
 

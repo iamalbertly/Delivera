@@ -9,7 +9,7 @@ import {
   openNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { readAiProviderPref } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { openImproveDeliveraModal } from './Delivera-Shared-ImproveDelivera-01Modal-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
@@ -124,16 +124,27 @@ async function loadSessionMetaIntoAvatar() {
   } catch (_) {}
 }
 
+function isMobileTopChrome() {
+  return typeof window !== 'undefined'
+    && window.matchMedia
+    && window.matchMedia('(max-width: 768px)').matches;
+}
+
 function buildAiTrustPillHTML() {
-  try {
-    const ai = readAiProviderPref();
-    const hasBrowserKey = Boolean(ai?.key && ai?.provider && ai.provider !== 'built-in');
-    if (hasBrowserKey) {
-      const label = ai.provider === 'openrouter' ? 'OpenRouter' : ai.provider;
-      return `<span class="app-top-ai-trust-pill" data-ai-trust-pill="browser" title="AI connected in this browser (${label})">AI · browser</span>`;
-    }
-  } catch (_) { /* ignore */ }
-  return '<span class="app-top-ai-trust-pill" data-ai-trust-pill="template" title="Using built-in templates">AI · templates</span>';
+  const mobileDot = isMobileTopChrome();
+  return `<span class="app-top-ai-trust-pill app-top-ai-trust-pill--loading" data-ai-trust-pill="loading" title="Checking AI status">${mobileDot ? '<span class="app-top-ai-trust-dot" aria-hidden="true"></span>' : 'AI · …'}</span>`;
+}
+
+export async function refreshAiTrustPill() {
+  const chrome = document.getElementById(TOP_CHROME_ID);
+  if (!chrome) return;
+  const slot = chrome.querySelector('[data-top-slot="actions"]');
+  const createBtn = slot?.querySelector('[data-top-action="create-work"]');
+  if (!slot || !createBtn) return;
+  const trust = await resolveAiTrustDisplay({ mobileDot: isMobileTopChrome() });
+  const existing = slot.querySelector('[data-ai-trust-pill]');
+  if (existing) existing.remove();
+  createBtn.insertAdjacentHTML('afterend', trust.pillHtml);
 }
 
 function buildSwitcherHTML(current) {
@@ -285,12 +296,6 @@ function updateNotificationBadge() {
     badge.textContent = '';
     btn.setAttribute('aria-label', 'Notifications');
   }
-}
-
-function isMobileTopChrome() {
-  return typeof window !== 'undefined'
-    && window.matchMedia
-    && window.matchMedia('(max-width: 768px)').matches;
 }
 
 function dismissTopSearchActive(chrome) {
@@ -522,6 +527,7 @@ export function ensureTopChrome() {
   updateNotificationBadge();
   refreshTopChromeBrand();
   loadSessionMetaIntoAvatar();
+  void refreshAiTrustPill();
 
   window.dispatchEvent(new CustomEvent('app:top-chrome-rendered', { detail: { current } }));
   return chrome;

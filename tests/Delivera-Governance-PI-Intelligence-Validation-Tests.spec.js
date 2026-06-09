@@ -210,7 +210,6 @@ test.describe('Governance PI intelligence', () => {
       }),
     }));
     await page.goto('/governance');
-    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-group-card')).toBeVisible();
     await expect(page.locator('.gov-inbox-group-card')).toContainText(/\d+ ·/i);

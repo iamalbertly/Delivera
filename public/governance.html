@@ -9,57 +9,55 @@
 <body class="executive-surface-page governance-page">
   <div id="gov-scope-bar-mount" class="gov-scope-bar-sticky" aria-label="Brief scope"></div>
   <div id="gov-sticky-answer-mount" class="gov-sticky-answer-mount" aria-live="polite"></div>
-  <details id="gov-top-chrome-mount" class="gov-top-chrome-details" aria-expanded="false">
-    <summary class="gov-top-chrome-summary">Agent status &amp; queue</summary>
-    <div id="gov-worker-receipt-mount"></div>
-    <div id="gov-queue-mount" class="gov-inbox-mount" aria-label="Agent queue"></div>
-  </details>
 
   <main class="governance-shell" id="main-content" role="main" data-gov-brief-state="loading">
     <div id="gov-loading" class="current-sprint-loading-with-spinner" aria-live="polite">
       <div class="current-sprint-loading-spinner" aria-hidden="true"></div>
       <p class="current-sprint-loading-msg gov-loading-msg">Loading your delivery answer&hellip;</p>
     </div>
-    <div id="gov-brief-content">
-    <header class="governance-header gov-header-compact">
-      <div class="governance-header-top">
-        <div>
-          <h1 class="governance-title">Today's delivery answer</h1>
-        </div>
-        <div class="governance-actions" role="group" aria-label="Brief actions">
-          <button type="button" id="gov-export" class="btn btn-secondary btn-compact">Export brief</button>
-        </div>
+    <div id="gov-brief-content" class="gov-brief-layout">
+      <div class="gov-main-column">
+        <header class="governance-header gov-header-compact">
+          <div class="governance-header-top">
+            <div>
+              <h1 class="governance-title">Today's delivery answer</h1>
+            </div>
+          </div>
+          <div id="gov-freshness" class="governance-freshness" aria-live="polite"></div>
+          <div id="gov-answer-mount"></div>
+          <details id="gov-secondary-chrome" class="gov-secondary-chrome">
+            <summary class="gov-secondary-chrome-summary">Feedback &amp; survey</summary>
+            <div id="gov-feedback-lab-mount"></div>
+            <div id="gov-micro-survey-mount"></div>
+          </details>
+        </header>
+
+        <div id="gov-action-clusters-mount"></div>
+        <div id="gov-setup-debt-mount"></div>
+        <div id="gov-evidence-preview-mount" class="gov-evidence-preview-mount" aria-live="polite"></div>
+
+        <details id="gov-supporting-evidence" class="governance-evidence-wrap">
+          <summary class="governance-section-title governance-evidence-summary">Supporting evidence</summary>
+          <div id="gov-measurement-mount"></div>
+          <div id="gov-meeting-script-mount"></div>
+          <section id="gov-proof-risks" class="governance-risks" aria-label="Proof detail"></section>
+          <div id="gov-evidence" class="governance-evidence-table-wrap"></div>
+          <div id="gov-technical-details" class="gov-technical-details"></div>
+          <h3 class="governance-subsection-title">Backlog readiness</h3>
+          <section id="gov-readiness" class="governance-readiness" aria-label="Backlog readiness"></section>
+          <h3 class="governance-subsection-title">Plan vs now</h3>
+          <section id="gov-baseline" class="governance-baseline" aria-label="Plan vs now"></section>
+          <h3 class="governance-subsection-title">Pilot metrics</h3>
+          <section id="gov-scorecard" class="governance-scorecard" aria-label="Pilot scorecard"></section>
+        </details>
       </div>
-      <div id="gov-freshness" class="governance-freshness" aria-live="polite"></div>
-      <div id="gov-answer-mount"></div>
-      <details id="gov-secondary-chrome" class="gov-secondary-chrome">
-        <summary class="gov-secondary-chrome-summary">Feedback &amp; survey</summary>
-        <div id="gov-feedback-lab-mount"></div>
-        <div id="gov-micro-survey-mount"></div>
-      </details>
-    </header>
 
-    <div id="gov-action-clusters-mount"></div>
-    <div id="gov-setup-debt-mount"></div>
-    <div id="gov-verdict-mount"></div>
-    <div id="gov-pi-strip-mount"></div>
-    <div id="gov-evidence-preview-mount" class="gov-evidence-preview-mount" aria-live="polite"></div>
-
-    <details id="gov-supporting-evidence" class="governance-evidence-wrap">
-      <summary class="governance-section-title governance-evidence-summary">Supporting evidence</summary>
-      <div id="gov-measurement-mount"></div>
-      <div id="gov-meeting-script-mount"></div>
-      <section id="gov-proof-risks" class="governance-risks" aria-label="Proof detail"></section>
-      <div id="gov-evidence" class="governance-evidence-table-wrap"></div>
-      <div id="gov-technical-details" class="gov-technical-details"></div>
-      <h3 class="governance-subsection-title">Backlog readiness</h3>
-      <section id="gov-readiness" class="governance-readiness" aria-label="Backlog readiness"></section>
-      <h3 class="governance-subsection-title">Plan vs now</h3>
-      <section id="gov-baseline" class="governance-baseline" aria-label="Plan vs now"></section>
-      <h3 class="governance-subsection-title">Pilot metrics</h3>
-      <section id="gov-scorecard" class="governance-scorecard" aria-label="Pilot scorecard"></section>
-    </details>
-
+      <aside id="gov-right-rail-mount" class="gov-right-rail" aria-label="Compare squads and agent queue">
+        <div id="gov-worker-receipt-mount" class="gov-right-rail-receipt"></div>
+        <div id="gov-queue-mount" class="gov-inbox-mount gov-right-rail-queue" aria-label="Agent queue"></div>
+        <div id="gov-verdict-mount" class="gov-right-rail-verdict"></div>
+        <div id="gov-pi-strip-mount" class="gov-right-rail-pi"></div>
+      </aside>
     </div>
     <div id="gov-error" class="alert-banner" hidden role="alert"></div>
     <button type="button" id="gov-hidden-create-work" hidden data-open-outcome-modal data-outcome-projects="MPSA,MAS" data-outcome-context="Create work in Jira for selected squads.">Create work</button>

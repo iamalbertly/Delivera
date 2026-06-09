@@ -125,24 +125,29 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
     gap: var(--brief-desktop-gap) 20px;
     align-items: start;
   }
-  body.governance-page .governance-shell.governance-shell--desktop-grid .governance-header,
-  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-action-clusters-mount,
-  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-setup-debt-mount,
-  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-evidence-preview-mount,
-  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-supporting-evidence {
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-brief-layout {
+    display: contents;
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-main-column {
     grid-column: 1;
   }
-  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-verdict-mount {
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-right-rail {
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 72px) + 8px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-self: start;
+    max-height: calc(100vh - var(--sticky-global-nav-top, 0) - var(--gov-scope-bar-height, 72px) - 20px);
+    overflow-y: auto;
+    padding-bottom: 8px;
   }
-  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-pi-strip-mount:not(:empty):not([data-pi-strip-empty="true"]) {
-    grid-column: 2;
-    grid-row: 2;
-    position: sticky;
-    top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 72px) + 8px);
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-right-rail .gov-inbox-mount {
+    max-width: none;
+    margin: 0;
+    padding: 0;
   }
   body.governance-page .governance-shell.governance-shell--desktop-grid #gov-pi-strip-mount:empty,
   body.governance-page .governance-shell.governance-shell--desktop-grid #gov-pi-strip-mount[data-pi-strip-empty="true"] {
@@ -909,9 +914,15 @@ body.governance-page:has(#gov-scope-bar-mount .gov-scope-status-chip) .gov-answe
 body.governance-page .gov-command-answer[data-has-owner-clusters="true"] .gov-trust-chip-row .gov-send-badge {
   display: none;
 }
-/* Agent queue chrome only when inbox has work */
-body.governance-page #gov-top-chrome-mount:not(.gov-top-chrome--has-queue):not(.gov-top-chrome--has-receipt) {
+/* Right rail queue/receipt hidden when empty */
+body.governance-page #gov-right-rail-mount:not([data-right-rail-has-queue]) #gov-queue-mount:empty,
+body.governance-page #gov-right-rail-mount:not([data-right-rail-has-receipt]) #gov-worker-receipt-mount:empty {
   display: none;
+}
+body.governance-page .gov-right-rail #gov-worker-receipt-mount {
+  max-width: none;
+  margin: 0;
+  padding: 0;
 }
 body.governance-page #gov-secondary-chrome:not(.gov-secondary-chrome--has-content) {
   display: none;
@@ -972,9 +983,13 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
   body.governance-page:has([data-grouped-nudge]) .gov-command-answer {
     display: none !important;
   }
-  body.governance-page:has([data-grouped-nudge]) #gov-top-chrome-mount:not([open]) #gov-worker-receipt-mount,
-  body.governance-page:has([data-grouped-nudge]) #gov-top-chrome-mount:not([open]) #gov-queue-mount {
-    display: none;
+  body.governance-page .gov-brief-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  body.governance-page .gov-right-rail {
+    order: 2;
   }
   body.governance-page:has([data-grouped-nudge]) .governance-freshness {
     display: none !important;
@@ -1013,14 +1028,8 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
 }
 
 @media (max-width: 600px) {
-  body.governance-page #gov-top-chrome-mount {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 8px;
-  }
-  body.governance-page #gov-top-chrome-mount .gov-top-chrome-summary {
-    font-size: 0.72rem;
-    padding: 4px 0;
+  body.governance-page .gov-right-rail {
+    padding: 0 4px;
   }
   .gov-scope-bar-sticky { padding: 4px 8px; }
   .governance-header.gov-header-compact { margin-bottom: 4px; padding-top: 2px; }
@@ -1145,6 +1154,42 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
 }
 .gov-evidence-preview-table { max-height: 120px; overflow: auto; }
 .gov-setup-debt--auto .gov-fix-card-row { margin: 0; }
+
+.gov-lead-blocker-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  font-size: 0.82rem;
+}
+.gov-lead-blocker-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #991b1b;
+}
+.gov-lead-blocker-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+}
+.gov-compare-add-tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 6px 0;
+}
+.gov-ai-helper-note--warn { color: #b45309; font-weight: 600; }
 
 .gov-scope-period-row {
   display: flex;

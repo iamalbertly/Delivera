@@ -231,7 +231,7 @@ function updateSidebarAlertFooter(summary, pageContext = 'report') {
       }
       if (pageContext === 'governance') {
         document.querySelector('[data-queue-open], [data-gov-inbox-open]')?.click?.()
-          || document.getElementById('gov-top-chrome-mount')?.scrollIntoView?.({ behavior: 'smooth' });
+          || document.getElementById('gov-right-rail-mount')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
         return;
       }
       if (pageContext === 'current-sprint') {

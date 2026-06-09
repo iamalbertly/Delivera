@@ -199,13 +199,13 @@ test.describe('Customer simplicity trust direct value validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('08 agent queue auto opens when inbox pending', async () => {
-      await expect(page.locator('#gov-top-chrome-mount')).toHaveJSProperty('open', true);
+    await test.step('08 agent queue visible in right rail when inbox pending', async () => {
+      await expect(page.locator('#gov-right-rail-mount[data-right-rail-has-queue="true"]')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
     await test.step('08a inline inbox preview surfaces top queue without drawer', async () => {
-      await expect(page.locator('[data-inbox-inline="1"]')).toBeVisible();
+      await expect(page.locator('#gov-right-rail-mount [data-inbox-inline="1"]')).toBeVisible();
       await expect(page.locator('[data-inbox-inline="1"] .gov-inbox-inline-row')).toHaveCount(2);
       await expect(page.locator('.gov-queue-chip--secondary[data-queue-open="1"]')).toBeVisible();
       assertTelemetryClean(telemetry);
@@ -221,8 +221,9 @@ test.describe('Customer simplicity trust direct value validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('10 blocked meeting script promoted open', async () => {
-      await expect(page.locator('.gov-promoted-meeting-script .gov-meeting-script[open]')).toBeVisible();
+    await test.step('10 blocked meeting script promoted collapsed by default', async () => {
+      await expect(page.locator('.gov-promoted-meeting-script .gov-meeting-script')).toBeVisible();
+      await expect(page.locator('.gov-promoted-meeting-script .gov-meeting-script')).not.toHaveAttribute('open', /.+/);
       assertTelemetryClean(telemetry);
     });
 
@@ -256,15 +257,13 @@ test.describe('Customer simplicity trust direct value validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('16 verdict mount in right column sticky rail', async () => {
-      const verdict = page.locator('#gov-verdict-mount');
-      const col = await verdict.evaluate((el) => {
-        const shell = el.closest('.governance-shell');
-        if (!shell) return '';
+    await test.step('16 right rail in desktop grid column two', async () => {
+      const col = await page.locator('#gov-right-rail-mount').evaluate((el) => {
         const style = getComputedStyle(el);
         return style.gridColumnStart || style.gridColumn || '';
       });
       expect(String(col)).not.toBe('auto');
+      await expect(page.locator('#gov-verdict-mount')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 

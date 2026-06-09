@@ -376,6 +376,15 @@ function evidenceDrawerInitialTab() {
 
 export function bindPortfolioHeatMap(root, brief) {
   if (!root) return;
+  root.querySelectorAll('[data-compare-add]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const pk = btn.getAttribute('data-compare-add');
+      if (!pk) return;
+      const chip = document.querySelector(`#gov-scope-expanded [data-project="${pk}"]`);
+      if (chip) chip.click();
+      else document.getElementById('gov-scope-change')?.click();
+    });
+  });
   const lensTab = evidenceDrawerInitialTab();
   bindRiskHeatInteractions(root, brief, (_keys, squad) => {
     const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));

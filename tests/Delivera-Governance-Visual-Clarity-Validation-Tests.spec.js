@@ -145,10 +145,10 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await expect(page.locator('#gov-open-feedback-lab.gov-lab-chip')).toBeVisible();
   });
 
-  test('top chrome details closed by default', async ({ page }) => {
+  test('right rail queue visible without opening details', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await expect(page.locator('#gov-top-chrome-mount')).not.toHaveAttribute('open', '');
+    await expect(page.locator('#gov-right-rail-mount [data-queue-open]')).toBeVisible();
   });
 
   test('queue drawer shows icon tabs for multiple sections', async ({ page }) => {
@@ -163,7 +163,6 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
       }),
     }));
     await page.goto('/governance');
-    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-drawer-tabs')).toBeVisible();
     await expect(page.locator('[data-queue-tab="confirm"]')).toBeEnabled();
@@ -174,8 +173,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('grouped inbox truncates with show more', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await expect(page.locator('#gov-top-chrome-mount.gov-top-chrome--has-queue')).toBeAttached();
-    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
+    await expect(page.locator('#gov-right-rail-mount[data-right-rail-has-queue="true"]')).toBeAttached();
     await expect(page.locator('[data-queue-open]')).toBeVisible();
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-group-card')).toHaveCount(8);
@@ -263,8 +261,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('worker receipt uses details summary', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await page.locator('#gov-top-chrome-mount').evaluate((el) => { el.open = true; });
-    await expect(page.locator('.gov-receipt-details summary')).toContainText(/Agent/i);
+    await expect(page.locator('#gov-right-rail-mount .gov-receipt-details summary')).toContainText(/Agent/i);
   });
 
   test('telemetry clean on clarity load', async ({ page }) => {

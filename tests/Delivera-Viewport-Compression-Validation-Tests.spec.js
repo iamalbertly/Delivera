@@ -209,7 +209,7 @@ test.describe('Viewport compression and layering', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#gov-top-chrome-mount')).not.toHaveAttribute('open', /.+/);
+    await expect(page.locator('#gov-right-rail-mount')).toBeVisible();
     await expect(page.locator('#gov-secondary-chrome')).not.toHaveAttribute('open', /.+/);
     await expect(page.locator('#gov-supporting-evidence')).not.toHaveAttribute('open', /.+/);
     await expect(page.locator('#app-top-chrome')).toBeVisible();

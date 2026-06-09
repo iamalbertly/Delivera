@@ -1,4 +1,5 @@
 import { COPY, initialsFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { renderPulseBars } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
 import { classifyWorkAlignment, renderAlignmentChip } from './Delivera-Shared-WorkAlignment-01Chip-SSOT.js';
@@ -108,10 +109,19 @@ export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge
   const isStale = String(brief?.freshness?.confidenceLimit || '').toLowerCase() === 'stale';
   const staleNote = isStale ? ` · ${COPY.portfolioStaleHint}` : '';
   if (singleSquad && squads.length === 1) {
+    const selected = Array.isArray(brief?.projects) ? brief.projects.map((p) => String(p).toUpperCase()) : [];
+    const compareCandidates = readCatalogKeys().filter((pk) => !selected.includes(pk)).slice(0, 5);
+    const compareTray = compareCandidates.length
+      ? `<div class="gov-compare-add-tray" data-compare-add-tray="1" role="group" aria-label="Add squad to compare">
+          <span class="gov-scope-label">Compare</span>
+          ${compareCandidates.map((pk) => `<button type="button" class="gov-scope-chip" data-compare-add="${escapeHtml(pk)}">+ ${escapeHtml(pk)}</button>`).join('')}
+        </div>`
+      : '';
     return `
     <div class="gov-portfolio-grid-wrap gov-portfolio-grid-wrap--single" aria-label="${escapeHtml(COPY.executiveLeaderboard)}">
       <p class="gov-portfolio-banner-line${isStale ? ' is-stale' : ''}" data-portfolio-banner="1">${escapeHtml(line)}${cacheNote}${escapeHtml(staleNote)}</p>
       ${partialNote}
+      ${compareTray}
       <div class="gov-risk-tile-details gov-risk-tile-details--always-open">${details}</div>
     </div>`;
   }

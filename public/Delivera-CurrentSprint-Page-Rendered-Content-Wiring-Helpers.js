@@ -196,10 +196,12 @@ function wireNoClickJourneys() {
       const payload = window.__deliveraCurrentSprintPayload;
       const counts = payload ? getUnifiedRiskCounts(payload) : {};
       const scopeCount = Array.isArray(payload?.scopeChanges) ? payload.scopeChanges.length : 0;
+      const stuck = Array.isArray(payload?.stuckCandidates) ? payload.stuckCandidates : [];
       const blockers = Number(counts.blockersOwned || counts.blockers || 0);
       const unowned = Number(counts.unownedOutcomes || 0);
       let riskTag = '';
-      if (scopeCount > 0) riskTag = 'scope';
+      if (stuck.length > 0) riskTag = 'blocker';
+      else if (scopeCount > 0) riskTag = 'scope';
       else if (blockers > 0) riskTag = 'blocker';
       else if (unowned > 0) riskTag = 'unassigned';
       if (applyFilter && riskTag) {

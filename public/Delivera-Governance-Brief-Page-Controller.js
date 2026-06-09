@@ -45,8 +45,6 @@ function init() {
   govPage.els.baseline = $('gov-baseline');
   govPage.els.scorecard = $('gov-scorecard');
   govPage.els.error = $('gov-error');
-  govPage.els.export = $('gov-export');
-  govPage.els.export?.addEventListener('click', copyBrief);
   mountStickyMicroAnswer(govPage.els.stickyAnswerMount);
   bindStickyScroll(100);
   govPage.scopeBarApi = mountGovernanceScopeBar({

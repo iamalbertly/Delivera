@@ -313,23 +313,23 @@ test.describe('Value retention master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('16 desktop 1024 governance two-column density', async () => {
-      await page.setViewportSize({ width: 1024, height: 768 });
+    await test.step('16 desktop governance two-column density', async () => {
+      await page.setViewportSize({ width: 1280, height: 768 });
       await page.addInitScript((projectsKey) => {
         try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
       }, PROJECTS_SSOT_KEY);
-      await page.route(/\/api\/governance-brief\.json/, async (route) => {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: stubRetentionBrief() });
-      });
-      await page.goto('/governance');
+      await stubGovernanceBrief(page);
+      await gotoGovernanceFresh(page, '/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
       const gridActive = await page.evaluate(() => {
-        const shell = document.querySelector('.governance-shell--has-clusters');
+        const shell = document.querySelector('.governance-shell--desktop-grid');
         if (!shell) return false;
         const cols = getComputedStyle(shell).gridTemplateColumns;
         return Boolean(cols && cols.includes(' '));
       });
       expect(gridActive).toBe(true);
+      await expect(page.locator('#gov-right-rail-mount')).toBeVisible();
       await expect(page.locator('[data-heat-tile]').first()).toBeVisible();
       assertTelemetryClean(telemetry);
     });
@@ -502,9 +502,10 @@ test.describe('Value retention master plan realtime validation', () => {
     });
 
     await test.step('23 sidebar open keeps desktop two-column grid E6', async () => {
-      await page.setViewportSize({ width: 1024, height: 768 });
-      await page.goto('/governance');
+      await page.setViewportSize({ width: 1280, height: 768 });
+      await gotoGovernanceFresh(page, '/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
       await page.evaluate(() => document.body.classList.add('sidebar-open'));
       const twoCol = await page.evaluate(() => {
         const shell = document.querySelector('.governance-shell--desktop-grid');

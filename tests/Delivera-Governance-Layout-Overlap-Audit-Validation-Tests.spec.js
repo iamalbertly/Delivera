@@ -203,7 +203,7 @@ test.describe('Governance layout overlap audit', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#gov-top-chrome-mount')).toHaveJSProperty('open', true);
+    await expect(page.locator('#gov-right-rail-mount[data-right-rail-has-queue="true"]')).toBeVisible();
     await expect(page.locator('#gov-secondary-chrome')).toHaveJSProperty('open', false);
     await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', false);
 
@@ -216,8 +216,10 @@ test.describe('Governance layout overlap audit', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
 
     await openGovernanceDetailsPanel(page, 'gov-supporting-evidence');
+    await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', true);
     await expect(page.locator('#gov-evidence.data-table-scroll-wrap')).toBeVisible();
     await page.locator('[data-evidence-tab="plan"]').click();
     await expect(page.locator('#gov-readiness .governance-readiness-chips')).toBeVisible();
@@ -330,8 +332,7 @@ test.describe('Governance layout overlap audit', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#gov-top-chrome-mount .gov-top-chrome-summary')).toBeVisible();
-    await openGovernanceDetailsPanel(page, 'gov-top-chrome-mount');
+    await expect(page.locator('#gov-right-rail-mount [data-queue-open]')).toBeVisible();
     await expect(page.locator('[data-queue-open]')).toBeVisible();
 
     assertTelemetryClean(telemetry);

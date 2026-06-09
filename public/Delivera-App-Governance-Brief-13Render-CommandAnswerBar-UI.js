@@ -18,8 +18,26 @@ function trustTierLabel(brief) {
   return 'Medium';
 }
 
+function renderLeadBlockerStrip(top) {
+  if (!top?.issueKey) return '';
+  const age = Number(top.ageHours) || 0;
+  const ageLabel = age >= 48 ? `${Math.round(age / 24)}d stale` : (age >= 24 ? `${Math.round(age)}h stale` : '');
+  const title = String(top.displayTitle || top.summary || '').slice(0, 72);
+  const keyHtml = top.issueUrl
+    ? `<a href="${escapeHtml(top.issueUrl)}" class="gov-issue-key-link" target="_blank" rel="noopener">${escapeHtml(top.issueKey)}</a>`
+    : `<span class="gov-issue-key-link">${escapeHtml(top.issueKey)}</span>`;
+  return `
+    <div class="gov-lead-blocker-strip" data-lead-blocker="1" data-hover-proof="owner-lane">
+      <span class="gov-lead-blocker-label">Lead blocker</span>
+      ${keyHtml}
+      <span class="gov-lead-blocker-title">${escapeHtml(title)}</span>
+      ${ageLabel ? `<span class="gov-age-chip">${escapeHtml(ageLabel)}</span>` : ''}
+    </div>`;
+}
+
 export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   const hasOwnerClusters = Boolean(opts.hasOwnerClusters);
+  const suppressAdvisorBadge = Boolean(opts.suppressAdvisorBadge);
   const sentence = commandAnswerSentence(brief);
   const n = brief?.leadershipNarrative || {};
   const ev = brief?.executiveView || {};
@@ -62,9 +80,11 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     ? ''
     : sentence;
   const freshLabel = fresh || 'live Jira';
-  const trustBadge = narratedBy === 'advisor'
+  const showAdvisor = narratedBy === 'advisor' && !suppressAdvisorBadge;
+  const trustBadge = showAdvisor
     ? `<span class="gov-narration-badge gov-narration-badge--advisor" title="Clearer wording from AI · facts unchanged">${escapeHtml(COPY.clearerWording)}</span>`
     : `<span class="gov-narration-badge gov-narration-badge--template" title="Based on ${escapeHtml(freshLabel)}">${escapeHtml(COPY.standardWording)}</span>`;
+  const leadBlocker = top?.issueKey ? renderLeadBlockerStrip(top) : '';
   const aiStrip = narratedBy === 'advisor'
     ? renderAiContributionStrip(brief?.meta?.aiContribution || {})
     : '';
@@ -77,6 +97,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   return `
     <section class="gov-command-answer${hasOwnerClusters ? ' gov-command-answer--cluster-mode' : ''}" aria-label="${escapeHtml(COPY.briefTitle)}"${hasOwnerClusters ? ' data-has-owner-clusters="true"' : ''}>
       <div class="gov-command-head">${trustBadge}${aiStrip ? `<div class="gov-command-ai-strip">${aiStrip}</div>` : ''}</div>
+      ${leadBlocker}
       <div class="gov-visual-answer-blocks" role="group" aria-label="Delivery decision">
         <div class="gov-answer-block gov-answer-block--status gov-answer-block--${escapeHtml(tier)}" data-hover-proof="status" data-verdict-tier="${escapeHtml(tier)}">
           <span class="gov-answer-block-label">${escapeHtml(COPY.statusLabel)}</span>

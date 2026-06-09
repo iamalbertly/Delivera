@@ -292,6 +292,11 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     mount.querySelectorAll('[data-inline-open]').forEach((btn) => {
       btn.addEventListener('click', () => openCombinedDrawer('doNow'));
     });
+    const rightRail = document.getElementById('gov-right-rail-mount');
+    if (rightRail) {
+      if (total > 0) rightRail.setAttribute('data-right-rail-has-queue', 'true');
+      else rightRail.removeAttribute('data-right-rail-has-queue');
+    }
   }
 
   async function refresh() {
@@ -312,7 +317,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     openQueueTab: (tabKey) => {
       const unified = tabKey === 'confirm' || tabKey === 'nudges' ? 'doNow'
         : (tabKey === 'briefs' || tabKey === 'piDrift' || tabKey === 'impact' || tabKey === 'poReadiness' ? 'background' : tabKey);
-      document.getElementById('gov-top-chrome-mount')?.setAttribute('open', '');
+      document.getElementById('gov-right-rail-mount')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       openCombinedDrawer(unified);
     },
   };
