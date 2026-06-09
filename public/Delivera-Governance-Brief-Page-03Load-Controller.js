@@ -94,8 +94,12 @@ export function renderBriefUi(brief) {
   govPage.lastSurfaces = partitionBriefSurfaces(brief, scopeKeys);
   govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces.drawerIssues);
   const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
+  const squadCount = selectedProjects(brief).length;
+  const showHeatMap = isPortfolioMode(brief) || squadCount === 1;
+  const singleSquadHero = showHeatMap && squadCount === 1;
   document.getElementById('main-content')?.classList.toggle('governance-shell--has-clusters', hasOwnerClusters);
   document.getElementById('main-content')?.classList.toggle('governance-shell--desktop-grid', true);
+  document.getElementById('main-content')?.classList.toggle('governance-shell--hero-squad', singleSquadHero);
   if (govPage.els.piStripMount) {
     const hasBaselineGap = (brief?.meta?.setupGaps || []).some((g) => g.action === 'set-baseline');
     const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap });
@@ -122,7 +126,12 @@ export function renderBriefUi(brief) {
       || govPage.aiTrustState?.suppressAdvisorBadge,
     );
     const promotedScript = tier === 'blocked' ? renderMeetingScript(brief, { openByDefault: false }) : '';
-    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters, suppressAdvisorBadge: suppressAdvisor })
+    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, {
+      hasOwnerClusters,
+      suppressAdvisorBadge: suppressAdvisor,
+      hideLeadBlocker: singleSquadHero,
+      collapseHeroDedupe: singleSquadHero,
+    })
       + (promotedScript ? `<div class="gov-promoted-meeting-script" data-promoted-script="1">${promotedScript}</div>` : '');
     bindCommandOverflowMenu(govPage.els.answerMount);
     govPage.els.answerMount.querySelector('#gov-export-overflow')?.addEventListener('click', copyBrief);
@@ -141,16 +150,14 @@ export function renderBriefUi(brief) {
   }
 
   if (govPage.els.verdictMount) {
-    const squadCount = selectedProjects(brief).length;
-    const showHeatMap = isPortfolioMode(brief) || squadCount === 1;
     const verdictInner = showHeatMap
       ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1, hideSquadNudge: hasOwnerClusters && squadCount === 1 })
       : renderVerdictZone(brief);
     const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
-    const inlineVerdict = showHeatMap && squadCount === 1;
-    govPage.els.verdictMount.innerHTML = skipStandaloneVerdict
-      ? ''
-      : verdictInner;
+    govPage.els.verdictMount.innerHTML = skipStandaloneVerdict ? '' : verdictInner;
+    if (singleSquadHero) govPage.els.verdictMount.setAttribute('data-hero-squad', 'true');
+    else govPage.els.verdictMount.removeAttribute('data-hero-squad');
+    govPage.els.verdictMount.hidden = skipStandaloneVerdict;
     if (showHeatMap) bindPortfolioHeatMap(govPage.els.verdictMount, brief);
   }
   if (govPage.els.scriptMount) {

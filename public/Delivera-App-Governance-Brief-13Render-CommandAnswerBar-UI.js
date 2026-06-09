@@ -84,7 +84,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   const trustBadge = showAdvisor
     ? `<span class="gov-narration-badge gov-narration-badge--advisor" title="Clearer wording from AI · facts unchanged">${escapeHtml(COPY.clearerWording)}</span>`
     : `<span class="gov-narration-badge gov-narration-badge--template" title="Based on ${escapeHtml(freshLabel)}">${escapeHtml(COPY.standardWording)}</span>`;
-  const leadBlocker = top?.issueKey ? renderLeadBlockerStrip(top) : '';
+  const leadBlocker = (!opts.hideLeadBlocker && top?.issueKey) ? renderLeadBlockerStrip(top) : '';
   const aiStrip = narratedBy === 'advisor'
     ? renderAiContributionStrip(brief?.meta?.aiContribution || {})
     : '';
@@ -94,8 +94,9 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     ? `<button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">${escapeHtml(COPY.reviewActions)}</button>`
     : '';
 
+  const collapseHero = Boolean(opts.collapseHeroDedupe);
   return `
-    <section class="gov-command-answer${hasOwnerClusters ? ' gov-command-answer--cluster-mode' : ''}" aria-label="${escapeHtml(COPY.briefTitle)}"${hasOwnerClusters ? ' data-has-owner-clusters="true"' : ''}>
+    <section class="gov-command-answer${hasOwnerClusters ? ' gov-command-answer--cluster-mode' : ''}${collapseHero ? ' gov-command-answer--hero-deduped' : ''}" aria-label="${escapeHtml(COPY.briefTitle)}"${hasOwnerClusters ? ' data-has-owner-clusters="true"' : ''}${collapseHero ? ' data-hero-deduped="1"' : ''}>
       <div class="gov-command-head">${trustBadge}${aiStrip ? `<div class="gov-command-ai-strip">${aiStrip}</div>` : ''}</div>
       ${leadBlocker}
       <div class="gov-visual-answer-blocks" role="group" aria-label="Delivery decision">

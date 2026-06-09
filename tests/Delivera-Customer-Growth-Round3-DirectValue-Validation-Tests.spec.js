@@ -110,9 +110,10 @@ test.describe('Customer growth round3 direct value', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('03 lead blocker strip surfaces top issue without scroll', async () => {
-      await expect(page.locator('[data-lead-blocker="1"]')).toBeVisible();
-      await expect(page.locator('[data-lead-blocker="1"] .gov-issue-key-link')).toContainText('SD-5184');
+    await test.step('03 hero squad card surfaces cause without duplicate lead strip', async () => {
+      await expect(page.locator('#gov-verdict-mount[data-hero-squad="true"]')).toBeVisible();
+      await expect(page.locator('[data-lead-blocker="1"]')).toHaveCount(0);
+      await expect(page.locator('[data-squad-pi-row="1"]')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
@@ -124,7 +125,7 @@ test.describe('Customer growth round3 direct value', () => {
 
     await test.step('05 advisor badge suppressed on high fallback', async () => {
       await expect(page.locator('.gov-narration-badge--advisor')).toHaveCount(0);
-      await expect(page.locator('.gov-narration-badge--template')).toBeVisible();
+      await expect(page.locator('[data-hero-deduped="1"]')).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 

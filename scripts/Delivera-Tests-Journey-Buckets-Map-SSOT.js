@@ -353,6 +353,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/settings',
   },
+  'tests/Delivera-Governance-Hero-Squad-First-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/governance',
+  },
   'tests/Delivera-Value-Retention-MasterPlan-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.value-retention',
     layer: 'cross-surface-ux',

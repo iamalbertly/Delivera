@@ -16963,6 +16963,16 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
     flex-direction: column;
     gap: 12px;
   }
+  body.governance-page .gov-main-column {
+    display: flex;
+    flex-direction: column;
+  }
+  body.governance-page .gov-hero-verdict-mount {
+    order: -1;
+  }
+  body.governance-page .governance-shell--hero-squad .gov-hero-verdict-mount {
+    margin-top: 0;
+  }
   body.governance-page .gov-right-rail {
     order: 2;
   }
@@ -17129,6 +17139,52 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
 }
 .gov-evidence-preview-table { max-height: 120px; overflow: auto; }
 .gov-setup-debt--auto .gov-fix-card-row { margin: 0; }
+
+/* Hero squad card — first visible content in main column (direct-to-value) */
+.gov-hero-verdict-mount {
+  margin: 0 0 10px;
+}
+.gov-hero-verdict-mount[data-hero-squad="true"] .gov-portfolio-grid-wrap--single {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border, #e5e7eb);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.gov-hero-verdict-mount[data-hero-squad="true"] .gov-portfolio-banner-line {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e3a5f;
+}
+body.governance-page .governance-shell--hero-squad .governance-header.gov-header-compact {
+  margin-bottom: 6px;
+  padding-top: 0;
+}
+body.governance-page .governance-shell--hero-squad .gov-command-answer--hero-deduped .gov-visual-answer-blocks,
+body.governance-page .governance-shell--hero-squad .gov-command-answer--hero-deduped .gov-trust-chip-row,
+body.governance-page .governance-shell--hero-squad .gov-command-answer--hero-deduped .gov-command-answer-detail,
+body.governance-page .governance-shell--hero-squad .gov-command-answer--hero-deduped .gov-promoted-meeting-script {
+  display: none !important;
+}
+body.governance-page .governance-shell--hero-squad .gov-command-answer--hero-deduped {
+  padding: 0;
+  margin: 0 0 8px;
+  border: none;
+  background: transparent;
+}
+body.governance-page .governance-shell--hero-squad .gov-command-answer--hero-deduped .gov-command-head {
+  display: none;
+}
+body.governance-page .governance-shell--hero-squad .gov-command-answer--hero-deduped .gov-command-actions {
+  margin: 0;
+  justify-content: flex-end;
+  gap: 6px;
+}
+body.governance-page .governance-shell--hero-squad:has([data-hero-squad="1"]) .governance-freshness {
+  display: none !important;
+}
 
 .gov-lead-blocker-strip {
   display: flex;
