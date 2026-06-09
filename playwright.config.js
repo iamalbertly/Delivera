@@ -1,4 +1,18 @@
 import { defineConfig, devices } from '@playwright/test';
+import { existsSync, readFileSync } from 'fs';
+
+function resolveTestBaseUrl() {
+  if (process.env.BASE_URL) return process.env.BASE_URL;
+  try {
+    if (existsSync('.delivera-dev-port')) {
+      const port = Number(readFileSync('.delivera-dev-port', 'utf8').trim());
+      if (Number.isFinite(port) && port > 0) return `http://localhost:${port}`;
+    }
+  } catch (_) { /* ignore */ }
+  return 'http://localhost:3000';
+}
+
+const testBaseUrl = resolveTestBaseUrl();
 
 export default defineConfig({
   testDir: './tests',
@@ -9,7 +23,7 @@ export default defineConfig({
   reporter: 'list',
   timeout: 120000, // 2 minutes for tests that call real Jira API
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: testBaseUrl,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     headless: true, // Run in background for speed; use --headed when debugging
@@ -24,8 +38,8 @@ export default defineConfig({
   ],
 
   webServer: process.env.SKIP_WEBSERVER !== 'true' ? {
-    command: 'npm run start',
-    url: process.env.BASE_URL || 'http://localhost:3000',
+    command: 'node scripts/Delivera-Dev-Port-Guard-01Check.js && npm run start',
+    url: `${testBaseUrl}/healthz`,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   } : undefined,

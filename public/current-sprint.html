@@ -3,17 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Performance - Current Sprint - Delivera</title>
+  <title>Today - Delivera</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="current-sprint-page">
   <div class="container">
     <header>
       <div class="current-sprint-header">
-        <h1 class="current-sprint-page-title-wrap"><span id="current-sprint-title">Performance - Current Sprint</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
+        <h1 class="current-sprint-page-title-wrap"><span id="current-sprint-title">Today</span> <span id="current-sprint-name" class="sprint-name"></span></h1>
         <div class="board-select-wrap">
           <div class="current-sprint-scope-stack">
-            <div class="current-sprint-control-field">
+            <p id="current-sprint-scope-chip" class="current-sprint-scope-inherit-chip" hidden>
+              <span id="current-sprint-scope-chip-label"></span>
+              <a href="/governance" class="current-sprint-scope-change-link">Change on Answer</a>
+            </p>
+            <div class="current-sprint-control-field" id="current-sprint-board-controls">
               <div class="current-sprint-scope-row current-sprint-scope-row--compact">
                 <div class="current-sprint-scope-inline">
                 <select id="current-sprint-projects" aria-label="Select project">
@@ -23,7 +27,7 @@
                   <option value="">Loading boards...</option>
                 </select>
                 </div>
-                <span id="current-sprint-single-project-hint" class="current-sprint-scope-badge" aria-live="polite">Using single-project mode</span>
+                <span id="current-sprint-single-project-hint" class="current-sprint-scope-badge" aria-live="polite" hidden></span>
                 <div class="current-sprint-jump-inline">
                   <input id="issue-jump-input" type="text" class="input-compact" placeholder="Filter sprint work: KEY, URL, summary" aria-label="Filter sprint work by key, URL, or summary">
                 </div>

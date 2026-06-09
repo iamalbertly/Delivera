@@ -934,3 +934,25 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
   .governance-header { scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + var(--gov-scope-bar-height, 72px) + 8px); }
   .gov-scope-bar-sticky { --gov-scope-bar-height: 88px; }
 }
+
+.gov-evidence-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.gov-evidence-tab {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gov-evidence-tab.is-active {
+  background: var(--primary-strong, #6b1f1f);
+  color: #fff;
+  border-color: transparent;
+}
+.gov-command-ai-strip { margin-top: 6px; }
+.gov-promoted-meeting-script { margin-top: 10px; }

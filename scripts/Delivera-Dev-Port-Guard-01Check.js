@@ -1,20 +1,26 @@
 /**
- * Dev port guard — detect (and optionally clear) stale listeners before starting the server.
+ * Dev port guard — detect busy ports, auto-pick free port (3000–3010), or clear with --force.
  * Usage: node scripts/Delivera-Dev-Port-Guard-01Check.js [--force]
  */
 import { execSync } from 'child_process';
+import { writeFileSync } from 'fs';
 import net from 'net';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const PORT_FILE = join(root, '.delivera-dev-port');
+const PORT_RANGE_START = 3001;
+const PORT_RANGE_END = 3010;
+
 dotenv.config({ path: join(root, '.env') });
 
-const port = Number(process.env.PORT) || 3000;
+const preferredPort = Number(process.env.PORT) || PORT_RANGE_START;
 const force = process.argv.includes('--force');
+const portExplicit = Boolean(String(process.env.PORT || '').trim());
 
-function isPortInUse(targetPort) {
+export function isPortInUse(targetPort) {
   return new Promise((resolve) => {
     const probe = net.createServer();
     probe.once('error', (err) => resolve(err?.code === 'EADDRINUSE'));
@@ -23,6 +29,21 @@ function isPortInUse(targetPort) {
     });
     probe.listen(targetPort, '127.0.0.1');
   });
+}
+
+export async function findAvailablePort(start = PORT_RANGE_START, end = PORT_RANGE_END) {
+  for (let p = start; p <= end; p += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const busy = await isPortInUse(p);
+    if (!busy) return p;
+  }
+  return null;
+}
+
+function writeDevPortFile(port) {
+  try {
+    writeFileSync(PORT_FILE, String(port), 'utf8');
+  } catch (_) { /* non-blocking */ }
 }
 
 function findPidsOnPort(targetPort) {
@@ -58,45 +79,53 @@ function killPid(pid) {
   process.kill(Number(pid), 'SIGTERM');
 }
 
-async function main() {
-  const inUse = await isPortInUse(port);
+async function resolvePort() {
+  const inUse = await isPortInUse(preferredPort);
   if (!inUse) {
-    console.log(`[port-guard] Port ${port} is free`);
-    return;
+    process.env.PORT = String(preferredPort);
+    writeDevPortFile(preferredPort);
+    console.log(`[port-guard] Port ${preferredPort} is free`);
+    return preferredPort;
   }
 
-  const pids = findPidsOnPort(port);
-  if (!pids.length) {
-    console.warn(`[port-guard] Port ${port} appears busy but no listener PID was found`);
-    if (!force) process.exit(1);
-    return;
-  }
-
-  console.warn(`[port-guard] Port ${port} is in use by PID(s): ${pids.join(', ')}`);
-  if (!force) {
-    const hint = process.platform === 'win32'
-      ? `taskkill /PID ${pids[0]} /F`
-      : `kill ${pids[0]}`;
-    console.warn(`[port-guard] Stop the process or run: npm run dev:safe -- --force`);
-    console.warn(`[port-guard] Manual: ${hint}`);
-    process.exit(1);
-  }
-
-  for (const pid of pids) {
-    try {
-      killPid(pid);
-      console.log(`[port-guard] Terminated PID ${pid}`);
-    } catch (error) {
-      console.warn(`[port-guard] Failed to terminate PID ${pid}: ${error?.message || error}`);
+  if (force) {
+    const pids = findPidsOnPort(preferredPort);
+    for (const pid of pids) {
+      try {
+        killPid(pid);
+        console.log(`[port-guard] Terminated PID ${pid}`);
+      } catch (error) {
+        console.warn(`[port-guard] Failed to terminate PID ${pid}: ${error?.message || error}`);
+      }
+    }
+    const stillBusy = await isPortInUse(preferredPort);
+    if (!stillBusy) {
+      process.env.PORT = String(preferredPort);
+      writeDevPortFile(preferredPort);
+      console.log(`[port-guard] Port ${preferredPort} is now free`);
+      return preferredPort;
     }
   }
 
-  const stillBusy = await isPortInUse(port);
-  if (stillBusy) {
-    console.error(`[port-guard] Port ${port} is still busy after --force`);
+  const scanStart = portExplicit ? preferredPort : PORT_RANGE_START;
+  const scanEnd = portExplicit ? Math.min(preferredPort + 10, PORT_RANGE_END + 10) : PORT_RANGE_END;
+  const picked = await findAvailablePort(scanStart, scanEnd);
+  if (picked == null) {
+    console.error(`[port-guard] No free port in range ${scanStart}–${scanEnd}`);
     process.exit(1);
   }
-  console.log(`[port-guard] Port ${port} is now free`);
+
+  if (picked !== preferredPort) {
+    console.warn(`[port-guard] Port ${preferredPort} is busy — using ${picked} instead`);
+    console.warn(`[port-guard] Override: PORT=${picked} npm run dev:safe`);
+  }
+  process.env.PORT = String(picked);
+  writeDevPortFile(picked);
+  return picked;
+}
+
+async function main() {
+  await resolvePort();
 }
 
 main().catch((error) => {

@@ -9,6 +9,7 @@ import {
 } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { commandAnswerSentence, sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { renderAiContributionStrip } from './Delivera-Shared-AgentQueue-01UI.js';
 
 function trustTierLabel(brief) {
   if (brief?.freshness?.confidenceLimit === 'stale') return 'Low';
@@ -60,9 +61,13 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   const detailLine = sentence && statusHead && String(sentence).toUpperCase().startsWith(statusHead)
     ? ''
     : sentence;
+  const freshLabel = fresh || 'live Jira';
   const trustBadge = narratedBy === 'advisor'
-    ? '<span class="gov-narration-badge gov-narration-badge--advisor" title="Advisor narration">Advisor</span>'
-    : '<span class="gov-narration-badge gov-narration-badge--template" title="Template narration">Template</span>';
+    ? `<span class="gov-narration-badge gov-narration-badge--advisor" title="Clearer wording from AI · facts unchanged">Clearer wording</span>`
+    : `<span class="gov-narration-badge gov-narration-badge--template" title="Based on ${escapeHtml(freshLabel)}">Standard wording</span>`;
+  const aiStrip = narratedBy === 'advisor'
+    ? renderAiContributionStrip(brief?.meta?.aiContribution || {})
+    : '';
 
   const showReviewActions = !hasOwnerClusters && !showDoFirstStrip;
   const reviewActionsBtn = showReviewActions
@@ -71,7 +76,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
 
   return `
     <section class="gov-command-answer" aria-label="${escapeHtml(COPY.briefTitle)}"${hasOwnerClusters ? ' data-has-owner-clusters="true"' : ''}>
-      <div class="gov-command-head">${trustBadge}</div>
+      <div class="gov-command-head">${trustBadge}${aiStrip ? `<div class="gov-command-ai-strip">${aiStrip}</div>` : ''}</div>
       <div class="gov-visual-answer-blocks" role="group" aria-label="Delivery decision">
         <div class="gov-answer-block gov-answer-block--status gov-answer-block--${escapeHtml(tier)}" data-hover-proof="status" data-verdict-tier="${escapeHtml(tier)}">
           <span class="gov-answer-block-label">${escapeHtml(COPY.statusLabel)}</span>
@@ -91,7 +96,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
         <span class="gov-trust-part" data-hover-proof="trust" title="Can I trust this answer?">Trust ${escapeHtml(trustTierLabel(brief))}</span>
         <span class="gov-trust-part" data-hover-proof="evidence-count">Proof ${evidenceCount}</span>
         <span class="gov-trust-part" data-hover-proof="freshness">Data ${escapeHtml(fresh)}</span>
-        <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">AI ${escapeHtml(narratedBy === 'advisor' ? 'Advisor' : 'Template')}</a>
+        <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">${escapeHtml(narratedBy === 'advisor' ? 'AI helped' : 'Templates')}</a>
         <span class="gov-send-badge gov-send-badge--${readiness.tier}" data-hover-proof="safe-send">${escapeHtml(readiness.label)}</span>
       </div>
       ${detailLine ? `<p class="gov-command-answer-detail">${escapeHtml(detailLine.slice(0, 200))}</p>` : ''}
@@ -101,6 +106,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
         <div class="gov-overflow-menu-wrap">
           <button type="button" class="btn btn-secondary btn-compact" id="gov-overflow-toggle" aria-expanded="false" aria-haspopup="true">${escapeHtml(COPY.overflowMore)}</button>
           <div class="gov-overflow-menu" id="gov-overflow-menu" hidden role="menu">
+            <button type="button" class="btn btn-secondary btn-compact" id="gov-export-overflow">${escapeHtml(COPY.exportBrief)}</button>
             <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-pi-forum" ${piForum ? '' : 'disabled'}>Copy PI forum answer</button>
             <button type="button" class="btn btn-link btn-compact" id="gov-protect-me">Protect-me wording</button>
             <button type="button" class="btn btn-link btn-compact" id="gov-fix-setup">Fix setup</button>

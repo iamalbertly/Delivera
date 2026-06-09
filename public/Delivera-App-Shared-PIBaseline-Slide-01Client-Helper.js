@@ -23,7 +23,7 @@ export async function postSlidePropose({ file, projects, projectsCsv = '' }) {
   if (!hasAiProviderKey()) throw new Error(COPY.aiKeyRequiredSlide);
   const pref = readAiProviderPref();
   if (pref.provider === 'gemini') {
-    throw new Error('Slide reading needs OpenAI or Claude. Change provider in Settings.');
+    throw new Error('Slide reading needs OpenAI, Claude, or OpenRouter. Change provider in Settings.');
   }
   const { base64, mimeType } = await resizeImageFileToBase64(file);
   const quarter = readGovernanceQuarter();

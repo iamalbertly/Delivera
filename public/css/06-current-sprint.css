@@ -1,4 +1,20 @@
 
+.current-sprint-scope-inherit-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: var(--muted-strong, #5a4a4a);
+}
+.current-sprint-scope-change-link {
+  font-weight: 600;
+  white-space: nowrap;
+}
+body.has-top-chrome .current-sprint-scope-inline {
+  display: none;
+}
+
 :root {
   --header-sprint-name-size: 0.95rem;
   --header-verdict-line-size: 0.76rem;
@@ -4435,6 +4451,9 @@ body.current-sprint-page .board-select-wrap {
 body.current-sprint-page #current-sprint-single-project-hint {
   display: block;
   margin-top: 2px;
+}
+body.current-sprint-page.has-top-chrome #current-sprint-single-project-hint {
+  display: none;
 }
 
 body.current-sprint-page #current-sprint-loading {

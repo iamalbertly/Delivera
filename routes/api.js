@@ -50,6 +50,9 @@ import { buildWorkerReceipt } from '../lib/Delivera-Governance-Worker-03Receipt-
 import { buildScopeIntelligence } from '../lib/Delivera-Governance-BoardIntelligence-01Scope-SSOT.js';
 import { buildPIConfidenceStrip } from '../lib/Delivera-Governance-PIConfidence-01Strip-SSOT.js';
 import { buildFeedbackTriageSummary } from '../lib/Delivera-Governance-FeedbackTriage-01Agents-SSOT.js';
+import { buildAiUsageSummary } from '../lib/Delivera-AI-Usage-01Audit-IO.js';
+import { recordImprovementEvent } from '../lib/Delivera-Improvement-Events-01Store-IO.js';
+import { buildAiContributionSummary } from '../lib/Delivera-Agent-Queue-01Store-IO.js';
 import {
     resolveEffectiveGovernanceProfile,
     saveProfileOverride,
@@ -1586,9 +1589,16 @@ router.post('/api/governance/inbox/:id/resolve', requireAuth, async (req, res) =
         const resolution = String(req.body?.resolution || 'dismissed').trim();
         const editedContent = String(req.body?.editedContent || '').trim();
         const userId = req.session?.user || 'unknown';
-        const row = await resolveInboxItem(id, { resolution, editedContent, userId });
+        const row = await resolveInboxItem(id, { resolution, editedContent, userId, dismissReason: req.body?.dismissReason });
+        const projects = parseGovernanceProjects(req);
+        const eventType = resolution === 'approved' ? 'accepted-copy' : (row.dismissReason === 'wrong-owner' ? 'wrong-owner' : 'dismissed-risk');
+        await recordImprovementEvent({
+            eventType,
+            surface: 'brief',
+            scope: { project: projects[0] || '*', inboxId: id },
+            payload: { type: row.type, summary: row.summary, dismissReason: row.dismissReason },
+        }).catch(() => {});
         if (resolution === 'approved' && row.type === 'brief' && editedContent) {
-            const projects = parseGovernanceProjects(req);
             await recordNarrationPattern({
                 patternKey: row.payload?.briefId || 'brief-approved',
                 phrase: editedContent,
@@ -1710,8 +1720,12 @@ router.get('/api/governance/worker-receipt.json', requireAuth, async (req, res) 
         const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
         const brief = cached?.value || cached || {};
         const workerReceipt = await buildWorkerReceipt(brief, grouped, jobs);
+        const aiContribution = await buildAiContributionSummary({ project });
+        const aiUsage = await buildAiUsageSummary({ hours: 24 });
         return res.json({
             workerReceipt,
+            aiContribution,
+            aiUsage,
             jobs: jobs.slice(0, 3),
             inboxTotal: items.length,
             setupGaps: brief?.meta?.setupGaps || [],
@@ -1857,6 +1871,17 @@ router.get('/api/governance/impact-pack.json', requireAuth, async (req, res) => 
     } catch (err) {
         logger.warn('impact-pack failed', { error: err?.message });
         return res.status(500).json({ error: 'Impact pack failed' });
+    }
+});
+
+router.get('/api/settings/ai-usage.json', requireAuth, async (req, res) => {
+    try {
+        const hours = Number(req.query?.hours) || 24;
+        const summary = await buildAiUsageSummary({ hours });
+        return res.json(summary);
+    } catch (err) {
+        logger.warn('ai-usage read failed', { error: err?.message });
+        return res.status(500).json({ error: 'AI usage read failed' });
     }
 });
 

@@ -19,7 +19,7 @@ export function renderOwnerActionClusters(brief, groups = []) {
       const age = Number(r.ageHours) || 0;
       const ageChip = age >= 48 ? `<span class="gov-age-chip">${Math.round(age / 24)}d</span>` : '';
       const keyHtml = r.issueKey
-        ? `<a href="#" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a>`
+        ? `<a href="/current-sprint?issue=${encodeURIComponent(r.issueKey)}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a>`
         : '';
       return `
       <li class="gov-cluster-issue">

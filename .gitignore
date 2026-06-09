@@ -1,5 +1,6 @@
 node_modules/
 .env
+.delivera-dev-port
 .DS_Store
 *.log
 .cursor/

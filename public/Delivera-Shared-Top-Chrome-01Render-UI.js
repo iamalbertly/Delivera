@@ -8,6 +8,8 @@ import {
   effectiveNotificationTotal,
   openNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { readAiProviderPref } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 
 export const TOP_CHROME_ID = 'app-top-chrome';
 export const NOTIFICATION_SLOT_ID = 'app-notification-slot';
@@ -34,8 +36,8 @@ const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
 const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
 
 const SURFACE_SWITCHER = [
-  { key: PAGE_GOVERNANCE, label: 'Brief', href: '/governance' },
-  { key: PAGE_SPRINTS, label: 'Sprint', href: '/current-sprint' },
+  { key: PAGE_GOVERNANCE, label: 'Answer', href: '/governance' },
+  { key: PAGE_SPRINTS, label: 'Today', href: '/current-sprint' },
   { key: PAGE_REPORT, label: 'Proof', href: '/report' },
 ];
 
@@ -119,6 +121,18 @@ async function loadSessionMetaIntoAvatar() {
   } catch (_) {}
 }
 
+function buildAiTrustPillHTML() {
+  try {
+    const ai = readAiProviderPref();
+    const hasBrowserKey = Boolean(ai?.key && ai?.provider && ai.provider !== 'built-in');
+    if (hasBrowserKey) {
+      const label = ai.provider === 'openrouter' ? 'OpenRouter' : ai.provider;
+      return `<span class="app-top-ai-trust-pill" data-ai-trust-pill="browser" title="AI connected in this browser (${label})">AI · browser</span>`;
+    }
+  } catch (_) { /* ignore */ }
+  return '<span class="app-top-ai-trust-pill" data-ai-trust-pill="template" title="Using built-in templates">AI · templates</span>';
+}
+
 function buildSwitcherHTML(current) {
   let html = '<div class="app-top-switcher" role="navigation" aria-label="Surfaces">';
   for (const item of SURFACE_SWITCHER) {
@@ -160,7 +174,8 @@ function buildTopChromeHTML(current) {
     + `<div data-top-slot="actions" role="group" aria-label="Global actions">`
     + `<button type="button" class="app-top-create" data-top-action="create-work" data-open-outcome-modal data-outcome-context="Create work from global chrome." data-outcome-projects="${escapeAttr(projects)}">`
     + '<span aria-hidden="true">+</span><span class="app-top-create-label">Create</span></button>'
-    + (current === PAGE_GOVERNANCE ? '' : `<button type="button" class="app-top-agent-pill is-visible" data-top-action="agent">Agent</button>`)
+    + buildAiTrustPillHTML()
+    + (current === PAGE_GOVERNANCE ? '' : `<button type="button" class="app-top-agent-pill is-visible" data-top-action="agent">Actions</button>`)
     + `<button type="button" class="app-top-btn app-top-icon-btn" data-top-action="notifications" id="app-top-notifications-btn" aria-label="Notifications" title="Notifications">`
     + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"/></svg>'
     + '<span class="app-top-notify-badge" id="app-top-notify-badge" hidden></span></button>'
@@ -182,16 +197,8 @@ function buildTopChromeHTML(current) {
     + '</div>';
 }
 
-function escapeHtml(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 function escapeAttr(s) {
-  return escapeHtml(s).replace(/'/g, '&#39;');
+  return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function truncate(s, max) {
@@ -344,6 +351,17 @@ function bindTopChromeInteractions(chrome, current) {
     window.addEventListener('resize', () => {
       const el = document.getElementById(TOP_CHROME_ID);
       if (el) syncMobileSearchCollapse(el);
+    });
+  }
+  if (!window.__deliveraTopChromeSlashBound) {
+    window.__deliveraTopChromeSlashBound = true;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = String(e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) return;
+      e.preventDefault();
+      const s = document.getElementById('app-top-search');
+      if (s) { s.focus(); s.select?.(); }
     });
   }
   syncMobileSearchCollapse(chrome);

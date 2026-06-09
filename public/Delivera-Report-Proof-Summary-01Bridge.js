@@ -1,4 +1,4 @@
-import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { readSharedProjectsCsv, GOVERNANCE_QUARTER_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { noOutcomesPlainEnglish, COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { fetchGovernanceBriefCached, peekGovernanceBriefCache } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 
@@ -40,9 +40,11 @@ export async function mountReportProofSummary() {
   const el = document.getElementById('report-filter-strip-summary');
   if (!el) return;
   const projects = readSharedProjectsCsv().join(',') || 'MPSA,MAS';
+  let quarter = '';
+  try { quarter = String(localStorage.getItem(GOVERNANCE_QUARTER_KEY) || '').trim(); } catch (_) { /* ignore */ }
   try {
-    const brief = peekGovernanceBriefCache(projects)
-      || await fetchGovernanceBriefCached({ projects });
+    const brief = peekGovernanceBriefCache(projects, quarter)
+      || await fetchGovernanceBriefCached({ projects, quarter });
     window[BRIEF_LINE_KEY] = buildBriefSummaryLine(brief);
     window.__deliveraNoOutcomesCopy = noOutcomesPlainEnglish();
   } catch (_) {

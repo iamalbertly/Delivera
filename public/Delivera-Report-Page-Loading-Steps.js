@@ -34,7 +34,7 @@ export function updateLoadingMessage(message, step = null) {
     loadingMessage.textContent = message;
   }
   const chip = document.getElementById('loading-status-chip');
-  if (chip && chip.style.display !== 'none') {
+  if (chip && chip.style.display !== 'none' && !document.body?.classList?.contains('report-page')) {
     chip.textContent = message;
   }
   if (step) {

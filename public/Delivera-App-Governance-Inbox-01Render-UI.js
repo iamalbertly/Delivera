@@ -8,11 +8,7 @@ import { groupInboxByFingerprint } from './Delivera-App-Governance-Inbox-Group-0
 import { isSyntheticInboxId } from './Delivera-App-Governance-Inbox-01Fingerprint-SSOT.js';
 import { buildGuidedNudgeText } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
-
-function escapeHtml(v) {
-  return String(v == null ? '' : v)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 function writeLastSeen() {
   try { localStorage.setItem(GOVERNANCE_INBOX_LAST_SEEN_KEY, new Date().toISOString()); } catch (_) {}
@@ -25,16 +21,28 @@ function isResolvableItem(item) {
 }
 
 const TAB_META = [
-  ['briefs', '📋', 'queueTabReady'],
-  ['nudges', '✉', 'queueTabNudges'],
-  ['piDrift', '↔', 'queueTabPiDrift'],
-  ['confirm', '✓', 'queueTabConfirm'],
-  ['impact', '◎', 'queueTabImpact'],
-  ['poReadiness', '◇', 'queueTabPo'],
+  ['doNow', '✉', 'queueTabDoNow', ['nudges', 'confirm']],
+  ['background', '📋', 'queueTabBackground', ['briefs', 'piDrift', 'impact', 'poReadiness']],
 ];
 
+function itemsForTab(data, key) {
+  const meta = TAB_META.find(([k]) => k === key);
+  if (!meta) return data?.[key] || [];
+  const sources = meta[3] || [key];
+  return sources.flatMap((src) => data?.[src] || []);
+}
+
 function tabCount(data, key) {
-  return (data?.[key] || []).length;
+  return itemsForTab(data, key).length;
+}
+
+function sourceTabForItem(item, unifiedTab) {
+  if (unifiedTab === 'doNow') {
+    const t = String(item?.type || item?.payload?.type || '').toLowerCase();
+    if (t.includes('nudge') || t.includes('confirm')) return t.includes('confirm') ? 'confirm' : 'nudges';
+    return 'nudges';
+  }
+  return 'briefs';
 }
 
 function renderDrawerTabs(data, activeTabKey) {
@@ -90,7 +98,7 @@ function renderGroupedDrawer(items, showAll = false, tabKey = '') {
           <button type="button" class="gov-inbox-dismiss-chip" data-dismiss-reason="handled" data-group-dismiss="${escapeHtml(g.fingerprint)}" title="${escapeHtml(COPY.dismissHandled)}">✓̸</button>
         </div>`
       : `<span class="gov-inbox-hint gov-inbox-cached-hint">${escapeHtml(COPY.inboxCachedHint)}</span>`;
-    const draftLine = tabKey === 'nudges' && ex?.id
+    const draftLine = (tabKey === 'doNow' || tabKey === 'nudges') && ex?.id
       ? (() => {
         const excerpt = nudgeDraftExcerpt(ex);
         return excerpt
@@ -122,7 +130,7 @@ function renderGroupedDrawer(items, showAll = false, tabKey = '') {
 }
 
 function drawerBodyHtml(data, tabKey, showAll = false) {
-  const items = data?.[tabKey] || [];
+  const items = itemsForTab(data, tabKey);
   return `${renderDrawerTabs(data, tabKey)}<div class="gov-inbox-drawer-pane" role="tabpanel">${renderGroupedDrawer(items, showAll, tabKey)}</div>`;
 }
 
@@ -132,7 +140,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
   let lastData = null;
   let drawerClose = null;
   let drawerEl = null;
-  let activeTabKey = 'briefs';
+  let activeTabKey = 'doNow';
 
   async function fetchInbox() {
     const csv = getProjectsCsv?.() || 'MPSA,MAS';
@@ -156,7 +164,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
   }
 
   async function resolveGroup(fingerprint, resolution, dismissReason, tabKey) {
-    const items = lastData?.[tabKey] || [];
+    const items = itemsForTab(lastData, tabKey);
     const groups = groupInboxByFingerprint(items);
     const g = groups.find((x) => x.fingerprint === fingerprint);
     if (!g) return;
@@ -165,7 +173,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
   }
 
   function bindDrawerActions(el, tabKey) {
-    const items = lastData?.[tabKey] || [];
+    const items = itemsForTab(lastData, tabKey);
     const openReview = onOpenNudgeReview;
     el.querySelectorAll('[data-group-dismiss]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -183,7 +191,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
         const g = groupInboxByFingerprint(items).find((x) => x.fingerprint === fp);
         const ex = g?.exampleItem;
         if (!ex) return;
-        if (tabKey === 'nudges' && openReview) {
+        if ((tabKey === 'doNow' || tabKey === 'nudges') && openReview) {
           drawerClose?.();
           openReview(ex);
           return;
@@ -214,7 +222,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
 
   function switchDrawerTab(el, tabKey) {
     activeTabKey = tabKey;
-    if (tabKey === 'confirm') onFocusConfirm?.();
+    if (tabKey === 'confirm' || tabKey === 'doNow') onFocusConfirm?.();
     const body = el.querySelector('.gov-right-drawer-body');
     if (!body) return;
     body.innerHTML = drawerBodyHtml(lastData, tabKey, false);
@@ -228,7 +236,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     const label = COPY[TAB_META.find(([k]) => k === tabKey)?.[2]] || tabKey;
     writeLastSeen();
     activeTabKey = tabKey;
-    if (tabKey === 'confirm') onFocusConfirm?.();
+    if (tabKey === 'confirm' || tabKey === 'doNow') onFocusConfirm?.();
 
     const { close, el } = openRightDrawer({
       title: `${COPY.agentQueue} — ${label} (${items.length})`,
@@ -244,7 +252,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     const data = lastData || {};
     const tabKey = preferredTab && tabCount(data, preferredTab) > 0
       ? preferredTab
-      : (TAB_META.find(([k]) => tabCount(data, k) > 0)?.[0] || 'briefs');
+      : (TAB_META.find(([k]) => tabCount(data, k) > 0)?.[0] || 'doNow');
     openQueueDrawer(tabKey);
   }
 
@@ -276,12 +284,14 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
   render();
   return {
     refresh,
-    getConfirmCount: () => (lastData?.confirm || []).length,
+    getConfirmCount: () => tabCount(lastData, 'doNow'),
     getInboxTotal: () => TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0),
     openQueue: () => openCombinedDrawer(),
     openQueueTab: (tabKey) => {
+      const unified = tabKey === 'confirm' || tabKey === 'nudges' ? 'doNow'
+        : (tabKey === 'briefs' || tabKey === 'piDrift' || tabKey === 'impact' || tabKey === 'poReadiness' ? 'background' : tabKey);
       document.getElementById('gov-top-chrome-mount')?.setAttribute('open', '');
-      openCombinedDrawer(tabKey);
+      openCombinedDrawer(unified);
     },
   };
 }

@@ -6,6 +6,7 @@ import {
 
 const SD_FIXTURE = {
   portfolio: 'SD',
+  projects: ['SD'],
   freshness: { confidenceLimit: 'live' },
   deliveryTruth: { committed: 4, done: 0, staleInProgress: 4 },
   executiveView: {
@@ -33,7 +34,7 @@ const SD_FIXTURE = {
   ],
   portfolioRisks: [
     {
-      squad: 'DMS board',
+      squad: 'SD board',
       audience: 'measurement',
       riskType: 'data-confidence-gap',
       displayTitle: 'Story point setup',
@@ -103,8 +104,9 @@ test.describe('Executive Brief pulse realtime validation', () => {
     });
 
     await test.step('Stage D: measurement risks not in owner cluster', async () => {
-      await expect(page.locator('.gov-owner-cluster')).not.toContainText(/DMS board/i);
-      await expect(page.locator('.gov-measurement-strip')).toContainText(/Data gaps|Story point/i);
+      await expect(page.locator('.gov-owner-cluster')).not.toContainText(/Story point setup/i);
+      await page.locator('#gov-supporting-evidence > summary.governance-evidence-summary').click();
+      await expect(page.locator('.gov-measurement-strip summary')).toContainText(/Data gaps|Story point|Measurement/i);
       assertTelemetryClean(telemetry);
     });
 
@@ -118,9 +120,10 @@ test.describe('Executive Brief pulse realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('Stage F: proof section holds full risk cards', async () => {
+    await test.step('Stage F: proof section holds measurement-only cards (delivery deduped to clusters)', async () => {
       await page.locator('#gov-supporting-evidence > summary.governance-evidence-summary').click();
-      await expect(page.locator('#gov-proof-risks .governance-risk')).toHaveCount(2);
+      await expect(page.locator('#gov-proof-risks .governance-risk')).toHaveCount(1);
+      await expect(page.locator('#gov-proof-risks .governance-risk')).toContainText(/Story point|Data confidence/i);
       assertTelemetryClean(telemetry);
     });
   });

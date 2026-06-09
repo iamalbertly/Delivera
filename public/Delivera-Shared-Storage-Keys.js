@@ -39,7 +39,10 @@ export const AI_PROVIDER_PREF_KEY = 'delivera_ai_provider_pref_v1';
 export const GOVERNANCE_INBOX_LAST_SEEN_KEY = 'delivera_gov_inbox_seen_v1';
 /** Last time adoption micro-survey was shown (ISO). */
 export const GOVERNANCE_SURVEY_LAST_ASKED_KEY = 'delivera_gov_survey_asked_v1';
-/** Governance Brief quarter pill selection (distinct from report date range). */
+/** Simple mode toggle — unified key (replaces delivera.simpleEnglishMode.v1). */
+export const SIMPLE_MODE_KEY = 'delivera_simpleMode';
+/** @deprecated — migrated to SIMPLE_MODE_KEY on read */
+export const LEGACY_SIMPLE_ENGLISH_KEY = 'delivera.simpleEnglishMode.v1';
 export const GOVERNANCE_QUARTER_KEY = 'delivera_gov_quarter_v1';
 
 const LEGACY_KEY_PAIRS = [

@@ -14,7 +14,7 @@ import { renderSetupDebtStrip, bindSetupDebtStripExpand } from './Delivera-App-G
 import { escapeHtml, briefToMarkdown } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import {
   renderProofRisks, renderEvidenceTable, renderTechnicalDetails,
-  renderReadiness, renderBaseline, deferScorecardUntilEvidenceOpen,
+  renderReadiness, renderBaseline, deferScorecardUntilEvidenceOpen, mountEvidenceTabShell,
 } from './Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js';
 import { COPY, freshnessPlainEnglish, verdictTierFromBrief } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { setBriefNavBadge } from './Delivera-Shared-Global-Nav.js';
@@ -99,7 +99,10 @@ export function renderBriefUi(brief) {
   }
   if (govPage.els.workerReceiptMount) govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
   if (govPage.els.answerMount) {
-    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters });
+    const tier = verdictTierFromBrief(brief);
+    const promotedScript = tier === 'blocked' ? renderMeetingScript(brief) : '';
+    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters })
+      + (promotedScript ? `<div class="gov-promoted-meeting-script" data-promoted-script="1">${promotedScript}</div>` : '');
     bindCommandOverflowMenu(govPage.els.answerMount);
     govPage.els.answerMount.querySelector('#gov-export-overflow')?.addEventListener('click', copyBrief);
   }
@@ -116,9 +119,12 @@ export function renderBriefUi(brief) {
       ? renderPortfolioGrid(brief)
       : renderVerdictZone(brief);
     const verdictSummary = isPortfolioMode(brief) ? 'Portfolio heat map' : 'Squad verdict';
-    govPage.els.verdictMount.innerHTML = hasOwnerClusters
-      ? `<details class="gov-verdict-fold"><summary>${verdictSummary}</summary>${verdictInner}</details>`
-      : verdictInner;
+    const skipStandaloneVerdict = !isPortfolioMode(brief) && !hasOwnerClusters;
+    govPage.els.verdictMount.innerHTML = skipStandaloneVerdict
+      ? ''
+      : (hasOwnerClusters
+        ? `<details class="gov-verdict-fold"><summary>${verdictSummary}</summary>${verdictInner}</details>`
+        : verdictInner);
     if (isPortfolioMode(brief)) {
       bindRiskHeatInteractions(govPage.els.verdictMount, brief, (_keys, squad) => {
         const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));
@@ -142,6 +148,7 @@ export function renderBriefUi(brief) {
   renderTechnicalDetails(brief);
   renderReadiness(brief);
   renderBaseline(brief);
+  mountEvidenceTabShell();
   bindProofInteractions();
   wireGovernanceIssuePreview(brief, document);
   bindHoverProofCards(document, brief);

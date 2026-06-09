@@ -215,8 +215,9 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
   const MOCK_BRIEF = {
     briefId: 'MPSA-MAS-Q1-2026-W23',
     generatedAt: new Date().toISOString(),
+    projects: ['MPSA'],
     freshness: { confidenceLimit: 'stale', cacheAgeMinutes: 42, jiraFetchedAt: new Date().toISOString() },
-    portfolio: 'MPSA + MAS',
+    portfolio: 'MPSA',
     deliveryTruth: { committed: 3, done: 1, inProgress: 1, staleInProgress: 1, blocked: 0, lateAdded: 1, removed: null, carryover: null },
     topRisks: [{
       issueKey: 'MPSA-2', squad: 'MPSA Squad A', summary: 'stuck thing', riskType: 'stale-in-progress',
@@ -263,19 +264,18 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
     if (!(await mockAndGo(page))) return;
     await expect(page.locator('.gov-verdict-zone')).toHaveAttribute('data-verdict-tier', 'blocked');
     await expect(page.locator('.gov-verdict-business-line')).toContainText(/MPSA|stuck/i);
-    await expect(page.locator('.governance-freshness-pill.is-stale')).toBeVisible();
-    await expect(page.locator('.governance-risk-lane')).toContainText('Tech Lead');
+    await expect(page.locator('.gov-trust-chip-row')).toContainText(/Stale|Low/i);
+    await expect(page.locator('.gov-owner-cluster, .governance-risk-lane').first()).toContainText(/Tech Lead/i);
   });
 
   test('Why-flagged expander reveals rule fired and changelog', async ({ page }) => {
     if (!(await mockAndGo(page))) return;
     await page.locator('#gov-supporting-evidence summary').click();
-    await page.locator('#gov-proof-risks [data-why="0"]').click();
-    const detail = page.locator('[data-detail="0"]');
-    await expect(detail).toBeVisible();
-    await expect(detail).toContainText('Rule fired');
-    await expect(detail).toContainText('Status last week');
-    await expect(detail).toContainText('To Do');
+    const evidence = page.locator('#gov-evidence');
+    await expect(evidence).toContainText('MPSA-2');
+    await expect(evidence).toContainText(/status unchanged for 60h/i);
+    await expect(evidence).toContainText(/Last week/i);
+    await expect(evidence).toContainText('To Do');
   });
 
   test('export markdown includes meeting answer and actions', async ({ page, context }) => {
@@ -284,7 +284,8 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
       status: 200, contentType: 'application/json', body: JSON.stringify({ markdown: '## Grow My Impact\n\n- Briefs: 1' }),
     }));
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.locator('#gov-export').click();
+    await page.locator('#gov-overflow-toggle').click();
+    await page.locator('#gov-export-overflow').click();
     await expect.poll(async () => page.evaluate(() => navigator.clipboard.readText())).toContain("Today's delivery answer");
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toContain('Tech Lead');
@@ -327,9 +328,8 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
 
   test('nudge is blocked when data is stale (trust guard)', async ({ page }) => {
     if (!(await mockAndGo(page))) return;
-    await page.locator('#gov-supporting-evidence summary').click();
-    await expect(page.locator('#gov-proof-risks [data-nudge="0"]')).toBeVisible();
-    await page.locator('#gov-proof-risks [data-nudge="0"]').click({ force: true });
+    await expect(page.locator('[data-grouped-nudge="0"]')).toBeVisible();
+    await page.locator('[data-grouped-nudge="0"]').click();
     await expect(page.locator('body')).toHaveClass(/jira-nudge-review-open/);
     await expect(page.locator('#delivera-jira-nudge-review-sheet')).not.toHaveAttribute('hidden', '');
     await expect(page.locator('.jira-nudge-review-trust')).toContainText(/Live sprint required/i);

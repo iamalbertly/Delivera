@@ -2,11 +2,7 @@
  * Advanced scope drawer for Governance Brief — extra projects and governance rules note.
  */
 import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
-
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 /**
  * @param {object} opts

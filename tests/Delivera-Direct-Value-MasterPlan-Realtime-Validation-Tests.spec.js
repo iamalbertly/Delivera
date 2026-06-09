@@ -1,0 +1,119 @@
+/**
+ * Direct-to-value master plan — journey-value UI + logcat per step.
+ * Structural contracts (roles, data attrs, counts) — not brittle copy strings.
+ */
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import {
+  captureBrowserTelemetry,
+  assertTelemetryClean,
+  skipIfRedirectedToLogin,
+} from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
+import { PROJECTS_SSOT_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
+
+function stubBriefBody() {
+  return JSON.stringify({
+    briefId: 'test-brief',
+    projects: ['SD'],
+    leadershipNarrative: { meetingAnswer: 'Delivery is on track for SD.', confidence: 'medium' },
+    executiveView: { verdictLabel: 'Watch', businessHeadline: 'One risk needs follow-up.' },
+    deliveryTruth: { done: 3, committed: 5 },
+    topRisks: [{ issueKey: 'SD-1', summary: 'Stuck item', assigneeName: 'Alex', recommendedAction: 'Unblock' }],
+    freshness: { confidenceLimit: 'live', generatedAt: new Date().toISOString() },
+    meta: { narratedBy: 'template', workerReceipt: { inboxTotal: 0 }, safeToSend: true },
+    evidencePack: { rows: [] },
+  });
+}
+
+test.describe('Direct value master plan realtime validation', () => {
+  test.describe.configure({ retries: 0 });
+
+  test('cross-surface direct-value contracts', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.addInitScript((projectsKey) => {
+      try { localStorage.setItem(projectsKey, 'SD'); } catch (_) {}
+    }, PROJECTS_SSOT_KEY);
+
+    await page.route(/\/api\/governance-brief\.json/, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: stubBriefBody() });
+    });
+    await page.route(/\/api\/governance\/inbox\.json/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ nudges: [], confirm: [], briefs: [], piDrift: [], impact: [], poReadiness: [] }),
+      });
+    });
+    await page.route(/\/api\/governance\/feedback-summary\.json/, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+
+    await test.step('01 governance answer surface loads', async () => {
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('#gov-answer-mount .gov-command-answer')).toBeVisible({ timeout: 20000 });
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('02 surface switcher uses Answer Today Proof labels', async () => {
+      await expect(page.locator('[data-top-surface="governance"]')).toContainText(/Answer/i);
+      await expect(page.locator('a[data-top-surface="sprints"]')).toContainText(/Today/i);
+      await expect(page.locator('a[data-top-surface="report"]')).toContainText(/Proof/i);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('03 AI trust pill present in top chrome', async () => {
+      await expect(page.locator('[data-ai-trust-pill]')).toHaveCount(1);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('04 evidence tabs mounted when supporting evidence exists', async () => {
+      const evidence = page.locator('#gov-supporting-evidence');
+      if (await evidence.count()) {
+        await evidence.locator('summary').click();
+        await expect(page.locator('.gov-evidence-tabs [data-evidence-tab]')).toHaveCount(3);
+      }
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('05 today surface inherits scope chip', async () => {
+      await page.goto('/current-sprint');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('#current-sprint-title')).toContainText(/Today/i);
+      const chip = page.locator('#current-sprint-scope-chip');
+      if (await chip.isVisible().catch(() => false)) {
+        await expect(chip.locator('a[href="/governance"]')).toHaveCount(1);
+      }
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('06 proof header refresh proof single action', async () => {
+      await page.goto('/report');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('[data-report-refresh-proof]')).toHaveCount(1);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('07 proof mission strip has context bar', async () => {
+      await expect(page.locator('#report-filter-strip-summary .app-context-bar, #report-filter-strip-summary .context-bar')).toHaveCount(1);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('08 settings has no placeholder surface grid', async () => {
+      await page.goto('/settings');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('.surface-grid-three')).toHaveCount(0);
+      await expect(page.locator('#gov-settings-ai-mount')).toHaveCount(1);
+      await expect(page.locator('#gov-settings-ai-mount #gov-ai-helper')).toBeVisible();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('09 mobile viewport no horizontal overflow on answer', async () => {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+      expect(overflow).toBe(false);
+      assertTelemetryClean(telemetry);
+    });
+  });
+});

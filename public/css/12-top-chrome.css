@@ -1,5 +1,27 @@
 /* Jira-style persistent top chrome — SSOT with Delivera-Shared-Top-Chrome-01Render-UI.js */
 
+/* Brief scope capsule already shows projects — hide redundant brand context line */
+body.governance-page .app-top-brand-context {
+  display: none;
+}
+
+.app-top-ai-trust-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.app-top-ai-trust-pill[data-ai-trust-pill="browser"] {
+  background: rgba(120, 220, 160, 0.22);
+}
+
 .app-top-chrome {
   position: fixed;
   top: 0;

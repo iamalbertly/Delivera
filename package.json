@@ -32,6 +32,7 @@
     "test:journey:outcome-intake": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.outcome-intake",
     "test:outcome-intake": "npm run test:journey:outcome-intake",
     "test:journey:ux-core": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.ux-core",
+    "test:journey:direct-value-masterplan": "npm run build:css && node scripts/Delivera-Dev-Port-Guard-01Check.js && npx playwright test tests/Delivera-Direct-Value-MasterPlan-Realtime-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
     "test:report-jira-ux": "playwright test tests/Delivera-Customer-Simplicity-Trust-Recovery-Validation-Tests.spec.js --grep \"stubbed preview\" --max-failures=1 --workers=1 --reporter=list",
     "test:journey:shell-direct-value": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.shell-direct-value",
     "test:journey:data-integrity": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.data-integrity",

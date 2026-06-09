@@ -1,6 +1,8 @@
 /**
  * Plain-English delivery copy — single source for user-facing labels.
  */
+import { SIMPLE_MODE_KEY, LEGACY_SIMPLE_ENGLISH_KEY } from './Delivera-Shared-Storage-Keys.js';
+
 export const COPY = {
   briefTitle: "Today's delivery answer",
   whatToSayHeading: 'What to say in the meeting',
@@ -91,6 +93,8 @@ export const COPY = {
   openLab: 'Lab',
   seeQueue: 'See queue',
   queueTabReady: 'Ready',
+  queueTabDoNow: 'Do now',
+  queueTabBackground: 'Background',
   queueTabNudges: 'Nudges',
   queueTabPiDrift: 'PI drift',
   queueTabConfirm: 'Confirm',
@@ -130,7 +134,15 @@ export const COPY = {
 };
 
 export function isSimpleMode() {
-  try { return localStorage.getItem('delivera_simpleMode') === '1'; } catch (_) { return false; }
+  try {
+    if (localStorage.getItem(SIMPLE_MODE_KEY) === '1') return true;
+    const legacy = localStorage.getItem(LEGACY_SIMPLE_ENGLISH_KEY);
+    if (legacy === 'true' || legacy === '1') {
+      localStorage.setItem(SIMPLE_MODE_KEY, '1');
+      return true;
+    }
+    return false;
+  } catch (_) { return false; }
 }
 
 export function simpleStatusLabel(tier = 'watch', withIcon = false) {

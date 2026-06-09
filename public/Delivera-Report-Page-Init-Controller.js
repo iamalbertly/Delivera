@@ -8,7 +8,7 @@ import { wirePreviewContextActions } from './Delivera-Report-Page-Render-Preview
 import { initSearchClearButtons } from './Delivera-Report-Page-Search-Clear.js';
 import { initFilters } from './Delivera-Report-Page-Filters-Pills-Manager.js';
 import { refreshNotificationDockFromStore } from './Delivera-Shared-Notifications-Dock-Manager.js';
-import { getValidLastQuery, getContextDisplayString } from './Delivera-Shared-Context-From-Storage.js';
+import { getValidLastQuery, getContextDisplayString, renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import {
   REPORT_FILTERS_COLLAPSED_KEY,
   SHARED_DATE_RANGE_KEY,
@@ -359,9 +359,21 @@ function initReportPage() {
       if (!hash) {
         const activeBtn = document.querySelector('.tab-btn.active');
         if (!activeBtn) {
-          const defaultBtn = document.getElementById('tab-btn-project-epic-level') || document.getElementById('tab-btn-done-stories');
+          const preferOutcomes = document.body?.classList?.contains('has-top-chrome');
+          const defaultBtn = preferOutcomes
+            ? (document.getElementById('tab-btn-done-stories') || document.getElementById('tab-btn-project-epic-level'))
+            : (document.getElementById('tab-btn-project-epic-level') || document.getElementById('tab-btn-done-stories'));
           if (defaultBtn) defaultBtn.click();
         }
+      }
+      const projectCount = getSelectedProjects().length;
+      const trendsBtn = document.getElementById('tab-btn-trends');
+      if (trendsBtn && projectCount > 0 && projectCount < 3) {
+        trendsBtn.hidden = true;
+        trendsBtn.setAttribute('aria-hidden', 'true');
+      } else if (trendsBtn) {
+        trendsBtn.hidden = false;
+        trendsBtn.removeAttribute('aria-hidden');
       }
     } catch (_) {}
   }
@@ -393,9 +405,26 @@ function initReportPage() {
   initPreviewFlow();
   wirePreviewContextActions();
   const cacheRestored = restoreLastPreviewFromStorage();
+  const hasTopChrome = document.body?.classList?.contains('has-top-chrome');
+  if (hasTopChrome) {
+    try {
+      const panel = document.getElementById('filters-panel');
+      if (panel && !panel.classList.contains('collapsed')) {
+        panel.classList.add('collapsed');
+        try { localStorage.setItem(REPORT_FILTERS_COLLAPSED_KEY, '1'); } catch (_) {}
+      }
+    } catch (_) {}
+  }
   if (!cacheRestored && shouldAutoPreviewOnInit()) {
     const previewBtn = document.getElementById('preview-btn');
-    if (previewBtn && !previewBtn.disabled) scheduleAutoPreview(1000);
+    if (previewBtn && !previewBtn.disabled) {
+      scheduleAutoPreview(hasTopChrome ? 0 : 1000);
+    }
+  } else if (hasTopChrome && shouldAutoPreviewOnInit() && cacheRestored) {
+    const previewBtn = document.getElementById('preview-btn');
+    if (previewBtn && !previewBtn.disabled && !reportState.previewData) {
+      scheduleAutoPreview(400);
+    }
   }
   initFilters();
   initSearchClearButtons();
@@ -434,7 +463,7 @@ function initReportPage() {
     } catch (_) {}
     const hasTopChrome = document.body?.classList?.contains('has-top-chrome');
     wrap.innerHTML = ''
-      + '<button type="button" id="report-header-preview-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Refresh</button>'
+      + '<button type="button" id="report-header-preview-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary" data-report-refresh-proof="1">Refresh proof</button>'
       + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary" data-action="load-latest-preview" hidden>Refresh latest</button>'
       + (hasTopChrome ? '' : '<div class="report-outcome-intake report-outcome-intake-inline">'
       + '<span id="report-header-actions-status" class="report-outcome-intake-status" aria-live="polite"></span>'
@@ -629,6 +658,11 @@ function initReportPage() {
   initOutcomeIntake();
   initFeedbackPanel();
   mountReportProofSummary();
+  window.addEventListener('delivera:scope-changed', () => {
+    mountReportProofSummary();
+    updateAppliedFiltersSummary();
+    renderSidebarContextCard();
+  });
 }
 
 // M2: Scroll-aware page identity — inject compact page name into sticky header when H1 scrolls away (X.com pattern)

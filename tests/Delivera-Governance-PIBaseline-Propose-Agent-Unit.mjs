@@ -150,7 +150,7 @@ describe('PI baseline propose agent', () => {
         providerConfig: { provider: 'gemini', apiKey: 'test-key' },
         boardEpics: [],
       }),
-      /OpenAI or Claude/i,
+      /OpenAI, Claude, or OpenRouter/i,
     );
   });
 

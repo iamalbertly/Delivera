@@ -1,10 +1,9 @@
 /**
  * Governance Brief render helpers — KPI strip, decisions table, evidence detail, export.
  */
-export function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+
+export { escapeHtml };
 
 export function truthChip(label, value, tone) {
   const v = value == null ? '-' : value;

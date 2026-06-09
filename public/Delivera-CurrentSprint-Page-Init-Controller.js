@@ -8,6 +8,7 @@ import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-D
 import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprintSnapshot } from './Delivera-CurrentSprint-Page-Snapshot.js';
 import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
 import { hydrateCurrentSprintProjectsSelect } from './Delivera-CurrentSprint-Projects-Catalog-01Hydrate.js';
+import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -107,6 +108,12 @@ function refreshBoards(preferredId, preferredSprintId) {
         showBoardsLoadError('No boards found for selected projects. Check project filters or run Report preview.', preferredId, preferredSprintId);
         return null;
       }
+      const boardSelectEl = document.getElementById('board-select');
+      if (boardSelectEl?.parentElement && boards.length === 1 && document.body?.classList?.contains('has-top-chrome')) {
+        boardSelectEl.parentElement.style.display = 'none';
+      } else if (boardSelectEl?.parentElement) {
+        boardSelectEl.parentElement.style.display = '';
+      }
       const boardIds = boards.map((b) => String(b.id));
       const preferredStillExists = preferredId && boardIds.includes(preferredId);
       const boardId = preferredStillExists ? preferredId : boardIds[0];
@@ -176,11 +183,40 @@ function onBoardChange() {
   loadAndRenderSprint({ boardId, sprintId: null, loadingText: null, retryFactory: () => onBoardChange() });
 }
 
-function updateProjectHint() {
+function updateScopeInheritChip() {
   try {
-    const hint = document.getElementById('current-sprint-single-project-hint');
-    if (!hint) return;
-    hint.textContent = 'Using single-project mode';
+    const chip = document.getElementById('current-sprint-scope-chip');
+    const label = document.getElementById('current-sprint-scope-chip-label');
+    const projectsInline = document.querySelector('.current-sprint-scope-inline');
+    const boardControls = document.getElementById('current-sprint-board-controls');
+    const hasTopChrome = document.body?.classList?.contains('has-top-chrome');
+    const projects = readSharedProjectsCsv().join(', ') || getProjectsParam();
+    if (chip && label) {
+      label.textContent = projects ? `Scope: ${projects}` : 'Scope from Answer';
+      chip.hidden = !hasTopChrome;
+    }
+    if (hasTopChrome && projectsInline) {
+      projectsInline.style.display = 'none';
+    }
+    if (boardControls && hasTopChrome) {
+      boardControls.classList.add('current-sprint-board-controls--inherit');
+    }
+  } catch (_) {}
+}
+
+function updateProjectHint() {
+  updateScopeInheritChip();
+}
+
+function applyIssueJumpFromUrl() {
+  try {
+    const issue = new URLSearchParams(window.location.search).get('issue');
+    if (!issue) return;
+    const jump = document.getElementById('issue-jump-input');
+    if (!jump) return;
+    jump.value = issue;
+    jump.dispatchEvent(new Event('input', { bubbles: true }));
+    jump.focus();
   } catch (_) {}
 }
 
@@ -314,7 +350,7 @@ function loadAndRenderSprint({
     });
 }
 
-const initHandlers = { refreshBoards, onBoardChange, updateProjectHint, onProjectsChange, onSprintTabClick, handleRefreshSprint, selectSprintById };
+const initHandlers = { refreshBoards, onBoardChange, updateProjectHint, updateScopeInheritChip, onProjectsChange, onSprintTabClick, handleRefreshSprint, selectSprintById };
 
 function safeInitBoot() {
   try {
@@ -379,6 +415,13 @@ function init() {
     });
 
   initHandlers.updateProjectHint();
+  applyIssueJumpFromUrl();
+  window.addEventListener('delivera:scope-changed', () => {
+    syncProjectsSelect(readSharedProjectsCsv().join(','));
+    updateScopeInheritChip();
+    showRibbon('Scope updated on Answer — refreshing sprint…', 'info');
+    initHandlers.refreshBoards(getPreferredBoardId(), getPreferredSprintId());
+  });
   if (boardSelect) boardSelect.addEventListener('change', initHandlers.onBoardChange);
   if (contentEl) contentEl.addEventListener('click', initHandlers.onSprintTabClick);
   if (errorEl) {

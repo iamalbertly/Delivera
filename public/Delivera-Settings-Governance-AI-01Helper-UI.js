@@ -6,28 +6,67 @@ import {
   saveAiProviderPref,
   clearAiProviderPref,
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
-function escapeHtml(v) {
-  return String(v == null ? '' : v)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const AI_USED_FOR = [
+  'Clearer Brief wording',
+  'PI baseline classification',
+  'Simple Mode copy',
+  'Feedback improvement proposals',
+  'Grouped nudge drafts',
+];
+
+const AI_NEVER_FOR = [
+  'Jira writes',
+  'Final counts',
+  'Confirmed PI baseline',
+  'Owner facts',
+  'Risk truth',
+];
+
+async function fetchAiUsageStats() {
+  try {
+    const res = await fetch('/api/settings/ai-usage.json?hours=24');
+    if (!res.ok) return null;
+    return res.json();
+  } catch (_) {
+    return null;
+  }
 }
 
 export function mountGovernanceAiHelper(mount) {
   if (!mount) return;
 
-  function render() {
+  async function render() {
     const ai = readAiProviderPref();
     const hasKey = Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
+    const usage = await fetchAiUsageStats();
+    const providerLabel = ai.provider === 'openrouter' ? 'OpenRouter' : (ai.provider || 'Built-in');
+    const callsLine = usage
+      ? `Last 24h: ${usage.totalCalls || 0} calls · Fallbacks: ${usage.fallbacks || 0}`
+      : '';
+
     mount.innerHTML = `
       <section id="gov-ai-helper" class="surface-card gov-ai-helper-card">
         <h2>Connections</h2>
         <p class="gov-ai-helper-lead">Keys stay in <strong>this browser only</strong>. Delivera does not store them on the server. Jira uses your login session and <code>.env</code> on the host.</p>
 
-        <h3 class="gov-ai-helper-sub">AI for Brief wording &amp; PI plans</h3>
-        <p class="gov-ai-helper-note">Used for: clearer Brief text, Create work parsing, and reading PI plan slides (screenshots).</p>
+        <h3 class="gov-ai-helper-sub">AI reasoning layer</h3>
         ${hasKey
-    ? `<p class="gov-ai-helper-status gov-ai-helper-status--ok">Provider connected in this browser.</p>`
+    ? `<p class="gov-ai-helper-status gov-ai-helper-status--ok">AI connected: ${escapeHtml(providerLabel)}</p>`
     : `<p class="gov-ai-helper-status">No key — built-in templates only.</p>`}
+        ${callsLine ? `<p class="gov-ai-helper-note">${escapeHtml(callsLine)}</p>` : ''}
+        <div class="gov-ai-helper-lists">
+          <div>
+            <strong>Used for:</strong>
+            <ul class="gov-ai-helper-used">${AI_USED_FOR.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>
+          </div>
+          <div>
+            <strong>Never used for:</strong>
+            <ul class="gov-ai-helper-never">${AI_NEVER_FOR.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>
+          </div>
+        </div>
+
         <label class="gov-ai-helper-field">
           <span>Provider</span>
           <select id="gov-ai-provider" class="gov-ai-helper-select">
@@ -69,8 +108,8 @@ export function mountGovernanceAiHelper(mount) {
 
     mount.querySelector('#gov-ai-test')?.addEventListener('click', async () => {
       const result = mount.querySelector('#gov-ai-test-result');
-      const ai = readAiProviderPref();
-      if (!ai.key || ai.provider === 'built-in') {
+      const aiPref = readAiProviderPref();
+      if (!aiPref.key || aiPref.provider === 'built-in') {
         if (result) result.textContent = 'Built-in template is always available.';
         return;
       }
@@ -80,10 +119,10 @@ export function mountGovernanceAiHelper(mount) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-ai-key': ai.key,
-            'x-ai-provider': ai.provider,
+            'x-ai-key': aiPref.key,
+            'x-ai-provider': aiPref.provider,
           },
-          body: JSON.stringify({ action: 'test', provider: ai.provider }),
+          body: JSON.stringify({ action: 'test', provider: aiPref.provider }),
         });
         const data = await res.json().catch(() => ({}));
         if (result) {

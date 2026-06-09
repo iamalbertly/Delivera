@@ -8,7 +8,8 @@ import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render
 import { mountStickyMicroAnswer, bindStickyScroll } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js';
-import { loadBrief, copyBrief } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
+import { invalidateBriefCacheEntry } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
+import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import { bindGovernancePageInteractions, openInboxNudgeReview } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 
 function init() {
@@ -38,8 +39,12 @@ function init() {
   mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], null);
   govPage.scopeBarApi = mountGovernanceScopeBar({
     mount: $('gov-scope-bar-mount'),
-    onRefresh: loadBrief,
-    onScopeChange: () => loadBrief(),
+    onRefresh: (opts) => loadBrief({ force: opts?.force === true }),
+    onScopeChange: () => {
+      invalidateBriefCacheEntry(projectsCsv(), govPage.scopeBarApi?.getQuarterLabel?.() || '');
+      setLoadBriefForce(true);
+      loadBrief({ force: true });
+    },
     onOpenDrawer: () => { if (govPage.lastBrief) openScopeIntelligenceDrawer(govPage.lastBrief); },
     getScopeCounts: () => scopeCapsuleCounts(govPage.lastBrief) || {},
   });

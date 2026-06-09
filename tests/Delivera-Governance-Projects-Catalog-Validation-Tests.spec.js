@@ -90,9 +90,9 @@ test.describe('Governance projects catalog SSOT', () => {
     await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA'); });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-scroll-first-nudge')).toBeVisible();
-    await expect(page.locator('.gov-do-first-strip a[href*="example"]')).toHaveCount(0);
-    await page.locator('#gov-scroll-first-nudge').click();
+    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
+    await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
+    await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
     await expect(page.locator('[data-grouped-nudge]').first()).toBeInViewport();
   });
 });

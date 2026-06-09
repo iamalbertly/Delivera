@@ -125,6 +125,79 @@ export function deferScorecardUntilEvidenceOpen() {
   else details.addEventListener('toggle', onToggle);
 }
 
+export function mountEvidenceTabShell() {
+  const wrap = document.getElementById('gov-supporting-evidence');
+  if (!wrap || wrap.dataset.evidenceTabsMounted === '1') return;
+  const measurement = document.getElementById('gov-measurement-mount');
+  const script = document.getElementById('gov-meeting-script-mount');
+  const proof = document.getElementById('gov-proof-risks');
+  const evidence = document.getElementById('gov-evidence');
+  const technical = document.getElementById('gov-technical-details');
+  const readiness = document.getElementById('gov-readiness');
+  const baseline = document.getElementById('gov-baseline');
+  const scorecard = document.getElementById('gov-scorecard');
+  if (!proof || !evidence) return;
+
+  const shell = document.createElement('div');
+  shell.className = 'gov-evidence-tabs';
+  shell.setAttribute('role', 'tablist');
+  shell.innerHTML = ''
+    + '<button type="button" class="gov-evidence-tab is-active" data-evidence-tab="proof" role="tab" aria-selected="true">Proof</button>'
+    + '<button type="button" class="gov-evidence-tab" data-evidence-tab="plan" role="tab" aria-selected="false">Plan</button>'
+    + '<button type="button" class="gov-evidence-tab" data-evidence-tab="pilot" role="tab" aria-selected="false">Pilot</button>';
+
+  const panels = document.createElement('div');
+  panels.className = 'gov-evidence-tab-panels';
+
+  const proofPanel = document.createElement('div');
+  proofPanel.className = 'gov-evidence-tab-panel is-active';
+  proofPanel.dataset.evidencePanel = 'proof';
+  if (measurement) proofPanel.appendChild(measurement);
+  if (script) proofPanel.appendChild(script);
+  proofPanel.appendChild(proof);
+  proofPanel.appendChild(evidence);
+  if (technical) proofPanel.appendChild(technical);
+
+  const planPanel = document.createElement('div');
+  planPanel.className = 'gov-evidence-tab-panel';
+  planPanel.dataset.evidencePanel = 'plan';
+  planPanel.hidden = true;
+  if (readiness) planPanel.appendChild(readiness);
+  if (baseline) planPanel.appendChild(baseline);
+
+  const pilotPanel = document.createElement('div');
+  pilotPanel.className = 'gov-evidence-tab-panel';
+  pilotPanel.dataset.evidencePanel = 'pilot';
+  pilotPanel.hidden = true;
+  if (scorecard) pilotPanel.appendChild(scorecard);
+
+  panels.append(proofPanel, planPanel, pilotPanel);
+  wrap.querySelectorAll('.governance-subsection-title').forEach((el) => { el.style.display = 'none'; });
+  wrap.insertBefore(shell, wrap.firstChild?.nextSibling || null);
+  wrap.appendChild(panels);
+
+  shell.querySelectorAll('[data-evidence-tab]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-evidence-tab');
+      shell.querySelectorAll('[data-evidence-tab]').forEach((b) => {
+        const on = b.getAttribute('data-evidence-tab') === key;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      panels.querySelectorAll('[data-evidence-panel]').forEach((panel) => {
+        const on = panel.dataset.evidencePanel === key;
+        panel.classList.toggle('is-active', on);
+        panel.hidden = !on;
+      });
+    });
+  });
+
+  wrap.dataset.evidenceTabsMounted = '1';
+  if (new URLSearchParams(window.location.search).get('from') === 'proof') {
+    wrap.open = true;
+  }
+}
+
 export async function renderScorecard() {
   if (!govPage.els.scorecard) return;
   let summary = { byMetric: {}, total: 0 };
