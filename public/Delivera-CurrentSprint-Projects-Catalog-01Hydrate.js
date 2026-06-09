@@ -1,6 +1,7 @@
 /**
  * Hydrate Current Sprint project select from shared catalog SSOT.
  */
+import { catalogProjectKeys } from './Delivera-Shared-ProjectScope-01Picker.js';
 import { PROJECT_CATALOG } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
 

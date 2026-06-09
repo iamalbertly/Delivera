@@ -258,7 +258,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
 
   function renderInlinePreview(data, total) {
     const items = itemsForTab(data, 'doNow');
-    const groups = groupInboxByFingerprint(items).slice(0, 3);
+    const groups = groupInboxByFingerprint(items).slice(0, 8);
     if (!groups.length) return { preview: '', chip: '' };
     const rows = groups.map((g) => `
       <li class="gov-inbox-inline-row">
@@ -275,19 +275,24 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
 
   function render() {
     const total = TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0);
+    const confirmCount = (lastData?.confirm || []).length;
     const preparing = total === 0 && briefLoading?.();
     const inline = total > 0 ? renderInlinePreview(lastData, total) : { preview: '', chip: '' };
     const chip = total > 0
-      ? (inline.chip || `<button type="button" class="gov-queue-chip gov-queue-chip--primary" data-queue-open="1" aria-label="${escapeHtml(COPY.seeQueue)}">
-          <span class="gov-queue-chip-icon" aria-hidden="true">📋</span>
-          ${escapeHtml(COPY.seeQueue)} (${total})
-        </button>`)
+      ? `<div class="gov-queue-rail-head" data-queue-rail-head="1">
+          <span class="gov-queue-rail-title">${escapeHtml(COPY.agentQueue)}</span>
+          ${confirmCount > 0 ? `<button type="button" class="gov-freshness-review-link" id="gov-rail-review-claims">${confirmCount} to review</button>` : ''}
+          ${inline.chip || `<button type="button" class="gov-queue-chip gov-queue-chip--primary" data-queue-open="1" aria-label="${escapeHtml(COPY.seeQueue)}">${escapeHtml(COPY.seeQueue)} (${total})</button>`}
+        </div>`
       : `<span class="gov-inbox-hint">${escapeHtml(preparing ? COPY.inboxPreparing : COPY.inboxUnavailable)}</span>`;
     mount.innerHTML = `
       <div class="gov-agent-queue" role="group" aria-label="${escapeHtml(COPY.agentQueue)}">
         ${inline.preview}
         ${chip}
       </div>`;
+    mount.querySelector('#gov-rail-review-claims')?.addEventListener('click', () => {
+      openCombinedDrawer('doNow');
+    });
     mount.querySelector('[data-queue-open]')?.addEventListener('click', () => openCombinedDrawer());
     mount.querySelectorAll('[data-inline-open]').forEach((btn) => {
       btn.addEventListener('click', () => openCombinedDrawer('doNow'));

@@ -72,18 +72,21 @@ export function renderExpandedSelectors({
   advancedLabel,
   boardsWarn = '',
   accessByKey = {},
+  periodWindowChips = '',
+  investmentChip = '',
 }) {
   const quarterPills = renderQuarterStrip(quarters, activeQuarter);
   const chips = renderProjectChips(projectKeys, selected, accessByKey);
+  const compareSelected = selected.length > 1 ? ' data-compare-mode="1"' : '';
   return `
     <div class="gov-scope-bar-inner gov-scope-bar-inner--expanded">
       ${boardsWarn ? `<p class="gov-scope-boards-warn" role="status">${escapeHtml(boardsWarn)}</p>` : ''}
       <div class="gov-scope-desktop-only">
         <span class="gov-scope-label">Projects</span>
-        <div class="gov-scope-chips gov-scope-chips--scroll" role="group" aria-label="Projects">${chips}</div>
-        <div class="gov-scope-period" role="group" aria-label="Period">
+        <div class="gov-scope-chips gov-scope-chips--scroll" role="group" aria-label="Projects"${compareSelected}>${chips}</div>
+        <div class="gov-scope-period gov-scope-period--merged" role="group" aria-label="Period">
           <span class="gov-scope-label">Period</span>
-          <div class="gov-scope-quarter-strip">${quarterPills}</div>
+          <div class="gov-scope-period-merged-row">${periodWindowChips}${quarterPills ? `<span class="gov-scope-period-sep" aria-hidden="true">·</span><div class="gov-scope-quarter-strip">${quarterPills}</div>` : ''}${investmentChip}</div>
         </div>
       </div>
       <div class="gov-scope-mobile-only">

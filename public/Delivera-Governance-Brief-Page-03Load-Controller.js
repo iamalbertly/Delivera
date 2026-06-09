@@ -3,8 +3,8 @@
  */
 import { partitionBriefSurfaces, groupDoNowByOwner } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 import { renderVerdictZone } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
-import { renderPortfolioGrid } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
-import { bindPortfolioHeatMap } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
+import { renderPortfolioGrid, renderCompareRail } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
+import { bindPortfolioHeatMap, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import { renderMeasurementStrip } from './Delivera-App-Governance-Brief-10Render-MeasurementStrip-UI.js';
 import { renderMeetingScript } from './Delivera-App-Governance-Brief-11Render-MeetingScript-UI.js';
 import { renderCommandAnswerBar, bindCommandOverflowMenu } from './Delivera-App-Governance-Brief-13Render-CommandAnswerBar-UI.js';
@@ -36,7 +36,9 @@ import {
 } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import {
   showGovernanceLoading, hideGovernanceLoading, hasGovernanceBriefContent,
+  setScopeStaleOverlay, clearScopeStaleOverlay,
 } from './Delivera-Governance-Brief-Page-02Loading-State.js';
+import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 
 let loadBriefSeq = 0;
 let loadBriefForce = false;
@@ -65,8 +67,10 @@ export function renderFreshness(brief, confirmCount = 0) {
 
 function showError(message) {
   hideGovernanceLoading();
-  govPage.els.error.hidden = false;
-  govPage.els.error.textContent = message;
+  if (govPage.els.error) {
+    govPage.els.error.removeAttribute('hidden');
+    showErrorView({ errorEl: govPage.els.error, contentEl: document.getElementById('gov-brief-content') }, message);
+  }
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'error');
 }
 
@@ -145,13 +149,21 @@ export function renderBriefUi(brief) {
     bindSetupDebtStripExpand(govPage.els.setupDebtMount, brief);
   }
   const supportingEvidence = document.getElementById('gov-supporting-evidence');
-  if (supportingEvidence && hasOwnerClusters && !supportingEvidence.open) {
-    supportingEvidence.open = false;
+  if (supportingEvidence) {
+    if (hasOwnerClusters) {
+      if (!supportingEvidence.open) supportingEvidence.open = false;
+    } else if ((govPage.lastSurfaces?.proofRows || []).length > 0) {
+      supportingEvidence.open = true;
+    }
   }
 
   if (govPage.els.verdictMount) {
     const verdictInner = showHeatMap
-      ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1, hideSquadNudge: hasOwnerClusters && squadCount === 1 })
+      ? renderPortfolioGrid(brief, {
+        singleSquad: squadCount === 1,
+        hideSquadNudge: hasOwnerClusters && squadCount === 1,
+        collapseHeroDedupe: singleSquadHero,
+      })
       : renderVerdictZone(brief);
     const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
     govPage.els.verdictMount.innerHTML = skipStandaloneVerdict ? '' : verdictInner;
@@ -160,8 +172,15 @@ export function renderBriefUi(brief) {
     govPage.els.verdictMount.hidden = skipStandaloneVerdict;
     if (showHeatMap) bindPortfolioHeatMap(govPage.els.verdictMount, brief);
   }
+  const compareMount = document.getElementById('gov-compare-rail-mount');
+  if (compareMount) {
+    const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys) : '';
+    compareMount.innerHTML = compareHtml;
+    compareMount.toggleAttribute('hidden', !compareHtml);
+  }
   if (govPage.els.scriptMount) {
-    const scriptHtml = renderMeetingScript(brief);
+    const hasPromotedScript = Boolean(govPage.els.answerMount?.querySelector('[data-promoted-script="1"]'));
+    const scriptHtml = hasPromotedScript ? '' : renderMeetingScript(brief);
     govPage.els.scriptMount.innerHTML = scriptHtml;
     govPage.els.scriptMount.hidden = !scriptHtml;
   }
@@ -171,8 +190,10 @@ export function renderBriefUi(brief) {
     govPage.els.measurementMount.innerHTML = measurementHtml;
     govPage.els.measurementMount.hidden = !measurementHtml;
   }
-  renderProofRisks(govPage.lastSurfaces.proofRows);
-  renderEvidencePreview(brief, hasOwnerClusters ? 2 : 3);
+  const proofPreviewMount = document.getElementById('gov-right-rail-proof-mount')
+    || document.getElementById('gov-evidence-preview-mount');
+  renderProofRisks(govPage.lastSurfaces.proofRows, { hideWhenPreview: Boolean(proofPreviewMount) });
+  renderEvidencePreview(brief, hasOwnerClusters ? 2 : 3, proofPreviewMount);
   renderEvidenceTable(brief);
   const evidenceSummary = document.querySelector('#gov-supporting-evidence .governance-evidence-summary');
   const evidenceRows = brief?.evidencePack?.rows?.length || 0;
@@ -231,8 +252,13 @@ export async function loadBrief(options = {}) {
   const periodWindow = govPage.scopeBarApi?.getPeriodWindow?.() || '28d';
   const pk = requested.split(',')[0] || 'MPSA';
   const preserve = hasGovernanceBriefContent();
+  const switchingScope = preserve && govPage.lastBrief && !briefMatchesProjects(govPage.lastBrief, requested);
+  const switchLabel = switchingScope ? `Switching to ${formatScopeSwitchLabel(requested)}…` : '';
+  if (switchingScope) {
+    setScopeStaleOverlay(true, switchLabel);
+  }
   showGovernanceLoading(
-    preserve ? 'Refreshing… showing previous answer until live data arrives.' : 'Loading your delivery answer…',
+    switchLabel || (preserve ? 'Refreshing… showing previous answer until live data arrives.' : 'Loading your delivery answer…'),
     { preserveContent: preserve },
   );
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'loading');
@@ -250,10 +276,23 @@ export async function loadBrief(options = {}) {
       inboxRefresh,
     ]);
     if (seq !== loadBriefSeq) return;
-    if (!brief || !briefMatchesProjects(brief, requested)) return;
+    if (!brief) {
+      if (!govPage.lastBrief) showError('Could not load the brief for selected scope.');
+      else {
+        clearScopeStaleOverlay();
+        hideGovernanceLoading();
+      }
+      return;
+    }
+    if (!briefMatchesProjects(brief, requested)) {
+      clearScopeStaleOverlay();
+      showError(`Brief data did not match selected scope (${requested}). Try Refresh.`);
+      return;
+    }
     govPage.lastBrief = brief;
     govPage.lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
     if (seq !== loadBriefSeq) return;
+    clearScopeStaleOverlay();
     await applyBriefToUi(brief, govPage.lastFeedbackSummary);
     if (seq !== loadBriefSeq) return;
     document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
@@ -261,9 +300,16 @@ export async function loadBrief(options = {}) {
     });
   } catch (err) {
     if (seq !== loadBriefSeq) return;
+    clearScopeStaleOverlay();
     if (!govPage.lastBrief) showError(`Could not load the brief: ${err.message}`);
     else hideGovernanceLoading();
   }
+}
+
+function formatScopeSwitchLabel(requested) {
+  const parts = String(requested || '').split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length <= 2) return parts.join(' + ');
+  return `${parts.slice(0, 2).join(' + ')} +${parts.length - 2}`;
 }
 
 async function fetchImpactSection() {

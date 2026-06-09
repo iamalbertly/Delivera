@@ -7,6 +7,12 @@ import {
   skipIfRedirectedToLogin,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
+async function clickScopeProject(page, pk) {
+  const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`);
+  await expect(chip).toBeVisible({ timeout: 10000 });
+  await chip.click();
+}
+
 const SD_BRIEF = {
   briefId: 'SSOT-SD',
   projects: ['SD'],
@@ -135,7 +141,6 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await page.evaluate(() => {
       window.addEventListener('delivera:scope-changed', () => { window.__scopeChanged = true; });
     });
-    await page.locator('#gov-scope-change').click();
     await page.locator('#gov-scope-expanded [data-project="BIO"]').click();
     await page.waitForTimeout(300);
     scopeChanged = await page.evaluate(() => Boolean(window.__scopeChanged));
@@ -171,7 +176,7 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await page.addInitScript((brief) => {
       localStorage.setItem('delivera_selectedProjects', 'SD');
       const map = {};
-      map['SD|'] = { brief, at: Date.now(), ttlMs: 180000 };
+      map['SD||28d'] = { brief, at: Date.now(), ttlMs: 180000 };
       sessionStorage.setItem('delivera:brief:cache:v1', JSON.stringify(map));
     }, SD_BRIEF);
     await routeProjectsCatalog(page);
@@ -184,6 +189,19 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 3000 });
+    assertTelemetryClean(telemetry);
+  });
+
+  test('scope switch shows stale overlay while brief loads', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await mockGovernanceApis(page, SD_BRIEF, 500);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
+    await clickScopeProject(page, 'BIO');
+    await expect(page.locator('#gov-brief-content')).toHaveAttribute('data-scope-stale', 'true', { timeout: 3000 });
+    await expect(page.locator('.gov-scope-stale-overlay')).toBeVisible();
+    await expect(page.locator('#gov-brief-content')).not.toHaveAttribute('data-scope-stale', 'true', { timeout: 15000 });
     assertTelemetryClean(telemetry);
   });
 

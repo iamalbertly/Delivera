@@ -188,16 +188,25 @@ function updateScopeInheritChip() {
     const chip = document.getElementById('current-sprint-scope-chip');
     const label = document.getElementById('current-sprint-scope-chip-label');
     const projectsInline = document.querySelector('.current-sprint-scope-inline');
+    const projectsSelect = document.getElementById('current-sprint-projects');
     const boardControls = document.getElementById('current-sprint-board-controls');
     const hasTopChrome = document.body?.classList?.contains('has-top-chrome');
+    const desktopWide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)')?.matches;
     const projects = readSharedProjectsCsv().join(', ') || getProjectsParam();
     const headerBarActive = Boolean(document.querySelector('.current-sprint-header-bar[data-context-bar="true"]'));
     if (chip && label) {
       label.textContent = projects ? `Scope: ${projects}` : 'Scope from Answer';
-      chip.hidden = !hasTopChrome || headerBarActive;
+      chip.hidden = !(hasTopChrome && desktopWide) || headerBarActive;
     }
-    if (hasTopChrome && projectsInline) {
-      projectsInline.style.display = 'none';
+    if (projectsInline) {
+      projectsInline.style.display = (hasTopChrome && desktopWide) ? 'none' : '';
+    }
+    if (projectsSelect && hasTopChrome && desktopWide) {
+      projectsSelect.setAttribute('aria-hidden', 'true');
+      projectsSelect.tabIndex = -1;
+    } else if (projectsSelect) {
+      projectsSelect.removeAttribute('aria-hidden');
+      projectsSelect.tabIndex = 0;
     }
     if (boardControls && hasTopChrome) {
       boardControls.classList.add('current-sprint-board-controls--inherit');

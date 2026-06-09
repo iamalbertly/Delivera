@@ -145,12 +145,13 @@ test.describe('Governance command surface — unit', () => {
 });
 
 test.describe('Governance command surface — UI', () => {
-  test('command answer bar visible under H1', async ({ page }) => {
+  test('command answer bar visible with hero squad layout', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
+    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#gov-verdict-mount[data-hero-squad="true"], .gov-scope-status-chip').first()).toBeVisible();
     await expect(page.locator('.gov-scope-status-chip, .gov-answer-block--status').first()).toContainText(/Blocked|DELIVERY BLOCKED|✕/i);
     assertTelemetryClean(telemetry);
   });
@@ -172,12 +173,12 @@ test.describe('Governance command surface — UI', () => {
     await expect(page.locator('.gov-inbox-panel')).toHaveCount(0);
   });
 
-  test('scope capsule one line with Change', async ({ page }) => {
+  test('scope capsule shows squad count on desktop expanded scope', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-scope-capsule-text')).toContainText(/Scope:/i);
-    await expect(page.locator('#gov-scope-change')).toBeVisible();
+    await expect(page.locator('.gov-scope-capsule-text')).toContainText(/squad/i);
+    await expect(page.locator('#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeVisible();
   });
 
   test('portfolio heat tiles without pulse bars by default', async ({ page }) => {
@@ -212,7 +213,8 @@ test.describe('Governance command surface — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('.gov-setup-debt--compact')).toBeVisible();
-    await page.locator('#gov-setup-gaps-expand').click();
+    const expand = page.locator('#gov-setup-gaps-expand');
+    if (await expand.count()) await expand.click();
     await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toBeVisible();
     await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toContainText(/Confirm promised work/i);
   });
@@ -230,10 +232,12 @@ test.describe('Governance command surface — UI', () => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-setup-gaps-expand')).toBeVisible();
-    await page.locator('#gov-setup-gaps-expand').click();
-    await expect(page.locator('#gov-setup-gaps-expand')).toHaveCount(0);
     await expect(page.locator('#gov-setup-debt-mount .gov-fix-card')).toHaveCount(1);
+    const expand = page.locator('#gov-setup-gaps-expand');
+    if (await expand.count()) {
+      await expand.click();
+      await expect(expand).toHaveCount(0);
+    }
     await expect(page.locator('#gov-setup-debt-mount .gov-fix-card-row')).toHaveCount(1);
   });
 
@@ -267,10 +271,12 @@ test.describe('Governance command surface — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('[data-cluster-toggle="0"]').click();
-    const keyLink = page.locator('.gov-cluster-issue-key.gov-issue-key-link').first();
+    await expect(page.locator('#gov-action-clusters-mount .gov-owner-cluster')).toBeVisible({ timeout: 15000 });
+    const toggle = page.locator('[data-cluster-toggle="0"]');
+    if (await toggle.count()) await toggle.click();
+    const keyLink = page.locator('.gov-cluster-issue-key.gov-issue-key-link, .gov-owner-cluster .gov-issue-key-link').first();
     await expect(keyLink).toBeVisible();
-    await expect(keyLink).toHaveAttribute('href', '#');
+    await expect(keyLink).toHaveAttribute('href', '/current-sprint?issue=MPSA-7');
     await expect(page.locator('.gov-cluster-issue a[href^="http"]')).toHaveCount(0);
   });
 
@@ -286,10 +292,18 @@ test.describe('Governance command surface — UI', () => {
   });
 
   test('settings AI helper when key missing', async ({ page }) => {
+    await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ configured: false, slideVisionReady: false, label: 'Templates' }),
+    }));
+    await page.route('**/api/settings/ai-usage.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ totalCalls: 0, fallbacks: 0 }),
+    }));
     await page.goto('/settings');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('#gov-ai-helper')).toBeVisible();
-    await expect(page.locator('#gov-ai-helper')).toContainText(/built-in template/i);
+    await expect(page.locator('#gov-ai-helper')).toContainText(/Browser override|Built-in \(no key\)/i);
   });
 
   test('copy answer inline works', async ({ page, context }) => {

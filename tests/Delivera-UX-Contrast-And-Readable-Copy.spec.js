@@ -16,7 +16,7 @@ test('brief body text is dark on light background', async ({ page }) => {
   });
   await page.goto('/governance');
   if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-  const color = await page.locator('.gov-verdict-business-line').evaluate((el) => getComputedStyle(el).color);
-  expect(color).toMatch(/rgb\(17|rgba\(17|rgb\(31|rgb\(55/);
-  await expect(page.locator('h1.governance-title')).toContainText("Today's delivery answer");
+  const color = await page.locator('.gov-command-answer-detail, .gov-portfolio-banner-line, .gov-answer-block-value').first().evaluate((el) => getComputedStyle(el).color);
+  expect(color).toMatch(/rgb\(17|rgba\(17|rgb\(31|rgb\(55|rgb\(30, 58, 95\)/);
+  await expect(page.locator('.gov-command-answer')).toHaveAttribute('aria-label', /delivery answer/i);
 });

@@ -52,6 +52,7 @@ export function mountGovernanceAiHelper(mount) {
           </div>
         </div>
 
+        <h3 class="gov-ai-helper-sub">Browser override (optional)</h3>
         <label class="gov-ai-helper-field">
           <span>Provider</span>
           <select id="gov-ai-provider" class="gov-ai-helper-select">

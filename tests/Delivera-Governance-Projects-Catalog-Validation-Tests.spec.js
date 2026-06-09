@@ -35,7 +35,6 @@ test.describe('Governance projects catalog SSOT', () => {
     await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA,MAS'); });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-scope-change').click();
     await expect(page.locator('#gov-scope-bar-mount .gov-scope-chip')).toHaveCount(GOV_CATALOG_KEYS.length);
     await expect(page.locator('.gov-scope-chip--limited')).toHaveCount(0);
   });
@@ -56,7 +55,6 @@ test.describe('Governance projects catalog SSOT', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-scope-change').click();
     await expect(page.locator('.gov-scope-chip--limited')).toHaveCount(2);
   });
 

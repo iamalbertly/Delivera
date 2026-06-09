@@ -10,7 +10,7 @@ import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-D
 import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js';
 import { invalidateBriefCacheEntry } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
-import { bindGovernancePageInteractions, openInboxNudgeReview } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
+import { bindGovernancePageInteractions, openInboxNudgeReview, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 
 function installExtensionTrustHint() {
   if (window.__deliveraExtTrustHint) return;
@@ -51,7 +51,11 @@ function init() {
     mount: $('gov-scope-bar-mount'),
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),
     onScopeChange: () => {
-      invalidateBriefCacheEntry(projectsCsv(), govPage.scopeBarApi?.getQuarterLabel?.() || '');
+      invalidateBriefCacheEntry(
+        projectsCsv(),
+        govPage.scopeBarApi?.getQuarterLabel?.() || '',
+        govPage.scopeBarApi?.getPeriodWindow?.() || '',
+      );
       setLoadBriefForce(true);
       loadBrief({ force: true });
     },
@@ -72,6 +76,7 @@ function init() {
     }
   });
   bindGovernancePageInteractions();
+  ensurePortfolioHeatDelegation();
   initGlobalOutcomeModal();
   loadBrief();
 }

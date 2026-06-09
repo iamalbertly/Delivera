@@ -19,14 +19,9 @@
       <div class="gov-main-column">
         <div id="gov-verdict-mount" class="gov-hero-verdict-mount" aria-label="Squad delivery pulse"></div>
         <header class="governance-header gov-header-compact">
-          <div class="governance-header-top">
-            <div>
-              <h1 class="governance-title">Today's delivery answer</h1>
-            </div>
-          </div>
           <div id="gov-freshness" class="governance-freshness" aria-live="polite"></div>
           <div id="gov-answer-mount"></div>
-          <details id="gov-secondary-chrome" class="gov-secondary-chrome">
+          <details id="gov-secondary-chrome" class="gov-secondary-chrome" hidden>
             <summary class="gov-secondary-chrome-summary">Feedback &amp; survey</summary>
             <div id="gov-feedback-lab-mount"></div>
             <div id="gov-micro-survey-mount"></div>
@@ -35,7 +30,6 @@
 
         <div id="gov-action-clusters-mount"></div>
         <div id="gov-setup-debt-mount"></div>
-        <div id="gov-evidence-preview-mount" class="gov-evidence-preview-mount" aria-live="polite"></div>
 
         <details id="gov-supporting-evidence" class="governance-evidence-wrap">
           <summary class="governance-section-title governance-evidence-summary">Supporting evidence</summary>
@@ -54,9 +48,11 @@
       </div>
 
       <aside id="gov-right-rail-mount" class="gov-right-rail" aria-label="Agent queue and PI confidence">
+        <div id="gov-right-rail-proof-mount" class="gov-right-rail-proof" aria-live="polite"></div>
         <div id="gov-worker-receipt-mount" class="gov-right-rail-receipt"></div>
         <div id="gov-queue-mount" class="gov-inbox-mount gov-right-rail-queue" aria-label="Agent queue"></div>
         <div id="gov-pi-strip-mount" class="gov-right-rail-pi"></div>
+        <div id="gov-compare-rail-mount" class="gov-right-rail-compare"></div>
       </aside>
     </div>
     <div id="gov-error" class="alert-banner" hidden role="alert"></div>

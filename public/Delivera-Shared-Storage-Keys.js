@@ -85,7 +85,9 @@ migrateVodaAgileBoardStorageKeys();
 export function readSharedProjectsCsv() {
   try {
     const raw = localStorage.getItem(PROJECTS_SSOT_KEY) || '';
-    return raw.split(',').map((p) => p.trim()).filter(Boolean);
+    return raw.split(',')
+      .map((p) => String(p ?? '').trim().toUpperCase())
+      .filter((p) => p && p !== 'UNDEFINED');
   } catch (_) {
     return [];
   }

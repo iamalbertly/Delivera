@@ -17,7 +17,7 @@ import {
   catalogProjectKeys,
   unionProjectKeys,
   renderExpandedSelectors,
-} from './Delivera-App-Governance-Brief-ScopeBar-02ProjectQuarter-Selector-UI.js';
+} from './Delivera-Shared-ProjectScope-01Picker.js';
 
 const LAST_VERDICT_KEY = 'delivera_lastVerdictTier';
 const GOV_PERIOD_WINDOW_KEY = 'gov-period-window';
@@ -33,7 +33,10 @@ function readProjects() {
 }
 
 function writeProjects(list) {
-  const csv = (Array.isArray(list) ? list : []).map((p) => String(p).trim().toUpperCase()).filter(Boolean).join(',');
+  const csv = (Array.isArray(list) ? list : [])
+    .map((p) => String(p ?? '').trim().toUpperCase())
+    .filter((p) => p && p !== 'UNDEFINED')
+    .join(',');
   try { localStorage.setItem(PROJECTS_SSOT_KEY, csv); } catch (_) { /* ignore */ }
   notifyScopeChanged();
 }
@@ -75,9 +78,35 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     periodWindow = String(sessionStorage.getItem(GOV_PERIOD_WINDOW_KEY) || '28d').toLowerCase();
   } catch (_) { periodWindow = '28d'; }
 
+  let scopeChangeTimer = null;
+
+  function debouncedScopeChange() {
+    if (scopeChangeTimer) clearTimeout(scopeChangeTimer);
+    scopeChangeTimer = setTimeout(() => onScopeChange?.(selected), 300);
+  }
+
+  function addToCompare(pk) {
+    const normalized = String(pk || '').trim().toUpperCase();
+    if (!normalized) return;
+    if (selected.includes(normalized)) {
+      if (selected.length > 1) selected = selected.filter((p) => p !== normalized);
+    } else {
+      selected = [...selected, normalized].sort();
+    }
+    writeProjects(selected);
+    render();
+    debouncedScopeChange();
+    scheduleValidateSelected();
+  }
+
   try {
     statusTier = localStorage.getItem(LAST_VERDICT_KEY) || 'watch';
   } catch (_) { /* ignore */ }
+
+  function periodWindowLabel() {
+    const opt = PERIOD_OPTIONS.find((p) => p.id === periodWindow);
+    return opt?.label || periodWindow;
+  }
 
   function formatScopeProjects(list) {
     if (!list.length) return '—';
@@ -96,12 +125,8 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         ? ` · ${counts.available} available · ${counts.noSprint || 0} no sprint · ${counts.piCommitted || 0} with epics`
         : '');
     const statusLabel = simpleStatusLabel(statusTier, true);
-    const queuePart = inboxTotal > 0 ? ` (${inboxTotal} pending)` : '';
     const deltaPart = sinceDelta ? ` · ${escapeHtml(sinceDelta.slice(0, 48))}` : '';
-    const reviewPart = confirmCount > 0
-      ? ` · <button type="button" class="gov-freshness-review-link" id="gov-freshness-review">${confirmCount} claim${confirmCount > 1 ? 's' : ''} to review</button>`
-      : '';
-    const statusActionAttr = inboxTotal > 0 ? ' data-scope-status-action="inbox" role="button" tabindex="0"' : '';
+    const statusActionAttr = '';
     const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
     const desktopWide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)')?.matches;
     const expandedHidden = desktopWide && selected.length <= 3
@@ -124,7 +149,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
 
     const capsuleText = scopeExpandedVisible
       ? `${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`
-      : `Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`;
+      : `Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)} · ${escapeHtml(periodWindowLabel())}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`;
     const changeBtn = (desktopWide && scopeExpandedVisible)
       ? ''
       : '<button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>';
@@ -132,18 +157,16 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     mount.innerHTML = `
       ${accessBanner}
       <p id="gov-extension-trust-hint" class="gov-extension-trust-hint" role="status" hidden>Browser extension noise detected — Delivera data is unaffected.</p>
-      <div class="gov-scope-period-row" role="group" aria-label="Period window">${periodChips}${investmentChip}
-      </div>
       <div class="gov-scope-capsule" aria-label="Brief scope"${scopeExpandedVisible ? ' data-scope-capsule-compact="1"' : ''}>
         <span class="gov-scope-capsule-text">${capsuleText}</span>
-        <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}${inboxTotal > 0 ? ' gov-scope-status-chip--actionable' : ''}" title="Delivery status${inboxTotal > 0 ? ' — open agent queue' : ''}"${statusActionAttr}>${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}${reviewPart}</span>
+        <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${deltaPart}</span>
         <div class="gov-scope-actions" role="group" aria-label="Scope actions">
           ${changeBtn}
           <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
         </div>
       </div>
-      <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="exclusive"${scopeExpandedVisible ? ' data-scope-expanded-visible="1"' : ''}${expandedHidden ? ' hidden' : ''}>
-        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn, accessByKey })}
+      <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}"${scopeExpandedVisible ? ' data-scope-expanded-visible="1"' : ''}${expandedHidden ? ' hidden' : ''}>
+        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip })}
       </div>`;
 
     mount.querySelectorAll('[data-project]').forEach((btn) => {
@@ -161,7 +184,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         }
         writeProjects(selected);
         render();
-        onScopeChange?.(selected);
+        debouncedScopeChange();
         scheduleValidateSelected();
       });
     });
@@ -186,7 +209,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         if (!selected.length) selected = [pk];
         writeProjects(selected);
         render();
-        onScopeChange?.(selected);
+        debouncedScopeChange();
         scheduleValidateSelected();
       });
     });
@@ -204,20 +227,6 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       ev.stopPropagation();
       govPage.inboxApi?.openQueueTab?.('confirm');
     });
-    const statusChip = mount.querySelector('.gov-scope-status-chip[data-scope-status-action="inbox"]');
-    if (statusChip) {
-      const openInbox = () => govPage.inboxApi?.openQueueTab?.('doNow');
-      statusChip.addEventListener('click', (ev) => {
-        if (ev.target.closest('.gov-freshness-review-link')) return;
-        openInbox();
-      });
-      statusChip.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          openInbox();
-        }
-      });
-    }
     mount.querySelector('#gov-scope-change')?.addEventListener('click', () => {
       const panel = mount.querySelector('#gov-scope-expanded');
       if (panel) panel.toggleAttribute('hidden');
@@ -232,7 +241,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       btn.addEventListener('click', () => {
         periodWindow = btn.getAttribute('data-period-chip') || '28d';
         try { sessionStorage.setItem(GOV_PERIOD_WINDOW_KEY, periodWindow); } catch (_) { /* ignore */ }
-        invalidateBriefCacheEntry(normalizeProjectsCsv(selected.join(',')), activeQuarter);
+        invalidateBriefCacheEntry(normalizeProjectsCsv(selected.join(',')), activeQuarter, periodWindow);
         render();
         setLoadBriefForce(true);
         onRefresh?.({ force: true });
@@ -345,5 +354,6 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       advancedWarnCount = Math.max(0, Number(n) || 0);
       render();
     },
+    addToCompare,
   };
 }

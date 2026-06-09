@@ -46,9 +46,10 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
   }
   if (contentEl) {
     if (preserve) {
-      contentEl.setAttribute('data-scope-stale', 'true');
+      setScopeStaleOverlay(true, msg || 'Updating scope…');
       contentEl.style.display = 'block';
     } else {
+      clearScopeStaleOverlay();
       contentEl.style.display = 'none';
     }
   }
@@ -63,11 +64,37 @@ export function hideGovernanceLoading() {
     loadingEl.classList.remove('current-sprint-loading-with-spinner');
   }
   if (contentEl) {
-    contentEl.removeAttribute('data-scope-stale');
+    clearScopeStaleOverlay();
     contentEl.style.display = 'block';
   }
   document.body?.classList?.remove('gov-brief-loading');
   clearErrorView(getDom());
+}
+
+export function setScopeStaleOverlay(active, message = '') {
+  const contentEl = document.getElementById('gov-brief-content');
+  if (!contentEl) return;
+  if (active) {
+    contentEl.setAttribute('data-scope-stale', 'true');
+    let overlay = contentEl.querySelector('.gov-scope-stale-overlay');
+    if (!overlay) {
+      overlay = document.createElement('p');
+      overlay.className = 'gov-scope-stale-overlay';
+      overlay.setAttribute('role', 'status');
+      overlay.setAttribute('aria-live', 'polite');
+      contentEl.prepend(overlay);
+    }
+    overlay.textContent = message || 'Updating scope…';
+  } else {
+    clearScopeStaleOverlay();
+  }
+}
+
+export function clearScopeStaleOverlay() {
+  const contentEl = document.getElementById('gov-brief-content');
+  if (!contentEl) return;
+  contentEl.removeAttribute('data-scope-stale');
+  contentEl.querySelector('.gov-scope-stale-overlay')?.remove();
 }
 
 export function initGovernanceLoadingEls() {

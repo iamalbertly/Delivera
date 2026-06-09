@@ -4,16 +4,17 @@
 const SESSION_KEY = 'delivera:brief:cache:v1';
 const DEFAULT_TTL_MS = 3 * 60 * 1000;
 
-function cacheKey(projects, quarter = '') {
-  return `${String(projects || '').trim().toUpperCase()}|${String(quarter || '').trim()}`;
+function cacheKey(projects, quarter = '', periodWindow = '') {
+  const periodKey = String(periodWindow || '').toLowerCase();
+  return `${String(projects || '').trim().toUpperCase()}|${String(quarter || '').trim()}|${periodKey}`;
 }
 
-function readEntry(projects, quarter) {
+function readEntry(projects, quarter, periodWindow = '') {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const map = JSON.parse(raw);
-    const entry = map?.[cacheKey(projects, quarter)];
+    const entry = map?.[cacheKey(projects, quarter, periodWindow)];
     if (!entry?.brief || !entry?.at) return null;
     if (Date.now() - entry.at > (entry.ttlMs || DEFAULT_TTL_MS)) return null;
     return entry;
@@ -22,11 +23,12 @@ function readEntry(projects, quarter) {
   }
 }
 
-function writeEntry(projects, quarter, brief, ttlMs = DEFAULT_TTL_MS) {
+function writeEntry(projects, quarter, brief, ttlMs = DEFAULT_TTL_MS, periodWindow = '') {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     const map = raw ? JSON.parse(raw) : {};
-    map[cacheKey(projects, quarter)] = { brief, at: Date.now(), ttlMs };
+    const periodKey = String(periodWindow || brief?.meta?.periodWindow || '').toLowerCase();
+    map[cacheKey(projects, quarter, periodKey)] = { brief, at: Date.now(), ttlMs };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(map));
   } catch (_) {}
 }
@@ -47,12 +49,21 @@ export function briefMatchesProjects(brief, projectsCsv) {
   return Boolean(requested && requested === fromBrief);
 }
 
-export function invalidateBriefCacheEntry(projects, quarter = '') {
+export function invalidateBriefCacheEntry(projects, quarter = '', periodWindow = '') {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return;
     const map = JSON.parse(raw);
-    delete map[cacheKey(projects, quarter)];
+    const pk = String(projects || '').trim().toUpperCase();
+    const q = String(quarter || '').trim();
+    const periodKey = String(periodWindow || '').toLowerCase();
+    if (periodKey) {
+      delete map[cacheKey(pk, q, periodKey)];
+    } else {
+      for (const key of Object.keys(map)) {
+        if (key.startsWith(`${pk}|${q}|`) || key === `${pk}|${q}|`) delete map[key];
+      }
+    }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(map));
   } catch (_) { /* ignore */ }
 }
@@ -65,11 +76,10 @@ export async function fetchGovernanceBriefCached({ projects, quarter = '', perio
   const pk = String(projects || '').trim();
   if (!pk) return null;
   const periodKey = String(periodWindow || '').toLowerCase();
-  if (force) invalidateBriefCacheEntry(pk, quarter);
+  if (force) invalidateBriefCacheEntry(pk, quarter, periodKey);
   if (!force) {
-    const hit = readEntry(pk, quarter);
-    if (hit?.brief && briefMatchesProjects(hit.brief, pk)
-      && (!periodKey || String(hit.brief?.meta?.periodWindow || '').toLowerCase() === periodKey)) {
+    const hit = readEntry(pk, quarter, periodKey);
+    if (hit?.brief && briefMatchesProjects(hit.brief, pk)) {
       return hit.brief;
     }
   }
@@ -80,15 +90,14 @@ export async function fetchGovernanceBriefCached({ projects, quarter = '', perio
   const res = await fetch(`/api/governance-brief.json?${qs.toString()}`, { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const brief = await res.json();
-  writeEntry(pk, quarter, brief);
+  writeEntry(pk, quarter, brief, DEFAULT_TTL_MS, periodKey);
   return brief;
 }
 
 export function peekGovernanceBriefCache(projects, quarter = '', periodWindow = '') {
-  const brief = readEntry(projects, quarter)?.brief || null;
+  const periodKey = String(periodWindow || '').toLowerCase();
+  const brief = readEntry(projects, quarter, periodKey)?.brief || null;
   if (!brief) return null;
   if (!briefMatchesProjects(brief, projects)) return null;
-  const periodKey = String(periodWindow || '').toLowerCase();
-  if (periodKey && String(brief?.meta?.periodWindow || '').toLowerCase() !== periodKey) return null;
   return brief;
 }

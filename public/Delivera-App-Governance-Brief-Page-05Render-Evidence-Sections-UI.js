@@ -18,8 +18,14 @@ function evidenceRowFor(brief, issueKey) {
   ) || null;
 }
 
-export function renderProofRisks(risks) {
+export function renderProofRisks(risks, opts = {}) {
   govPage.proofRisks = risks;
+  if (opts.hideWhenPreview && risks.length) {
+    govPage.els.proofRisks.innerHTML = '';
+    govPage.els.proofRisks.hidden = true;
+    return;
+  }
+  govPage.els.proofRisks.hidden = false;
   if (!risks.length) {
     govPage.els.proofRisks.innerHTML = '<p class="governance-empty">Nothing needs attention in this window.</p>';
     return;
@@ -75,8 +81,9 @@ export function renderEvidenceTable(brief) {
 }
 
 /** Above-fold proof preview — top rows without opening supporting evidence. */
-export function renderEvidencePreview(brief, maxRows = 2) {
-  const mount = document.getElementById('gov-evidence-preview-mount');
+export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
+  const mount = mountEl || document.getElementById('gov-evidence-preview-mount')
+    || document.getElementById('gov-right-rail-proof-mount');
   if (!mount) return;
   const rows = (brief?.evidencePack?.rows || []).slice(0, maxRows);
   if (!rows.length) {

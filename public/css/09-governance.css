@@ -1304,3 +1304,52 @@ body.governance-page .governance-shell--hero-squad:has([data-hero-squad="1"]) .g
 }
 .gov-investment-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
 .gov-investment-table th, .gov-investment-table td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+
+/* Churn retention — scope stale overlay, compare rail, merged period, right-rail proof */
+.gov-scope-stale-overlay {
+  position: sticky;
+  top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 72px));
+  z-index: 40;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #92400e;
+}
+.gov-scope-period--merged .gov-scope-period-merged-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.gov-scope-period-sep { color: #9ca3af; font-weight: 700; }
+.gov-compare-rail {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.gov-compare-rail-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  font-size: 0.82rem;
+}
+.gov-compare-rail-card header { font-weight: 600; margin-bottom: 4px; }
+.gov-right-rail-proof .gov-evidence-preview { margin: 0 0 8px; }
+.gov-queue-rail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.gov-queue-rail-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: #6b7280; }
+.gov-pi-empty-cta .btn-link { padding: 0; font-size: inherit; }
+@media (min-width: 1024px) {
+  body.governance-page .gov-right-rail-proof { order: -1; }
+  body.governance-page .gov-inbox-inline-preview { max-height: 42vh; overflow-y: auto; }
+}

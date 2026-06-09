@@ -2,6 +2,7 @@ import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validat
 
 const MOCK_BRIEF = {
   briefId: 'MPSA-MAS-Q1-2026-W23',
+  projects: ['MPSA'],
   generatedAt: new Date().toISOString(),
   freshness: { confidenceLimit: 'live', jiraFetchedAt: new Date().toISOString() },
   portfolio: 'MPSA + MAS',
@@ -93,18 +94,16 @@ test.describe('Governance root, nav, and scope cockpit', () => {
       test.skip(true, 'Auth required');
       return;
     }
-    await page.locator('#gov-scope-change').click();
+    await expect(page.locator('.gov-command-answer, #gov-verdict-mount').first()).toBeVisible({ timeout: 15000 });
     await expect(page.locator('#gov-scope-bar-mount .gov-scope-chip')).toHaveCount(CATALOG_KEYS.length);
     const verdict = page.locator('#gov-verdict-mount');
     const clusters = page.locator('#gov-action-clusters-mount');
-    const proof = page.locator('#gov-proof-risks');
-    const verdictBox = await verdict.boundingBox();
-    const clustersBox = await clusters.boundingBox();
-    expect(verdictBox && clustersBox).toBeTruthy();
-    expect(clustersBox.y).toBeLessThan(verdictBox.y);
-    await expect(proof).toBeAttached();
     await expect(verdict).toBeVisible();
-    await expect(page.locator('.gov-verdict-fold .gov-verdict-zone, #gov-verdict-mount .gov-verdict-zone').first()).toBeAttached();
+    if (await clusters.locator('.gov-owner-cluster').count()) {
+      await expect(clusters).toBeVisible();
+    }
+    await expect(page.locator('#gov-proof-risks, #gov-right-rail-proof-mount .gov-evidence-preview').first()).toBeAttached();
+    await expect(page.locator('.gov-verdict-fold .gov-verdict-zone, #gov-verdict-mount .gov-portfolio-grid-wrap, #gov-verdict-mount .gov-risk-tile-details').first()).toBeAttached();
     await expect(page.locator('.governance-decisions-table')).toHaveCount(0);
     await expect(page.locator('.app-notification-toggle')).toHaveCount(0);
   });

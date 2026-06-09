@@ -73,6 +73,7 @@ const SINGLE_MOCK = {
   portfolioRisks: [],
   leadershipNarrative: { meetingAnswer: 'DELIVERY BLOCKED. SD delivery blocked' },
   evidencePack: { rows: [] },
+  squadInsights: [squadInsight('SD', 'blocked', 0, 4, 3)],
 };
 
 async function mockApis(page, body) {
@@ -114,12 +115,13 @@ test.describe('Portfolio squad grid', () => {
     await expect(page.locator('#gov-scope-expanded .gov-scope-chip.is-on')).toHaveCount(4);
   });
 
-  test('single project keeps verdict zone', async ({ page }) => {
+  test('single project keeps hero squad grid', async ({ page }) => {
     await setProjects(page, 'SD');
     await mockApis(page, SINGLE_MOCK);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-verdict-zone')).toBeVisible();
+    await expect(page.locator('#gov-verdict-mount .gov-portfolio-grid-wrap--single')).toBeVisible();
+    await expect(page.locator('.gov-verdict-zone')).toHaveCount(0);
     await expect(page.locator('.gov-risk-heat-row')).toHaveCount(0);
   });
 });

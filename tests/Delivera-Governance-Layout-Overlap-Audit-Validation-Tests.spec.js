@@ -158,7 +158,7 @@ test.describe('Governance layout overlap audit', () => {
         const scopeOverlap = await getLayoutOverlapReport(page, {
           selectors: [
             '#gov-scope-refresh',
-            '#gov-scope-change',
+            '#gov-scope-expanded',
             '#app-notification-dock',
             '.gov-command-answer',
             '.gov-owner-cluster-head',
@@ -193,6 +193,21 @@ test.describe('Governance layout overlap audit', () => {
     await expect(page.locator('#gov-loading')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible({ timeout: 15000 });
     await expect(page.locator('#gov-loading')).toBeHidden();
+    assertTelemetryClean(telemetry);
+  });
+
+  test('governance right rail proof mount visible above fold on desktop', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await mockLayoutGovernancePage(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
+    const proofMount = page.locator('#gov-right-rail-proof-mount');
+    await expect(proofMount).toBeVisible();
+    const box = await proofMount.boundingBox();
+    expect(box).toBeTruthy();
+    if (box) expect(box.y).toBeLessThan(900);
     assertTelemetryClean(telemetry);
   });
 

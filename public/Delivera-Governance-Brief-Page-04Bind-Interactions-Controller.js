@@ -374,17 +374,35 @@ function evidenceDrawerInitialTab() {
   } catch (_) { return 'proof'; }
 }
 
+let portfolioBriefRef = null;
+
+function handlePortfolioHeatClick(event) {
+  const compareAdd = event.target.closest('[data-compare-add]');
+  if (compareAdd) {
+    event.preventDefault();
+    event.stopPropagation();
+    const pk = compareAdd.getAttribute('data-compare-add');
+    if (pk) govPage.scopeBarApi?.addToCompare?.(pk);
+    return;
+  }
+  const baselineBtn = event.target.closest('[data-setup-baseline-ssot]');
+  if (baselineBtn) {
+    event.preventDefault();
+    openPiBaselineWizard();
+  }
+}
+
+export function ensurePortfolioHeatDelegation() {
+  const root = document.getElementById('gov-verdict-mount');
+  if (!root || root.dataset.heatDelegationBound === '1') return;
+  root.dataset.heatDelegationBound = '1';
+  root.addEventListener('click', handlePortfolioHeatClick);
+}
+
 export function bindPortfolioHeatMap(root, brief) {
   if (!root) return;
-  root.querySelectorAll('[data-compare-add]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const pk = btn.getAttribute('data-compare-add');
-      if (!pk) return;
-      const chip = document.querySelector(`#gov-scope-expanded [data-project="${pk}"]`);
-      if (chip) chip.click();
-      else document.getElementById('gov-scope-change')?.click();
-    });
-  });
+  portfolioBriefRef = brief;
+  ensurePortfolioHeatDelegation();
   const lensTab = evidenceDrawerInitialTab();
   bindRiskHeatInteractions(root, brief, (_keys, squad) => {
     const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));

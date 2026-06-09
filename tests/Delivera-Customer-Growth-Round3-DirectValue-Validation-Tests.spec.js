@@ -135,12 +135,30 @@ test.describe('Customer growth round3 direct value', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('07 compare add selects squad exclusively', async () => {
-      const addPk = await page.locator('[data-compare-add]').first().getAttribute('data-compare-add');
+    await test.step('07 compare add toggles second squad without exclusive swap', async () => {
+      const addBtn = page.locator('[data-compare-add]').first();
+      const addPk = await addBtn.getAttribute('data-compare-add');
       expect(addPk).toBeTruthy();
-      await page.locator(`[data-compare-add="${addPk}"]`).click();
-      await expect(page.locator(`[data-project="${addPk}"]`)).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.locator('[data-project="SD"]')).toHaveAttribute('aria-pressed', 'false');
+      await page.unroute('**/api/governance-brief.json**');
+      await page.route('**/api/governance-brief.json**', (r) => {
+        const url = r.request().url();
+        const multi = url.includes('SD') && url.includes(addPk);
+        const body = multi
+          ? stubGrowthBrief({
+            projects: ['SD', addPk],
+            squadInsights: [
+              { projectKey: 'SD', verdictTier: 'blocked', bottleneckLine: 'SD blocked', piCommitted: 4, piDone: 1, cardRisks: [] },
+              { projectKey: addPk, verdictTier: 'watch', bottleneckLine: `${addPk} watch`, piCommitted: 3, piDone: 2, cardRisks: [] },
+            ],
+          })
+          : stubGrowthBrief();
+        return r.fulfill({ status: 200, contentType: 'application/json', body });
+      });
+      await addBtn.click();
+      await page.waitForTimeout(400);
+      await expect(page.locator('#gov-scope-expanded [data-project="SD"]')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator(`#gov-scope-expanded [data-project="${addPk}"]`)).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('#gov-compare-rail-mount [data-compare-rail="1"]')).toBeVisible({ timeout: 10000 });
       assertTelemetryClean(telemetry);
     });
 

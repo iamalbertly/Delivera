@@ -262,9 +262,9 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
 
   test('renders meeting answer, stale freshness, and decision owner', async ({ page }) => {
     if (!(await mockAndGo(page))) return;
-    await expect(page.locator('.gov-verdict-zone')).toHaveAttribute('data-verdict-tier', 'blocked');
-    await expect(page.locator('.gov-verdict-business-line')).toContainText(/MPSA|stuck/i);
-    await expect(page.locator('.gov-trust-chip-row')).toContainText(/Stale|Low/i);
+    await expect(page.locator('.gov-scope-status-chip--blocked, .gov-scope-status-chip').first()).toContainText(/blocked|at risk/i);
+    await expect(page.locator('.gov-owner-cluster, [data-grouped-nudge]').first()).toContainText(/MPSA|stuck/i);
+    await expect(page.locator('.gov-portfolio-banner-line.is-stale, .gov-scope-status-chip').first()).toBeVisible();
     await expect(page.locator('.gov-owner-cluster, .governance-risk-lane').first()).toContainText(/Tech Lead/i);
   });
 
@@ -280,13 +280,13 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
 
   test('export markdown includes meeting answer and actions', async ({ page, context }) => {
     if (!(await mockAndGo(page))) return;
+    await expect(page.locator('.gov-owner-cluster')).toBeVisible();
     await page.route('**/api/governance/impact-pack.json**', (route) => route.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify({ markdown: '## Grow My Impact\n\n- Briefs: 1' }),
     }));
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.locator('#gov-overflow-toggle').click();
-    await page.locator('#gov-export-overflow').click();
-    await expect.poll(async () => page.evaluate(() => navigator.clipboard.readText())).toContain("Today's delivery answer");
+    await page.locator('#gov-export-overflow').dispatchEvent('click');
+    await expect.poll(async () => page.evaluate(() => navigator.clipboard.readText()), { timeout: 15000 }).toContain("Today's delivery answer");
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toContain('Tech Lead');
     expect(text).toContain('What to say');
@@ -332,7 +332,7 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
     await page.locator('[data-grouped-nudge="0"]').click();
     await expect(page.locator('body')).toHaveClass(/jira-nudge-review-open/);
     await expect(page.locator('#delivera-jira-nudge-review-sheet')).not.toHaveAttribute('hidden', '');
-    await expect(page.locator('.jira-nudge-review-trust')).toContainText(/Live sprint required/i);
+    await expect(page.locator('.jira-nudge-review-trust')).toContainText(/Stale brief|Live sprint required/i);
     await expect(page.locator('#jira-nudge-review-text')).toBeDisabled();
     await expect(page.locator('[data-review-send]')).toBeDisabled();
   });

@@ -363,6 +363,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/report',
   },
+  'tests/Delivera-Churn-Retention-MasterPlan-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.churn-retention-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/settings',
+  },
   'tests/Delivera-UX-AllSurfaces-DirectValue-Polish-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'page-ux',
@@ -594,6 +599,13 @@ export const journeyBuckets = {
     label: 'Value Retention – Desktop density, alignment, investment fidelity',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.value-retention',
+    ),
+  },
+  'journey.churn-retention-masterplan': {
+    id: 'journey.churn-retention-masterplan',
+    label: 'Churn Retention – Direct-to-value governance dedupe',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.churn-retention-masterplan',
     ),
   },
   'journey.shell-direct-value': {

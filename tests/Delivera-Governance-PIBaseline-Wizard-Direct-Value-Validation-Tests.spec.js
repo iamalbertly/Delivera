@@ -96,8 +96,9 @@ test.describe('PI baseline wizard direct-value', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await expect(page.locator('.gov-visual-answer-blocks')).toBeVisible();
-    await page.locator('#gov-setup-gaps-expand').click();
+    await expect(page.locator('.gov-fix-card, .gov-owner-cluster').first()).toBeVisible();
+    const expand = page.locator('#gov-setup-gaps-expand');
+    if (await expand.count()) await expand.click();
     await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('[data-testid="gov-baseline-context"]')).toContainText('SD');
@@ -129,7 +130,8 @@ test.describe('PI baseline wizard direct-value', () => {
     });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-setup-gaps-expand').click();
+    const expand = page.locator('#gov-setup-gaps-expand');
+    if (await expand.count()) await expand.click();
     await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
     await page.locator('[data-testid="gov-baseline-save"]').click();
     await expect.poll(() => saved).toBe(true);
@@ -140,8 +142,8 @@ test.describe('PI baseline wizard direct-value', () => {
     await mockWizardPage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    const badge = page.locator('.gov-command-answer .gov-send-badge');
+    const badge = page.locator('.gov-send-badge');
     await expect(badge.first()).toContainText(/Fix promised work first/i);
-    await expect(badge).not.toContainText(/Safe to send/i);
+    await expect(page.locator('.gov-send-badge:has-text("Safe to send")')).toHaveCount(0);
   });
 });

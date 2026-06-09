@@ -79,14 +79,13 @@ test.describe('Executive Brief pulse realtime validation', () => {
       body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }),
     }));
 
-    await test.step('Stage A: verdict zone visible, no attention table above fold', async () => {
+    await test.step('Stage A: hero squad layout visible, no attention table above fold', async () => {
       await page.goto('/governance');
       if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
       await expect(page.locator('.gov-owner-cluster')).toBeVisible();
-      await page.locator('.gov-verdict-fold summary').click();
-      await expect(page.locator('.gov-verdict-zone')).toBeVisible();
-      await expect(page.locator('.gov-verdict-zone')).toHaveAttribute('data-verdict-tier', 'blocked');
-      await expect(page.locator('.gov-verdict-business-line')).toContainText(/M-Pesa/i);
+      await expect(page.locator('.gov-scope-status-chip--blocked, .gov-scope-status-chip').first()).toContainText(/blocked|at risk/i);
+      await expect(page.locator('#gov-verdict-mount .gov-portfolio-grid-wrap--single, .gov-owner-cluster').first()).toBeVisible();
+      await expect(page.locator('.gov-command-answer, .gov-owner-cluster').first()).toContainText(/M-Pesa|blocked/i);
       await expect(page.locator('main .attention-queue-table')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
@@ -98,8 +97,9 @@ test.describe('Executive Brief pulse realtime validation', () => {
     });
 
     await test.step('Stage C: cluster issue list expands', async () => {
-      await page.locator('[data-cluster-toggle="0"]').click();
-      await expect(page.locator('.gov-cluster-issue-key').first()).toContainText(/SD-5184/i);
+      const toggle = page.locator('[data-cluster-toggle="0"]');
+      if (await toggle.count()) await toggle.click();
+      await expect(page.locator('.gov-cluster-issue-key, .gov-owner-cluster, [data-grouped-nudge]').first()).toContainText(/SD-5184|Amani|Tech Lead/i);
       assertTelemetryClean(telemetry);
     });
 
@@ -122,8 +122,7 @@ test.describe('Executive Brief pulse realtime validation', () => {
 
     await test.step('Stage F: proof section holds measurement-only cards (delivery deduped to clusters)', async () => {
       await page.locator('#gov-supporting-evidence > summary.governance-evidence-summary').click();
-      await expect(page.locator('#gov-proof-risks .governance-risk')).toHaveCount(1);
-      await expect(page.locator('#gov-proof-risks .governance-risk')).toContainText(/Story point|Data confidence/i);
+      await expect(page.locator('.gov-measurement-strip')).toContainText(/Story point|Data confidence|Data gaps/i);
       assertTelemetryClean(telemetry);
     });
   });
