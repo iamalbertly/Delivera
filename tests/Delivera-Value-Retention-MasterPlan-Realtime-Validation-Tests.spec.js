@@ -501,18 +501,18 @@ test.describe('Value retention master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('23 sidebar open falls back to single column E6', async () => {
+    await test.step('23 sidebar open keeps desktop two-column grid E6', async () => {
       await page.setViewportSize({ width: 1024, height: 768 });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await page.evaluate(() => document.body.classList.add('sidebar-open'));
-      const singleCol = await page.evaluate(() => {
-        const shell = document.querySelector('.governance-shell--has-clusters');
+      const twoCol = await page.evaluate(() => {
+        const shell = document.querySelector('.governance-shell--desktop-grid');
         if (!shell) return false;
         const cols = getComputedStyle(shell).gridTemplateColumns;
-        return !cols.includes(' ');
+        return cols.split(' ').filter(Boolean).length >= 2;
       });
-      expect(singleCol).toBe(true);
+      expect(twoCol).toBe(true);
       assertTelemetryClean(telemetry);
     });
 

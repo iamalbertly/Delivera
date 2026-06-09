@@ -130,7 +130,7 @@ export function renderBriefUi(brief) {
     const squadCount = selectedProjects(brief).length;
     const showHeatMap = isPortfolioMode(brief) || squadCount === 1;
     const verdictInner = showHeatMap
-      ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1, hideSquadNudge: hasOwnerClusters })
+      ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1, hideSquadNudge: hasOwnerClusters && squadCount === 1 })
       : renderVerdictZone(brief);
     const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
     const inlineVerdict = showHeatMap && squadCount === 1;
