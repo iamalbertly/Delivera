@@ -36,6 +36,7 @@ async function mockGovernanceBriefPage(page) {
     localStorage.setItem('delivera_selectedProjects', 'SD');
     localStorage.setItem('delivera_ai_provider_pref_v1', pref);
     localStorage.setItem('delivera_gov_quarter_v1', 'FY27 Q1');
+    sessionStorage.setItem('gov-pi-auto-open-dismissed', '1');
   }, AI_PREF);
   await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
@@ -79,11 +80,14 @@ async function openPiBaselineWizard(page) {
   const setupFix = page.locator('[data-setup-action="set-baseline"]').first();
   if (await setupFix.count()) {
     await setupFix.click();
-    return;
+  } else {
+    const fold = page.locator('.gov-pi-strip-fold');
+    if (await fold.count()) await fold.evaluate((el) => { el.open = true; });
+    await page.locator('#gov-pi-fix-baseline').click();
   }
-  const fold = page.locator('.gov-pi-strip-fold');
-  if (await fold.count()) await fold.evaluate((el) => { el.open = true; });
-  await page.locator('#gov-pi-fix-baseline').click();
+  await expect(page.locator('.gov-right-drawer-panel .gov-baseline-slide-drop')).toBeVisible({ timeout: 15000 });
+  const wddClose = page.locator('.work-draft-drawer:not([hidden]) button[aria-label="Close"]');
+  if (await wddClose.count()) await wddClose.click();
 }
 
 const hasSlideFixture = existsSync(SLIDE_JPEG);
@@ -118,9 +122,8 @@ test.describe('Governance PI baseline slide upload', () => {
     });
     await page.goto('/governance');
     await openPiBaselineWizard(page);
-    await expect(page.locator('.gov-baseline-slide-drop')).toBeVisible();
-    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
-    await expect(page.locator('.gov-baseline-extracted li')).toHaveCount(1);
+    await page.locator('.gov-right-drawer-panel #gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
+    await expect(page.locator('.gov-right-drawer-panel .gov-baseline-extracted li')).toHaveCount(1, { timeout: 15000 });
     await expect(page.locator('.gov-baseline-activity').first()).toContainText(/Not started|Not in sprint/i);
     expect(postedBody?.imageBase64?.length).toBeGreaterThan(100);
     expect(postedBody?.imageBase64?.length).toBeLessThan(6_000_000);

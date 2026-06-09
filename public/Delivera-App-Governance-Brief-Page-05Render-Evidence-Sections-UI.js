@@ -92,12 +92,21 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
     return;
   }
   const total = brief?.evidencePack?.rows?.length || rows.length;
-  const body = rows.map((r) => `
+  const issueUrlFor = (key) => {
+    const k = String(key || '').toUpperCase();
+    const risk = [...(brief?.topRisks || []), ...(brief?.risks || [])].find((r) => String(r.issueKey).toUpperCase() === k);
+    return risk?.issueUrl || `/current-sprint?issue=${encodeURIComponent(key || '')}`;
+  };
+  const body = rows.map((r) => {
+    const href = issueUrlFor(r.issueKey);
+    const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
+    return `
     <tr>
-      <td><a href="/current-sprint?issue=${encodeURIComponent(r.issueKey || '')}" class="gov-issue-key-link">${escapeHtml(r.issueKey || '')}</a></td>
+      <td><a href="${escapeHtml(href)}" class="gov-issue-key-link gov-proof-row-link"${ext}>${escapeHtml(r.issueKey || '')}</a></td>
       <td>${escapeHtml(r.statusNow || '')}</td>
       <td>${escapeHtml(r.whyFlagged || '')}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   mount.hidden = false;
   mount.innerHTML = `
     <section class="gov-evidence-preview" aria-label="Proof preview">

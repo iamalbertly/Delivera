@@ -148,7 +148,7 @@ export function openSquadNudge(squad, issueKeyOverride = '') {
   });
 }
 
-function openGroupedNudge(groupIndex) {
+export function openGroupedNudge(groupIndex) {
   const g = govPage.ownerGroups[groupIndex];
   if (!g?.issues?.length) return;
   const first = g.issues.find((r) => r.issueKey) || g.issues[0];
@@ -221,6 +221,13 @@ export function bindOwnerClusterInteractions() {
     const proof = event.target.closest('[data-proof-cluster]');
     if (proof) {
       const gi = Number(proof.getAttribute('data-proof-cluster'));
+      const rail = document.getElementById('gov-right-rail-proof-mount');
+      if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {
+        rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+        rail.classList.add('gov-proof-rail-highlight');
+        setTimeout(() => rail.classList.remove('gov-proof-rail-highlight'), 1200);
+        return;
+      }
       openEvidenceDrawer(govPage.lastBrief, govPage.ownerGroups[gi]?.issues || []);
       return;
     }
@@ -256,7 +263,7 @@ async function recordNarrationIfAdvisor() {
   } catch (_) { /* non-blocking */ }
 }
 
-function scrollToFirstClusterNudge() {
+export function scrollToFirstClusterNudge() {
   const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-nudge]');
   if (!btn) {
     govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
@@ -264,6 +271,15 @@ function scrollToFirstClusterNudge() {
   }
   btn.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
   btn.focus?.();
+}
+
+export function executeFirstClusterNudge() {
+  const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-nudge]');
+  if (btn) {
+    openGroupedNudge(Number(btn.getAttribute('data-grouped-nudge') || 0));
+    return;
+  }
+  scrollToFirstClusterNudge();
 }
 
 export function openInboxNudgeReview(item) {
@@ -302,7 +318,11 @@ export function bindCommandAnswerActions() {
   if (!govPage.els.answerMount || govPage.els.answerMount.dataset.bound) return;
   govPage.els.answerMount.dataset.bound = '1';
   govPage.els.answerMount.addEventListener('click', async (event) => {
-    if (event.target.closest('#gov-scroll-first-nudge')) {
+    if (event.target.closest('#gov-scroll-first-nudge') || event.target.closest('#gov-do-first-execute')) {
+      executeFirstClusterNudge();
+      return;
+    }
+    if (event.target.closest('#gov-scroll-first-nudge-only')) {
       scrollToFirstClusterNudge();
       return;
     }
@@ -313,15 +333,9 @@ export function bindCommandAnswerActions() {
     }
     const copyBtn = event.target.closest('#gov-copy-answer-inline');
     if (copyBtn && govPage.lastBrief) {
-      try {
-        await navigator.clipboard.writeText(commandAnswerSentence(govPage.lastBrief));
-        void recordNarrationIfAdvisor();
-        const prev = copyBtn.textContent;
-        copyBtn.textContent = 'Copied';
-        setTimeout(() => { copyBtn.textContent = prev || 'Copy answer'; }, 1500);
-      } catch (_) {
-        copyBtn.textContent = 'Copy failed';
-      }
+      const { copyBrief } = await import('./Delivera-Governance-Brief-Page-03Load-Controller.js');
+      await copyBrief({ triggerEl: copyBtn, sentenceOnly: true });
+      await recordNarrationIfAdvisor();
       return;
     }
     if (event.target.closest('#gov-fix-setup')) {
@@ -414,4 +428,14 @@ export function bindGovernancePageInteractions() {
   bindProofInteractions();
   bindCommandAnswerActions();
   bindSetupDebtActions();
+  if (!document.body.dataset.govActionEventsBound) {
+    document.body.dataset.govActionEventsBound = '1';
+    document.addEventListener('delivera-gov-scroll-first-action', () => executeFirstClusterNudge());
+    document.addEventListener('delivera-gov-copy-answer', () => {
+      import('./Delivera-Governance-Brief-Page-03Load-Controller.js').then(async (m) => {
+        await m.copyBrief({ triggerEl: document.getElementById('gov-copy-answer-scope'), sentenceOnly: true });
+        await recordNarrationIfAdvisor();
+      });
+    });
+  }
 }

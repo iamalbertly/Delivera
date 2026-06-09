@@ -1353,3 +1353,69 @@ body.governance-page .governance-shell--hero-squad:has([data-hero-squad="1"]) .g
   body.governance-page .gov-right-rail-proof { order: -1; }
   body.governance-page .gov-inbox-inline-preview { max-height: 42vh; overflow-y: auto; }
 }
+
+/* Click-friction master plan — mobile scope sheet, copy SSOT, proof actions */
+.gov-scope-expanded--mobile-hidden { display: none !important; }
+button.gov-scope-status-chip {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+button.gov-scope-status-chip:hover { filter: brightness(0.95); }
+.gov-copy-fallback-snippet {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  background: #fffbeb;
+  font-size: 0.82rem;
+}
+.gov-copy-fallback-text {
+  width: 100%;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-family: inherit;
+}
+.gov-proof-rail-highlight {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.gov-inbox-inline-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.gov-inbox-inline-approve { flex-shrink: 0; align-self: center; }
+@media (max-width: 768px) {
+  body.governance-page #gov-copy-answer-inline { display: none !important; }
+  body.governance-page:has(#gov-scope-bar-mount .gov-scope-status-chip) .gov-command-answer .gov-trust-chip-row {
+    display: none !important;
+  }
+  .gov-right-drawer-host:has(.gov-right-drawer-panel--scope-sheet) {
+    align-items: flex-end;
+  }
+  .gov-right-drawer-panel--scope-sheet {
+    margin-left: 0;
+    max-width: 100%;
+    width: 100%;
+    align-self: flex-end;
+    max-height: 85vh;
+    border-radius: 12px 12px 0 0;
+  }
+  .gov-scope-bar-inner--mobile-drawer .gov-scope-mobile-only { display: block; }
+  .gov-scope-bar-inner--mobile-drawer .gov-scope-desktop-only { display: none; }
+  body.governance-page .gov-compare-add-tray { order: -1; margin-bottom: 8px; }
+}
+@media (min-width: 769px) {
+  .gov-scope-advanced-btn { margin-top: 4px; }
+  .gov-scope-advanced-accordion { margin-top: 4px; font-size: 0.86rem; }
+  .gov-scope-advanced-summary { cursor: pointer; font-weight: 600; color: var(--text-muted, #64748b); }
+  .gov-scope-advanced-accordion .gov-scope-drawer-note { margin: 6px 0 0; color: var(--text-muted, #6b7280); font-size: 0.82rem; }
+}
+body.governance-page #gov-brief-content[data-scope-stale="true"] #gov-scope-refresh {
+  visibility: hidden;
+  pointer-events: none;
+}
+[data-hover-proof][role="button"] { cursor: pointer; }

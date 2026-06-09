@@ -117,7 +117,8 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('owner cluster primary CTA when blocked', async ({ page }) => {
     await mockClarityPage(page);
     await page.goto('/governance');
-    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
+    await expect(page.locator('.gov-do-first-strip')).toHaveCount(1);
+    await expect(page.locator('#gov-do-first-execute')).toBeVisible();
     await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
     await expect(page.locator('.gov-owner-cluster')).toContainText(/Leadership|Amani/i);
   });

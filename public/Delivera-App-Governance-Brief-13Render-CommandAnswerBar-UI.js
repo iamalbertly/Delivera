@@ -65,11 +65,13 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     : (doFirstUrl
       ? `<a class="btn btn-primary btn-compact" href="${escapeHtml(doFirstUrl)}" target="_blank" rel="noopener">Open →</a>`
       : '');
-  const doFirstStrip = showDoFirstStrip && !hasOwnerClusters
+  const doFirstStrip = showDoFirstStrip
     ? `<div class="gov-do-first-strip" data-hover-proof="owner-lane">
         <span class="gov-do-first-prefix">${escapeHtml(COPY.doFirst)}:</span>
         <strong class="gov-do-first-action">${escapeHtml(doFirstLabel)}</strong>
-        ${doFirstCta}
+        ${hasOwnerClusters
+    ? `<button type="button" class="btn btn-primary btn-compact" id="gov-do-first-execute">✉ ${escapeHtml(COPY.draftNudge)}</button>`
+    : doFirstCta}
       </div>`
     : '';
   const showActionBlock = !showDoFirstStrip;

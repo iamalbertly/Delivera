@@ -271,9 +271,10 @@ test.describe('Governance agentic worker — UI', () => {
     await openGovernanceAgentQueueChrome(page);
     await page.locator('[data-queue-open]').click({ force: true });
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
-    await expect(page.locator('[data-inbox-approve="n1"]')).toBeVisible();
+    const drawerApprove = page.locator('.gov-right-drawer-panel [data-inbox-approve="n1"]');
+    await expect(drawerApprove).toBeVisible();
     await disableSidebarPointerBlock(page);
-    await page.locator('[data-inbox-approve="n1"]').dispatchEvent('click');
+    await drawerApprove.dispatchEvent('click');
     await expect.poll(() => resolved, { timeout: 8000 }).toBe(true);
   });
 

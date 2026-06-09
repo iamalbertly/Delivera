@@ -2,9 +2,11 @@ import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisi
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
 import { COPY, freshnessShortLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { govPage } from './Delivera-Governance-Brief-Page-01Context.js';
 
 let popoverEl = null;
 let pinned = false;
+let pinnedEl = null;
 
 function ensurePopover() {
   if (popoverEl) return popoverEl;
@@ -59,9 +61,49 @@ const STATIC_HELP = {
   status: (brief) => `<p><strong>Status</strong></p><p>${escapeHtml(brief?.executiveView?.verdictLine || '')}</p>`,
 };
 
-function bindHoverEl(el, brief, getHtml) {
+function runProofAction(key, brief) {
+  if (key === 'safe-send' && brief?.meta?.safeToSend === false) {
+    const fix = document.querySelector('[data-setup-action]');
+    if (fix) {
+      fix.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      fix.focus?.();
+    } else {
+      govPage.els.setupDebtMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    }
+    return true;
+  }
+  if (key === 'status' || key === 'owner-lane') {
+    document.dispatchEvent(new CustomEvent('delivera-gov-scroll-first-action'));
+    return true;
+  }
+  if (key === 'evidence-count') {
+    const rail = document.getElementById('gov-right-rail-proof-mount');
+    if (rail && !rail.hidden) {
+      rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+      return true;
+    }
+    const panel = document.getElementById('gov-supporting-evidence');
+    if (panel) {
+      panel.open = true;
+      panel.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    }
+    return true;
+  }
+  if (key === 'setup-gap') {
+    document.querySelector('[data-setup-action="set-baseline"]')?.click?.();
+    return true;
+  }
+  return false;
+}
+
+function bindHoverEl(el, brief, getHtml, proofKey) {
   const pop = ensurePopover();
   let hideTimer = null;
+  const isLink = el.tagName === 'A' && el.getAttribute('href');
+  if (!isLink && el.getAttribute('role') !== 'button') {
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+  }
   const show = () => {
     clearTimeout(hideTimer);
     pop.innerHTML = typeof getHtml === 'function' ? getHtml(brief) : getHtml;
@@ -71,8 +113,19 @@ function bindHoverEl(el, brief, getHtml) {
     pop.style.left = `${Math.max(8, Math.min(window.innerWidth - 320, rect.left))}px`;
   };
   const hide = () => {
-    if (pinned) return;
+    if (pinned && pinnedEl === el) return;
     hideTimer = setTimeout(() => { pop.hidden = true; }, 150);
+  };
+  const togglePin = () => {
+    if (pinned && pinnedEl === el) {
+      pinned = false;
+      pinnedEl = null;
+      pop.hidden = true;
+      return;
+    }
+    pinned = true;
+    pinnedEl = el;
+    show();
   };
   el.addEventListener('mouseenter', show);
   el.addEventListener('mouseleave', hide);
@@ -80,10 +133,23 @@ function bindHoverEl(el, brief, getHtml) {
   el.addEventListener('blur', hide);
   el.addEventListener('touchstart', (ev) => {
     ev.preventDefault();
-    pinned = !pinned;
-    if (pinned) show();
-    else { pop.hidden = true; pinned = false; }
+    togglePin();
   }, { passive: false });
+  if (!isLink) {
+    el.addEventListener('click', (ev) => {
+      if (proofKey && runProofAction(proofKey, brief)) {
+        ev.preventDefault();
+        return;
+      }
+      togglePin();
+    });
+    el.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      ev.preventDefault();
+      if (proofKey && runProofAction(proofKey, brief)) return;
+      togglePin();
+    });
+  }
 }
 
 export function bindHoverProofCards(root, brief) {
@@ -94,13 +160,18 @@ export function bindHoverProofCards(root, brief) {
   document.addEventListener('touchstart', (ev) => {
     if (pinned && !ev.target.closest('.gov-proof-popover') && !ev.target.closest('[data-hover-proof]')) {
       pinned = false;
+      pinnedEl = null;
       pop.hidden = true;
     }
   }, { passive: true });
 
   Object.keys(STATIC_HELP).forEach((key) => {
     root.querySelectorAll(`[data-hover-proof="${key}"]`).forEach((el) => {
-      bindHoverEl(el, brief, STATIC_HELP[key]);
+      if (el.tagName === 'A' && el.getAttribute('href')) {
+        bindHoverEl(el, brief, STATIC_HELP[key], key);
+      } else {
+        bindHoverEl(el, brief, STATIC_HELP[key], key);
+      }
     });
   });
 
@@ -112,6 +183,6 @@ export function bindHoverProofCards(root, brief) {
     const evidence = (brief.evidencePack?.rows || [])
       .find((r) => String(r.issueKey).toUpperCase() === String(key).toUpperCase());
     if (!risk && !evidence) return;
-    bindHoverEl(el, brief, () => proofCardHtml(risk, evidence));
+    bindHoverEl(el, brief, () => proofCardHtml(risk, evidence), null);
   });
 }

@@ -39,6 +39,10 @@ import {
   setScopeStaleOverlay, clearScopeStaleOverlay,
 } from './Delivera-Governance-Brief-Page-02Loading-State.js';
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
+import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
+
+const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
 let loadBriefSeq = 0;
 let loadBriefForce = false;
@@ -105,15 +109,19 @@ export function renderBriefUi(brief) {
   document.getElementById('main-content')?.classList.toggle('governance-shell--desktop-grid', true);
   document.getElementById('main-content')?.classList.toggle('governance-shell--hero-squad', singleSquadHero);
   if (govPage.els.piStripMount) {
-    const hasBaselineGap = (brief?.meta?.setupGaps || []).some((g) => g.action === 'set-baseline');
+    const gaps = brief?.meta?.setupGaps || [];
+    const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
     const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap });
     const compactBadge = renderPICompactBadge(brief);
     const rollupBehind = Number(brief?.portfolioRollup?.behindPiCount || 0) > 0;
-    const piStripHtml = (hasOwnerClusters && rollupBehind)
+    let piStripHtml = (hasOwnerClusters && rollupBehind)
       ? ''
       : (hasOwnerClusters && piInner
         ? `${compactBadge}<details class="gov-pi-strip-fold" open><summary>PI confidence</summary>${piInner}</details>`
         : piInner);
+    if (!piStripHtml.trim() && hasBaselineGap) {
+      piStripHtml = compactBadge || piInner || `<p class="gov-pi-compact-badge gov-pi-empty-cta">${escapeHtml(COPY.piBaselineNotSavedCta)}</p>`;
+    }
     govPage.els.piStripMount.innerHTML = piStripHtml;
     govPage.els.piStripMount.toggleAttribute('data-pi-strip-empty', !piStripHtml.trim());
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
@@ -240,6 +248,18 @@ export function renderBriefUi(brief) {
       openEvidenceDrawer(brief, [], { initialTab: 'investment' });
     }
   } catch (_) { /* ignore */ }
+
+  maybeAutoOpenPiBaseline(brief);
+}
+
+function maybeAutoOpenPiBaseline(brief) {
+  const gaps = brief?.meta?.setupGaps || [];
+  if (gaps.length !== 1 || gaps[0]?.action !== 'set-baseline') return;
+  try {
+    if (sessionStorage.getItem(PI_AUTO_OPEN_KEY) === '1') return;
+  } catch (_) { /* ignore */ }
+  sessionStorage.setItem(PI_AUTO_OPEN_KEY, '1');
+  setTimeout(() => openPiBaselineWizard(), 400);
 }
 
 export async function loadBrief(options = {}) {
@@ -323,18 +343,29 @@ async function fetchImpactSection() {
   }
 }
 
-export async function copyBrief() {
+export async function copyBrief(options = {}) {
   if (!govPage.lastBrief) return;
-  const btn = document.getElementById('gov-copy-answer-inline');
+  const triggerEl = options.triggerEl || document.getElementById('gov-copy-answer-scope') || document.getElementById('gov-copy-answer-inline');
+  const labelDefault = options.sentenceOnly ? 'Copy answer' : 'Copy answer';
+  const text = options.sentenceOnly
+    ? commandAnswerSentence(govPage.lastBrief)
+    : briefToMarkdown(govPage.lastBrief, projectsCsv(), await fetchImpactSection());
   try {
-    const impact = await fetchImpactSection();
-    await navigator.clipboard.writeText(briefToMarkdown(govPage.lastBrief, projectsCsv(), impact));
-    if (btn) {
-      const prior = btn.textContent;
-      btn.textContent = 'Copied';
-      setTimeout(() => { btn.textContent = prior || 'Copy answer'; }, 1500);
+    await writeTextToClipboardWithFallback(text);
+    if (triggerEl) {
+      const prior = triggerEl.textContent;
+      triggerEl.textContent = 'Copied';
+      setTimeout(() => { triggerEl.textContent = prior || labelDefault; }, 1500);
+    }
+    if (!options.sentenceOnly) {
+      const inline = document.getElementById('gov-copy-answer-inline');
+      if (inline && inline !== triggerEl) {
+        inline.textContent = 'Copied';
+        setTimeout(() => { inline.textContent = 'Copy answer'; }, 1500);
+      }
     }
   } catch (_) {
-    if (btn) btn.textContent = 'Copy failed';
+    if (triggerEl) triggerEl.textContent = 'Select text below';
+    showClipboardFallbackSnippet(triggerEl?.closest('.gov-scope-actions') || govPage.els.answerMount, text.slice(0, 500));
   }
 }

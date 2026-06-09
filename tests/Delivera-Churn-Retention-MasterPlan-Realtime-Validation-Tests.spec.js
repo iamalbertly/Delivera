@@ -61,10 +61,11 @@ function stubChurnBrief(projects = ['SD'], overrides = {}) {
 
 async function mockChurnGovernance(page, opts = {}) {
   const { projects = 'SD', briefDelayMs = 0, mismatch = false, periodBodies = null } = opts;
-  await page.addInitScript((key, pk) => {
+  await page.addInitScript(({ key, pk }) => {
     try { localStorage.setItem(key, pk); } catch (_) {}
     try { sessionStorage.removeItem('delivera:brief:cache:v1'); } catch (_) {}
-  }, PROJECTS_SSOT_KEY, projects);
+    try { sessionStorage.setItem('gov-pi-auto-open-dismissed', '1'); } catch (_) {}
+  }, { key: PROJECTS_SSOT_KEY, pk: projects });
   await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', async (route) => {
     if (briefDelayMs > 0) await new Promise((r) => setTimeout(r, briefDelayMs));

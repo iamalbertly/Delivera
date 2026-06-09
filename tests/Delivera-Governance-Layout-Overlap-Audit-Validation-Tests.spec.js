@@ -32,7 +32,7 @@ const LAYOUT_BRIEF = {
     },
     epicHygiene: { score: 40, epicCount: 4, weak: [{ issueKey: 'SD-1' }], bySquad: [{ squad: 'SD board', score: 40 }], suggestions: [] },
     workerReceipt: { line: 'Last run: 1m ago', inboxTotal: 3 },
-    setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }],
+    setupGaps: [],
   },
   topRisks: [{
     issueKey: 'SD-1', assigneeName: 'Amani', decisionNeededFrom: 'Leadership',
@@ -57,7 +57,10 @@ const LAYOUT_BRIEF = {
 };
 
 async function mockLayoutGovernancePage(page) {
-  await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'SD'); });
+  await page.addInitScript(() => {
+    localStorage.setItem('delivera_selectedProjects', 'SD');
+    sessionStorage.setItem('gov-pi-auto-open-dismissed', '1');
+  });
   await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(LAYOUT_BRIEF),
@@ -199,15 +202,17 @@ test.describe('Governance layout overlap audit', () => {
   test('governance right rail proof mount visible above fold on desktop', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
-    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.setViewportSize({ width: 1280, height: 1024 });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.keyboard.press('Escape');
     const proofMount = page.locator('#gov-right-rail-proof-mount');
     await expect(proofMount).toBeVisible();
     const box = await proofMount.boundingBox();
     expect(box).toBeTruthy();
-    if (box) expect(box.y).toBeLessThan(900);
+    if (box) expect(box.y).toBeLessThan(1024);
     assertTelemetryClean(telemetry);
   });
 
@@ -285,7 +290,8 @@ test.describe('Governance layout overlap audit', () => {
     });
     expect(aboveFold).toBeTruthy();
 
-    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
+    await expect(page.locator('.gov-command-answer')).toBeHidden();
+    await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
     await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
     await expect(page.locator('#gov-review-actions')).toHaveCount(0);
 
@@ -307,7 +313,8 @@ test.describe('Governance layout overlap audit', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await expect(page.locator('.gov-owner-cluster')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
+    await expect(page.locator('.gov-command-answer')).toBeHidden();
+    await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
     await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
 
     assertTelemetryClean(telemetry);

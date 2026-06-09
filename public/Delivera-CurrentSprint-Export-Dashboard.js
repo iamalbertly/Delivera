@@ -12,6 +12,7 @@ import {
   persistCurrentSprintSummaryContext,
 } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { buildSprintAtAGlanceBriefing } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
+import { writeTextToClipboardWithFallback } from './Delivera-Shared-Clipboard-01Bridge.js';
 
 const SUMMARY_SECTION_KEYS = [
   'summary',
@@ -550,29 +551,6 @@ function setButtonStatus(btn, text, originalText, disabled = false, resetAfterMs
     btn.disabled = false;
   }, resetAfterMs);
 }
-async function writeTextToClipboardWithFallback(text) {
-  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch (_) {
-      // Fall through to the document-level copy path when browser permissions block async clipboard access.
-    }
-  }
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.setAttribute('readonly', 'true');
-  ta.style.position = 'fixed';
-  ta.style.left = '-9999px';
-  ta.style.top = '0';
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  const ok = document.execCommand('copy');
-  document.body.removeChild(ta);
-  if (!ok) throw new Error('Clipboard copy unavailable');
-}
-
 function rememberCurrentSprintExportArtifact(key, value) {
   try {
     if (typeof window === 'undefined') return;

@@ -258,16 +258,24 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
 
   function renderInlinePreview(data, total) {
     const items = itemsForTab(data, 'doNow');
-    const groups = groupInboxByFingerprint(items).slice(0, 8);
+    const groups = groupInboxByFingerprint(items).slice(0, 2);
     if (!groups.length) return { preview: '', chip: '' };
-    const rows = groups.map((g) => `
+    const rows = groups.map((g) => {
+      const ex = g.exampleItem || {};
+      const canApprove = isResolvableItem(ex) && g.count === 1 && g.ids[0];
+      const approveBtn = canApprove
+        ? `<button type="button" class="btn btn-primary btn-compact gov-inbox-inline-approve" data-inbox-approve="${escapeHtml(g.ids[0])}" title="${escapeHtml(COPY.inboxApprove)}">✓</button>`
+        : '';
+      return `
       <li class="gov-inbox-inline-row">
         <button type="button" class="gov-inbox-inline-open" data-inline-open="${escapeHtml(g.fingerprint)}" aria-label="${escapeHtml(g.owner)} — ${g.count} items">
           <strong class="gov-inbox-inline-owner">${escapeHtml(g.owner)}</strong>
           <span class="gov-inbox-inline-summary">${escapeHtml(g.exampleItem?.summary || g.reason || g.type || '')}</span>
           <em class="gov-inbox-inline-count">${g.count}</em>
         </button>
-      </li>`).join('');
+        ${approveBtn}
+      </li>`;
+    }).join('');
     const preview = `<ul class="gov-inbox-inline-preview" data-inbox-inline="1" aria-label="Top queue items">${rows}</ul>`;
     const chip = `<button type="button" class="gov-queue-chip gov-queue-chip--secondary" data-queue-open="1" aria-label="Open full agent queue">All queue (${total})</button>`;
     return { preview, chip };
@@ -296,6 +304,12 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     mount.querySelector('[data-queue-open]')?.addEventListener('click', () => openCombinedDrawer());
     mount.querySelectorAll('[data-inline-open]').forEach((btn) => {
       btn.addEventListener('click', () => openCombinedDrawer('doNow'));
+    });
+    mount.querySelectorAll('[data-inbox-approve]').forEach((btn) => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        resolveItem(btn.getAttribute('data-inbox-approve'), 'approved');
+      });
     });
     const rightRail = document.getElementById('gov-right-rail-mount');
     if (rightRail) {

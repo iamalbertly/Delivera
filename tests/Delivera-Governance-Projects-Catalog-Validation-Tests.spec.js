@@ -58,7 +58,7 @@ test.describe('Governance projects catalog SSOT', () => {
     await expect(page.locator('.gov-scope-chip--limited')).toHaveCount(2);
   });
 
-  test('do-first strip scrolls to cluster nudge when clusters present', async ({ page }) => {
+  test('do-first strip executes cluster nudge when clusters present', async ({ page }) => {
     const brief = {
       ...MOCK_BRIEF,
       executiveView: { verdictTier: 'blocked', verdictLabel: 'BLOCKED' },
@@ -88,9 +88,9 @@ test.describe('Governance projects catalog SSOT', () => {
     await page.addInitScript(() => { localStorage.setItem('delivera_selectedProjects', 'MPSA'); });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-do-first-strip')).toHaveCount(0);
-    await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
-    await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
-    await expect(page.locator('[data-grouped-nudge]').first()).toBeInViewport();
+    await expect(page.locator('.gov-do-first-strip')).toHaveCount(1);
+    await expect(page.locator('#gov-do-first-execute')).toBeVisible();
+    await page.locator('#gov-do-first-execute').click();
+    await expect(page.locator('#delivera-jira-nudge-review-sheet, [data-grouped-nudge]').first()).toBeVisible();
   });
 });

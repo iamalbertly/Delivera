@@ -11,8 +11,9 @@ import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.j
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { COPY, isSimpleMode, simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
-import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
+import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { fetchQuartersListMemo } from './Delivera-Shared-Quarters-List-01Fetch-Memo.js';
+import { openRightDrawer, closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import {
   catalogProjectKeys,
   unionProjectKeys,
@@ -79,6 +80,141 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   } catch (_) { periodWindow = '28d'; }
 
   let scopeChangeTimer = null;
+  let scopeDrawerClose = null;
+  let compareHintTimer = null;
+
+  function isMobileScopeLayout() {
+    return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 768px)')?.matches;
+  }
+
+  function showCompareHint() {
+    if (compareHintTimer) clearTimeout(compareHintTimer);
+    showInlineToast(mount, 'Use + chips below the squad banner to compare squads.', 'info');
+    compareHintTimer = setTimeout(() => { compareHintTimer = null; }, 2200);
+  }
+
+  function bindScopePanelInteractions(panelEl, { closeDrawer } = {}) {
+    if (!panelEl) return;
+    const root = panelEl.querySelector('.gov-scope-bar-inner') || panelEl;
+    root.querySelectorAll('[data-project]').forEach((btn) => {
+      btn.addEventListener('click', (ev) => {
+        const pk = btn.getAttribute('data-project');
+        if (!pk) return;
+        const multi = ev.shiftKey || ev.ctrlKey || ev.metaKey;
+        const prev = [...selected];
+        if (!multi) {
+          if (prev.length === 1 && prev[0] !== pk) showCompareHint();
+          selected = [pk];
+        } else if (selected.includes(pk)) {
+          selected = selected.filter((p) => p !== pk);
+          if (!selected.length) selected = [pk];
+        } else {
+          selected = [...selected, pk].sort();
+        }
+        writeProjects(selected);
+        render();
+        debouncedScopeChange();
+        scheduleValidateSelected();
+        closeDrawer?.();
+      });
+    });
+    root.querySelectorAll('[data-quarter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        activeQuarter = btn.getAttribute('data-quarter') || '';
+        try { localStorage.setItem(GOVERNANCE_QUARTER_KEY, activeQuarter); } catch (_) { /* ignore */ }
+        notifyScopeChanged();
+        render();
+        setLoadBriefForce(true);
+        onRefresh?.({ force: true });
+        closeDrawer?.();
+      });
+    });
+    root.querySelectorAll('.gov-scope-mobile-project-check').forEach((inp) => {
+      inp.addEventListener('change', () => {
+        const pk = String(inp.value || '').trim().toUpperCase();
+        if (!pk) return;
+        if (inp.checked) selected = [...new Set([...selected, pk])].sort();
+        else selected = selected.filter((p) => p !== pk);
+        if (!selected.length) selected = [pk];
+        writeProjects(selected);
+        render();
+        debouncedScopeChange();
+        scheduleValidateSelected();
+      });
+    });
+    const mobileQuarter = root.querySelector('.gov-scope-mobile-quarter');
+    if (mobileQuarter) {
+      mobileQuarter.addEventListener('change', () => {
+        activeQuarter = mobileQuarter.value || '';
+        try { localStorage.setItem(GOVERNANCE_QUARTER_KEY, activeQuarter); } catch (_) { /* ignore */ }
+        notifyScopeChanged();
+        render();
+        onRefresh?.();
+        closeDrawer?.();
+      });
+    }
+    root.querySelector('#gov-scope-advanced')?.addEventListener('click', () => {
+      closeDrawer?.();
+      onOpenDrawer?.();
+    });
+    root.querySelectorAll('[data-period-chip]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        periodWindow = btn.getAttribute('data-period-chip') || '28d';
+        try { sessionStorage.setItem(GOV_PERIOD_WINDOW_KEY, periodWindow); } catch (_) { /* ignore */ }
+        invalidateBriefCacheEntry(normalizeProjectsCsv(selected.join(',')), activeQuarter, periodWindow);
+        render();
+        setLoadBriefForce(true);
+        onRefresh?.({ force: true });
+        closeDrawer?.();
+      });
+    });
+    root.querySelector('[data-period-preset="pi-quarter"]')?.addEventListener('click', () => {
+      periodWindow = 'pi';
+      try { sessionStorage.setItem(GOV_PERIOD_WINDOW_KEY, periodWindow); } catch (_) { /* ignore */ }
+      invalidateBriefCacheEntry(normalizeProjectsCsv(selected.join(',')), activeQuarter, periodWindow);
+      render();
+      setLoadBriefForce(true);
+      onRefresh?.({ force: true });
+      closeDrawer?.();
+    });
+    root.querySelector('[data-investment-open]')?.addEventListener('click', () => {
+      closeDrawer?.();
+      openEvidenceDrawer(govPage.lastBrief, [], { initialTab: 'investment' });
+    });
+  }
+
+  function openMobileScopeSheet() {
+    closeAllGovernanceOverlays();
+    const periodChips = PERIOD_OPTIONS.map((p) => (
+      `<button type="button" class="gov-period-chip${periodWindow === p.id ? ' is-on' : ''}" data-period-chip="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
+    )).join('');
+    const showInvestment = isSimpleMode() || selected.length > 1;
+    const investmentChip = showInvestment
+      ? `<button type="button" class="gov-investment-chip btn btn-link btn-compact" data-investment-open="1">${escapeHtml(COPY.investmentLens)}</button>`
+      : '';
+    const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
+    const bodyHtml = renderExpandedSelectors({
+      projectKeys,
+      selected,
+      quarters,
+      activeQuarter,
+      advancedLabel: advLabel,
+      advancedWarnCount,
+      boardsWarn,
+      accessByKey,
+      periodWindowChips: periodChips,
+      investmentChip,
+      periodWindow,
+      mobileDrawer: true,
+    });
+    const { close, el } = openRightDrawer({
+      title: 'Brief scope',
+      bodyHtml,
+      panelClass: 'scope-sheet',
+    });
+    scopeDrawerClose = close;
+    bindScopePanelInteractions(el.querySelector('.gov-right-drawer-body'), { closeDrawer: close });
+  }
 
   function debouncedScopeChange() {
     if (scopeChangeTimer) clearTimeout(scopeChangeTimer);
@@ -128,11 +264,14 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const deltaPart = sinceDelta ? ` · ${escapeHtml(sinceDelta.slice(0, 48))}` : '';
     const statusActionAttr = '';
     const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
+    const mobileLayout = isMobileScopeLayout();
     const desktopWide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)')?.matches;
-    const expandedHidden = desktopWide && selected.length <= 3
-      ? false
-      : mount.querySelector('#gov-scope-expanded')?.hasAttribute('hidden') !== false;
-    const scopeExpandedVisible = !expandedHidden;
+    const expandedHidden = mobileLayout
+      ? true
+      : (desktopWide && selected.length <= 3
+        ? false
+        : mount.querySelector('#gov-scope-expanded')?.hasAttribute('hidden') !== false);
+    const scopeExpandedVisible = !expandedHidden && !mobileLayout;
     const accessKeys = Object.keys(accessByKey);
     const allInaccessible = accessKeys.length > 0 && accessKeys.every((k) => accessByKey[k] === false);
     const accessBanner = allInaccessible
@@ -150,84 +289,46 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const capsuleText = scopeExpandedVisible
       ? `${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`
       : `Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)} · ${escapeHtml(periodWindowLabel())}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`;
-    const changeBtn = (desktopWide && scopeExpandedVisible)
+    const changeBtn = (desktopWide && scopeExpandedVisible && !mobileLayout)
       ? ''
-      : '<button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>';
+      : `<button type="button" id="gov-scope-change" class="btn btn-link btn-compact">${mobileLayout ? 'Change scope' : 'Change'}</button>`;
+
+    const statusChipEl = (statusTier === 'blocked' || statusTier === 'watch')
+      ? `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" data-scope-status-action="1" title="Jump to do-now actions">${escapeHtml(statusLabel)}${deltaPart}</button>`
+      : `<span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${deltaPart}</span>`;
 
     mount.innerHTML = `
       ${accessBanner}
       <p id="gov-extension-trust-hint" class="gov-extension-trust-hint" role="status" hidden>Browser extension noise detected — Delivera data is unaffected.</p>
       <div class="gov-scope-capsule" aria-label="Brief scope"${scopeExpandedVisible ? ' data-scope-capsule-compact="1"' : ''}>
         <span class="gov-scope-capsule-text">${capsuleText}</span>
-        <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${deltaPart}</span>
+        ${statusChipEl}
         <div class="gov-scope-actions" role="group" aria-label="Scope actions">
           ${changeBtn}
+          <button type="button" id="gov-copy-answer-scope" class="btn btn-secondary btn-compact">Copy answer</button>
           <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
         </div>
       </div>
-      <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}"${scopeExpandedVisible ? ' data-scope-expanded-visible="1"' : ''}${expandedHidden ? ' hidden' : ''}>
-        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip })}
+      <div id="gov-scope-expanded" class="gov-scope-expanded${mobileLayout ? ' gov-scope-expanded--mobile-hidden' : ''}" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}"${scopeExpandedVisible ? ' data-scope-expanded-visible="1"' : ''}${expandedHidden ? ' hidden' : ''}>
+        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, advancedWarnCount, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip, periodWindow })}
       </div>`;
 
-    mount.querySelectorAll('[data-project]').forEach((btn) => {
-      btn.addEventListener('click', (ev) => {
-        const pk = btn.getAttribute('data-project');
-        if (!pk) return;
-        const multi = ev.shiftKey || ev.ctrlKey || ev.metaKey;
-        if (!multi) {
-          selected = [pk];
-        } else if (selected.includes(pk)) {
-          selected = selected.filter((p) => p !== pk);
-          if (!selected.length) selected = [pk];
-        } else {
-          selected = [...selected, pk].sort();
-        }
-        writeProjects(selected);
-        render();
-        debouncedScopeChange();
-        scheduleValidateSelected();
-      });
+    bindScopePanelInteractions(mount.querySelector('#gov-scope-expanded'));
+    mount.querySelector('[data-scope-status-action]')?.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('delivera-gov-scroll-first-action'));
     });
-    mount.querySelectorAll('[data-quarter]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        activeQuarter = btn.getAttribute('data-quarter') || '';
-        try { localStorage.setItem(GOVERNANCE_QUARTER_KEY, activeQuarter); } catch (_) { /* ignore */ }
-        notifyScopeChanged();
-        const seq = ++loadBriefSeq;
-        render();
-        Promise.resolve(onRefresh?.()).then(() => {
-          if (seq !== loadBriefSeq) return;
-        });
-      });
+    mount.querySelector('#gov-copy-answer-scope')?.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer'));
     });
-    mount.querySelectorAll('.gov-scope-mobile-project-check').forEach((inp) => {
-      inp.addEventListener('change', () => {
-        const pk = String(inp.value || '').trim().toUpperCase();
-        if (!pk) return;
-        if (inp.checked) selected = [...new Set([...selected, pk])].sort();
-        else selected = selected.filter((p) => p !== pk);
-        if (!selected.length) selected = [pk];
-        writeProjects(selected);
-        render();
-        debouncedScopeChange();
-        scheduleValidateSelected();
-      });
-    });
-    const mobileQuarter = mount.querySelector('.gov-scope-mobile-quarter');
-    if (mobileQuarter) {
-      mobileQuarter.addEventListener('change', () => {
-        activeQuarter = mobileQuarter.value || '';
-        try { localStorage.setItem(GOVERNANCE_QUARTER_KEY, activeQuarter); } catch (_) { /* ignore */ }
-        notifyScopeChanged();
-        render();
-        onRefresh?.();
-      });
-    }
     mount.querySelector('#gov-freshness-review')?.addEventListener('click', (ev) => {
       ev.stopPropagation();
       govPage.inboxApi?.openQueueTab?.('confirm');
     });
     mount.querySelector('#gov-scope-change')?.addEventListener('click', () => {
+      if (isMobileScopeLayout()) {
+        openMobileScopeSheet();
+        return;
+      }
       const panel = mount.querySelector('#gov-scope-expanded');
       if (panel) panel.toggleAttribute('hidden');
     });
@@ -235,20 +336,6 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       setLoadBriefForce(true);
       onRefresh?.({ force: true });
       scheduleValidateSelected(true);
-    });
-    mount.querySelector('#gov-scope-advanced')?.addEventListener('click', () => onOpenDrawer?.());
-    mount.querySelectorAll('[data-period-chip]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        periodWindow = btn.getAttribute('data-period-chip') || '28d';
-        try { sessionStorage.setItem(GOV_PERIOD_WINDOW_KEY, periodWindow); } catch (_) { /* ignore */ }
-        invalidateBriefCacheEntry(normalizeProjectsCsv(selected.join(',')), activeQuarter, periodWindow);
-        render();
-        setLoadBriefForce(true);
-        onRefresh?.({ force: true });
-      });
-    });
-    mount.querySelector('[data-investment-open]')?.addEventListener('click', () => {
-      openEvidenceDrawer(govPage.lastBrief, [], { initialTab: 'investment' });
     });
   }
 

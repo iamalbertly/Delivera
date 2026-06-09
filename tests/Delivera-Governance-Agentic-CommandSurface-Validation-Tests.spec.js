@@ -200,12 +200,17 @@ test.describe('Governance command surface — UI', () => {
     await expect(page.locator('#gov-issues-drawer-mount')).toHaveCount(0);
   });
 
-  test('evidence drawer opens from proof chip', async ({ page }) => {
+  test('proof chip uses right-rail SSOT when preview mounted', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await page.locator('[data-proof-cluster="0"]').click();
-    await expect(page.locator('.gov-right-drawer-title')).toContainText(/Evidence/i);
+    const railPreview = page.locator('#gov-right-rail-proof-mount .gov-evidence-preview');
+    if (await railPreview.count() > 0) {
+      await expect(railPreview).toBeVisible();
+    } else {
+      await expect(page.locator('.gov-right-drawer-title')).toContainText(/Evidence/i);
+    }
   });
 
   test('setup debt strip shows PI gap', async ({ page }) => {
