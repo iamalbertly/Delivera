@@ -17039,6 +17039,15 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
 .gov-portfolio-banner-line.is-stale { color: #92400e; }
 @media (max-width: 480px) {
   .gov-period-chip { padding: 3px 8px; font-size: 0.72rem; }
+  .gov-scope-bar-sticky { padding: 4px 8px; margin-bottom: 4px; }
+  body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
+    margin-top: calc(var(--top-chrome-height, 56px) - 4px);
+  }
+}
+@media (min-width: 1024px) {
+  body.governance-page.governance-shell--has-clusters .gov-setup-debt--compact {
+    padding: 4px 10px;
+  }
 }
 .gov-investment-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
 .gov-investment-table th, .gov-investment-table td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }

@@ -61,6 +61,33 @@ function stubRetentionBrief(overrides = {}) {
   });
 }
 
+async function clearBriefClientCache(page) {
+  await page.evaluate(() => {
+    try { sessionStorage.removeItem('delivera:brief:cache:v1'); } catch (_) {}
+  });
+}
+
+async function stubGovernanceBrief(page, overrides = {}) {
+  await page.unroute(/\/api\/governance-brief\.json/);
+  await page.route(/\/api\/governance-brief\.json/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: stubRetentionBrief(overrides),
+    });
+  });
+}
+
+async function gotoGovernanceFresh(page, path = '/governance?refresh=1') {
+  await clearBriefClientCache(page);
+  const briefWait = page.waitForResponse(
+    (res) => res.url().includes('/api/governance-brief.json') && res.ok(),
+    { timeout: 20000 },
+  );
+  await page.goto(path);
+  await briefWait;
+}
+
 test.describe('Value retention master plan realtime validation', () => {
   test.describe.configure({ retries: 0 });
 
@@ -437,6 +464,112 @@ test.describe('Value retention master plan realtime validation', () => {
       await page.locator('[data-investment-open]').click();
       await page.locator('[data-drawer-tab="investment"]').click();
       await expect(page.locator('[data-investment-row="pi"] strong')).toContainText(/0h/);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('21 no SM PO hides roles row E2', async () => {
+      await stubGovernanceBrief(page, {
+        squadInsights: [{
+          projectKey: 'SD',
+          verdictTier: 'watch',
+          boardResolved: true,
+          offPlanHours: 2,
+          offPlanEpicCount: 1,
+          piCommitted: 2,
+          piDone: 1,
+          cardRisks: [{ issueKey: 'SD-2' }],
+          squadRoles: {},
+        }],
+      });
+      await gotoGovernanceFresh(page);
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.locator('[data-heat-tile="SD"]').click();
+      await expect(page.locator('[data-squad-roles]')).toHaveCount(0);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('22 proof chip opens drawer on proof tab UX-12', async () => {
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: stubRetentionBrief() });
+      });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.locator('[data-heat-tile="SD"]').click();
+      await page.locator('[data-proof-squad="SD"]').click();
+      await expect(page.locator('[data-drawer-tab="proof"]')).toHaveClass(/is-active/);
+      await expect(page.locator('[data-drawer-panel="proof"]')).toHaveClass(/is-active/);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('23 sidebar open falls back to single column E6', async () => {
+      await page.setViewportSize({ width: 1024, height: 768 });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.evaluate(() => document.body.classList.add('sidebar-open'));
+      const singleCol = await page.evaluate(() => {
+        const shell = document.querySelector('.governance-shell--has-clusters');
+        if (!shell) return false;
+        const cols = getComputedStyle(shell).gridTemplateColumns;
+        return !cols.includes(' ');
+      });
+      expect(singleCol).toBe(true);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('24 jira squad roles source E8', async () => {
+      await stubGovernanceBrief(page, {
+        squadInsights: [{
+          projectKey: 'SD',
+          verdictTier: 'watch',
+          boardResolved: true,
+          squadRoles: {
+            source: 'jira',
+            scrumMaster: { displayName: 'Jira SM' },
+            productOwner: { displayName: 'Jira PO' },
+          },
+          cardRisks: [],
+        }],
+      });
+      await gotoGovernanceFresh(page);
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.locator('[data-heat-tile="SD"]').click();
+      await expect(page.locator('[data-squad-roles]')).toBeVisible();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('25 alignment chip on drift row F1', async () => {
+      await stubGovernanceBrief(page, {
+        meta: { piBaselineCommittedKeys: ['SD-100'] },
+        squadInsights: [{
+          projectKey: 'SD',
+          verdictTier: 'blocked',
+          boardResolved: true,
+          offPlanHours: 8,
+          offPlanEpicCount: 2,
+          cardRisks: [{ issueKey: 'SD-1', epicKey: 'SD-999' }],
+        }],
+      });
+      await gotoGovernanceFresh(page);
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.locator('[data-heat-tile="SD"]').click();
+      await expect(page.locator('[data-squad-drift-row] .work-alignment-chip')).toBeVisible();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('26 supporting evidence collapsed when clusters', async () => {
+      await stubGovernanceBrief(page);
+      await gotoGovernanceFresh(page, '/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const open = await page.locator('#gov-supporting-evidence').getAttribute('open');
+      expect(open).toBeNull();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('27 report feedback panel empty with top chrome UX-13', async () => {
+      await page.goto('/report');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const inner = await page.locator('#feedback-panel').innerHTML();
+      expect(inner.trim()).toBe('');
       assertTelemetryClean(telemetry);
     });
   });

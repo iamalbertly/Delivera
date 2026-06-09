@@ -22,7 +22,7 @@ Root `/` lands on Brief when auth is off; otherwise follows your configured auth
 
 Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Shared-Top-Chrome-01Render-UI.js`):
 
-- **Brief · Sprint · Proof** surface switcher (primary wayfinding)
+- **Answer · Today · Proof** surface switcher (primary wayfinding; `Delivera-Shared-Top-Chrome-01Render-UI.js`)
 - Sidebar toggle, workspace context, search, **Create**, notifications, help, settings, avatar
 - Left sidebar: context card + data pulse only (nav links hidden on desktop)
 - Duplicate page-level **Create** buttons are suppressed when top chrome is present
@@ -38,9 +38,10 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - **Loading shell:** `#gov-loading` reuses Sprint spinner markup (`Delivera-Governance-Brief-Page-02Loading-State.js`); cache hit paints instantly with a scope-bar “Refreshing…” chip (`preserveContent` pattern)
 - **Cache-first paint:** `peekGovernanceBriefCache` renders the last scoped answer before network; **Refresh** calls `invalidateBriefCacheEntry` + `?refresh=1` on client and server
 - **Scope SSOT:** project changes call `notifyScopeChanged()` (`Delivera-Shared-Scope-Notify-01Bridge.js`) so sidebar, top chrome, and scope bar stay aligned; cross-tab `storage` events also notify; scope change invalidates brief cache and forces reload; quarter key is `GOVERNANCE_QUARTER_KEY` in `Delivera-Shared-Storage-Keys.js`
-- Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) and deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
+- Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) keys on `periodWindow` as well as projects/quarter — period chip invalidates cache before reload; deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
 - Brief load runs inbox + brief in parallel; scorecard defers until evidence `<details>` opens
-- Above-fold order: answer → owner clusters → setup debt → verdict (inline when single squad) → PI strip; agent queue hidden until inbox/receipt work exists; investment chip gated to multi-squad or simple mode; feedback in collapsed `<details>`
+- Above-fold order: answer → owner clusters → setup debt → verdict (inline when single squad) → PI strip; supporting evidence `<details>` stays collapsed when owner clusters exist; agent queue hidden until inbox/receipt work exists; investment chip gated to multi-squad or simple mode; feedback in collapsed `<details>`
+- **Report feedback dedupe:** when top chrome is present, `#feedback-panel` stays empty — global Improve Delivera modal is SSOT (`Delivera-Report-Page-Feedback-Panel-Inject.js` defers until after chrome mount)
 - Responsive layout: scope capsule, answer blocks, PI counters, and tables use auto-fit grids + `data-table-scroll-wrap` (no horizontal bleed on mobile)
 - **Above-fold declutter:** duplicate status in command answer hides when scope chip is SSOT; send badge hides when owner clusters exist; agent queue mount and secondary chrome stay collapsed until they have content; governance brand context in top chrome hides (scope capsule is SSOT)
 - Page-level **Export brief** hides when top chrome is present — **Export brief** moves to command overflow (`#gov-export-overflow`)
@@ -95,7 +96,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan cross-surface validation |
-| `npm run test:journey:value-retention` | Value retention master plan (`journey.value-retention`: desktop 1024px density, alignment, investment drawer, period lens) |
+| `npm run test:journey:value-retention` | Value retention master plan (27 steps: desktop 1024px density, alignment, investment drawer, period lens, edge cases E2/E6/E8, proof drawer tab) |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
 | `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync, Refresh bypass |
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |

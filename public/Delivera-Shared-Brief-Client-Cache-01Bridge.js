@@ -84,9 +84,11 @@ export async function fetchGovernanceBriefCached({ projects, quarter = '', perio
   return brief;
 }
 
-export function peekGovernanceBriefCache(projects, quarter = '') {
+export function peekGovernanceBriefCache(projects, quarter = '', periodWindow = '') {
   const brief = readEntry(projects, quarter)?.brief || null;
   if (!brief) return null;
   if (!briefMatchesProjects(brief, projects)) return null;
+  const periodKey = String(periodWindow || '').toLowerCase();
+  if (periodKey && String(brief?.meta?.periodWindow || '').toLowerCase() !== periodKey) return null;
   return brief;
 }

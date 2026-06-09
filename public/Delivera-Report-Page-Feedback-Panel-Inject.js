@@ -4,7 +4,33 @@
  */
 import { getFeedbackPanelInnerHtml } from './Delivera-Report-Page-Feedback-Panel.js';
 
-if (!document.body?.classList?.contains('has-top-chrome')) {
+function syncFeedbackPanelMount() {
   const panel = document.getElementById('feedback-panel');
-  if (panel) panel.innerHTML = getFeedbackPanelInnerHtml();
+  if (!panel) return;
+  if (document.body?.classList?.contains('has-top-chrome')) {
+    panel.innerHTML = '';
+    panel.dataset.feedbackInjectSkipped = 'true';
+    return;
+  }
+  if (panel.dataset.feedbackInjectSkipped === 'true') return;
+  if (!panel.innerHTML.trim()) {
+    panel.innerHTML = getFeedbackPanelInnerHtml();
+  }
+}
+
+function scheduleFeedbackPanelMount() {
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => syncFeedbackPanelMount());
+  } else {
+    setTimeout(syncFeedbackPanelMount, 0);
+  }
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleFeedbackPanelMount);
+  } else {
+    scheduleFeedbackPanelMount();
+  }
+  window.addEventListener('app:top-chrome-rendered', syncFeedbackPanelMount);
 }

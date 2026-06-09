@@ -14,7 +14,7 @@ import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-Evi
 import { renderSetupDebtStrip, bindSetupDebtStripExpand } from './Delivera-App-Governance-Brief-17Render-SetupDebtStrip-UI.js';
 import { escapeHtml, briefToMarkdown } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import {
-  renderProofRisks, renderEvidenceTable, renderTechnicalDetails,
+  renderProofRisks, renderEvidenceTable, renderEvidencePreview, renderTechnicalDetails,
   renderReadiness, renderBaseline, deferScorecardUntilEvidenceOpen, mountEvidenceTabShell,
 } from './Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js';
 import { COPY, freshnessPlainEnglish, verdictTierFromBrief } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
@@ -89,6 +89,7 @@ export function renderBriefUi(brief) {
   govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces.drawerIssues);
   const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
   document.getElementById('main-content')?.classList.toggle('governance-shell--has-clusters', hasOwnerClusters);
+  document.getElementById('main-content')?.classList.toggle('governance-shell--desktop-grid', true);
   if (govPage.els.piStripMount) {
     const piInner = renderPIConfidenceStrip(brief);
     const compactBadge = renderPICompactBadge(brief);
@@ -108,7 +109,7 @@ export function renderBriefUi(brief) {
   if (govPage.els.workerReceiptMount) govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
   if (govPage.els.answerMount) {
     const tier = verdictTierFromBrief(brief);
-    const promotedScript = tier === 'blocked' ? renderMeetingScript(brief) : '';
+    const promotedScript = tier === 'blocked' ? renderMeetingScript(brief, { openByDefault: true }) : '';
     govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, { hasOwnerClusters })
       + (promotedScript ? `<div class="gov-promoted-meeting-script" data-promoted-script="1">${promotedScript}</div>` : '');
     bindCommandOverflowMenu(govPage.els.answerMount);
@@ -122,11 +123,14 @@ export function renderBriefUi(brief) {
     govPage.els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief, { compact: hasOwnerClusters });
     bindSetupDebtStripExpand(govPage.els.setupDebtMount, brief);
   }
+  const supportingEvidence = document.getElementById('gov-supporting-evidence');
+  if (supportingEvidence && hasOwnerClusters) supportingEvidence.open = false;
+
   if (govPage.els.verdictMount) {
     const squadCount = selectedProjects(brief).length;
     const showHeatMap = isPortfolioMode(brief) || squadCount === 1;
     const verdictInner = showHeatMap
-      ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1 })
+      ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1, hideSquadNudge: hasOwnerClusters })
       : renderVerdictZone(brief);
     const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
     const inlineVerdict = showHeatMap && squadCount === 1;
@@ -147,6 +151,7 @@ export function renderBriefUi(brief) {
     govPage.els.measurementMount.hidden = !measurementHtml;
   }
   renderProofRisks(govPage.lastSurfaces.proofRows);
+  renderEvidencePreview(brief, hasOwnerClusters ? 2 : 3);
   renderEvidenceTable(brief);
   const evidenceSummary = document.querySelector('#gov-supporting-evidence .governance-evidence-summary');
   const evidenceRows = brief?.evidencePack?.rows?.length || 0;
@@ -179,6 +184,7 @@ export function renderBriefUi(brief) {
   if (topChrome) {
     topChrome.classList.toggle('gov-top-chrome--has-queue', inboxTotal > 0);
     topChrome.classList.toggle('gov-top-chrome--has-receipt', hasReceipt);
+    if (inboxTotal > 0) topChrome.open = true;
   }
   mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], govPage.lastFeedbackSummary);
   const secondaryChrome = document.getElementById('gov-secondary-chrome');
@@ -210,7 +216,7 @@ export async function loadBrief(options = {}) {
   );
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'loading');
 
-  const cached = !force ? peekGovernanceBriefCache(requested, quarter) : null;
+  const cached = !force ? peekGovernanceBriefCache(requested, quarter, periodWindow) : null;
   if (cached && briefMatchesProjects(cached, requested)) {
     applyBriefToUi(cached, govPage.lastFeedbackSummary);
   }

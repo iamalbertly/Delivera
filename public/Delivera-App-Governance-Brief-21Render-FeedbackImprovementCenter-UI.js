@@ -30,7 +30,7 @@ export async function openFeedbackImprovementCenter(project = '') {
         <ul>${(summary.recentUserFeedback || []).map((row) => `
           <li>
             <strong>${escapeHtml(row.message || '')}</strong>
-            <span class="gov-feedback-why">${escapeHtml([row.page, row.squad, row.issueKey].filter(Boolean).join(' · '))}</span>
+            <span class="gov-feedback-why">${escapeHtml([row.page, row.squad, row.issueKey, row.agent ? `→ ${row.agent}` : ''].filter(Boolean).join(' · '))}</span>
           </li>`).join('')}
         </ul>
       </section>`

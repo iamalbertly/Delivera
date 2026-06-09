@@ -258,7 +258,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     if (await topChrome.isVisible().catch(() => false)) {
       const surfaces = topChrome.locator('[data-top-surface]');
       await expect(surfaces).toHaveCount(3);
-      await expect(surfaces.filter({ hasText: /Sprint|Brief|Proof/i })).toHaveCount(3);
+      await expect(surfaces.filter({ hasText: /Today|Sprint|Answer|Brief|Proof/i })).toHaveCount(3);
     } else {
       await expect(page.locator('.app-sidebar')).toBeVisible();
       const nav = page.locator('.app-sidebar .sidebar-link');
@@ -328,7 +328,7 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery/i);
     await expect(page.locator('#tab-btn-trends')).toContainText(/Leader|Trend/i);
     await expect(page.locator('#tab-btn-sprints')).toContainText(/Sprint delivery|Sprint list|Flow/i);
-    await expect(page.locator('#tab-btn-done-stories')).toContainText(/Outcomes|Done/i);
+    await expect(page.locator('#tab-btn-done-stories')).toContainText(/Value delivery|Outcomes|Done/i);
     await page.goto('/leadership');
     await expect(page).toHaveURL(/\/governance/);
     await expect(page.locator('#gov-scope-bar-mount, #gov-answer-mount, .governance-shell').first()).toBeVisible();

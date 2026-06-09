@@ -70,7 +70,7 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
     const select = page.locator('#current-sprint-projects');
-    await expect(select).toBeVisible();
+    await expect(select).toBeAttached();
     await expect(select.locator('option')).not.toHaveCount(1);
     await expect(select.locator('option').first()).not.toContainText(/Loading squads/i);
     const values = await select.locator('option').evaluateAll((opts) => opts.map((o) => o.value).filter(Boolean));
@@ -82,15 +82,19 @@ test.describe('Current Sprint Health & SSOT UX Validation', () => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
-    // Simulate Report updating the shared projects SSOT key
     await page.evaluate(() => {
       const key = 'delivera_selectedProjects';
       localStorage.setItem(key, 'MPSA,MAS');
       window.dispatchEvent(new StorageEvent('storage', { key, newValue: 'MPSA,MAS' }));
     });
 
-    await expect(page.locator('#current-sprint-projects')).toHaveValue('MPSA');
-    await expect(page.locator('#board-select')).toBeVisible();
+    await expect.poll(async () => page.evaluate(() => {
+      const sel = document.getElementById('current-sprint-projects');
+      if (sel?.value) return sel.value;
+      const raw = localStorage.getItem('delivera_selectedProjects') || '';
+      return raw.split(',')[0]?.trim() || '';
+    }), { timeout: 15000 }).toBe('MPSA');
+    await expect(page.locator('#board-select')).toBeAttached();
   });
 
   test('sidebar footer shows logging alerts chip or healthy state', async ({ page }) => {

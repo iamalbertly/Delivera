@@ -1,8 +1,7 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
+import { captureBrowserTelemetry, assertTelemetryClean, selectFirstBoard } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const SPRINT_PAGE = `${BASE_URL}/current-sprint`;
+const SPRINT_PAGE = '/current-sprint';
 
 function baseBoardRoutes(page) {
   return page.route('**/api/boards.json*', async (route) => {
@@ -27,9 +26,7 @@ async function loadMockSprint(page, sprintBody) {
     });
   });
   await page.goto(SPRINT_PAGE, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#board-select', { timeout: 30000, state: 'attached' });
-  await page.waitForSelector('#board-select option[value="101"]', { timeout: 30000, state: 'attached' });
-  await page.locator('#board-select').selectOption('101');
+  await selectFirstBoard(page, { timeout: 30000 });
   await page.waitForSelector('.current-sprint-header-bar', { timeout: 30000 });
 }
 

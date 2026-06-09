@@ -1,7 +1,6 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const SPRINT_PAGE = `${BASE_URL}/current-sprint`;
+const SPRINT_PAGE = '/current-sprint';
 
 async function loadSprintPage(page) {
   await page.goto(SPRINT_PAGE);
@@ -767,8 +766,8 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     if (await topChrome.isVisible().catch(() => false)) {
       const surfaces = topChrome.locator('[data-top-surface]');
       await expect(surfaces).toHaveCount(3);
-      await expect(surfaces.filter({ hasText: /Sprint/i })).toHaveCount(1);
-      await expect(surfaces.filter({ hasText: /Brief/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Today|Sprint/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Brief|Answer/i })).toHaveCount(1);
       await expect(surfaces.filter({ hasText: /Proof/i })).toHaveCount(1);
       return;
     }
