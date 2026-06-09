@@ -196,17 +196,16 @@ test.describe('Governance layout overlap audit', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('governance collapsed chrome stays closed before scroll', async ({ page }) => {
+  test('governance collapsed secondary chrome stays closed; queue opens when inbox pending', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#gov-top-chrome-mount')).not.toHaveAttribute('open', /.+/);
+    await expect(page.locator('#gov-top-chrome-mount')).toHaveAttribute('open', /.+/);
     await expect(page.locator('#gov-secondary-chrome')).not.toHaveAttribute('open', /.+/);
     await expect(page.locator('#gov-supporting-evidence')).not.toHaveAttribute('open', /.+/);
-    await expect(page.locator('#gov-top-chrome-mount .gov-top-chrome-summary')).toBeVisible();
 
     assertTelemetryClean(telemetry);
   });

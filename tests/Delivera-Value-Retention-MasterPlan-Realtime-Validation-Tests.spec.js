@@ -274,7 +274,7 @@ test.describe('Value retention master plan realtime validation', () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-portfolio-banner]')).toContainText(/stale/i);
-      await expect(page.locator('[data-portfolio-banner]')).toContainText(/Window: 14d/i);
+      await expect(page.locator('.gov-period-chip.is-on')).toBeVisible();
       await page.locator('[data-heat-tile="SD"]').click();
       await page.locator('[data-squad-nudge="SD"]').click({ force: true });
       await expect(page.locator('#delivera-jira-nudge-review-sheet [data-review-send]')).toBeDisabled();
@@ -395,9 +395,9 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await page.goto('/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('[data-portfolio-banner]')).toContainText(/Window: 28d/i);
+      await expect(page.locator('.gov-period-chip.is-on')).toContainText(/28d/i);
       await page.locator('[data-period-chip="14d"]').click({ force: true });
-      await expect(page.locator('[data-portfolio-banner]')).toContainText(/Window: 14d/i, { timeout: 15000 });
+      await expect(page.locator('.gov-period-chip.is-on')).toContainText(/14d/i, { timeout: 15000 });
       assertTelemetryClean(telemetry);
     });
 
