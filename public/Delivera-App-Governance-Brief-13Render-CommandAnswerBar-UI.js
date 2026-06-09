@@ -69,7 +69,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     ? renderAiContributionStrip(brief?.meta?.aiContribution || {})
     : '';
 
-  const showReviewActions = !hasOwnerClusters && !showDoFirstStrip;
+  const showReviewActions = !hasOwnerClusters && !showDoFirstStrip && itemCount > 0;
   const reviewActionsBtn = showReviewActions
     ? `<button type="button" class="btn btn-primary btn-compact" id="gov-review-actions">${escapeHtml(COPY.reviewActions)}</button>`
     : '';

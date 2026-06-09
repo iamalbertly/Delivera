@@ -4,7 +4,7 @@
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { resizeImageFileToBase64 } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
-import { aiProviderRequestHeaders, hasAiProviderKey, readAiProviderPref } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { aiProviderRequestHeaders, hasAiProviderKey, readAiProviderPref, slideVisionReady } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { GOVERNANCE_QUARTER_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 export function readGovernanceQuarter() {
@@ -20,7 +20,7 @@ export function readGovernanceQuarter() {
  */
 export async function postSlidePropose({ file, projects, projectsCsv = '' }) {
   if (!file) throw new Error('Image file is required');
-  if (!hasAiProviderKey()) throw new Error(COPY.aiKeyRequiredSlide);
+  if (!(await slideVisionReady())) throw new Error(COPY.aiKeyRequiredSlide);
   const pref = readAiProviderPref();
   if (pref.provider === 'gemini') {
     throw new Error('Slide reading needs OpenAI, Claude, or OpenRouter. Change provider in Settings.');

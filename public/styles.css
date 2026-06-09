@@ -16127,6 +16127,19 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
   .gov-portfolio-grid-wrap--single .gov-heat-tile-row {
     display: none;
   }
+  body.governance-page .gov-scope-bar-inner,
+  body.governance-page .gov-scope-capsule,
+  body.governance-page .gov-scope-expanded,
+  body.governance-page .gov-inbox-mount,
+  body.governance-page .gov-top-chrome-details,
+  body.governance-page .gov-scope-access-banner,
+  body.governance-page .gov-scope-period-row {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 20px;
+    padding-right: 24px;
+  }
 }
 @media (min-width: 1024px) {
   .governance-shell {
@@ -16136,6 +16149,51 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
 
 /* Action inbox */
 .gov-inbox-mount { max-width: 960px; margin: 0 auto; padding: 0 14px 8px; }
+.gov-inbox-inline-preview {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.gov-inbox-inline-open {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) 1fr auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+.gov-inbox-inline-open:hover { border-color: #1e3a5f; background: #f8fafc; }
+.gov-inbox-inline-owner { font-size: 0.78rem; color: #1e3a5f; }
+.gov-inbox-inline-summary {
+  font-size: 0.76rem;
+  color: #4b5563;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gov-inbox-inline-count { font-size: 0.72rem; color: #6b7280; font-style: normal; }
+.gov-queue-chip--secondary {
+  font-size: 0.76rem;
+  padding: 4px 10px;
+  border-style: dashed;
+}
+.gov-extension-trust-hint {
+  font-size: 0.72rem;
+  color: #6b7280;
+  margin: 4px 14px 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f3f4f6;
+}
+.gov-baseline-ai-hint--ready { color: #047857; }
 .gov-inbox-pill {
   display: flex;
   align-items: center;

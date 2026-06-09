@@ -9,7 +9,7 @@ import {
 } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
-import { aiProviderRequestHeaders } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { aiProviderRequestHeaders, fetchAiProviderStatus, hasAiProviderKey } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { postSlidePropose, readGovernanceQuarter } from './Delivera-App-Shared-PIBaseline-Slide-01Client-Helper.js';
 import { bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
@@ -51,21 +51,28 @@ function fewItemsBanner(data) {
   return `<p class="gov-baseline-few-items" role="status">${escapeHtml(msg)}</p>`;
 }
 
-function slideUploadInner() {
+function slideUploadInner(serverAiStatus = null) {
+  const serverReady = Boolean(serverAiStatus?.slideVisionReady) && !hasAiProviderKey();
+  const keyHint = (!serverReady && !hasAiProviderKey())
+    ? `<p class="gov-inbox-hint gov-baseline-ai-hint" data-ai-key-hint="1">${escapeHtml(COPY.aiKeyRequiredSlide)} <a href="/settings">Settings</a></p>`
+    : '';
+  const serverHint = serverReady
+    ? `<p class="gov-inbox-hint gov-baseline-ai-hint gov-baseline-ai-hint--ready" data-ai-server-ready="1">${escapeHtml(COPY.aiSlideServerReady.replace('{label}', serverAiStatus?.label || 'server'))}</p>`
+    : '';
   return `
     <label class="gov-baseline-slide-drop" id="gov-baseline-slide-drop">
       <span>${escapeHtml(COPY.baselineSlideUpload)}</span>
       <span class="gov-baseline-slide-hint">Drag &amp; drop or click</span>
       <input type="file" id="gov-baseline-slide-input" accept="image/png,image/jpeg,image/webp" />
     </label>
-    <p class="gov-inbox-hint gov-baseline-ai-hint">${escapeHtml(COPY.aiKeyRequiredSlide)} <a href="/settings">Settings</a></p>`;
+    ${serverHint}${keyHint}`;
 }
 
-function slideUploadOptional(collapsed = true) {
+function slideUploadOptional(collapsed = true, serverAiStatus = null) {
   return `
     <details class="gov-baseline-optional"${collapsed ? '' : ' open'}>
       <summary>${escapeHtml(COPY.piBaselineOptionalSlide)}</summary>
-      ${slideUploadInner()}
+      ${slideUploadInner(serverAiStatus)}
     </details>`;
 }
 
@@ -141,6 +148,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
   let drawerClose = null;
   let unbindSlide = null;
   let jiraHost = null;
+  let serverAiStatus = null;
 
   function close() {
     unbindSlide?.();
@@ -166,6 +174,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     jiraUrl = '',
     stepsOpen = false,
     slideCollapsed = true,
+    serverAiStatus = null,
   }) {
     const title = mode === 'slide'
       ? COPY.baselineSlideMethod
@@ -185,7 +194,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       ? `<a class="btn btn-secondary btn-compact" href="${escapeHtml(jiraUrl)}" target="_blank" rel="noopener">${escapeHtml(COPY.openInJira)}</a>`
       : '';
     const createBtn = showCreate ? renderCreateWorkButton(projectsCsv) : '';
-    const slideBlock = mode === 'empty' ? slideUploadOptional(false) : slideUploadOptional(slideCollapsed);
+    const slideBlock = mode === 'empty' ? slideUploadOptional(false, serverAiStatus) : slideUploadOptional(slideCollapsed, serverAiStatus);
     const refreshListBtn = mode === 'candidates' || mode === 'slide'
       ? `<button type="button" class="btn btn-link btn-compact" id="gov-baseline-refresh-list">${escapeHtml(COPY.refreshBrief)} list</button>`
       : '';
@@ -210,7 +219,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       </div>`;
   }
 
-  function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = false, errorHint = '') {
+  function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = false, errorHint = '', serverAiStatus = null) {
     return renderBaselineWizardShell({
       mode: 'empty',
       data,
@@ -222,6 +231,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       jiraUrl,
       stepsOpen: true,
       slideCollapsed: false,
+      serverAiStatus,
     });
   }
 
@@ -245,6 +255,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       showConfirm: hasConfirmable,
       showCreate: !hasConfirmable && Boolean(extracted || unmatched),
       slideCollapsed: true,
+      serverAiStatus,
     });
   }
 
@@ -258,6 +269,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       listHtml: `<div class="gov-baseline-list">${rows}</div>`,
       showConfirm: true,
       slideCollapsed: true,
+      serverAiStatus,
     });
   }
 
@@ -353,6 +365,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
 
   async function open(forceRefresh = false) {
     close();
+    serverAiStatus = await fetchAiProviderStatus(forceRefresh);
     const csv = getProjectsCsv?.() || 'MPSA,MAS';
     const projects = csv.split(',').map((p) => p.trim()).filter(Boolean);
     const quarterLabel = getQuarterLabel?.() || readGovernanceQuarter();
@@ -386,6 +399,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
         quarterLabel,
         false,
         err?.message || COPY.baselineProposeFailed,
+        serverAiStatus,
       );
       bindPanel(body, data, projects, csv, quarterLabel);
       return;
@@ -394,7 +408,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     if (!data.candidates?.length) {
       const jiraUrl = await jiraUrlPromise;
       const partial = Boolean(data.guidanceCode === 'jira-unmatched' || (data.totalBoardEpics || 0) > 0);
-      body.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, partial);
+      body.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, partial, '', serverAiStatus);
       bindPanel(body, data, projects, csv, quarterLabel);
       return;
     }

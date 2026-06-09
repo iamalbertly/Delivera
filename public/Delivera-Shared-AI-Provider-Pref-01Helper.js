@@ -2,6 +2,7 @@
  * SSOT: browser-only AI provider preference (localStorage). Keys never sent to Delivera server storage.
  */
 import { AI_PROVIDER_PREF_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 
 const LEGACY_SESSION_KEY = 'wdd_ai_provider_v1';
 
@@ -58,4 +59,23 @@ export function aiProviderRequestHeaders() {
 export function hasAiProviderKey() {
   const ai = readAiProviderPref();
   return Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
+}
+
+let cachedServerAiStatus = null;
+
+/** Server env + browser header resolution for slide vision readiness. */
+export async function fetchAiProviderStatus(force = false) {
+  if (cachedServerAiStatus && !force) return cachedServerAiStatus;
+  try {
+    cachedServerAiStatus = await fetchJson('/api/ai-provider-status.json', {}, 'ai-provider-status');
+  } catch (_) {
+    cachedServerAiStatus = { provider: 'built-in', configured: false, slideVisionReady: false, label: 'Built-in templates' };
+  }
+  return cachedServerAiStatus;
+}
+
+export async function slideVisionReady() {
+  if (hasAiProviderKey()) return true;
+  const status = await fetchAiProviderStatus();
+  return Boolean(status?.slideVisionReady);
 }

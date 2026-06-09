@@ -107,6 +107,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const expandedHidden = desktopWide && selected.length <= 3
       ? false
       : mount.querySelector('#gov-scope-expanded')?.hasAttribute('hidden') !== false;
+    const scopeExpandedVisible = !expandedHidden;
     const accessKeys = Object.keys(accessByKey);
     const allInaccessible = accessKeys.length > 0 && accessKeys.every((k) => accessByKey[k] === false);
     const accessBanner = allInaccessible
@@ -121,29 +122,43 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       ? `<button type="button" class="gov-investment-chip btn btn-link btn-compact" data-investment-open="1">${escapeHtml(COPY.investmentLens)}</button>`
       : '';
 
+    const capsuleText = scopeExpandedVisible
+      ? `${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`
+      : `Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`;
+    const changeBtn = (desktopWide && scopeExpandedVisible)
+      ? ''
+      : '<button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>';
+
     mount.innerHTML = `
       ${accessBanner}
+      <p id="gov-extension-trust-hint" class="gov-extension-trust-hint" role="status" hidden>Browser extension noise detected — Delivera data is unaffected.</p>
       <div class="gov-scope-period-row" role="group" aria-label="Period window">${periodChips}${investmentChip}
       </div>
-      <div class="gov-scope-capsule" aria-label="Brief scope">
-        <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
+      <div class="gov-scope-capsule" aria-label="Brief scope"${scopeExpandedVisible ? ' data-scope-capsule-compact="1"' : ''}>
+        <span class="gov-scope-capsule-text">${capsuleText}</span>
         <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}${inboxTotal > 0 ? ' gov-scope-status-chip--actionable' : ''}" title="Delivery status${inboxTotal > 0 ? ' — open agent queue' : ''}"${statusActionAttr}>${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}${reviewPart}</span>
         <div class="gov-scope-actions" role="group" aria-label="Scope actions">
-          <button type="button" id="gov-scope-change" class="btn btn-link btn-compact">Change</button>
+          ${changeBtn}
           <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
         </div>
       </div>
-      <div id="gov-scope-expanded" class="gov-scope-expanded"${expandedHidden ? ' hidden' : ''}>
+      <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="exclusive"${scopeExpandedVisible ? ' data-scope-expanded-visible="1"' : ''}${expandedHidden ? ' hidden' : ''}>
         ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, boardsWarn, accessByKey })}
       </div>`;
 
     mount.querySelectorAll('[data-project]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (ev) => {
         const pk = btn.getAttribute('data-project');
         if (!pk) return;
-        if (selected.includes(pk)) selected = selected.filter((p) => p !== pk);
-        else selected = [...selected, pk].sort();
-        if (!selected.length) selected = [defaultSelectedKeys()[0] || 'MPSA'];
+        const multi = ev.shiftKey || ev.ctrlKey || ev.metaKey;
+        if (!multi) {
+          selected = [pk];
+        } else if (selected.includes(pk)) {
+          selected = selected.filter((p) => p !== pk);
+          if (!selected.length) selected = [pk];
+        } else {
+          selected = [...selected, pk].sort();
+        }
         writeProjects(selected);
         render();
         onScopeChange?.(selected);

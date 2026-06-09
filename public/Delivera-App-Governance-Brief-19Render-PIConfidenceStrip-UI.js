@@ -36,7 +36,8 @@ export function renderPICompactBadge(brief) {
   return `<span class="gov-pi-compact-badge ${tierCls}" data-pi-compact-badge="1" title="${escapeHtml(GOV_TOOLTIPS.piConfidence)}">PI: ${escapeHtml(trustLabel)} · ${committed} committed</span>`;
 }
 
-export function renderPIConfidenceStrip(brief) {
+export function renderPIConfidenceStrip(brief, opts = {}) {
+  const hideBaselineCta = Boolean(opts.hideBaselineCta);
   const strip = brief?.meta?.piConfidence;
   if (!strip) return '';
   const c = strip.counts || {};
@@ -68,11 +69,14 @@ export function renderPIConfidenceStrip(brief) {
       </details>`
     : '';
 
+  const baselineCta = hideBaselineCta
+    ? ''
+    : `<button type="button" class="btn btn-primary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>`;
   const gaugeBlock = noData
     ? `<div class="gov-pi-nodata" data-hover-proof="pi-gauge">
         <span class="gov-pi-nodata-icon" aria-hidden="true">○</span>
         <p class="gov-pi-nodata-label">${escapeHtml(COPY.baselinePiNotSet)}</p>
-        <button type="button" class="btn btn-primary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>
+        ${baselineCta}
       </div>`
     : `<div class="gov-pi-gauge-wrap">
         <span class="gov-pi-gauge-label">PI Trust</span>
@@ -87,7 +91,7 @@ export function renderPIConfidenceStrip(brief) {
       <div class="gov-pi-strip-head gov-pi-gauge-row">
         ${gaugeBlock}
         ${adHocChip}
-        ${noData ? '' : `<button type="button" class="btn btn-secondary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>`}
+        ${noData || hideBaselineCta ? '' : `<button type="button" class="btn btn-secondary btn-compact" id="gov-pi-fix-baseline">${escapeHtml(COPY.fixPiBaseline)}</button>`}
       </div>
       ${strip.trusted ? '' : `<dl class="gov-pi-counter-row">
         <div><dt>${escapeHtml(COPY.piBaselinePromised)}</dt><dd>${c.committed ?? 0}</dd></div>

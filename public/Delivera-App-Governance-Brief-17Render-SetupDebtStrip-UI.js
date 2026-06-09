@@ -21,7 +21,7 @@ function renderGapCard(g, hidden = false) {
       <article class="gov-fix-card gov-fix-card--${escapeHtml(g.severity || 'medium')}" data-setup-gap-card data-hover-proof="setup-gap"${hidden ? ' hidden' : ''}>
         <h4 class="gov-fix-card-title">${escapeHtml(title)}</h4>
         <p class="gov-fix-card-impact">Impact: ${escapeHtml(impact)}</p>
-        <button type="button" class="btn btn-primary btn-compact gov-fix-card-btn" data-setup-action="${escapeHtml(g.action)}">Fix: ${escapeHtml(act)}</button>
+        <button type="button" class="btn btn-primary btn-compact gov-fix-card-btn" data-setup-action="${escapeHtml(g.action)}"${g.action === 'set-baseline' ? ' data-setup-baseline-ssot="1"' : ''}>Fix: ${escapeHtml(act)}</button>
       </article>`;
 }
 

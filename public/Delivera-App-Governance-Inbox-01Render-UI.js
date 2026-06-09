@@ -256,20 +256,42 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     openQueueDrawer(tabKey);
   }
 
+  function renderInlinePreview(data, total) {
+    const items = itemsForTab(data, 'doNow');
+    const groups = groupInboxByFingerprint(items).slice(0, 3);
+    if (!groups.length) return { preview: '', chip: '' };
+    const rows = groups.map((g) => `
+      <li class="gov-inbox-inline-row">
+        <button type="button" class="gov-inbox-inline-open" data-inline-open="${escapeHtml(g.fingerprint)}" aria-label="${escapeHtml(g.owner)} — ${g.count} items">
+          <strong class="gov-inbox-inline-owner">${escapeHtml(g.owner)}</strong>
+          <span class="gov-inbox-inline-summary">${escapeHtml(g.exampleItem?.summary || g.reason || g.type || '')}</span>
+          <em class="gov-inbox-inline-count">${g.count}</em>
+        </button>
+      </li>`).join('');
+    const preview = `<ul class="gov-inbox-inline-preview" data-inbox-inline="1" aria-label="Top queue items">${rows}</ul>`;
+    const chip = `<button type="button" class="gov-queue-chip gov-queue-chip--secondary" data-queue-open="1" aria-label="Open full agent queue">All queue (${total})</button>`;
+    return { preview, chip };
+  }
+
   function render() {
     const total = TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0);
     const preparing = total === 0 && briefLoading?.();
+    const inline = total > 0 ? renderInlinePreview(lastData, total) : { preview: '', chip: '' };
     const chip = total > 0
-      ? `<button type="button" class="gov-queue-chip gov-queue-chip--primary" data-queue-open="1" aria-label="${escapeHtml(COPY.seeQueue)}">
+      ? (inline.chip || `<button type="button" class="gov-queue-chip gov-queue-chip--primary" data-queue-open="1" aria-label="${escapeHtml(COPY.seeQueue)}">
           <span class="gov-queue-chip-icon" aria-hidden="true">📋</span>
           ${escapeHtml(COPY.seeQueue)} (${total})
-        </button>`
+        </button>`)
       : `<span class="gov-inbox-hint">${escapeHtml(preparing ? COPY.inboxPreparing : COPY.inboxUnavailable)}</span>`;
     mount.innerHTML = `
       <div class="gov-agent-queue" role="group" aria-label="${escapeHtml(COPY.agentQueue)}">
+        ${inline.preview}
         ${chip}
       </div>`;
     mount.querySelector('[data-queue-open]')?.addEventListener('click', () => openCombinedDrawer());
+    mount.querySelectorAll('[data-inline-open]').forEach((btn) => {
+      btn.addEventListener('click', () => openCombinedDrawer('doNow'));
+    });
   }
 
   async function refresh() {

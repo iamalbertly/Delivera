@@ -26,6 +26,7 @@ import { jaccardSimilarity } from '../lib/Delivera-Outcome-Similarity-01Core.js'
 import { buildBoardStyleProfile } from '../lib/Delivera-Outcome-Board-Style-Profile.js';
 import { buildOutcomeDraft } from '../lib/Delivera-Outcome-Draft-Builder.js';
 import { resolveProviderConfig, parseViaNarrative, testProviderConfig } from '../lib/Delivera-AI-Provider-Gateway.js';
+import { buildAiProviderStatus } from '../lib/Delivera-AI-Provider-Status-01SSOT.js';
 import { assembleGovernanceBrief } from '../lib/Delivera-Governance-Brief-03Assemble-Service.js';
 import { savePIBaseline, getLatestPIBaseline, listPIBaselines } from '../lib/Delivera-Governance-PIBaseline-01Store-IO.js';
 import {
@@ -1872,6 +1873,16 @@ router.get('/api/governance/impact-pack.json', requireAuth, async (req, res) => 
     } catch (err) {
         logger.warn('impact-pack failed', { error: err?.message });
         return res.status(500).json({ error: 'Impact pack failed' });
+    }
+});
+
+router.get('/api/ai-provider-status.json', requireAuth, async (req, res) => {
+    try {
+        const status = buildAiProviderStatus(req.headers || {});
+        return res.json(status);
+    } catch (err) {
+        logger.warn('ai-provider-status read failed', { error: err?.message });
+        return res.status(500).json({ error: 'AI provider status read failed' });
     }
 });
 

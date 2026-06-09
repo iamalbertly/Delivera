@@ -4,10 +4,14 @@ import { proofChipSummary, sendReadinessBadge } from './Delivera-App-Governance-
 
 export function renderOwnerActionClusters(brief, groups = []) {
   if (!groups.length) {
-    const hasGaps = (brief?.meta?.setupGaps || []).length > 0;
-    const link = hasGaps
+    const gaps = brief?.meta?.setupGaps || [];
+    const hasGaps = gaps.length > 0;
+    const highGapAuto = gaps.some((g) => String(g.severity || '').toLowerCase() === 'high');
+    const link = hasGaps && !highGapAuto
       ? `<button type="button" class="btn btn-link btn-compact" id="gov-owner-check-setup">${escapeHtml(COPY.checkSetup)}</button>`
-      : '<span class="gov-inbox-hint">Brief is healthy.</span>';
+      : (hasGaps
+        ? '<span class="gov-inbox-hint" data-setup-shown-above="1">Setup gaps shown above.</span>'
+        : '<span class="gov-inbox-hint">Brief is healthy.</span>');
     return `<section class="gov-action-clusters" aria-label="Actions"><p class="governance-empty">No urgent person actions.</p>${link}</section>`;
   }
   const cards = groups.map((g, gi) => {

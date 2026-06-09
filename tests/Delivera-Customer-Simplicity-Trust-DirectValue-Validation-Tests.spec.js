@@ -88,6 +88,7 @@ async function mockCustomerSimplicityRoutes(page) {
     try { localStorage.setItem(projectsKey, 'SD'); } catch (_) {}
   }, PROJECTS_SSOT_KEY);
   await routeProjectsCatalog(page);
+  await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: stubBlockedBrief(),
   }));
@@ -106,7 +107,17 @@ async function mockCustomerSimplicityRoutes(page) {
   await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, agents: [], lastImprovements: [] }),
   }));
-  await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**/api/boards.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      jiraBrowseHost: 'https://jira.example.com',
+      boards: [{ projectKey: 'SD' }, { projectKey: 'BIO' }],
+    }),
+  }));
+  await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ provider: 'openrouter', label: 'OpenRouter', configured: true, slideVisionReady: true, source: 'server' }),
+  }));
 }
 
 test.describe('Customer simplicity trust direct value validation', () => {
@@ -132,9 +143,10 @@ test.describe('Customer simplicity trust direct value validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('03 single PI baseline CTA in scope expanded area', async () => {
+    await test.step('03 PI baseline CTA deduped to setup debt SSOT only', async () => {
       await expect(page.locator('#gov-scope-baseline')).toHaveCount(0);
-      await expect(page.locator('#gov-pi-fix-baseline')).toHaveCount(1);
+      await expect(page.locator('#gov-pi-fix-baseline')).toHaveCount(0);
+      await expect(page.locator('[data-setup-baseline-ssot="1"]')).toHaveCount(1);
       assertTelemetryClean(telemetry);
     });
 
@@ -166,8 +178,36 @@ test.describe('Customer simplicity trust direct value validation', () => {
       assertTelemetryClean(telemetry);
     });
 
+    await test.step('07a exclusive project select replaces not toggles off', async () => {
+      await expect(page.locator('#gov-scope-expanded[data-project-select-mode="exclusive"]')).toBeVisible();
+      await page.locator('[data-project="BIO"]').click();
+      await expect(page.locator('[data-project="BIO"]')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('[data-project="SD"]')).toHaveAttribute('aria-pressed', 'false');
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('07b Change hidden when scope expanded on desktop', async () => {
+      await expect(page.locator('#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeVisible();
+      await expect(page.locator('#gov-scope-change')).toHaveCount(0);
+      await expect(page.locator('[data-scope-capsule-compact="1"]')).toBeVisible();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('07c full-width scope chrome matches desktop grid', async () => {
+      const maxW = await page.locator('.gov-scope-expanded').evaluate((el) => getComputedStyle(el).maxWidth);
+      expect(maxW === 'none' || maxW === '').toBeTruthy();
+      assertTelemetryClean(telemetry);
+    });
+
     await test.step('08 agent queue auto opens when inbox pending', async () => {
       await expect(page.locator('#gov-top-chrome-mount')).toHaveJSProperty('open', true);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('08a inline inbox preview surfaces top queue without drawer', async () => {
+      await expect(page.locator('[data-inbox-inline="1"]')).toBeVisible();
+      await expect(page.locator('[data-inbox-inline="1"] .gov-inbox-inline-row')).toHaveCount(2);
+      await expect(page.locator('.gov-queue-chip--secondary[data-queue-open="1"]')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
@@ -238,6 +278,69 @@ test.describe('Customer simplicity trust direct value validation', () => {
       await expect(page.locator('.gov-command-answer--cluster-mode .gov-trust-part[data-hover-proof="evidence-count"]')).toHaveCount(0);
       await expect(page.locator('.gov-owner-cluster-head .gov-send-badge')).toBeVisible();
       await expect(page.locator('.gov-command-answer--cluster-mode .gov-trust-chip-row .gov-send-badge')).toBeHidden();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('19 no redundant Check setup when high gap auto visible', async () => {
+      await expect(page.locator('#gov-owner-check-setup')).toHaveCount(0);
+      await expect(page.locator('[data-setup-shown-above="1"]')).toHaveCount(0);
+      assertTelemetryClean(telemetry);
+    });
+  });
+
+  test('governance no-owner setup and AI provider journey', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.addInitScript((projectsKey) => {
+      try { localStorage.setItem(projectsKey, 'BIO'); } catch (_) {}
+    }, PROJECTS_SSOT_KEY);
+    await routeProjectsCatalog(page);
+    await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: stubBlockedBrief({
+        projects: ['BIO'],
+        topRisks: [],
+        meta: {
+          setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }],
+          piConfidence: { trusted: false, confidencePct: null, counts: { committed: 0 }, timelineChips: [] },
+          commandAnswerSentence: 'Setup needed before trust',
+        },
+      }),
+    }));
+    await page.route('**/api/quarters-list**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ quarters: [{ label: 'FY27 Q1', isCurrent: true }] }),
+    }));
+    await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ nudges: [], confirm: [], briefs: [], piDrift: [], impact: [], poReadiness: [] }),
+    }));
+    await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ provider: 'openrouter', label: 'OpenRouter', configured: true, slideVisionReady: true, source: 'server' }),
+    }));
+    await page.route('**/api/boards.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ jiraBrowseHost: 'https://jira.example.com', boards: [{ projectKey: 'BIO' }] }),
+    }));
+    await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ method: 'manual', candidates: [], guidanceCode: 'empty-board' }),
+    }));
+
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+
+    await test.step('24 review actions hidden when no drawer issues', async () => {
+      await expect(page.locator('#gov-review-actions')).toHaveCount(0);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('25 PI wizard hides key hint when server OpenRouter ready', async () => {
+      await page.locator('[data-setup-baseline-ssot="1"]').click();
+      await expect(page.locator('[data-ai-server-ready="1"]')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-ai-key-hint="1"]')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
   });

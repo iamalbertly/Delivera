@@ -91,7 +91,8 @@ export function renderBriefUi(brief) {
   document.getElementById('main-content')?.classList.toggle('governance-shell--has-clusters', hasOwnerClusters);
   document.getElementById('main-content')?.classList.toggle('governance-shell--desktop-grid', true);
   if (govPage.els.piStripMount) {
-    const piInner = renderPIConfidenceStrip(brief);
+    const hasBaselineGap = (brief?.meta?.setupGaps || []).some((g) => g.action === 'set-baseline');
+    const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap });
     const compactBadge = renderPICompactBadge(brief);
     const rollupBehind = Number(brief?.portfolioRollup?.behindPiCount || 0) > 0;
     const piStripHtml = (hasOwnerClusters && rollupBehind)
