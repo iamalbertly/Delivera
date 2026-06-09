@@ -28,6 +28,15 @@ function renderGapCard(g, hidden = false) {
 export function renderSetupDebtStrip(brief, opts = {}) {
   const gaps = brief?.meta?.setupGaps || [];
   if (!gaps.length) return '';
+  const topGap = gaps[0];
+  const highSeverity = String(topGap?.severity || '').toLowerCase() === 'high';
+  if (opts.compact && highSeverity) {
+    return `
+    <section class="gov-setup-debt gov-setup-debt--compact gov-setup-debt--auto" aria-label="Setup gaps">
+      <div class="gov-fix-card-row">${renderGapCard(topGap)}</div>
+      ${gaps.length > 1 ? `<button type="button" class="btn btn-link btn-compact" id="gov-setup-gaps-expand">+${gaps.length - 1} more setup gap${gaps.length > 1 ? 's' : ''}</button><div class="gov-setup-debt-full" hidden></div>` : ''}
+    </section>`;
+  }
   if (opts.compact) {
     const n = gaps.length;
     return `

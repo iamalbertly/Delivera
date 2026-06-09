@@ -74,6 +74,43 @@ export function renderEvidenceTable(brief) {
   govPage.els.evidence.innerHTML = `<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
+/** Above-fold proof preview — top rows without opening supporting evidence. */
+export function renderEvidencePreview(brief, maxRows = 2) {
+  const mount = document.getElementById('gov-evidence-preview-mount');
+  if (!mount) return;
+  const rows = (brief?.evidencePack?.rows || []).slice(0, maxRows);
+  if (!rows.length) {
+    mount.innerHTML = '';
+    mount.hidden = true;
+    return;
+  }
+  const total = brief?.evidencePack?.rows?.length || rows.length;
+  const body = rows.map((r) => `
+    <tr>
+      <td><a href="/current-sprint?issue=${encodeURIComponent(r.issueKey || '')}" class="gov-issue-key-link">${escapeHtml(r.issueKey || '')}</a></td>
+      <td>${escapeHtml(r.statusNow || '')}</td>
+      <td>${escapeHtml(r.whyFlagged || '')}</td>
+    </tr>`).join('');
+  mount.hidden = false;
+  mount.innerHTML = `
+    <section class="gov-evidence-preview" aria-label="Proof preview">
+      <header class="gov-evidence-preview-head">
+        <h3 class="gov-evidence-preview-title">Proof preview</h3>
+        <button type="button" class="btn btn-link btn-compact" id="gov-evidence-preview-more">All proof (${total})</button>
+      </header>
+      <div class="gov-evidence-preview-table data-table-scroll-wrap">
+        <table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>
+      </div>
+    </section>`;
+  mount.querySelector('#gov-evidence-preview-more')?.addEventListener('click', () => {
+    const panel = document.getElementById('gov-supporting-evidence');
+    if (panel) {
+      panel.open = true;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
 export function renderTechnicalDetails(brief) {
   if (!govPage.els.technical) return;
   const n = brief?.leadershipNarrative || {};

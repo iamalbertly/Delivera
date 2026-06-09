@@ -90,7 +90,6 @@ export function renderExpandedSelectors({
         ${renderMobileProjectChecklist(projectKeys, selected, accessByKey)}
         ${renderMobileQuarterSelect(quarters, activeQuarter)}
       </div>
-      <button type="button" id="gov-scope-baseline" class="btn btn-secondary btn-compact">${escapeHtml(COPY.piBaselineCta)}</button>
       <button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact">${escapeHtml(advancedLabel)}</button>
     </div>`;
 }

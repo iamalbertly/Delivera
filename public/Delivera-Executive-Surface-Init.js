@@ -34,13 +34,34 @@ function persistLastRoute(path) {
 }
 
 function applyContinueCta() {
-  const btn = document.getElementById('surface-continue-cta');
+  const btn = document.getElementById('surface-primary-cta');
   if (!btn) return;
   const last = readLastRoute();
   const path = last?.path || '/governance';
   const label = ROUTE_LABELS[path] || 'your last view';
-  btn.setAttribute('data-surface-nav', path);
-  btn.textContent = `Continue to ${label}`;
+  if (path !== '/governance') {
+    btn.setAttribute('data-surface-nav', path);
+    btn.textContent = `Continue to ${label}`;
+  }
+}
+
+async function initHomeBriefMicro() {
+  const micro = document.getElementById('surface-verdict-micro');
+  if (!micro) return;
+  const projects = readSelectedProjects();
+  if (!projects.length) return;
+  try {
+    const qs = new URLSearchParams({ projects: projects.join(',') }).toString();
+    const res = await fetch(`/api/governance-brief.json?${qs}`, { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const brief = await res.json();
+    const tier = brief?.executiveView?.verdictTier || brief?.meta?.verdictTier || 'watch';
+    const sentence = brief?.meta?.commandAnswerSentence || brief?.leadershipNarrative?.meetingAnswer || '';
+    micro.textContent = sentence ? `${String(tier).toUpperCase()} · ${sentence.slice(0, 120)}` : '';
+    micro.hidden = !micro.textContent;
+    const eyebrow = document.querySelector('.surface-eyebrow');
+    if (eyebrow && tier) eyebrow.textContent = `Brief · ${String(tier).replace(/([A-Z])/g, ' $1').trim()}`;
+  } catch (_) { /* non-blocking */ }
 }
 
 const readSelectedProjects = readSharedProjectsCsv;
@@ -159,7 +180,7 @@ async function initHomeDashboardSprintPulse() {
           <a href="/current-sprint" class="home-sprint-pulse-cta">Open sprint cockpit →</a>
         </div>`;
       pulseEl.hidden = false;
-      const continueBtn = document.getElementById('surface-continue-cta');
+      const continueBtn = document.getElementById('surface-primary-cta');
       if (continueBtn) {
         continueBtn.setAttribute('data-surface-nav', '/current-sprint');
         continueBtn.textContent = 'Resolve sprint stall';
@@ -191,6 +212,7 @@ function bootExecutiveSurface() {
   if (maybeRedirectExecutiveShell() || maybeRedirectDashboardToLastRoute()) return;
   initSurfacePage();
   initHomeDashboardSprintPulse();
+  initHomeBriefMicro();
 }
 
 if (document.readyState === 'loading') {

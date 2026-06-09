@@ -16,7 +16,7 @@ function renderRoleAvatar(person, label) {
   return `<span class="gov-squad-role-avatar" title="${escapeHtml(person.displayName)}">${escapeHtml(label)}: ${escapeHtml(initialsFromDisplay(person.displayName))}</span>`;
 }
 
-function renderRiskTileDetail(squad, brief, { autoExpand = false } = {}) {
+function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = false } = {}) {
   const pulse = squad.sprintPulse || {};
   const pulseHtml = squad.hidePulseBar ? '' : renderPulseBars(pulse);
   const risks = squad.cardRisks || [];
@@ -57,14 +57,14 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false } = {}) {
       ${partial ? '<p class="gov-partial-warn">Partial data — squad may be unavailable.</p>' : ''}
       ${riskLines ? `<ul class="gov-risk-tile-risks">${riskLines}</ul>` : ''}
       <div class="gov-squad-detail-actions">
-        <button type="button" class="btn btn-primary btn-compact" data-squad-nudge="${escapeHtml(squad.projectKey)}" data-squad-nudge-issue="${escapeHtml(topRiskKey)}">${escapeHtml(COPY.nudgeSmPo)}</button>
+        ${hideNudge ? '' : `<button type="button" class="btn btn-primary btn-compact" data-squad-nudge="${escapeHtml(squad.projectKey)}" data-squad-nudge-issue="${escapeHtml(topRiskKey)}">${escapeHtml(COPY.nudgeSmPo)}</button>`}
         <a class="btn btn-secondary btn-compact" href="/current-sprint">${escapeHtml(COPY.openSprint)}</a>
         <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-squad="${escapeHtml(squad.projectKey)}">Open evidence</button>
       </div>
     </div>`;
 }
 
-export function renderPortfolioGrid(brief, { singleSquad = false } = {}) {
+export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge = false } = {}) {
   const rollup = brief?.portfolioRollup || {};
   const squads = Array.isArray(brief?.squadInsights) ? brief.squadInsights : [];
   const partialNote = (brief?.meta?.partialProjects || []).length
@@ -100,15 +100,24 @@ export function renderPortfolioGrid(brief, { singleSquad = false } = {}) {
   const moreChip = hiddenCount > 0
     ? `<button type="button" class="gov-heat-tile gov-heat-tile--more" id="gov-heat-show-more">+${hiddenCount} more</button>`
     : '';
-  const details = squads.map((s, idx) => renderRiskTileDetail(s, brief, { autoExpand: singleSquad && idx === 0 })).join('');
+  const details = squads.map((s, idx) => renderRiskTileDetail(s, brief, {
+    autoExpand: singleSquad && idx === 0,
+    hideNudge: hideSquadNudge,
+  })).join('');
   const line = rollup.summaryLine || COPY.portfolioRollupOk;
-  const periodWindow = brief?.meta?.periodWindow || '28d';
-  const periodNote = ` · Window: ${periodWindow}`;
   const isStale = String(brief?.freshness?.confidenceLimit || '').toLowerCase() === 'stale';
   const staleNote = isStale ? ` · ${COPY.portfolioStaleHint}` : '';
+  if (singleSquad && squads.length === 1) {
+    return `
+    <div class="gov-portfolio-grid-wrap gov-portfolio-grid-wrap--single" aria-label="${escapeHtml(COPY.executiveLeaderboard)}">
+      <p class="gov-portfolio-banner-line${isStale ? ' is-stale' : ''}" data-portfolio-banner="1">${escapeHtml(line)}${cacheNote}${escapeHtml(staleNote)}</p>
+      ${partialNote}
+      <div class="gov-risk-tile-details gov-risk-tile-details--always-open">${details}</div>
+    </div>`;
+  }
   return `
     <div class="gov-portfolio-grid-wrap${showTray ? ' gov-portfolio-grid-wrap--tray' : ''}" aria-label="${escapeHtml(COPY.executiveLeaderboard)}">
-      <p class="gov-portfolio-banner-line${isStale ? ' is-stale' : ''}" data-portfolio-banner="1">${escapeHtml(line)}${escapeHtml(periodNote)}${cacheNote}${escapeHtml(staleNote)}</p>
+      <p class="gov-portfolio-banner-line${isStale ? ' is-stale' : ''}" data-portfolio-banner="1">${escapeHtml(line)}${cacheNote}${escapeHtml(staleNote)}</p>
       ${partialNote}
       ${filterBar}
       <div class="gov-risk-heat-row" role="list">${tiles}${moreChip}</div>

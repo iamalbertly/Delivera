@@ -75,7 +75,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     : '';
 
   return `
-    <section class="gov-command-answer" aria-label="${escapeHtml(COPY.briefTitle)}"${hasOwnerClusters ? ' data-has-owner-clusters="true"' : ''}>
+    <section class="gov-command-answer${hasOwnerClusters ? ' gov-command-answer--cluster-mode' : ''}" aria-label="${escapeHtml(COPY.briefTitle)}"${hasOwnerClusters ? ' data-has-owner-clusters="true"' : ''}>
       <div class="gov-command-head">${trustBadge}${aiStrip ? `<div class="gov-command-ai-strip">${aiStrip}</div>` : ''}</div>
       <div class="gov-visual-answer-blocks" role="group" aria-label="Delivery decision">
         <div class="gov-answer-block gov-answer-block--status gov-answer-block--${escapeHtml(tier)}" data-hover-proof="status" data-verdict-tier="${escapeHtml(tier)}">
@@ -93,10 +93,10 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
       </div>
       ${doFirstStrip}
       <div class="gov-trust-chip-row" role="group" aria-label="Trust summary">
-        <span class="gov-trust-part" data-hover-proof="trust" title="Can I trust this answer?">Trust ${escapeHtml(trustTierLabel(brief))}</span>
-        <span class="gov-trust-part" data-hover-proof="evidence-count">Proof ${evidenceCount}</span>
+        <span class="gov-trust-part gov-trust-part--primary" data-hover-proof="trust" title="Can I trust this answer?">Trust ${escapeHtml(trustTierLabel(brief))}</span>
+        ${hasOwnerClusters ? '' : `<span class="gov-trust-part" data-hover-proof="evidence-count">Proof ${evidenceCount}</span>
         <span class="gov-trust-part" data-hover-proof="freshness">Data ${escapeHtml(fresh)}</span>
-        <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">${escapeHtml(narratedBy === 'advisor' ? 'AI helped' : 'Templates')}</a>
+        <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">${escapeHtml(narratedBy === 'advisor' ? 'AI helped' : 'Templates')}</a>`}
         <span class="gov-send-badge gov-send-badge--${readiness.tier}" data-hover-proof="safe-send">${escapeHtml(readiness.label)}</span>
       </div>
       ${detailLine ? `<p class="gov-command-answer-detail">${escapeHtml(detailLine.slice(0, 200))}</p>` : ''}

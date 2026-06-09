@@ -53,7 +53,7 @@
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
   --brief-desktop-gap: 12px;
-  --brief-desktop-cols: minmax(0, 1fr) minmax(260px, 320px);
+  --brief-desktop-cols: minmax(0, 1fr) minmax(320px, 1fr);
   /* Work draft canvas — type chip colours */
   --chip-epic: #6d28d9;
   --chip-epic-bg: #f5f3ff;
@@ -16070,6 +16070,62 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
   padding: 12px 20px 80px;
 }
 @media (min-width: 1024px) {
+  body.governance-page .governance-shell.governance-shell--desktop-grid {
+    max-width: none;
+    padding-left: 20px;
+    padding-right: 24px;
+    display: grid;
+    grid-template-columns: var(--brief-desktop-cols);
+    gap: var(--brief-desktop-gap) 20px;
+    align-items: start;
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid .governance-header,
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-action-clusters-mount,
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-setup-debt-mount,
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-evidence-preview-mount,
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-supporting-evidence {
+    grid-column: 1;
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-verdict-mount {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 72px) + 8px);
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-pi-strip-mount:not(:empty):not([data-pi-strip-empty="true"]) {
+    grid-column: 2;
+    grid-row: 2;
+    position: sticky;
+    top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 72px) + 8px);
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-pi-strip-mount:empty,
+  body.governance-page .governance-shell.governance-shell--desktop-grid #gov-pi-strip-mount[data-pi-strip-empty="true"] {
+    display: none;
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-visual-answer-blocks,
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-command-actions {
+    display: none;
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode {
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid var(--border, #e5e7eb);
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-trust-chip-row {
+    margin: 0;
+  }
+  .gov-risk-tile-details--always-open .gov-risk-tile-detail {
+    display: block !important;
+  }
+  .gov-risk-tile-details--always-open .gov-risk-tile-detail[hidden] {
+    display: block !important;
+  }
+  .gov-portfolio-grid-wrap--single .gov-heat-tile-row {
+    display: none;
+  }
+}
+@media (min-width: 1024px) {
   .governance-shell {
     padding-bottom: 48px;
   }
@@ -16943,56 +16999,45 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
 .gov-pi-compact-badge.is-limited { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
 .gov-pi-compact-badge.is-nodata { border-color: #d1d5db; background: #f9fafb; color: #6b7280; }
 
-@media (min-width: 1024px) {
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters {
-    max-width: none;
-    display: grid;
-    grid-template-columns: var(--brief-desktop-cols);
-    gap: var(--brief-desktop-gap) 20px;
-    align-items: start;
-  }
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters .governance-header,
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters #gov-action-clusters-mount,
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters #gov-setup-debt-mount,
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters #gov-supporting-evidence {
-    grid-column: 1;
-  }
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters #gov-verdict-mount {
-    grid-column: 1;
-  }
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters #gov-pi-strip-mount:not(:empty):not([data-pi-strip-empty="true"]) {
-    grid-column: 2;
-    grid-row: 1 / span 4;
-    position: sticky;
-    top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 72px) + 8px);
-  }
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters #gov-pi-strip-mount:empty,
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters #gov-pi-strip-mount[data-pi-strip-empty="true"] {
-    display: none;
-  }
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters:has(#gov-pi-strip-mount[data-pi-strip-empty="true"]) #gov-verdict-mount,
-  body.governance-page:not(.sidebar-open) .governance-shell.governance-shell--has-clusters:has(#gov-pi-strip-mount:empty) #gov-verdict-mount {
-    grid-column: 2;
-    grid-row: 1 / span 3;
-    position: sticky;
-    top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 72px) + 8px);
-  }
+.gov-scope-status-chip--actionable { cursor: pointer; }
+.gov-scope-status-chip--actionable:hover { filter: brightness(0.97); }
+.gov-cluster-lead-issue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: baseline;
+  margin: 6px 0 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  font-size: 0.84rem;
 }
-@media (min-width: 1024px) {
-  body.governance-page.sidebar-collapsed .governance-shell.governance-shell--has-clusters,
-  body.governance-page.sidebar-open .governance-shell.governance-shell--has-clusters {
-    max-width: 960px;
-    display: block;
-  }
-  body.governance-page.sidebar-collapsed .governance-shell.governance-shell--has-clusters #gov-pi-strip-mount,
-  body.governance-page.sidebar-open .governance-shell.governance-shell--has-clusters #gov-pi-strip-mount,
-  body.governance-page.sidebar-collapsed .governance-shell.governance-shell--has-clusters #gov-verdict-mount,
-  body.governance-page.sidebar-open .governance-shell.governance-shell--has-clusters #gov-verdict-mount {
-    position: static;
-    grid-column: auto;
-    grid-row: auto;
-  }
+.gov-cluster-lead-title { flex: 1; min-width: 0; }
+.gov-evidence-preview {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
 }
+.gov-evidence-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.gov-evidence-preview-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #6b7280;
+}
+.gov-evidence-preview-table { max-height: 120px; overflow: auto; }
+.gov-setup-debt--auto .gov-fix-card-row { margin: 0; }
 
 .gov-scope-period-row {
   display: flex;
