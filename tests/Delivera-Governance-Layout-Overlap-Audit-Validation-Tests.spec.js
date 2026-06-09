@@ -203,9 +203,9 @@ test.describe('Governance layout overlap audit', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#gov-top-chrome-mount')).toHaveAttribute('open', /.+/);
-    await expect(page.locator('#gov-secondary-chrome')).not.toHaveAttribute('open', /.+/);
-    await expect(page.locator('#gov-supporting-evidence')).not.toHaveAttribute('open', /.+/);
+    await expect(page.locator('#gov-top-chrome-mount')).toHaveJSProperty('open', true);
+    await expect(page.locator('#gov-secondary-chrome')).toHaveJSProperty('open', false);
+    await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', false);
 
     assertTelemetryClean(telemetry);
   });

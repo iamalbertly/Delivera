@@ -16102,8 +16102,11 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
   body.governance-page .governance-shell.governance-shell--desktop-grid #gov-pi-strip-mount[data-pi-strip-empty="true"] {
     display: none;
   }
-  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-visual-answer-blocks,
-  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-command-actions {
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-visual-answer-blocks {
+    display: none;
+  }
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-command-actions .gov-overflow-menu-wrap,
+  body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode .gov-command-actions #gov-review-actions {
     display: none;
   }
   body.governance-page .governance-shell.governance-shell--desktop-grid .gov-command-answer--cluster-mode {
