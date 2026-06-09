@@ -368,11 +368,18 @@ export function bindSetupDebtActions() {
   });
 }
 
+function evidenceDrawerInitialTab() {
+  try {
+    return new URLSearchParams(window.location.search).get('lens') === 'investment' ? 'investment' : 'proof';
+  } catch (_) { return 'proof'; }
+}
+
 export function bindPortfolioHeatMap(root, brief) {
   if (!root) return;
+  const lensTab = evidenceDrawerInitialTab();
   bindRiskHeatInteractions(root, brief, (_keys, squad) => {
     const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));
-    openEvidenceDrawer(brief, risks);
+    openEvidenceDrawer(brief, risks, { initialTab: lensTab });
   }, (squad, issueKey) => openSquadNudge(squad, issueKey));
 }
 

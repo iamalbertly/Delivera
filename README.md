@@ -40,7 +40,7 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - **Scope SSOT:** project changes call `notifyScopeChanged()` (`Delivera-Shared-Scope-Notify-01Bridge.js`) so sidebar, top chrome, and scope bar stay aligned; cross-tab `storage` events also notify; scope change invalidates brief cache and forces reload; quarter key is `GOVERNANCE_QUARTER_KEY` in `Delivera-Shared-Storage-Keys.js`
 - Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) and deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
 - Brief load runs inbox + brief in parallel; scorecard defers until evidence `<details>` opens
-- Above-fold order: answer → owner clusters → setup debt → verdict → PI strip; agent queue and feedback in collapsed `<details>`
+- Above-fold order: answer → owner clusters → setup debt → verdict (inline when single squad) → PI strip; agent queue hidden until inbox/receipt work exists; investment chip gated to multi-squad or simple mode; feedback in collapsed `<details>`
 - Responsive layout: scope capsule, answer blocks, PI counters, and tables use auto-fit grids + `data-table-scroll-wrap` (no horizontal bleed on mobile)
 - **Above-fold declutter:** duplicate status in command answer hides when scope chip is SSOT; send badge hides when owner clusters exist; agent queue mount and secondary chrome stay collapsed until they have content; governance brand context in top chrome hides (scope capsule is SSOT)
 - Page-level **Export brief** hides when top chrome is present — **Export brief** moves to command overflow (`#gov-export-overflow`)
@@ -95,7 +95,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan cross-surface validation |
-| `npm run test:journey:value-retention` | Value retention master plan (feedback, squad leaderboard, alignment, investment) |
+| `npm run test:journey:value-retention` | Value retention master plan (feedback, squad leaderboard, alignment, investment drawer) |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
 | `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync, Refresh bypass |
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
@@ -105,7 +105,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 
 Orchestration, journeys, and `SKIP_WEBSERVER`: [`TESTING.md`](TESTING.md)
 
-**Journey buckets (SSOT):** Spec-to-journey mapping lives in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js`. Run a bucket with `node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId>` (e.g. `journey.ux-core`, `journey.governance`) or the matching `npm run test:journey:*` alias. The journey runner builds CSS before Playwright. `npm run test:focused` runs only specs tagged `@focused` in the test title.
+**Journey buckets (SSOT):** Spec-to-journey mapping lives in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js`. Run a bucket with `node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId>` (e.g. `journey.ux-core`, `journey.governance`) or the matching `npm run test:journey:*` alias. The journey runner builds CSS before Playwright. `npm run test:focused` runs only specs tagged `@focused` in the test title. `npm run test:all` runs value-retention → direct-value-masterplan → focused immediately after `check:css` (fail-fast). Direct Value spec owns evidence-tab restore; Value Retention spec owns squad portfolio, investment drawer, and period lens.
 
 ## CSS contract
 

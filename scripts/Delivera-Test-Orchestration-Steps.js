@@ -44,6 +44,24 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Run Value Retention Master Plan Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:value-retention'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Direct Value Master Plan Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:direct-value-masterplan'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Focused Playwright Contracts',
+      command: 'npm',
+      args: ['run', 'test:focused'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Brief SSOT Loading And Scope Journey',
       command: 'npm',
       args: ['run', 'test:journey:brief-ssot'],

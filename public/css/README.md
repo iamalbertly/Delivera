@@ -20,6 +20,11 @@
 | `06-current-sprint.css` | Everything on `/current-sprint`: header bar, cards, carousel, alert banner, countdown |
 | `07-leadership.css` | Everything on `/leadership`: HUD grid, metrics, trend charts |
 | `08-modals-misc.css` | Modals, dialogs, notification dock, miscellaneous shared components |
+| `09-governance.css` | Brief / governance scope bar, evidence tabs, portfolio heat map, drawers |
+| `10-report-proof.css` | Report proof surface extensions (when present) |
+| `11-executive-pulse.css` | Executive verdict zone, portfolio heat tiles, pulse bars |
+| `12-top-chrome.css` | Global top chrome, Improve Delivera modal |
+| `13-sub-chrome.css` | Sub-chrome and secondary header strips |
 
 ## CI guard
 

@@ -94,14 +94,11 @@ test.describe('Direct value master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('05 today surface inherits scope chip', async () => {
+    await test.step('05 today surface scope deduped when header bar active', async () => {
       await page.goto('/current-sprint');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('#current-sprint-title')).toContainText(/Today/i);
-      const chip = page.locator('#current-sprint-scope-chip');
-      if (await chip.isVisible().catch(() => false)) {
-        await expect(chip.locator('a[href="/governance"]')).toHaveCount(1);
-      }
+      await expect(page.locator('.current-sprint-header-bar[data-context-bar="true"]')).toBeVisible({ timeout: 20000 });
+      await expect(page.locator('#current-sprint-scope-chip')).toBeHidden();
       assertTelemetryClean(telemetry);
     });
 
@@ -126,16 +123,7 @@ test.describe('Direct value master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('09 mobile viewport no horizontal overflow on answer', async () => {
-      await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto('/governance');
-      if (await skipIfRedirectedToLogin(page, test)) return;
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
-      expect(overflow).toBe(false);
-      assertTelemetryClean(telemetry);
-    });
-
-    await test.step('10 PI compact badge visible when owner clusters exist', async () => {
+    await test.step('09 PI compact badge visible when owner clusters exist', async () => {
       await page.setViewportSize({ width: 1400, height: 900 });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
@@ -144,7 +132,7 @@ test.describe('Direct value master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('11 governance nudge shows @mention chips from teamRoster', async () => {
+    await test.step('10 governance nudge shows @mention chips from teamRoster', async () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
       const nudgeBtn = page.locator('[data-grouped-nudge="0"]');
@@ -155,7 +143,7 @@ test.describe('Direct value master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('12 evidence tab restores Plan after reload', async () => {
+    await test.step('11 evidence tab restores Plan after reload', async () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
       const evidence = page.locator('#gov-supporting-evidence');

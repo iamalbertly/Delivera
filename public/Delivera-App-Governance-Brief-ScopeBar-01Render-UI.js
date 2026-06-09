@@ -9,7 +9,8 @@ import { setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Contr
 import { normalizeProjectsCsv } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
-import { COPY, simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, isSimpleMode, simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { fetchQuartersListMemo } from './Delivera-Shared-Quarters-List-01Fetch-Memo.js';
 import {
@@ -111,11 +112,14 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const periodChips = PERIOD_OPTIONS.map((p) => (
       `<button type="button" class="gov-period-chip${periodWindow === p.id ? ' is-on' : ''}" data-period-chip="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
     )).join('');
+    const showInvestment = isSimpleMode() || squadCount > 1;
+    const investmentChip = showInvestment
+      ? `<button type="button" class="gov-investment-chip btn btn-link btn-compact" data-investment-open="1">${escapeHtml(COPY.investmentLens)}</button>`
+      : '';
 
     mount.innerHTML = `
       ${accessBanner}
-      <div class="gov-scope-period-row" role="group" aria-label="Period window">${periodChips}
-        <button type="button" class="gov-investment-chip btn btn-link btn-compact" data-investment-open="1">${escapeHtml(COPY.investmentLens)}</button>
+      <div class="gov-scope-period-row" role="group" aria-label="Period window">${periodChips}${investmentChip}
       </div>
       <div class="gov-scope-capsule" aria-label="Brief scope">
         <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
@@ -201,9 +205,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       });
     });
     mount.querySelector('[data-investment-open]')?.addEventListener('click', () => {
-      import('./Delivera-App-Governance-Brief-17Render-InvestmentDrawer-UI.js').then((m) => {
-        m.openInvestmentDrawer(govPage.lastBrief);
-      });
+      openEvidenceDrawer(govPage.lastBrief, [], { initialTab: 'investment' });
     });
   }
 

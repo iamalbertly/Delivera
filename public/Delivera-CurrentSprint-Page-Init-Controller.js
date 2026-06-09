@@ -191,9 +191,10 @@ function updateScopeInheritChip() {
     const boardControls = document.getElementById('current-sprint-board-controls');
     const hasTopChrome = document.body?.classList?.contains('has-top-chrome');
     const projects = readSharedProjectsCsv().join(', ') || getProjectsParam();
+    const headerBarActive = Boolean(document.querySelector('.current-sprint-header-bar[data-context-bar="true"]'));
     if (chip && label) {
       label.textContent = projects ? `Scope: ${projects}` : 'Scope from Answer';
-      chip.hidden = !hasTopChrome;
+      chip.hidden = !hasTopChrome || headerBarActive;
     }
     if (hasTopChrome && projectsInline) {
       projectsInline.style.display = 'none';

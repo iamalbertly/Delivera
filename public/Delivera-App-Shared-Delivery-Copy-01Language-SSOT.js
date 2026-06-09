@@ -157,6 +157,7 @@ export const COPY = {
   alignmentSummary: 'items PI-aligned',
   drawerTabProof: 'Proof',
   drawerTabInvestment: 'Investment',
+  portfolioStaleHint: 'Stale — refresh for live nudge',
 };
 
 export function isSimpleMode() {

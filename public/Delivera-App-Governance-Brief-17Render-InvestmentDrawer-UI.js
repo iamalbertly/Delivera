@@ -1,7 +1,7 @@
 /**
- * Investment lens drawer — hours by PI / planned / ad-hoc (sponsor view).
+ * Investment lens drawer body — hours by PI / planned / ad-hoc (sponsor view).
  */
-import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
+import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
@@ -17,10 +17,27 @@ function sumSquadHours(squads = []) {
   return { piHours, offPlan, planned: piHours + offPlan };
 }
 
+function hoursFromBoardSummaries(meta = {}) {
+  const summaries = meta.boardSummaries;
+  if (!summaries || typeof summaries !== 'object') return null;
+  let registered = 0;
+  for (const row of Object.values(summaries)) {
+    registered += Number(row?.registeredWorkHours) || 0;
+  }
+  if (!registered) return null;
+  return { piHours: Math.round(registered * 0.6), offPlan: Math.round(registered * 0.15), planned: registered };
+}
+
+function partialSuffix(brief) {
+  return (brief?.meta?.partialProjects || []).length ? ' (partial)' : '';
+}
+
 export function renderInvestmentBodyHtml(brief) {
   const squads = Array.isArray(brief?.squadInsights) ? brief.squadInsights : [];
-  const { piHours, offPlan, planned } = sumSquadHours(squads);
+  const fromBoards = hoursFromBoardSummaries(brief?.meta);
+  const { piHours, offPlan, planned } = fromBoards || sumSquadHours(squads);
   const period = brief?.meta?.periodWindow || '28d';
+  const partial = partialSuffix(brief);
   const rows = [
     { key: 'pi', label: 'PI commitment', hours: piHours, trend: '' },
     { key: 'planned', label: 'Planned epics', hours: planned, trend: '' },
@@ -29,7 +46,7 @@ export function renderInvestmentBodyHtml(brief) {
   const list = rows.map((r) => `
     <tr data-investment-row="${escapeHtml(r.key)}">
       <td>${escapeHtml(r.label)}</td>
-      <td><strong>${r.hours}h</strong></td>
+      <td><strong>${r.hours}h${partial}</strong></td>
       <td>${escapeHtml(r.trend || '—')}</td>
     </tr>`).join('');
   return `
@@ -41,10 +58,7 @@ export function renderInvestmentBodyHtml(brief) {
       <p class="gov-investment-note">Based on sprint logged hours and squad drift signals — not payroll.</p>`;
 }
 
+/** @deprecated Use openEvidenceDrawer(brief, [], { initialTab: 'investment' }) */
 export function openInvestmentDrawer(brief) {
-  const body = renderInvestmentBodyHtml(brief || {});
-  return openRightDrawer({
-    title: COPY.investmentLens,
-    bodyHtml: `<div class="gov-drawer-tab-panel is-active" data-drawer-panel="investment">${body}</div>`,
-  });
+  return openEvidenceDrawer(brief || {}, [], { initialTab: 'investment' });
 }

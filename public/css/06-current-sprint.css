@@ -14,6 +14,9 @@
 body.has-top-chrome .current-sprint-scope-inline {
   display: none;
 }
+body.has-top-chrome:has(.current-sprint-header-bar[data-context-bar="true"]) #current-sprint-scope-chip {
+  display: none !important;
+}
 
 :root {
   --header-sprint-name-size: 0.95rem;

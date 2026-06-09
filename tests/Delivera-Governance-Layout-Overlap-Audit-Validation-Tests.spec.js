@@ -220,6 +220,7 @@ test.describe('Governance layout overlap audit', () => {
 
     await openGovernanceDetailsPanel(page, 'gov-supporting-evidence');
     await expect(page.locator('#gov-evidence.data-table-scroll-wrap')).toBeVisible();
+    await page.locator('[data-evidence-tab="plan"]').click();
     await expect(page.locator('#gov-readiness .governance-readiness-chips')).toBeVisible();
 
     const wrapOverflow = await page.locator('#gov-evidence').evaluate((el) => getComputedStyle(el).overflowX);

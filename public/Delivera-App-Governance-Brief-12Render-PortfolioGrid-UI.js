@@ -89,9 +89,11 @@ export function renderPortfolioGrid(brief, { singleSquad = false } = {}) {
     : '';
   const details = squads.map((s, idx) => renderRiskTileDetail(s, brief, { autoExpand: singleSquad && idx === 0 })).join('');
   const line = rollup.summaryLine || COPY.portfolioRollupOk;
+  const isStale = String(brief?.freshness?.confidenceLimit || '').toLowerCase() === 'stale';
+  const staleNote = isStale ? ` · ${COPY.portfolioStaleHint}` : '';
   return `
     <div class="gov-portfolio-grid-wrap${showTray ? ' gov-portfolio-grid-wrap--tray' : ''}" aria-label="${escapeHtml(COPY.executiveLeaderboard)}">
-      <p class="gov-portfolio-banner-line" data-portfolio-banner="1">${escapeHtml(line)}${cacheNote}</p>
+      <p class="gov-portfolio-banner-line${isStale ? ' is-stale' : ''}" data-portfolio-banner="1">${escapeHtml(line)}${cacheNote}${escapeHtml(staleNote)}</p>
       ${partialNote}
       ${filterBar}
       <div class="gov-risk-heat-row" role="list">${tiles}${moreChip}</div>

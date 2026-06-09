@@ -162,7 +162,100 @@ test.describe('Value retention master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('08 alignment strip on sprint', async () => {
+    await test.step('08 single-squad auto-expand tile detail', async () => {
+      await page.addInitScript((projectsKey) => {
+        try { localStorage.setItem(projectsKey, 'SD'); } catch (_) {}
+      }, PROJECTS_SSOT_KEY);
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: stubRetentionBrief({
+            projects: ['SD'],
+            squadInsights: [{
+              projectKey: 'SD',
+              verdictTier: 'blocked',
+              boardResolved: true,
+              sprintPulse: { done: 1, committed: 5, pct: 20 },
+              bottleneckLine: 'Payment API blocked',
+              piCommitted: 5,
+              piDone: 1,
+              offPlanHours: 12,
+              cardRisks: [{ issueKey: 'SD-1', displayTitle: 'Stuck' }],
+            }],
+            portfolioRollup: { summaryLine: 'Out of 1 squads · 1 behind PI', behindPiCount: 1 },
+          }),
+        });
+      });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('[data-tile-detail="SD"]')).toBeVisible({ timeout: 20000 });
+      await expect(page.locator('.gov-comparison-refine')).toHaveCount(0);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('09 investment drawer tab and hour rows', async () => {
+      await page.addInitScript((projectsKey) => {
+        try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
+      }, PROJECTS_SSOT_KEY);
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: stubRetentionBrief({
+            meta: {
+              teamRoster: [{ displayName: 'Alex Morgan' }],
+              workerReceipt: { sinceLastRun: '12m ago' },
+              periodWindow: '28d',
+              partialProjects: ['DMS'],
+              boardSummaries: { 1: { registeredWorkHours: 120 } },
+            },
+          }),
+        });
+      });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.locator('[data-investment-open]').click();
+      await expect(page.locator('[data-drawer-tab="investment"]')).toBeVisible({ timeout: 10000 });
+      await page.locator('[data-drawer-tab="investment"]').click();
+      await expect(page.locator('[data-investment-row="pi"]')).toBeVisible();
+      await expect(page.locator('[data-investment-row="pi"] strong')).toContainText(/partial/i);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('10 drawer tab restores investment after reload', async () => {
+      await page.evaluate(() => {
+        try { sessionStorage.setItem('gov-drawer-active-tab', 'investment'); } catch (_) {}
+      });
+      await page.reload();
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.locator('[data-investment-open]').click();
+      await expect(page.locator('[data-drawer-tab="investment"]')).toHaveClass(/is-active/);
+      await expect(page.locator('[data-drawer-panel="investment"]')).toHaveClass(/is-active/);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('11 stale banner and readOnly nudge', async () => {
+      await page.route(/\/api\/governance-brief\.json/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: stubRetentionBrief({ freshness: { confidenceLimit: 'stale', generatedAt: new Date().toISOString() } }),
+        });
+      });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const fold = page.locator('.gov-verdict-fold summary');
+      if (await fold.count()) await fold.click();
+      await expect(page.locator('[data-portfolio-banner]')).toContainText(/stale/i);
+      await page.locator('[data-heat-tile="SD"]').click();
+      await page.locator('[data-squad-nudge="SD"]').click({ force: true });
+      await expect(page.locator('#delivera-jira-nudge-review-sheet [data-review-send]')).toBeDisabled();
+      await page.locator('[data-review-cancel]').click();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('12 alignment strip on sprint', async () => {
       await page.goto('/current-sprint');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-alignment-strip]')).toBeVisible({ timeout: 20000 });
@@ -171,19 +264,19 @@ test.describe('Value retention master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('09 blocker root cause row', async () => {
+    await test.step('13 blocker root cause row', async () => {
       await expect(page.locator('[data-blocker-root-cause]').first()).toBeVisible({ timeout: 20000 });
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('10 report hides duplicate feedback toggle', async () => {
+    await test.step('14 report hides duplicate feedback toggle', async () => {
       await page.goto('/report');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#feedback-toggle')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('11 mobile governance no horizontal overflow', async () => {
+    await test.step('15 mobile governance no horizontal overflow', async () => {
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;

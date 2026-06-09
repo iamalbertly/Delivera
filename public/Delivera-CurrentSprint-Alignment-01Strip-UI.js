@@ -28,16 +28,22 @@ export function renderAlignmentStripHtml(data, baselineKeys = []) {
   const stories = (Array.isArray(data?.stories) ? data.stories : []).slice(-5).reverse();
   if (!stories.length) return '';
   let aligned = 0;
+  let piCount = 0;
+  let offPiCount = 0;
+  let adHocCount = 0;
   const rows = stories.map((s) => {
     const alignment = classifyWorkAlignment({ epicKey: s.epicKey, piBaselineCommittedKeys: baselineKeys });
-    if (alignment.tier === 'pi') aligned += 1;
+    if (alignment.tier === 'pi') { aligned += 1; piCount += 1; }
+    else if (alignment.tier === 'offPi') offPiCount += 1;
+    else if (alignment.tier === 'adHoc') adHocCount += 1;
     const key = s.issueKey || s.key || '';
     return `<li><a href="#story-row-${escapeHtml(key)}">${escapeHtml(key)}</a> ${renderAlignmentChip(alignment)}</li>`;
   }).join('');
+  const summaryDetail = [piCount ? `${piCount} PI` : '', offPiCount ? `${offPiCount} off-PI` : '', adHocCount ? `${adHocCount} ad-hoc` : ''].filter(Boolean).join(' · ');
   return `
     <section class="sprint-alignment-strip" data-alignment-strip="1" aria-label="Work alignment">
       <details>
-        <summary><strong>${aligned} of ${stories.length}</strong> recent ${COPY.alignmentSummary}</summary>
+        <summary><strong>${aligned} of ${stories.length}</strong> ${COPY.alignmentSummary}${summaryDetail ? ` · ${summaryDetail}` : ''}</summary>
         <ul class="sprint-alignment-list">${rows}</ul>
       </details>
     </section>`;

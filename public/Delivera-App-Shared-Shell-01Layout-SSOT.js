@@ -12,8 +12,7 @@ export const PAGE_HEADINGS = {
 /** Above-fold Brief zones (order matters). */
 export const BRIEF_ABOVE_FOLD = [
   'gov-verdict-mount',
-  'gov-donow-mount',
-  'gov-issues-drawer-mount',
+  'gov-action-clusters-mount',
 ];
 
 export const BRIEF_BELOW_FOLD = [

@@ -92,9 +92,12 @@ export function renderBriefUi(brief) {
   if (govPage.els.piStripMount) {
     const piInner = renderPIConfidenceStrip(brief);
     const compactBadge = renderPICompactBadge(brief);
-    govPage.els.piStripMount.innerHTML = hasOwnerClusters && piInner
-      ? `${compactBadge}<details class="gov-pi-strip-fold"><summary>PI confidence</summary>${piInner}</details>`
-      : piInner;
+    const rollupBehind = Number(brief?.portfolioRollup?.behindPiCount || 0) > 0;
+    govPage.els.piStripMount.innerHTML = (hasOwnerClusters && rollupBehind)
+      ? ''
+      : (hasOwnerClusters && piInner
+        ? `${compactBadge}<details class="gov-pi-strip-fold"><summary>PI confidence</summary>${piInner}</details>`
+        : piInner);
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
     govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
       openPiBaselineWizard();
@@ -125,11 +128,14 @@ export function renderBriefUi(brief) {
       : renderVerdictZone(brief);
     const verdictSummary = showHeatMap ? 'Portfolio heat map' : 'Squad verdict';
     const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
+    const inlineVerdict = showHeatMap && squadCount === 1;
     govPage.els.verdictMount.innerHTML = skipStandaloneVerdict
       ? ''
-      : (hasOwnerClusters
-        ? `<details class="gov-verdict-fold"><summary>${verdictSummary}</summary>${verdictInner}</details>`
-        : verdictInner);
+      : (inlineVerdict
+        ? verdictInner
+        : (hasOwnerClusters
+          ? `<details class="gov-verdict-fold"><summary>${verdictSummary}</summary>${verdictInner}</details>`
+          : verdictInner));
     if (showHeatMap) bindPortfolioHeatMap(govPage.els.verdictMount, brief);
   }
   if (govPage.els.scriptMount) {
@@ -167,7 +173,11 @@ export function renderBriefUi(brief) {
   govPage.scopeBarApi?.setAdvancedWarnCount?.(warnCards);
   setBriefNavBadge(inboxTotal);
   const topChrome = document.getElementById('gov-top-chrome-mount');
-  if (topChrome) topChrome.classList.toggle('gov-top-chrome--has-queue', inboxTotal > 0);
+  const hasReceipt = Boolean(govPage.els.workerReceiptMount?.innerHTML?.trim());
+  if (topChrome) {
+    topChrome.classList.toggle('gov-top-chrome--has-queue', inboxTotal > 0);
+    topChrome.classList.toggle('gov-top-chrome--has-receipt', hasReceipt);
+  }
   mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], govPage.lastFeedbackSummary);
   const secondaryChrome = document.getElementById('gov-secondary-chrome');
   if (secondaryChrome) {
@@ -176,9 +186,7 @@ export function renderBriefUi(brief) {
   }
   try {
     if (new URLSearchParams(window.location.search).get('lens') === 'investment') {
-      import('./Delivera-App-Governance-Brief-17Render-InvestmentDrawer-UI.js').then((m) => {
-        m.openInvestmentDrawer(brief);
-      });
+      openEvidenceDrawer(brief, [], { initialTab: 'investment' });
     }
   } catch (_) { /* ignore */ }
 }

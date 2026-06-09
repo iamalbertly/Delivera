@@ -36,7 +36,6 @@ function init() {
   govPage.els.export?.addEventListener('click', copyBrief);
   mountStickyMicroAnswer(govPage.els.stickyAnswerMount);
   bindStickyScroll(100);
-  mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], null);
   govPage.scopeBarApi = mountGovernanceScopeBar({
     mount: $('gov-scope-bar-mount'),
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),

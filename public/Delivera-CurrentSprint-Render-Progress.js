@@ -407,7 +407,10 @@ export function renderStories(data) {
         + '<span class="sprint-blocker-age ' + escapeHtml(ageTone) + '" data-blocker-age>' + escapeHtml(ageLabel) + '</span>'
         + (isFormerRep ? '<span class="sprint-blocker-former-reporter" data-former-reporter>Reporter deactivated</span>' : '')
         + '</div>';
-      panelHtml += '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(row.issueKey || row.key || '') + '">Review nudge</button>';
+      const canNudge = Boolean((likelyOwner && likelyOwner !== 'Unassigned') || getCurrentSprintPayload()?.meta?.teamRoster?.length);
+      if (canNudge) {
+        panelHtml += '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(row.issueKey || row.key || '') + '">Review nudge</button>';
+      }
       panelHtml += '</article>';
     });
     panelHtml += '</div></article>';
