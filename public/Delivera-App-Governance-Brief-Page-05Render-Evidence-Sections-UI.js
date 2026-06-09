@@ -104,7 +104,33 @@ export function renderBaseline(brief) {
     </div>`;
 }
 
+const EVIDENCE_TAB_STORAGE_KEY = 'gov-evidence-active-tab';
+
 let scorecardBound = false;
+
+function activateEvidenceTab(shell, panels, key) {
+  if (!shell || !panels || !key) return;
+  shell.querySelectorAll('[data-evidence-tab]').forEach((b) => {
+    const on = b.getAttribute('data-evidence-tab') === key;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  panels.querySelectorAll('[data-evidence-panel]').forEach((panel) => {
+    const on = panel.dataset.evidencePanel === key;
+    panel.classList.toggle('is-active', on);
+    panel.hidden = !on;
+  });
+}
+
+function restoreEvidenceTabFromSession(wrap) {
+  const shell = wrap?.querySelector('.gov-evidence-tabs');
+  const panels = wrap?.querySelector('.gov-evidence-tab-panels');
+  if (!shell || !panels) return;
+  let saved = 'proof';
+  try { saved = sessionStorage.getItem(EVIDENCE_TAB_STORAGE_KEY) || 'proof'; } catch (_) { /* ignore */ }
+  const valid = ['proof', 'plan', 'pilot'].includes(saved) ? saved : 'proof';
+  activateEvidenceTab(shell, panels, valid);
+}
 
 export function deferScorecardUntilEvidenceOpen() {
   if (!govPage.els.scorecard || scorecardBound) return;
@@ -127,7 +153,11 @@ export function deferScorecardUntilEvidenceOpen() {
 
 export function mountEvidenceTabShell() {
   const wrap = document.getElementById('gov-supporting-evidence');
-  if (!wrap || wrap.dataset.evidenceTabsMounted === '1') return;
+  if (!wrap) return;
+  if (wrap.dataset.evidenceTabsMounted === '1') {
+    restoreEvidenceTabFromSession(wrap);
+    return;
+  }
   const measurement = document.getElementById('gov-measurement-mount');
   const script = document.getElementById('gov-meeting-script-mount');
   const proof = document.getElementById('gov-proof-risks');
@@ -142,9 +172,9 @@ export function mountEvidenceTabShell() {
   shell.className = 'gov-evidence-tabs';
   shell.setAttribute('role', 'tablist');
   shell.innerHTML = ''
-    + '<button type="button" class="gov-evidence-tab is-active" data-evidence-tab="proof" role="tab" aria-selected="true">Proof</button>'
-    + '<button type="button" class="gov-evidence-tab" data-evidence-tab="plan" role="tab" aria-selected="false">Plan</button>'
-    + '<button type="button" class="gov-evidence-tab" data-evidence-tab="pilot" role="tab" aria-selected="false">Pilot</button>';
+    + `<button type="button" class="gov-evidence-tab is-active" data-evidence-tab="proof" role="tab" aria-selected="true">${escapeHtml(COPY.evidenceTabProof)}</button>`
+    + `<button type="button" class="gov-evidence-tab" data-evidence-tab="plan" role="tab" aria-selected="false">${escapeHtml(COPY.evidenceTabPlan)}</button>`
+    + `<button type="button" class="gov-evidence-tab" data-evidence-tab="pilot" role="tab" aria-selected="false">${escapeHtml(COPY.evidenceTabPilot)}</button>`;
 
   const panels = document.createElement('div');
   panels.className = 'gov-evidence-tab-panels';
@@ -179,20 +209,13 @@ export function mountEvidenceTabShell() {
   shell.querySelectorAll('[data-evidence-tab]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.getAttribute('data-evidence-tab');
-      shell.querySelectorAll('[data-evidence-tab]').forEach((b) => {
-        const on = b.getAttribute('data-evidence-tab') === key;
-        b.classList.toggle('is-active', on);
-        b.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-      panels.querySelectorAll('[data-evidence-panel]').forEach((panel) => {
-        const on = panel.dataset.evidencePanel === key;
-        panel.classList.toggle('is-active', on);
-        panel.hidden = !on;
-      });
+      activateEvidenceTab(shell, panels, key);
+      try { sessionStorage.setItem(EVIDENCE_TAB_STORAGE_KEY, key || 'proof'); } catch (_) { /* ignore */ }
     });
   });
 
   wrap.dataset.evidenceTabsMounted = '1';
+  restoreEvidenceTabFromSession(wrap);
   if (new URLSearchParams(window.location.search).get('from') === 'proof') {
     wrap.open = true;
   }

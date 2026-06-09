@@ -24,6 +24,18 @@ function chipHtml(chip) {
     </article>`;
 }
 
+export function renderPICompactBadge(brief) {
+  const strip = brief?.meta?.piConfidence;
+  if (!strip) return '';
+  const c = strip.counts || {};
+  const pct = strip.confidencePct;
+  const noData = pct == null && !strip.trusted;
+  const trustLabel = noData ? 'Not set' : strip.trusted ? 'Trusted' : 'Limited';
+  const committed = c.committed ?? 0;
+  const tierCls = strip.trusted ? 'is-trusted' : noData ? 'is-nodata' : 'is-limited';
+  return `<span class="gov-pi-compact-badge ${tierCls}" data-pi-compact-badge="1" title="${escapeHtml(GOV_TOOLTIPS.piConfidence)}">PI: ${escapeHtml(trustLabel)} · ${committed} committed</span>`;
+}
+
 export function renderPIConfidenceStrip(brief) {
   const strip = brief?.meta?.piConfidence;
   if (!strip) return '';

@@ -9,7 +9,7 @@ import { setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Contr
 import { normalizeProjectsCsv } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
-import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { fetchQuartersListMemo } from './Delivera-Shared-Quarters-List-01Fetch-Memo.js';
 import {
@@ -19,6 +19,12 @@ import {
 } from './Delivera-App-Governance-Brief-ScopeBar-02ProjectQuarter-Selector-UI.js';
 
 const LAST_VERDICT_KEY = 'delivera_lastVerdictTier';
+const GOV_PERIOD_WINDOW_KEY = 'gov-period-window';
+const PERIOD_OPTIONS = [
+  { id: '14d', label: COPY.period14d },
+  { id: '28d', label: COPY.period28d },
+  { id: 'pi', label: COPY.periodPi },
+];
 
 function readProjects() {
   const list = readSharedProjectsCsv();
@@ -63,6 +69,10 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let boardsWarn = '';
   let loadBriefSeq = 0;
   let validateTimer = null;
+  let periodWindow = '28d';
+  try {
+    periodWindow = String(sessionStorage.getItem(GOV_PERIOD_WINDOW_KEY) || '28d').toLowerCase();
+  } catch (_) { periodWindow = '28d'; }
 
   try {
     statusTier = localStorage.getItem(LAST_VERDICT_KEY) || 'watch';
@@ -98,8 +108,15 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       ? '<p class="gov-scope-access-banner" role="status">Jira access not confirmed for any catalog project — selections kept locally.</p>'
       : '';
 
+    const periodChips = PERIOD_OPTIONS.map((p) => (
+      `<button type="button" class="gov-period-chip${periodWindow === p.id ? ' is-on' : ''}" data-period-chip="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
+    )).join('');
+
     mount.innerHTML = `
       ${accessBanner}
+      <div class="gov-scope-period-row" role="group" aria-label="Period window">${periodChips}
+        <button type="button" class="gov-investment-chip btn btn-link btn-compact" data-investment-open="1">${escapeHtml(COPY.investmentLens)}</button>
+      </div>
       <div class="gov-scope-capsule" aria-label="Brief scope">
         <span class="gov-scope-capsule-text">Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}</span>
         <span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${escapeHtml(queuePart)}${deltaPart}${reviewPart}</span>
@@ -174,6 +191,20 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     });
     mount.querySelector('#gov-scope-advanced')?.addEventListener('click', () => onOpenDrawer?.());
     mount.querySelector('#gov-scope-baseline')?.addEventListener('click', () => baselineWizard?.open());
+    mount.querySelectorAll('[data-period-chip]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        periodWindow = btn.getAttribute('data-period-chip') || '28d';
+        try { sessionStorage.setItem(GOV_PERIOD_WINDOW_KEY, periodWindow); } catch (_) { /* ignore */ }
+        render();
+        setLoadBriefForce(true);
+        onRefresh?.({ force: true });
+      });
+    });
+    mount.querySelector('[data-investment-open]')?.addEventListener('click', () => {
+      import('./Delivera-App-Governance-Brief-17Render-InvestmentDrawer-UI.js').then((m) => {
+        m.openInvestmentDrawer(govPage.lastBrief);
+      });
+    });
   }
 
   function scheduleValidateSelected(immediate = false) {
@@ -226,7 +257,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   loadCatalogAccess();
   scheduleValidateSelected(true);
 
-  fetchQuartersListMemo(20, { includeCached: true })
+  fetchQuartersListMemo(8, { includeCached: true })
     .then((data) => {
       quarters = Array.isArray(data?.quarters) ? data.quarters : [];
       const current = quarters.find((q) => q.isCurrent);
@@ -257,6 +288,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   return {
     getProjects: () => [...selected],
     getQuarterLabel: () => activeQuarter,
+    getPeriodWindow: () => periodWindow,
     refreshCapsule: () => render(),
     openBaselineWizard: () => baselineWizard?.open(),
     openPiBaselineWizard: () => baselineWizard?.open(),

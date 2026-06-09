@@ -2,15 +2,23 @@
  * Governance brief — proof, nudge, cluster, and command bindings.
  */
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
+import { bindRiskHeatInteractions } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
 import { commandAnswerSentence, riskToUseCase } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { buildGuidedNudgeText } from './Delivera-CurrentSprint-Action-Bridge.js';
+import { buildGuidedNudgeText, getCurrentSprintPayload } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { govPage, MARK_WRONG_REASONS, openPiBaselineWizard, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js';
+import { buildSquadNudgeDraft } from './Delivera-Governance-SquadNudge-01Draft-SSOT.js';
 
 function riskByProofIndex(idx) {
   return govPage.proofRisks[Number(idx)];
+}
+
+function resolveGovernanceTeamRoster() {
+  return govPage.lastBrief?.meta?.teamRoster
+    || getCurrentSprintPayload()?.meta?.teamRoster
+    || [];
 }
 
 function riskByDoNowIndex(idx) {
@@ -77,7 +85,7 @@ function openNudgeBox(idx) {
     useCase: riskToUseCase(risk.riskType),
     staleHours: risk.ageHours,
     readOnly: stale,
-    meta: { stale, governanceSend: !stale },
+    meta: { stale, governanceSend: !stale, teamRoster: resolveGovernanceTeamRoster() },
     sprint: null,
     initialDraft: draft,
     contextHeader: `To: ${who} · Why: ${whyItMatters(risk).slice(0, 80)}`,
@@ -111,9 +119,33 @@ function buildGroupedNudgeDraft(g) {
   const first = g.issues.find((r) => r.issueKey) || g.issues[0];
   if (!first) return '';
   const base = draftNudgeText(first);
+  const impact = first.impactLine ? `\nImpact: ${first.impactLine}` : '';
+  const squad = first.squad ? `\nSquad: ${first.squad}` : '';
   const extra = keys.length > 1 ? `\n\nRelated: ${keys.join(', ')}` : '';
   const lane = g.decisionLane ? `\nLane: ${g.decisionLane}` : '';
-  return `${base}${extra}${lane}`;
+  const riskType = first.riskType ? `\nType: ${first.riskType}` : '';
+  return `${base}${impact}${squad}${riskType}${extra}${lane}`;
+}
+
+export function openSquadNudge(squad, issueKeyOverride = '') {
+  if (!squad) return;
+  const stale = govPage.lastBrief?.freshness?.confidenceLimit === 'stale';
+  const risks = squad.cardRisks || [];
+  const topKey = issueKeyOverride || risks[0]?.issueKey || '';
+  if (!topKey) return;
+  const topRisk = risks.find((r) => r.issueKey === topKey) || risks[0] || {};
+  openJiraNudgeReviewSheet({
+    issueKey: topKey,
+    issueSummary: topRisk.displayTitle || squad.statusLine,
+    issueStatus: '',
+    issueUrl: '',
+    useCase: 'ownership',
+    readOnly: stale,
+    meta: { stale, governanceSend: !stale, teamRoster: resolveGovernanceTeamRoster() },
+    sprint: null,
+    initialDraft: buildSquadNudgeDraft(squad, govPage.lastBrief),
+    contextHeader: `${squad.projectKey || 'Squad'} · ${COPY.nudgeSmPo}`,
+  });
 }
 
 function openGroupedNudge(groupIndex) {
@@ -131,7 +163,7 @@ function openGroupedNudge(groupIndex) {
     useCase: riskToUseCase(first.riskType),
     staleHours: first.ageHours,
     readOnly: stale,
-    meta: { stale, governanceSend: !stale },
+    meta: { stale, governanceSend: !stale, teamRoster: resolveGovernanceTeamRoster() },
     sprint: null,
     initialDraft: buildGroupedNudgeDraft(g),
     contextHeader: `To: ${who} · ${g.issues.length} items · ${g.commonReason || 'needs follow-up'}`,
@@ -255,7 +287,11 @@ export function openInboxNudgeReview(item) {
     useCase: riskToUseCase(payload.riskType || item.type),
     staleHours: payload.ageHours,
     readOnly: govPage.lastBrief?.freshness?.confidenceLimit === 'stale',
-    meta: { stale: govPage.lastBrief?.freshness?.confidenceLimit === 'stale', governanceSend: true },
+    meta: {
+      stale: govPage.lastBrief?.freshness?.confidenceLimit === 'stale',
+      governanceSend: true,
+      teamRoster: resolveGovernanceTeamRoster(),
+    },
     sprint: null,
     initialDraft: draft,
     contextHeader: `To: ${who} · ${item.summary || 'Nudge review'}`,
@@ -330,6 +366,14 @@ export function bindSetupDebtActions() {
     else if (action === 'refresh') document.getElementById('gov-scope-refresh')?.click();
     else if (action === 'review-lanes') govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth' });
   });
+}
+
+export function bindPortfolioHeatMap(root, brief) {
+  if (!root) return;
+  bindRiskHeatInteractions(root, brief, (_keys, squad) => {
+    const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));
+    openEvidenceDrawer(brief, risks);
+  }, (squad, issueKey) => openSquadNudge(squad, issueKey));
 }
 
 export function bindGovernancePageInteractions() {

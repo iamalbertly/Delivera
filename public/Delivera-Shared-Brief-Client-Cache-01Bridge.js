@@ -61,16 +61,21 @@ export function invalidateBriefCacheEntry(projects, quarter = '') {
  * @param {{ projects: string, quarter?: string, force?: boolean }} opts
  * @returns {Promise<object|null>}
  */
-export async function fetchGovernanceBriefCached({ projects, quarter = '', force = false } = {}) {
+export async function fetchGovernanceBriefCached({ projects, quarter = '', periodWindow = '', force = false } = {}) {
   const pk = String(projects || '').trim();
   if (!pk) return null;
+  const periodKey = String(periodWindow || '').toLowerCase();
   if (force) invalidateBriefCacheEntry(pk, quarter);
   if (!force) {
     const hit = readEntry(pk, quarter);
-    if (hit?.brief && briefMatchesProjects(hit.brief, pk)) return hit.brief;
+    if (hit?.brief && briefMatchesProjects(hit.brief, pk)
+      && (!periodKey || String(hit.brief?.meta?.periodWindow || '').toLowerCase() === periodKey)) {
+      return hit.brief;
+    }
   }
   const qs = new URLSearchParams({ projects: pk });
   if (quarter) qs.set('quarter', quarter);
+  if (periodKey) qs.set('periodWindow', periodKey);
   if (force) qs.set('refresh', '1');
   const res = await fetch(`/api/governance-brief.json?${qs.toString()}`, { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

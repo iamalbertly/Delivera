@@ -3,7 +3,8 @@
  */
 import { partitionBriefSurfaces, groupDoNowByOwner } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 import { renderVerdictZone } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
-import { renderPortfolioGrid, bindRiskHeatInteractions } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
+import { renderPortfolioGrid } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
+import { bindPortfolioHeatMap } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import { renderMeasurementStrip } from './Delivera-App-Governance-Brief-10Render-MeasurementStrip-UI.js';
 import { renderMeetingScript } from './Delivera-App-Governance-Brief-11Render-MeetingScript-UI.js';
 import { renderCommandAnswerBar, bindCommandOverflowMenu } from './Delivera-App-Governance-Brief-13Render-CommandAnswerBar-UI.js';
@@ -20,7 +21,7 @@ import { COPY, freshnessPlainEnglish, verdictTierFromBrief } from './Delivera-Ap
 import { setBriefNavBadge } from './Delivera-Shared-Global-Nav.js';
 import { wireGovernanceIssuePreview } from './Delivera-Shared-Issue-Preview-01Bridge.js';
 import { renderGovernanceMicroSurvey } from './Delivera-App-Governance-Brief-12Render-MicroSurvey-UI.js';
-import { renderPIConfidenceStrip } from './Delivera-App-Governance-Brief-19Render-PIConfidenceStrip-UI.js';
+import { renderPICompactBadge, renderPIConfidenceStrip } from './Delivera-App-Governance-Brief-19Render-PIConfidenceStrip-UI.js';
 import { bindEpicHygieneInteractions } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
 import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
@@ -87,10 +88,12 @@ export function renderBriefUi(brief) {
   govPage.lastSurfaces = partitionBriefSurfaces(brief, scopeKeys);
   govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces.drawerIssues);
   const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
+  document.getElementById('main-content')?.classList.toggle('governance-shell--has-clusters', hasOwnerClusters);
   if (govPage.els.piStripMount) {
     const piInner = renderPIConfidenceStrip(brief);
+    const compactBadge = renderPICompactBadge(brief);
     govPage.els.piStripMount.innerHTML = hasOwnerClusters && piInner
-      ? `<details class="gov-pi-strip-fold"><summary>PI confidence</summary>${piInner}</details>`
+      ? `${compactBadge}<details class="gov-pi-strip-fold"><summary>PI confidence</summary>${piInner}</details>`
       : piInner;
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
     govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
@@ -115,22 +118,19 @@ export function renderBriefUi(brief) {
     bindSetupDebtStripExpand(govPage.els.setupDebtMount, brief);
   }
   if (govPage.els.verdictMount) {
-    const verdictInner = isPortfolioMode(brief)
-      ? renderPortfolioGrid(brief)
+    const squadCount = selectedProjects(brief).length;
+    const showHeatMap = isPortfolioMode(brief) || squadCount === 1;
+    const verdictInner = showHeatMap
+      ? renderPortfolioGrid(brief, { singleSquad: squadCount === 1 })
       : renderVerdictZone(brief);
-    const verdictSummary = isPortfolioMode(brief) ? 'Portfolio heat map' : 'Squad verdict';
-    const skipStandaloneVerdict = !isPortfolioMode(brief) && !hasOwnerClusters;
+    const verdictSummary = showHeatMap ? 'Portfolio heat map' : 'Squad verdict';
+    const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
     govPage.els.verdictMount.innerHTML = skipStandaloneVerdict
       ? ''
       : (hasOwnerClusters
         ? `<details class="gov-verdict-fold"><summary>${verdictSummary}</summary>${verdictInner}</details>`
         : verdictInner);
-    if (isPortfolioMode(brief)) {
-      bindRiskHeatInteractions(govPage.els.verdictMount, brief, (_keys, squad) => {
-        const risks = (squad?.cardRisks || []).map((r) => ({ issueKey: r.issueKey, evidence: r.displayTitle }));
-        openEvidenceDrawer(brief, risks);
-      });
-    }
+    if (showHeatMap) bindPortfolioHeatMap(govPage.els.verdictMount, brief);
   }
   if (govPage.els.scriptMount) {
     const scriptHtml = renderMeetingScript(brief);
@@ -174,6 +174,13 @@ export function renderBriefUi(brief) {
     secondaryChrome.classList.toggle('gov-secondary-chrome--has-content',
       Boolean(govPage.els.feedbackLabMount?.innerHTML?.trim() || govPage.els.microSurveyMount?.innerHTML?.trim()));
   }
+  try {
+    if (new URLSearchParams(window.location.search).get('lens') === 'investment') {
+      import('./Delivera-App-Governance-Brief-17Render-InvestmentDrawer-UI.js').then((m) => {
+        m.openInvestmentDrawer(brief);
+      });
+    }
+  } catch (_) { /* ignore */ }
 }
 
 export async function loadBrief(options = {}) {
@@ -184,6 +191,7 @@ export async function loadBrief(options = {}) {
   const seq = ++loadBriefSeq;
   const requested = projectsCsv();
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
+  const periodWindow = govPage.scopeBarApi?.getPeriodWindow?.() || '28d';
   const pk = requested.split(',')[0] || 'MPSA';
   const preserve = hasGovernanceBriefContent();
   showGovernanceLoading(
@@ -200,7 +208,7 @@ export async function loadBrief(options = {}) {
   try {
     const inboxRefresh = govPage.inboxApi?.refresh?.();
     const [brief, feedbackRes] = await Promise.all([
-      fetchGovernanceBriefCached({ projects: requested, quarter, force }),
+      fetchGovernanceBriefCached({ projects: requested, quarter, periodWindow, force }),
       fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`),
       inboxRefresh,
     ]);

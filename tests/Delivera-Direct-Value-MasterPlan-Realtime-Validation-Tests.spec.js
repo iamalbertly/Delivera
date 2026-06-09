@@ -10,24 +10,43 @@ import {
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import { PROJECTS_SSOT_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
 
-function stubBriefBody() {
+function stubBriefBody(overrides = {}) {
   return JSON.stringify({
     briefId: 'test-brief',
     projects: ['SD'],
     leadershipNarrative: { meetingAnswer: 'Delivery is on track for SD.', confidence: 'medium' },
     executiveView: { verdictLabel: 'Watch', businessHeadline: 'One risk needs follow-up.' },
     deliveryTruth: { done: 3, committed: 5 },
-    topRisks: [{ issueKey: 'SD-1', summary: 'Stuck item', assigneeName: 'Alex', recommendedAction: 'Unblock' }],
+    topRisks: [
+      { issueKey: 'SD-1', summary: 'Stuck item', assigneeName: 'Alex', recommendedAction: 'Unblock', escalation: 'act-today' },
+      { issueKey: 'SD-2', summary: 'Blocked review', assigneeName: 'Alex', recommendedAction: 'Review today', escalation: 'act-today' },
+    ],
     freshness: { confidenceLimit: 'live', generatedAt: new Date().toISOString() },
-    meta: { narratedBy: 'template', workerReceipt: { inboxTotal: 0 }, safeToSend: true },
-    evidencePack: { rows: [] },
+    meta: {
+      narratedBy: 'template',
+      workerReceipt: { inboxTotal: 0 },
+      safeToSend: true,
+      piConfidence: {
+        trusted: true,
+        confidencePct: 82,
+        counts: { committed: 12, offPlan: 1, onTrack: 3, missingDates: 0, atRisk: 1 },
+        timelineChips: [],
+      },
+      teamRoster: [
+        { accountId: 'acc-1', displayName: 'Alex Morgan' },
+        { accountId: 'acc-2', displayName: 'Sam Lee' },
+      ],
+      ...overrides.meta,
+    },
+    evidencePack: { rows: [{ issueKey: 'SD-1', statusNow: 'In Progress', statusLastWeek: 'To Do', whyFlagged: 'No update' }] },
+    ...overrides,
   });
 }
 
 test.describe('Direct value master plan realtime validation', () => {
   test.describe.configure({ retries: 0 });
 
-  test('cross-surface direct-value contracts', async ({ page }) => {
+  test('@focused cross-surface direct-value contracts', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.addInitScript((projectsKey) => {
       try { localStorage.setItem(projectsKey, 'SD'); } catch (_) {}
@@ -113,6 +132,42 @@ test.describe('Direct value master plan realtime validation', () => {
       if (await skipIfRedirectedToLogin(page, test)) return;
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
       expect(overflow).toBe(false);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('10 PI compact badge visible when owner clusters exist', async () => {
+      await page.setViewportSize({ width: 1400, height: 900 });
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('[data-pi-compact-badge]')).toBeVisible({ timeout: 20000 });
+      await expect(page.locator('.gov-owner-cluster')).toHaveCount(1, { timeout: 20000 });
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('11 governance nudge shows @mention chips from teamRoster', async () => {
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const nudgeBtn = page.locator('[data-grouped-nudge="0"]');
+      await expect(nudgeBtn).toBeVisible({ timeout: 20000 });
+      await nudgeBtn.click();
+      await expect(page.locator('#delivera-jira-nudge-review-sheet .jira-nudge-mention-row')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.jira-nudge-mention-chip').first()).toContainText(/@/);
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('12 evidence tab restores Plan after reload', async () => {
+      await page.goto('/governance');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      const evidence = page.locator('#gov-supporting-evidence');
+      await evidence.locator('summary').click();
+      await page.locator('[data-evidence-tab="plan"]').click();
+      await expect(page.locator('[data-evidence-tab="plan"]')).toHaveClass(/is-active/);
+      await page.reload();
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('#gov-answer-mount .gov-command-answer')).toBeVisible({ timeout: 20000 });
+      await evidence.locator('summary').click();
+      await expect(page.locator('[data-evidence-tab="plan"]')).toHaveClass(/is-active/);
+      await expect(page.locator('[data-evidence-panel="plan"]')).toHaveClass(/is-active/);
       assertTelemetryClean(telemetry);
     });
   });

@@ -6665,3 +6665,25 @@ body.jira-nudge-review-open { overflow: hidden; }
     gap: 6px;
   }
 }
+
+.sprint-alignment-strip {
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  font-size: 0.86rem;
+}
+.sprint-alignment-list { margin: 8px 0 0; padding-left: 18px; }
+.work-alignment-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.work-alignment-chip--pi { background: #ecfdf5; color: #166534; }
+.work-alignment-chip--offPi { background: #fffbeb; color: #92400e; }
+.work-alignment-chip--adHoc { background: #fef2f2; color: #991b1b; }
+.sprint-blocker-root-cause { margin: 4px 0; font-size: 0.82rem; color: #4b5563; }

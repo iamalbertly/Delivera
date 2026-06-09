@@ -1376,7 +1376,8 @@ async function getCachedGovernanceBrief(projects) {
 }
 
 async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true, includePOReadiness = true }) {
-    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e${includeEvidence ? 1 : 0}:p${includePOReadiness ? 1 : 0}`;
+    const periodWindow = String(req.query?.periodWindow || '28d').toLowerCase();
+    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e${includeEvidence ? 1 : 0}:p${includePOReadiness ? 1 : 0}:w${periodWindow}`;
     const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
     const cachedBrief = cached?.value || cached;
     if (cachedBrief) return { brief: applyCachedFreshness(cachedBrief), cached: true };
@@ -1401,7 +1402,7 @@ async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true
     const providerConfig = resolveProviderConfig(req.headers || {});
     const brief = await assembleGovernanceBrief({
         projects, boards, agileClient, version3Client, fields,
-        period: { vodacomQuarter: null, sprintNames: [] },
+        period: { vodacomQuarter: null, sprintNames: [], periodWindow },
         cache, providerConfig, includeEvidence, includePOReadiness, baseline, profileOverrides,
     });
     await cache.set(cacheKey, brief, GOVERNANCE_BRIEF_TTL_MS, { namespace: GOVERNANCE_NS });
@@ -2620,7 +2621,7 @@ const feedbackRateLimitByIp = (function () {
 
 router.post('/feedback', async (req, res) => {
     try {
-        const { email, message } = req.body || {};
+        const { email, message, category, context } = req.body || {};
         const trimmedMessage = typeof message === 'string' ? message.trim() : '';
         const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '';
         if (!trimmedMessage) return res.status(400).json({ error: 'Message required' });
@@ -2630,6 +2631,8 @@ router.post('/feedback', async (req, res) => {
             submittedAt: new Date().toISOString(),
             email: typeof email === 'string' ? email.trim() : '',
             message: trimmedMessage,
+            category: typeof category === 'string' ? category.trim().slice(0, 64) : '',
+            context: context && typeof context === 'object' ? context : null,
             userAgent: req.headers['user-agent'] || '',
             ip,
             user: (req.session && req.session.user) ? { id: req.session.user.id } : null,

@@ -343,6 +343,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/report,/settings',
   },
+  'tests/Delivera-Value-Retention-MasterPlan-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/report',
+  },
   'tests/Delivera-UX-AllSurfaces-DirectValue-Polish-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'page-ux',

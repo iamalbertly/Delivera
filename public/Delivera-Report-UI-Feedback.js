@@ -37,13 +37,14 @@ export function initFeedbackPanel() {
     feedbackToggle.addEventListener('click', () => toggleFeedbackPanel(feedbackPanel, feedbackStatus));
   }
 
-  // Keyboard shortcut: press 'f' to open feedback unless typing in an input/textarea
-  window.addEventListener('keydown', (ev) => {
-    if (ev.key === 'f' && (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) === false)) {
-      ev.preventDefault();
-      toggleFeedbackPanel(feedbackPanel, feedbackStatus, true);
-    }
-  });
+  if (!document.body?.classList?.contains('has-top-chrome')) {
+    window.addEventListener('keydown', (ev) => {
+      if (ev.key === 'f' && (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) === false)) {
+        ev.preventDefault();
+        toggleFeedbackPanel(feedbackPanel, feedbackStatus, true);
+      }
+    });
+  }
 
   if (feedbackCancel) {
     feedbackCancel.addEventListener('click', () => toggleFeedbackPanel(feedbackPanel, feedbackStatus, false));

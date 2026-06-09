@@ -129,6 +129,7 @@ export function renderCurrentSprintPage(data) {
     return html;
   }
 
+  html += '<div id="sprint-alignment-strip-mount"></div>';
   html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean">';
 
   if (hasStories) {

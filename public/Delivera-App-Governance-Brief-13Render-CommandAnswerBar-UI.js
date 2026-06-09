@@ -63,8 +63,8 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     : sentence;
   const freshLabel = fresh || 'live Jira';
   const trustBadge = narratedBy === 'advisor'
-    ? `<span class="gov-narration-badge gov-narration-badge--advisor" title="Clearer wording from AI · facts unchanged">Clearer wording</span>`
-    : `<span class="gov-narration-badge gov-narration-badge--template" title="Based on ${escapeHtml(freshLabel)}">Standard wording</span>`;
+    ? `<span class="gov-narration-badge gov-narration-badge--advisor" title="Clearer wording from AI · facts unchanged">${escapeHtml(COPY.clearerWording)}</span>`
+    : `<span class="gov-narration-badge gov-narration-badge--template" title="Based on ${escapeHtml(freshLabel)}">${escapeHtml(COPY.standardWording)}</span>`;
   const aiStrip = narratedBy === 'advisor'
     ? renderAiContributionStrip(brief?.meta?.aiContribution || {})
     : '';

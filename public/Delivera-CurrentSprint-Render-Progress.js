@@ -13,6 +13,7 @@ import {
   showSprintActionToast,
 } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import {
   buildDeliveredImpactBullets,
   deriveBusinessOutcome,
@@ -395,11 +396,18 @@ export function renderStories(data) {
       panelHtml += '<div class="sprint-blocker-top">'
         + '<strong>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + ' ' + escapeHtml(row.summary || '') + '</strong>'
         + '</div>';
+      const hours = Number(row.hoursInStatus || 0);
+      const rootCause = hours >= 24
+        ? `Status unchanged ${Math.round(hours)}h — likely blocking sprint flow`
+        : 'Needs ownership or unblock decision';
+      const likelyOwner = ownerRaw && !isOrphan ? ownerRaw : (row.reporter || 'Unassigned');
+      panelHtml += '<p class="sprint-blocker-root-cause" data-blocker-root-cause="1">' + escapeHtml(rootCause) + '</p>';
       panelHtml += '<div class="sprint-blocker-meta">'
-        + '<span class="sprint-blocker-owner' + (isOrphan ? ' sprint-blocker-owner--missing' : '') + '" data-blocker-owner>Owner: ' + escapeHtml(ownerDisplay) + '</span>'
+        + '<span class="sprint-blocker-owner' + (isOrphan ? ' sprint-blocker-owner--missing' : '') + '" data-blocker-owner>' + escapeHtml(COPY.likelyOwner) + ': ' + escapeHtml(likelyOwner) + '</span>'
         + '<span class="sprint-blocker-age ' + escapeHtml(ageTone) + '" data-blocker-age>' + escapeHtml(ageLabel) + '</span>'
         + (isFormerRep ? '<span class="sprint-blocker-former-reporter" data-former-reporter>Reporter deactivated</span>' : '')
         + '</div>';
+      panelHtml += '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(row.issueKey || row.key || '') + '">Review nudge</button>';
       panelHtml += '</article>';
     });
     panelHtml += '</div></article>';

@@ -5,7 +5,7 @@
 //   node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.current-sprint
 //   node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.ux-core -- --grep "some pattern"
 
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { journeyBuckets, getJourneySpecs } from './Delivera-Tests-Journey-Buckets-Map-SSOT.js';
@@ -40,6 +40,17 @@ async function main() {
   if (!specs.length) {
     console.error(`Unknown or empty journey bucket: ${journeyId}`);
     printUsageAndExit();
+    return;
+  }
+
+  const cssBuild = spawnSync('npm', ['run', 'build:css'], {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+  if (cssBuild.status !== 0) {
+    console.error(`\n[${new Date().toISOString()}] FAILED CSS build before journey ${journeyId}\n`);
+    process.exit(cssBuild.status || 1);
     return;
   }
 

@@ -2,6 +2,8 @@ import { refreshNotificationDockFromStore } from './Delivera-Shared-Notification
 import { updateNotificationStore } from './Delivera-CurrentSprint-Notifications-Helpers.js';
 import { showContent } from './Delivera-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Delivera-CurrentSprint-Render-Page.js';
+import { mountAlignmentStrip } from './Delivera-CurrentSprint-Alignment-01Strip-UI.js';
+import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
 import { wireHeaderBarHandlers, relocateSprintScopeIntoHeaderBar } from './Delivera-CurrentSprint-Header-Bar.js';
@@ -322,6 +324,21 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireSectionLinks();
   collapseMobileDetailsSections();
   applyInitialHashFocus();
+  void mountAlignmentStrip(document.getElementById('sprint-alignment-strip-mount'), data);
+  document.querySelector('.sprint-blockers-panel')?.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-blocker-nudge]');
+    if (!btn) return;
+    const issueKey = btn.getAttribute('data-blocker-nudge') || '';
+    if (!issueKey) return;
+    const roster = data?.meta?.teamRoster || [];
+    openJiraNudgeReviewSheet({
+      issueKey,
+      useCase: 'blocker',
+      meta: { teamRoster: roster, governanceSend: false },
+      sprint: data?.sprint,
+      initialDraft: `${issueKey}: blocked ${Math.round(Number(data?.stuckCandidates?.find((c) => c.issueKey === issueKey)?.hoursInStatus || 0))}h — can we unblock today?`,
+    });
+  });
 }
 
 export function showCurrentSprintRenderedContent(data, onSelectSprintById, options = {}) {

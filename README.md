@@ -92,7 +92,10 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
 | `npm run test:all` | Full fail-fast orchestration |
+| `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
+| `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan cross-surface validation |
+| `npm run test:journey:value-retention` | Value retention master plan (feedback, squad leaderboard, alignment, investment) |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
 | `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync, Refresh bypass |
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
@@ -101,6 +104,8 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run vercel:deploy` | Manual Vercel deploy after `vercel login` |
 
 Orchestration, journeys, and `SKIP_WEBSERVER`: [`TESTING.md`](TESTING.md)
+
+**Journey buckets (SSOT):** Spec-to-journey mapping lives in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js`. Run a bucket with `node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId>` (e.g. `journey.ux-core`, `journey.governance`) or the matching `npm run test:journey:*` alias. The journey runner builds CSS before Playwright. `npm run test:focused` runs only specs tagged `@focused` in the test title.
 
 ## CSS contract
 

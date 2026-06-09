@@ -474,7 +474,7 @@ function initReportPage() {
       + '<details class="report-header-more-menu">'
       + '<summary class="btn btn-secondary btn-compact" aria-label="More report actions">More</summary>'
       + '<div class="report-header-more-panel" role="group" aria-label="Secondary report actions">'
-      + '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>'
+      + (hasTopChrome ? '' : '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>')
       + '</div>'
       + '</details>';
     wrap.querySelector('#report-header-preview-btn')?.addEventListener('click', () => {
