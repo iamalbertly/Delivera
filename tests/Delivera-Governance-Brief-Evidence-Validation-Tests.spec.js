@@ -176,6 +176,26 @@ test.describe('Governance Brief - deterministic logic (mocked Jira)', () => {
     }
   });
 
+  test('evidence pack skips Jira fetch when issueKey is empty', async () => {
+    const fetchSpy = { calls: 0 };
+    const version3Client = {
+      issues: {
+        getIssue: async () => {
+          fetchSpy.calls += 1;
+          return { key: 'SHOULD-NOT-FETCH' };
+        },
+      },
+    };
+    const pack = await buildEvidencePack({
+      risks: [{ issueKey: '', summary: 'Missing key risk' }],
+      version3Client,
+    });
+    expect(fetchSpy.calls).toBe(0);
+    expect(pack.degraded).toBe(true);
+    expect(pack.rows).toHaveLength(1);
+    expect(pack.rows[0].skipReason).toBe('no-issue-key');
+  });
+
   test('PI baseline diff classifies delivered, removed, and added-after-baseline', () => {
     const baseline = {
       piName: 'MPSA+MAS', baselineDate: '2026-04-01',

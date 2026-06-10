@@ -110,7 +110,7 @@ export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge
   const staleNote = isStale ? ` · ${COPY.portfolioStaleHint}` : '';
   if (singleSquad && squads.length === 1) {
     const selected = Array.isArray(brief?.projects) ? brief.projects.map((p) => String(p).toUpperCase()) : [];
-    const compareCandidates = readCatalogKeys().filter((pk) => !selected.includes(pk)).slice(0, 5);
+    const compareCandidates = readCatalogKeys().filter((pk) => !selected.includes(pk)).slice(0, 3);
     const compareTray = compareCandidates.length
       ? `<div class="gov-compare-add-tray" data-compare-add-tray="1" role="group" aria-label="Add squad to compare">
           <span class="gov-scope-label">Add to compare</span>

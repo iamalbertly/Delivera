@@ -168,10 +168,10 @@ test.describe('Governance click friction master plan', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('04 desktop proof cluster highlights rail', async () => {
+    await test.step('04 desktop proof cluster opens evidence drawer', async () => {
       await expect(page.locator('[data-proof-cluster]')).toBeVisible({ timeout: 15000 });
       await page.locator('[data-proof-cluster]').first().click();
-      await expect(page.locator('#gov-right-rail-proof-mount .gov-evidence-preview')).toBeVisible();
+      await expect(page.locator('.gov-right-drawer-panel, #gov-supporting-evidence[open]').first()).toBeVisible({ timeout: 10000 });
       assertTelemetryClean(telemetry);
     });
 
@@ -206,6 +206,7 @@ test.describe('Governance click friction master plan', () => {
       await expect(drawer).toBeVisible();
       await drawer.locator('.gov-scope-mobile-project-check[value="MAS"]').check();
       await drawer.locator('.gov-scope-mobile-project-check[value="SD"]').uncheck();
+      await drawer.locator('[data-scope-sheet-apply="1"]').click();
       await page.waitForTimeout(900);
       const stored = await page.evaluate(() => localStorage.getItem('delivera_selectedProjects') || '');
       expect(stored.toUpperCase()).toMatch(/MAS/);

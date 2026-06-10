@@ -90,6 +90,14 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   const aiStrip = narratedBy === 'advisor'
     ? renderAiContributionStrip(brief?.meta?.aiContribution || {})
     : '';
+  const trustLineParts = [
+    `Trust ${trustTierLabel(brief)}`,
+    hasOwnerClusters ? null : `Proof ${evidenceCount} keys`,
+    `Data ${fresh}`,
+    `<a href="/settings#gov-ai-helper">${escapeHtml(narratedBy === 'advisor' ? 'AI helped' : 'Templates')}</a>`,
+    escapeHtml(readiness.label),
+  ].filter(Boolean);
+  const trustLine = `<p class="gov-trust-line" aria-label="Trust summary">${trustLineParts.join(' · ')}</p>`;
 
   const showReviewActions = !hasOwnerClusters && !showDoFirstStrip && itemCount > 0;
   const reviewActionsBtn = showReviewActions
@@ -116,17 +124,10 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
         </div>` : ''}
       </div>
       ${doFirstStrip}
-      <div class="gov-trust-chip-row" role="group" aria-label="Trust summary">
-        <span class="gov-trust-part gov-trust-part--primary" data-hover-proof="trust" title="Can I trust this answer?">Trust ${escapeHtml(trustTierLabel(brief))}</span>
-        ${hasOwnerClusters ? '' : `<span class="gov-trust-part" data-hover-proof="evidence-count">Proof ${evidenceCount}</span>
-        <span class="gov-trust-part" data-hover-proof="freshness">Data ${escapeHtml(fresh)}</span>
-        <a class="gov-trust-part gov-trust-part--link" href="/settings#gov-ai-helper" data-hover-proof="ai">${escapeHtml(narratedBy === 'advisor' ? 'AI helped' : 'Templates')}</a>`}
-        <span class="gov-send-badge gov-send-badge--${readiness.tier}" data-hover-proof="safe-send">${escapeHtml(readiness.label)}</span>
-      </div>
+      ${hasOwnerClusters ? '' : trustLine}
       ${detailLine ? `<p class="gov-command-answer-detail">${escapeHtml(detailLine.slice(0, 200))}</p>` : ''}
       <div class="gov-command-actions">
         ${reviewActionsBtn}
-        <button type="button" class="btn btn-secondary btn-compact" id="gov-copy-answer-inline">Copy answer</button>
         <div class="gov-overflow-menu-wrap">
           <button type="button" class="btn btn-secondary btn-compact" id="gov-overflow-toggle" aria-expanded="false" aria-haspopup="true">${escapeHtml(COPY.overflowMore)}</button>
           <div class="gov-overflow-menu" id="gov-overflow-menu" hidden role="menu">

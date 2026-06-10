@@ -277,7 +277,9 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
       </li>`;
     }).join('');
     const preview = `<ul class="gov-inbox-inline-preview" data-inbox-inline="1" aria-label="Top queue items">${rows}</ul>`;
-    const chip = `<button type="button" class="gov-queue-chip gov-queue-chip--secondary" data-queue-open="1" aria-label="Open full agent queue">All queue (${total})</button>`;
+    const chip = total > 3
+      ? `<button type="button" class="gov-queue-chip gov-queue-chip--secondary" data-queue-open="1" aria-label="Open full agent queue">All queue (${total})</button>`
+      : '';
     return { preview, chip };
   }
 

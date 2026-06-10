@@ -39,7 +39,8 @@ export function renderOwnerActionClusters(brief, groups = []) {
         <span class="gov-cluster-lead-title">${escapeHtml(leadIssue.displayTitle || leadIssue.summary || '')}</span>
       </div>` : '';
     const issueRows = restIssues.map(renderIssueRow).join('');
-    const toggleBtn = restIssues.length
+    const showRestExpanded = gi === 0 && restIssues.length > 0 && restIssues.length <= 3;
+    const toggleBtn = restIssues.length > 3
       ? `<button type="button" class="btn btn-secondary btn-compact" data-cluster-toggle="${gi}" aria-expanded="false">+${restIssues.length} more</button>`
       : '';
     return `
@@ -49,10 +50,10 @@ export function renderOwnerActionClusters(brief, groups = []) {
             <h3 class="gov-owner-cluster-name">${escapeHtml(name)} · ${g.issues.length} action${g.issues.length > 1 ? 's' : ''}</h3>
             <p class="gov-owner-cluster-meta">${escapeHtml(g.decisionLane || 'Decision lane')} · ${escapeHtml(g.commonReason || '')}</p>
           </div>
-          <span class="gov-send-badge gov-send-badge--${clusterReadiness.tier}" data-hover-proof="safe-send">${escapeHtml(clusterReadiness.label)}</span>
+          <span class="gov-send-badge gov-send-badge--${clusterReadiness.tier}">${escapeHtml(clusterReadiness.label)}</span>
         </header>
         ${leadRow}
-        <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}" data-hover-proof="evidence-count">${escapeHtml(proofText)}</button>
+        <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}">${escapeHtml(proofText)}</button>
         <div class="gov-owner-cluster-actions">
           <button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-nudge="${gi}" title="${escapeHtml(COPY.inboxReview)}">✉ ${escapeHtml(COPY.draftNudge)}</button>
           ${toggleBtn}
@@ -61,7 +62,7 @@ export function renderOwnerActionClusters(brief, groups = []) {
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="irrelevant" title="Irrelevant">✕</button>
           </div>
         </div>
-        <ul class="gov-cluster-issues" data-cluster-issues="${gi}" hidden>${issueRows}</ul>
+        <ul class="gov-cluster-issues" data-cluster-issues="${gi}"${showRestExpanded ? '' : ' hidden'}>${issueRows}</ul>
       </article>`;
   }).join('');
   return `<section class="gov-action-clusters" aria-label="${escapeHtml(COPY.doNow)}">${cards}</section>`;

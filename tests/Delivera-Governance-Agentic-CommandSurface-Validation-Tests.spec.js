@@ -316,7 +316,7 @@ test.describe('Governance command surface — UI', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-copy-answer-inline').click();
-    await expect(page.locator('#gov-copy-answer-inline')).toContainText(/Copied/i);
+    await page.locator('#gov-copy-answer-scope').click();
+    await expect(page.locator('#gov-copy-answer-scope')).toContainText(/Copied/i);
   });
 });

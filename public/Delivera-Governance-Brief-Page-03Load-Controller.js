@@ -27,6 +27,7 @@ import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-Ho
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
 import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { updateGlobalAgentBar, updateStickyMicroAnswer } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
+import { readSharedProjectsCsv, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {
   govPage, openPiBaselineWizard, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
 } from './Delivera-Governance-Brief-Page-01Context.js';
@@ -262,10 +263,34 @@ function maybeAutoOpenPiBaseline(brief) {
   setTimeout(() => openPiBaselineWizard(), 400);
 }
 
+function renderNeedsScopePicker() {
+  hideGovernanceLoading();
+  document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'needs-scope');
+  if (govPage.els.answerMount) {
+    govPage.els.answerMount.innerHTML = `
+      <section class="gov-needs-scope" aria-label="Choose squad scope">
+        <p class="governance-empty">Pick at least one squad to load your delivery answer.</p>
+        <button type="button" class="btn btn-primary btn-compact" id="gov-needs-scope-open">Choose scope</button>
+      </section>`;
+    govPage.els.answerMount.querySelector('#gov-needs-scope-open')?.addEventListener('click', () => {
+      document.getElementById('gov-scope-change')?.click();
+    });
+  }
+  govPage.scopeBarApi?.expandScopePanel?.();
+}
+
 export async function loadBrief(options = {}) {
   const force = options.force === true || loadBriefForce;
   loadBriefForce = false;
   govPage.els.error.hidden = true;
+  if (!readSharedProjectsCsv().length) {
+    try {
+      if (localStorage.getItem(PROJECTS_SSOT_KEY) === '') {
+        renderNeedsScopePicker();
+        return;
+      }
+    } catch (_) { /* ignore */ }
+  }
   const seq = ++loadBriefSeq;
   const requested = projectsCsv();
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
@@ -345,7 +370,7 @@ async function fetchImpactSection() {
 
 export async function copyBrief(options = {}) {
   if (!govPage.lastBrief) return;
-  const triggerEl = options.triggerEl || document.getElementById('gov-copy-answer-scope') || document.getElementById('gov-copy-answer-inline');
+  const triggerEl = options.triggerEl || document.getElementById('gov-copy-answer-scope');
   const labelDefault = options.sentenceOnly ? 'Copy answer' : 'Copy answer';
   const text = options.sentenceOnly
     ? commandAnswerSentence(govPage.lastBrief)
@@ -356,13 +381,6 @@ export async function copyBrief(options = {}) {
       const prior = triggerEl.textContent;
       triggerEl.textContent = 'Copied';
       setTimeout(() => { triggerEl.textContent = prior || labelDefault; }, 1500);
-    }
-    if (!options.sentenceOnly) {
-      const inline = document.getElementById('gov-copy-answer-inline');
-      if (inline && inline !== triggerEl) {
-        inline.textContent = 'Copied';
-        setTimeout(() => { inline.textContent = 'Copy answer'; }, 1500);
-      }
     }
   } catch (_) {
     if (triggerEl) triggerEl.textContent = 'Select text below';

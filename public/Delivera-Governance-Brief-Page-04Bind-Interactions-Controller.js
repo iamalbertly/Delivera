@@ -221,14 +221,12 @@ export function bindOwnerClusterInteractions() {
     const proof = event.target.closest('[data-proof-cluster]');
     if (proof) {
       const gi = Number(proof.getAttribute('data-proof-cluster'));
+      openEvidenceDrawer(govPage.lastBrief, govPage.ownerGroups[gi]?.issues || []);
       const rail = document.getElementById('gov-right-rail-proof-mount');
       if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {
-        rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
         rail.classList.add('gov-proof-rail-highlight');
         setTimeout(() => rail.classList.remove('gov-proof-rail-highlight'), 1200);
-        return;
       }
-      openEvidenceDrawer(govPage.lastBrief, govPage.ownerGroups[gi]?.issues || []);
       return;
     }
     const nudge = event.target.closest('[data-grouped-nudge]');
@@ -329,13 +327,6 @@ export function bindCommandAnswerActions() {
     const review = event.target.closest('#gov-review-actions');
     if (review) {
       govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    const copyBtn = event.target.closest('#gov-copy-answer-inline');
-    if (copyBtn && govPage.lastBrief) {
-      const { copyBrief } = await import('./Delivera-Governance-Brief-Page-03Load-Controller.js');
-      await copyBrief({ triggerEl: copyBtn, sentenceOnly: true });
-      await recordNarrationIfAdvisor();
       return;
     }
     if (event.target.closest('#gov-fix-setup')) {

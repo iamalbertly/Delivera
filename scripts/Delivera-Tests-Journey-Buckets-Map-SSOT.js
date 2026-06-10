@@ -373,6 +373,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance',
   },
+  'tests/Delivera-Governance-Growth-MasterPlan-Round2-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-growth-masterplan-round2',
+    layer: 'cross-surface-ux',
+    page: '/governance',
+  },
   'tests/Delivera-UX-AllSurfaces-DirectValue-Polish-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'page-ux',
@@ -618,6 +623,13 @@ export const journeyBuckets = {
     label: 'Governance Click Friction – Mobile scope sheet, copy SSOT, proof clicks',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.governance-click-friction-masterplan',
+    ),
+  },
+  'journey.governance-growth-masterplan-round2': {
+    id: 'journey.governance-growth-masterplan-round2',
+    label: 'Governance Growth Round 2 – Direct-to-value friction fixes',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-growth-masterplan-round2',
     ),
   },
   'journey.shell-direct-value': {

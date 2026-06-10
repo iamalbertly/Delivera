@@ -96,7 +96,12 @@ function runProofAction(key, brief) {
   return false;
 }
 
+function isTouchPrimaryDevice() {
+  return typeof window !== 'undefined' && window.matchMedia?.('(hover: none)').matches;
+}
+
 function bindHoverEl(el, brief, getHtml, proofKey) {
+  if (isTouchPrimaryDevice() && proofKey) return;
   const pop = ensurePopover();
   let hideTimer = null;
   const isLink = el.tagName === 'A' && el.getAttribute('href');
