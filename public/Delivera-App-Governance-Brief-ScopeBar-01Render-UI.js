@@ -161,9 +161,13 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         closeDrawer?.();
       });
     }
-    root.querySelector('#gov-scope-advanced')?.addEventListener('click', () => {
-      closeDrawer?.();
-      onOpenDrawer?.();
+    root.querySelectorAll('.gov-scope-advanced-inline')?.forEach((details) => {
+      details.addEventListener('toggle', () => {
+        if (!details.open) return;
+        const inline = details.querySelector('[data-scope-intel-inline]');
+        if (!inline || inline.innerHTML) return;
+        onOpenDrawer?.();
+      });
     });
     root.querySelectorAll('[data-period-chip]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -267,24 +271,29 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     mount.innerHTML = `
       ${accessBanner}
       <p id="gov-extension-trust-hint" class="gov-extension-trust-hint" role="status" hidden>Browser extension noise detected — Delivera data is unaffected.</p>
-      <div class="gov-scope-capsule" aria-label="Brief scope">
-        <span class="gov-scope-capsule-text">${capsuleText}</span>
-        ${readinessPill}
-        ${statusChipEl}
-        <div class="gov-scope-actions" role="group" aria-label="Scope actions">
-          <button type="button" id="gov-copy-answer-scope" class="btn btn-secondary btn-compact">Copy answer</button>
-          <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
+      <div class="gov-scope-flat-row" aria-label="Brief scope">
+        <div class="gov-scope-summary-strip">
+          <span class="gov-scope-capsule-text">${capsuleText}</span>
+          ${readinessPill}
+          ${statusChipEl}
+          <div class="gov-scope-actions" role="group" aria-label="Scope actions">
+            <button type="button" id="gov-copy-answer-scope" class="btn btn-secondary btn-compact">Copy answer</button>
+            <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
+          </div>
         </div>
-      </div>
-      <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}" data-scope-expanded-visible="1">
-        ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, advancedWarnCount, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip, periodWindow })}
+        <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}" data-scope-expanded-visible="1">
+          ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, advancedWarnCount, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip, periodWindow })}
+        </div>
       </div>`;
 
     bindScopePanelInteractions(mount.querySelector('#gov-scope-expanded'));
     mount.querySelector('[data-scope-status-action]')?.addEventListener('click', async () => {
-      const { executeFirstClusterNudge, scrollToFirstClusterNudge } = await import('./Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js');
+      const chip = mount.querySelector('[data-scope-status-action]');
+      chip?.setAttribute('data-scope-status-active', '1');
+      setTimeout(() => chip?.removeAttribute('data-scope-status-active'), 1200);
+      const { executeFirstClusterNudge, focusFirstClusterNudge } = await import('./Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js');
       if (statusTier === 'onTrack' || statusTier === 'on-track') {
-        scrollToFirstClusterNudge();
+        focusFirstClusterNudge();
         return;
       }
       executeFirstClusterNudge();
@@ -398,8 +407,10 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     refreshCapsule: () => render(),
     openBaselineWizard: () => baselineWizard?.open(),
     openPiBaselineWizard: () => baselineWizard?.open(),
-    scrollScopeIntoView: () => {
-      mount.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    focusScopeBar: () => {
+      const target = mount.querySelector('#gov-scope-expanded [data-project], #gov-scope-expanded .gov-scope-mobile-project-check')
+        || mount.querySelector('.gov-scope-capsule-text');
+      target?.focus?.({ preventScroll: true });
     },
     updateStatus(tier, queue = 0, sinceSummary = '', confirms = 0) {
       statusTier = tier || 'watch';

@@ -20,25 +20,26 @@ function cardRow(card) {
     </li>`;
 }
 
-export function openScopeIntelligenceDrawer(brief, { onApplyFilter } = {}) {
+function scopeIntelligenceBodyHtml(brief) {
   const scope = brief?.meta?.scopeIntelligence || {};
   const cards = scope.cards || [];
   const filters = SCOPE_FILTER_PRESETS.map((f) => `
     <button type="button" class="gov-scope-filter-chip" data-filter="${escapeHtml(f.id)}">${escapeHtml(f.label)}</button>`).join('');
-
-  const body = `
+  return `
     <p class="gov-scope-drawer-line">${escapeHtml(scope.capsuleLine || '')}</p>
     <div class="gov-scope-filter-row" role="group" aria-label="Scope filters">${filters}</div>
     <ul class="gov-scope-card-list" role="list">${cards.map(cardRow).join('')}</ul>
     ${scope.failedProjects ? `<p class="gov-scope-warn">${scope.failedProjects} project(s) could not load boards.</p>` : ''}
     ${(scope.projectErrors || []).map((e) => `<p class="gov-scope-warn">${escapeHtml(e.projectKey)}: ${escapeHtml(e.error || 'unavailable')}</p>`).join('')}`;
+}
 
-  const { close, el } = openRightDrawer({
-    title: 'Scope intelligence',
-    bodyHtml: `${body}<p><button type="button" class="btn btn-primary btn-compact" id="gov-scope-apply">Done</button></p>`,
-  });
+export function renderScopeIntelligenceInline(brief) {
+  return scopeIntelligenceBodyHtml(brief);
+}
 
-  el?.querySelectorAll('[data-filter]').forEach((btn) => {
+function bindScopeIntelligenceFilters(el, brief, onApplyFilter) {
+  if (!el) return;
+  el.querySelectorAll('[data-filter]').forEach((btn) => {
     btn.addEventListener('click', () => {
       el.querySelectorAll('[data-filter]').forEach((b) => b.classList.remove('is-on'));
       btn.classList.add('is-on');
@@ -57,6 +58,29 @@ export function openScopeIntelligenceDrawer(brief, { onApplyFilter } = {}) {
       onApplyFilter?.(id);
     });
   });
+}
+
+export function openScopeIntelligenceDrawer(brief, { onApplyFilter } = {}) {
+  const body = scopeIntelligenceBodyHtml(brief);
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+  if (!isMobile) {
+    const mount = document.querySelector('[data-scope-intel-inline]');
+    if (mount) {
+      mount.innerHTML = body;
+      mount.hidden = false;
+      mount.closest('details')?.setAttribute('open', '');
+      bindScopeIntelligenceFilters(mount, brief, onApplyFilter);
+      return { close: () => { mount.hidden = true; mount.innerHTML = ''; }, el: mount };
+    }
+  }
+
+  const { close, el } = openRightDrawer({
+    title: 'Scope intelligence',
+    bodyHtml: `${body}<p><button type="button" class="btn btn-primary btn-compact" id="gov-scope-apply">Done</button></p>`,
+    lockScroll: isMobile,
+  });
+
+  bindScopeIntelligenceFilters(el, brief, onApplyFilter);
 
   el?.querySelector('#gov-scope-apply')?.addEventListener('click', () => close());
   return { close, el };

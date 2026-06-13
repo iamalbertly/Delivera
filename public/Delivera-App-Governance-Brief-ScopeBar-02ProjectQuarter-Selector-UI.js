@@ -71,13 +71,11 @@ export function renderPeriodPresetChip(activeQuarter, periodWindow) {
   return `<button type="button" class="gov-period-chip gov-period-preset-chip${on ? ' is-on' : ''}" data-period-preset="pi-quarter" title="Set period to PI and ${escapeHtml(q)}">${escapeHtml(label)}</button>`;
 }
 
-function renderAdvancedScopeControl(advancedLabel, advancedWarnCount) {
-  if (advancedWarnCount > 0) {
-    return `<button type="button" id="gov-scope-advanced" class="btn btn-link btn-compact gov-scope-advanced-btn">${escapeHtml(advancedLabel)}</button>`;
-  }
+function renderAdvancedScopeControl(advancedLabel) {
   return `<details class="gov-scope-advanced-inline">
     <summary class="gov-scope-advanced-summary">${escapeHtml(advancedLabel)}</summary>
     <p class="gov-scope-drawer-note">Governance rules use Vodacom delivery grammar (stale-in-progress, late scope, data confidence). Strict changelog sprint membership is deferred.</p>
+    <div class="gov-scope-intel-inline" data-scope-intel-inline hidden></div>
   </details>`;
 }
 
@@ -100,24 +98,20 @@ export function renderExpandedSelectors({
   const presetChip = renderPeriodPresetChip(activeQuarter, periodWindow);
   const periodRow = `${presetChip}${periodWindowChips}${quarterPills ? `<span class="gov-scope-period-sep" aria-hidden="true">·</span><div class="gov-scope-quarter-strip">${quarterPills}</div>` : ''}${investmentChip}`;
   const mobilePeriodBlock = `<div class="gov-scope-period gov-scope-period--merged gov-scope-mobile-period" role="group" aria-label="Period">
-        <span class="gov-scope-label">Period</span>
         <div class="gov-scope-period-merged-row">${periodRow}</div>
       </div>`;
   return `
     <div class="gov-scope-bar-inner gov-scope-bar-inner--expanded">
       ${boardsWarn ? `<p class="gov-scope-boards-warn" role="status">${escapeHtml(boardsWarn)}</p>` : ''}
-      <div class="gov-scope-desktop-only">
-        <span class="gov-scope-label">Projects</span>
+      <div class="gov-scope-desktop-only gov-scope-flat-selectors" role="group" aria-label="Scope selectors">
         <div class="gov-scope-chips gov-scope-chips--scroll" role="group" aria-label="Projects"${compareSelected}>${chips}</div>
-        <div class="gov-scope-period gov-scope-period--merged" role="group" aria-label="Period">
-          <span class="gov-scope-label">Period</span>
-          <div class="gov-scope-period-merged-row">${periodRow}</div>
-        </div>
+        <div class="gov-scope-period-merged-row" role="group" aria-label="Period">${periodRow}</div>
+        ${renderAdvancedScopeControl(advancedLabel)}
       </div>
       <div class="gov-scope-mobile-only">
         ${renderMobileProjectChecklist(projectKeys, selected, accessByKey)}
         ${mobilePeriodBlock}
+        ${renderAdvancedScopeControl(advancedLabel)}
       </div>
-      ${renderAdvancedScopeControl(advancedLabel, advancedWarnCount)}
     </div>`;
 }

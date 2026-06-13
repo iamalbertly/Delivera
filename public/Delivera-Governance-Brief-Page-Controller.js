@@ -75,7 +75,7 @@ function init() {
   }, true);
   govPage.els.actionClustersMount?.addEventListener('click', (event) => {
     if (event.target.closest('#gov-owner-check-setup')) {
-      govPage.els.setupDebtMount?.scrollIntoView?.({ behavior: 'smooth' });
+      govPage.els.setupDebtMount?.querySelector('button, a')?.focus?.({ preventScroll: true });
     }
   });
   bindGovernancePageInteractions();

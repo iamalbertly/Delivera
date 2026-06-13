@@ -227,7 +227,8 @@ function delegateSearch(page, query) {
   const q = String(query || '').trim();
   if (page === PAGE_GOVERNANCE) {
     const mount = document.getElementById('gov-scope-bar-mount');
-    mount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    const target = mount?.querySelector('#gov-scope-expanded [data-project]') || mount;
+    target?.focus?.({ preventScroll: true });
     const input = document.querySelector('#gov-scope-bar-mount input[type="search"], #gov-scope-bar-mount input[type="text"]');
     if (input) {
       input.focus();
@@ -426,8 +427,8 @@ function bindTopChromeInteractions(chrome, current) {
 
   chrome.querySelector('[data-top-action="agent"]')?.addEventListener('click', () => {
     if (current === PAGE_GOVERNANCE) {
-      document.querySelector('[data-gov-inbox-open], [data-action="open-inbox"], #gov-inbox-chip')?.click?.()
-        || document.getElementById('gov-sticky-answer-mount')?.scrollIntoView?.({ behavior: 'smooth' });
+      document.querySelector('[data-gov-inbox-open], [data-action="open-inbox"], #gov-inbox-chip, [data-queue-open]')?.click?.()
+        || document.getElementById('gov-right-rail-mount')?.querySelector('button')?.focus?.({ preventScroll: true });
       return;
     }
     window.location.href = '/settings#gov-ai-helper';

@@ -162,11 +162,7 @@ export function renderBriefUi(brief) {
   }
   const supportingEvidence = document.getElementById('gov-supporting-evidence');
   if (supportingEvidence) {
-    if (hasOwnerClusters) {
-      if (!supportingEvidence.open) supportingEvidence.open = false;
-    } else if ((govPage.lastSurfaces?.proofRows || []).length > 0) {
-      supportingEvidence.open = true;
-    }
+    supportingEvidence.hidden = false;
   }
 
   if (govPage.els.verdictMount) {
@@ -277,10 +273,10 @@ function renderNeedsScopePicker() {
         <button type="button" class="btn btn-primary btn-compact" id="gov-needs-scope-open">Choose scope</button>
       </section>`;
     govPage.els.answerMount.querySelector('#gov-needs-scope-open')?.addEventListener('click', () => {
-      govPage.scopeBarApi?.scrollScopeIntoView?.();
+      govPage.scopeBarApi?.focusScopeBar?.();
     });
   }
-  govPage.scopeBarApi?.scrollScopeIntoView?.();
+  govPage.scopeBarApi?.focusScopeBar?.();
 }
 
 export async function loadBrief(options = {}) {

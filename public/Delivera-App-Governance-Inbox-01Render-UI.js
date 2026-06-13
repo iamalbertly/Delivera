@@ -338,8 +338,12 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     openQueueTab: (tabKey) => {
       const unified = tabKey === 'confirm' || tabKey === 'nudges' ? 'doNow'
         : (tabKey === 'briefs' || tabKey === 'piDrift' || tabKey === 'impact' || tabKey === 'poReadiness' ? 'background' : tabKey);
-      document.getElementById('gov-right-rail-mount')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      openCombinedDrawer(unified);
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      if (isMobile) {
+        openCombinedDrawer(unified);
+        return;
+      }
+      mount.querySelector('.gov-inbox-inline-open, .gov-queue-chip')?.focus?.({ preventScroll: true });
     },
   };
 }

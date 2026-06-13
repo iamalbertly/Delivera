@@ -142,7 +142,15 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
   mount.querySelector('#gov-evidence-preview-more')?.addEventListener('click', () => {
     const rail = document.getElementById('gov-right-rail-proof-mount');
     if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {
-      rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+      rail.setAttribute('data-proof-active', '1');
+      rail.classList.add('gov-proof-rail-highlight');
+      setTimeout(() => {
+        rail.removeAttribute('data-proof-active');
+        rail.classList.remove('gov-proof-rail-highlight');
+      }, 1200);
+      const rect = rail.getBoundingClientRect();
+      const offScreen = rect.top < 0 || rect.bottom > window.innerHeight;
+      if (offScreen) rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
       return;
     }
     openEvidenceDrawer(brief, brief?.evidencePack?.rows || []);
@@ -201,21 +209,8 @@ function restoreEvidenceTabFromSession(wrap) {
 
 export function deferScorecardUntilEvidenceOpen() {
   if (!govPage.els.scorecard || scorecardBound) return;
-  const details = document.getElementById('gov-supporting-evidence');
-  if (!details) {
-    renderScorecard();
-    return;
-  }
   scorecardBound = true;
-  const run = () => {
-    renderScorecard();
-    details.removeEventListener('toggle', onToggle);
-  };
-  const onToggle = () => {
-    if (details.open) run();
-  };
-  if (details.open) run();
-  else details.addEventListener('toggle', onToggle);
+  renderScorecard();
 }
 
 export function mountEvidenceTabShell() {
@@ -283,9 +278,6 @@ export function mountEvidenceTabShell() {
 
   wrap.dataset.evidenceTabsMounted = '1';
   restoreEvidenceTabFromSession(wrap);
-  if (new URLSearchParams(window.location.search).get('from') === 'proof') {
-    wrap.open = true;
-  }
 }
 
 export async function renderScorecard() {

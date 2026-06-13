@@ -174,7 +174,8 @@ test.describe('Governance click friction Round 3', () => {
     await test.step('08 proof cluster does not open supporting evidence', async () => {
       await page.locator('[data-proof-cluster]').first().click();
       await page.waitForTimeout(400);
-      await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', false);
+      await expect(page.locator('#gov-supporting-evidence')).toBeVisible();
+      await expect(page.locator('#gov-supporting-evidence[open]')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
 

@@ -92,8 +92,6 @@ function openNudgeBox(idx) {
     initialDraft: draft,
     contextHeader: `To: ${who} · Why: ${whyItMatters(risk).slice(0, 80)}`,
   });
-  const wrap = document.getElementById('gov-supporting-evidence');
-  if (wrap && !wrap.open) wrap.open = true;
 }
 
 async function sendDoNowNudgeDirect(risk) {
@@ -242,15 +240,39 @@ export function bindOwnerClusterInteractions() {
     if (proof) {
       const rail = document.getElementById('gov-right-rail-proof-mount');
       if (rail) {
-        rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+        rail.setAttribute('data-proof-active', '1');
         rail.classList.add('gov-proof-rail-highlight');
-        setTimeout(() => rail.classList.remove('gov-proof-rail-highlight'), 1200);
+        setTimeout(() => {
+          rail.removeAttribute('data-proof-active');
+          rail.classList.remove('gov-proof-rail-highlight');
+        }, 1200);
+        const rect = rail.getBoundingClientRect();
+        const offScreen = rect.top < 0 || rect.bottom > window.innerHeight;
+        if (offScreen) rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
       }
       return;
     }
     const sendBtn = event.target.closest('[data-grouped-send]');
     if (sendBtn) {
       sendGroupedNudgeDirect(Number(sendBtn.getAttribute('data-grouped-send')));
+      return;
+    }
+    const showAll = event.target.closest('[data-cluster-show-all]');
+    if (showAll) {
+      const gi = showAll.getAttribute('data-cluster-show-all');
+      const list = govPage.els.actionClustersMount?.querySelector(`[data-cluster-issues="${gi}"]`);
+      const g = govPage.ownerGroups[Number(gi)];
+      if (list && g?.issues?.length) {
+        list.innerHTML = g.issues.map((r) => {
+          const age = Number(r.ageHours) || 0;
+          const ageChip = age >= 48 ? `<span class="gov-age-chip">${Math.round(age / 24)}d</span>` : '';
+          const keyHtml = r.issueKey
+            ? `<a href="/current-sprint?issue=${encodeURIComponent(r.issueKey)}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a>`
+            : '';
+          return `<li class="gov-cluster-issue">${keyHtml}<span>${escapeHtml(r.displayTitle || r.summary || '')}</span>${ageChip}</li>`;
+        }).join('');
+        showAll.remove();
+      }
       return;
     }
     const nudge = event.target.closest('[data-grouped-nudge]');
@@ -275,14 +297,20 @@ async function recordNarrationIfAdvisor() {
   } catch (_) { /* non-blocking */ }
 }
 
-export function scrollToFirstClusterNudge() {
+export function focusFirstClusterNudge() {
   const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-send], [data-grouped-nudge]');
   if (!btn) {
-    govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    govPage.els.actionClustersMount?.focus?.({ preventScroll: true });
     return;
   }
-  btn.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-  btn.focus?.();
+  btn.focus?.({ preventScroll: true });
+  btn.classList.add('gov-cluster-nudge-focus');
+  setTimeout(() => btn.classList.remove('gov-cluster-nudge-focus'), 1200);
+}
+
+/** @deprecated Use focusFirstClusterNudge — kept for external callers */
+export function scrollToFirstClusterNudge() {
+  focusFirstClusterNudge();
 }
 
 export function executeFirstClusterNudge() {
@@ -340,16 +368,16 @@ export function bindCommandAnswerActions() {
       return;
     }
     if (event.target.closest('#gov-scroll-first-nudge-only')) {
-      scrollToFirstClusterNudge();
+      focusFirstClusterNudge();
       return;
     }
     const review = event.target.closest('#gov-review-actions');
     if (review) {
-      govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      focusFirstClusterNudge();
       return;
     }
     if (event.target.closest('#gov-fix-setup')) {
-      govPage.els.setupDebtMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      govPage.els.setupDebtMount?.querySelector('button, a')?.focus?.({ preventScroll: true });
       return;
     }
     const piCopy = event.target.closest('#gov-copy-pi-forum');
@@ -388,9 +416,9 @@ export function bindSetupDebtActions() {
     else if (action === 'create-work') {
       chip.setAttribute('data-outcome-projects', projectsCsv());
     }
-    else if (action === 'map-board') govPage.scopeBarApi?.scrollScopeIntoView?.();
+    else if (action === 'map-board') govPage.scopeBarApi?.focusScopeBar?.();
     else if (action === 'refresh') document.getElementById('gov-scope-refresh')?.click();
-    else if (action === 'review-lanes') govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth' });
+    else if (action === 'review-lanes') focusFirstClusterNudge();
   });
 }
 
