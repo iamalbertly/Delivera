@@ -135,6 +135,10 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
     gap: 10px;
     align-self: start;
     padding-bottom: 8px;
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
   }
   body.governance-page .governance-shell.governance-shell--desktop-grid .gov-right-rail .gov-inbox-mount {
     max-width: none;
@@ -198,6 +202,8 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
   padding: 0;
   display: grid;
   gap: 4px;
+  max-height: none;
+  overflow: visible;
 }
 .gov-inbox-inline-open {
   display: grid;
@@ -621,6 +627,16 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 960px; margin: 0 auto;
 }
 .gov-scope-flat-row { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 4px; }
+@media (min-width: 769px) {
+  .gov-scope-flat-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 12px;
+  }
+  .gov-scope-summary-strip { flex: 0 1 auto; max-width: 100%; }
+  .gov-scope-expanded { flex: 1 1 320px; min-width: 0; }
+}
 .gov-scope-summary-strip {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
@@ -1151,7 +1167,7 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
   letter-spacing: 0.02em;
   color: #6b7280;
 }
-.gov-evidence-preview-table { max-height: 120px; overflow: auto; }
+.gov-evidence-preview-table { max-height: none; overflow: visible; }
 .gov-setup-debt--auto .gov-fix-card-row { margin: 0; }
 
 /* Hero squad card — first visible content in main column (direct-to-value) */
