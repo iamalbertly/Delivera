@@ -16701,8 +16701,9 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-send-badge--stale { background: #fef2f2; color: #b91c1c; }
 .gov-send-badge--weak { background: #fffbeb; color: #b45309; }
 .gov-send-badge--setup { background: #f1f5f9; color: #475569; }
-.gov-proof-chip { margin-top: 6px; font-size: 0.78rem; }
-.gov-cluster-proof-preview { margin: 6px 0; font-size: 0.78rem; overflow: visible; }
+.gov-proof-chip { margin-top: 0; font-size: 0.78rem; }
+.gov-cluster-proof-block { margin-top: 6px; display: grid; gap: 4px; }
+.gov-cluster-proof-preview { margin: 0; font-size: 0.78rem; overflow: visible; }
 .gov-cluster-proof-table { width: 100%; border-collapse: collapse; }
 .gov-cluster-proof-table th, .gov-cluster-proof-table td { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; text-align: left; }
 
@@ -16857,7 +16858,7 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-do-first-prefix { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #6b7280; }
 .gov-do-first-action { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gov-do-first-strip .btn { flex-shrink: 0; }
-.gov-owner-cluster { scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + var(--gov-scope-bar-height, 44px)); }
+.gov-owner-cluster { scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + var(--gov-scope-bar-height, 44px) - 8px); }
 .gov-receipt-details { margin-bottom: 6px; }
 .gov-receipt-details summary { cursor: pointer; list-style: none; }
 .gov-receipt-details summary::-webkit-details-marker { display: none; }
@@ -17368,7 +17369,15 @@ button.gov-scope-status-chip:hover { filter: brightness(0.95); }
   align-items: stretch;
   gap: 6px;
 }
-.gov-inbox-inline-approve { flex-shrink: 0; align-self: center; }
+.gov-inbox-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.gov-inbox-inline-approve,
+.gov-inbox-inline-review { flex-shrink: 0; align-self: center; }
+.gov-inbox-inline-preview--expanded { gap: 6px; }
 @media (max-width: 768px) {
   body.governance-page #gov-copy-answer-inline { display: none !important; }
   body.governance-page:has(#gov-scope-bar-mount .gov-scope-status-chip) .gov-command-answer .gov-trust-chip-row {
@@ -17377,10 +17386,10 @@ button.gov-scope-status-chip:hover { filter: brightness(0.95); }
   body.governance-page .gov-compare-add-tray { order: -1; margin-bottom: 8px; }
 }
 @media (min-width: 769px) {
-  .gov-scope-advanced-btn { margin-top: 4px; }
-  .gov-scope-advanced-inline { margin-top: 4px; font-size: 0.86rem; }
-  .gov-scope-advanced-summary { cursor: pointer; font-weight: 600; color: var(--text-muted, #64748b); }
-  .gov-scope-advanced-inline .gov-scope-drawer-note { margin: 6px 0 0; color: var(--text-muted, #6b7280); font-size: 0.82rem; }
+  .gov-scope-intel-block { margin-top: 4px; font-size: 0.86rem; width: 100%; flex: 1 1 100%; }
+  .gov-scope-advanced-label { font-weight: 600; color: var(--text-muted, #64748b); display: block; margin-bottom: 2px; }
+  .gov-scope-intel-block .gov-scope-drawer-note { margin: 4px 0 0; color: var(--text-muted, #6b7280); font-size: 0.82rem; }
+  .gov-scope-intel-inline:not(:empty) { margin-top: 6px; }
 }
 [data-hover-proof][role="button"] { cursor: pointer; }
 
@@ -17437,6 +17446,9 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .gov-scope-status-chip[data-scope-status-active="1"] { outline: 2px solid #2563eb; outline-offset: 2px; }
 .gov-cluster-nudge-focus { outline: 2px solid #2563eb; outline-offset: 2px; }
 .gov-scope-intel-inline { margin-top: 6px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
+.gov-scope-intel-block { margin-top: 6px; font-size: 0.86rem; }
+.gov-scope-advanced-label { font-weight: 600; color: var(--text-muted, #64748b); display: block; margin-bottom: 2px; }
+.gov-scope-intel-block .gov-scope-drawer-note { margin: 4px 0 0; color: var(--text-muted, #6b7280); font-size: 0.82rem; }
 /* Meeting-first product surfaces — light, high-contrast, red as signal only */
 
 body.executive-surface-page,

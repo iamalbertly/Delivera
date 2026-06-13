@@ -73,6 +73,64 @@ function Validate-AgentHealth ($LogFilePath) {
     }
 }
 
+function Invoke-CursorAgent {
+    param(
+        [string]$Prompt,
+        [string]$LogFilePath = $null
+    )
+    $AgentArgs = @(
+        "--print",
+        "--trust",
+        "--approve-mcps",
+        "--force",
+        "--workspace", $ProjectRoot,
+        $Prompt
+    )
+    if ($LogFilePath) {
+        cursor-agent @AgentArgs 2>&1 | Tee-Object -FilePath $LogFilePath
+    } else {
+        cursor-agent @AgentArgs 2>&1
+    }
+}
+
+function Ensure-DevServer {
+    param([string]$Url)
+    $Uri = [Uri]$Url
+    $HealthUrl = "$($Uri.Scheme)://$($Uri.Host):$($Uri.Port)/healthz"
+    try {
+        $Resp = Invoke-WebRequest -Uri $HealthUrl -UseBasicParsing -TimeoutSec 5
+        if ($Resp.StatusCode -eq 200) { return $true }
+    } catch {}
+
+    Write-Host "Dev server not reachable at $HealthUrl. Starting npm run start..." -ForegroundColor Yellow
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run start" -WorkingDirectory $ProjectRoot -WindowStyle Hidden | Out-Null
+    for ($Attempt = 1; $Attempt -le 30; $Attempt++) {
+        Start-Sleep -Seconds 2
+        try {
+            $Resp = Invoke-WebRequest -Uri $HealthUrl -UseBasicParsing -TimeoutSec 5
+            if ($Resp.StatusCode -eq 200) { return $true }
+        } catch {}
+    }
+    return $false
+}
+
+function Invoke-GovernanceDomMap {
+    param([string]$Url)
+    $DomMapFile = Join-Path $ProjectRoot "test-results\governance-dom-map-headed.json"
+    $Uri = [Uri]$Url
+    $BaseUrl = "$($Uri.Scheme)://$($Uri.Host):$($Uri.Port)"
+    $env:BASE_URL = $BaseUrl
+    $env:HEADLESS = "1"
+
+    Write-Host "Capturing live DOM map from $BaseUrl/governance ..." -ForegroundColor DarkGray
+    $MapProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run build:css && node scripts/map-governance-dom-headed.mjs" -WorkingDirectory $ProjectRoot -Wait -NoNewWindow -PassThru
+    if ($MapProcess.ExitCode -ne 0 -or -not (Test-Path $DomMapFile)) {
+        Write-Host "[WARN] DOM map script failed; investigation will use static repo sources only." -ForegroundColor Yellow
+        return $null
+    }
+    return $DomMapFile
+}
+
 # ==========================================
 # 4. PRE-FLIGHT & GIT SETUP
 # ==========================================
@@ -87,6 +145,11 @@ $AvailableTestsString = if (Test-Path $PackageJsonPath) { ((Get-Content $Package
 
 Set-Content -Path $BrainFile -Value "Target: $TargetUrl`nDirectives: Flatten UI hierarchy, zero-click data visibility.`nAvailable Tests: $AvailableTestsString`nFailure Ledger:`n[Empty]"
 
+if (-not (Ensure-DevServer $TargetUrl)) {
+    Update-Telemetry "Initialization" "FAILED" "Dev server did not become ready at $TargetUrl"
+    Exit 1
+}
+
 # ==========================================
 # 5. THE AUTONOMOUS LOOP
 # ==========================================
@@ -99,15 +162,23 @@ for ($i = 1; $i -le $MaxLoops; $i++) {
     }
 
     # ---------------------------------------------------------
-    # Phase 1: Investigation (Using Default Playwright MCP)
+    # Phase 1: Investigation (live DOM map pre-captured by script)
     # ---------------------------------------------------------
-    Update-Telemetry "Loop $i" "Investigation" "Streaming Agent output (Playwright mapping UI)..."
+    Update-Telemetry "Loop $i" "Investigation" "Capturing live DOM map, then streaming agent analysis..."
     
+    $DomMapFile = Invoke-GovernanceDomMap $TargetUrl
+    $DomMapHint = if ($DomMapFile) {
+        Add-Content -Path $BrainFile -Value "`nDOM Map: $DomMapFile"
+        "Read the live DOM evidence at ${DomMapFile} (Playwright headless scan of ${TargetUrl})."
+    } else {
+        "No live DOM map was captured; derive structure from governance.html, render controllers, and 09-governance.css."
+    }
+
     $InvestPrompt = @"
-Read ${BrainFile}. Use the Playwright MCP to navigate to ${TargetUrl}. Let Playwright launch its own isolated browser automatically. Map the DOM structure. Identify 3 nested components causing click/scroll friction. Output a precise list of files to modify. DO NOT execute terminal commands.
+Read ${BrainFile}. ${DomMapHint} Cross-check with source files. Map the DOM structure. Identify 3 nested components causing click/scroll friction. Output a precise list of files to modify. Do not report Playwright MCP availability — DOM evidence is supplied by the script when present.
 "@
     $InvestLog = Join-Path $LogDir "L${i}_Investigation.md"
-    cursor-agent chat $InvestPrompt --trust 2>&1 | Tee-Object -FilePath $InvestLog
+    Invoke-CursorAgent -Prompt $InvestPrompt -LogFilePath $InvestLog
     Validate-AgentHealth $InvestLog
 
     # ---------------------------------------------------------
@@ -117,7 +188,7 @@ Read ${BrainFile}. Use the Playwright MCP to navigate to ${TargetUrl}. Let Playw
     $PlanPrompt = "Based on the investigation, draft a technical refactoring plan to flatten the UI. Review the 'Available Tests' in ${BrainFile}. Identify the SINGLE most specific journey test script that will validate your changes. Write EXACTLY the npm command (e.g., 'npm run test:journey:governance') to the file ${TestTargetFile}. Do not write anything else to that file."
     
     $PlanLog = Join-Path $LogDir "L${i}_Plan.md"
-    cursor-agent chat $PlanPrompt --trust 2>&1 | Tee-Object -FilePath $PlanLog
+    Invoke-CursorAgent -Prompt $PlanPrompt -LogFilePath $PlanLog
     Validate-AgentHealth $PlanLog
 
     # ---------------------------------------------------------
@@ -127,7 +198,7 @@ Read ${BrainFile}. Use the Playwright MCP to navigate to ${TargetUrl}. Let Playw
     $ImplPrompt = "Execute the code changes defined in your plan directly to the files on disk. Do NOT modify the AutoHacker.ps1 script."
     
     $ImplLog = Join-Path $LogDir "L${i}_Implementation.md"
-    cursor-agent chat $ImplPrompt --trust 2>&1 | Tee-Object -FilePath $ImplLog
+    Invoke-CursorAgent -Prompt $ImplPrompt -LogFilePath $ImplLog
     Validate-AgentHealth $ImplLog
 
     if (-not (git status --porcelain)) {
@@ -165,7 +236,7 @@ Read ${BrainFile}. Use the Playwright MCP to navigate to ${TargetUrl}. Let Playw
         git add .
         
         $CommitPrompt = "Read the staged git diff. Output a single, highly descriptive conventional commit message for these changes. Output ONLY the string."
-        $CommitMsg = cursor-agent chat $CommitPrompt --trust
+        $CommitMsg = Invoke-CursorAgent -Prompt $CommitPrompt
         if ([string]::IsNullOrWhiteSpace($CommitMsg)) { $CommitMsg = "refactor(ui): auto-optimization loop $i" }
         
         git commit -m "$CommitMsg" | Out-Null

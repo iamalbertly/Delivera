@@ -254,24 +254,6 @@ export function bindOwnerClusterInteractions() {
       sendGroupedNudgeDirect(Number(sendBtn.getAttribute('data-grouped-send')));
       return;
     }
-    const showAll = event.target.closest('[data-cluster-show-all]');
-    if (showAll) {
-      const gi = showAll.getAttribute('data-cluster-show-all');
-      const list = govPage.els.actionClustersMount?.querySelector(`[data-cluster-issues="${gi}"]`);
-      const g = govPage.ownerGroups[Number(gi)];
-      if (list && g?.issues?.length) {
-        list.innerHTML = g.issues.map((r) => {
-          const age = Number(r.ageHours) || 0;
-          const ageChip = age >= 48 ? `<span class="gov-age-chip">${Math.round(age / 24)}d</span>` : '';
-          const keyHtml = r.issueKey
-            ? `<a href="/current-sprint?issue=${encodeURIComponent(r.issueKey)}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a>`
-            : '';
-          return `<li class="gov-cluster-issue">${keyHtml}<span>${escapeHtml(r.displayTitle || r.summary || '')}</span>${ageChip}</li>`;
-        }).join('');
-        showAll.remove();
-      }
-      return;
-    }
     const nudge = event.target.closest('[data-grouped-nudge]');
     if (nudge) openGroupedNudge(Number(nudge.getAttribute('data-grouped-nudge')));
   };

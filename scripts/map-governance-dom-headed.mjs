@@ -28,7 +28,8 @@ function domTree(el, depth = 0, maxDepth = 6) {
   return node;
 }
 
-const browser = await chromium.launch({ headless: false, slowMo: 80 });
+const headless = process.env.HEADLESS === '1' || process.env.CI === '1';
+const browser = await chromium.launch({ headless, slowMo: headless ? 0 : 80 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await page.addInitScript(() => {
   try { localStorage.setItem('delivera_selectedProjects', 'SD'); } catch (_) {}
@@ -54,7 +55,7 @@ const beforeScroll = await page.evaluate(() => {
   const scopeDrawer = qa('.gov-right-drawer-panel--scope-sheet').length;
   const stickyAnswer = qa('.gov-sticky-answer--governance, #gov-sticky-answer-mount').length;
   const ownerClusters = qa('.gov-owner-cluster').length;
-  const hiddenIssueLists = qa('.gov-cluster-issues[hidden], .gov-cluster-issues:not(:visible)').length;
+  const hiddenIssueLists = qa('.gov-cluster-issues').filter((el) => el.hidden || el.offsetParent === null).length;
   const proofChips = qa('[data-proof-cluster]').length;
   const rightDrawerOpen = document.body.classList.contains('gov-right-drawer-open');
   const supportingEvidenceOpen = q('#gov-supporting-evidence')?.open;

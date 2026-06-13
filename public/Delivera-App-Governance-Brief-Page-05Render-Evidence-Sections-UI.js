@@ -73,17 +73,37 @@ export function renderEvidenceTable(brief) {
   govPage.els.evidence.innerHTML = `<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
+function issueUrlForBriefRow(brief, issueKey) {
+  const k = String(issueKey || '').toUpperCase();
+  const risk = [...(brief?.topRisks || []), ...(brief?.risks || [])].find((r) => String(r.issueKey).toUpperCase() === k);
+  return risk?.issueUrl || `/current-sprint?issue=${encodeURIComponent(issueKey || '')}`;
+}
+
+/** SSOT compact proof table rows (cluster inline + right-rail preview). */
+export function renderCompactProofTableRows(brief, rows = [], { linkKeys = false } = {}) {
+  return rows.map((r) => {
+    const keyCell = linkKeys && r.issueKey
+      ? (() => {
+        const href = issueUrlForBriefRow(brief, r.issueKey);
+        const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
+        return `<a href="${escapeHtml(href)}" class="gov-issue-key-link gov-proof-row-link" data-issue-key="${escapeHtml(r.issueKey || '')}"${ext}>${escapeHtml(r.issueKey || '')}</a>`;
+      })()
+      : escapeHtml(r.issueKey || '');
+    return `
+    <tr>
+      <td>${keyCell}</td>
+      <td>${escapeHtml(r.statusNow || '')}</td>
+      <td>${escapeHtml(r.whyFlagged || '')}</td>
+    </tr>`;
+  }).join('');
+}
+
 /** Compact inline proof preview for owner clusters (SSOT rows from evidence pack). */
 export function renderClusterProofPreviewHtml(brief, issueKeys = [], maxRows = 3) {
   const keys = new Set((issueKeys || []).map((k) => String(k).toUpperCase()).filter(Boolean));
   const rows = (brief?.evidencePack?.rows || []).filter((r) => keys.has(String(r.issueKey).toUpperCase())).slice(0, maxRows);
   if (!rows.length) return '';
-  const body = rows.map((r) => `
-    <tr>
-      <td>${escapeHtml(r.issueKey || '')}</td>
-      <td>${escapeHtml(r.statusNow || '')}</td>
-      <td>${escapeHtml(r.whyFlagged || '')}</td>
-    </tr>`).join('');
+  const body = renderCompactProofTableRows(brief, rows);
   return `
     <div class="gov-cluster-proof-preview" aria-label="Proof preview">
       <table class="governance-evidence-table gov-cluster-proof-table">
@@ -105,21 +125,7 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
     return;
   }
   const total = brief?.evidencePack?.rows?.length || rows.length;
-  const issueUrlFor = (key) => {
-    const k = String(key || '').toUpperCase();
-    const risk = [...(brief?.topRisks || []), ...(brief?.risks || [])].find((r) => String(r.issueKey).toUpperCase() === k);
-    return risk?.issueUrl || `/current-sprint?issue=${encodeURIComponent(key || '')}`;
-  };
-  const body = rows.map((r) => {
-    const href = issueUrlFor(r.issueKey);
-    const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
-    return `
-    <tr>
-      <td><a href="${escapeHtml(href)}" class="gov-issue-key-link gov-proof-row-link" data-issue-key="${escapeHtml(r.issueKey || '')}"${ext}>${escapeHtml(r.issueKey || '')}</a></td>
-      <td>${escapeHtml(r.statusNow || '')}</td>
-      <td>${escapeHtml(r.whyFlagged || '')}</td>
-    </tr>`;
-  }).join('');
+  const body = renderCompactProofTableRows(brief, rows, { linkKeys: true });
   mount.hidden = false;
   mount.innerHTML = `
     <section class="gov-evidence-preview" aria-label="Proof preview">

@@ -72,11 +72,11 @@ export function renderPeriodPresetChip(activeQuarter, periodWindow) {
 }
 
 function renderAdvancedScopeControl(advancedLabel) {
-  return `<details class="gov-scope-advanced-inline">
-    <summary class="gov-scope-advanced-summary">${escapeHtml(advancedLabel)}</summary>
+  return `<section class="gov-scope-intel-block" aria-label="${escapeHtml(advancedLabel)}">
+    <span class="gov-scope-advanced-label">${escapeHtml(advancedLabel)}</span>
     <p class="gov-scope-drawer-note">Governance rules use Vodacom delivery grammar (stale-in-progress, late scope, data confidence). Strict changelog sprint membership is deferred.</p>
-    <div class="gov-scope-intel-inline" data-scope-intel-inline hidden></div>
-  </details>`;
+    <div class="gov-scope-intel-inline" data-scope-intel-inline></div>
+  </section>`;
 }
 
 export function renderExpandedSelectors({

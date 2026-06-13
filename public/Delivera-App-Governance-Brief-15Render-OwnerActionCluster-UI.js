@@ -35,11 +35,6 @@ export function renderOwnerActionClusters(brief, groups = []) {
       </li>`;
     };
     const issueRows = g.issues.map(renderIssueRow).join('');
-    const hiddenCount = g.issues.length > 4 ? g.issues.length - 4 : 0;
-    const visibleIssues = hiddenCount ? g.issues.slice(0, 4).map(renderIssueRow).join('') : issueRows;
-    const showAllBtn = hiddenCount
-      ? `<button type="button" class="btn btn-link btn-compact gov-cluster-show-all" data-cluster-show-all="${gi}">+${hiddenCount} more</button>`
-      : '';
     const proofPreview = renderClusterProofPreviewHtml(brief, keys);
     const nudgeActions = canDirectSend
       ? `<button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-send="${gi}" title="Send nudge to Jira">✉ Send nudge</button>`
@@ -52,10 +47,11 @@ export function renderOwnerActionClusters(brief, groups = []) {
             <p class="gov-owner-cluster-meta">${escapeHtml(g.decisionLane || 'Decision lane')} · ${escapeHtml(g.commonReason || '')}</p>
           </div>
         </header>
-        <ul class="gov-cluster-issues" data-cluster-issues="${gi}">${visibleIssues}</ul>
-        ${showAllBtn}
-        <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}" aria-label="Highlight proof in right rail">${escapeHtml(proofText)}</button>
-        ${proofPreview}
+        <ul class="gov-cluster-issues" data-cluster-issues="${gi}">${issueRows}</ul>
+        <div class="gov-cluster-proof-block">
+          <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}" aria-label="Highlight proof in right rail">${escapeHtml(proofText)}</button>
+          ${proofPreview}
+        </div>
         <div class="gov-owner-cluster-actions">
           ${nudgeActions}
           <div class="gov-cluster-dismiss-chips" role="group" aria-label="Dismiss">

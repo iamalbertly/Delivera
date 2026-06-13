@@ -141,6 +141,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
   let drawerClose = null;
   let drawerEl = null;
   let activeTabKey = 'doNow';
+  let inlineExpanded = false;
 
   async function fetchInbox() {
     const csv = getProjectsCsv?.() || 'MPSA,MAS';
@@ -256,15 +257,20 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     openQueueDrawer(tabKey);
   }
 
-  function renderInlinePreview(data, total) {
+  function renderInlinePreview(data, total, { expanded = false } = {}) {
     const items = itemsForTab(data, 'doNow');
-    const groups = groupInboxByFingerprint(items).slice(0, 2);
+    const groups = groupInboxByFingerprint(items);
+    const visible = expanded ? groups : groups.slice(0, 2);
     if (!groups.length) return { preview: '', chip: '' };
-    const rows = groups.map((g) => {
+    const rows = visible.map((g) => {
       const ex = g.exampleItem || {};
-      const canApprove = isResolvableItem(ex) && g.count === 1 && g.ids[0];
+      const canResolve = isResolvableItem(ex);
+      const canApprove = canResolve && g.count === 1 && g.ids[0];
       const approveBtn = canApprove
         ? `<button type="button" class="btn btn-primary btn-compact gov-inbox-inline-approve" data-inbox-approve="${escapeHtml(g.ids[0])}" title="${escapeHtml(COPY.inboxApprove)}">✓</button>`
+        : '';
+      const reviewBtn = canResolve
+        ? `<button type="button" class="btn btn-secondary btn-compact gov-inbox-inline-review" data-group-review-inline="${escapeHtml(g.fingerprint)}" title="${escapeHtml(COPY.inboxReview)}" aria-label="${escapeHtml(COPY.inboxReview)}">👁</button>`
         : '';
       return `
       <li class="gov-inbox-inline-row">
@@ -273,13 +279,16 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
           <span class="gov-inbox-inline-summary">${escapeHtml(g.exampleItem?.summary || g.reason || g.type || '')}</span>
           <em class="gov-inbox-inline-count">${g.count}</em>
         </button>
-        ${approveBtn}
+        <div class="gov-inbox-inline-actions">${approveBtn}${reviewBtn}</div>
       </li>`;
     }).join('');
-    const preview = `<ul class="gov-inbox-inline-preview" data-inbox-inline="1" aria-label="Top queue items">${rows}</ul>`;
-    const chip = total > 3
-      ? `<button type="button" class="gov-queue-chip gov-queue-chip--secondary" data-queue-open="1" aria-label="Open full agent queue">All queue (${total})</button>`
-      : '';
+    const preview = `<ul class="gov-inbox-inline-preview${expanded ? ' gov-inbox-inline-preview--expanded' : ''}" data-inbox-inline="1" aria-label="Top queue items">${rows}</ul>`;
+    const hidden = expanded ? 0 : Math.max(0, groups.length - 2);
+    const chip = hidden > 0 || (total > 3 && !expanded)
+      ? `<button type="button" class="gov-queue-chip gov-queue-chip--secondary" data-queue-open="1" aria-label="Show full agent queue inline">All queue (${total})</button>`
+      : (expanded && groups.length > 2
+        ? `<button type="button" class="gov-queue-chip gov-queue-chip--secondary" data-queue-collapse="1" aria-label="Collapse queue preview">Show less</button>`
+        : '');
     return { preview, chip };
   }
 
@@ -289,14 +298,16 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
       openCombinedDrawer(preferredTab);
       return;
     }
-    mount.querySelector('.gov-inbox-inline-open, .gov-queue-chip')?.focus?.({ preventScroll: true });
+    inlineExpanded = true;
+    render();
+    mount.querySelector('.gov-inbox-inline-preview')?.focus?.({ preventScroll: true });
   }
 
   function render() {
     const total = TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0);
     const confirmCount = (lastData?.confirm || []).length;
     const preparing = total === 0 && briefLoading?.();
-    const inline = total > 0 ? renderInlinePreview(lastData, total) : { preview: '', chip: '' };
+    const inline = total > 0 ? renderInlinePreview(lastData, total, { expanded: inlineExpanded }) : { preview: '', chip: '' };
     const chip = total > 0
       ? `<div class="gov-queue-rail-head" data-queue-rail-head="1">
           <span class="gov-queue-rail-title">${escapeHtml(COPY.agentQueue)}</span>
@@ -313,8 +324,28 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
       openQueueSurface('doNow');
     });
     mount.querySelector('[data-queue-open]')?.addEventListener('click', () => openQueueSurface());
+    mount.querySelector('[data-queue-collapse]')?.addEventListener('click', () => {
+      inlineExpanded = false;
+      render();
+    });
     mount.querySelectorAll('[data-inline-open]').forEach((btn) => {
-      btn.addEventListener('click', () => openQueueSurface('doNow'));
+      btn.addEventListener('click', () => {
+        if (window.matchMedia('(max-width: 768px)').matches) {
+          openQueueSurface('doNow');
+          return;
+        }
+        inlineExpanded = true;
+        render();
+      });
+    });
+    mount.querySelectorAll('[data-group-review-inline]').forEach((btn) => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const fp = btn.getAttribute('data-group-review-inline');
+        const g = groupInboxByFingerprint(itemsForTab(lastData, 'doNow')).find((x) => x.fingerprint === fp);
+        const ex = g?.exampleItem;
+        if (ex && onOpenNudgeReview) onOpenNudgeReview(ex);
+      });
     });
     mount.querySelectorAll('[data-inbox-approve]').forEach((btn) => {
       btn.addEventListener('click', (ev) => {

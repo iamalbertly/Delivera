@@ -37,6 +37,19 @@ export function renderScopeIntelligenceInline(brief) {
   return scopeIntelligenceBodyHtml(brief);
 }
 
+export function mountScopeIntelligenceInline(brief, { onApplyFilter } = {}) {
+  if (!brief) return null;
+  const mounts = document.querySelectorAll('[data-scope-intel-inline]');
+  if (!mounts.length) return null;
+  const body = scopeIntelligenceBodyHtml(brief);
+  mounts.forEach((mount) => {
+    mount.innerHTML = body;
+    mount.hidden = false;
+    bindScopeIntelligenceFilters(mount, brief, onApplyFilter);
+  });
+  return mounts[0];
+}
+
 function bindScopeIntelligenceFilters(el, brief, onApplyFilter) {
   if (!el) return;
   el.querySelectorAll('[data-filter]').forEach((btn) => {
@@ -61,23 +74,25 @@ function bindScopeIntelligenceFilters(el, brief, onApplyFilter) {
 }
 
 export function openScopeIntelligenceDrawer(brief, { onApplyFilter } = {}) {
-  const body = scopeIntelligenceBodyHtml(brief);
   const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
   if (!isMobile) {
-    const mount = document.querySelector('[data-scope-intel-inline]');
-    if (mount) {
-      mount.innerHTML = body;
-      mount.hidden = false;
-      mount.closest('details')?.setAttribute('open', '');
-      bindScopeIntelligenceFilters(mount, brief, onApplyFilter);
-      return { close: () => { mount.hidden = true; mount.innerHTML = ''; }, el: mount };
+    const inlineMount = mountScopeIntelligenceInline(brief, { onApplyFilter });
+    if (inlineMount) {
+      return {
+        close: () => {
+          inlineMount.hidden = true;
+          inlineMount.innerHTML = '';
+        },
+        el: inlineMount,
+      };
     }
   }
 
+  const body = scopeIntelligenceBodyHtml(brief);
   const { close, el } = openRightDrawer({
     title: 'Scope intelligence',
     bodyHtml: `${body}<p><button type="button" class="btn btn-primary btn-compact" id="gov-scope-apply">Done</button></p>`,
-    lockScroll: isMobile,
+    lockScroll: true,
   });
 
   bindScopeIntelligenceFilters(el, brief, onApplyFilter);

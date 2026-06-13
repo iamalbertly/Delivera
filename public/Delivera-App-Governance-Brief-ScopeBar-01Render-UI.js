@@ -14,6 +14,7 @@ import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurfa
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { fetchQuartersListMemo } from './Delivera-Shared-Quarters-List-01Fetch-Memo.js';
+import { mountScopeIntelligenceInline } from './Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js';
 import { closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import {
   catalogProjectKeys,
@@ -161,14 +162,6 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         closeDrawer?.();
       });
     }
-    root.querySelectorAll('.gov-scope-advanced-inline')?.forEach((details) => {
-      details.addEventListener('toggle', () => {
-        if (!details.open) return;
-        const inline = details.querySelector('[data-scope-intel-inline]');
-        if (!inline || inline.innerHTML) return;
-        onOpenDrawer?.();
-      });
-    });
     root.querySelectorAll('[data-period-chip]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const next = btn.getAttribute('data-period-chip') || '28d';
@@ -316,6 +309,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         refreshBtn?.removeAttribute('aria-busy');
       }, 1000);
     });
+    if (govPage.lastBrief) mountScopeIntelligenceInline(govPage.lastBrief);
   }
 
   function scheduleValidateSelected(immediate = false) {
