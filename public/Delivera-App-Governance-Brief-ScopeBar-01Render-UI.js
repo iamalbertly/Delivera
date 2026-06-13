@@ -291,12 +291,8 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       const chip = mount.querySelector('[data-scope-status-action]');
       chip?.setAttribute('data-scope-status-active', '1');
       setTimeout(() => chip?.removeAttribute('data-scope-status-active'), 1200);
-      const { executeFirstClusterNudge, focusFirstClusterNudge } = await import('./Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js');
-      if (statusTier === 'onTrack' || statusTier === 'on-track') {
-        focusFirstClusterNudge();
-        return;
-      }
-      executeFirstClusterNudge();
+      const { focusFirstClusterNudge } = await import('./Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js');
+      focusFirstClusterNudge();
     });
     mount.querySelector('#gov-copy-answer-scope')?.addEventListener('click', () => {
       document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer'));

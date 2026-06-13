@@ -324,7 +324,7 @@ export function executeFirstClusterNudge() {
     openGroupedNudge(Number(btn.getAttribute('data-grouped-nudge') || 0));
     return;
   }
-  scrollToFirstClusterNudge();
+  focusFirstClusterNudge();
 }
 
 export function openInboxNudgeReview(item) {

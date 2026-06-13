@@ -55,7 +55,10 @@ function init() {
       setLoadBriefForce(true);
       loadBrief({ force: true });
     },
-    onOpenDrawer: () => { if (govPage.lastBrief) openScopeIntelligenceDrawer(govPage.lastBrief); },
+    onOpenDrawer: () => {
+      if (!govPage.lastBrief) return;
+      openScopeIntelligenceDrawer(govPage.lastBrief);
+    },
     getScopeCounts: () => scopeCapsuleCounts(govPage.lastBrief) || {},
   });
   govPage.inboxApi = mountGovernanceInbox({

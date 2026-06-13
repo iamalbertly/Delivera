@@ -497,6 +497,22 @@ export function ensureSubChromeSlot() {
   return slot;
 }
 
+function syncGovernanceScopeBarHeight() {
+  if (getCurrentPageForChrome() !== PAGE_GOVERNANCE) return;
+  const bar = document.getElementById('gov-scope-bar-mount');
+  if (!bar) return;
+  const publish = () => {
+    const h = Math.ceil(bar.getBoundingClientRect().height || 44);
+    document.documentElement.style.setProperty('--gov-scope-bar-height', `${Math.max(44, h)}px`);
+  };
+  publish();
+  if (bar.dataset.scopeOffsetBound === '1') return;
+  bar.dataset.scopeOffsetBound = '1';
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(publish).observe(bar);
+  }
+}
+
 export function ensureTopChrome() {
   const current = getCurrentPageForChrome();
   if (current === PAGE_LOGIN) {
@@ -531,5 +547,6 @@ export function ensureTopChrome() {
   void refreshAiTrustPill();
 
   window.dispatchEvent(new CustomEvent('app:top-chrome-rendered', { detail: { current } }));
+  syncGovernanceScopeBarHeight();
   return chrome;
 }

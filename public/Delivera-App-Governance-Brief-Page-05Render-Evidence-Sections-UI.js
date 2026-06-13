@@ -5,12 +5,6 @@ import { escapeHtml, truthChip, renderStructuredEvidence } from './Delivera-App-
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { govPage, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
-import {
-  GOV_EVIDENCE_TAB_KEY,
-  activateTabStrip,
-  bindTabStrip,
-  readStoredTab,
-} from './Delivera-Shared-TabStrip-01Activate-Helper.js';
 
 function evidenceRowFor(brief, issueKey) {
   if (!issueKey) return null;
@@ -193,18 +187,23 @@ export function renderBaseline(brief) {
     </div>`;
 }
 
-const EVIDENCE_TAB_KEYS = ['proof', 'plan', 'pilot'];
 let scorecardBound = false;
 
-function restoreEvidenceTabFromSession(wrap) {
-  const shell = wrap?.querySelector('.gov-evidence-tabs');
-  if (!shell) return;
-  const key = readStoredTab(GOV_EVIDENCE_TAB_KEY, EVIDENCE_TAB_KEYS, 'proof');
-  activateTabStrip(shell.parentElement || shell, {
-    tabAttr: 'data-evidence-tab',
-    panelAttr: 'data-evidence-panel',
-    activeKey: key,
-  });
+function unwrapLegacyEvidenceTabs(wrap) {
+  if (wrap.dataset.evidenceTabsMounted !== '1') return;
+  const panels = wrap.querySelector('.gov-evidence-tab-panels');
+  if (panels) {
+    panels.querySelectorAll('[id]').forEach((node) => wrap.appendChild(node));
+    panels.remove();
+  }
+  wrap.querySelector('.gov-evidence-tabs')?.remove();
+  wrap.dataset.evidenceTabsMounted = '';
+}
+
+function ensureFlatEvidenceSections(wrap) {
+  unwrapLegacyEvidenceTabs(wrap);
+  wrap.querySelectorAll('.governance-subsection-title').forEach((el) => { el.style.display = ''; });
+  wrap.dataset.evidenceLayout = 'flat';
 }
 
 export function deferScorecardUntilEvidenceOpen() {
@@ -213,71 +212,12 @@ export function deferScorecardUntilEvidenceOpen() {
   renderScorecard();
 }
 
+/** Keeps legacy call sites; evidence mounts stay always-visible in `#gov-supporting-evidence`. */
 export function mountEvidenceTabShell() {
   const wrap = document.getElementById('gov-supporting-evidence');
   if (!wrap) return;
-  if (wrap.dataset.evidenceTabsMounted === '1') {
-    restoreEvidenceTabFromSession(wrap);
-    return;
-  }
-  const measurement = document.getElementById('gov-measurement-mount');
-  const script = document.getElementById('gov-meeting-script-mount');
-  const proof = document.getElementById('gov-proof-risks');
-  const evidence = document.getElementById('gov-evidence');
-  const technical = document.getElementById('gov-technical-details');
-  const readiness = document.getElementById('gov-readiness');
-  const baseline = document.getElementById('gov-baseline');
-  const scorecard = document.getElementById('gov-scorecard');
-  if (!proof || !evidence) return;
-
-  const shell = document.createElement('div');
-  shell.className = 'gov-evidence-tabs';
-  shell.setAttribute('role', 'tablist');
-  shell.innerHTML = ''
-    + `<button type="button" class="gov-evidence-tab is-active" data-evidence-tab="proof" role="tab" aria-selected="true">${escapeHtml(COPY.evidenceTabProof)}</button>`
-    + `<button type="button" class="gov-evidence-tab" data-evidence-tab="plan" role="tab" aria-selected="false">${escapeHtml(COPY.evidenceTabPlan)}</button>`
-    + `<button type="button" class="gov-evidence-tab" data-evidence-tab="pilot" role="tab" aria-selected="false">${escapeHtml(COPY.evidenceTabPilot)}</button>`;
-
-  const panels = document.createElement('div');
-  panels.className = 'gov-evidence-tab-panels';
-
-  const proofPanel = document.createElement('div');
-  proofPanel.className = 'gov-evidence-tab-panel gov-tab-panel is-active';
-  proofPanel.dataset.evidencePanel = 'proof';
-  if (measurement) proofPanel.appendChild(measurement);
-  if (script) proofPanel.appendChild(script);
-  proofPanel.appendChild(proof);
-  proofPanel.appendChild(evidence);
-  if (technical) proofPanel.appendChild(technical);
-
-  const planPanel = document.createElement('div');
-  planPanel.className = 'gov-evidence-tab-panel gov-tab-panel';
-  planPanel.dataset.evidencePanel = 'plan';
-  planPanel.hidden = true;
-  if (readiness) planPanel.appendChild(readiness);
-  if (baseline) planPanel.appendChild(baseline);
-
-  const pilotPanel = document.createElement('div');
-  pilotPanel.className = 'gov-evidence-tab-panel gov-tab-panel';
-  pilotPanel.dataset.evidencePanel = 'pilot';
-  pilotPanel.hidden = true;
-  if (scorecard) pilotPanel.appendChild(scorecard);
-
-  panels.append(proofPanel, planPanel, pilotPanel);
-  wrap.querySelectorAll('.governance-subsection-title').forEach((el) => { el.style.display = 'none'; });
-  wrap.insertBefore(shell, wrap.firstChild?.nextSibling || null);
-  wrap.appendChild(panels);
-
-  bindTabStrip(wrap, {
-    tabAttr: 'data-evidence-tab',
-    panelAttr: 'data-evidence-panel',
-    storageKey: GOV_EVIDENCE_TAB_KEY,
-    validKeys: EVIDENCE_TAB_KEYS,
-    defaultKey: 'proof',
-  });
-
-  wrap.dataset.evidenceTabsMounted = '1';
-  restoreEvidenceTabFromSession(wrap);
+  ensureFlatEvidenceSections(wrap);
+  deferScorecardUntilEvidenceOpen();
 }
 
 export async function renderScorecard() {

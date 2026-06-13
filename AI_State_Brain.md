@@ -1,75 +1,86 @@
 # Agent Persistent Memory
 Target: http://127.0.0.1:3001/governance
-Core Directives: Flatten UI hierarchy, zero-click data visibility, eliminate redundant borders. You MUST output your final exact test command into .\.agent_test_target.
+Core Directives: Flatten UI hierarchy, zero-click data visibility, eliminate redundant borders.
 Available Tests: test:all, test:all:stop, test:pw, test:focused, test:smoke, test:journey:current-sprint, test:journey:leadership, test:journey:brief-ssot, test:journey:layout-overlap, test:journey:governance, test:journey:outcome-intake, test:outcome-intake, test:journey:ux-core, test:journey:direct-value-masterplan, test:journey:customer-simplicity-trust, test:journey:customer-growth-round3, test:journey:hero-squad-first, test:journey:value-retention, test:journey:churn-retention-masterplan, test:journey:governance-click-friction, test:journey:governance-click-friction-round3, test:journey:governance-growth-round2, test:report-jira-ux, test:journey:shell-direct-value, test:journey:data-integrity, test:e2e:full, test:api:core, test:data:integrity, test:current-sprint:core, test:current-sprint:dedupe-fold, test:journey:viewport-declutter, test:ux:core, test:report:header-actions, test:report:summary-contract, test:leadership:hud-shell, test:report-current-shell, test:journey:nudge-summary-bridge, test:journey:adaptive-nudges, test:journey:no-click-coaching, test:journey:direct-value-send, test:journey:human-nudge-trust, test:human-nudge:verify-retry, test:current-sprint-ux-ssot, test:current-sprint-redesign, test:e2e
 
-## Failure Ledger:
-[Cleared after success]
+## Failure Ledger (DO NOT REPEAT THESE):
+[Empty - No failures yet]
+
+---
 
 ## Active Refactor — Flatten Governance UI (2026-06-13)
 
-**Source:** `.agent_logs/20260613_182749/L3_Investigation.md`
-**Regression gate:** `npm run test:journey:governance-click-friction-round3` (written to `.agent_test_target`)
-**Secondary gate:** `npm run test:journey:layout-overlap` (sticky-stack removal in Phase 2)
+**Run ID:** 20260613_194434  
+**Regression gate:** `.agent_test_target` → `npm run test:journey:governance-click-friction-round3`  
+**Secondary gate (layout only):** `npm run test:journey:layout-overlap`
 
-### Goal
-Collapse three nested friction layers (scope bar double-deck, desktop grid split scroll, owner-cluster/evidence tab nesting) into a single vertical reading surface. Preserve Round 3 zero-click wins: inline scope, send-readiness pill SSOT, one-click send, inline approve, on-page issue preview, proof without supporting-evidence accordion.
+### Problem Summary
 
-### Phase 1 — Scope bar: flatten sticky double-deck
-| File | Intended change |
-|------|-----------------|
-| `public/Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js` | Merge capsule + `#gov-scope-expanded` into one flat row; remove `scrollScopeIntoView` from public API; status chip uses in-place highlight (`data-scope-status-active`) instead of `executeFirstClusterNudge` / `focusFirstClusterNudge` scroll jumps. |
-| `public/Delivera-App-Governance-Brief-ScopeBar-02ProjectQuarter-Selector-UI.js` | Inline project/quarter/period chips in a single flex row; demote advanced `<details>` to compact overflow; remove redundant inner wrappers and horizontal scroll pockets where possible. |
-| `public/Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js` | Demote `openScopeIntelligenceDrawer` to inline expansion or lightweight popover — no full overlay for routine scope changes. |
-| `public/Delivera-Governance-Brief-Page-Controller.js` | Rewire `onOpenDrawer` so scope intelligence prefers inline path over drawer escalation. |
-| `public/css/09-governance.css` | Reduce `.gov-scope-bar-sticky` height (`--gov-scope-bar-height` 56→~44px); trim mobile min-height block; drop redundant border-bottom; relax `.gov-scope-chips--scroll` wheel-capture where chips fit inline. |
+Three nested friction layers on `/governance` compete during scroll and click:
 
-**Invariant (Round 3 steps 03/09):** `#gov-scope-expanded` always visible; no `.gov-right-drawer-panel--scope-sheet` on mobile.
+| Layer | Symptom | Root cause |
+|-------|---------|------------|
+| **1. Scope bar double-deck** | ~44–72px sticky chrome; status chip yanks page scroll; advanced scope opens full overlay | Capsule + `#gov-scope-expanded` in same sticky host; `.gov-scope-chips--scroll` horizontal pocket; `openScopeIntelligenceDrawer` |
+| **2. Desktop grid split scroll** | Document scroll vs right-rail column; proof clicks scroll whole page to rail | `governance-shell--desktop-grid`; `scrollIntoView` on `#gov-right-rail-proof-mount`; queue inline → drawer with body lock |
+| **3. Owner cluster + evidence tab nesting** | Multiple click targets per card; readiness/baseline/scorecard behind tab panels | Deep `.gov-owner-cluster` DOM; `mountEvidenceTabShell()`; hover proof scrolls supporting evidence |
 
-### Phase 2 — Desktop grid: single scroll owner
-| File | Intended change |
-|------|-----------------|
-| `public/css/09-governance.css` | Remove `overflow-y: auto` + viewport `max-height` from `.gov-right-rail`; reduce `scroll-margin-top` on `.gov-owner-cluster` once sticky stack shortens; remove nested scroll on `.gov-inbox-inline-preview`. |
-| `public/governance.html` | Flatten mount topology: scope bar outside main; right-rail children (proof → queue → PI strip) as sibling blocks without nested scroll hosts. |
-| `public/Delivera-Shared-Top-Chrome-01Render-UI.js` | Align `--sticky-global-nav-top` / `--top-chrome-height` so scope bar offset does not reintroduce duplicate sticky layers. |
-| `public/Delivera-App-Governance-Inbox-01Render-UI.js` | Remove `openQueueTab` → `scrollIntoView` on `#gov-right-rail-mount`; tab switch updates content in place; drawer only on mobile overflow. |
-| `public/Delivera-App-Shared-RightDrawer-01UI.js` | Prefer inline rail over drawer on desktop; on mobile fallback use in-drawer scroll only — avoid `body.gov-right-drawer-open { overflow: hidden }` where rail suffices. |
+Round 3 already removed `#gov-sticky-answer-mount` and keeps scope inline. This refactor completes flattening without regressing those wins.
 
-### Phase 3 — Owner clusters + evidence tabs: cut scroll chains
-| File | Intended change |
-|------|-----------------|
-| `public/Delivera-App-Governance-Brief-15Render-OwnerActionCluster-UI.js` | Flatten cluster DOM: header → issue list → send row as direct children; inline proof preview below chip (no nested `<details>`); reduce competing click targets per card. |
-| `public/Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js` | Replace `scrollToFirstClusterNudge` with `focus({ preventScroll: true })` + temporary highlight; proof click sets `data-proof-active` on rail section instead of smooth `scrollIntoView` on `#gov-right-rail-proof-mount`. |
-| `public/Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js` | Demote `mountEvidenceTabShell()` tab panels to always-visible sections or a single flat evidence block (readiness/baseline/scorecard zero-click); SSOT `renderEvidencePreview` for inline + rail without duplicate scroll-to-rail. |
-| `public/Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js` | Stop hover proof from `scrollIntoView` on supporting-evidence section; highlight rail in place. |
-| `public/governance.html` | Restructure `#gov-supporting-evidence` section + mount order for flat evidence visibility. |
+---
 
-**Invariant (Round 3 steps 05–08):** one-click grouped send, inline approve, issue preview stays on governance URL, proof cluster does not open supporting-evidence accordion.
+### Intended Codebase Changes (13 files)
 
-### Phase 4 — CSS build & verify
-1. Edit `public/css/09-governance.css` only (not `styles.css`).
-2. Run `npm run build:css`.
-3. Run `npm run test:journey:governance-click-friction-round3`.
+| # | File | Phase | Change |
+|---|------|-------|--------|
+| 1 | `public/Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js` | 1 | Merge capsule + expanded into one flat row; status chip uses in-place highlight, not `scrollToFirstClusterNudge()` |
+| 2 | `public/Delivera-App-Governance-Brief-ScopeBar-02ProjectQuarter-Selector-UI.js` | 1 | Flatten nested desktop/mobile/period/advanced selectors into single horizontal strip |
+| 3 | `public/Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js` | 1 | Demote drawer to inline expansion or lightweight popover for routine scope changes |
+| 4 | `public/Delivera-Governance-Brief-Page-Controller.js` | 1 | Remove `scrollScopeIntoView` from scope API; wire inline advanced scope path |
+| 5 | `public/css/09-governance.css` | 1–2 | Lower `--gov-scope-bar-height`; drop redundant scope/main border; remove right-rail sticky + nested scroll |
+| 6 | `public/governance.html` | 2–3 | Flatten `#gov-right-rail-mount` to sibling blocks (proof → queue → PI strip) |
+| 7 | `public/Delivera-Shared-Top-Chrome-01Render-UI.js` | 2 | Align `--sticky-global-nav-top` / `--top-chrome-height` so scope offset doesn't duplicate sticky layers |
+| 8 | `public/Delivera-App-Governance-Inbox-01Render-UI.js` | 2 | Remove inline preview → full drawer escalation; keep approve/send on-page |
+| 9 | `public/Delivera-App-Shared-RightDrawer-01UI.js` | 2 | Reserve drawer for exceptional flows only; avoid body scroll lock on routine actions |
+| 10 | `public/Delivera-App-Governance-Brief-15Render-OwnerActionCluster-UI.js` | 3 | Flatten cluster DOM: header → issue list → send row; inline proof preview below chip |
+| 11 | `public/Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js` | 3 | Replace `scrollToFirstClusterNudge()` with `focus({ preventScroll: true })` + CSS highlight; proof click sets `data-proof-active` on rail |
+| 12 | `public/Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js` | 3 | Demote `mountEvidenceTabShell()` tab panels to always-visible flat sections |
+| 13 | `public/Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js` | 3 | Stop `scrollIntoView` on `#gov-supporting-evidence`; drawer fallback uses in-drawer scroll only |
 
-### Success criteria (mapped to Round 3 test steps)
-- Steps 03/09: scope expanded + chips visible inline (desktop + mobile).
-- Step 04: zero `.gov-sticky-answer--governance` after scroll.
-- Steps 05–08: one-click send, inline approve, issue preview on-page, proof cluster does not open supporting evidence.
-- No new nested scroll containers in scope bar or right rail.
+---
 
-### Files in scope (13)
+### Phase Plan
+
+**Phase 1 — Scope bar: collapse sticky double-deck**  
+Merge capsule + `#gov-scope-expanded` into one flat horizontal row (project chips | quarter pills | period chips | advanced overflow). Remove scroll-jump handlers. Demote scope intelligence drawer to inline/popover. CSS: trim height, remove redundant borders.
+
+**Phase 2 — Sticky stack: one scroll owner**  
+Remove `position: sticky` + `overflow-y: auto` + viewport `max-height` from `.gov-right-rail`. Remove nested scroll on `.gov-inbox-inline-preview`. Flatten right-rail mounts to sibling blocks. Reduce `scroll-margin-top` on owner clusters once sticky stack is shorter.
+
+**Phase 3 — Owner clusters + evidence: cut scroll chains**  
+Flatten cluster DOM depth. Proof click highlights rail section instead of smooth-scrolling container. Replace evidence tab shell with flat always-visible sections. Stop hover proof cards from opening supporting-evidence accordion.
+
+**Phase 4 — Build & verify**  
+```powershell
+npm run build:css
+npm run test:journey:governance-click-friction-round3
 ```
-public/governance.html
-public/css/09-governance.css
-public/Delivera-Governance-Brief-Page-Controller.js
-public/Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js
-public/Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js
-public/Delivera-App-Governance-Brief-ScopeBar-02ProjectQuarter-Selector-UI.js
-public/Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js
-public/Delivera-App-Governance-Brief-15Render-OwnerActionCluster-UI.js
-public/Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js
-public/Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js
-public/Delivera-App-Governance-Inbox-01Render-UI.js
-public/Delivera-App-Shared-RightDrawer-01UI.js
-public/Delivera-Shared-Top-Chrome-01Render-UI.js
-```
+
+---
+
+### Round 3 Success Criteria (must not regress)
+
+| Step | Assertion |
+|------|-----------|
+| 03 | `#gov-scope-expanded` always visible on desktop |
+| 04 | No duplicate sticky verdict after scroll |
+| 05 | One-click grouped send (`[data-grouped-send]`) |
+| 06 | Inline approve visible on queue summary |
+| 07 | Issue preview stays on governance URL |
+| 08 | Proof cluster click does not open `#gov-supporting-evidence[open]` |
+| 09 | Mobile scope inline; no `.gov-right-drawer-panel--scope-sheet` |
+
+---
+
+### Test Selection Rationale
+
+Among **Available Tests**, `test:journey:governance-click-friction-round3` is the single most specific journey for these 13 governance files. It runs only `Delivera-Governance-Click-Friction-MasterPlan-Round3-Realtime-Validation-Tests.spec.js`, which directly asserts steps 03–09 above. Broader options (`test:journey:governance`, `test:journey:governance-click-friction`) add unrelated specs and dilute signal.

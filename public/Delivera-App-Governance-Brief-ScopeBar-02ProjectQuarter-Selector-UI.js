@@ -101,17 +101,15 @@ export function renderExpandedSelectors({
         <div class="gov-scope-period-merged-row">${periodRow}</div>
       </div>`;
   return `
-    <div class="gov-scope-bar-inner gov-scope-bar-inner--expanded">
-      ${boardsWarn ? `<p class="gov-scope-boards-warn" role="status">${escapeHtml(boardsWarn)}</p>` : ''}
-      <div class="gov-scope-desktop-only gov-scope-flat-selectors" role="group" aria-label="Scope selectors">
-        <div class="gov-scope-chips gov-scope-chips--scroll" role="group" aria-label="Projects"${compareSelected}>${chips}</div>
-        <div class="gov-scope-period-merged-row" role="group" aria-label="Period">${periodRow}</div>
-        ${renderAdvancedScopeControl(advancedLabel)}
-      </div>
-      <div class="gov-scope-mobile-only">
-        ${renderMobileProjectChecklist(projectKeys, selected, accessByKey)}
-        ${mobilePeriodBlock}
-        ${renderAdvancedScopeControl(advancedLabel)}
-      </div>
+    ${boardsWarn ? `<p class="gov-scope-boards-warn" role="status">${escapeHtml(boardsWarn)}</p>` : ''}
+    <div class="gov-scope-desktop-only gov-scope-flat-selectors" role="group" aria-label="Scope selectors">
+      <div class="gov-scope-chips" role="group" aria-label="Projects"${compareSelected}>${chips}</div>
+      <div class="gov-scope-period-merged-row" role="group" aria-label="Period">${periodRow}</div>
+      ${renderAdvancedScopeControl(advancedLabel)}
+    </div>
+    <div class="gov-scope-mobile-only">
+      ${renderMobileProjectChecklist(projectKeys, selected, accessByKey)}
+      ${mobilePeriodBlock}
+      ${renderAdvancedScopeControl(advancedLabel)}
     </div>`;
 }

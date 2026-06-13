@@ -283,6 +283,15 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     return { preview, chip };
   }
 
+  function openQueueSurface(preferredTab) {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (isMobile) {
+      openCombinedDrawer(preferredTab);
+      return;
+    }
+    mount.querySelector('.gov-inbox-inline-open, .gov-queue-chip')?.focus?.({ preventScroll: true });
+  }
+
   function render() {
     const total = TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0);
     const confirmCount = (lastData?.confirm || []).length;
@@ -301,11 +310,11 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
         ${chip}
       </div>`;
     mount.querySelector('#gov-rail-review-claims')?.addEventListener('click', () => {
-      openCombinedDrawer('doNow');
+      openQueueSurface('doNow');
     });
-    mount.querySelector('[data-queue-open]')?.addEventListener('click', () => openCombinedDrawer());
+    mount.querySelector('[data-queue-open]')?.addEventListener('click', () => openQueueSurface());
     mount.querySelectorAll('[data-inline-open]').forEach((btn) => {
-      btn.addEventListener('click', () => openCombinedDrawer('doNow'));
+      btn.addEventListener('click', () => openQueueSurface('doNow'));
     });
     mount.querySelectorAll('[data-inbox-approve]').forEach((btn) => {
       btn.addEventListener('click', (ev) => {
@@ -334,16 +343,11 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
     refresh,
     getConfirmCount: () => tabCount(lastData, 'doNow'),
     getInboxTotal: () => TAB_META.reduce((n, [k]) => n + tabCount(lastData, k), 0),
-    openQueue: () => openCombinedDrawer(),
+    openQueue: () => openQueueSurface(),
     openQueueTab: (tabKey) => {
       const unified = tabKey === 'confirm' || tabKey === 'nudges' ? 'doNow'
         : (tabKey === 'briefs' || tabKey === 'piDrift' || tabKey === 'impact' || tabKey === 'poReadiness' ? 'background' : tabKey);
-      const isMobile = window.matchMedia('(max-width: 768px)').matches;
-      if (isMobile) {
-        openCombinedDrawer(unified);
-        return;
-      }
-      mount.querySelector('.gov-inbox-inline-open, .gov-queue-chip')?.focus?.({ preventScroll: true });
+      openQueueSurface(unified);
     },
   };
 }

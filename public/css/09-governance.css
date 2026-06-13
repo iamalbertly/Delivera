@@ -413,6 +413,9 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
 }
 .governance-decisions-table th { background: #f9fafb; font-size: 0.72rem; text-transform: uppercase; }
 .governance-evidence-wrap { margin-top: 20px; }
+.governance-evidence-wrap .governance-subsection-title { display: block; margin-top: 14px; }
+.governance-evidence-wrap[data-evidence-layout="flat"] .gov-evidence-tabs,
+.governance-evidence-wrap[data-evidence-layout="flat"] .gov-evidence-tab-panels { display: none !important; }
 .governance-evidence-summary { font-size: inherit; margin: 0 0 8px; }
 #gov-evidence.governance-evidence-table-wrap.data-table-scroll-wrap,
 .attention-queue-table-wrap.data-table-scroll-wrap {
@@ -858,7 +861,7 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-do-first-prefix { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #6b7280; }
 .gov-do-first-action { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gov-do-first-strip .btn { flex-shrink: 0; }
-.gov-owner-cluster { scroll-margin-top: calc(var(--top-chrome-height, 56px) + var(--gov-scope-bar-height, 44px) + 4px); }
+.gov-owner-cluster { scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + var(--gov-scope-bar-height, 44px) + 2px); }
 .gov-receipt-details { margin-bottom: 6px; }
 .gov-receipt-details summary { cursor: pointer; list-style: none; }
 .gov-receipt-details summary::-webkit-details-marker { display: none; }
@@ -871,7 +874,7 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-top-chrome-details { max-width: 960px; margin: 0 auto 8px; padding: 0 14px; }
 .gov-top-chrome-summary { font-size: 0.78rem; font-weight: 600; color: #6b7280; cursor: pointer; list-style: none; }
 .gov-top-chrome-summary::-webkit-details-marker { display: none; }
-.gov-scope-chips--scroll { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
+.gov-scope-chips--scroll { flex-wrap: wrap; overflow-x: visible; max-width: 100%; }
 .gov-scope-quarter-strip {
   display: flex;
   gap: 4px;
