@@ -48,10 +48,10 @@ export function renderProofRisks(risks, opts = {}) {
           ${r.issueKey ? `<button type="button" class="btn btn-link btn-compact" data-copy-msg="${idx}">Copy message</button>` : ''}
           ${r.issueKey ? `<button type="button" class="btn btn-link btn-compact" data-nudge="${idx}">${escapeHtml(COPY.draftNudge)}</button>` : ''}
           <button type="button" class="btn btn-link btn-compact" data-mark-wrong="${idx}">${escapeHtml(COPY.markAsWrong)}</button>
-          <button type="button" class="btn btn-link btn-compact" data-why="${idx}" aria-expanded="false">Why flagged?</button>
+          <button type="button" class="btn btn-link btn-compact" data-why="${idx}" aria-expanded="true">Why flagged?</button>
         </div>
         <div class="gov-mark-wrong-panel" data-wrong-panel="${idx}" hidden></div>
-        <div class="governance-risk-detail" data-detail="${idx}" hidden>${renderStructuredEvidence(ev, r)}</div>
+        <div class="governance-risk-detail" data-detail="${idx}">${renderStructuredEvidence(ev, r)}</div>
       </li>`;
   }).join('');
   govPage.els.proofRisks.innerHTML = `<ol class="governance-risk-list">${items}</ol>`;
@@ -60,7 +60,6 @@ export function renderProofRisks(risks, opts = {}) {
 export function renderEvidenceTable(brief) {
   const rows = brief?.evidencePack?.rows || [];
   if (!rows.length) {
-    govPage.els.evidence.classList.remove('data-table-scroll-wrap');
     govPage.els.evidence.innerHTML = '<p class="governance-empty">No proof rows for flagged items.</p>';
     return;
   }
@@ -71,7 +70,6 @@ export function renderEvidenceTable(brief) {
       <td>${escapeHtml(r.statusLastWeek || '')}</td>
       <td>${escapeHtml(r.whyFlagged || '')}</td>
     </tr>`).join('');
-  govPage.els.evidence.classList.add('data-table-scroll-wrap');
   govPage.els.evidence.innerHTML = `<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
@@ -129,7 +127,7 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
         <h3 class="gov-evidence-preview-title">Proof preview</h3>
         <button type="button" class="btn btn-link btn-compact" id="gov-evidence-preview-more">All proof (${total})</button>
       </header>
-      <div class="gov-evidence-preview-table data-table-scroll-wrap">
+      <div class="gov-evidence-preview-table">
         <table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>
       </div>
     </section>`;
@@ -142,9 +140,6 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
         rail.removeAttribute('data-proof-active');
         rail.classList.remove('gov-proof-rail-highlight');
       }, 1200);
-      const rect = rail.getBoundingClientRect();
-      const offScreen = rect.top < 0 || rect.bottom > window.innerHeight;
-      if (offScreen) rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
       return;
     }
     openEvidenceDrawer(brief, brief?.evidencePack?.rows || []);

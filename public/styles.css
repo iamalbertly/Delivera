@@ -16398,7 +16398,12 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
 .governance-evidence-wrap[data-evidence-layout="flat"] .gov-evidence-tabs,
 .governance-evidence-wrap[data-evidence-layout="flat"] .gov-evidence-tab-panels { display: none !important; }
 .governance-evidence-summary { font-size: inherit; margin: 0 0 8px; }
-#gov-evidence.governance-evidence-table-wrap.data-table-scroll-wrap,
+#gov-evidence.governance-evidence-table-wrap,
+#gov-evidence.governance-evidence-table-wrap.data-table-scroll-wrap {
+  width: 100%;
+  overflow-x: visible;
+  margin-top: 8px;
+}
 .attention-queue-table-wrap.data-table-scroll-wrap {
   width: 100%;
   overflow-x: auto;
@@ -16697,7 +16702,7 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-send-badge--weak { background: #fffbeb; color: #b45309; }
 .gov-send-badge--setup { background: #f1f5f9; color: #475569; }
 .gov-proof-chip { margin-top: 6px; font-size: 0.78rem; }
-.gov-cluster-proof-preview { margin: 6px 0; font-size: 0.78rem; overflow-x: auto; }
+.gov-cluster-proof-preview { margin: 6px 0; font-size: 0.78rem; overflow: visible; }
 .gov-cluster-proof-table { width: 100%; border-collapse: collapse; }
 .gov-cluster-proof-table th, .gov-cluster-proof-table td { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; text-align: left; }
 
@@ -16852,7 +16857,7 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-do-first-prefix { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #6b7280; }
 .gov-do-first-action { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gov-do-first-strip .btn { flex-shrink: 0; }
-.gov-owner-cluster { scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + var(--gov-scope-bar-height, 44px) + 2px); }
+.gov-owner-cluster { scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + var(--gov-scope-bar-height, 44px)); }
 .gov-receipt-details { margin-bottom: 6px; }
 .gov-receipt-details summary { cursor: pointer; list-style: none; }
 .gov-receipt-details summary::-webkit-details-marker { display: none; }
@@ -16866,14 +16871,12 @@ body.gov-right-drawer-open { overflow: hidden; }
 .gov-top-chrome-summary { font-size: 0.78rem; font-weight: 600; color: #6b7280; cursor: pointer; list-style: none; }
 .gov-top-chrome-summary::-webkit-details-marker { display: none; }
 .gov-scope-chips--scroll { flex-wrap: wrap; overflow-x: visible; max-width: 100%; }
-.gov-scope-quarter-strip {
-  display: flex;
+.gov-scope-quarter-strip,
+.gov-scope-period-merged-row .gov-scope-quarter-pill {
+  display: inline-flex;
   gap: 4px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  flex-wrap: wrap;
   max-width: 100%;
-  padding-bottom: 4px;
 }
 .gov-scope-boards-warn { font-size: 0.76rem; color: #b45309; margin: 0 0 6px; }
 .gov-scope-desktop-only { display: block; }

@@ -69,9 +69,6 @@ function highlightProofRail(rail) {
     rail.removeAttribute('data-proof-active');
     rail.classList.remove('gov-proof-rail-highlight');
   }, 1200);
-  const rect = rail.getBoundingClientRect();
-  const offScreen = rect.top < 0 || rect.bottom > window.innerHeight;
-  if (offScreen) rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
   return true;
 }
 

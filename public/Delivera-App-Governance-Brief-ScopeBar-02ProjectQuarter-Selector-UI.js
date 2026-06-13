@@ -96,7 +96,7 @@ export function renderExpandedSelectors({
   const chips = renderProjectChips(projectKeys, selected, accessByKey);
   const compareSelected = selected.length > 1 ? ' data-compare-mode="1"' : '';
   const presetChip = renderPeriodPresetChip(activeQuarter, periodWindow);
-  const periodRow = `${presetChip}${periodWindowChips}${quarterPills ? `<span class="gov-scope-period-sep" aria-hidden="true">·</span><div class="gov-scope-quarter-strip">${quarterPills}</div>` : ''}${investmentChip}`;
+  const periodRow = `${presetChip}${periodWindowChips}${quarterPills ? `<span class="gov-scope-period-sep" aria-hidden="true">·</span>${quarterPills}` : ''}${investmentChip}`;
   const mobilePeriodBlock = `<div class="gov-scope-period gov-scope-period--merged gov-scope-mobile-period" role="group" aria-label="Period">
         <div class="gov-scope-period-merged-row">${periodRow}</div>
       </div>`;
