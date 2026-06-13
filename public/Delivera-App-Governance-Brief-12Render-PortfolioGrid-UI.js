@@ -72,7 +72,8 @@ export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge
     : '';
   const showTray = squads.length >= 5 && !singleSquad;
   const since = brief?.meta?.workerReceipt?.sinceLastRun || brief?.meta?.sinceLastRun;
-  const cacheNote = since ? ` · cached ${escapeHtml(String(since))}` : '';
+  const sinceLabel = typeof since === 'object' && since !== null ? (since.summary || '') : String(since || '');
+  const cacheNote = sinceLabel ? ` · ${escapeHtml(sinceLabel)}` : '';
   const filterBar = showTray ? `
     <details class="gov-comparison-refine">
       <summary class="btn btn-link btn-compact">${escapeHtml(COPY.refineSquads)}</summary>

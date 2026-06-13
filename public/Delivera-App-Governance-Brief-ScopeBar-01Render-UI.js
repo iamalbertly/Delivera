@@ -10,6 +10,7 @@ import { invalidateBriefCacheEntry, normalizeProjectsCsv } from './Delivera-Shar
 import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { COPY, isSimpleMode, simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { fetchQuartersListMemo } from './Delivera-Shared-Quarters-List-01Fetch-Memo.js';
@@ -85,6 +86,9 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let scopeChangeTimer = null;
   let scopeDrawerClose = null;
   let compareHintTimer = null;
+  let scopeExpandedOpen = false;
+  let refreshLocked = false;
+  let mobileTapApplyTimer = null;
 
   function isMobileScopeLayout() {
     return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 768px)')?.matches;
@@ -203,6 +207,16 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         writeProjects(selected);
         if (deferApply) {
           refreshMobileDrawerBody(panelEl);
+          if (mobileTapApplyTimer) clearTimeout(mobileTapApplyTimer);
+          mobileTapApplyTimer = setTimeout(() => {
+            mobileTapApplyTimer = null;
+            closeAllGovernanceOverlays();
+            render();
+            debouncedScopeChange();
+            scheduleValidateSelected(true);
+            setLoadBriefForce(true);
+            onRefresh?.({ force: true });
+          }, 700);
           return;
         }
         render();
@@ -335,12 +349,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const statusActionAttr = '';
     const advLabel = advancedWarnCount > 0 ? `Advanced scope (${advancedWarnCount})` : 'Advanced scope';
     const mobileLayout = isMobileScopeLayout();
-    const desktopWide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)')?.matches;
-    const expandedHidden = mobileLayout
-      ? true
-      : (desktopWide && selected.length <= 3
-        ? false
-        : mount.querySelector('#gov-scope-expanded')?.hasAttribute('hidden') !== false);
+    const expandedHidden = mobileLayout ? true : !scopeExpandedOpen;
     const scopeExpandedVisible = !expandedHidden && !mobileLayout;
     const accessKeys = Object.keys(accessByKey);
     const allInaccessible = accessKeys.length > 0 && accessKeys.every((k) => accessByKey[k] === false);
@@ -351,27 +360,30 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const periodChips = PERIOD_OPTIONS.map((p) => (
       `<button type="button" class="gov-period-chip${periodWindow === p.id ? ' is-on' : ''}" data-period-chip="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
     )).join('');
-    const showInvestment = isSimpleMode() || squadCount > 1;
+    const showInvestment = (isSimpleMode() || squadCount > 1) && scopeExpandedVisible;
     const investmentChip = showInvestment
       ? `<button type="button" class="gov-investment-chip btn btn-link btn-compact" data-investment-open="1">${escapeHtml(COPY.investmentLens)}</button>`
+      : '';
+
+    const readiness = govPage.lastBrief ? sendReadinessBadge(govPage.lastBrief) : null;
+    const readinessPill = readiness
+      ? `<span id="gov-send-readiness-pill" class="gov-send-badge gov-send-badge--${escapeHtml(readiness.tier)}" data-send-readiness-ssot="1" title="Send readiness">${escapeHtml(readiness.label)}</span>`
       : '';
 
     const capsuleText = scopeExpandedVisible
       ? `${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`
       : `Scope: <strong>${escapeHtml(formatScopeProjects(selected))}</strong> | Period: <strong>${escapeHtml(periodLabel)} · ${escapeHtml(periodWindowLabel())}</strong> | ${squadCount} squad${squadCount === 1 ? '' : 's'}${escapeHtml(intelLine)}`;
-    const changeBtn = (desktopWide && scopeExpandedVisible && !mobileLayout)
-      ? ''
-      : `<button type="button" id="gov-scope-change" class="btn btn-link btn-compact">${mobileLayout ? 'Change scope' : 'Change'}</button>`;
+    const changeLabel = mobileLayout ? 'Change scope' : (expandedHidden ? 'Change' : 'Hide scope');
+    const changeBtn = `<button type="button" id="gov-scope-change" class="btn btn-link btn-compact">${changeLabel}</button>`;
 
-    const statusChipEl = (statusTier === 'blocked' || statusTier === 'watch')
-      ? `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" data-scope-status-action="1" title="Jump to do-now actions">${escapeHtml(statusLabel)}${deltaPart}</button>`
-      : `<span class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" title="Delivery status">${escapeHtml(statusLabel)}${deltaPart}</span>`;
+    const statusChipEl = `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" data-scope-status-action="1" title="Jump to actions">${escapeHtml(statusLabel)}${deltaPart}</button>`;
 
     mount.innerHTML = `
       ${accessBanner}
       <p id="gov-extension-trust-hint" class="gov-extension-trust-hint" role="status" hidden>Browser extension noise detected — Delivera data is unaffected.</p>
       <div class="gov-scope-capsule" aria-label="Brief scope"${scopeExpandedVisible ? ' data-scope-capsule-compact="1"' : ''}>
         <span class="gov-scope-capsule-text">${capsuleText}</span>
+        ${readinessPill}
         ${statusChipEl}
         <div class="gov-scope-actions" role="group" aria-label="Scope actions">
           ${changeBtn}
@@ -385,7 +397,11 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
 
     bindScopePanelInteractions(mount.querySelector('#gov-scope-expanded'));
     mount.querySelector('[data-scope-status-action]')?.addEventListener('click', async () => {
-      const { executeFirstClusterNudge } = await import('./Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js');
+      const { executeFirstClusterNudge, scrollToFirstClusterNudge } = await import('./Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js');
+      if (statusTier === 'onTrack' || statusTier === 'on-track') {
+        scrollToFirstClusterNudge();
+        return;
+      }
       executeFirstClusterNudge();
     });
     mount.querySelector('#gov-copy-answer-scope')?.addEventListener('click', () => {
@@ -400,13 +416,23 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         openMobileScopeSheet();
         return;
       }
-      const panel = mount.querySelector('#gov-scope-expanded');
-      if (panel) panel.toggleAttribute('hidden');
+      scopeExpandedOpen = !scopeExpandedOpen;
+      render();
     });
     mount.querySelector('#gov-scope-refresh')?.addEventListener('click', () => {
+      if (refreshLocked) return;
+      refreshLocked = true;
+      const refreshBtn = mount.querySelector('#gov-scope-refresh');
+      refreshBtn?.setAttribute('disabled', 'disabled');
+      refreshBtn?.setAttribute('aria-busy', 'true');
       setLoadBriefForce(true);
       onRefresh?.({ force: true });
       scheduleValidateSelected(true);
+      setTimeout(() => {
+        refreshLocked = false;
+        refreshBtn?.removeAttribute('disabled');
+        refreshBtn?.removeAttribute('aria-busy');
+      }, 1000);
     });
   }
 
@@ -496,9 +522,11 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     openBaselineWizard: () => baselineWizard?.open(),
     openPiBaselineWizard: () => baselineWizard?.open(),
     expandScopePanel: () => {
+      scopeExpandedOpen = true;
       const panel = mount.querySelector('#gov-scope-expanded');
       if (panel) panel.removeAttribute('hidden');
       mount.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      render();
     },
     updateStatus(tier, queue = 0, sinceSummary = '', confirms = 0) {
       statusTier = tier || 'watch';

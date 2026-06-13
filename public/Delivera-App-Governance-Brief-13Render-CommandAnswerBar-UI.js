@@ -54,7 +54,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
   const doFirst = surfaces?.doNowActions?.[0];
   const doFirstLabel = doFirst?.actionPlain?.slice(0, 56) || top.recommendedAction?.slice(0, 56) || COPY.reviewActions;
   const doFirstUrl = doFirst?.issueUrl || top.issueUrl || '';
-  const showDoFirstStrip = tier === 'blocked' || doFirst?.escalation === 'act-today' || doFirst?.escalation === 'escalate';
+  const showDoFirstStrip = !hasOwnerClusters && (tier === 'blocked' || doFirst?.escalation === 'act-today' || doFirst?.escalation === 'escalate');
   const evidenceCount = (brief?.evidencePack?.rows || []).length;
   const piForum = brief?.meta?.piForumAnswer || '';
   const readiness = sendReadinessBadge(brief);

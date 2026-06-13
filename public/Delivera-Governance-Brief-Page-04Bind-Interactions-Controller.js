@@ -10,6 +10,8 @@ import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02R
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { govPage, MARK_WRONG_REASONS, openPiBaselineWizard, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js';
 import { buildSquadNudgeDraft } from './Delivera-Governance-SquadNudge-01Draft-SSOT.js';
+import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
+import { closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';
 
 function riskByProofIndex(idx) {
   return govPage.proofRisks[Number(idx)];
@@ -170,6 +172,24 @@ export function openGroupedNudge(groupIndex) {
   });
 }
 
+async function sendGroupedNudgeDirect(groupIndex) {
+  if (govPage.lastBrief?.freshness?.confidenceLimit === 'stale') return;
+  const g = govPage.ownerGroups[groupIndex];
+  if (!g?.issues?.length) return;
+  const first = g.issues.find((r) => r.issueKey) || g.issues[0];
+  if (!first?.issueKey) return;
+  const text = buildGroupedNudgeDraft(g);
+  try {
+    await fetch(`/api/issues/${encodeURIComponent(first.issueKey)}/comment`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commentBody: text }),
+    });
+    showInlineToast(govPage.els.actionClustersMount, `Nudge sent to ${first.issueKey}`, 'success');
+  } catch (_) {
+    showInlineToast(govPage.els.actionClustersMount, 'Could not send nudge', 'error');
+  }
+}
+
 async function submitClusterDismiss(gi, reason) {
   try {
     await fetch('/api/governance/feedback-triage', {
@@ -221,12 +241,20 @@ export function bindOwnerClusterInteractions() {
     const proof = event.target.closest('[data-proof-cluster]');
     if (proof) {
       const gi = Number(proof.getAttribute('data-proof-cluster'));
-      openEvidenceDrawer(govPage.lastBrief, govPage.ownerGroups[gi]?.issues || []);
       const rail = document.getElementById('gov-right-rail-proof-mount');
-      if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {
+      const hasRailPreview = rail && !rail.hidden && rail.querySelector('.gov-evidence-preview');
+      if (hasRailPreview) {
+        rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
         rail.classList.add('gov-proof-rail-highlight');
         setTimeout(() => rail.classList.remove('gov-proof-rail-highlight'), 1200);
+        return;
       }
+      openEvidenceDrawer(govPage.lastBrief, govPage.ownerGroups[gi]?.issues || []);
+      return;
+    }
+    const sendBtn = event.target.closest('[data-grouped-send]');
+    if (sendBtn) {
+      sendGroupedNudgeDirect(Number(sendBtn.getAttribute('data-grouped-send')));
       return;
     }
     const nudge = event.target.closest('[data-grouped-nudge]');
@@ -366,7 +394,9 @@ export function bindSetupDebtActions() {
     if (action === 'set-baseline') {
       openPiBaselineWizard();
     } else if (action === 'add-ai-key') window.location.href = '/settings#gov-ai-helper';
-    else if (action === 'create-work') document.getElementById('gov-hidden-create-work')?.click();
+    else if (action === 'create-work') {
+      chip.setAttribute('data-outcome-projects', projectsCsv());
+    }
     else if (action === 'map-board') document.getElementById('gov-scope-change')?.click();
     else if (action === 'refresh') document.getElementById('gov-scope-refresh')?.click();
     else if (action === 'review-lanes') govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth' });
@@ -415,10 +445,33 @@ export function bindPortfolioHeatMap(root, brief) {
   }, (squad, issueKey) => openSquadNudge(squad, issueKey));
 }
 
+function bindGovernanceKeyboardShortcuts() {
+  if (document.body.dataset.govKeyboardBound === '1') return;
+  document.body.dataset.govKeyboardBound = '1';
+  document.addEventListener('keydown', (ev) => {
+    if (ev.target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (ev.key === 'Escape') {
+      closeAllGovernanceOverlays();
+      const preview = document.getElementById('delivera-shared-issue-preview');
+      if (preview) preview.hidden = true;
+      return;
+    }
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (ev.key === 'c' || ev.key === 'C') {
+      document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer'));
+    } else if (ev.key === 'r' || ev.key === 'R') {
+      document.getElementById('gov-scope-refresh')?.click();
+    } else if (ev.key === 'n' || ev.key === 'N') {
+      executeFirstClusterNudge();
+    }
+  });
+}
+
 export function bindGovernancePageInteractions() {
   bindProofInteractions();
   bindCommandAnswerActions();
   bindSetupDebtActions();
+  bindGovernanceKeyboardShortcuts();
   if (!document.body.dataset.govActionEventsBound) {
     document.body.dataset.govActionEventsBound = '1';
     document.addEventListener('delivera-gov-scroll-first-action', () => executeFirstClusterNudge());

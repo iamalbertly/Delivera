@@ -17,11 +17,14 @@ function renderGapCard(g, hidden = false) {
   const act = ACTION_LABELS[g.action] || 'Open settings';
   const impact = setupGapImpact(g);
   const title = setupGapTitle(g);
+  const createWorkAttrs = g.action === 'create-work'
+    ? ' data-open-outcome-modal data-outcome-context="Create work in Jira for selected squads."'
+    : '';
   return `
       <article class="gov-fix-card gov-fix-card--${escapeHtml(g.severity || 'medium')}" data-setup-gap-card data-hover-proof="setup-gap"${hidden ? ' hidden' : ''}>
         <h4 class="gov-fix-card-title">${escapeHtml(title)}</h4>
         <p class="gov-fix-card-impact">Impact: ${escapeHtml(impact)}</p>
-        <button type="button" class="btn btn-primary btn-compact gov-fix-card-btn" data-setup-action="${escapeHtml(g.action)}"${g.action === 'set-baseline' ? ' data-setup-baseline-ssot="1"' : ''}>Fix: ${escapeHtml(act)}</button>
+        <button type="button" class="btn btn-primary btn-compact gov-fix-card-btn" data-setup-action="${escapeHtml(g.action)}"${g.action === 'set-baseline' ? ' data-setup-baseline-ssot="1"' : ''}${createWorkAttrs}>Fix: ${escapeHtml(act)}</button>
       </article>`;
 }
 

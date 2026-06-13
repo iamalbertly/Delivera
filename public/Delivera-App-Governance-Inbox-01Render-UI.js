@@ -294,7 +294,7 @@ export function mountGovernanceInbox({ mount, getProjectsCsv, onFocusConfirm, on
           ${confirmCount > 0 ? `<button type="button" class="gov-freshness-review-link" id="gov-rail-review-claims">${confirmCount} to review</button>` : ''}
           ${inline.chip || `<button type="button" class="gov-queue-chip gov-queue-chip--primary" data-queue-open="1" aria-label="${escapeHtml(COPY.seeQueue)}">${escapeHtml(COPY.seeQueue)} (${total})</button>`}
         </div>`
-      : `<span class="gov-inbox-hint">${escapeHtml(preparing ? COPY.inboxPreparing : COPY.inboxUnavailable)}</span>`;
+      : `<span class="gov-inbox-hint gov-inbox-queue-clear">${escapeHtml(preparing ? COPY.inboxPreparing : 'Queue clear')}</span>`;
     mount.innerHTML = `
       <div class="gov-agent-queue" role="group" aria-label="${escapeHtml(COPY.agentQueue)}">
         ${inline.preview}

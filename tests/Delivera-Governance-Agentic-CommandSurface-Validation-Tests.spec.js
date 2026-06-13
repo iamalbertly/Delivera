@@ -173,11 +173,13 @@ test.describe('Governance command surface — UI', () => {
     await expect(page.locator('.gov-inbox-panel')).toHaveCount(0);
   });
 
-  test('scope capsule shows squad count on desktop expanded scope', async ({ page }) => {
+  test('scope capsule shows squad count; scope collapsed until Change on desktop', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await expect(page.locator('.gov-scope-capsule-text')).toContainText(/squad/i);
+    await expect(page.locator('#gov-scope-expanded')).toBeHidden();
+    await page.locator('#gov-scope-change').click();
     await expect(page.locator('#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeVisible();
   });
 
@@ -228,9 +230,9 @@ test.describe('Governance command surface — UI', () => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    const badge = page.locator('.gov-command-answer .gov-send-badge');
-    await expect(badge.first()).toContainText(/Fix promised work first/i);
-    await expect(badge).not.toContainText(/Safe to send/i);
+    const badge = page.locator('#gov-send-readiness-pill, .gov-owner-cluster .gov-send-badge').first();
+    await expect(badge).toContainText(/Fix promised work first/i);
+    await expect(page.locator('#gov-send-readiness-pill, .gov-send-badge')).not.toContainText(/Safe to send/i);
   });
 
   test('setup compact expand does not duplicate fix card rows', async ({ page }) => {

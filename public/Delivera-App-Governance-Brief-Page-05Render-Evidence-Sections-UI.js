@@ -4,6 +4,7 @@
 import { escapeHtml, truthChip, renderStructuredEvidence } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { govPage, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js';
+import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import {
   GOV_EVIDENCE_TAB_KEY,
   activateTabStrip,
@@ -102,7 +103,7 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
     const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
     return `
     <tr>
-      <td><a href="${escapeHtml(href)}" class="gov-issue-key-link gov-proof-row-link"${ext}>${escapeHtml(r.issueKey || '')}</a></td>
+      <td><a href="${escapeHtml(href)}" class="gov-issue-key-link gov-proof-row-link" data-issue-key="${escapeHtml(r.issueKey || '')}"${ext}>${escapeHtml(r.issueKey || '')}</a></td>
       <td>${escapeHtml(r.statusNow || '')}</td>
       <td>${escapeHtml(r.whyFlagged || '')}</td>
     </tr>`;
@@ -119,11 +120,12 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
       </div>
     </section>`;
   mount.querySelector('#gov-evidence-preview-more')?.addEventListener('click', () => {
-    const panel = document.getElementById('gov-supporting-evidence');
-    if (panel) {
-      panel.open = true;
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const rail = document.getElementById('gov-right-rail-proof-mount');
+    if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {
+      rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+      return;
     }
+    openEvidenceDrawer(brief, brief?.evidencePack?.rows || []);
   });
 }
 

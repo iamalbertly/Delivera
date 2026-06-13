@@ -186,6 +186,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/governance');
     await expect(page.locator('#gov-loading')).toBeHidden();
+    await page.locator('#gov-scope-change').click();
     await expect(page.locator('#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeVisible();
     const chip = page.locator('#gov-scope-expanded .gov-scope-chip[data-project="SD"]');
     await expect(chip).toBeVisible();

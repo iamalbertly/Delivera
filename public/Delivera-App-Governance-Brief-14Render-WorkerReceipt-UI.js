@@ -13,9 +13,9 @@ export function renderWorkerReceiptRail(brief, feedbackSummary = null, aiContrib
   const aiStrip = renderAiContributionStrip(aiContribution || brief?.meta?.aiContribution || {});
   const openAttr = auth ? ' open' : '';
 
-  return `
+    return `
     <details class="gov-receipt-details"${openAttr} role="status" aria-live="polite">
-      <summary class="gov-worker-receipt${auth ? ' gov-worker-receipt--warn' : ''}">
+      <summary class="gov-worker-receipt gov-worker-receipt--clickable${auth ? ' gov-worker-receipt--warn' : ''}" data-worker-receipt-open="1" title="Open agent queue">
         <span class="gov-worker-receipt-label">Agent</span>
         <span class="gov-worker-receipt-line">${escapeHtml(line)}</span>
         ${auth ? '<a href="/settings" class="gov-worker-receipt-link">Reconnect Jira</a>' : ''}

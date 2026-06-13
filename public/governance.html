@@ -9,6 +9,11 @@
 <body class="executive-surface-page governance-page">
   <div id="gov-scope-bar-mount" class="gov-scope-bar-sticky" aria-label="Brief scope"></div>
   <div id="gov-sticky-answer-mount" class="gov-sticky-answer-mount" aria-live="polite"></div>
+  <details id="gov-secondary-chrome" class="gov-secondary-chrome" hidden>
+    <summary class="gov-secondary-chrome-summary">Feedback and survey</summary>
+    <div id="gov-feedback-lab-mount"></div>
+    <div id="gov-micro-survey-mount"></div>
+  </details>
 
   <main class="governance-shell" id="main-content" role="main" data-gov-brief-state="loading">
     <div id="gov-loading" class="current-sprint-loading-with-spinner" aria-live="polite">
@@ -51,7 +56,7 @@
       </aside>
     </div>
     <div id="gov-error" class="alert-banner" hidden role="alert"></div>
-    <button type="button" id="gov-hidden-create-work" hidden data-open-outcome-modal data-outcome-projects="MPSA,MAS" data-outcome-context="Create work in Jira for selected squads.">Create work</button>
+    <button type="button" id="gov-hidden-create-work" class="gov-visually-hidden" tabindex="-1" aria-hidden="true" data-open-outcome-modal data-outcome-projects="MPSA,MAS" data-outcome-context="Create work in Jira for selected squads.">Create work</button>
   </main>
 
   <script type="module" src="Delivera-Shared-Global-Nav.js"></script>

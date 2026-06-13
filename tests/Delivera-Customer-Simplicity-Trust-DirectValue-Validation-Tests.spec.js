@@ -179,6 +179,9 @@ test.describe('Customer simplicity trust direct value validation', () => {
     });
 
     await test.step('07a exclusive project select replaces not toggles off', async () => {
+      if (await page.locator('#gov-scope-expanded').isHidden()) {
+        await page.locator('#gov-scope-change').click();
+      }
       await expect(page.locator('#gov-scope-expanded[data-project-select-mode="exclusive"]')).toBeVisible();
       await page.locator('[data-project="BIO"]').click();
       await expect(page.locator('[data-project="BIO"]')).toHaveAttribute('aria-pressed', 'true');
@@ -186,10 +189,11 @@ test.describe('Customer simplicity trust direct value validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('07b Change hidden when scope expanded on desktop', async () => {
+    await test.step('07b Change visible when scope collapsed on desktop', async () => {
+      await expect(page.locator('#gov-scope-expanded')).toBeHidden();
+      await expect(page.locator('#gov-scope-change')).toBeVisible();
+      await page.locator('#gov-scope-change').click();
       await expect(page.locator('#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeVisible();
-      await expect(page.locator('#gov-scope-change')).toHaveCount(0);
-      await expect(page.locator('[data-scope-capsule-compact="1"]')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 

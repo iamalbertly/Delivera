@@ -1,8 +1,11 @@
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { ensureSubChromeSlot, SUB_CHROME_SLOT_ID } from './Delivera-Shared-Top-Chrome-01Render-UI.js';
+import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { COPY, firstNameFromDisplay, verdictTierFromBrief } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 let stickyMount = null;
 let globalBarEl = null;
+let lastBriefRef = null;
 
 export function mountGlobalAgentBar() {
   if (document.body?.classList?.contains('governance-page')) return null;
@@ -55,20 +58,42 @@ export function updateGlobalAgentBar(brief) {
 export function mountStickyMicroAnswer(mount) {
   stickyMount = mount;
   if (!mount) return;
-  mount.className = 'gov-sticky-answer';
+  mount.className = 'gov-sticky-answer gov-sticky-answer--governance';
   mount.hidden = true;
   mount.setAttribute('aria-live', 'polite');
+  if (!mount.dataset.stickyCopyBound) {
+    mount.dataset.stickyCopyBound = '1';
+    mount.addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-sticky-copy]')) {
+        document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer'));
+      }
+    });
+  }
 }
 
 export function updateStickyMicroAnswer(brief) {
   if (!stickyMount) return;
-  if (document.body?.classList?.contains('governance-page')) {
+  lastBriefRef = brief;
+  if (!brief) {
     stickyMount.hidden = true;
+    stickyMount.innerHTML = '';
     return;
   }
+  const onGovernance = document.body?.classList?.contains('governance-page');
   const ev = brief?.executiveView || {};
   const top = brief?.topRisks?.[0] || {};
-  const line = `${ev.verdictTier || 'watch'} · ${top.assigneeName || top.decisionNeededFrom || 'owner'} · ${(brief?.meta?.setupGaps || []).length ? 'setup gap' : 'ok'}`;
+  const tier = verdictTierFromBrief(brief);
+  const owner = firstNameFromDisplay(top.assigneeName || top.decisionNeededFrom) || COPY.unassigned;
+  const sentence = commandAnswerSentence(brief).slice(0, 80);
+  if (onGovernance) {
+    stickyMount.innerHTML = `
+      <span class="gov-sticky-answer-tier gov-sticky-answer-tier--${escapeHtml(tier)}">${escapeHtml(tier)}</span>
+      <span class="gov-sticky-answer-line">${escapeHtml(sentence || `${owner} · ${tier}`)}</span>
+      <button type="button" class="btn btn-secondary btn-compact gov-sticky-copy" data-sticky-copy="1">Copy answer</button>`;
+    stickyMount.removeAttribute('hidden');
+    return;
+  }
+  const line = `${ev.verdictTier || 'watch'} · ${owner} · ${(brief?.meta?.setupGaps || []).length ? 'setup gap' : 'ok'}`;
   stickyMount.textContent = line.slice(0, 120);
   stickyMount.hidden = !line;
 }

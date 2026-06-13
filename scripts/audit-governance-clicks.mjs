@@ -1,7 +1,8 @@
 /**
  * Ad-hoc governance click sweep for local debugging.
  * Permanent CI gate: npm run test:journey:governance-click-friction
- * Run: node scripts/audit-governance-clicks.mjs
+ * Fast key-control audit: node scripts/audit-governance-clicks-fast.mjs
+ * Run: node scripts/audit-governance-clicks-fast.mjs (prefer over full sweep)
  */
 import { chromium } from '@playwright/test';
 import { writeFileSync } from 'fs';

@@ -156,6 +156,9 @@ export function renderBriefUi(brief) {
   if (govPage.els.setupDebtMount) {
     govPage.els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief, { compact: hasOwnerClusters });
     bindSetupDebtStripExpand(govPage.els.setupDebtMount, brief);
+    govPage.els.setupDebtMount.querySelectorAll('[data-setup-action="create-work"]').forEach((btn) => {
+      btn.setAttribute('data-outcome-projects', projectsCsv());
+    });
   }
   const supportingEvidence = document.getElementById('gov-supporting-evidence');
   if (supportingEvidence) {
@@ -218,8 +221,8 @@ export function renderBriefUi(brief) {
   bindHoverProofCards(document, brief);
   if (!document.body?.classList?.contains('governance-page')) {
     updateGlobalAgentBar(brief);
-    updateStickyMicroAnswer(brief);
   }
+  updateStickyMicroAnswer(brief);
   refreshScopeBarCounts();
   const createBtn = document.getElementById('gov-hidden-create-work');
   if (createBtn) createBtn.setAttribute('data-outcome-projects', projectsCsv());
@@ -241,8 +244,10 @@ export function renderBriefUi(brief) {
   mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], govPage.lastFeedbackSummary);
   const secondaryChrome = document.getElementById('gov-secondary-chrome');
   if (secondaryChrome) {
-    secondaryChrome.classList.toggle('gov-secondary-chrome--has-content',
-      Boolean(govPage.els.feedbackLabMount?.innerHTML?.trim() || govPage.els.microSurveyMount?.innerHTML?.trim()));
+    const hasContent = Boolean(govPage.els.feedbackLabMount?.innerHTML?.trim() || govPage.els.microSurveyMount?.innerHTML?.trim());
+    secondaryChrome.classList.toggle('gov-secondary-chrome--has-content', hasContent);
+    if (hasContent) secondaryChrome.removeAttribute('hidden');
+    else secondaryChrome.setAttribute('hidden', '');
   }
   try {
     if (new URLSearchParams(window.location.search).get('lens') === 'investment') {

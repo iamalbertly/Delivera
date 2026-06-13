@@ -59,6 +59,10 @@ function stubFrictionBrief(projects = ['SD'], overrides = {}) {
 }
 
 async function clickScopeProject(page, pk) {
+  const expanded = page.locator('#gov-scope-expanded');
+  if (await expanded.isHidden()) {
+    await page.locator('#gov-scope-change').click();
+  }
   const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`);
   await expect(chip).toBeVisible({ timeout: 10000 });
   await chip.click();
@@ -168,10 +172,16 @@ test.describe('Governance click friction master plan', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('04 desktop proof cluster opens evidence drawer', async () => {
+    await test.step('04 desktop proof cluster highlights rail or opens drawer', async () => {
       await expect(page.locator('[data-proof-cluster]')).toBeVisible({ timeout: 15000 });
       await page.locator('[data-proof-cluster]').first().click();
-      await expect(page.locator('.gov-right-drawer-panel, #gov-supporting-evidence[open]').first()).toBeVisible({ timeout: 10000 });
+      const rail = page.locator('#gov-right-rail-proof-mount .gov-evidence-preview');
+      if (await rail.isVisible()) {
+        await expect(rail).toBeVisible();
+        await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', false);
+      } else {
+        await expect(page.locator('.gov-right-drawer-panel').first()).toBeVisible({ timeout: 10000 });
+      }
       assertTelemetryClean(telemetry);
     });
 
@@ -245,6 +255,10 @@ test.describe('Governance click friction master plan', () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
       for (const pk of ['MAS', 'FIN', 'BIO', 'SD']) {
+        const expanded = page.locator('#gov-scope-expanded');
+        if (await expanded.isHidden()) {
+          await page.locator('#gov-scope-change').click();
+        }
         const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`).first();
         if (await chip.isVisible()) await chip.click({ timeout: 3000 }).catch(() => {});
       }

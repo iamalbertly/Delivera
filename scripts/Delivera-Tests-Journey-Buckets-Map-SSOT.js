@@ -373,6 +373,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance',
   },
+  'tests/Delivera-Governance-Click-Friction-MasterPlan-Round3-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-click-friction-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance',
+  },
   'tests/Delivera-Governance-Growth-MasterPlan-Round2-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-growth-masterplan-round2',
     layer: 'cross-surface-ux',

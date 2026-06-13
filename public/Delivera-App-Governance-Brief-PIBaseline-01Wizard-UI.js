@@ -261,6 +261,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
 
   function renderCandidates(data, projectsCsv, quarterLabel) {
     const rows = (data.candidates || []).map((c, i) => candidateRow(c, i, jiraHost)).join('');
+    const few = (data.candidates || []).length <= 3;
     return renderBaselineWizardShell({
       mode: 'candidates',
       data,
@@ -269,6 +270,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       listHtml: `<div class="gov-baseline-list">${rows}</div>`,
       showConfirm: true,
       slideCollapsed: true,
+      stepsOpen: !few,
       serverAiStatus,
     });
   }

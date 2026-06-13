@@ -1,6 +1,6 @@
 import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-import { proofChipSummary, sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { proofChipSummary } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 
 export function renderOwnerActionClusters(brief, groups = []) {
   if (!groups.length) {
@@ -14,11 +14,12 @@ export function renderOwnerActionClusters(brief, groups = []) {
         : '<span class="gov-inbox-hint">Brief is healthy.</span>');
     return `<section class="gov-action-clusters" aria-label="Actions"><p class="governance-empty">No urgent person actions.</p>${link}</section>`;
   }
+  const stale = brief?.freshness?.confidenceLimit === 'stale';
+  const canDirectSend = !stale && brief?.meta?.safeToSend !== false;
   const cards = groups.map((g, gi) => {
     const name = firstNameFromDisplay(g.assigneeName) || g.ownerKey || COPY.unassigned;
     const keys = g.issues.map((i) => i.issueKey).filter(Boolean);
     const proofText = proofChipSummary(brief, keys);
-    const clusterReadiness = sendReadinessBadge(brief);
     const [leadIssue, ...restIssues] = g.issues;
     const renderIssueRow = (r) => {
       const age = Number(r.ageHours) || 0;
@@ -43,6 +44,10 @@ export function renderOwnerActionClusters(brief, groups = []) {
     const toggleBtn = restIssues.length > 3
       ? `<button type="button" class="btn btn-secondary btn-compact" data-cluster-toggle="${gi}" aria-expanded="false">+${restIssues.length} more</button>`
       : '';
+    const nudgeActions = canDirectSend
+      ? `<button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-send="${gi}" title="Send nudge to Jira">✉ Send nudge</button>
+         <button type="button" class="btn btn-link btn-compact" data-grouped-nudge="${gi}" title="${escapeHtml(COPY.inboxReview)}">Edit draft</button>`
+      : `<button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-nudge="${gi}" title="${escapeHtml(COPY.inboxReview)}">✉ ${escapeHtml(COPY.draftNudge)}</button>`;
     return `
       <article class="gov-owner-cluster" data-cluster-index="${gi}">
         <header class="gov-owner-cluster-head">
@@ -50,12 +55,11 @@ export function renderOwnerActionClusters(brief, groups = []) {
             <h3 class="gov-owner-cluster-name">${escapeHtml(name)} · ${g.issues.length} action${g.issues.length > 1 ? 's' : ''}</h3>
             <p class="gov-owner-cluster-meta">${escapeHtml(g.decisionLane || 'Decision lane')} · ${escapeHtml(g.commonReason || '')}</p>
           </div>
-          <span class="gov-send-badge gov-send-badge--${clusterReadiness.tier}">${escapeHtml(clusterReadiness.label)}</span>
         </header>
         ${leadRow}
         <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}">${escapeHtml(proofText)}</button>
         <div class="gov-owner-cluster-actions">
-          <button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-nudge="${gi}" title="${escapeHtml(COPY.inboxReview)}">✉ ${escapeHtml(COPY.draftNudge)}</button>
+          ${nudgeActions}
           ${toggleBtn}
           <div class="gov-cluster-dismiss-chips" role="group" aria-label="Dismiss">
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="handled" title="Handled">✓</button>

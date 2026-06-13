@@ -46,7 +46,7 @@ function init() {
   govPage.els.scorecard = $('gov-scorecard');
   govPage.els.error = $('gov-error');
   mountStickyMicroAnswer(govPage.els.stickyAnswerMount);
-  bindStickyScroll(100);
+  bindStickyScroll(120);
   govPage.scopeBarApi = mountGovernanceScopeBar({
     mount: $('gov-scope-bar-mount'),
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),
@@ -70,6 +70,13 @@ function init() {
     onOpenNudgeReview: openInboxNudgeReview,
     briefLoading: () => !govPage.lastBrief,
   });
+  document.addEventListener('click', (ev) => {
+    const receipt = ev.target.closest('[data-worker-receipt-open]');
+    if (!receipt || !govPage.inboxApi?.getInboxTotal?.()) return;
+    if (ev.target.closest('a')) return;
+    ev.preventDefault();
+    govPage.inboxApi.openQueueTab?.('doNow');
+  }, true);
   govPage.els.actionClustersMount?.addEventListener('click', (event) => {
     if (event.target.closest('#gov-owner-check-setup')) {
       govPage.els.setupDebtMount?.scrollIntoView?.({ behavior: 'smooth' });
