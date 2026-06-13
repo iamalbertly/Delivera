@@ -61,14 +61,27 @@ const STATIC_HELP = {
   status: (brief) => `<p><strong>Status</strong></p><p>${escapeHtml(brief?.executiveView?.verdictLine || '')}</p>`,
 };
 
+function highlightProofRail(rail) {
+  if (!rail || rail.hidden) return false;
+  rail.setAttribute('data-proof-active', '1');
+  rail.classList.add('gov-proof-rail-highlight');
+  setTimeout(() => {
+    rail.removeAttribute('data-proof-active');
+    rail.classList.remove('gov-proof-rail-highlight');
+  }, 1200);
+  const rect = rail.getBoundingClientRect();
+  const offScreen = rect.top < 0 || rect.bottom > window.innerHeight;
+  if (offScreen) rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  return true;
+}
+
 function runProofAction(key, brief) {
   if (key === 'safe-send' && brief?.meta?.safeToSend === false) {
     const fix = document.querySelector('[data-setup-action]');
     if (fix) {
-      fix.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-      fix.focus?.();
+      fix.focus?.({ preventScroll: true });
     } else {
-      govPage.els.setupDebtMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      govPage.els.setupDebtMount?.querySelector('button, a')?.focus?.({ preventScroll: true });
     }
     return true;
   }
@@ -78,15 +91,10 @@ function runProofAction(key, brief) {
   }
   if (key === 'evidence-count') {
     const rail = document.getElementById('gov-right-rail-proof-mount');
-    if (rail && !rail.hidden) {
-      rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
-      return true;
-    }
-    const panel = document.getElementById('gov-supporting-evidence');
-    if (panel) {
-      panel.open = true;
-      panel.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-    }
+    if (highlightProofRail(rail)) return true;
+    document.getElementById('gov-supporting-evidence')
+      ?.querySelector('h2, .governance-evidence-summary, button, a')
+      ?.focus?.({ preventScroll: true });
     return true;
   }
   if (key === 'setup-gap') {
