@@ -81,6 +81,26 @@ export function renderEvidenceTable(brief) {
   govPage.els.evidence.innerHTML = `<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
+/** Compact inline proof preview for owner clusters (SSOT rows from evidence pack). */
+export function renderClusterProofPreviewHtml(brief, issueKeys = [], maxRows = 3) {
+  const keys = new Set((issueKeys || []).map((k) => String(k).toUpperCase()).filter(Boolean));
+  const rows = (brief?.evidencePack?.rows || []).filter((r) => keys.has(String(r.issueKey).toUpperCase())).slice(0, maxRows);
+  if (!rows.length) return '';
+  const body = rows.map((r) => `
+    <tr>
+      <td>${escapeHtml(r.issueKey || '')}</td>
+      <td>${escapeHtml(r.statusNow || '')}</td>
+      <td>${escapeHtml(r.whyFlagged || '')}</td>
+    </tr>`).join('');
+  return `
+    <div class="gov-cluster-proof-preview" aria-label="Proof preview">
+      <table class="governance-evidence-table gov-cluster-proof-table">
+        <thead><tr><th>Issue</th><th>Status</th><th>Why</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+}
+
 /** Above-fold proof preview — top rows without opening supporting evidence. */
 export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
   const mount = mountEl || document.getElementById('gov-evidence-preview-mount')

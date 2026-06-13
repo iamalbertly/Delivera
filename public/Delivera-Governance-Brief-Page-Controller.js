@@ -5,7 +5,6 @@ import { mountGovernanceScopeBar } from './Delivera-App-Governance-Brief-ScopeBa
 import { openScopeIntelligenceDrawer, scopeCapsuleCounts } from './Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js';
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
-import { mountStickyMicroAnswer, bindStickyScroll } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js';
 import { invalidateBriefCacheEntry } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
@@ -28,7 +27,6 @@ function init() {
   installExtensionTrustHint();
   govPage.els.freshness = $('gov-freshness');
   govPage.els.piStripMount = $('gov-pi-strip-mount');
-  govPage.els.stickyAnswerMount = $('gov-sticky-answer-mount');
   govPage.els.feedbackLabMount = $('gov-feedback-lab-mount');
   govPage.els.workerReceiptMount = $('gov-worker-receipt-mount');
   govPage.els.answerMount = $('gov-answer-mount');
@@ -45,8 +43,6 @@ function init() {
   govPage.els.baseline = $('gov-baseline');
   govPage.els.scorecard = $('gov-scorecard');
   govPage.els.error = $('gov-error');
-  mountStickyMicroAnswer(govPage.els.stickyAnswerMount);
-  bindStickyScroll(120);
   govPage.scopeBarApi = mountGovernanceScopeBar({
     mount: $('gov-scope-bar-mount'),
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),

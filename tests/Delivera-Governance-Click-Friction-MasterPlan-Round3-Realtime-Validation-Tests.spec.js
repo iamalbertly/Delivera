@@ -132,16 +132,16 @@ test.describe('Governance click friction Round 3', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('03 desktop scope collapsed until Change', async () => {
-      await expect(page.locator('#gov-scope-expanded')).toBeHidden();
-      await page.locator('#gov-scope-change').click();
+    await test.step('03 desktop scope always visible inline', async () => {
       await expect(page.locator('#gov-scope-expanded')).toBeVisible();
+      await expect(page.locator('.gov-scope-chips .gov-scope-chip').first()).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('04 sticky verdict after scroll', async () => {
+    await test.step('04 no duplicate sticky verdict after scroll', async () => {
       await page.evaluate(() => window.scrollTo(0, 400));
-      await expect(page.locator('.gov-sticky-answer--governance.is-visible')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('.gov-sticky-answer--governance')).toHaveCount(0);
+      await expect(page.locator('#gov-scope-bar-mount')).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
@@ -178,14 +178,14 @@ test.describe('Governance click friction Round 3', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('09 mobile scope sheet', async () => {
+    await test.step('09 mobile scope inline selectors', async () => {
       await page.setViewportSize({ width: 375, height: 812 });
       await mockRound3Governance(page, { projects: 'SD' });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('#gov-scope-change').click();
-      await expect(page.locator('.gov-right-drawer-panel--scope-sheet')).toBeVisible();
-      await page.keyboard.press('Escape');
+      await expect(page.locator('#gov-scope-expanded')).toBeVisible();
+      await expect(page.locator('.gov-scope-mobile-only .gov-scope-mobile-project-check').first()).toBeVisible();
+      await expect(page.locator('.gov-right-drawer-panel--scope-sheet')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
 

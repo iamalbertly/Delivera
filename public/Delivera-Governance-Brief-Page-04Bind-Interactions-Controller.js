@@ -240,16 +240,12 @@ export function bindOwnerClusterInteractions() {
     }
     const proof = event.target.closest('[data-proof-cluster]');
     if (proof) {
-      const gi = Number(proof.getAttribute('data-proof-cluster'));
       const rail = document.getElementById('gov-right-rail-proof-mount');
-      const hasRailPreview = rail && !rail.hidden && rail.querySelector('.gov-evidence-preview');
-      if (hasRailPreview) {
+      if (rail) {
         rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
         rail.classList.add('gov-proof-rail-highlight');
         setTimeout(() => rail.classList.remove('gov-proof-rail-highlight'), 1200);
-        return;
       }
-      openEvidenceDrawer(govPage.lastBrief, govPage.ownerGroups[gi]?.issues || []);
       return;
     }
     const sendBtn = event.target.closest('[data-grouped-send]');
@@ -259,16 +255,6 @@ export function bindOwnerClusterInteractions() {
     }
     const nudge = event.target.closest('[data-grouped-nudge]');
     if (nudge) openGroupedNudge(Number(nudge.getAttribute('data-grouped-nudge')));
-    const toggle = event.target.closest('[data-cluster-toggle]');
-    if (toggle) {
-      const gi = toggle.getAttribute('data-cluster-toggle');
-      const list = govPage.els.actionClustersMount.querySelector(`[data-cluster-issues="${gi}"]`);
-      if (!list) return;
-      const show = list.hasAttribute('hidden');
-      list.toggleAttribute('hidden', !show);
-      toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
-      toggle.textContent = show ? 'Hide issues' : 'Show issues';
-    }
   };
 }
 
@@ -290,7 +276,7 @@ async function recordNarrationIfAdvisor() {
 }
 
 export function scrollToFirstClusterNudge() {
-  const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-nudge]');
+  const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-send], [data-grouped-nudge]');
   if (!btn) {
     govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     return;
@@ -300,6 +286,11 @@ export function scrollToFirstClusterNudge() {
 }
 
 export function executeFirstClusterNudge() {
+  const sendBtn = govPage.els.actionClustersMount?.querySelector('[data-grouped-send]');
+  if (sendBtn) {
+    sendGroupedNudgeDirect(Number(sendBtn.getAttribute('data-grouped-send') || 0));
+    return;
+  }
   const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-nudge]');
   if (btn) {
     openGroupedNudge(Number(btn.getAttribute('data-grouped-nudge') || 0));
@@ -397,7 +388,7 @@ export function bindSetupDebtActions() {
     else if (action === 'create-work') {
       chip.setAttribute('data-outcome-projects', projectsCsv());
     }
-    else if (action === 'map-board') document.getElementById('gov-scope-change')?.click();
+    else if (action === 'map-board') govPage.scopeBarApi?.scrollScopeIntoView?.();
     else if (action === 'refresh') document.getElementById('gov-scope-refresh')?.click();
     else if (action === 'review-lanes') govPage.els.actionClustersMount?.scrollIntoView?.({ behavior: 'smooth' });
   });

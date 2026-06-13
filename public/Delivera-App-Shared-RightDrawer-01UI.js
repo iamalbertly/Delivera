@@ -57,7 +57,7 @@ export function closeAllGovernanceOverlays() {
   closeWddModalIfOpen();
 }
 
-export function openRightDrawer({ title = 'Details', bodyHtml = '', onClose, panelClass = '' } = {}) {
+export function openRightDrawer({ title = 'Details', bodyHtml = '', onClose, panelClass = '', lockScroll = true } = {}) {
   closeAllGovernanceOverlays();
   bindEscapeOnce();
   const el = ensureHost();
@@ -72,7 +72,7 @@ export function openRightDrawer({ title = 'Details', bodyHtml = '', onClose, pan
       <div class="gov-right-drawer-body">${bodyHtml}</div>
     </aside>`;
   el.hidden = false;
-  document.body.classList.add('gov-right-drawer-open');
+  if (lockScroll) document.body.classList.add('gov-right-drawer-open');
   const close = () => {
     el.hidden = true;
     document.body.classList.remove('gov-right-drawer-open');

@@ -1,6 +1,7 @@
-import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { proofChipSummary } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { renderClusterProofPreviewHtml } from './Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js';
 
 export function renderOwnerActionClusters(brief, groups = []) {
   if (!groups.length) {
@@ -20,7 +21,6 @@ export function renderOwnerActionClusters(brief, groups = []) {
     const name = firstNameFromDisplay(g.assigneeName) || g.ownerKey || COPY.unassigned;
     const keys = g.issues.map((i) => i.issueKey).filter(Boolean);
     const proofText = proofChipSummary(brief, keys);
-    const [leadIssue, ...restIssues] = g.issues;
     const renderIssueRow = (r) => {
       const age = Number(r.ageHours) || 0;
       const ageChip = age >= 48 ? `<span class="gov-age-chip">${Math.round(age / 24)}d</span>` : '';
@@ -34,19 +34,10 @@ export function renderOwnerActionClusters(brief, groups = []) {
         ${ageChip}
       </li>`;
     };
-    const leadRow = leadIssue ? `
-      <div class="gov-cluster-lead-issue" data-cluster-lead="${gi}">
-        ${leadIssue.issueKey ? `<a href="/current-sprint?issue=${encodeURIComponent(leadIssue.issueKey)}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(leadIssue.issueKey)}">${escapeHtml(leadIssue.issueKey)}</a>` : ''}
-        <span class="gov-cluster-lead-title">${escapeHtml(leadIssue.displayTitle || leadIssue.summary || '')}</span>
-      </div>` : '';
-    const issueRows = restIssues.map(renderIssueRow).join('');
-    const showRestExpanded = gi === 0 && restIssues.length > 0 && restIssues.length <= 3;
-    const toggleBtn = restIssues.length > 3
-      ? `<button type="button" class="btn btn-secondary btn-compact" data-cluster-toggle="${gi}" aria-expanded="false">+${restIssues.length} more</button>`
-      : '';
+    const issueRows = g.issues.map(renderIssueRow).join('');
+    const proofPreview = renderClusterProofPreviewHtml(brief, keys);
     const nudgeActions = canDirectSend
-      ? `<button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-send="${gi}" title="Send nudge to Jira">✉ Send nudge</button>
-         <button type="button" class="btn btn-link btn-compact" data-grouped-nudge="${gi}" title="${escapeHtml(COPY.inboxReview)}">Edit draft</button>`
+      ? `<button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-send="${gi}" title="Send nudge to Jira">✉ Send nudge</button>`
       : `<button type="button" class="btn btn-primary btn-compact gov-cluster-nudge-primary" data-grouped-nudge="${gi}" title="${escapeHtml(COPY.inboxReview)}">✉ ${escapeHtml(COPY.draftNudge)}</button>`;
     return `
       <article class="gov-owner-cluster" data-cluster-index="${gi}">
@@ -56,17 +47,16 @@ export function renderOwnerActionClusters(brief, groups = []) {
             <p class="gov-owner-cluster-meta">${escapeHtml(g.decisionLane || 'Decision lane')} · ${escapeHtml(g.commonReason || '')}</p>
           </div>
         </header>
-        ${leadRow}
-        <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}">${escapeHtml(proofText)}</button>
+        <ul class="gov-cluster-issues" data-cluster-issues="${gi}">${issueRows}</ul>
+        <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-cluster="${gi}" aria-label="Highlight proof in right rail">${escapeHtml(proofText)}</button>
+        ${proofPreview}
         <div class="gov-owner-cluster-actions">
           ${nudgeActions}
-          ${toggleBtn}
           <div class="gov-cluster-dismiss-chips" role="group" aria-label="Dismiss">
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="handled" title="Handled">✓</button>
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="irrelevant" title="Irrelevant">✕</button>
           </div>
         </div>
-        <ul class="gov-cluster-issues" data-cluster-issues="${gi}"${showRestExpanded ? '' : ' hidden'}>${issueRows}</ul>
       </article>`;
   }).join('');
   return `<section class="gov-action-clusters" aria-label="${escapeHtml(COPY.doNow)}">${cards}</section>`;

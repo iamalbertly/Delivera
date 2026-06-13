@@ -26,7 +26,7 @@ import { bindEpicHygieneInteractions } from './Delivera-App-Governance-Brief-20R
 import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
 import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
-import { updateGlobalAgentBar, updateStickyMicroAnswer } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
+import { updateGlobalAgentBar } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import { readSharedProjectsCsv, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {
   govPage, openPiBaselineWizard, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
@@ -222,7 +222,6 @@ export function renderBriefUi(brief) {
   if (!document.body?.classList?.contains('governance-page')) {
     updateGlobalAgentBar(brief);
   }
-  updateStickyMicroAnswer(brief);
   refreshScopeBarCounts();
   const createBtn = document.getElementById('gov-hidden-create-work');
   if (createBtn) createBtn.setAttribute('data-outcome-projects', projectsCsv());
@@ -278,10 +277,10 @@ function renderNeedsScopePicker() {
         <button type="button" class="btn btn-primary btn-compact" id="gov-needs-scope-open">Choose scope</button>
       </section>`;
     govPage.els.answerMount.querySelector('#gov-needs-scope-open')?.addEventListener('click', () => {
-      document.getElementById('gov-scope-change')?.click();
+      govPage.scopeBarApi?.scrollScopeIntoView?.();
     });
   }
-  govPage.scopeBarApi?.expandScopePanel?.();
+  govPage.scopeBarApi?.scrollScopeIntoView?.();
 }
 
 export async function loadBrief(options = {}) {
