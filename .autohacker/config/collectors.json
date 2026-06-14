@@ -1,0 +1,32 @@
+{
+  "collectors": [
+    {
+      "id": "ux-metrics",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/synthesize-ux-metrics.mjs",
+      "outputs": [".autohacker/runs/{runId}/metrics-snapshot.json"]
+    },
+    {
+      "id": "click-fast",
+      "tier": 1,
+      "cmd": "node scripts/audit-governance-clicks-fast.mjs",
+      "outputs": ["test-results/governance-click-audit-fast.json"]
+    },
+    {
+      "id": "layout-rects",
+      "tier": 2,
+      "cmd": "node scripts/audit-governance-layout-rects-headed.mjs",
+      "env": { "HEADLESS": "1" },
+      "outputs": [
+        "test-results/governance-layout-rects-audit.json",
+        "test-results/governance-layout-overlap-plan.md"
+      ]
+    },
+    {
+      "id": "click-full",
+      "tier": 3,
+      "cmd": "node scripts/audit-governance-full-clickmap.mjs",
+      "outputs": ["test-results/governance-full-clickmap.json"]
+    }
+  ]
+}

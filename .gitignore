@@ -4,6 +4,8 @@ node_modules/
 .DS_Store
 *.log
 .cursor/
+.autohacker/runs/
+.autohacker/memory/
 test-results/
 data/
 .playwright-cli/

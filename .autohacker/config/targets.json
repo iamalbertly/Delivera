@@ -1,0 +1,17 @@
+{
+  "governance": {
+    "path": "/governance",
+    "valueAnchors": [
+      "#gov-answer-mount",
+      ".gov-command-answer",
+      "#gov-verdict-mount",
+      ".gov-portfolio-banner-line"
+    ],
+    "chromeAnchors": [
+      "#app-top-chrome",
+      "#gov-scope-bar-mount"
+    ],
+    "defaultTest": "npm run test:autohacker:pipeline",
+    "collectorTiers": [1, 2, 3]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "coreValues": ["Customer", "Realism & Simplicity", "Speed & Trust"],
+  "directives": [
+    "Flatten UI hierarchy",
+    "Zero-click data visibility",
+    "Reduce scroll depth to direct-value components",
+    "No duplicate logic, visuals, or content"
+  ],
+  "viewports": {
+    "desktop": "1280x900",
+    "mobile": "390x844"
+  },
+  "metricThresholds": {
+    "maxScrollToValuePx": 600,
+    "maxStickyChromeRatio": 0.4,
+    "maxFoldDeadBandPx": 350
+  },
+  "trustWeights": {
+    "evidenceComplete": 0.3,
+    "testsPass": 0.4,
+    "metricsImprove": 0.3
+  }
+}

@@ -3,9 +3,20 @@
  * Run: node scripts/map-governance-dom-headed.mjs
  */
 import { chromium } from '@playwright/test';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
 
-const BASE = process.env.BASE_URL || 'http://127.0.0.1:3001';
+function resolveBaseUrl() {
+  if (process.env.BASE_URL) return process.env.BASE_URL.replace(/\/$/, '');
+  try {
+    if (existsSync('.delivera-dev-port')) {
+      const port = Number(readFileSync('.delivera-dev-port', 'utf8').trim());
+      if (Number.isFinite(port) && port > 0) return `http://127.0.0.1:${port}`;
+    }
+  } catch (_) { /* ignore */ }
+  return 'http://127.0.0.1:3001';
+}
+
+const BASE = resolveBaseUrl();
 const OUT = 'test-results/governance-dom-map-headed.json';
 
 function domTree(el, depth = 0, maxDepth = 6) {

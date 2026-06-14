@@ -7,6 +7,11 @@
   "scripts": {
     "test": "npm run build:css && node scripts/Delivera-Test-Smart-Dev-Runner.js",
     "build:css": "node scripts/build-css.js",
+    "dom-map:governance": "node scripts/Delivera-Dev-Port-Guard-01Check.js && npm run build:css && node scripts/map-governance-dom-headed.mjs",
+    "audit:clicks:governance": "node scripts/Delivera-Dev-Port-Guard-01Check.js && node scripts/audit-governance-clicks-fast.mjs",
+    "autohacker:metrics": "node scripts/Delivera-Dev-Port-Guard-01Check.js && node .autohacker/collectors/synthesize-ux-metrics.mjs",
+    "autohacker:evidence:t1": "node scripts/Delivera-Dev-Port-Guard-01Check.js && npm run build:css && set AUTOHACKER_TARGET=governance&& set HEADLESS=1&& node .autohacker/collectors/synthesize-ux-metrics.mjs && node scripts/audit-governance-clicks-fast.mjs",
+    "test:autohacker:pipeline": "npm run build:css && node scripts/Delivera-Dev-Port-Guard-01Check.js && npx playwright test tests/Delivera-AutoHacker-Evidence-Pipeline-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
     "check:css": "node scripts/check-css.js",
     "identity:check": "node scripts/Delivera-Workspace-Identity-Check.js",
     "validate:jira-env": "node scripts/Delivera-Jira-Env-Connectivity-Validate.js",
@@ -96,6 +101,7 @@
     "supertokens-node": "^24.0.1"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.76",
     "@playwright/test": "^1.40.0",
     "nodemon": "^3.0.1"
   },
