@@ -11,7 +11,7 @@
       "#app-top-chrome",
       "#gov-scope-bar-mount"
     ],
-    "defaultTest": "npm run test:autohacker:pipeline",
+    "defaultTest": "npm run test:journey:governance-autohacker-v3",
     "collectorTiers": [1, 2, 3]
   }
 }

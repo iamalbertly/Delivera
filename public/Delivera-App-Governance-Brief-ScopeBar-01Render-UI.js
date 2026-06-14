@@ -86,10 +86,29 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   let scopeChangeTimer = null;
   let compareHintTimer = null;
   let refreshLocked = false;
+  const SCOPE_COLLAPSE_KEY = 'gov-scope-collapsed';
+  let scopeCollapsed = true;
+  try {
+    const storedCollapse = sessionStorage.getItem(SCOPE_COLLAPSE_KEY);
+    if (storedCollapse === '0') scopeCollapsed = false;
+  } catch (_) { /* ignore */ }
+
+  function isMobileScopeViewport() {
+    return typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+  }
+
+  function syncScopeCollapseState() {
+    if (!isMobileScopeViewport()) {
+      mount.removeAttribute('data-scope-collapsed');
+      return;
+    }
+    mount.dataset.scopeCollapsed = scopeCollapsed ? '1' : '0';
+    try { sessionStorage.setItem(SCOPE_COLLAPSE_KEY, scopeCollapsed ? '1' : '0'); } catch (_) { /* ignore */ }
+  }
 
   function showCompareHint() {
     if (compareHintTimer) clearTimeout(compareHintTimer);
-    showInlineToast(mount, 'Use + chips below the squad banner to compare squads.', 'info');
+    showInlineToast(mount, 'Tap another squad to compare — or use + chips on the banner.', 'info');
     compareHintTimer = setTimeout(() => { compareHintTimer = null; }, 2200);
   }
 
@@ -114,7 +133,11 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         const multi = ev.shiftKey || ev.ctrlKey || ev.metaKey;
         const prev = [...selected];
         if (!multi) {
-          if (prev.length === 1 && prev[0] !== pk) showCompareHint();
+          if (prev.length === 1 && prev[0] !== pk) {
+            addToCompare(pk);
+            closeDrawer?.();
+            return;
+          }
           selected = [pk];
         } else if (selected.includes(pk)) {
           selected = selected.filter((p) => p !== pk);
@@ -260,6 +283,11 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
 
     const capsuleText = `${squadCount} squad${squadCount === 1 ? '' : 's'} · <strong>${escapeHtml(formatScopeProjects(selected))}</strong> · ${escapeHtml(periodLabel)} · ${escapeHtml(periodWindowLabel())}${escapeHtml(intelLine)}`;
     const statusChipEl = `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(statusTier)}" data-scope-status-action="1" title="Jump to actions">${escapeHtml(statusLabel)}${deltaPart}</button>`;
+    const scopeToggleBtn = isMobileScopeViewport()
+      ? `<button type="button" id="gov-scope-toggle" class="btn btn-link btn-compact gov-scope-mobile-only" aria-expanded="${scopeCollapsed ? 'false' : 'true'}" aria-controls="gov-scope-expanded">${scopeCollapsed ? 'Change scope' : 'Hide scope'}</button>`
+      : '';
+
+    syncScopeCollapseState();
 
     mount.innerHTML = `
       ${accessBanner}
@@ -269,16 +297,21 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
           <span class="gov-scope-capsule-text">${capsuleText}</span>
           ${readinessPill}
           ${statusChipEl}
+          ${scopeToggleBtn}
           <div class="gov-scope-actions" role="group" aria-label="Scope actions">
             <button type="button" id="gov-copy-answer-scope" class="btn btn-secondary btn-compact">Copy answer</button>
             <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
           </div>
         </div>
-        <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}" data-scope-expanded-visible="1">
+        <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}" data-scope-expanded-visible="${scopeCollapsed && isMobileScopeViewport() ? '0' : '1'}"${scopeCollapsed && isMobileScopeViewport() ? ' hidden' : ''}>
           ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, advancedWarnCount, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip, periodWindow })}
         </div>
       </div>`;
 
+    mount.querySelector('#gov-scope-toggle')?.addEventListener('click', () => {
+      scopeCollapsed = !scopeCollapsed;
+      render();
+    });
     bindScopePanelInteractions(mount.querySelector('#gov-scope-expanded'));
     mount.querySelector('[data-scope-status-action]')?.addEventListener('click', async () => {
       const chip = mount.querySelector('[data-scope-status-action]');
@@ -296,6 +329,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     });
     mount.querySelector('#gov-scope-refresh')?.addEventListener('click', () => {
       if (refreshLocked) return;
+      closeAllGovernanceOverlays();
       refreshLocked = true;
       const refreshBtn = mount.querySelector('#gov-scope-refresh');
       refreshBtn?.setAttribute('disabled', 'disabled');
@@ -309,7 +343,9 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
         refreshBtn?.removeAttribute('aria-busy');
       }, 1000);
     });
-    if (govPage.lastBrief) mountScopeIntelligenceInline(govPage.lastBrief);
+    if (govPage.lastBrief && !(scopeCollapsed && isMobileScopeViewport())) {
+      mountScopeIntelligenceInline(govPage.lastBrief);
+    }
   }
 
   function scheduleValidateSelected(immediate = false) {

@@ -1,10 +1,31 @@
 {
   "collectors": [
     {
+      "id": "explore-page",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/explore-page.mjs",
+      "outputs": [
+        ".autohacker/runs/{runId}/exploration-report.json",
+        ".autohacker/runs/{runId}/exploration-report.md"
+      ]
+    },
+    {
       "id": "ux-metrics",
       "tier": 1,
       "cmd": "node .autohacker/collectors/synthesize-ux-metrics.mjs",
       "outputs": [".autohacker/runs/{runId}/metrics-snapshot.json"]
+    },
+    {
+      "id": "hidden-value",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-hidden-value.mjs",
+      "outputs": [".autohacker/runs/{runId}/hidden-value-report.json"]
+    },
+    {
+      "id": "intra-card-void",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-intra-card-void.mjs",
+      "outputs": [".autohacker/runs/{runId}/intra-card-void-report.json"]
     },
     {
       "id": "click-fast",

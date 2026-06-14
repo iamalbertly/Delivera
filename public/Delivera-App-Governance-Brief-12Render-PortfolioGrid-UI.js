@@ -53,13 +53,23 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = fa
   const detailRows = collapseHeroDedupe
     ? `${pulseHtml}${piRow}${rolesHtml}${partial ? '<p class="gov-partial-warn">Partial data — squad may be unavailable.</p>' : ''}${riskLines ? `<ul class="gov-risk-tile-risks">${riskLines}</ul>` : ''}`
     : `${pulseHtml}${piRow}<p data-squad-drift-row="1"><strong>${escapeHtml(COPY.unplannedTime)}:</strong> ${Number(squad.offPlanHours) || 0}h ad-hoc · ${Number(squad.offPlanEpicCount) || 0} off-PI epics${driftChip}${squad.driftSince ? ` · since ${escapeHtml(squad.driftSince)}` : ''}</p>${rolesHtml}<p><strong>Cause:</strong> ${escapeHtml(squad.bottleneckLine || squad.statusLine || '—')}</p><p><strong>Action:</strong> ${escapeHtml(squad.productivityLine || '')}</p>${partial ? '<p class="gov-partial-warn">Partial data — squad may be unavailable.</p>' : ''}${riskLines ? `<ul class="gov-risk-tile-risks">${riskLines}</ul>` : ''}`;
+  const inlineEvidence = collapseHeroDedupe && risks.length
+    ? `<ul class="gov-squad-inline-evidence" data-direct-value="evidence" aria-label="Top risks">${risks.slice(0, 3).map((r) => `<li>${escapeHtml(r.displayTitle || r.issueKey)}</li>`).join('')}</ul>`
+    : '';
+  const evidenceBtn = collapseHeroDedupe && inlineEvidence
+    ? ''
+    : `<button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-squad="${escapeHtml(squad.projectKey)}">Open evidence</button>`;
+  const sprintLink = collapseHeroDedupe
+    ? `<a class="gov-squad-sprint-link" href="/current-sprint" data-direct-value="sprint-link">View sprint</a>`
+    : `<a class="btn btn-secondary btn-compact" href="/current-sprint">${escapeHtml(COPY.openSprint)}</a>`;
   return `
-    <div class="gov-risk-tile-detail" data-tile-detail="${escapeHtml(squad.projectKey)}"${hiddenAttr}${collapseHeroDedupe ? ' data-hero-deduped="1"' : ''}>
+    <div class="gov-risk-tile-detail" data-tile-detail="${escapeHtml(squad.projectKey)}"${hiddenAttr}${collapseHeroDedupe ? ' data-hero-deduped="1" data-direct-value="squad-detail"' : ''}>
       ${detailRows}
+      ${inlineEvidence}
       <div class="gov-squad-detail-actions">
         ${hideNudge ? '' : `<button type="button" class="btn btn-primary btn-compact" data-squad-nudge="${escapeHtml(squad.projectKey)}" data-squad-nudge-issue="${escapeHtml(topRiskKey)}">${escapeHtml(COPY.nudgeSmPo)}</button>`}
-        <a class="btn btn-secondary btn-compact" href="/current-sprint">${escapeHtml(COPY.openSprint)}</a>
-        <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-squad="${escapeHtml(squad.projectKey)}">Open evidence</button>
+        ${sprintLink}
+        ${evidenceBtn}
       </div>
     </div>`;
 }

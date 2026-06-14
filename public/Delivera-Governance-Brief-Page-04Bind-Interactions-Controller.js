@@ -276,15 +276,31 @@ async function recordNarrationIfAdvisor() {
   } catch (_) { /* non-blocking */ }
 }
 
-export function focusFirstClusterNudge() {
-  const btn = govPage.els.actionClustersMount?.querySelector('[data-grouped-send], [data-grouped-nudge]');
-  if (!btn) {
-    govPage.els.actionClustersMount?.focus?.({ preventScroll: true });
-    return;
+function chromeBottomPx() {
+  let chromeBottom = 0;
+  for (const sel of ['#app-top-chrome', '#gov-scope-bar-mount']) {
+    const r = document.querySelector(sel)?.getBoundingClientRect();
+    if (r) chromeBottom = Math.max(chromeBottom, r.bottom);
   }
-  btn.focus?.({ preventScroll: true });
-  btn.classList.add('gov-cluster-nudge-focus');
-  setTimeout(() => btn.classList.remove('gov-cluster-nudge-focus'), 1200);
+  return chromeBottom;
+}
+
+export function focusFirstClusterNudge() {
+  const mount = govPage.els.actionClustersMount;
+  const btn = mount?.querySelector('[data-grouped-send], [data-grouped-nudge]');
+  const target = btn || mount;
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const belowFold = rect.top > window.innerHeight - 72;
+  const underChrome = rect.top < chromeBottomPx() + 8;
+  if (belowFold || underChrome) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  target.focus?.({ preventScroll: true });
+  if (btn) {
+    btn.classList.add('gov-cluster-nudge-focus');
+    setTimeout(() => btn.classList.remove('gov-cluster-nudge-focus'), 1200);
+  }
 }
 
 /** @deprecated Use focusFirstClusterNudge — kept for external callers */

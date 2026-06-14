@@ -383,6 +383,16 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance',
   },
+  'tests/Delivera-Governance-AutoHacker-v3-Hidden-Value-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-autohacker-v3',
+    layer: 'tooling',
+    page: '/governance',
+  },
+  'tests/Delivera-AutoHacker-Evidence-Pipeline-Validation-Tests.spec.js': {
+    journey: 'journey.autohacker',
+    layer: 'tooling',
+    page: '/governance',
+  },
   'tests/Delivera-UX-AllSurfaces-DirectValue-Polish-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'page-ux',
@@ -632,9 +642,23 @@ export const journeyBuckets = {
   },
   'journey.governance-growth-masterplan-round2': {
     id: 'journey.governance-growth-masterplan-round2',
-    label: 'Governance Growth Round 2 – Direct-to-value friction fixes',
+    label: 'Governance Growth Round 2 - Direct-to-value friction fixes',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.governance-growth-masterplan-round2',
+    ),
+  },
+  'journey.governance-autohacker-v3': {
+    id: 'journey.governance-autohacker-v3',
+    label: 'Governance AutoHacker v3 - Hidden value, void gaps, direct-to-value',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-autohacker-v3',
+    ),
+  },
+  'journey.autohacker': {
+    id: 'journey.autohacker',
+    label: 'AutoHacker - Evidence pipeline validation',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.autohacker',
     ),
   },
   'journey.shell-direct-value': {

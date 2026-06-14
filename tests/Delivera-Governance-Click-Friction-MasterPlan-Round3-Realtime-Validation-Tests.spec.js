@@ -184,6 +184,9 @@ test.describe('Governance click friction Round 3', () => {
       await mockRound3Governance(page, { projects: 'SD' });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('#gov-scope-toggle')).toBeVisible();
+      await expect(page.locator('#gov-scope-bar-mount')).toHaveAttribute('data-scope-collapsed', '1');
+      await page.locator('#gov-scope-toggle').click();
       await expect(page.locator('#gov-scope-expanded')).toBeVisible();
       await expect(page.locator('.gov-scope-mobile-only .gov-scope-mobile-project-check').first()).toBeVisible();
       await expect(page.locator('.gov-right-drawer-panel--scope-sheet')).toHaveCount(0);

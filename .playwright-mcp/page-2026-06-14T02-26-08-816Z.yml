@@ -1,0 +1,365 @@
+- generic [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e627]:
+      - button "Expand or collapse sidebar" [active] [ref=e629] [cursor=pointer]:
+        - img [ref=e630]
+      - navigation "Surfaces" [ref=e633]:
+        - generic [ref=e634] [cursor=pointer]: Answer
+        - link "Today" [ref=e635] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Proof" [ref=e636] [cursor=pointer]:
+          - /url: /report
+      - link "Delivera" [ref=e638] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e639]: De
+        - generic [ref=e641]: Delivera
+      - generic [ref=e643]:
+        - img
+        - searchbox "Context search" [ref=e644]
+      - group "Global actions" [ref=e645]:
+        - button "Create" [ref=e646] [cursor=pointer]:
+          - generic [ref=e647]: +
+          - generic [ref=e648]: Create
+        - generic "Server AI (OpenRouter) — high template fallback" [ref=e649]: AI · templates (server busy)
+        - button "Notifications" [ref=e650] [cursor=pointer]:
+          - img [ref=e651]
+        - button "Help" [ref=e653] [cursor=pointer]:
+          - img [ref=e654]
+        - button "Improve Delivera" [ref=e656] [cursor=pointer]:
+          - img [ref=e657]
+        - link "Settings" [ref=e659] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e660]
+        - button "Account menu" [ref=e662] [cursor=pointer]: LY
+  - generic "Brief scope" [ref=e40]:
+    - generic "Brief scope" [ref=e886]:
+      - generic [ref=e887]:
+        - generic [ref=e888]:
+          - text: 2 squads ·
+          - strong [ref=e889]: MPSA + RPA
+          - text: · FY27 Q1 · 28d · 3 available · 2 no sprint · 1 with epics
+        - generic "Send readiness" [ref=e890]: Fix promised work first
+        - button "✕ Blocked" [ref=e891] [cursor=pointer]
+        - group "Scope actions" [ref=e892]:
+          - button "Copy answer" [ref=e893] [cursor=pointer]
+          - button "Refresh" [ref=e894] [cursor=pointer]
+      - group "Scope selectors" [ref=e896]:
+        - group "Projects" [ref=e897]:
+          - button "AMS2" [ref=e898] [cursor=pointer]
+          - button "ASG" [ref=e899] [cursor=pointer]
+          - button "BIO" [ref=e900] [cursor=pointer]
+          - button "FIN" [ref=e901] [cursor=pointer]
+          - button "MAS" [ref=e902] [cursor=pointer]
+          - button "MPSA" [pressed] [ref=e903] [cursor=pointer]
+          - button "MPSA2" [ref=e904] [cursor=pointer]
+          - button "MVA" [ref=e905] [cursor=pointer]
+          - button "RPA" [pressed] [ref=e906] [cursor=pointer]
+          - button "SD" [ref=e907] [cursor=pointer]
+          - button "TRS" [ref=e908] [cursor=pointer]
+          - button "VB" [ref=e909] [cursor=pointer]
+        - group "Period" [ref=e910]:
+          - button "PI · FY27 Q1" [ref=e911] [cursor=pointer]
+          - button "14d" [ref=e912] [cursor=pointer]
+          - button "28d" [ref=e913] [cursor=pointer]
+          - button "PI" [ref=e914] [cursor=pointer]
+          - text: ·
+          - button "FY24 Q4" [ref=e915] [cursor=pointer]
+          - button "FY25 Q2" [ref=e916] [cursor=pointer]
+          - button "FY25 Q3" [ref=e917] [cursor=pointer]
+          - button "FY25 Q4" [ref=e918] [cursor=pointer]
+          - button "FY26 Q1" [ref=e919] [cursor=pointer]
+          - button "FY26 Q2" [ref=e920] [cursor=pointer]
+          - button "FY26 Q3" [ref=e921] [cursor=pointer]
+          - button "FY27 Q1" [ref=e922] [cursor=pointer]
+          - button "Investment" [ref=e923] [cursor=pointer]
+        - region "Advanced scope (3)" [ref=e924]:
+          - generic [ref=e925]: Advanced scope (3)
+          - paragraph [ref=e926]: Governance rules use Vodacom delivery grammar (stale-in-progress, late scope, data confidence). Strict changelog sprint membership is deferred.
+          - generic [ref=e927]:
+            - paragraph [ref=e928]: "Scope: MPSA + RPA · 3 available · 2 no sprint · 1 PI committed"
+            - group "Scope filters" [ref=e929]:
+              - button "All squads" [ref=e930] [cursor=pointer]
+              - button "Blocked" [ref=e931] [cursor=pointer]
+              - button "No active sprint" [ref=e932] [cursor=pointer]
+              - button "PI committed" [ref=e933] [cursor=pointer]
+              - button "Setup risk" [ref=e934] [cursor=pointer]
+            - list [ref=e935]:
+              - listitem [ref=e936]:
+                - generic [ref=e937]: MPSA
+                - generic [ref=e938]: Active
+                - generic [ref=e939]: 5 PI · 15 blocked
+                - generic [ref=e940]: Selected
+              - listitem [ref=e941]:
+                - generic [ref=e942]: RPA
+                - generic [ref=e943]: No sprint
+                - generic [ref=e944]: 0 PI · 0 blocked
+                - generic [ref=e945]: Selected
+              - listitem [ref=e946]:
+                - generic [ref=e947]: No sprint
+                - generic [ref=e948]: 0 PI · 0 blocked
+                - generic [ref=e949]: Not selected
+  - group [ref=e175]:
+    - generic "Feedback and survey" [ref=e176] [cursor=pointer]
+    - button "Improve brief from feedback" [ref=e1154] [cursor=pointer]:
+      - generic [ref=e1155]: ⚗
+      - generic [ref=e1156]: Improve brief
+      - generic [ref=e1157]: "3"
+  - main [ref=e82]:
+    - generic [ref=e177]:
+      - generic [ref=e178]:
+        - generic "Squad delivery pulse" [ref=e179]:
+          - generic "Executive leaderboard" [ref=e950]:
+            - paragraph [ref=e951]: Out of 2 squads · 2 behind PI · 1 blocker · 2 bottlenecks
+            - list [ref=e952]:
+              - button "MPSA Blocked" [ref=e953] [cursor=pointer]:
+                - generic [ref=e954]: MPSA
+                - generic [ref=e955]: Blocked
+              - button "RPA Needs setup" [ref=e956] [cursor=pointer]:
+                - generic [ref=e957]: RPA
+                - generic [ref=e958]: Needs setup
+        - generic [ref=e190]:
+          - region "Today's delivery answer" [ref=e959]:
+            - generic [ref=e960]: Standard wording
+            - button "Lead blocker MPSA-8172 As a vodashop agent i want to able to create claim 41d stale" [ref=e961] [cursor=pointer]:
+              - generic [ref=e962]: Lead blocker
+              - link "MPSA-8172" [ref=e963]:
+                - /url: https://vodacomtz.atlassian.net/browse/MPSA-8172
+              - generic [ref=e964]: As a vodashop agent i want to able to create claim
+              - generic [ref=e965]: 41d stale
+          - group [ref=e967]:
+            - generic "Meeting script" [ref=e968]
+            - generic [ref=e1150]:
+              - paragraph [ref=e1151]: MPSA + RPA is at low delivery confidence for the current sprint window. 2 of 17 committed stories are delivered. 15 items are stale in progress with no recent movement. 4 blockers are owned and ageing. 1 item was added after sprint start and need a Product Owner decision.
+              - paragraph [ref=e1152]: MPSA + RPA has 2 of 17 stories delivered with 15 stale in progress — confirm owners and next moves before the meeting.
+        - region "Do now" [ref=e969]:
+          - article [ref=e970]:
+            - generic [ref=e972]:
+              - heading "Tumaini · 2 actions" [level=3] [ref=e973]
+              - paragraph [ref=e974]: Leadership · no progress for 41 days
+            - list [ref=e975]:
+              - listitem [ref=e976]:
+                - link "MPSA-8172" [ref=e977] [cursor=pointer]:
+                  - /url: /current-sprint?issue=MPSA-8172
+                - text: As a vodashop agent i want to able to create claim 41d
+              - listitem [ref=e978]:
+                - link "MPSA-8174" [ref=e979] [cursor=pointer]:
+                  - /url: /current-sprint?issue=MPSA-8174
+                - text: As a CBU admin I want to able to attach documents 17d
+            - generic [ref=e980]:
+              - button "Highlight proof in right rail" [ref=e981] [cursor=pointer]: "Proof: 2 keys · 2 changelog checks · live"
+              - generic "Proof preview" [ref=e982]:
+                - table [ref=e983]:
+                  - rowgroup [ref=e984]:
+                    - row "Issue Status Why" [ref=e985]:
+                      - columnheader "Issue" [ref=e986]
+                      - columnheader "Status" [ref=e987]
+                      - columnheader "Why" [ref=e988]
+                  - rowgroup [ref=e989]:
+                    - row "MPSA-8172 In Progress status unchanged for 979h in In Progress" [ref=e990]:
+                      - cell "MPSA-8172" [ref=e991]
+                      - cell "In Progress" [ref=e992]
+                      - cell "status unchanged for 979h in In Progress" [ref=e993]
+                    - row "MPSA-8174 In Progress status unchanged for 396h in In Progress" [ref=e994]:
+                      - cell "MPSA-8174" [ref=e995]
+                      - cell "In Progress" [ref=e996]
+                      - cell "status unchanged for 396h in In Progress" [ref=e997]
+            - generic [ref=e998]:
+              - button "✉ Draft nudge" [ref=e999] [cursor=pointer]
+              - group "Dismiss" [ref=e1000]:
+                - button "✓" [ref=e1001] [cursor=pointer]
+                - button "✕" [ref=e1002] [cursor=pointer]
+          - article [ref=e1003]:
+            - generic [ref=e1005]:
+              - heading "Lilian · 2 actions" [level=3] [ref=e1006]
+              - paragraph [ref=e1007]: Leadership · no progress for 17 days
+            - list [ref=e1008]:
+              - listitem [ref=e1009]:
+                - link "MPSA-8346" [ref=e1010] [cursor=pointer]:
+                  - /url: /current-sprint?issue=MPSA-8346
+                - text: "[NHIF USSD] Deployment of USSD Menu and Backend to Pilot 17d"
+              - listitem [ref=e1011]:
+                - link "MPSA-8419" [ref=e1012] [cursor=pointer]:
+                  - /url: /current-sprint?issue=MPSA-8419
+                - text: Testing of E-SIM Tourism Android APP 17d
+            - generic [ref=e1013]:
+              - button "Highlight proof in right rail" [ref=e1014] [cursor=pointer]: "Proof: 2 keys · 2 changelog checks · live"
+              - generic "Proof preview" [ref=e1015]:
+                - table [ref=e1016]:
+                  - rowgroup [ref=e1017]:
+                    - row "Issue Status Why" [ref=e1018]:
+                      - columnheader "Issue" [ref=e1019]
+                      - columnheader "Status" [ref=e1020]
+                      - columnheader "Why" [ref=e1021]
+                  - rowgroup [ref=e1022]:
+                    - row "MPSA-8346 In Progress status unchanged for 396h in In Progress" [ref=e1023]:
+                      - cell "MPSA-8346" [ref=e1024]
+                      - cell "In Progress" [ref=e1025]
+                      - cell "status unchanged for 396h in In Progress" [ref=e1026]
+                    - row "MPSA-8419 In Progress status unchanged for 396h in In Progress" [ref=e1027]:
+                      - cell "MPSA-8419" [ref=e1028]
+                      - cell "In Progress" [ref=e1029]
+                      - cell "status unchanged for 396h in In Progress" [ref=e1030]
+            - generic [ref=e1031]:
+              - button "✉ Draft nudge" [ref=e1032] [cursor=pointer]
+              - group "Dismiss" [ref=e1033]:
+                - button "✓" [ref=e1034] [cursor=pointer]
+                - button "✕" [ref=e1035] [cursor=pointer]
+        - region "Setup gaps" [ref=e1036]:
+          - 'button "Promised work not saved Impact: Without this, carryover and removed work cannot be proven. Fix: Confirm promised work" [ref=e1038] [cursor=pointer]':
+            - heading "Promised work not saved" [level=4] [ref=e1039]
+            - paragraph [ref=e1040]: "Impact: Without this, carryover and removed work cannot be proven."
+            - 'button "Fix: Confirm promised work" [ref=e1041]'
+          - button "+1 more setup gaps" [ref=e1042] [cursor=pointer]
+        - generic [ref=e276]:
+          - heading "Supporting evidence (5 rows)" [level=2] [ref=e1043]
+          - group [ref=e1044]:
+            - generic "Data gaps weakening this brief (4)" [ref=e1045]
+          - table [ref=e1046]:
+            - rowgroup [ref=e1047]:
+              - row "Issue Status Last week Why" [ref=e1048]:
+                - columnheader "Issue" [ref=e1049]
+                - columnheader "Status" [ref=e1050]
+                - columnheader "Last week" [ref=e1051]
+                - columnheader "Why" [ref=e1052]
+            - rowgroup [ref=e1053]:
+              - row "MPSA-8172 In Progress In Progress status unchanged for 979h in In Progress" [ref=e1054]:
+                - cell "MPSA-8172" [ref=e1055]:
+                  - link "MPSA-8172" [ref=e1056] [cursor=pointer]:
+                    - /url: /governance#gov-risk-MPSA-8172
+                - cell "In Progress" [ref=e1057]
+                - cell "In Progress" [ref=e1058]
+                - cell "status unchanged for 979h in In Progress" [ref=e1059]
+              - row "MPSA-8174 In Progress In Progress status unchanged for 396h in In Progress" [ref=e1060]:
+                - cell "MPSA-8174" [ref=e1061]:
+                  - link "MPSA-8174" [ref=e1062] [cursor=pointer]:
+                    - /url: /governance#gov-risk-MPSA-8174
+                - cell "In Progress" [ref=e1063]
+                - cell "In Progress" [ref=e1064]
+                - cell "status unchanged for 396h in In Progress" [ref=e1065]
+              - row "MPSA-8346 In Progress In Progress status unchanged for 396h in In Progress" [ref=e1066]:
+                - cell "MPSA-8346" [ref=e1067]:
+                  - link "MPSA-8346" [ref=e1068] [cursor=pointer]:
+                    - /url: /governance#gov-risk-MPSA-8346
+                - cell "In Progress" [ref=e1069]
+                - cell "In Progress" [ref=e1070]
+                - cell "status unchanged for 396h in In Progress" [ref=e1071]
+              - row "MPSA-8419 In Progress In Progress status unchanged for 396h in In Progress" [ref=e1072]:
+                - cell "MPSA-8419" [ref=e1073]:
+                  - link "MPSA-8419" [ref=e1074] [cursor=pointer]:
+                    - /url: /governance#gov-risk-MPSA-8419
+                - cell "In Progress" [ref=e1075]
+                - cell "In Progress" [ref=e1076]
+                - cell "status unchanged for 396h in In Progress" [ref=e1077]
+              - row "unknown (no changelog) no active sprint and no planned next sprint" [ref=e1078]:
+                - cell [ref=e1079]:
+                  - link:
+                    - /url: /governance#gov-risk-
+                - cell [ref=e1080]
+                - cell "unknown (no changelog)" [ref=e1081]
+                - cell "no active sprint and no planned next sprint" [ref=e1082]
+          - paragraph [ref=e1083]: "Technical: Brief MPSA-RPA-NA-2026-W24 · narrated by template · First check-in for this scope — compare again after the next refresh."
+          - heading "Backlog readiness" [level=3] [ref=e321]
+          - region "Backlog readiness" [ref=e322]:
+            - heading "Backlog readiness" [level=3] [ref=e1084]
+            - paragraph [ref=e1085]: 9 items carry backlog-readiness risk, not only delivery risk.
+            - generic [ref=e1086]:
+              - generic [ref=e1087]: "noEstimate: 1"
+              - generic [ref=e1088]: "addedAfterSprintStart: 1"
+              - generic [ref=e1089]: "noAssignee: 6"
+              - generic [ref=e1090]: "notClarified: 5"
+              - generic [ref=e1091]: "noPILink: 6"
+          - heading "Plan vs now" [level=3] [ref=e331]
+          - region "Plan vs now"
+          - heading "Pilot metrics" [level=3] [ref=e332]
+          - region "Pilot scorecard" [ref=e333]:
+            - paragraph [ref=e334]: No pilot data yet.
+      - complementary "Agent queue and PI confidence" [ref=e335]:
+        - region "Proof preview" [ref=e1092]:
+          - generic [ref=e1093]:
+            - heading "Proof preview" [level=3] [ref=e1094]
+            - button "All proof (5)" [ref=e1095] [cursor=pointer]
+          - table [ref=e1097]:
+            - rowgroup [ref=e1098]:
+              - row "Issue Status Why" [ref=e1099]:
+                - columnheader "Issue" [ref=e1100]
+                - columnheader "Status" [ref=e1101]
+                - columnheader "Why" [ref=e1102]
+            - rowgroup [ref=e1103]:
+              - row "MPSA-8172 In Progress status unchanged for 979h in In Progress" [ref=e1104]:
+                - cell "MPSA-8172" [ref=e1105]:
+                  - link "MPSA-8172" [ref=e1106] [cursor=pointer]:
+                    - /url: https://vodacomtz.atlassian.net/browse/MPSA-8172
+                - cell "In Progress" [ref=e1107]
+                - cell "status unchanged for 979h in In Progress" [ref=e1108]
+              - row "MPSA-8174 In Progress status unchanged for 396h in In Progress" [ref=e1109]:
+                - cell "MPSA-8174" [ref=e1110]:
+                  - link "MPSA-8174" [ref=e1111] [cursor=pointer]:
+                    - /url: https://vodacomtz.atlassian.net/browse/MPSA-8174
+                - cell "In Progress" [ref=e1112]
+                - cell "status unchanged for 396h in In Progress" [ref=e1113]
+        - status [ref=e1114]:
+          - 'generic "Agent Last run: just now · Checked: Jira, sprint, evidence · Prepared: 1778 brief, 0 nudges, 1778 review · Needs: pi baseline, no sprint" [ref=e1115] [cursor=pointer]':
+            - generic [ref=e1116]: Agent
+            - generic [ref=e1117]: "Last run: just now · Checked: Jira, sprint, evidence · Prepared: 1778 brief, 0 nudges, 1778 review · Needs: pi baseline, no sprint"
+        - generic "Agent queue" [ref=e363]:
+          - group "Agent queue" [ref=e1118]:
+            - list "Top queue items" [ref=e1119]:
+              - listitem [ref=e1120]:
+                - button "Unassigned — 1775 items" [ref=e1121] [cursor=pointer]:
+                  - strong [ref=e1122]: Unassigned
+                  - generic [ref=e1123]: Brief has claims that need human confirmation before sharing externally.
+                  - emphasis [ref=e1124]: "1775"
+                - button "Review" [ref=e1126] [cursor=pointer]: 👁
+              - listitem [ref=e1127]:
+                - button "Unassigned — 3 items" [ref=e1128] [cursor=pointer]:
+                  - strong [ref=e1129]: Unassigned
+                  - generic [ref=e1130]: Brief has claims that need human confirmation before sharing externally.
+                  - emphasis [ref=e1131]: "3"
+                - button "Review" [ref=e1133] [cursor=pointer]: 👁
+            - generic [ref=e1134]:
+              - generic [ref=e1135]: Agent queue
+              - button "1778 to review" [ref=e1136] [cursor=pointer]
+              - button "Show full agent queue inline" [ref=e1137] [cursor=pointer]: All queue (3556)
+        - generic "Compares promised work this quarter to what is on the board now." [ref=e1138]: "PI: Not set · 0 committed"
+        - region "Squad compare" [ref=e1139]:
+          - article [ref=e1140]:
+            - generic [ref=e1141]:
+              - strong [ref=e1142]: MPSA
+              - text: · Blocked
+            - paragraph [ref=e1143]: "Blocked by Leadership: No progress for 41 days"
+            - paragraph [ref=e1144]: PI baseline not saved — Fix in 1 click
+          - article [ref=e1145]:
+            - generic [ref=e1146]:
+              - strong [ref=e1147]: RPA
+              - text: · Needs setup
+            - paragraph [ref=e1148]: "Blocked by Scrum Master: no active sprint and no planned next sprint"
+            - paragraph [ref=e1149]: PI baseline not saved — Fix in 1 click
+    - button [ref=e87]: Create work
+  - dialog "Create work draft" [ref=e88]:
+    - generic [ref=e89]:
+      - button "RPA ▾" [ref=e873] [cursor=pointer]:
+        - generic [ref=e92]: RPA
+        - text: ▾
+      - generic [ref=e93]: Create work
+      - button "AI provider settings" [ref=e94] [cursor=pointer]: ⚙
+      - button "Close" [ref=e95] [cursor=pointer]: ✕
+    - generic [ref=e96]: ⚠ No backlog context loaded — duplicate detection limited
+    - generic [ref=e97]:
+      - textbox "Narrative source text" [ref=e102]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e104]: ✓
+      - list "Work items" [ref=e105]:
+        - generic [ref=e874]:
+          - text: Paste your task list or press
+          - generic [ref=e875]: Enter
+          - text: to add the first item.
+          - button "Try example" [ref=e876] [cursor=pointer]
+    - generic [ref=e106]:
+      - generic [ref=e878]: Paste notes above to get started
+      - generic "Set estimate for all items" [ref=e107]:
+        - generic [ref=e108]: "All:"
+        - slider "Set estimate for all items" [ref=e109] [cursor=pointer]: "0"
+        - generic [ref=e110]: —
+      - button "Nothing to create yet" [disabled] [ref=e879]

@@ -57,7 +57,8 @@
   transition: top 0.2s ease;
 }
 
-.skip-to-content:focus {
+.skip-to-content:focus,
+.skip-to-content:focus-visible {
   top: calc(12px + env(safe-area-inset-top, 0px));
 }
 

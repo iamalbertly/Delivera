@@ -1,0 +1,104 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Answer
+        - link "Today" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Proof" [ref=e13] [cursor=pointer]:
+          - /url: /report
+      - link "Delivera" [ref=e15] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e16]: De
+        - generic [ref=e18]: Delivera
+      - generic [ref=e20]:
+        - img
+        - searchbox "Context search" [ref=e21]
+      - group "Global actions" [ref=e22]:
+        - button "Create" [ref=e23] [cursor=pointer]:
+          - generic [ref=e24]: +
+          - generic [ref=e25]: Create
+        - generic "Checking AI status" [ref=e26]: AI · …
+        - button "Notifications" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+        - button "Help" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+        - button "Improve Delivera" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+        - link "Settings" [ref=e36] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e37]
+        - button "Account menu" [ref=e39] [cursor=pointer]: LY
+  - generic "Brief scope" [ref=e40]:
+    - generic "Brief scope" [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - text: 1 squad ·
+          - strong [ref=e44]: MAS
+          - text: · FY27 Q1 · 28d
+        - button "✕ Blocked" [ref=e45] [cursor=pointer]
+        - group "Scope actions" [ref=e46]:
+          - button "Copy answer" [ref=e47] [cursor=pointer]
+          - button "Refresh" [ref=e48] [cursor=pointer]
+      - group "Scope selectors" [ref=e50]:
+        - group "Projects" [ref=e51]:
+          - button "AMS2" [ref=e52] [cursor=pointer]
+          - button "ASG" [ref=e53] [cursor=pointer]
+          - button "BIO" [ref=e54] [cursor=pointer]
+          - button "FIN" [ref=e55] [cursor=pointer]
+          - button "MAS" [pressed] [ref=e56] [cursor=pointer]
+          - button "MPSA" [ref=e57] [cursor=pointer]
+          - button "MPSA2" [ref=e58] [cursor=pointer]
+          - button "MVA" [ref=e59] [cursor=pointer]
+          - button "RPA" [ref=e60] [cursor=pointer]
+          - button "SD" [ref=e61] [cursor=pointer]
+          - button "TRS" [ref=e62] [cursor=pointer]
+          - button "VB" [ref=e63] [cursor=pointer]
+        - group "Period" [ref=e64]:
+          - button "PI · FY27 Q1" [ref=e65] [cursor=pointer]
+          - button "14d" [ref=e66] [cursor=pointer]
+          - button "28d" [ref=e67] [cursor=pointer]
+          - button "PI" [ref=e68] [cursor=pointer]
+          - text: ·
+          - button "FY24 Q4" [ref=e69] [cursor=pointer]
+          - button "FY25 Q2" [ref=e70] [cursor=pointer]
+          - button "FY25 Q3" [ref=e71] [cursor=pointer]
+          - button "FY25 Q4" [ref=e72] [cursor=pointer]
+          - button "FY26 Q1" [ref=e73] [cursor=pointer]
+          - button "FY26 Q2" [ref=e74] [cursor=pointer]
+          - button "FY26 Q3" [ref=e75] [cursor=pointer]
+          - button "FY27 Q1" [ref=e76] [cursor=pointer]
+        - region "Advanced scope" [ref=e77]:
+          - generic [ref=e78]: Advanced scope
+          - paragraph [ref=e79]: Governance rules use Vodacom delivery grammar (stale-in-progress, late scope, data confidence). Strict changelog sprint membership is deferred.
+  - main [ref=e81]:
+    - paragraph [ref=e84]: Loading your delivery answer…
+    - alert [ref=e85]
+    - button [ref=e86]: Create work
+  - dialog "Create work draft" [ref=e87]:
+    - generic [ref=e88]:
+      - button "Project ▾" [ref=e90] [cursor=pointer]:
+        - generic [ref=e91]: Project
+        - text: ▾
+      - generic [ref=e92]: Create work
+      - button "AI provider settings" [ref=e93] [cursor=pointer]: ⚙
+      - button "Close" [ref=e94] [cursor=pointer]: ✕
+    - generic [ref=e96]:
+      - generic [ref=e97] [cursor=pointer]:
+        - text: Upload PI plan slide (screenshot or export)
+        - generic [ref=e98]: Drag & drop or click
+        - button "Upload PI plan slide (screenshot or export) Drag & drop or click" [ref=e99]
+      - textbox "Narrative source text" [ref=e101]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e103]: ✓
+      - list "Work items" [ref=e104]
+    - generic [ref=e105]:
+      - generic "Set estimate for all items" [ref=e106]:
+        - generic [ref=e107]: "All:"
+        - slider "Set estimate for all items" [ref=e108] [cursor=pointer]: "0"
+        - generic [ref=e109]: —
+      - button "Create 0 issues" [disabled] [ref=e111]

@@ -4,7 +4,9 @@
     "Flatten UI hierarchy",
     "Zero-click data visibility",
     "Reduce scroll depth to direct-value components",
-    "No duplicate logic, visuals, or content"
+    "No duplicate logic visuals or content",
+    "Detect intra-card dead space not just chrome-to-value gap",
+    "Flag value hidden behind Open buttons drawers tabs"
   ],
   "viewports": {
     "desktop": "1280x900",
@@ -12,12 +14,15 @@
   },
   "metricThresholds": {
     "maxScrollToValuePx": 600,
-    "maxStickyChromeRatio": 0.4,
-    "maxFoldDeadBandPx": 350
+    "maxStickyChromeRatio": 0.45,
+    "maxFoldDeadBandPx": 200,
+    "maxIntraCardVoidPx": 120,
+    "maxHiddenValueCount": 8
   },
   "trustWeights": {
-    "evidenceComplete": 0.3,
-    "testsPass": 0.4,
-    "metricsImprove": 0.3
+    "evidenceComplete": 0.25,
+    "explorationQuality": 0.15,
+    "testsPass": 0.35,
+    "metricsImprove": 0.25
   }
 }

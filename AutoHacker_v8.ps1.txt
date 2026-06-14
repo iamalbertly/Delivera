@@ -7,12 +7,13 @@ Param(
     [double]$AutoPushWhenTrustAbove = 0.0,
     [switch]$DoPush,
     [switch]$SkipMcp,
-    [switch]$DryRun,
-    [switch]$SkipCursorPhases,
-    [switch]$ValidateOrchestratorOnly,
-    [switch]$PauseBetweenPhases
+    [switch]$DryRun
 )
 
+# Launcher — delegates to isolated .autohacker/ orchestrator
 $ToolScript = Join-Path $PSScriptRoot ".autohacker\AutoHacker.ps1"
-if (-not (Test-Path $ToolScript)) { Write-Host "[FATAL] Missing $ToolScript" -ForegroundColor Red; Exit 1 }
+if (-not (Test-Path $ToolScript)) {
+    Write-Host "[FATAL] Missing $ToolScript" -ForegroundColor Red
+    Exit 1
+}
 & $ToolScript @PSBoundParameters

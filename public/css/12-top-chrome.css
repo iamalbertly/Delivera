@@ -677,6 +677,13 @@ body.governance-page.notification-dock-open .gov-scope-capsule {
     width: 36px;
     padding: 0;
     justify-content: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  body.governance-page .app-top-ai-trust-pill {
+    pointer-events: none;
+    flex-shrink: 0;
   }
 }
 
