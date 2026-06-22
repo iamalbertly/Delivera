@@ -32,7 +32,7 @@ export function renderPortfolioSignal(decision = {}) {
         <span data-trust-proof>Proof: ${escapeHtml(trust.proofLevel || 'Medium')}</span>
       </div>
       <div class="portfolio-signal-actions">
-        ${hasActions ? '<button type="button" class="btn btn-primary" data-portfolio-action="review-actions">Review actions</button>' : ''}
+        ${hasActions ? '<button type="button" class="btn btn-primary" data-portfolio-action="review-actions">Review actions →</button>' : ''}
         <button type="button" class="btn btn-secondary" data-portfolio-action="compare-peers">Compare peers</button>
       </div>
       <aside class="portfolio-signal-recommended" aria-label="Recommended action">

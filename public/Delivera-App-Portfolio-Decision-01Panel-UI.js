@@ -3,8 +3,8 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 export function renderWhyThisMatters(drivers = []) {
   const rows = (drivers || []).slice(0, 3);
   return `
-    <section class="portfolio-why" aria-label="Why this matters">
-      <h2>Why this matters</h2>
+    <details class="portfolio-why portfolio-why-collapsible" aria-label="Why this matters">
+      <summary>Why this matters</summary>
       <ul class="portfolio-why-list">
         ${rows.map((d) => `
           <li class="portfolio-why-item" title="${escapeHtml(d.detail || '')}">
@@ -12,7 +12,7 @@ export function renderWhyThisMatters(drivers = []) {
             <span>${escapeHtml(d.summary || '')}</span>
           </li>`).join('')}
       </ul>
-    </section>`;
+    </details>`;
 }
 
 export function renderPortfolioDecisionPanel(decision = {}, { selectedId = '' } = {}) {
@@ -21,7 +21,6 @@ export function renderPortfolioDecisionPanel(decision = {}, { selectedId = '' } 
   return `
     <section class="portfolio-decision" aria-label="Next portfolio decision" id="portfolio-decision">
       <h2>Next portfolio decision</h2>
-      <p class="portfolio-decision-hint">Choose the best action for the selected squad.</p>
       <fieldset class="portfolio-decision-options">
         <legend class="gov-visually-hidden">Portfolio decision options</legend>
         ${options.map((o) => `

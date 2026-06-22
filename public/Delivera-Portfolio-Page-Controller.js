@@ -107,16 +107,16 @@ async function fetchPortfolioPayload(brief) {
   }
 }
 
-function bindPortfolioActions(decision = {}, cases = []) {
-  document.querySelector('[data-portfolio-action="review-actions"]')?.addEventListener('click', () => {
-    openPortfolioActionsDrawer(decision, cases);
-  });
-  document.querySelector('[data-portfolio-action="compare-peers"]')?.addEventListener('click', () => {
+function handlePortfolioDelegatedClick(ev) {
+  const btn = ev.target.closest('[data-portfolio-action]');
+  if (!btn || btn.tagName === 'A') return;
+  const action = btn.getAttribute('data-portfolio-action');
+  const decision = govPage.lastPortfolioDecision || {};
+  const cases = govPage.lastPortfolioCases || [];
+  if (action === 'review-actions') openPortfolioActionsDrawer(decision, cases);
+  else if (action === 'compare-peers') {
     document.querySelector('[data-portfolio-carousel]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-  document.querySelector('[data-portfolio-action="how-ai-decides"]')?.addEventListener('click', () => {
-    openPortfolioTrustDrawer(decision);
-  });
+  } else if (action === 'how-ai-decides') openPortfolioTrustDrawer(decision);
 }
 
 export async function refreshPortfolio() {
@@ -169,7 +169,6 @@ export async function refreshPortfolio() {
       </footer>`;
   }
 
-  bindPortfolioActions(decision, cases);
   setBriefNavBadge(cases.length || decision.trust?.liveCases || 0);
   hideGovernanceLoading();
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
@@ -182,13 +181,12 @@ let portfolioHooked = false;
 export function installPortfolioSurfaceHook() {
   if (portfolioHooked || !document.getElementById('portfolio-signal-mount')) return;
   portfolioHooked = true;
-  const poll = setInterval(async () => {
-    if (!govPage.lastBrief) return;
-    if (govPage._portfolioBriefToken === govPage.lastBrief.generatedAt) return;
-    govPage._portfolioBriefToken = govPage.lastBrief.generatedAt;
-    await refreshPortfolio();
-  }, 300);
-  window.addEventListener('beforeunload', () => clearInterval(poll));
+  const shell = document.getElementById('main-content');
+  shell?.addEventListener('click', handlePortfolioDelegatedClick);
+  window.addEventListener('delivera:scope-changed', () => {
+    govPage._portfolioBriefToken = null;
+    if (govPage.lastBrief) refreshPortfolio();
+  });
 }
 
 if (document.readyState === 'loading') {

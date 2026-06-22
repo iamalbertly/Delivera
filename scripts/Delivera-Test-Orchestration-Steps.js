@@ -56,6 +56,12 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Portfolio Command Surface Journey (most recent code)',
+      command: 'npm',
+      args: ['run', 'test:journey:portfolio'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Settings Master Plan Journey',
       command: 'npm',
       args: ['run', 'test:journey:settings-masterplan'],

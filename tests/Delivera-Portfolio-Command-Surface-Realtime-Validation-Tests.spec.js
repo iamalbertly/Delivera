@@ -265,4 +265,66 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     expect(severe.length).toBe(0);
     assertTelemetryClean(t);
   });
+
+  test('10 portfolio scope bar uses Selected/Compare labels and hides copy answer', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await mockPortfolioPage(page);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.waitForSelector('[data-portfolio-signal]', { timeout: 120000 });
+    const capsule = page.locator('.portfolio-scope-bar .gov-scope-capsule-text');
+    await expect(capsule).toContainText(/Selected:/i);
+    await expect(capsule).toContainText(/Compare:/i);
+    await expect(page.locator('#gov-copy-answer-scope')).toHaveCount(0);
+    assertTelemetryClean(t);
+  });
+
+  test('11 review actions navigates to actions surface with project context', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await mockPortfolioPage(page);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.waitForSelector('[data-portfolio-action="review-actions"]', { timeout: 120000 });
+    await page.click('[data-portfolio-action="review-actions"]');
+    await expect(page).toHaveURL(/\/actions/);
+    await expect(page).toHaveURL(/project=SD/i);
+    assertTelemetryClean(t);
+  });
+
+  test('12 mobile tablet shows decision rail before carousel without scroll', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await mockPortfolioPage(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.waitForSelector('[data-portfolio-signal]', { timeout: 120000 });
+    const decisionBox = await page.locator('#portfolio-decision').boundingBox();
+    const carouselBox = await page.locator('[data-portfolio-carousel]').boundingBox();
+    expect(decisionBox).toBeTruthy();
+    expect(carouselBox).toBeTruthy();
+    expect(decisionBox.y).toBeLessThan(carouselBox.y);
+    assertTelemetryClean(t);
+  });
+
+  test('13 actions ready tab shows count badge when cases need approval', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await page.route('**/api/governance/interventions.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        cases: [{
+          id: 'SD-FY27Q1-01',
+          project: 'SD',
+          title: 'DMS scope review',
+          issueKeys: ['SD-5237'],
+          needsApproval: true,
+          state: 'clarification-required',
+        }],
+      }),
+    }));
+    await page.goto('/actions?tab=ready');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('.actions-tab.is-active .actions-tab-count')).toHaveText('1');
+    assertTelemetryClean(t);
+  });
 });
