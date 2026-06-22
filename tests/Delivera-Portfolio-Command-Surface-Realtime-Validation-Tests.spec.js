@@ -364,4 +364,15 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await expect(page.locator('#portfolio-scope-selected')).toHaveValue('MAS');
     assertTelemetryClean(t);
   });
+
+  test('17 portfolio shows AI agent learning badge with pulse', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await mockPortfolioPage(page);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.waitForSelector('[data-ai-agent-badge]', { timeout: 120000 });
+    await expect(page.locator('[data-portfolio-signal] [data-ai-agent-badge]')).toBeVisible();
+    await expect(page.locator('.portfolio-ai-agent-pulse').first()).toBeVisible();
+    assertTelemetryClean(t);
+  });
 });

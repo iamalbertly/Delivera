@@ -32,6 +32,10 @@ export function renderPortfolioSignal(decision = {}) {
   const headline = decision.headline || 'Portfolio signal';
   return `
     <section class="portfolio-signal" aria-label="AI portfolio signal" data-portfolio-signal>
+      <div class="portfolio-signal-top">
+        <p class="portfolio-signal-kicker">AI portfolio signal</p>
+        <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
+      </div>
       <h2 class="portfolio-signal-headline">
         <span class="portfolio-signal-sparkle" aria-hidden="true">✦</span>
         AI portfolio signal: ${escapeHtml(headline)}

@@ -9,13 +9,14 @@
 <body class="executive-surface-page settings-page" data-surface-name="Settings">
   <div class="container">
     <main id="main-content" class="executive-surface-shell settings-hub-layout">
-      <section class="surface-hero-card">
+      <section class="surface-hero-card settings-hero-compact">
         <p class="surface-eyebrow">Settings</p>
-        <h1>Control trust, not just preferences</h1>
-        <p class="surface-lead">Keep configuration close to the business questions it affects: project context, data hygiene, and the quality of decisions made from the dashboard.</p>
+        <h1>Your workspace &amp; trust</h1>
+        <p class="surface-lead settings-hero-lead">Defaults, org catalog, integrations, and activity — linked to Portfolio, Squads, and Actions.</p>
         <div id="surface-context-bar"></div>
         <p id="surface-summary-line" class="surface-summary-line"></p>
       </section>
+      <nav id="settings-quick-nav" class="settings-quick-nav surface-card" aria-label="Go to main surfaces"></nav>
       <nav id="settings-nav-rail" class="settings-nav-rail surface-card" aria-label="Settings sections"></nav>
       <div class="settings-hub-panels">
         <div id="settings-my-workspace"></div>
@@ -30,6 +31,7 @@
     </main>
   </div>
   <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
+  <script type="module" src="Delivera-Shared-Health-Watchdog-01Client.js"></script>
   <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
   <script type="module" src="Delivera-Shared-UI-Header-Nav-Renderer.js"></script>
   <script type="module" src="Delivera-Executive-Surface-Init.js"></script>

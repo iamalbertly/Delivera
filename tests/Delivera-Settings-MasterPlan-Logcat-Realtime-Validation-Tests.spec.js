@@ -84,6 +84,9 @@ test.describe('Settings master plan logcat realtime validation', () => {
     await test.step('01 settings hub nav and sections', async () => {
       await page.goto('/settings');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await expect(page.locator('#settings-quick-nav')).toBeVisible();
+      await expect(page.locator('[data-settings-surface-link="/governance"]')).toContainText(/Portfolio/i);
+      await expect(page.locator('[data-settings-surface-link="/actions"]')).toContainText(/Actions/i);
       await expect(page.locator('#settings-nav-rail')).toBeVisible();
       await expect(page.locator('#my-workspace')).toBeVisible();
       await expect(page.locator('#organization')).toBeVisible();
@@ -140,17 +143,38 @@ test.describe('Settings master plan logcat realtime validation', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     });
 
-    await test.step('05 brief scope chip shows display name', async () => {
+    await test.step('05 portfolio scope shows display name for SD', async () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      const chip = page.locator('[data-project="SD"]');
-      await expect(chip).toBeVisible({ timeout: 20000 });
-      await expect(chip).toContainText('DMS');
-      await expect(chip).toHaveAttribute('data-project', 'SD');
+      await page.waitForSelector('#portfolio-scope-selected', { timeout: 20000 });
+      const selected = page.locator('#portfolio-scope-selected');
+      await expect(selected).toBeVisible();
+      await expect(selected.locator('option:checked')).toContainText(/DMS/i);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('06 deep link integrations hash', async () => {
+    await page.route('**/api/preview**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          meta: { projects: 'SD', generatedAt: new Date().toISOString() },
+          rows: [{ issueKey: 'SD-1', issueSummary: 'Test' }],
+          sprints: [],
+        }),
+      });
+    });
+
+    await test.step('06 report scope uses display label when catalog loaded', async () => {
+      await page.goto('/report');
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.waitForSelector('#projects-catalog-mount[data-catalog-ready="1"]', { timeout: 15000 }).catch(() => null);
+      const sdLabel = page.locator('#project-sd').locator('..').locator('.project-desc');
+      await expect(sdLabel).toContainText('DMS Squad');
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('07 deep link integrations hash', async () => {
       await page.goto('/settings#integrations');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#integrations')).toBeVisible();

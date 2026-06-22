@@ -11,7 +11,7 @@ export function logClientFetchFailure({ url = '', status = null, message = '', c
 }
 
 export async function fetchJson(url, options = {}, logContext = '') {
-  const res = await fetch(url, options);
+  const res = await fetchWithRetry(url, options, logContext);
   let body = null;
   try {
     body = await res.json();
@@ -27,6 +27,31 @@ export async function fetchJson(url, options = {}, logContext = '') {
     throw err;
   }
   return body;
+}
+
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+
+export async function fetchWithRetry(url, options = {}, logContext = '', { retries = 2 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const res = await fetch(url, options);
+      if (RETRYABLE_STATUS.has(res.status) && attempt < retries) {
+        await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+        continue;
+      }
+      logClientFetchFailure({ url, status: null, message: err?.message || 'network', context: logContext });
+      throw err;
+    }
+  }
+  throw lastErr || new Error('fetch failed');
 }
 
 export function showInlineToast(host, message, kind = 'error') {

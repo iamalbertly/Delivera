@@ -97,6 +97,24 @@ export function clearScopeStaleOverlay() {
   contentEl.querySelector('.gov-scope-stale-overlay')?.remove();
 }
 
-export function initGovernanceLoadingEls() {
-  showLoadingView(getDom(), 'Loading your delivery answer…');
+export function showPortfolioLoading(msg = 'AI agent is learning from your squad data…') {
+  const loadingEl = document.getElementById('gov-loading');
+  if (loadingEl) {
+    loadingEl.innerHTML = `
+      <div class="portfolio-ai-loading" data-portfolio-ai-loading>
+        <span class="portfolio-ai-agent-pulse portfolio-ai-agent-pulse--solo" aria-hidden="true"></span>
+        <span class="portfolio-ai-agent-sparkle" aria-hidden="true">✦</span>
+        <p class="portfolio-ai-loading-msg">${msg}</p>
+      </div>`;
+    loadingEl.classList.remove('current-sprint-loading-with-spinner');
+    loadingEl.style.display = 'block';
+    loadingEl.removeAttribute('hidden');
+  }
+  document.getElementById('portfolio-layout')?.removeAttribute('hidden');
+  document.body?.classList?.add('gov-brief-loading');
+  document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'loading');
+}
+
+export function hidePortfolioLoading() {
+  hideGovernanceLoading();
 }

@@ -10,6 +10,7 @@ import {
 } from './Delivera-App-Portfolio-Decision-01Panel-UI.js';
 import { openPortfolioActionsDrawer } from './Delivera-App-Portfolio-Actions-01Bridge.js';
 import { openPortfolioTrustDrawer } from './Delivera-App-Portfolio-Trust-01Drawer-UI.js';
+import { mountPortfolioAiAgentBadge } from './Delivera-App-Portfolio-AI-Agent-01Badge-UI.js';
 import { govPage, $ } from './Delivera-Governance-Brief-Page-01Context.js';
 import {
   PORTFOLIO_ANCHOR_KEY,
@@ -181,10 +182,14 @@ export async function refreshPortfolio() {
     const mon = decision.monitoring || {};
     footerMount.innerHTML = `
       <footer class="portfolio-monitor" data-portfolio-monitor>
-        <p>Delivera AI is monitoring ${mon.squadCount || 0} squads and ${mon.commitmentCount || 0} commitments. Signals update daily.</p>
+        <p><span id="portfolio-footer-ai-mount" class="portfolio-footer-ai-mount"></span> Delivera AI is monitoring ${mon.squadCount || 0} squads and ${mon.commitmentCount || 0} commitments. Signals update daily.</p>
         <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="how-ai-decides">How AI decides</button>
       </footer>`;
   }
+
+  await mountPortfolioAiAgentBadge(document.getElementById('portfolio-signal-ai-mount'), decision, { compact: true });
+  await mountPortfolioAiAgentBadge(document.getElementById('portfolio-footer-ai-mount'), decision, { compact: true });
+  await mountPortfolioAiAgentBadge(document.getElementById('portfolio-scope-ai-mount'), decision, { compact: true });
 
   setBriefNavBadge(cases.length || decision.trust?.liveCases || 0);
   hideGovernanceLoading();

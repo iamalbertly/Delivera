@@ -86,7 +86,7 @@ npm start
 BASE_URL=http://localhost:3001 SKIP_WEBSERVER=true npm run test:smoke
 ```
 
-**Health probe:** `GET /healthz` returns `{ ok: true, ready: true }` when the process is listening (used by Render and deploy smoke tests).
+**Health probe:** `GET /healthz` returns `{ ok: true, ready: true }` when the process is listening (used by Render and deploy smoke tests). Transient `unhandledRejection` events are logged but no longer kill the process immediately; a client watchdog (`Delivera-Shared-Health-Watchdog-01Client.js`) polls `/healthz` and shows a bottom reconnect banner when the API is unreachable.
 
 ## Auth modes
 

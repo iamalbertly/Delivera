@@ -136,6 +136,7 @@ export function mountPortfolioScopeBar({ mount, onRefresh, onScopeChange } = {})
           </select>
         </label>
         <button type="button" id="portfolio-scope-refresh" class="btn btn-primary btn-compact portfolio-scope-refresh">Refresh</button>
+        <span id="portfolio-scope-ai-mount" class="portfolio-scope-ai-mount"></span>
       </div>`;
     mount.dataset.portfolioScope = '1';
 

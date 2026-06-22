@@ -344,16 +344,24 @@ export async function loadBrief(options = {}) {
   const preserve = hasGovernanceBriefContent();
   const switchingScope = preserve && govPage.lastBrief && !briefMatchesProjects(govPage.lastBrief, requested);
   const switchLabel = switchingScope ? `Switching to ${formatScopeSwitchLabel(requested)}…` : '';
+  const cached = !force ? peekGovernanceBriefCache(requested, quarter, periodWindow) : null;
   if (switchingScope) {
     setScopeStaleOverlay(true, switchLabel);
   }
-  showGovernanceLoading(
-    switchLabel || (preserve ? 'Refreshing… showing previous answer until live data arrives.' : 'Loading your delivery answer…'),
-    { preserveContent: preserve },
-  );
+  const isPortfolioPage = Boolean(document.getElementById('portfolio-signal-mount'));
+  if (isPortfolioPage) {
+    const { showPortfolioLoading } = await import('./Delivera-Governance-Brief-Page-02Loading-State.js');
+    showPortfolioLoading(
+      switchLabel || (cached ? 'Refreshing AI portfolio signal…' : 'AI agent is learning from your squad data…'),
+    );
+  } else {
+    showGovernanceLoading(
+      switchLabel || (preserve ? 'Refreshing… showing previous answer until live data arrives.' : 'Loading your delivery answer…'),
+      { preserveContent: preserve },
+    );
+  }
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'loading');
 
-  const cached = !force ? peekGovernanceBriefCache(requested, quarter, periodWindow) : null;
   if (cached && briefMatchesProjects(cached, requested)) {
     await applyBriefToUi(cached, govPage.lastFeedbackSummary);
   }

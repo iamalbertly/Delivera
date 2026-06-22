@@ -76,7 +76,7 @@ const NAV_ITEMS = [
   },
   {
     key: PAGE_SPRINTS,
-    label: 'Sprints',
+    label: 'Squads',
     href: '/current-sprint',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM7 3h2v4H7zm8 0h2v4h-2z"/></svg>',
   },

@@ -44,6 +44,12 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Server Lifecycle Unit Tests (uptime guards)',
+      command: 'node',
+      args: ['--test', 'tests/Delivera-Server-Lifecycle-Unit.mjs'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Governance Intervention Unit Tests (most recent code)',
       command: 'node',
       args: ['--test', 'tests/Delivera-Governance-Intervention-Case-Unit.mjs'],

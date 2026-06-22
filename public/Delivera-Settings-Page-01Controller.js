@@ -14,6 +14,27 @@ const SECTIONS = [
   { id: 'jira-activity', label: 'Activity' },
 ];
 
+const SURFACE_QUICK_LINKS = [
+  { href: '/governance', label: 'Portfolio', desc: 'AI signal & decisions' },
+  { href: '/current-sprint', label: 'Squads', desc: 'Blockers & nudges today' },
+  { href: '/actions', label: 'Actions', desc: 'Ready nudges & proof' },
+  { href: '/report', label: 'Proof', desc: 'Evidence drill-down' },
+];
+
+function renderQuickNav() {
+  const mount = document.getElementById('settings-quick-nav');
+  if (!mount) return;
+  mount.innerHTML = `
+    <p class="settings-quick-nav-label">Go to</p>
+    <div class="settings-quick-nav-grid">
+      ${SURFACE_QUICK_LINKS.map((link) => `
+        <a class="settings-quick-nav-card" href="${link.href}" data-settings-surface-link="${link.href}">
+          <strong>${link.label}</strong>
+          <span>${link.desc}</span>
+        </a>`).join('')}
+    </div>`;
+}
+
 function renderNavRail(navEl, activeId) {
   if (!navEl) return;
   navEl.innerHTML = SECTIONS.map((s) => (
@@ -44,6 +65,7 @@ export function initSettingsHub() {
   const activeId = SECTIONS.some((s) => s.id === hash) ? hash : 'my-workspace';
 
   renderNavRail(navEl, activeId);
+  renderQuickNav();
   navEl?.addEventListener('click', (ev) => {
     const link = ev.target.closest('[data-settings-section]');
     if (!link) return;
