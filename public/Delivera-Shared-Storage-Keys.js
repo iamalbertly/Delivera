@@ -44,6 +44,9 @@ export const SIMPLE_MODE_KEY = 'delivera_simpleMode';
 /** @deprecated — migrated to SIMPLE_MODE_KEY on read */
 export const LEGACY_SIMPLE_ENGLISH_KEY = 'delivera.simpleEnglishMode.v1';
 export const GOVERNANCE_QUARTER_KEY = 'delivera_gov_quarter_v1';
+/** Portfolio anchor squad (compare list remains in PROJECTS_SSOT_KEY). */
+export const PORTFOLIO_ANCHOR_KEY = 'delivera_portfolio_anchor_v1';
+export const PORTFOLIO_BASELINE_MODE_KEY = 'delivera_portfolio_baseline_mode_v1';
 
 const LEGACY_KEY_PAIRS = [
   [PROJECTS_SSOT_KEY, 'vodaAgileBoard_selectedProjects'],

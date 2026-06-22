@@ -69,6 +69,46 @@ API routes are defined in `routes/api.js`. This page captures the primary contra
 - `POST /api/outcome-draft`
 - `POST /api/outcome-from-narrative`
 
+## Evidence OS endpoints
+
+- `GET /api/evidence-os/cockpit`
+- `POST /api/evidence-os/agents/run`
+- `GET /api/evidence-os/summary`
+- `GET|POST /api/evidence-os/evidence`
+- `POST /api/evidence-os/evidence-links`
+- `GET|POST /api/evidence-os/contributions`
+- `PATCH /api/evidence-os/contributions/:id/validation`
+- `GET|POST /api/evidence-os/goals`
+- `POST /api/evidence-os/goals/:id/amendments`
+- `GET /api/evidence-os/goals/:id/score`
+- `GET /api/evidence-os/commitments/detect`
+- `POST /api/evidence-os/commitments/link`
+- `GET|POST /api/evidence-os/validation-requests`
+- `POST /api/evidence-os/validation-requests/draft`
+- `POST /api/evidence-os/validation-requests/:id/responses`
+- `GET|POST /api/evidence-os/reports`
+- `POST /api/evidence-os/ai/draft`
+
+Key rules enforced by the API: no contribution from Jira assignee alone, manual goal creation is blocked until source commitments are checked, Tier 4 AI interpretation cannot satisfy verified report or validation evidence, `no_response` is distinct from `not_confirmed`, report snapshots dedupe by purpose/audience/period, and explicit validation gaps are preserved.
+
+## Governance Intervention endpoints
+
+These endpoints keep Jira as the delivery source of truth. Delivera detects, drafts, queues, and verifies intervention cases, but stakeholder communication remains human-approved.
+
+- `GET /api/governance/interventions.json`
+- `POST /api/governance/interventions/seed-from-brief`
+- `GET /api/governance/interventions/:id`
+- `POST /api/governance/interventions/:id/approve-nudge`
+- `POST /api/governance/interventions/:id/record-response`
+- `POST /api/governance/interventions/:id/record-decision`
+- `POST /api/governance/interventions/:id/escalate`
+- `POST /api/governance/interventions/:id/verify`
+- `POST /api/governance/interventions/:id/close`
+- `GET /api/governance/roles.json`
+- `POST /api/governance/roles`
+
+Key rules enforced by the API: unresolved Product Owner blocks send, issue-changed-before-send blocks dispatch, missing target dates reduce escalation confidence, duplicate open cases merge by fingerprint, and `/api/governance/intervention-shortlist.json` remains compatible with the new case stream.
+
 ## Feedback and cache operations
 
 - `POST /feedback`

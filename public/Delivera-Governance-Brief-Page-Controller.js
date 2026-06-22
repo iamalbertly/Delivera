@@ -32,6 +32,7 @@ function init() {
   govPage.els.answerMount = $('gov-answer-mount');
   govPage.els.setupDebtMount = $('gov-setup-debt-mount');
   govPage.els.verdictMount = $('gov-verdict-mount');
+  govPage.els.interventionMount = $('gov-intervention-case-mount');
   govPage.els.actionClustersMount = $('gov-action-clusters-mount');
   govPage.els.scriptMount = $('gov-meeting-script-mount');
   govPage.els.measurementMount = $('gov-measurement-mount');
@@ -44,7 +45,7 @@ function init() {
   govPage.els.scorecard = $('gov-scorecard');
   govPage.els.error = $('gov-error');
   govPage.scopeBarApi = mountGovernanceScopeBar({
-    mount: $('gov-scope-bar-mount'),
+    mount: $('portfolio-scope-bar-mount') || $('gov-scope-bar-mount'),
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),
     onScopeChange: () => {
       invalidateBriefCacheEntry(

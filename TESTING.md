@@ -19,6 +19,8 @@ This project uses Playwright for end-to-end and integration tests. The root orch
 4. `npm run test:journey:layout-overlap` — governance/report/sprint overlap + mobile clip
 5. `npm run test:current-sprint:dedupe-fold` — sprint header/viewport declutter gate
 
+Current orchestration prepends the newest governance intervention checks before the older list above: `node --test tests/Delivera-Governance-Intervention-Case-Unit.mjs`, then `npm run test:journey:governance-intervention-loop`, then settings, last-failed cross-page persistence, and the broader value/direct-value/layout/current-sprint/governance bundles. Every step remains serial and fail-fast.
+
 ### Default behavior
 
 - `npm run test:all` is the full regression entrypoint.

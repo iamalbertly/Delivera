@@ -31,6 +31,7 @@ export const TOP_CHROME_SELECTORS = {
 };
 
 const PAGE_LOGIN = 'login';
+const PAGE_ACTIONS = 'actions';
 const PAGE_GOVERNANCE = 'governance';
 const PAGE_SPRINTS = 'sprints';
 const PAGE_REPORT = 'report';
@@ -40,10 +41,10 @@ const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
 const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
 
 const SURFACE_SWITCHER = [
-  { key: PAGE_GOVERNANCE, label: 'Answer', href: '/governance' },
-  { key: PAGE_SPRINTS, label: 'Today', href: '/current-sprint' },
-  { key: PAGE_REPORT, label: 'Proof', href: '/report' },
-  { key: PAGE_EVIDENCE, label: 'Impact', href: '/impact' },
+  { key: PAGE_GOVERNANCE, label: 'Portfolio', href: '/governance' },
+  { key: PAGE_SPRINTS, label: 'Squads', href: '/current-sprint' },
+  { key: PAGE_ACTIONS, label: 'Actions', href: '/actions' },
+  { key: PAGE_SETTINGS, label: 'Settings', href: '/settings' },
 ];
 
 function getPathState() {
@@ -55,19 +56,18 @@ function getPathState() {
 export function getCurrentPageForChrome() {
   const { path } = getPathState();
   if (path === '/login' || path.endsWith('/login')) return PAGE_LOGIN;
-  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief')) return PAGE_GOVERNANCE;
+  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief') || path === '/portfolio' || path.endsWith('/portfolio')) return PAGE_GOVERNANCE;
   if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
   if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
-  if (path === '/evidence' || path.endsWith('/evidence') || path === '/impact' || path.endsWith('/impact')) return PAGE_EVIDENCE;
-  if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
+  if (path === '/actions' || path.endsWith('/actions') || path === '/evidence' || path.endsWith('/evidence') || path === '/impact' || path.endsWith('/impact')) return PAGE_ACTIONS;
+  if (path === '/report' || path.endsWith('/report')) return PAGE_ACTIONS;
   return PAGE_REPORT;
 }
 
 function searchPlaceholder(page) {
   if (page === PAGE_GOVERNANCE) return 'Search squads…';
   if (page === PAGE_SPRINTS) return 'Jump to issue KEY…';
-  if (page === PAGE_REPORT) return 'Filter proof view…';
-  if (page === PAGE_EVIDENCE) return 'Search impact…';
+  if (page === PAGE_ACTIONS) return 'Filter actions…';
   if (page === PAGE_SETTINGS) return 'Filter settings…';
   return 'Search…';
 }

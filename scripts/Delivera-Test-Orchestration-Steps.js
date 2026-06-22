@@ -44,6 +44,30 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Governance Intervention Unit Tests (most recent code)',
+      command: 'node',
+      args: ['--test', 'tests/Delivera-Governance-Intervention-Case-Unit.mjs'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Governance Intervention Loop Journey (most recent code)',
+      command: 'npm',
+      args: ['run', 'test:journey:governance-intervention-loop'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Settings Master Plan Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:settings-masterplan'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Cross-Page Persistence (last failed)',
+      command: 'npx',
+      args: ['playwright', 'test', 'tests/Delivera-Cross-Page-Persistence-Validation-Tests.spec.js', '--max-failures=1', '--workers=1', '--reporter=list'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Value Retention Master Plan Journey',
       command: 'npm',
       args: ['run', 'test:journey:value-retention'],

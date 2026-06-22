@@ -3,63 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Brief | Delivera</title>
+  <title>Portfolio | Delivera</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="executive-surface-page governance-page">
+<body class="executive-surface-page governance-page portfolio-page">
   <a class="skip-to-content" href="#main-content">Skip to main content</a>
-  <details id="gov-secondary-chrome" class="gov-secondary-chrome" hidden>
-    <summary class="gov-secondary-chrome-summary">Feedback and survey</summary>
-    <div id="gov-feedback-lab-mount"></div>
-    <div id="gov-micro-survey-mount"></div>
-  </details>
 
-  <main class="governance-shell" id="main-content" role="main" data-gov-brief-state="loading">
-    <div id="gov-scope-bar-mount" class="gov-scope-bar-sticky" aria-label="Brief scope"></div>
+  <main class="portfolio-shell governance-shell" id="main-content" role="main" data-gov-brief-state="loading">
+    <div id="portfolio-scope-bar-mount" class="gov-scope-bar-sticky portfolio-scope-bar" aria-label="Portfolio scope"></div>
+
     <div id="gov-loading" class="current-sprint-loading-with-spinner" aria-live="polite">
       <div class="current-sprint-loading-spinner" aria-hidden="true"></div>
-      <p class="current-sprint-loading-msg gov-loading-msg">Loading your delivery answer&hellip;</p>
+      <p class="current-sprint-loading-msg gov-loading-msg">Preparing portfolio signal&hellip;</p>
     </div>
-    <div id="gov-brief-content" class="gov-brief-layout">
-      <div class="gov-main-column">
-        <div id="gov-verdict-mount" class="gov-hero-verdict-mount" aria-label="Squad delivery pulse"></div>
-        <header class="governance-header gov-header-compact">
-          <div id="gov-freshness" class="governance-freshness" aria-live="polite"></div>
-          <div id="gov-answer-mount"></div>
-        </header>
 
-        <div id="gov-action-clusters-mount"></div>
-        <div id="gov-setup-debt-mount"></div>
-
-        <section id="gov-supporting-evidence" class="governance-evidence-wrap" data-evidence-layout="flat">
-          <h2 class="governance-section-title governance-evidence-summary">Supporting evidence</h2>
-          <div id="gov-measurement-mount"></div>
-          <div id="gov-meeting-script-mount"></div>
-          <section id="gov-proof-risks" class="governance-risks" aria-label="Proof detail"></section>
-          <div id="gov-evidence" class="governance-evidence-table-wrap"></div>
-          <div id="gov-technical-details" class="gov-technical-details"></div>
-          <h3 class="governance-subsection-title">Backlog readiness</h3>
-          <section id="gov-readiness" class="governance-readiness" aria-label="Backlog readiness"></section>
-          <h3 class="governance-subsection-title">Plan vs now</h3>
-          <section id="gov-baseline" class="governance-baseline" aria-label="Plan vs now"></section>
-          <h3 class="governance-subsection-title">Pilot metrics</h3>
-          <section id="gov-scorecard" class="governance-scorecard" aria-label="Pilot scorecard"></section>
-        </section>
+    <div class="portfolio-layout" id="portfolio-layout">
+      <div class="portfolio-main-column">
+        <div id="portfolio-signal-mount" class="portfolio-signal-mount" aria-label="AI portfolio signal"></div>
+        <div id="portfolio-carousel-mount" class="portfolio-carousel-mount" aria-label="Compare squads"></div>
       </div>
-
-      <aside id="gov-right-rail-mount" class="gov-right-rail" aria-label="Agent queue and PI confidence">
-        <div id="gov-right-rail-proof-mount" class="gov-right-rail-proof" aria-live="polite"></div>
-        <div id="gov-worker-receipt-mount" class="gov-right-rail-receipt"></div>
-        <div id="gov-queue-mount" class="gov-inbox-mount gov-right-rail-queue" aria-label="Agent queue"></div>
-        <div id="gov-pi-strip-mount" class="gov-right-rail-pi"></div>
-        <div id="gov-compare-rail-mount" class="gov-right-rail-compare"></div>
+      <aside class="portfolio-rail" aria-label="Portfolio decision">
+        <div id="portfolio-why-mount" class="portfolio-why-mount"></div>
+        <div id="portfolio-decision-mount" class="portfolio-decision-mount"></div>
       </aside>
     </div>
-    <div id="gov-error" class="alert-banner" hidden role="alert"></div>
-    <button type="button" id="gov-hidden-create-work" class="gov-visually-hidden" tabindex="-1" aria-hidden="true" data-open-outcome-modal data-outcome-projects="MPSA,MAS" data-outcome-context="Create work in Jira for selected squads.">Create work</button>
+
+    <div id="portfolio-monitor-footer" class="portfolio-monitor-mount"></div>
+
+    <!-- Legacy brief surfaces kept for data loaders / drawers (hidden from main path) -->
+    <div id="gov-brief-content" class="gov-brief-layout" hidden>
+      <div id="gov-scope-bar-mount" hidden></div>
+      <div id="gov-verdict-mount" hidden></div>
+      <div id="gov-intervention-case-mount" hidden></div>
+      <div id="gov-answer-mount" hidden></div>
+      <div id="gov-action-clusters-mount" hidden></div>
+      <div id="gov-setup-debt-mount" hidden></div>
+      <div id="gov-queue-mount" hidden></div>
+      <div id="gov-freshness" hidden></div>
+      <div id="gov-error" class="alert-banner" hidden role="alert"></div>
+    </div>
   </main>
 
   <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
   <script type="module" src="Delivera-Governance-Brief-Page-Controller.js"></script>
+  <script type="module" src="Delivera-Portfolio-Page-Controller.js"></script>
 </body>
 </html>

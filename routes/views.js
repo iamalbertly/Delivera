@@ -21,6 +21,7 @@ function resolveExplicitRedirect(explicitRedirect = '') {
     if (raw.startsWith('/governance') || raw.startsWith('/brief')) return raw.startsWith('/brief') ? '/governance' : raw;
     if (raw.startsWith('/current-sprint') || raw.startsWith('/sprints')) return raw;
     if (raw.startsWith('/settings')) return raw;
+    if (raw.startsWith('/evidence')) return raw;
     if (raw.startsWith('/dashboard') || raw.startsWith('/home')) return raw;
     return '';
 }
@@ -140,6 +141,24 @@ router.get('/settings', requireAuth, (req, res) => {
     res.sendFile('settings.html', { root: PUBLIC_ROOT });
 });
 
+router.get('/evidence', requireAuth, (req, res) => {
+    const suffix = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    res.redirect(302, `/actions${suffix}`);
+});
+
+router.get('/impact', requireAuth, (req, res) => {
+    const suffix = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    res.redirect(302, `/actions${suffix}`);
+});
+
+router.get('/actions', requireAuth, (req, res) => {
+    res.sendFile('actions.html', { root: PUBLIC_ROOT });
+});
+
+router.get('/portfolio', requireAuth, (req, res) => {
+    res.redirect(302, '/governance');
+});
+
 /**
  * GET /reports - backward-compatible alias for report page
  */
@@ -164,7 +183,7 @@ router.get('/sprints', requireAuth, (req, res) => {
  * GET /leadership - merged into Brief decision snapshot (bookmark-safe redirect)
  */
 router.get('/leadership', requireAuth, (req, res) => {
-    res.redirect(302, '/governance#decision-snapshot');
+    res.redirect(302, '/governance#portfolio-decision');
 });
 
 /**
@@ -181,7 +200,7 @@ router.get('/brief', requireAuth, (req, res) => {
 
 // Legacy alias — /sprint-leadership → /leadership (2024-12). Keep for bookmarks.
 router.get('/sprint-leadership', requireAuth, (req, res) => {
-    res.redirect(302, '/governance#decision-snapshot');
+    res.redirect(302, '/governance#portfolio-decision');
 });
 
 export default router;

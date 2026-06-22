@@ -352,3 +352,12 @@ Journey membership is implemented in `scripts/Delivera-Tests-Journey-Buckets-Map
 - **Guardrails:** assignee-only contributions are blocked; manual goals require source checking; Tier 4 cannot satisfy verified evidence/report sections; `no_response` remains distinct from `not_confirmed`; report snapshots dedupe by purpose/audience/period and preserve explicit validation gaps; every write emits `audit_events`; file-backed dev writes are serialized to avoid stale parallel overwrites.
 - **Tests:** `tests/Delivera-EvidenceOS-Services-Unit.mjs` covers core edge policies, and `tests/Delivera-EvidenceOS-API-Contracts.spec.js` is mapped to `journey.evidence-os`.
 
+### Governance Intervention Loop (2026-06-22)
+
+- **Route/UI:** `/governance` includes `#gov-intervention-case-mount`, a compact "What needs my attention?" stream under the delivery verdict. It reuses the Governance Brief instead of creating another page or manual workflow.
+- **API:** `routes/governance-interventions.js` is mounted before the legacy API router and owns `/api/governance/interventions*`, `/api/governance/intervention-shortlist.json`, and `/api/governance/roles*`.
+- **Case model:** `lib/Delivera-Governance-InterventionCase-*` stores deduped, Jira-linked intervention cases with a guarded state machine from detected evidence through clarification, decision, action, verification, and closure.
+- **Agentic boundary:** tool registry, role resolver, evidence collector, scope nudge builder, escalation ladder, and AI task contracts form the Stage 4 agent surface. Stage 5 agents are named contract stubs only and remain human-gated.
+- **Safety/edge policies:** no silent sends; unresolved PO blocks dispatch; assignee-only PO guesses are rejected; issue-changed-before-send blocks dispatch; partial Jira/evidence failures become unknowns; missing target date limits escalation confidence; duplicate fingerprints merge open cases; false positives can close without verified evidence.
+- **Tests:** `tests/Delivera-Governance-Intervention-Case-Unit.mjs` covers state/role/nudge/escalation policies, and `tests/Delivera-Governance-Intervention-Loop-Realtime-Validation-Tests.spec.js` is mapped to `journey.governance-intervention-loop`.
+

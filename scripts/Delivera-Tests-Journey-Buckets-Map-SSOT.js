@@ -187,6 +187,18 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/governance',
   },
+  'tests/Delivera-Governance-Intervention-Loop-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-intervention-loop',
+    layer: 'api-contract',
+    page: '/governance,/api/governance/interventions.json,/api/governance/intervention-shortlist.json',
+    priority: 1,
+  },
+  'tests/Delivera-Portfolio-Command-Surface-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.portfolio-command-surface',
+    layer: 'page-ux',
+    page: '/governance,/actions,/api/governance/portfolio-decision.json',
+    priority: 1,
+  },
 
   // Outcome intake and outcome-first UX
   'tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js': {
@@ -719,6 +731,20 @@ export const journeyBuckets = {
     label: 'Human nudge review, factual summary, Jira activity',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.human-nudge-trust',
+    ),
+  },
+  'journey.governance-intervention-loop': {
+    id: 'journey.governance-intervention-loop',
+    label: 'Governance intervention loop API and approval gates',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-intervention-loop',
+    ),
+  },
+  'journey.portfolio-command-surface': {
+    id: 'journey.portfolio-command-surface',
+    label: 'Portfolio command surface and Actions merge',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.portfolio-command-surface',
     ),
   },
 };

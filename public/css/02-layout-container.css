@@ -764,3 +764,31 @@ a.surface-card--linked:hover .surface-card-kicker {
   padding-top: 16px;
   border-top: 1px solid var(--border, rgba(0, 0, 0, 0.08));
 }
+body.settings-page .settings-hero-compact {
+  padding: 12px 16px;
+}
+body.settings-page .settings-hero-compact h1 {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+body.settings-page .settings-hero-lead {
+  font-size: 0.86rem;
+  max-width: 52ch;
+}
+body.settings-page #surface-context-bar:empty {
+  display: none;
+}
+@media (max-width: 720px) {
+  body.settings-page .settings-hero-lead {
+    display: none;
+  }
+  body.settings-page .settings-nav-rail {
+    padding: 8px 10px;
+    gap: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  body.settings-page .settings-nav-link {
+    flex: 0 0 auto;
+  }
+}

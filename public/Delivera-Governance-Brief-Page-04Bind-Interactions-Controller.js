@@ -2,6 +2,7 @@
  * Governance brief — proof, nudge, cluster, and command bindings.
  */
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
+import { focusProofRail } from './Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js';
 import { bindRiskHeatInteractions } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
 import { commandAnswerSentence, riskToUseCase } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
@@ -201,6 +202,7 @@ async function submitClusterDismiss(gi, reason) {
 }
 
 export function bindProofInteractions() {
+  if (!govPage.els.proofRisks) return;
   govPage.els.proofRisks.onclick = async (event) => {
     const why = event.target.closest('[data-why]');
     if (why) { toggleDetail(why.getAttribute('data-why')); return; }
@@ -239,14 +241,7 @@ export function bindOwnerClusterInteractions() {
     const proof = event.target.closest('[data-proof-cluster]');
     if (proof) {
       const rail = document.getElementById('gov-right-rail-proof-mount');
-      if (rail) {
-        rail.setAttribute('data-proof-active', '1');
-        rail.classList.add('gov-proof-rail-highlight');
-        setTimeout(() => {
-          rail.removeAttribute('data-proof-active');
-          rail.classList.remove('gov-proof-rail-highlight');
-        }, 1200);
-      }
+      focusProofRail(rail);
       return;
     }
     const sendBtn = event.target.closest('[data-grouped-send]');
@@ -407,7 +402,7 @@ export function bindSetupDebtActions() {
     const action = chip.getAttribute('data-setup-action');
     if (action === 'set-baseline') {
       openPiBaselineWizard();
-    } else if (action === 'add-ai-key') window.location.href = '/settings#gov-ai-helper';
+    } else if (action === 'add-ai-key') window.location.href = '/settings#integrations';
     else if (action === 'create-work') {
       chip.setAttribute('data-outcome-projects', projectsCsv());
     }
@@ -430,6 +425,9 @@ function handlePortfolioHeatClick(event) {
   if (compareAdd) {
     event.preventDefault();
     event.stopPropagation();
+    const loading = document.getElementById('gov-loading');
+    const main = document.getElementById('main-content');
+    if ((loading && !loading.hidden) || main?.getAttribute('data-gov-brief-state') === 'loading') return;
     const pk = compareAdd.getAttribute('data-compare-add');
     if (pk) govPage.scopeBarApi?.addToCompare?.(pk);
     return;

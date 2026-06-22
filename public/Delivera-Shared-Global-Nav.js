@@ -18,39 +18,47 @@ import {
 const PAGE_DASHBOARD = 'dashboard';
 const PAGE_PI = 'program-increment';
 const PAGE_REPORT = 'report';
+const PAGE_EVIDENCE = 'evidence';
 const PAGE_SPRINTS = 'sprints';
 const PAGE_VALUE = 'value-delivery';
 const PAGE_RISKS = 'risks-blockers';
 const PAGE_LEADERSHIP = 'leadership';
+const PAGE_ACTIONS = 'actions';
 const PAGE_GOVERNANCE = 'governance';
 const PAGE_TEAMS = 'teams';
 const PAGE_SETTINGS = 'settings';
 const PAGE_LOGIN = 'login';
 const MOBILE_BREAKPOINT = 1200;
 const LEADERSHIP_HASH = '#trends';
-/** Direct-to-value primaries: decision brief · sprint · evidence (settings live in top chrome gear). */
-const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_REPORT];
+/** Portfolio command surface primaries. */
+const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_ACTIONS, PAGE_SETTINGS];
 const MORE_NAV_KEYS = [];
 const NAV_HREF_OVERRIDES = {
   [PAGE_RISKS]: '/current-sprint#stuck-card',
   [PAGE_TEAMS]: '/current-sprint',
+  [PAGE_REPORT]: '/actions?tab=proof',
+  [PAGE_EVIDENCE]: '/actions',
 };
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
-  [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_REPORT]: 'Proof',
+  [PAGE_SPRINTS]: 'Squads',
+  [PAGE_REPORT]: 'Actions',
+  [PAGE_EVIDENCE]: 'Actions',
   [PAGE_RISKS]: 'Risks',
-  [PAGE_TEAMS]: 'Teams',
-  [PAGE_LEADERSHIP]: 'Brief',
-  [PAGE_GOVERNANCE]: 'Brief',
+  [PAGE_TEAMS]: 'Squads',
+  [PAGE_LEADERSHIP]: 'Portfolio',
+  [PAGE_GOVERNANCE]: 'Portfolio',
   [PAGE_PI]: 'PI Baseline',
-  [PAGE_VALUE]: 'Outcomes',
+  [PAGE_VALUE]: 'Actions',
   [PAGE_SETTINGS]: 'Settings',
+  [PAGE_ACTIONS]: 'Actions',
 };
 const MOBILE_LABELS = {
-  [PAGE_GOVERNANCE]: 'Brief',
-  [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_REPORT]: 'Proof',
+  [PAGE_GOVERNANCE]: 'Portfolio',
+  [PAGE_SPRINTS]: 'Squads',
+  [PAGE_REPORT]: 'Actions',
+  [PAGE_EVIDENCE]: 'Actions',
+  [PAGE_ACTIONS]: 'Actions',
 };
 
 const NAV_ITEMS = [
@@ -92,9 +100,15 @@ const NAV_ITEMS = [
   },
   {
     key: PAGE_GOVERNANCE,
-    label: 'Governance Brief',
+    label: 'Portfolio',
     href: '/governance',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.6H8zm0 3.2h8v1.6H8zm0-6.4h4v1.6H8z"/></svg>',
+  },
+  {
+    key: PAGE_ACTIONS,
+    label: 'Actions',
+    href: '/actions',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4zm-1 7h2v8H8zm4 0h2v8h-2z"/></svg>',
   },
   {
     key: PAGE_TEAMS,
@@ -107,6 +121,12 @@ const NAV_ITEMS = [
     label: 'Reports',
     href: '/report',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
+  },
+  {
+    key: PAGE_EVIDENCE,
+    label: 'Impact',
+    href: '/impact',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4H5zm0 6h14v4H5zm0 6h14v4H5zM7 6v1h10V6zm0 6v1h10v-1zm0 6v1h10v-1z"/></svg>',
   },
   {
     key: PAGE_SETTINGS,
@@ -129,11 +149,12 @@ function getCurrentPage() {
   if (path === '/program-increment' || path.endsWith('/program-increment') || path === '/roadmap' || path.endsWith('/roadmap')) return PAGE_PI;
   if ((path === '/report' || path.endsWith('/report')) && hash === LEADERSHIP_HASH) return PAGE_REPORT;
   if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
+  if (path === '/evidence' || path.endsWith('/evidence') || path === '/impact' || path.endsWith('/impact') || path === '/actions' || path.endsWith('/actions')) return PAGE_ACTIONS;
   if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
   if (path === '/value-delivery' || path.endsWith('/value-delivery') || path === '/backlog-intake' || path.endsWith('/backlog-intake')) return PAGE_VALUE;
   if (path === '/risks-blockers' || path.endsWith('/risks-blockers')) return PAGE_RISKS;
   if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_GOVERNANCE;
-  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief')) return PAGE_GOVERNANCE;
+  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief') || path === '/portfolio' || path.endsWith('/portfolio')) return PAGE_GOVERNANCE;
   if (path === '/teams' || path.endsWith('/teams')) return PAGE_TEAMS;
   if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
   return PAGE_REPORT;
