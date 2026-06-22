@@ -343,6 +343,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/report,/settings',
   },
+  'tests/Delivera-Settings-MasterPlan-Logcat-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/settings,/governance,/report',
+  },
   'tests/Delivera-Customer-Simplicity-Trust-DirectValue-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'cross-surface-ux',
@@ -388,10 +393,20 @@ export const specMetadata = {
     layer: 'tooling',
     page: '/governance',
   },
+  'tests/Delivera-Governance-AutoHacker-v6-LayoutHiddenFold-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-autohacker-v6',
+    layer: 'tooling',
+    page: '/governance',
+  },
   'tests/Delivera-AutoHacker-Evidence-Pipeline-Validation-Tests.spec.js': {
     journey: 'journey.autohacker',
     layer: 'tooling',
     page: '/governance',
+  },
+  'tests/Delivera-EvidenceOS-API-Contracts.spec.js': {
+    journey: 'journey.evidence-os',
+    layer: 'api-contract',
+    page: '/evidence,/api/evidence-os',
   },
   'tests/Delivera-UX-AllSurfaces-DirectValue-Polish-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
@@ -654,11 +669,25 @@ export const journeyBuckets = {
       (spec) => specMetadata[spec].journey === 'journey.governance-autohacker-v3',
     ),
   },
+  'journey.governance-autohacker-v6': {
+    id: 'journey.governance-autohacker-v6',
+    label: 'Governance AutoHacker v6 - Layout, hidden value, fold, journey gates',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-autohacker-v6',
+    ),
+  },
   'journey.autohacker': {
     id: 'journey.autohacker',
     label: 'AutoHacker - Evidence pipeline validation',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.autohacker',
+    ),
+  },
+  'journey.evidence-os': {
+    id: 'journey.evidence-os',
+    label: 'Evidence OS - contribution, validation, report snapshot',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.evidence-os',
     ),
   },
   'journey.shell-direct-value': {

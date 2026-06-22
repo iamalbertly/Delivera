@@ -11,14 +11,14 @@ export function renderWorkerReceiptRail(brief, feedbackSummary = null, aiContrib
     ? `${COPY.learningReceipt}: ${improvements.slice(0, 3).join(' · ')}`
     : '';
   const aiStrip = renderAiContributionStrip(aiContribution || brief?.meta?.aiContribution || {});
-  const openAttr = auth ? ' open' : '';
+  const openAttr = ' open';
 
     return `
     <details class="gov-receipt-details"${openAttr} role="status" aria-live="polite">
       <summary class="gov-worker-receipt gov-worker-receipt--clickable${auth ? ' gov-worker-receipt--warn' : ''}" data-worker-receipt-open="1" title="Open agent queue">
         <span class="gov-worker-receipt-label">Agent</span>
         <span class="gov-worker-receipt-line">${escapeHtml(line)}</span>
-        ${auth ? '<a href="/settings" class="gov-worker-receipt-link">Reconnect Jira</a>' : ''}
+        ${auth ? '<a href="/settings#integrations" class="gov-worker-receipt-link">Check Jira connection</a>' : ''}
       </summary>
       ${aiStrip}
       ${improveLine ? `<p class="gov-worker-learning-line">${escapeHtml(improveLine)} <button type="button" class="btn btn-link btn-compact" id="gov-open-feedback-lab-inline">${COPY.openLab} →</button></p>` : ''}

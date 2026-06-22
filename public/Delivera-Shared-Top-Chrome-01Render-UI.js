@@ -34,6 +34,7 @@ const PAGE_LOGIN = 'login';
 const PAGE_GOVERNANCE = 'governance';
 const PAGE_SPRINTS = 'sprints';
 const PAGE_REPORT = 'report';
+const PAGE_EVIDENCE = 'evidence';
 const PAGE_SETTINGS = 'settings';
 const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
 const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
@@ -42,6 +43,7 @@ const SURFACE_SWITCHER = [
   { key: PAGE_GOVERNANCE, label: 'Answer', href: '/governance' },
   { key: PAGE_SPRINTS, label: 'Today', href: '/current-sprint' },
   { key: PAGE_REPORT, label: 'Proof', href: '/report' },
+  { key: PAGE_EVIDENCE, label: 'Impact', href: '/impact' },
 ];
 
 function getPathState() {
@@ -56,6 +58,7 @@ export function getCurrentPageForChrome() {
   if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief')) return PAGE_GOVERNANCE;
   if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
   if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
+  if (path === '/evidence' || path.endsWith('/evidence') || path === '/impact' || path.endsWith('/impact')) return PAGE_EVIDENCE;
   if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
   return PAGE_REPORT;
 }
@@ -64,6 +67,7 @@ function searchPlaceholder(page) {
   if (page === PAGE_GOVERNANCE) return 'Search squads…';
   if (page === PAGE_SPRINTS) return 'Jump to issue KEY…';
   if (page === PAGE_REPORT) return 'Filter proof view…';
+  if (page === PAGE_EVIDENCE) return 'Search impact…';
   if (page === PAGE_SETTINGS) return 'Filter settings…';
   return 'Search…';
 }
@@ -202,8 +206,10 @@ function buildTopChromeHTML(current) {
     + `<button type="button" class="app-top-avatar" data-top-action="avatar" aria-label="Account menu" title="Account">DL</button>`
     + '</div></div>'
     + '<div id="app-top-help-popover" class="app-top-help-popover" hidden role="dialog" aria-label="Help">'
-    + '<p><a href="/settings#gov-ai-helper">Governance AI helper</a></p>'
-    + '<p><a href="/settings#jira-activity">Jira activity &amp; reconnect</a></p>'
+    + '<p><a href="/settings#my-workspace">My workspace</a></p>'
+    + '<p><a href="/settings#organization">Organization catalog</a></p>'
+    + '<p><a href="/settings#integrations">Integrations &amp; AI</a></p>'
+    + '<p><a href="/settings#jira-activity">Jira activity</a></p>'
     + '<p><strong>Search:</strong> Brief squads · Sprint issue KEY · Proof projects.</p>'
     + '<p><strong>Tests:</strong> <code>npm run test:journey:ux-core</code> · <code>npm run test:journey:governance</code></p>'
     + '</div>'
@@ -279,6 +285,10 @@ function delegateSearch(page, query) {
         break;
       }
     }
+  }
+  if (page === PAGE_EVIDENCE) {
+    const first = document.querySelector('.evidence-os-timeline-item, .evidence-os-panel');
+    first?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }
 }
 
@@ -431,7 +441,7 @@ function bindTopChromeInteractions(chrome, current) {
         || document.getElementById('gov-right-rail-mount')?.querySelector('button')?.focus?.({ preventScroll: true });
       return;
     }
-    window.location.href = '/settings#gov-ai-helper';
+    window.location.href = '/settings#integrations';
   });
 
   document.addEventListener('click', (e) => {

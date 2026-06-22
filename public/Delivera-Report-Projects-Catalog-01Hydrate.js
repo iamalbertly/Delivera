@@ -1,23 +1,30 @@
 /**
- * Hydrate Report project checkboxes from shared catalog SSOT.
+ * Hydrate Report project checkboxes from shared catalog API.
  */
-import { PROJECT_CATALOG } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
+import {
+  fetchProjectsCatalog,
+  readStoredProjectKeys,
+  isProjectSelected,
+} from './Delivera-Shared-Projects-Catalog-01Hydrate-SSOT.js';
 
 function slugKey(key) {
   return String(key || '').trim().toLowerCase();
 }
 
-export function hydrateReportProjectCheckboxes() {
+export async function hydrateReportProjectCheckboxes() {
   const host = document.querySelector('.filter-group-who');
   if (!host) return;
   const tools = host.querySelector('.project-tools');
   const labelEl = host.querySelector('.project-group-label');
-  let stored = [];
+  let catalog = [];
   try {
-    const raw = localStorage.getItem(PROJECTS_SSOT_KEY);
-    if (raw) stored = raw.split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
-  } catch (_) { /* ignore */ }
+    const data = await fetchProjectsCatalog();
+    catalog = data.projects || [];
+  } catch (_) {
+    return;
+  }
+  const stored = readStoredProjectKeys();
   host.querySelectorAll('.checkbox-label').forEach((el) => el.remove());
   let mount = host.querySelector('#projects-catalog-mount');
   if (!mount) {
@@ -27,17 +34,15 @@ export function hydrateReportProjectCheckboxes() {
   } else {
     mount.innerHTML = '';
   }
-  for (const entry of PROJECT_CATALOG) {
+  for (const entry of catalog) {
     const pk = entry.key;
-    const checked = stored.length
-      ? stored.includes(pk)
-      : Boolean(entry.defaultSelected);
+    const checked = isProjectSelected(pk, stored, entry);
     const row = document.createElement('label');
     row.className = 'checkbox-label';
     row.innerHTML = `
       <input type="checkbox" id="project-${slugKey(pk)}" class="project-checkbox" data-project="${pk}"${checked ? ' checked' : ''} />
       <span class="project-code">${pk}</span>
-      <span class="project-desc">${entry.label}</span>`;
+      <span class="project-desc">${entry.label || pk}</span>`;
     mount.appendChild(row);
   }
   if (labelEl) labelEl.insertAdjacentElement('afterend', mount);

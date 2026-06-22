@@ -7,6 +7,7 @@ import {
   buildActiveFiltersContextLabel,
   renderSidebarContextCard,
 } from './Delivera-Shared-Context-From-Storage.js';
+import { formatProjectsCsvForDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import {
   PROJECTS_SSOT_KEY,
   REPORT_LAST_META_KEY,
@@ -126,7 +127,9 @@ export function updateAppliedFiltersSummary() {
   if (document.getElementById('require-resolved-by-sprint-end')?.checked) options.push('Require resolved by sprint end');
   if (document.getElementById('include-predictability')?.checked) options.push('Include Predictability');
 
-  const projectLabel = projects.length ? projects.join(', ') : 'None';
+  const projectLabel = projects.length
+    ? (formatProjectsCsvForDisplay(projects.join(',')) || projects.join(', '))
+    : 'None';
   const rangeLabel = startVal && endVal ? startVal.slice(0, 10) + ' - ' + endVal.slice(0, 10) : '';
   const compactRangeLabel = startVal && endVal ? buildCompactReportRangeLabel(startVal, endVal) : '';
   const summaryText = (projectLabel !== 'None' && rangeLabel)

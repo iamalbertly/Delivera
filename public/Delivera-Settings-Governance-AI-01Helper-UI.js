@@ -25,18 +25,23 @@ const AI_NEVER_FOR = [
   'Risk truth',
 ];
 
-export function mountGovernanceAiHelper(mount) {
+export function mountGovernanceAiHelper(mount, options = {}) {
   if (!mount) return;
+  const embedded = Boolean(options.embedded);
 
   async function render() {
     const ai = readAiProviderPref();
     const hasKey = Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
     const trust = await resolveAiTrustDisplay({ forceStatus: true });
+    const titleHtml = embedded ? '' : '<h2>Connections</h2>';
+    const leadHtml = embedded
+      ? ''
+      : '<p class="gov-ai-helper-lead">Browser keys stay local. Server AI is configured by your administrator in <code>.env</code>. Jira uses your login session.</p>';
 
     mount.innerHTML = `
-      <section id="gov-ai-helper" class="surface-card gov-ai-helper-card">
-        <h2>Connections</h2>
-        <p class="gov-ai-helper-lead">Browser keys stay local. Server AI is configured by your administrator in <code>.env</code>. Jira uses your login session.</p>
+      <div id="gov-ai-helper" class="gov-ai-helper-card${embedded ? ' gov-ai-helper-card--embedded' : ''}">
+        ${titleHtml}
+        ${leadHtml}
 
         <h3 class="gov-ai-helper-sub">AI reasoning layer</h3>
         ${trust.statusLineHtml}
@@ -73,10 +78,7 @@ export function mountGovernanceAiHelper(mount) {
           <button type="button" class="btn btn-link btn-compact" id="gov-ai-clear">Clear</button>
         </div>
         <p id="gov-ai-test-result" class="gov-ai-helper-result" aria-live="polite"></p>
-
-        <h3 class="gov-ai-helper-sub">Jira</h3>
-        <p class="gov-ai-helper-note">Jira credentials are configured by your administrator in environment variables. If boards look empty, check project access and refresh the Brief.</p>
-      </section>`;
+      </div>`;
 
     mount.querySelector('#gov-ai-save')?.addEventListener('click', () => {
       const provider = mount.querySelector('#gov-ai-provider')?.value || 'built-in';

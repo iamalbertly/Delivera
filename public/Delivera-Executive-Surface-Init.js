@@ -1,6 +1,7 @@
 import { buildContextSegmentList, getContextPieces, renderContextPartList } from './Delivera-Shared-Context-From-Storage.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { formatProjectsCsvForDisplay, ensureProjectCatalogLoaded } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 
 const LAST_ROUTE_KEY = 'delivera.lastRoute.v1';
 const ROUTE_LABELS = {
@@ -68,7 +69,10 @@ const readSelectedProjects = readSharedProjectsCsv;
 
 function buildSurfaceSummary(projects) {
   const pageName = document.body.getAttribute('data-surface-name') || 'Executive surface';
-  const projectLabel = projects.length ? projects.join(', ') : 'No project focus selected';
+  const keys = projects.map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+  const projectLabel = keys.length
+    ? formatProjectsCsvForDisplay(keys.join(',')) || keys.join(', ')
+    : 'No project focus selected';
   return `${pageName} aligned to customer outcomes, realistic decision-making, and faster trusted follow-through. Focus: ${projectLabel}.`;
 }
 
@@ -138,7 +142,7 @@ try {
 } catch (_) {}
 
 function initSurfacePage() {
-  renderSurfaceContext();
+  ensureProjectCatalogLoaded().finally(() => renderSurfaceContext());
   applyContinueCta();
   initQuickNavigation();
   initGlobalOutcomeModal({

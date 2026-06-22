@@ -13,6 +13,7 @@ import { readNotificationSummary } from './Delivera-Shared-Notifications-Dock-Ma
 import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
 import { renderHealthDashboard, buildEvidenceLine } from './Delivera-CurrentSprint-Health-Dashboard.js';
 import { getContextPieces, renderContextSegments } from './Delivera-Shared-Context-From-Storage.js';
+import { formatProjectsCsvForDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import {
   deriveUseCaseFromRiskTags,
   getCurrentSprintPayload,
@@ -202,7 +203,11 @@ function buildHeaderContextStrip(data, freshnessLabel) {
   });
   if (stripHtml) return stripHtml;
 
-  const scopeLabel = [selectedProjects || SPRINT_COPY.allProjects, board.name || SPRINT_COPY.boardFallback, sprint.name || SPRINT_COPY.sprintFallback].filter(Boolean).join(' | ');
+  const scopeLabel = [
+    (selectedProjects ? formatProjectsCsvForDisplay(selectedProjects) || selectedProjects : SPRINT_COPY.allProjects),
+    board.name || SPRINT_COPY.boardFallback,
+    sprint.name || SPRINT_COPY.sprintFallback,
+  ].filter(Boolean).join(' | ');
   return '<div class="header-context-strip">'
     + '<span class="header-context-segment">'
     + '<span class="header-context-segment-label">' + escapeHtml(SPRINT_COPY.segmentLabelContext) + '</span>'

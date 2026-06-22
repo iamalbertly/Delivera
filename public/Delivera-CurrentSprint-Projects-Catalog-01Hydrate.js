@@ -1,8 +1,11 @@
 /**
- * Hydrate Current Sprint project select from shared catalog SSOT.
+ * Hydrate Current Sprint project select from shared catalog API.
  */
-import { catalogProjectKeys } from './Delivera-Shared-ProjectScope-01Picker.js';
-import { PROJECT_CATALOG } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
+import {
+  fetchProjectsCatalog,
+  readStoredProjectKeys,
+  fallbackDefaultKey,
+} from './Delivera-Shared-Projects-Catalog-01Hydrate-SSOT.js';
 import { currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
 
 function readStoredProjectKey() {
@@ -16,17 +19,24 @@ function readStoredProjectKey() {
   }
 }
 
-export function hydrateCurrentSprintProjectsSelect() {
+export async function hydrateCurrentSprintProjectsSelect() {
   const select = document.getElementById('current-sprint-projects');
   if (!select) return;
-  const storedKey = readStoredProjectKey();
-  const fallbackKey = PROJECT_CATALOG.find((p) => p.defaultSelected)?.key || PROJECT_CATALOG[0]?.key || 'MPSA';
-  const selectedKey = storedKey || fallbackKey;
+  let catalog = [];
+  try {
+    const data = await fetchProjectsCatalog();
+    catalog = data.projects || [];
+  } catch (_) {
+    return;
+  }
+  const storedKey = readStoredProjectKeys()[0] || readStoredProjectKey();
+  const selectedKey = storedKey || fallbackDefaultKey(catalog);
   select.innerHTML = '';
-  for (const entry of PROJECT_CATALOG) {
+  for (const entry of catalog) {
     const opt = document.createElement('option');
     opt.value = entry.key;
-    opt.textContent = `${entry.key} - ${entry.label}`;
+    const label = entry.shortLabel || entry.label || entry.key;
+    opt.textContent = `${label} (${entry.key})`;
     if (entry.key === selectedKey) opt.selected = true;
     select.appendChild(opt);
   }

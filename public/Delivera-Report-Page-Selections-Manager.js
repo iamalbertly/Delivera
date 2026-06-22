@@ -106,25 +106,26 @@ function initAdvancedOptionsToggle() {
 }
 
 export function initProjectSelection() {
-  hydrateReportProjectCheckboxes();
-  try {
-    const stored = localStorage.getItem(PROJECTS_SSOT_KEY);
-    if (stored && typeof stored === 'string') {
-      const list = stored.split(',').map(p => (p || '').trim()).filter(Boolean);
-      document.querySelectorAll('.project-checkbox[data-project]').forEach(input => {
-        const project = input.dataset?.project || '';
-        input.checked = list.includes(project);
+  hydrateReportProjectCheckboxes().then(() => {
+    try {
+      const stored = localStorage.getItem(PROJECTS_SSOT_KEY);
+      if (stored && typeof stored === 'string') {
+        const list = stored.split(',').map(p => (p || '').trim()).filter(Boolean);
+        document.querySelectorAll('.project-checkbox[data-project]').forEach(input => {
+          const project = input.dataset?.project || '';
+          input.checked = list.includes(project);
+        });
+      }
+    } catch (_) {}
+    document.querySelectorAll('.project-checkbox[data-project]').forEach(input => {
+      input.addEventListener('change', () => {
+        updatePreviewButtonState(window.__reportPreviewButtonSync);
+        updateProjectSelectionStatus();
       });
-    }
-  } catch (_) {}
-  document.querySelectorAll('.project-checkbox[data-project]').forEach(input => {
-    input.addEventListener('change', () => {
-      updatePreviewButtonState(window.__reportPreviewButtonSync);
-      updateProjectSelectionStatus();
     });
+    updatePreviewButtonState(window.__reportPreviewButtonSync);
+    updateProjectSelectionStatus();
   });
-  updatePreviewButtonState(window.__reportPreviewButtonSync);
-  updateProjectSelectionStatus();
   initProjectSearch();
   initAdvancedOptionsToggle();
 

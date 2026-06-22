@@ -13,6 +13,7 @@ import { COPY, isSimpleMode, simpleStatusLabel } from './Delivera-App-Shared-Del
 import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
+import { seedProjectCatalogCache, summarizeProjectKeys } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import { fetchQuartersListMemo } from './Delivera-Shared-Quarters-List-01Fetch-Memo.js';
 import { mountScopeIntelligenceInline } from './Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js';
 import { closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';
@@ -245,8 +246,8 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
 
   function formatScopeProjects(list) {
     if (!list.length) return '—';
-    if (list.length <= 3) return list.join(' + ');
-    return `${list.slice(0, 2).join(' + ')} +${list.length - 2}`;
+    const summary = summarizeProjectKeys(list, { context: 'chip' });
+    return summary.full;
   }
 
   function render() {
@@ -299,12 +300,13 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
           ${statusChipEl}
           ${scopeToggleBtn}
           <div class="gov-scope-actions" role="group" aria-label="Scope actions">
+            <button type="button" id="gov-scope-save-default" class="btn btn-link btn-compact">Save as my default</button>
             <button type="button" id="gov-copy-answer-scope" class="btn btn-secondary btn-compact">Copy answer</button>
             <button type="button" id="gov-scope-refresh" class="btn btn-primary btn-compact">Refresh</button>
           </div>
         </div>
         <div id="gov-scope-expanded" class="gov-scope-expanded" data-project-select-mode="${selected.length > 1 ? 'compare' : 'exclusive'}" data-scope-expanded-visible="${scopeCollapsed && isMobileScopeViewport() ? '0' : '1'}"${scopeCollapsed && isMobileScopeViewport() ? ' hidden' : ''}>
-          ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, advancedWarnCount, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip, periodWindow })}
+          ${renderExpandedSelectors({ projectKeys, selected, quarters, activeQuarter, advancedLabel: advLabel, advancedWarnCount, boardsWarn, accessByKey, periodWindowChips: periodChips, investmentChip, periodWindow, openAdvancedScope: !isMobileScopeViewport() })}
         </div>
       </div>`;
 
@@ -319,6 +321,10 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       setTimeout(() => chip?.removeAttribute('data-scope-status-active'), 1200);
       const { focusFirstClusterNudge } = await import('./Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js');
       focusFirstClusterNudge();
+    });
+    mount.querySelector('#gov-scope-save-default')?.addEventListener('click', () => {
+      writeProjects(selected);
+      showInlineToast(mount, 'Saved as your default scope.', 'success');
     });
     mount.querySelector('#gov-copy-answer-scope')?.addEventListener('click', () => {
       document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer'));
@@ -356,7 +362,8 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
   async function loadCatalogAccess() {
     try {
       const data = await fetchJson('/api/projects-catalog.json', {}, 'projects-catalog');
-      projectKeys = unionProjectKeys(catalogProjectKeys(), selected, readSharedProjectsCsv());
+      seedProjectCatalogCache(data);
+      projectKeys = unionProjectKeys((data?.projects || []).map((p) => p.key), selected, readSharedProjectsCsv());
       accessByKey = {};
       for (const row of data?.projects || []) {
         if (row?.key) accessByKey[row.key] = row.accessible;

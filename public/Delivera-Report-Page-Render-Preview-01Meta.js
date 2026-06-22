@@ -10,14 +10,13 @@ import { buildCompactReportRangeLabel } from './Delivera-Shared-Context-From-Sto
 import { deriveOutcomeRiskFromPreviewRows } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 import { renderAttentionQueue } from './Delivera-Shared-Attention-Queue.js';
 import { noOutcomesPlainEnglish } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { summarizeProjectKeys } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 
 function summarizeProjectsList(projects) {
   const list = Array.isArray(projects)
-    ? projects.map((p) => String(p || '').trim()).filter(Boolean)
+    ? projects.map((p) => String(p || '').trim().toUpperCase()).filter(Boolean)
     : [];
-  if (list.length === 0) return { label: 'None', full: 'None' };
-  if (list.length <= 2) return { label: list.join(', '), full: list.join(', ') };
-  return { label: `${list[0]}, ${list[1]} +${list.length - 2}`, full: list.join(', ') };
+  return summarizeProjectKeys(list, { context: 'summary' });
 }
 
 function buildGeneratedLabels(generatedAt) {
@@ -139,7 +138,9 @@ export function buildPreviewMetaAndStatus(params) {
     ? '<br><span class="partial-warning">Partial data: this preview hit a time limit. Export shows exactly what you see; try a smaller range for full history.</span>'
     : '';
 
-  const selectedProjectsLabel = chipProjects?.length > 0 ? chipProjects.join(', ') : 'None';
+  const selectedProjectsLabel = chipProjects?.length > 0
+    ? summarizeProjectKeys(chipProjects.map((p) => String(p).trim().toUpperCase()), { context: 'summary' }).full
+    : 'None';
   const projectSummary = summarizeProjectsList(chipProjects);
   const compactRangeLabel = buildCompactReportRangeLabel(chipWindowStart, chipWindowEnd);
   const sampleRow = previewRows && previewRows.length > 0 ? previewRows[0] : null;

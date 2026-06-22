@@ -17,7 +17,7 @@ import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Param
 import { reportState } from './Delivera-Report-Page-State.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { formatRiskCountsRollup } from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
+import { formatProjectsCsvForDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 
 export const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
 const CONTEXT_SEPARATOR = ' | ';
@@ -172,7 +172,10 @@ export function buildContextSegmentList(pieces) {
   const safePieces = pieces || {};
 
   if (safePieces.last) parts.push({ label: 'Last', value: safePieces.last });
-  if (safePieces.projects) parts.push({ label: 'Projects', value: safePieces.projects });
+  if (safePieces.projects) {
+    const displayProjects = formatProjectsCsvForDisplay(safePieces.projects) || safePieces.projects;
+    parts.push({ label: 'Projects', value: displayProjects });
+  }
   if (safePieces.range) parts.push({ label: 'Range', value: safePieces.range });
   if (safePieces.freshness) {
     parts.push({

@@ -63,7 +63,13 @@ import { buildImpactPack, impactPackMonthKey } from '../lib/Delivera-Governance-
 import { clampConfidenceToFreshness } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
 import { readQuarterLabelIndex, rememberQuarterLabel } from '../lib/Delivera-Governance-Quarter-Labels-01Index-SSOT.js';
-import { PROJECT_CATALOG, readCatalogKeys } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
+import { readCatalogKeys } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
+import {
+    loadOrgProjectCatalog,
+    getProjectDisplayMode,
+    defaultSelectedKeysFromLoaded,
+} from '../lib/Delivera-Org-Project-Catalog-01IO-SSOT.js';
+import { validateRuntimeConfiguration } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 import { getAccessMap } from '../lib/Delivera-Shared-Projects-Access-01Index-SSOT.js';
 import { refreshProjectsAccessBatch } from '../lib/Delivera-Shared-Projects-Access-02Refresh-Worker.js';
 import { runWithTimeoutGuard } from '../lib/Delivera-Server-Async-Timeout-Guard.js';
@@ -883,8 +889,10 @@ router.get('/api/default-window', requireAuth, (req, res) => {
 
 router.get('/api/projects-catalog.json', requireAuth, async (req, res) => {
     try {
+        const { projects: catalog, source } = await loadOrgProjectCatalog();
         const accessMap = await getAccessMap();
-        const projects = PROJECT_CATALOG.map((entry) => {
+        const displayMode = getProjectDisplayMode();
+        const projects = catalog.map((entry) => {
             const row = accessMap.get(entry.key);
             return {
                 ...entry,
@@ -892,10 +900,77 @@ router.get('/api/projects-catalog.json', requireAuth, async (req, res) => {
                 lastChecked: row?.lastChecked ?? null,
             };
         });
-        return res.json({ projects, keys: readCatalogKeys() });
+        return res.json({
+            projects,
+            keys: projects.map((p) => p.key),
+            displayMode,
+            catalogSource: source,
+        });
     } catch (err) {
         logger.warn('projects-catalog read failed', { error: err?.message });
         return res.status(500).json({ error: 'Catalog read failed' });
+    }
+});
+
+router.get('/api/settings/runtime.json', requireAuth, (req, res) => {
+    try {
+        const validation = validateRuntimeConfiguration();
+        return res.json({
+            ok: validation.ok,
+            mode: validation.mode,
+            warnings: validation.warnings || [],
+            summary: validation.summary || {},
+        });
+    } catch (err) {
+        logger.warn('settings runtime read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Runtime read failed' });
+    }
+});
+
+router.get('/api/settings/org-summary.json', requireAuth, async (req, res) => {
+    try {
+        const { projects: catalog, source } = await loadOrgProjectCatalog();
+        const accessMap = await getAccessMap();
+        const displayMode = getProjectDisplayMode();
+        const projectsParam = req.query.projects;
+        const selectedProjects = projectsParam != null
+            ? Array.from(new Set(String(projectsParam).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)))
+            : defaultSelectedKeysFromLoaded(catalog);
+        const profile = await resolveEffectiveGovernanceProfile({
+            portfolioKey: selectedProjects.join('+'),
+            project: selectedProjects[0] || '',
+            userId: req.session?.user || null,
+        });
+        const accessSummary = catalog.map((entry) => {
+            const row = accessMap.get(entry.key);
+            return {
+                key: entry.key,
+                label: entry.label,
+                shortLabel: entry.shortLabel,
+                accessible: row?.accessible ?? null,
+                lastChecked: row?.lastChecked ?? null,
+            };
+        });
+        const smPoFieldIds = {
+            scrumMaster: String(process.env.GOV_SM_FIELD_ID || '').trim() || null,
+            productOwner: String(process.env.GOV_PO_FIELD_ID || '').trim() || null,
+        };
+        return res.json({
+            catalog: catalog.map((e) => ({ ...e })),
+            catalogSource: source,
+            displayMode,
+            defaultSelected: defaultSelectedKeysFromLoaded(catalog),
+            governanceProfile: {
+                thresholds: profile.thresholds,
+                suppressedRiskTypes: profile.suppressedRiskTypes,
+                stakeholderAliasCount: Object.keys(profile.stakeholderAliases || {}).length,
+            },
+            accessSummary,
+            smPoFieldIds,
+        });
+    } catch (err) {
+        logger.warn('settings org-summary read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Org summary read failed' });
     }
 });
 
