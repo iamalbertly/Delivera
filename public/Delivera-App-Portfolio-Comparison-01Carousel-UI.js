@@ -20,7 +20,7 @@ function renderCard(card = {}) {
         <div><dt>Commitments</dt><dd>${Number(m.commitments) || 0}</dd></div>
       </dl>
       <p class="portfolio-squad-explanation" data-squad-explanation="${escapeHtml(card.projectKey)}">${escapeHtml(card.explanation || '')}</p>
-      <button type="button" class="btn btn-primary btn-compact" data-squad-action="${escapeHtml(card.action?.id || 'review')}">${escapeHtml(card.action?.label || 'Review scope')}</button>
+      <button type="button" class="btn btn-primary btn-compact portfolio-squad-action portfolio-squad-action--${statusClass}" data-squad-action="${escapeHtml(card.action?.id || 'review')}">${escapeHtml(card.action?.label || 'Review scope')} →</button>
       <a class="portfolio-squad-view" href="${escapeHtml(card.viewSquadHref || '#')}">View squad</a>
     </article>`;
 }
@@ -51,7 +51,7 @@ export function renderPortfolioCarousel(comparison = {}) {
     </section>`;
 }
 
-export function bindPortfolioCarousel(root) {
+export function bindPortfolioCarousel(root, { onSelectSquad, onSquadAction } = {}) {
   if (!root) return;
   const track = root.querySelector('[data-carousel-track]');
   const dots = root.querySelector('[data-carousel-dots]');
@@ -94,4 +94,18 @@ export function bindPortfolioCarousel(root) {
     ev.preventDefault();
     track.scrollLeft += ev.deltaY;
   }, { passive: false });
+  track.addEventListener('click', (ev) => {
+    const card = ev.target.closest('.portfolio-squad-card[data-squad-key]');
+    if (!card || ev.target.closest('button, a')) return;
+    onSelectSquad?.(card.getAttribute('data-squad-key'));
+  });
+  root.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-squad-action]');
+    if (!btn) return;
+    ev.preventDefault();
+    const card = btn.closest('[data-squad-key]');
+    const key = card?.getAttribute('data-squad-key');
+    const action = btn.getAttribute('data-squad-action');
+    onSquadAction?.(key, action, card);
+  });
 }

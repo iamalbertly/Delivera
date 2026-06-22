@@ -2,6 +2,7 @@
  * Governance Brief page controller — thin orchestrator.
  */
 import { mountGovernanceScopeBar } from './Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js';
+import { mountPortfolioScopeBar } from './Delivera-App-Portfolio-ScopeBar-01Render-UI.js';
 import { openScopeIntelligenceDrawer, scopeCapsuleCounts } from './Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js';
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
@@ -44,8 +45,9 @@ function init() {
   govPage.els.baseline = $('gov-baseline');
   govPage.els.scorecard = $('gov-scorecard');
   govPage.els.error = $('gov-error');
-  govPage.scopeBarApi = mountGovernanceScopeBar({
-    mount: $('portfolio-scope-bar-mount') || $('gov-scope-bar-mount'),
+  const scopeMount = $('portfolio-scope-bar-mount') || $('gov-scope-bar-mount');
+  const scopeBarOpts = {
+    mount: scopeMount,
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),
     onScopeChange: () => {
       invalidateBriefCacheEntry(
@@ -56,12 +58,19 @@ function init() {
       setLoadBriefForce(true);
       loadBrief({ force: true });
     },
-    onOpenDrawer: () => {
-      if (!govPage.lastBrief) return;
-      openScopeIntelligenceDrawer(govPage.lastBrief);
-    },
-    getScopeCounts: () => scopeCapsuleCounts(govPage.lastBrief) || {},
-  });
+  };
+  if ($('portfolio-scope-bar-mount')) {
+    govPage.scopeBarApi = mountPortfolioScopeBar(scopeBarOpts);
+  } else {
+    govPage.scopeBarApi = mountGovernanceScopeBar({
+      ...scopeBarOpts,
+      onOpenDrawer: () => {
+        if (!govPage.lastBrief) return;
+        openScopeIntelligenceDrawer(govPage.lastBrief);
+      },
+      getScopeCounts: () => scopeCapsuleCounts(govPage.lastBrief) || {},
+    });
+  }
   govPage.inboxApi = mountGovernanceInbox({
     mount: $('gov-queue-mount'),
     getProjectsCsv: projectsCsv,

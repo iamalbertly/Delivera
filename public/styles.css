@@ -18499,10 +18499,313 @@ body.governance-page .gov-partial-warn { font-size: 0.78rem; color: #b45309; }
   }
 }
 
+.portfolio-page .portfolio-scope-bar {
+  position: sticky;
+  top: var(--sticky-offset, 64px);
+  z-index: 20;
+  background: var(--surface-page, #f8f9fb);
+  padding: 0.5rem 0 0.75rem;
+  border-bottom: 1px solid var(--border-subtle, #e8e8ec);
+}
+
+.portfolio-scope-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.portfolio-scope-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.portfolio-scope-field-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.portfolio-scope-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.15rem 0.5rem 0.15rem 0.35rem;
+}
+
+.portfolio-scope-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex-shrink: 0;
+}
+
+.portfolio-scope-status-dot--blocked,
+.portfolio-scope-status-dot--at-risk {
+  background: var(--brand-danger, #c41e3a);
+}
+
+.portfolio-scope-status-dot--onTrack,
+.portfolio-scope-status-dot--improving {
+  background: #16a34a;
+}
+
+.portfolio-scope-select,
+.portfolio-scope-add {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.25rem;
+  min-width: 7rem;
+  max-width: 14rem;
+}
+
+.portfolio-scope-field--compare {
+  flex: 1 1 220px;
+}
+
+.portfolio-scope-compare-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.35rem 0.5rem;
+  min-height: 2.25rem;
+}
+
+.portfolio-scope-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.82rem;
+}
+
+.portfolio-scope-tag-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted, #64748b);
+  padding: 0;
+}
+
+.portfolio-scope-add {
+  min-width: 6.5rem;
+  color: var(--text-secondary, #475569);
+}
+
+.portfolio-scope-refresh {
+  margin-left: auto;
+}
+
 .portfolio-signal-headline {
-  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
-  line-height: 1.2;
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+  line-height: 1.25;
   margin: 0 0 0.5rem;
+  max-width: 36ch;
+}
+
+.portfolio-signal-sparkle {
+  color: var(--brand-danger, #c41e3a);
+  margin-right: 0.25rem;
+}
+
+.portfolio-signal-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.portfolio-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+}
+
+.portfolio-gauge-visual {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+
+.portfolio-gauge-svg {
+  width: 88px;
+  height: 88px;
+  transform: rotate(-90deg);
+}
+
+.portfolio-gauge-track {
+  fill: none;
+  stroke: #f1f5f9;
+  stroke-width: 8;
+}
+
+.portfolio-gauge-fill {
+  fill: none;
+  stroke: var(--brand-danger, #c41e3a);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.portfolio-gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolio-gauge-value {
+  font-size: 1.15rem;
+  color: var(--brand-danger, #c41e3a);
+}
+
+.portfolio-gauge-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.portfolio-gauge-peer {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+}
+
+.portfolio-trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.portfolio-trust-icon {
+  color: var(--brand-danger, #c41e3a);
+  font-size: 0.65rem;
+}
+
+.portfolio-squad-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+}
+
+.portfolio-squad-status--at-risk {
+  color: var(--brand-danger, #c41e3a);
+  background: #fff1f2;
+}
+
+.portfolio-squad-status--watch {
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.portfolio-squad-status--improving {
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.portfolio-squad-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.portfolio-squad-card-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.portfolio-squad-view {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.portfolio-why-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.portfolio-why-item {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.portfolio-why-icon {
+  color: var(--brand-danger, #c41e3a);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.portfolio-decision-confirm {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 1rem;
+}
+
+.actions-case-detail {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle, #e8e8ec);
+  font-size: 0.9rem;
+}
+
+.actions-case-card.is-expanded {
+  border-color: var(--brand-danger, #c41e3a);
+}
+
+@media (max-width: 768px) {
+  .portfolio-scope-filters {
+    gap: 0.5rem;
+  }
+  .portfolio-scope-field--compare {
+    flex-basis: 100%;
+  }
+  .portfolio-scope-refresh {
+    width: 100%;
+    margin-left: 0;
+  }
+  .portfolio-signal-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+  .portfolio-gauge-visual {
+    width: 72px;
+    height: 72px;
+  }
+  .portfolio-gauge-svg {
+    width: 72px;
+    height: 72px;
+  }
+  .portfolio-gauge-value {
+    font-size: 0.95rem;
+  }
+  .portfolio-why {
+    display: none;
+  }
 }
 
 .portfolio-signal-summary {
@@ -18518,25 +18821,7 @@ body.governance-page .gov-partial-warn { font-size: 0.78rem; color: #b45309; }
   margin-bottom: 1rem;
 }
 
-.portfolio-metric {
-  border: 1px solid var(--border-subtle, #e8e8ec);
-  border-radius: 12px;
-  padding: 0.75rem;
-  text-align: center;
-}
-
-.portfolio-metric-value {
-  display: block;
-  font-size: 1.5rem;
-  color: var(--brand-danger, #c41e3a);
-}
-
-.portfolio-metric-peer {
-  font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
-}
-
-.portfolio-signal-trust {
+.portfolio-signal-summary {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
@@ -18682,47 +18967,6 @@ body.governance-page .gov-partial-warn { font-size: 0.78rem; color: #b45309; }
   padding: 0.85rem 1rem;
 }
 
-.portfolio-why-collapsible {
-  border: none;
-  padding: 0;
-  background: transparent;
-}
-
-.portfolio-why-collapsible summary {
-  cursor: pointer;
-  font-weight: 600;
-  list-style: none;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--border-subtle, #e8e8ec);
-  border-radius: 14px;
-  background: var(--surface-elevated, #fff);
-}
-
-.portfolio-why-collapsible summary::-webkit-details-marker {
-  display: none;
-}
-
-@media (min-width: 1025px) {
-  .portfolio-why-collapsible {
-    border: 1px solid var(--border-subtle, #e8e8ec);
-    border-radius: 14px;
-    background: var(--surface-elevated, #fff);
-    padding: 1rem;
-  }
-  .portfolio-why-collapsible summary {
-    display: none;
-  }
-  .portfolio-why-collapsible[open] .portfolio-why-list,
-  .portfolio-why-collapsible .portfolio-why-list {
-    display: flex;
-  }
-}
-
-.portfolio-why-collapsible .portfolio-why-list {
-  padding: 0 1rem 1rem;
-  margin: 0;
-}
-
 .portfolio-why-list {
   list-style: none;
   padding: 0;
@@ -18759,11 +19003,6 @@ body.governance-page .gov-partial-warn { font-size: 0.78rem; color: #b45309; }
 .portfolio-decision-option.is-selected {
   border-color: #f5c6cb;
   background: #fff8f8;
-}
-
-.portfolio-decision-confirm {
-  width: 100%;
-  margin-bottom: 0.5rem;
 }
 
 .portfolio-decision-proof-link {

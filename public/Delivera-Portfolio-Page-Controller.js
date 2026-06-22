@@ -136,7 +136,24 @@ export async function refreshPortfolio() {
   if (signalMount) signalMount.innerHTML = renderPortfolioSignal(decision);
   if (carouselMount) {
     carouselMount.innerHTML = renderPortfolioCarousel(comparison);
-    bindPortfolioCarousel(carouselMount);
+    bindPortfolioCarousel(carouselMount, {
+      onSelectSquad: async (projectKey) => {
+        if (!projectKey) return;
+        govPage.scopeBarApi?.setAnchor?.(projectKey);
+        govPage._portfolioBriefToken = null;
+        await refreshPortfolio();
+      },
+      onSquadAction: (projectKey, actionId) => {
+        if (!projectKey) return;
+        if (actionId === 'review-scope' || actionId === 'review') {
+          openPortfolioActionsDrawer({ anchorProject: projectKey, periodKey: decision.periodKey }, cases);
+          return;
+        }
+        if (actionId === 'scale' || actionId === 'continue-improve') {
+          window.location.href = `/current-sprint?projects=${encodeURIComponent(projectKey)}`;
+        }
+      },
+    });
   }
   if (whyMount) whyMount.innerHTML = renderWhyThisMatters(decision.drivers);
   if (decisionMount) {

@@ -104,9 +104,47 @@ async function paint(tab = activeTab()) {
   }
 }
 
+async function openCaseReview(caseId) {
+  if (!caseId) return;
+  const res = await fetch(`/api/governance/interventions/${encodeURIComponent(caseId)}`);
+  if (!res.ok) return;
+  const data = await res.json();
+  const row = data.case || data;
+  const list = document.getElementById('actions-list');
+  const card = document.getElementById(`case-${caseId}`);
+  if (!card || !list) return;
+  let panel = card.querySelector('.actions-case-detail');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.className = 'actions-case-detail';
+    card.appendChild(panel);
+  }
+  const issues = (row.issueKeys || []).join(', ');
+  panel.innerHTML = `
+    <p><strong>State:</strong> ${escapeHtml(row.state || 'open')}</p>
+    <p><strong>Issues:</strong> ${escapeHtml(issues || '—')}</p>
+    <p>${escapeHtml(row.primaryAction?.action || 'Review facts and approve the next nudge when ready.')}</p>
+    <a class="btn btn-primary btn-compact" href="/governance">Open portfolio context</a>`;
+  panel.hidden = false;
+  card.classList.add('is-expanded');
+  card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
 async function init() {
   document.title = 'Actions | Delivera';
   await paint();
+  const reviewId = readQuery().get('caseId');
+  if (readQuery().get('review') === '1' && reviewId) await openCaseReview(reviewId);
+  document.getElementById('actions-list')?.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-open-case]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-open-case');
+    const url = new URL(window.location.href);
+    url.searchParams.set('caseId', id);
+    url.searchParams.set('review', '1');
+    window.history.replaceState({}, '', url);
+    await openCaseReview(id);
+  });
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

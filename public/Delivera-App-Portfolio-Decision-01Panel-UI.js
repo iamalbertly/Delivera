@@ -1,18 +1,27 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
+const DRIVER_ICONS = {
+  'promised-impact': '◎',
+  'capacity-drag': '⏱',
+  'proof-gap': '◇',
+};
+
 export function renderWhyThisMatters(drivers = []) {
   const rows = (drivers || []).slice(0, 3);
   return `
-    <details class="portfolio-why portfolio-why-collapsible" aria-label="Why this matters">
-      <summary>Why this matters</summary>
+    <section class="portfolio-why" aria-label="Why this matters">
+      <h2 class="portfolio-why-title">Why this matters</h2>
       <ul class="portfolio-why-list">
         ${rows.map((d) => `
           <li class="portfolio-why-item" title="${escapeHtml(d.detail || '')}">
-            <strong>${escapeHtml(d.title || '')}</strong>
-            <span>${escapeHtml(d.summary || '')}</span>
+            <span class="portfolio-why-icon" aria-hidden="true">${DRIVER_ICONS[d.id] || '•'}</span>
+            <div class="portfolio-why-copy">
+              <strong>${escapeHtml(d.title || '')}</strong>
+              <span>${escapeHtml(d.summary || '')}</span>
+            </div>
           </li>`).join('')}
       </ul>
-    </details>`;
+    </section>`;
 }
 
 export function renderPortfolioDecisionPanel(decision = {}, { selectedId = '' } = {}) {
@@ -33,7 +42,7 @@ export function renderPortfolioDecisionPanel(decision = {}, { selectedId = '' } 
           </label>`).join('')}
       </fieldset>
       <button type="button" class="btn btn-primary portfolio-decision-confirm" data-portfolio-action="confirm-decision">Confirm decision</button>
-      <a class="portfolio-decision-proof-link" href="/actions?tab=proof" data-portfolio-action="open-proof">Open proof in Actions</a>
+      <a class="portfolio-decision-proof-link" href="/actions?tab=proof">Open proof in Actions ↗</a>
     </section>`;
 }
 

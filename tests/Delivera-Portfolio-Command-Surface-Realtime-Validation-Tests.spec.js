@@ -112,8 +112,8 @@ async function mockPortfolioPage(page) {
           },
           comparison: {
             cards: [
-              { projectKey: 'SD', squadName: 'DMS Squad', selected: true, status: 'At risk', statusClass: 'at-risk', metrics: { delivered: 27, offPlanLoad: 42, proofConfidence: 38, commitments: 5 }, explanation: 'DMS: High off-plan work and weak proof are driving low delivery.', action: { label: 'Review scope' } },
-              { projectKey: 'MAS', squadName: 'Mini Apps Squad', selected: false, status: 'Watch', statusClass: 'watch', metrics: { delivered: 61, offPlanLoad: 21, proofConfidence: 62, commitments: 6 }, explanation: 'MAS: Delivery is moderate, but evidence quality still limits confidence.', action: { label: 'Continue & improve' } },
+              { projectKey: 'SD', squadName: 'DMS Squad', selected: true, status: 'At risk', statusClass: 'at-risk', metrics: { delivered: 27, offPlanLoad: 42, proofConfidence: 38, commitments: 5 }, explanation: 'DMS: High off-plan work and weak proof are driving low delivery.', action: { id: 'review-scope', label: 'Review scope' } },
+              { projectKey: 'MAS', squadName: 'Mini Apps Squad', selected: false, status: 'Watch', statusClass: 'watch', metrics: { delivered: 61, offPlanLoad: 21, proofConfidence: 62, commitments: 6 }, explanation: 'MAS: Delivery is moderate, but evidence quality still limits confidence.', action: { id: 'continue-improve', label: 'Continue & improve' } },
             ],
             actionsStrip: { nudgesReady: 1, pending: 0, proofLevel: 'Medium' },
           },
@@ -160,8 +160,8 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-portfolio-signal]', { timeout: 120000 });
-    await expect(page.locator('[data-portfolio-signal]')).toContainText(/portfolio signal/i);
-    await expect(page.locator('.portfolio-metric')).toHaveCount(3);
+    await expect(page.locator('[data-portfolio-signal]')).toContainText(/AI portfolio signal/i);
+    await expect(page.locator('.portfolio-gauge')).toHaveCount(3);
     await expect(page.locator('[data-trust-live-cases]')).toContainText(/live case/i);
     await expect(page.locator('[data-portfolio-action="review-actions"]')).toBeVisible();
     assertTelemetryClean(t);
@@ -266,15 +266,16 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('10 portfolio scope bar uses Selected/Compare labels and hides copy answer', async ({ page }) => {
+  test('10 portfolio scope filters show Selected Compare Timeframe Baseline', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-portfolio-signal]', { timeout: 120000 });
-    const capsule = page.locator('.portfolio-scope-bar .gov-scope-capsule-text');
-    await expect(capsule).toContainText(/Selected:/i);
-    await expect(capsule).toContainText(/Compare:/i);
+    await page.waitForSelector('[data-portfolio-scope-filters]', { timeout: 120000 });
+    await expect(page.locator('[data-portfolio-scope-filters]')).toContainText(/Selected/i);
+    await expect(page.locator('[data-portfolio-scope-filters]')).toContainText(/Compare with/i);
+    await expect(page.locator('#portfolio-scope-quarter')).toBeVisible();
+    await expect(page.locator('#portfolio-scope-baseline')).toBeVisible();
     await expect(page.locator('#gov-copy-answer-scope')).toHaveCount(0);
     assertTelemetryClean(t);
   });
@@ -325,6 +326,42 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await page.goto('/actions?tab=ready');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.actions-tab.is-active .actions-tab-count')).toHaveText('1');
+    assertTelemetryClean(t);
+  });
+
+  test('14 decision panel shows mockup trio Keep funding Review investment Move capacity', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await mockPortfolioPage(page);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.waitForSelector('#portfolio-decision', { timeout: 120000 });
+    await expect(page.locator('input[value="keep-funding"]')).toBeVisible();
+    await expect(page.locator('input[value="review-investment"]')).toBeVisible();
+    await expect(page.locator('input[value="move-capacity"]')).toBeVisible();
+    assertTelemetryClean(t);
+  });
+
+  test('15 squad card action navigates to actions for review scope', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await mockPortfolioPage(page);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.waitForSelector('[data-squad-action="review-scope"]', { timeout: 120000 });
+    const btn = page.locator('[data-squad-action="review-scope"]').first();
+    await btn.scrollIntoViewIfNeeded();
+    await btn.click();
+    await expect(page).toHaveURL(/\/actions/);
+    assertTelemetryClean(t);
+  });
+
+  test('16 clicking squad card updates selected scope control', async ({ page }) => {
+    const t = captureBrowserTelemetry(page);
+    await mockPortfolioPage(page);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await page.waitForSelector('[data-squad-key="MAS"]', { timeout: 120000 });
+    await page.locator('[data-squad-key="MAS"]').click({ position: { x: 20, y: 20 } });
+    await expect(page.locator('#portfolio-scope-selected')).toHaveValue('MAS');
     assertTelemetryClean(t);
   });
 });

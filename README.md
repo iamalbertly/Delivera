@@ -14,7 +14,7 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 | `/report` | **Proof** | Evidence and drill-down (unchanged route; top chrome links here from legacy bookmarks) |
 | `/settings` | **Settings** | My workspace prefs, read-only org catalog, integrations health, Jira activity |
 
-**Portfolio command surface (`/governance`):** scope capsule shows **Selected / Compare / timeframe / PI baseline** (collapsed by default — tap **Change scope**). Above-fold order on mobile: signal → decision rail → compare carousel. **Review actions →** deep-links to `/actions` with project context. Legacy brief mounts stay hidden; data loaders still seed intervention cases. Gate: `npm run test:journey:portfolio`.
+**Portfolio command surface (`/governance`):** mockup-aligned scope filters (**Selected / Compare with / Timeframe / Baseline**), circular metric gauges, squad carousel with working **Review scope →** and card-select anchor, decision trio (Keep funding · Review investment · Move capacity), and **Review actions →** deep-link to `/actions`. SSOT: `Delivera-App-Portfolio-ScopeBar-01Render-UI.js`, `Delivera-Governance-PortfolioDecision-01SSOT.js`. Gate: `npm run test:journey:portfolio` (16 journey-value steps).
 
 **Actions (`/actions`):** tab badges show ready-case counts; `?caseId=` highlights the matching card. `/evidence` and `/impact` redirect here. `/portfolio` redirects to `/governance`.
 
