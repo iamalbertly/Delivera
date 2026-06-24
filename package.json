@@ -31,6 +31,7 @@
     "evidence-os:db:up": "docker compose -f docker-compose.evidence-os.yml up -d",
     "evidence-os:db:migrate": "node scripts/Delivera-EvidenceOS-Db-Migrate.js",
     "test:all": "node scripts/Delivera-Test-Orchestration-Runner.js",
+    "test:all:priority": "node scripts/Delivera-Test-Orchestration-Runner.js --priority",
     "test:all:stop": "node scripts/Delivera-Test-Orchestration-Stop.js",
     "test:pw": "playwright test --max-failures=1 --reporter=list",
     "test:focused": "npm run build:css && node scripts/Delivera-Dev-Port-Guard-01Check.js && npx playwright test --grep @focused --max-failures=1 --workers=1 --reporter=list",

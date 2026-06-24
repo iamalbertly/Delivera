@@ -4,6 +4,11 @@ import express from 'express';
 import { requireAuth } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
+import {
+  CACHE_NS,
+  deriveCacheTtlMs,
+  governanceBriefCacheKey,
+} from '../lib/Delivera-Cache-AgeTier-01TTL-SSOT.js';
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
@@ -1421,8 +1426,7 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
 
 // ─── Governance brief surface ──────────────────────────────────────────────────
 
-const GOVERNANCE_BRIEF_TTL_MS = 30 * 60 * 1000; // 30 min: bounded Jira calls per run
-const GOVERNANCE_NS = 'governanceBrief';
+const GOVERNANCE_NS = CACHE_NS.GOVERNANCE_BRIEF;
 
 function parseGovernanceProjects(req) {
     const raw = req.query.projects;
@@ -1444,7 +1448,7 @@ function applyCachedFreshness(brief) {
 }
 
 async function getCachedGovernanceBrief(projects) {
-    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    const cacheKey = governanceBriefCacheKey({ projects, periodWindow: '28d', includeEvidence: true, includePOReadiness: true });
     const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
     const cachedBrief = cached?.value || cached;
     if (!cachedBrief) return null;
@@ -1453,7 +1457,7 @@ async function getCachedGovernanceBrief(projects) {
 
 async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true, includePOReadiness = true }) {
     const periodWindow = String(req.query?.periodWindow || '28d').toLowerCase();
-    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e${includeEvidence ? 1 : 0}:p${includePOReadiness ? 1 : 0}:w${periodWindow}`;
+    const cacheKey = governanceBriefCacheKey({ projects, periodWindow, includeEvidence, includePOReadiness });
     const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
     const cachedBrief = cached?.value || cached;
     if (cachedBrief) return { brief: applyCachedFreshness(cachedBrief), cached: true };
@@ -1481,7 +1485,11 @@ async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true
         period: { vodacomQuarter: null, sprintNames: [], periodWindow },
         cache, providerConfig, includeEvidence, includePOReadiness, baseline, profileOverrides,
     });
-    await cache.set(cacheKey, brief, GOVERNANCE_BRIEF_TTL_MS, { namespace: GOVERNANCE_NS });
+    const { ttlMs } = deriveCacheTtlMs({
+        generatedAt: brief?.generatedAt,
+        periodEnd: brief?.period?.end || brief?.meta?.periodEnd,
+    });
+    await cache.set(cacheKey, brief, ttlMs, { namespace: GOVERNANCE_NS });
     const quarterLabel = brief?.period?.vodacomQuarter;
     if (quarterLabel) {
         void rememberQuarterLabel(quarterLabel, projects).catch((err) => {
@@ -1498,7 +1506,7 @@ async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true
 }
 
 async function serveStaleBriefOrError(res, projects, err) {
-    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    const cacheKey = governanceBriefCacheKey({ projects, periodWindow: '28d', includeEvidence: true, includePOReadiness: true });
     try {
         const staleEntry = await cache.getWithStaleFallback(cacheKey);
         if (staleEntry) {
@@ -1521,7 +1529,8 @@ router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
     const forceRefresh = String(req.query.refresh || '').trim() === '1';
     try {
         if (forceRefresh) {
-            const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+            const periodWindow = String(req.query?.periodWindow || '28d').toLowerCase();
+            const cacheKey = governanceBriefCacheKey({ projects, periodWindow, includeEvidence: true, includePOReadiness: true });
             await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
         }
         const { brief } = await getOrBuildGovernanceBrief({ projects, req });

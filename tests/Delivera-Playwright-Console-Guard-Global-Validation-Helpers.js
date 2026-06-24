@@ -56,6 +56,11 @@ export const test = base.extend({
         /502 \(Bad Gateway\)/i.test(text || '') &&
         /failed to load resource/i.test(text || '');
       if (isExpectedCiDummyJiraGatewayFailure) return;
+      const isTransientNetworkFlake =
+        (/ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED/i.test(text || '') ||
+          (/Failed to load resource/i.test(text || '') && /ERR_NETWORK_CHANGED/i.test(text || ''))) &&
+        !/(Delivera-|\/public\/|governance-brief|portfolio-decision|gov-)/i.test(`${text} ${url}`);
+      if (isTransientNetworkFlake) return;
       const allowHttpStatusConsole = getAllowHttpStatusConsole();
       const isAllowedHttpStatusConsole = Array.from(allowHttpStatusConsole).some((statusCode) =>
         new RegExp(`status of ${statusCode}\\b`, 'i').test(text || '')

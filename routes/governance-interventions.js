@@ -21,8 +21,15 @@ import { recordImprovementEvent } from '../lib/Delivera-Improvement-Events-01Sto
 import { appendInboxItem } from '../lib/Delivera-Governance-Worker-02Jobs-IO.js';
 import { buildPortfolioDecision } from '../lib/Delivera-Governance-PortfolioDecision-01SSOT.js';
 import { buildPortfolioComparisonCards } from '../lib/Delivera-Governance-PortfolioComparison-01SSOT.js';
+import { cache } from '../lib/cache.js';
+import {
+  CACHE_NS,
+  deriveCacheTtlMs,
+  portfolioDecisionCacheKey,
+} from '../lib/Delivera-Cache-AgeTier-01TTL-SSOT.js';
 
 const router = express.Router();
+const PORTFOLIO_DECISION_NS = CACHE_NS.PORTFOLIO_DECISION;
 
 export function riskListFromBrief(body = {}) {
   const brief = body.brief || {};
@@ -107,6 +114,115 @@ async function compactCasesForScope({ project = '', periodKey = '', status = 'op
   });
 }
 
+async function invalidatePortfolioDecisionCache({ anchor = '', periodKey = '' } = {}) {
+  const anchorKey = normalizeProjectKey(anchor);
+  if (!anchorKey) return;
+  const prefix = `${PORTFOLIO_DECISION_NS}:${anchorKey}:`;
+  await cache.invalidateByPrefix(prefix);
+}
+
+async function invalidatePortfolioDecisionForCase(row = {}) {
+  await invalidatePortfolioDecisionCache({
+    anchor: row.project || row.anchorProject,
+    periodKey: row.periodKey,
+  });
+}
+
+function buildPortfolioDecisionPayload({
+  brief,
+  anchor,
+  compareRaw,
+  cases,
+  baselineMode,
+  baselineMissing,
+  partialSquads = 0,
+  wordingSource,
+  claimsVerified,
+}) {
+  const decision = buildPortfolioDecision({
+    brief,
+    anchorProject: anchor || brief.projects?.[0],
+    compareProjects: compareRaw.length ? compareRaw : (brief.projects || []).filter((p) => p !== anchor),
+    cases,
+    baselineMissing,
+    baselineMode,
+    wordingSource: wordingSource || (brief.meta?._aiProviderFallback ? 'template' : 'verified'),
+    claimsVerified: claimsVerified !== false,
+    partialSquads,
+  });
+  const comparison = buildPortfolioComparisonCards({
+    decision,
+    brief,
+    insights: decision.insights || brief.squadInsights || [],
+    cases,
+  });
+  return { decision, comparison, cases };
+}
+
+async function getOrBuildPortfolioDecision({
+  anchor,
+  compareRaw,
+  periodKey,
+  baselineMode,
+  brief,
+  baselineMissing,
+  partialSquads,
+  wordingSource,
+  claimsVerified,
+  forceRefresh = false,
+}) {
+  const cases = await compactCasesForScope({ project: anchor, status: 'open', periodKey, limit: 20 });
+  const briefId = String(brief?.meta?.briefId || brief?.generatedAt || '').slice(0, 64);
+  const cacheKey = portfolioDecisionCacheKey({
+    anchor,
+    compare: compareRaw,
+    periodKey,
+    briefId,
+    cases,
+    baselineMode,
+  });
+
+  if (!forceRefresh) {
+    const cached = await cache.get(cacheKey, { namespace: PORTFOLIO_DECISION_NS });
+    const payload = cached?.value || cached;
+    if (payload?.decision) {
+      const cachedAt = cached?.cachedAt || payload?.meta?.cachedAt || new Date().toISOString();
+      return {
+        ...payload,
+        meta: {
+          ...(payload.meta || {}),
+          cached: true,
+          cachedAt,
+          cacheKey,
+          cacheTtlMs: payload.meta?.cacheTtlMs,
+        },
+      };
+    }
+  } else {
+    await cache.delete(cacheKey, { namespace: PORTFOLIO_DECISION_NS });
+  }
+
+  const built = buildPortfolioDecisionPayload({
+    brief,
+    anchor,
+    compareRaw,
+    cases,
+    baselineMode,
+    baselineMissing,
+    partialSquads,
+    wordingSource,
+    claimsVerified,
+  });
+  const { ttlMs } = deriveCacheTtlMs({
+    generatedAt: brief?.generatedAt,
+    periodEnd: brief?.period?.end || brief?.meta?.periodEnd,
+  });
+  const meta = { cached: false, cacheTtlMs: ttlMs, cacheKey };
+  const envelope = { ok: true, ...built, meta };
+  await cache.set(cacheKey, envelope, ttlMs, { namespace: PORTFOLIO_DECISION_NS });
+  return envelope;
+}
+
 router.post('/api/governance/portfolio-decision.json', requireAuth, async (req, res, next) => {
   try {
     const body = req.body || {};
@@ -116,26 +232,22 @@ router.post('/api/governance/portfolio-decision.json', requireAuth, async (req, 
     const periodKey = String(body.periodKey || body.quarter || body.brief?.meta?.quarter || '').trim();
     const baselineMode = String(body.baseline || body.baselineMode || 'pi-baseline').trim();
     const brief = body.brief || { projects: [anchor, ...compareRaw].filter(Boolean), meta: { quarter: periodKey } };
-    const cases = await compactCasesForScope({ project: anchor, status: 'open', periodKey, limit: 20 });
     const baselineMissing = body.baselineMissing === true || baselineMode === 'none';
     const partialSquads = Number(body.partialSquads) || 0;
-    const decision = buildPortfolioDecision({
-      brief,
-      anchorProject: anchor || brief.projects?.[0],
-      compareProjects: compareRaw.length ? compareRaw : (brief.projects || []).filter((p) => p !== anchor),
-      cases,
-      baselineMissing,
+    const forceRefresh = String(body.refresh || req.query?.refresh || '').trim() === '1';
+    const payload = await getOrBuildPortfolioDecision({
+      anchor,
+      compareRaw,
+      periodKey,
       baselineMode,
-      wordingSource: body.wordingSource || (brief.meta?._aiProviderFallback ? 'template' : 'verified'),
-      claimsVerified: body.claimsVerified !== false,
-      partialSquads,
-    });
-    const comparison = buildPortfolioComparisonCards({
-      decision,
       brief,
-      insights: brief.squadInsights || [],
+      baselineMissing,
+      partialSquads,
+      wordingSource: body.wordingSource,
+      claimsVerified: body.claimsVerified,
+      forceRefresh,
     });
-    res.json({ ok: true, decision, comparison, cases });
+    res.json(payload);
   } catch (err) {
     next(err);
   }
@@ -147,7 +259,6 @@ router.get('/api/governance/portfolio-decision.json', requireAuth, async (req, r
     const compareRaw = String(req.query.compare || req.query.projects || '').split(',').map(normalizeProjectKey).filter(Boolean);
     const periodKey = String(req.query.periodKey || req.query.quarter || '').trim();
     const baselineMode = String(req.query.baseline || 'pi-baseline').trim();
-    const cases = await compactCasesForScope({ project: anchor, status: 'open', periodKey, limit: 20 });
     const payloadBrief = {
       projects: [anchor, ...compareRaw].filter(Boolean),
       squadInsights: [],
@@ -155,16 +266,17 @@ router.get('/api/governance/portfolio-decision.json', requireAuth, async (req, r
       generatedAt: new Date().toISOString(),
     };
     const baselineMissing = req.query.baselineMissing === 'true' || baselineMode === 'none';
-    const decision = buildPortfolioDecision({
-      brief: payloadBrief,
-      anchorProject: anchor || payloadBrief.projects[0],
-      compareProjects: compareRaw,
-      cases,
-      baselineMissing,
+    const forceRefresh = String(req.query.refresh || '').trim() === '1';
+    const payload = await getOrBuildPortfolioDecision({
+      anchor,
+      compareRaw,
+      periodKey,
       baselineMode,
+      brief: payloadBrief,
+      baselineMissing,
+      forceRefresh,
     });
-    const comparison = buildPortfolioComparisonCards({ decision, brief: payloadBrief });
-    res.json({ ok: true, decision, comparison, cases });
+    res.json(payload);
   } catch (err) {
     next(err);
   }
@@ -200,6 +312,7 @@ router.post('/api/governance/portfolio-decision/confirm', requireAuth, async (re
       actions: [...(row.actions || []), action],
     }, 'portfolio-decision-confirmed');
     await recordCaseEvent('portfolio-decision-confirmed', row, { decisionId });
+    await invalidatePortfolioDecisionCache({ anchor: project, periodKey });
     res.json({ ok: true, case: row, action });
   } catch (err) {
     next(err);
@@ -276,6 +389,7 @@ router.post('/api/governance/interventions/seed-from-brief', requireAuth, async 
       created.push(row);
     }
     const compact = await compactCasesForScope({ project: fallbackProject, periodKey, status: 'open', limit: 12 });
+    await invalidatePortfolioDecisionCache({ anchor: fallbackProject, periodKey });
     res.json({ ok: true, seeded: created.length, cases: compact });
   } catch (err) {
     next(err);
@@ -329,6 +443,7 @@ router.post('/api/governance/interventions/:id/approve-nudge', requireAuth, asyn
       lastDispatch: { receiptId: receipt.id, channel: 'teams-or-email', sentAt: new Date().toISOString(), draft },
     });
     await recordCaseEvent('nudge-sent', row, { receiptId: receipt.id });
+    await invalidatePortfolioDecisionForCase(row);
     return res.json({ ok: true, receipt, case: row });
   } catch (err) {
     if (err?.code === 'INTERVENTION_ILLEGAL_TRANSITION') return res.status(409).json({ ok: false, error: err.message });
@@ -349,6 +464,7 @@ router.post('/api/governance/interventions/:id/record-response', requireAuth, as
     row = row.state === INTERVENTION_STATES.CLARIFICATION_SENT
       ? await transitionInterventionCase(row.id, INTERVENTION_STATES.RESPONSE_RECEIVED, { response })
       : await patchInterventionCase(row.id, { response }, 'case-response-recorded');
+    await invalidatePortfolioDecisionForCase(row);
     res.json({ ok: true, case: row });
   } catch (err) {
     if (err?.code === 'INTERVENTION_ILLEGAL_TRANSITION') return res.status(409).json({ ok: false, error: err.message });
@@ -372,6 +488,7 @@ router.post('/api/governance/interventions/:id/record-decision', requireAuth, as
     } else {
       row = await patchInterventionCase(row.id, { decision }, 'case-decision-recorded');
     }
+    await invalidatePortfolioDecisionForCase(row);
     res.json({ ok: true, case: row });
   } catch (err) {
     if (err?.code === 'INTERVENTION_ILLEGAL_TRANSITION') return res.status(409).json({ ok: false, error: err.message });
@@ -400,6 +517,7 @@ router.post('/api/governance/interventions/:id/escalate', requireAuth, async (re
       escalation: { receiptId: receipt.id, level, draft, escalatedAt: new Date().toISOString() },
     });
     await recordCaseEvent('escalation-sent', row, { receiptId: receipt.id, level: level.level });
+    await invalidatePortfolioDecisionForCase(row);
     res.json({ ok: true, receipt, case: row });
   } catch (err) {
     if (err?.code === 'INTERVENTION_ILLEGAL_TRANSITION') return res.status(409).json({ ok: false, error: err.message });
@@ -425,6 +543,7 @@ router.post('/api/governance/interventions/:id/verify', requireAuth, async (req,
       row = await patchInterventionCase(row.id, { verification }, 'case-verification-recorded');
     }
     await recordCaseEvent('verification-passed', row, { evidenceCount: evidence.length });
+    await invalidatePortfolioDecisionForCase(row);
     res.json({ ok: true, case: row });
   } catch (err) {
     if (err?.code === 'INTERVENTION_ILLEGAL_TRANSITION') return res.status(409).json({ ok: false, error: err.message });
@@ -445,6 +564,7 @@ router.post('/api/governance/interventions/:id/close', requireAuth, async (req, 
       row = await transitionInterventionCase(row.id, INTERVENTION_STATES.CLOSED, { closeReason: reason });
     }
     await recordCaseEvent('case-closed', row, { reason });
+    await invalidatePortfolioDecisionForCase(row);
     res.json({ ok: true, case: row });
   } catch (err) {
     if (err?.code === 'INTERVENTION_ILLEGAL_TRANSITION') return res.status(409).json({ ok: false, error: err.message });

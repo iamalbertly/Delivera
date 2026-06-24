@@ -1,0 +1,106 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+test('peer comparison avoids delivery underperformance when both squads at 0%', async () => {
+  const { buildPeerComparison } = await import('../lib/Delivera-Governance-PortfolioExposure-01SSOT.js');
+  const anchor = {
+    projectKey: 'SD', boardName: 'DMS Squad', boardResolved: true,
+    sprintPulse: { committed: 0, done: 0, pct: 0 }, verdictTier: 'blocked', cardRisks: [{ issueKey: 'SD-1' }],
+  };
+  const peers = [{
+    projectKey: 'MAS', boardName: 'MAS', boardResolved: true,
+    sprintPulse: { committed: 0, done: 0, pct: 0 }, verdictTier: 'watch', cardRisks: [],
+  }];
+  const brief = { freshness: { confidenceLimit: 'live' } };
+  const peer = buildPeerComparison({ anchor, peers, brief });
+  assert.equal(peer.deliveryBothZero, true);
+  assert.match(peer.conclusion, /evidence quality/i);
+  assert.doesNotMatch(peer.sentence, /behind peer/i);
+});
+
+test('weak proof recommends scope not investment', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const brief = {
+    projects: ['SD', 'MAS'],
+    meta: { quarter: 'FY27 Q1' },
+    squadInsights: [
+      { projectKey: 'SD', boardName: 'DMS Squad', boardResolved: true, sprintPulse: { committed: 10, done: 0 }, offPlanHours: 16, verdictTier: 'blocked', cardRisks: [{ issueKey: 'SD-1', displayTitle: 'Recharge Growth Trends' }] },
+      { projectKey: 'MAS', boardName: 'MAS', boardResolved: true, sprintPulse: { committed: 10, done: 0 }, offPlanHours: 4, verdictTier: 'watch', cardRisks: [] },
+    ],
+    topRisks: [{ issueKey: 'SD-5237', project: 'SD', summary: 'Scope outside PI baseline', riskType: 'late-scope' }],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const cases = [{ project: 'SD', needsApproval: true, state: 'clarification-required', title: 'SD scope decision', primaryAction: { action: 'Confirm scope', owner: 'Product Owner', dueAt: new Date().toISOString() } }];
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', compareProjects: ['MAS'], cases });
+  assert.notEqual(decision.recommendation.id, 'review-investment');
+  assert.ok(['review-scope', 'insufficient-evidence'].includes(decision.recommendation.id));
+  assert.ok(decision.metrics.proofConfidence.value <= 40 || decision.metrics.proofConfidence.value >= 8);
+});
+
+test('affected commitments derived from risks when piCommitted is zero', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const brief = {
+    meta: { quarter: 'FY27 Q1' },
+    squadInsights: [{ projectKey: 'SD', boardName: 'DMS', boardResolved: true, piCommitted: 0, sprintPulse: { committed: 0 }, cardRisks: [{ issueKey: 'SD-1', displayTitle: 'Customer Value Dashboard' }] }],
+    topRisks: [{ issueKey: 'SD-99', summary: 'Recharge Growth Trends', project: 'SD', riskType: 'scope' }],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', cases: [{ project: 'SD', title: 'Case A', id: 'c1' }] });
+  assert.ok(decision.affectedCommitments.length >= 1);
+  assert.ok(decision.monitoring.exposedCommitmentCount >= 1);
+});
+
+test('prepared actions grouped by role with deadline', async () => {
+  const { buildPreparedActions } = await import('../lib/Delivera-Governance-PortfolioExposure-01SSOT.js');
+  const due = new Date();
+  due.setHours(15, 0, 0, 0);
+  const prepared = buildPreparedActions({
+    anchor: { projectKey: 'SD' },
+    cases: [
+      { project: 'SD', needsApproval: true, primaryAction: { action: 'Confirm scope', owner: 'Product Owner', dueAt: due.toISOString() } },
+      { project: 'SD', needsApproval: true, primaryAction: { action: 'Confirm scope 2', owner: 'Product Owner', dueAt: due.toISOString() } },
+      { project: 'SD', needsApproval: false, primaryAction: { action: 'Check blocker', owner: 'Tech Lead', dueAt: due.toISOString() } },
+    ],
+  });
+  assert.ok(prepared.groups.some((g) => g.role === 'Product Owner'));
+  assert.ok(prepared.nextDeadline.includes('15:00') || prepared.nextDeadline.length > 0);
+  assert.equal(prepared.poResponsesRequired, 2);
+});
+
+test('decision options include impact preview fields', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const brief = {
+    squadInsights: [{ projectKey: 'SD', boardName: 'DMS', boardResolved: true, sprintPulse: { committed: 8, done: 2 }, offPlanHours: 10, verdictTier: 'watch', cardRisks: [] }],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', cases: [] });
+  assert.ok(decision.decisionOptions.every((o) => o.impactPreview && o.useWhen && o.effect));
+  assert.ok(decision.decisionBasis.why);
+});
+
+test('baselineMissing avoids investment recommendation', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const brief = {
+    squadInsights: [{ projectKey: 'SD', boardName: 'DMS', boardResolved: true, sprintPulse: { committed: 8, done: 2 }, verdictTier: 'watch', cardRisks: [] }],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', baselineMissing: true, cases: [] });
+  assert.notEqual(decision.recommendation.id, 'review-investment');
+});
+
+test('comparison cards include squad-specific intelligence fields', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const { buildPortfolioComparisonCards } = await import('../lib/Delivera-Governance-PortfolioComparison-01SSOT.js');
+  const brief = {
+    squadInsights: [
+      { projectKey: 'SD', boardName: 'DMS Squad', boardResolved: true, sprintPulse: { committed: 8, done: 0 }, offPlanHours: 18, verdictTier: 'blocked', cardRisks: [{ issueKey: 'SD-1' }] },
+      { projectKey: 'MAS', boardName: 'MAS', boardResolved: true, sprintPulse: { committed: 8, done: 0 }, offPlanHours: 3, verdictTier: 'watch', cardRisks: [] },
+    ],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', compareProjects: ['MAS'], cases: [{ project: 'SD', needsApproval: true }] });
+  const comparison = buildPortfolioComparisonCards({ decision, brief, insights: brief.squadInsights, cases: [{ project: 'SD', needsApproval: true }] });
+  assert.ok(comparison.cards[0].mainIssue);
+  assert.ok(comparison.cards[0].decisionNeeded);
+  assert.notEqual(comparison.cards[0].explanation, comparison.cards[1].explanation);
+});

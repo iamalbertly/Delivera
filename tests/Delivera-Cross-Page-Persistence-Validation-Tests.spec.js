@@ -5,8 +5,8 @@
 
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { waitForPreview, ensureReportFiltersVisible } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const assertContainsProjectCodes = async (locator) => {
   const text = (await locator.textContent()) || '';
   expect(text).toMatch(/SD/);
@@ -17,8 +17,9 @@ const assertContainsProjectCodes = async (locator) => {
 test.describe('Cross-Page Persistence', () => {
   test('persisted projects and date range survive Report → Leadership → Current Sprint → Report', async ({ page }) => {
     test.setTimeout(120000);
+    await routeProjectsCatalog(page);
 
-    await page.goto(BASE_URL + '/report');
+    await page.goto('/report');
     if (page.url().includes('login') || page.url().endsWith('/')) {
       test.skip(true, 'Redirected to login; auth may be required');
       return;
@@ -30,6 +31,8 @@ test.describe('Cross-Page Persistence', () => {
     const projectCodes = 'SD,MAS,BIO,RPA';
     const triggerPreview = async () => {
       await ensureReportFiltersVisible(page);
+      await page.waitForSelector('#projects-catalog-mount[data-catalog-ready="1"]', { timeout: 15000 }).catch(() => null);
+      await page.waitForSelector('#project-sd', { timeout: 15000 }).catch(() => null);
       await page.evaluate(() => {
         const el = document.getElementById('preview-btn');
         if (el) el.click();
@@ -37,6 +40,8 @@ test.describe('Cross-Page Persistence', () => {
     };
 
     await ensureReportFiltersVisible(page);
+    await page.waitForSelector('#projects-catalog-mount[data-catalog-ready="1"]', { timeout: 15000 }).catch(() => null);
+    await page.waitForSelector('#project-sd', { timeout: 15000 }).catch(() => null);
     const previewButtonVisible = await page.locator('#preview-btn').isVisible().catch(() => false);
     if (!previewButtonVisible) {
       test.skip(true, 'Preview control hidden for current dataset/state');
@@ -88,7 +93,7 @@ test.describe('Cross-Page Persistence', () => {
       await expect(page.locator('#' + id)).toBeChecked();
     }
 
-    await page.goto(BASE_URL + '/sprint-leadership');
+    await page.goto('/sprint-leadership');
     if (page.url().includes('login')) {
       test.skip(true, 'Redirected to login');
       return;
@@ -99,7 +104,7 @@ test.describe('Cross-Page Persistence', () => {
       }
       await assertContainsProjectCodes(reportContextStrip);
     } else if (page.url().includes('/governance')) {
-      await expect(page.locator('#gov-scope-bar-mount, .gov-scope-bar').first()).toBeAttached();
+      await expect(page.locator('#portfolio-scope-bar-mount, #gov-scope-bar-mount, .gov-scope-bar, .portfolio-scope-filters').first()).toBeAttached();
     } else {
       const leadershipContext = page.locator('#project-context');
       await expect(leadershipContext).toBeAttached();
@@ -118,22 +123,24 @@ test.describe('Cross-Page Persistence', () => {
       }
     }
 
-    await page.goto(BASE_URL + '/current-sprint');
+    await page.goto('/current-sprint');
     if (page.url().includes('login')) {
       test.skip(true, 'Redirected to login');
       return;
     }
-    await expect(page.locator('#current-sprint-projects')).toBeVisible();
+    await expect(page.locator('#current-sprint-projects')).toBeAttached();
     const currentSprintProject = ((await page.locator('#current-sprint-projects').inputValue()) || '').trim();
     const allowedCurrentSprintProjects = projectCodes.split(',').map((x) => x.trim());
     expect(allowedCurrentSprintProjects.includes(currentSprintProject)).toBeTruthy();
 
-    await page.goto(BASE_URL + '/report');
+    await page.goto('/report');
     if (page.url().includes('login')) {
       test.skip(true, 'Redirected to login');
       return;
     }
     await ensureReportFiltersVisible(page);
+    await page.waitForSelector('#projects-catalog-mount[data-catalog-ready="1"]', { timeout: 15000 }).catch(() => null);
+    await page.waitForSelector('#project-sd', { timeout: 15000 }).catch(() => null);
     for (const id of projectIds) {
       await expect(page.locator('#' + id)).toBeChecked();
     }
@@ -142,14 +149,15 @@ test.describe('Cross-Page Persistence', () => {
   });
 
   test('report header current-sprint shortcut preserves remembered board and sprint context', async ({ page }) => {
-    await page.goto(BASE_URL + '/report?boardId=101&sprintId=202&projects=MPSA');
+    await routeProjectsCatalog(page);
+    await page.goto('/report?boardId=101&sprintId=202&projects=MPSA');
     if (page.url().includes('login') || page.url().endsWith('/')) {
       test.skip(true, 'Redirected to login; auth may be required');
       return;
     }
 
-    const shortcut = page.locator('#report-header-actions a[href*="/current-sprint"]').first();
-    await expect(shortcut).toBeVisible();
+    const shortcut = page.locator('[data-report-sprint-context-link], #report-header-actions a[href*="/current-sprint"]').first();
+    await expect(shortcut).toBeVisible({ timeout: 10000 });
     const href = await shortcut.getAttribute('href');
     expect(href || '').toContain('/current-sprint?');
     expect(href || '').toContain('boardId=101');

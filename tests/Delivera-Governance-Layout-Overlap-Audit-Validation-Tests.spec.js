@@ -59,6 +59,7 @@ const LAYOUT_BRIEF = {
 async function mockLayoutGovernancePage(page) {
   await page.addInitScript(() => {
     localStorage.setItem('delivera_selectedProjects', 'SD');
+    localStorage.setItem('delivera.portfolio.anchor.v1', 'SD');
     sessionStorage.setItem('gov-pi-auto-open-dismissed', '1');
   });
   await routeProjectsCatalog(page);
@@ -90,6 +91,32 @@ async function mockLayoutGovernancePage(page) {
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD' }], projectErrors: [] }),
   }));
+  await page.route('**/api/governance/interventions/seed-from-brief**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cases: [] }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (r) => {
+    if (r.request().method() !== 'POST') return r.continue();
+    return r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: {
+          headline: 'Review SD scope now',
+          summary: LAYOUT_BRIEF.meta.commandAnswerSentence,
+          anchorProject: 'SD',
+          periodKey: 'FY27 Q1',
+          metrics: { delivery: { value: 30, peerMedian: 50 }, offPlanLoad: { value: 20, peerMedian: 15 }, proofConfidence: { value: 40, peerMedian: 55 } },
+          trust: { liveCases: 0, nudgesReady: 0, proofLevel: 'Medium' },
+          drivers: [],
+          decisionOptions: [{ id: 'review-investment', label: 'Review investment' }],
+          monitoring: { squadCount: 1, commitmentCount: 0 },
+          recommendation: { label: 'Review investment' },
+        },
+        comparison: { cards: [], actionsStrip: {} },
+        cases: [],
+      }),
+    });
+  });
 }
 
 const GOV_VIEWPORTS = [
@@ -110,19 +137,22 @@ test.describe('Governance layout overlap audit', () => {
       if (await skipIfRedirectedToLogin(page, test)) return;
 
       await page.waitForFunction(() => (
-        document.querySelector('.gov-owner-cluster')
-        || document.querySelector('.gov-visual-answer-blocks')
+        document.querySelector('#portfolio-signal-mount [data-portfolio-signal]')
+        || document.querySelector('.portfolio-signal')
+        || document.querySelector('.gov-owner-cluster')
         || document.querySelector('.gov-command-answer')
       ), { timeout: 15000 });
-      const hasOwnerCluster = await page.locator('.gov-owner-cluster').count() > 0;
-      if (hasOwnerCluster && vp.width <= 768) {
+      const hasPortfolio = await page.locator('[data-portfolio-signal], .portfolio-signal').count() > 0;
+      if (hasPortfolio) {
+        await expect(page.locator('[data-portfolio-signal], .portfolio-signal').first()).toBeVisible();
+      } else if (await page.locator('.gov-owner-cluster').count() > 0 && vp.width <= 768) {
         await expect(page.locator('.gov-owner-cluster').first()).toBeVisible();
       } else {
         await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible();
       }
 
       const clipping = await getViewportClippingReport(page, {
-        selectors: ['.governance-shell', '#gov-scope-bar-mount', '#gov-answer-mount', '#app-top-chrome'],
+        selectors: ['.governance-shell', '#portfolio-scope-bar-mount, #gov-scope-bar-mount', '#portfolio-signal-mount, #gov-answer-mount', '#app-top-chrome'],
         maxLeftGapPx: vp.width >= 1200 ? 40 : 16,
         checkScrollSelectors: ['body'],
       });
@@ -132,8 +162,8 @@ test.describe('Governance layout overlap audit', () => {
 
       const contentOverlap = await getLayoutOverlapReport(page, {
         selectors: [
-          '#gov-scope-bar-mount .gov-scope-capsule-text',
-          '#gov-scope-bar-mount .gov-scope-status-chip',
+          '#portfolio-scope-bar-mount .portfolio-scope-filters, #gov-scope-bar-mount .gov-scope-capsule-text',
+          '#portfolio-scope-bar-mount, #gov-scope-bar-mount .gov-scope-status-chip',
           '.governance-header-top',
           '.gov-visual-answer-blocks .gov-answer-block',
           '.gov-trust-chip-row .gov-send-badge',

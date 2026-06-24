@@ -2,15 +2,16 @@
  * Governance Brief page controller — thin orchestrator.
  */
 import { mountGovernanceScopeBar } from './Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js';
-import { mountPortfolioScopeBar } from './Delivera-App-Portfolio-ScopeBar-01Render-UI.js';
 import { openScopeIntelligenceDrawer, scopeCapsuleCounts } from './Delivera-App-Governance-Brief-18Render-ScopeIntelligenceDrawer-UI.js';
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js';
 import { invalidateBriefCacheEntry } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
+import { invalidatePortfolioDecisionCacheEntry } from './Delivera-Shared-Portfolio-Decision-Client-Cache-01Bridge.js';
 import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import { bindGovernancePageInteractions, openInboxNudgeReview, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
+import { installPortfolioSurfaceHook } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
 
 function installExtensionTrustHint() {
   if (window.__deliveraExtTrustHint) return;
@@ -50,27 +51,26 @@ function init() {
     mount: scopeMount,
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),
     onScopeChange: () => {
-      invalidateBriefCacheEntry(
-        projectsCsv(),
-        govPage.scopeBarApi?.getQuarterLabel?.() || '',
-        govPage.scopeBarApi?.getPeriodWindow?.() || '',
-      );
+      const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
+      const periodWindow = govPage.scopeBarApi?.getPeriodWindow?.() || '';
+      const projects = projectsCsv();
+      invalidateBriefCacheEntry(projects, quarter, periodWindow);
+      invalidatePortfolioDecisionCacheEntry({
+        anchor: govPage.scopeBarApi?.getAnchor?.() || projects.split(',')[0],
+        periodKey: quarter,
+      });
       setLoadBriefForce(true);
       loadBrief({ force: true });
     },
   };
-  if ($('portfolio-scope-bar-mount')) {
-    govPage.scopeBarApi = mountPortfolioScopeBar(scopeBarOpts);
-  } else {
-    govPage.scopeBarApi = mountGovernanceScopeBar({
-      ...scopeBarOpts,
-      onOpenDrawer: () => {
-        if (!govPage.lastBrief) return;
-        openScopeIntelligenceDrawer(govPage.lastBrief);
-      },
-      getScopeCounts: () => scopeCapsuleCounts(govPage.lastBrief) || {},
-    });
-  }
+  govPage.scopeBarApi = mountGovernanceScopeBar({
+    ...scopeBarOpts,
+    onOpenDrawer: () => {
+      if (!govPage.lastBrief) return;
+      openScopeIntelligenceDrawer(govPage.lastBrief);
+    },
+    getScopeCounts: () => scopeCapsuleCounts(govPage.lastBrief) || {},
+  });
   govPage.inboxApi = mountGovernanceInbox({
     mount: $('gov-queue-mount'),
     getProjectsCsv: projectsCsv,
@@ -93,6 +93,7 @@ function init() {
   });
   bindGovernancePageInteractions();
   ensurePortfolioHeatDelegation();
+  installPortfolioSurfaceHook();
   initGlobalOutcomeModal();
   loadBrief();
 }

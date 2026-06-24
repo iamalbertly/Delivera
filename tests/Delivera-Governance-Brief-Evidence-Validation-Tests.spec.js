@@ -7,6 +7,13 @@ import { comparePIBaselineToNow, BASELINE_VERDICTS } from '../lib/Delivera-Gover
 import { buildEvidencePack } from '../lib/Delivera-Governance-Evidence-01Pack-Builder.js';
 import { clampConfidenceToFreshness, RISK_TYPES } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { attachExecutiveViewToBrief } from '../lib/Delivera-Governance-Executive-01View-SSOT.js';
+import {
+  waitForPortfolioReady,
+  legacyBrief,
+  clickLegacy,
+  mockPortfolioDecision,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 
 function mockBoardPayload() {
   return {
@@ -271,26 +278,30 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
     await page.addInitScript(() => {
       localStorage.setItem('delivera_selectedProjects', 'MPSA');
     });
+    await routeProjectsCatalog(page);
     await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_BRIEF) }));
     await page.route('**/api/quarters-list**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
     await page.route('**/api/governance/adoption-metrics.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ byMetric: {}, total: 0 }) }));
     await page.route('**/api/leadership-summary.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ velocity: { source: 'unavailable' } }) }));
+    await mockPortfolioDecision(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required; skipping governance UI assertions'); return false; }
+    await waitForPortfolioReady(page);
     return true;
   }
 
   test('renders meeting answer, stale freshness, and decision owner', async ({ page }) => {
     if (!(await mockAndGo(page))) return;
-    await expect(page.locator('.gov-scope-status-chip--blocked, .gov-scope-status-chip').first()).toContainText(/blocked|at risk/i);
-    await expect(page.locator('.gov-owner-cluster, [data-grouped-nudge]').first()).toContainText(/MPSA|stuck/i);
-    await expect(page.locator('.gov-portfolio-banner-line.is-stale, .gov-scope-status-chip').first()).toBeVisible();
-    await expect(page.locator('.gov-owner-cluster, .governance-risk-lane').first()).toContainText(/Tech Lead/i);
+    await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+    await expect(legacyBrief(page, '.gov-scope-status-chip--blocked, .gov-scope-status-chip').first()).toContainText(/blocked|at risk/i);
+    await expect(legacyBrief(page, '.gov-owner-cluster, [data-grouped-nudge]').first()).toContainText(/MPSA|stuck/i);
+    await expect(legacyBrief(page, '.gov-portfolio-banner-line.is-stale, .gov-scope-status-chip').first()).toBeAttached();
+    await expect(legacyBrief(page, '.gov-owner-cluster, .governance-risk-lane').first()).toContainText(/Tech Lead/i);
   });
 
   test('Why-flagged expander reveals rule fired and changelog', async ({ page }) => {
     if (!(await mockAndGo(page))) return;
-    await page.locator('#gov-supporting-evidence summary').click();
+    await clickLegacy(page, '#gov-supporting-evidence summary');
     const evidence = page.locator('#gov-evidence');
     await expect(evidence).toContainText('MPSA-2');
     await expect(evidence).toContainText(/status unchanged for 60h/i);
@@ -300,12 +311,12 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
 
   test('export markdown includes meeting answer and actions', async ({ page, context }) => {
     if (!(await mockAndGo(page))) return;
-    await expect(page.locator('.gov-owner-cluster')).toBeVisible();
+    await expect(legacyBrief(page, '.gov-owner-cluster')).toBeAttached();
     await page.route('**/api/governance/impact-pack.json**', (route) => route.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify({ markdown: '## Grow My Impact\n\n- Briefs: 1' }),
     }));
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.locator('#gov-export-overflow').dispatchEvent('click');
+    await clickLegacy(page, '#gov-export-overflow');
     await expect.poll(async () => page.evaluate(() => navigator.clipboard.readText()), { timeout: 15000 }).toContain("Today's delivery answer");
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toContain('Tech Lead');
@@ -315,7 +326,7 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
   test('copy meeting answer excludes technical labels', async ({ page, context }) => {
     if (!(await mockAndGo(page))) return;
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.locator('#gov-copy-answer-inline').click();
+    await clickLegacy(page, '#gov-copy-answer-scope');
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toMatch(/DELIVERY BLOCKED|at risk/i);
     expect(text).not.toContain('narrated by');

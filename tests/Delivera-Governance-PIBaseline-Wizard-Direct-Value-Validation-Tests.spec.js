@@ -1,6 +1,12 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
+import {
+  waitForPortfolioReady,
+  legacyBrief,
+  clickLegacy,
+  mockPortfolioDecision,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
 import { scoreClaimConfidence } from '../lib/Delivera-Governance-Claim-Verify-01SSOT.js';
 import { sendReadinessBadge } from '../public/Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 
@@ -72,6 +78,7 @@ async function mockWizardPage(page, proposeBody = SD_CANDIDATES) {
   await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(proposeBody),
   }));
+  await mockPortfolioDecision(page);
 }
 
 test.describe('PI baseline wizard direct-value', () => {
@@ -95,11 +102,12 @@ test.describe('PI baseline wizard direct-value', () => {
     await mockWizardPage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await waitForPortfolioReady(page);
     const telemetry = await captureBrowserTelemetry(page);
-    await expect(page.locator('.gov-fix-card, .gov-owner-cluster').first()).toBeVisible();
-    const expand = page.locator('#gov-setup-gaps-expand');
-    if (await expand.count()) await expand.click();
-    await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
+    await expect(legacyBrief(page, '.gov-fix-card, .gov-owner-cluster').first()).toBeAttached();
+    const expand = legacyBrief(page, '#gov-setup-gaps-expand');
+    if (await expand.count()) await clickLegacy(page, '#gov-setup-gaps-expand');
+    await clickLegacy(page, '.gov-fix-card-btn[data-setup-action="set-baseline"]');
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
     await expect(page.locator('[data-testid="gov-baseline-context"]')).toContainText('SD');
     await expect(page.locator('[data-testid="gov-baseline-context"]')).toContainText('FY24 Q4');

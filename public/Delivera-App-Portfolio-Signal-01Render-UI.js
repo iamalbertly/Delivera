@@ -1,73 +1,72 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
-function gaugeRing(label, metric = {}) {
+function compactMetric(label, metric = {}) {
   const value = Math.max(0, Math.min(100, Number(metric.value) || 0));
   const peer = Number(metric.peerMedian) || 0;
-  const r = 34;
-  const c = 2 * Math.PI * r;
-  const offset = c - (value / 100) * c;
   const slug = label.toLowerCase().replace(/\s+/g, '-');
+  const hidePeer = value === 0 && peer === 0;
   return `
-    <div class="portfolio-gauge" data-metric="${escapeHtml(slug)}">
-      <div class="portfolio-gauge-visual" aria-hidden="true">
-        <svg viewBox="0 0 88 88" class="portfolio-gauge-svg">
-          <circle cx="44" cy="44" r="${r}" class="portfolio-gauge-track"/>
-          <circle cx="44" cy="44" r="${r}" class="portfolio-gauge-fill"
-            style="stroke-dasharray:${c.toFixed(2)};stroke-dashoffset:${offset.toFixed(2)}"/>
-        </svg>
-        <div class="portfolio-gauge-center">
-          <strong class="portfolio-gauge-value">${value}%</strong>
-        </div>
-      </div>
-      <span class="portfolio-gauge-label">${escapeHtml(label)}</span>
-      <span class="portfolio-gauge-peer">vs peers ${peer}%</span>
+    <div class="portfolio-metric" data-metric="${escapeHtml(slug)}">
+      <span class="portfolio-metric-label">${escapeHtml(label)}</span>
+      <strong class="portfolio-metric-value">${value}%</strong>
+      ${hidePeer ? '' : `<span class="portfolio-metric-peer">vs peers ${peer}%</span>`}
     </div>`;
 }
 
-export function renderPortfolioSignal(decision = {}) {
+function formatCachedFreshness(cachedAt) {
+  if (!cachedAt) return '';
+  const ms = new Date(cachedAt).getTime();
+  if (!Number.isFinite(ms)) return '';
+  const mins = Math.max(1, Math.round((Date.now() - ms) / 60000));
+  if (mins < 60) return `Updated ${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  return `Updated ${hours}h ago`;
+}
+
+export function renderPortfolioSignal(decision = {}, { cachedAt = '', cached = false } = {}) {
   const m = decision.metrics || {};
   const trust = decision.trust || {};
-  const rec = decision.recommendation || {};
+  const narrative = decision.narrative || {};
+  const above = decision.aboveFold || {};
+  const peer = decision.peerComparison || {};
+  const headline = narrative.headline || decision.headline || 'Portfolio signal';
+  const summary = narrative.summary || decision.summary || '';
+  const showSummary = summary && summary.trim() !== headline.trim();
+  const freshness = cached || cachedAt ? formatCachedFreshness(cachedAt) : '';
   const hasActions = (trust.liveCases || 0) > 0 || (trust.nudgesReady || 0) > 0;
-  const headline = decision.headline || 'Portfolio signal';
+
   return `
     <section class="portfolio-signal" aria-label="AI portfolio signal" data-portfolio-signal>
       <div class="portfolio-signal-top">
-        <p class="portfolio-signal-kicker">AI portfolio signal</p>
+        <p class="portfolio-signal-kicker">AI portfolio signal${freshness ? ` · <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
         <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
       </div>
-      <h2 class="portfolio-signal-headline">
-        <span class="portfolio-signal-sparkle" aria-hidden="true">✦</span>
-        AI portfolio signal: ${escapeHtml(headline)}
-      </h2>
-      <p class="portfolio-signal-summary">${escapeHtml(decision.summary || '')}</p>
-      <div class="portfolio-signal-metrics" role="group" aria-label="Portfolio metrics">
-        ${gaugeRing('Delivery', m.delivery)}
-        ${gaugeRing('Off-plan load', m.offPlanLoad)}
-        ${gaugeRing('Proof confidence', m.proofConfidence)}
+      <h2 class="portfolio-signal-headline">${escapeHtml(headline)}</h2>
+      <div class="portfolio-above-fold" data-portfolio-above-fold>
+        <span class="portfolio-fold-stat"><strong>${above.exposedCommitments || 0}</strong> commitment${above.exposedCommitments === 1 ? '' : 's'} exposed</span>
+        <span class="portfolio-fold-stat"><strong>${above.actionsReady || 0}</strong> action${above.actionsReady === 1 ? '' : 's'} ready</span>
+        <span class="portfolio-fold-stat"><strong>${above.poResponsesRequired || 0}</strong> PO response${above.poResponsesRequired === 1 ? '' : 's'} required</span>
+        ${above.nextDeadline ? `<span class="portfolio-fold-stat">Next deadline: <strong>${escapeHtml(above.nextDeadline)}</strong></span>` : ''}
       </div>
-      <div class="portfolio-signal-trust" data-portfolio-trust>
+      <p class="portfolio-signal-main-issue"><strong>Main issue:</strong> ${escapeHtml(above.mainIssue || narrative.mainIssue || '')}</p>
+      ${peer.sentence ? `<p class="portfolio-signal-peer" data-portfolio-peer-comparison>${escapeHtml(peer.sentence)}</p>` : ''}
+      ${showSummary ? `<p class="portfolio-signal-summary">${escapeHtml(summary)}</p>` : ''}
+      <div class="portfolio-signal-metrics portfolio-metric-row" role="group" aria-label="Portfolio metrics">
+        ${compactMetric('Delivery', m.delivery)}
+        ${compactMetric('Off-plan', m.offPlanLoad)}
+        ${compactMetric('Proof', m.proofConfidence)}
+      </div>
+      <div class="portfolio-signal-trust portfolio-signal-trust--compact" data-portfolio-trust>
         <span class="portfolio-trust-item" data-trust-live-cases>
-          <span class="portfolio-trust-icon" aria-hidden="true">●</span>
           ${trust.liveCases || 0} live case${trust.liveCases === 1 ? '' : 's'}
         </span>
-        <span class="portfolio-trust-item" data-trust-nudges>
-          <span class="portfolio-trust-icon" aria-hidden="true">◆</span>
-          ${trust.nudgesReady || 0} nudge${trust.nudgesReady === 1 ? '' : 's'} ready
-        </span>
         <span class="portfolio-trust-item" data-trust-proof>
-          <span class="portfolio-trust-icon" aria-hidden="true">◎</span>
           Proof: ${escapeHtml(trust.proofLevel || 'Medium')}
         </span>
+        ${narrative.escalationReady ? '<span class="portfolio-trust-item portfolio-trust-escalation">Escalation ready if no response</span>' : ''}
       </div>
       <div class="portfolio-signal-actions">
-        ${hasActions ? '<button type="button" class="btn btn-primary" data-portfolio-action="review-actions">Review actions →</button>' : ''}
-        <button type="button" class="btn btn-secondary" data-portfolio-action="compare-peers">Compare peers</button>
+        ${hasActions ? '<button type="button" class="btn btn-primary btn-compact" data-portfolio-action="review-actions">Approve prepared actions →</button>' : ''}
       </div>
-      <aside class="portfolio-signal-recommended" aria-label="Recommended action">
-        <p class="portfolio-recommended-label">◎ Recommended</p>
-        <p class="portfolio-recommended-value">${escapeHtml(rec.label || 'Review investment')}</p>
-        <p class="portfolio-recommended-hint">Highest impact</p>
-      </aside>
     </section>`;
 }

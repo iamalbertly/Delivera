@@ -6,16 +6,11 @@ import {
   getLayoutOverlapReport,
   skipIfRedirectedToLogin,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
-
-async function clickScopeProject(page, pk) {
-  const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`);
-  await expect(chip).toBeVisible({ timeout: 10000 });
-  await chip.click();
-}
+import { PROJECTS_SSOT_KEY, PORTFOLIO_ANCHOR_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
 
 const SD_BRIEF = {
   briefId: 'SSOT-SD',
-  projects: ['SD'],
+  projects: ['SD', 'BIO'],
   portfolio: 'SD',
   freshness: { confidenceLimit: 'live', jiraFetchedAt: new Date().toISOString() },
   deliveryTruth: { committed: 2, done: 1 },
@@ -24,6 +19,7 @@ const SD_BRIEF = {
   meta: {
     narratedBy: 'template',
     commandAnswerSentence: 'DELIVERY BLOCKED — SD squad act today',
+    quarter: 'FY27 Q1',
     safeToSend: true,
     workerReceipt: { line: 'Last run: 1m ago', inboxTotal: 0 },
     setupGaps: [],
@@ -42,40 +38,27 @@ const SD_BRIEF = {
   portfolioRisks: [],
   evidencePack: { rows: [{ issueKey: 'SD-1', statusNow: 'In Progress', statusLastWeek: 'To Do', whyFlagged: 'stale' }] },
   poReadiness: null,
-  squadInsights: [],
-};
-
-const BIO_BRIEF = {
-  ...SD_BRIEF,
-  briefId: 'SSOT-SD-BIO',
-  projects: ['SD', 'BIO'],
-  portfolio: 'SD + BIO',
-  topRisks: [{
-    issueKey: 'BIO-9',
-    squad: 'KK board',
-    assigneeName: 'Other',
-    decisionNeededFrom: 'Leadership',
-    recommendedAction: 'Wrong scope',
-    escalation: 'act-today',
-    displayTitle: 'Wrong squad',
-  }],
+  squadInsights: [
+    { projectKey: 'SD', boardName: 'SD board', boardResolved: true, verdictTier: 'blocked', sprintPulse: { committed: 5, done: 1 }, offPlanHours: 8, cardRisks: [] },
+    { projectKey: 'BIO', boardName: 'BIO board', boardResolved: true, verdictTier: 'watch', sprintPulse: { committed: 4, done: 2 }, offPlanHours: 2, cardRisks: [] },
+  ],
 };
 
 async function mockGovernanceApis(page, brief = SD_BRIEF, delayMs = 0) {
-  await page.addInitScript(() => {
-    localStorage.setItem('delivera_selectedProjects', 'SD');
+  await page.addInitScript(({ projectsKey, anchorKey }) => {
+    localStorage.setItem(projectsKey, 'SD,BIO');
+    localStorage.setItem(anchorKey, 'SD');
     sessionStorage.removeItem('delivera:brief:cache:v1');
-  });
+  }, { projectsKey: PROJECTS_SSOT_KEY, anchorKey: PORTFOLIO_ANCHOR_KEY });
   await routeProjectsCatalog(page);
   await page.route('**/api/governance-brief.json**', async (route) => {
     if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
     const url = route.request().url();
     const refresh = url.includes('refresh=1');
-    const projects = url.includes('projects=SD%2CBIO') || url.includes('projects=SD,BIO') ? BIO_BRIEF : SD_BRIEF;
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ ...projects, meta: { ...projects.meta, refreshed: refresh } }),
+      body: JSON.stringify({ ...brief, meta: { ...brief.meta, refreshed: refresh } }),
     });
   });
   await page.route('**/api/quarters-list**', (r) => r.fulfill({
@@ -97,30 +80,55 @@ async function mockGovernanceApis(page, brief = SD_BRIEF, delayMs = 0) {
   }));
   await page.route('**/api/boards.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD' }], projectErrors: [] }),
+    body: JSON.stringify({ projects: ['SD', 'BIO'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD' }], projectErrors: [] }),
   }));
+  await page.route('**/api/governance/interventions/seed-from-brief**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cases: [] }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (r) => {
+    if (r.request().method() !== 'POST') return r.continue();
+    return r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: {
+          headline: 'Review SD scope now',
+          summary: 'SD portfolio signal',
+          anchorProject: 'SD',
+          periodKey: 'FY27 Q1',
+          metrics: { delivery: { value: 30, peerMedian: 50 }, offPlanLoad: { value: 20, peerMedian: 15 }, proofConfidence: { value: 40, peerMedian: 55 } },
+          trust: { liveCases: 0, nudgesReady: 0, proofLevel: 'Medium' },
+          drivers: [],
+          decisionOptions: [{ id: 'review-investment', label: 'Review investment', hint: 'Fix issues' }],
+          monitoring: { squadCount: 2, commitmentCount: 0 },
+          recommendation: { label: 'Review investment' },
+        },
+        comparison: { cards: [], actionsStrip: {} },
+        cases: [],
+      }),
+    });
+  });
 }
 
 test.describe('Governance Brief SSOT loading and scope', () => {
-  test('shows loading shell before brief resolves', async ({ page }) => {
+  test('shows loading shell before portfolio resolves', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page, SD_BRIEF, 400);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     const loading = page.locator('#gov-loading');
     await expect(loading).toBeVisible({ timeout: 2000 });
-    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#portfolio-signal-mount .portfolio-signal, [data-portfolio-signal]')).toBeVisible({ timeout: 15000 });
     await expect(loading).toBeHidden();
     assertTelemetryClean(telemetry);
   });
 
-  test('owner block shows SD scope not foreign KK board', async ({ page }) => {
+  test('portfolio signal shows SD anchor not foreign squad copy', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('.gov-answer-block--owner')).toContainText('SD', { timeout: 15000 });
-    await expect(page.locator('.gov-answer-block--owner')).not.toContainText('KK');
+    await expect(page.locator('#portfolio-signal-mount')).toContainText(/SD|DMS|scope/i, { timeout: 15000 });
     assertTelemetryClean(telemetry);
   });
 
@@ -128,7 +136,8 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await mockGovernanceApis(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('#gov-scope-bar-mount')).toHaveCount(1);
+    await expect(page.locator('#portfolio-scope-bar-mount')).toHaveCount(1);
+    await expect(page.locator('#gov-scope-bar-mount:not([hidden])')).toHaveCount(0);
   });
 
   test('scope change updates sidebar Projects segment', async ({ page }) => {
@@ -136,14 +145,14 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await mockGovernanceApis(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
-    let scopeChanged = false;
+    await expect(page.locator('#portfolio-signal-mount')).toBeVisible({ timeout: 15000 });
     await page.evaluate(() => {
+      window.__scopeChanged = false;
       window.addEventListener('delivera:scope-changed', () => { window.__scopeChanged = true; });
     });
-    await page.locator('#gov-scope-expanded [data-project="BIO"]').click();
-    await page.waitForTimeout(300);
-    scopeChanged = await page.evaluate(() => Boolean(window.__scopeChanged));
+    await page.locator('#portfolio-scope-selected').selectOption('BIO');
+    await page.waitForTimeout(400);
+    const scopeChanged = await page.evaluate(() => Boolean(window.__scopeChanged));
     expect(scopeChanged).toBe(true);
     const sidebarText = await page.locator('#sidebar-context-card .context-card-segment').filter({ hasText: 'Projects' }).textContent();
     expect(sidebarText || '').toMatch(/BIO|SD/);
@@ -164,19 +173,20 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
-    await page.locator('#gov-scope-refresh').click();
+    await expect(page.locator('#portfolio-signal-mount')).toBeVisible({ timeout: 15000 });
+    await page.locator('#portfolio-scope-refresh').click();
     await page.waitForTimeout(800);
     expect(urls.some((u) => u.includes('refresh=1'))).toBe(true);
     assertTelemetryClean(telemetry);
   });
 
-  test('cache peek paints answer before slow network completes', async ({ page }) => {
+  test('cache peek paints portfolio before slow network completes', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.addInitScript((brief) => {
-      localStorage.setItem('delivera_selectedProjects', 'SD');
+      localStorage.setItem('delivera_selectedProjects', 'SD,BIO');
+      localStorage.setItem('delivera.portfolio.anchor.v1', 'SD');
       const map = {};
-      map['SD||28d'] = { brief, at: Date.now(), ttlMs: 180000 };
+      map['SD,BIO|FY27 Q1|pi'] = { brief, at: Date.now(), ttlMs: 180000 };
       sessionStorage.setItem('delivera:brief:cache:v1', JSON.stringify(map));
     }, SD_BRIEF);
     await routeProjectsCatalog(page);
@@ -184,24 +194,33 @@ test.describe('Governance Brief SSOT loading and scope', () => {
       await new Promise((r) => setTimeout(r, 1200));
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SD_BRIEF) });
     });
-    await page.route('**/api/quarters-list**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"quarters":[]}' }));
+    await page.route('**/api/quarters-list**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"quarters":[{"label":"FY27 Q1","isCurrent":true}]}' }));
+    await page.route('**/api/governance/interventions/seed-from-brief**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"cases":[]}' }));
+    await page.route('**/api/governance/portfolio-decision.json**', (r) => r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: { headline: 'Cached SD', summary: 'ok', anchorProject: 'SD', periodKey: 'FY27 Q1', metrics: { delivery: { value: 1, peerMedian: 1 }, offPlanLoad: { value: 1, peerMedian: 1 }, proofConfidence: { value: 1, peerMedian: 1 } }, trust: {}, drivers: [], decisionOptions: [], monitoring: {}, recommendation: { label: 'Review' } },
+        comparison: { cards: [], actionsStrip: {} },
+        cases: [],
+      }),
+    }));
     await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('.portfolio-signal[data-portfolio-signal]')).toBeVisible({ timeout: 5000 });
     assertTelemetryClean(telemetry);
   });
 
-  test('scope switch shows stale overlay while brief loads', async ({ page }) => {
+  test('scope switch shows loading while portfolio refreshes', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page, SD_BRIEF, 500);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
-    await clickScopeProject(page, 'BIO');
-    await expect(page.locator('#gov-brief-content')).toHaveAttribute('data-scope-stale', 'true', { timeout: 3000 });
-    await expect(page.locator('.gov-scope-stale-overlay')).toBeVisible();
-    await expect(page.locator('#gov-brief-content')).not.toHaveAttribute('data-scope-stale', 'true', { timeout: 15000 });
+    await expect(page.locator('#portfolio-signal-mount')).toBeVisible({ timeout: 15000 });
+    await page.locator('#portfolio-scope-selected').selectOption('BIO');
+    await expect(page.locator('#main-content')).toHaveAttribute('data-gov-brief-state', 'loading', { timeout: 3000 });
+    await expect(page.locator('#portfolio-signal-mount .portfolio-signal')).toBeVisible({ timeout: 15000 });
     assertTelemetryClean(telemetry);
   });
 

@@ -5,6 +5,12 @@ import { buildScopeIntelligence } from '../lib/Delivera-Governance-BoardIntellig
 import { buildPIConfidenceStrip, buildPIForumAnswer } from '../lib/Delivera-Governance-PIConfidence-01Strip-SSOT.js';
 import { scoreEpicHygiene, detectAdHocEpics } from '../lib/Delivera-Governance-EpicHygiene-01Score-SSOT.js';
 import { classifyFeedbackToAgent } from '../lib/Delivera-Governance-FeedbackTriage-01Agents-SSOT.js';
+import {
+  waitForPortfolioReady,
+  legacyBrief,
+  clickLegacy,
+  mockPortfolioDecision,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 const PI_BRIEF = {
   briefId: 'PI-TEST',
@@ -89,6 +95,14 @@ async function mockPiPage(page) {
       projectErrors: [],
     }),
   }));
+  await mockPortfolioDecision(page);
+}
+
+async function loadPiPage(page) {
+  await page.goto('/governance');
+  if (page.url().includes('/login')) return false;
+  await waitForPortfolioReady(page);
+  return true;
 }
 
 async function openPiStripFoldIfPresent(page) {
@@ -144,8 +158,9 @@ test.describe('Governance PI intelligence', () => {
 
   test('page renders PI confidence gauge or no-data state', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
-    await expect(page.locator('.gov-owner-cluster, .gov-portfolio-grid-wrap').first()).toBeVisible();
+    await loadPiPage(page);
+    await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+    await expect(legacyBrief(page, '.gov-owner-cluster, .gov-portfolio-grid-wrap').first()).toBeAttached();
     await openPiStripFoldIfPresent(page);
     await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-strip')).toBeVisible();
     await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-gauge-track, .gov-pi-strip-fold[open] .gov-pi-nodata')).toBeVisible();
@@ -156,14 +171,14 @@ test.describe('Governance PI intelligence', () => {
 
   test('scope capsule shows available and no sprint counts', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await expect(page.locator('.gov-scope-capsule-text')).toContainText(/5 available/);
     await expect(page.locator('.gov-scope-capsule-text')).toContainText(/1 no sprint/);
   });
 
   test('advanced scope opens intelligence drawer', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await page.locator('#gov-scope-change').click();
     await page.locator('#gov-scope-advanced').click();
     await expect(page.locator('#gov-right-drawer-title')).toContainText(/Scope intelligence/i);
@@ -171,8 +186,8 @@ test.describe('Governance PI intelligence', () => {
 
   test('epic hygiene and ad-hoc watcher render', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
-    await expect(page.locator('.gov-portfolio-grid-wrap')).toBeVisible();
+    await loadPiPage(page);
+    await expect(legacyBrief(page, '.gov-portfolio-grid-wrap')).toBeAttached();
     await openPiStripFoldIfPresent(page);
     await expect(page.locator('.gov-pi-hygiene-row, .gov-pi-hygiene-compact').first()).toBeVisible();
     await expect(page.locator('.gov-adhoc-chip')).toBeVisible();
@@ -180,7 +195,7 @@ test.describe('Governance PI intelligence', () => {
 
   test('comparison tray filters with 5 squads', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await expect(page.locator('.gov-comparison-refine summary')).toContainText(/Refine|squads/i);
     await page.locator('.gov-comparison-refine summary').click();
     await expect(page.locator('.gov-comparison-tray-bar')).toBeVisible();
@@ -190,11 +205,11 @@ test.describe('Governance PI intelligence', () => {
 
   test('visual answer blocks and trust chip row', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await expect(page.locator('.gov-visual-answer-blocks')).toBeAttached();
-    await expect(page.locator('.gov-scope-status-chip')).toBeVisible();
+    await expect(legacyBrief(page, '.gov-scope-status-chip')).toBeAttached();
     await expect(page.locator('#gov-review-actions')).toHaveCount(0);
-    await expect(page.locator('[data-grouped-nudge]').first()).toBeVisible();
+    await expect(legacyBrief(page, '[data-grouped-nudge]').first()).toBeAttached();
   });
 
   test('grouped inbox drawer shows group card', async ({ page }) => {
@@ -209,7 +224,7 @@ test.describe('Governance PI intelligence', () => {
         nudges: [], piDrift: [], confirm: [], impact: [], poReadiness: [],
       }),
     }));
-    await page.goto('/governance');
+    await loadPiPage(page);
     await page.locator('[data-queue-open]').click();
     await expect(page.locator('.gov-inbox-group-card')).toBeVisible();
     await expect(page.locator('.gov-inbox-group-card')).toContainText(/\d+ ·/i);
@@ -225,8 +240,8 @@ test.describe('Governance PI intelligence', () => {
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ projects: ['MPSA'], boards: [{ id: 1, name: 'MPSA', projectKey: 'MPSA' }], projectErrors: [] }),
     }));
-    await page.goto('/governance');
-    await expect(page.locator('.gov-portfolio-grid-wrap')).toBeVisible();
+    await loadPiPage(page);
+    await expect(legacyBrief(page, '.gov-portfolio-grid-wrap')).toBeAttached();
     await openPiStripFoldIfPresent(page);
     await page.locator('#gov-pi-fix-baseline').click();
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
@@ -251,7 +266,7 @@ test.describe('Governance PI intelligence', () => {
     await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify(trusted),
     }));
-    await page.goto('/governance');
+    await loadPiPage(page);
     await expect(page.locator('.gov-pi-strip.is-trusted')).toBeVisible();
     await expect(page.locator('.gov-pi-counter-row')).toHaveCount(0);
   });
@@ -260,7 +275,7 @@ test.describe('Governance PI intelligence', () => {
     const withGaps = { ...PI_BRIEF, meta: { ...PI_BRIEF.meta, setupGaps: [{ id: 'pi-baseline', action: 'set-baseline', severity: 'high' }] } };
     await mockPiPage(page);
     await page.route('**/api/governance-brief.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(withGaps) }));
-    await page.goto('/governance');
+    await loadPiPage(page);
     const expand = page.locator('#gov-setup-gaps-expand');
     if (await expand.count()) await expand.click();
     await expect(page.locator('.gov-fix-card')).toBeVisible();
@@ -269,14 +284,14 @@ test.describe('Governance PI intelligence', () => {
   test('narration trust badge and PI forum copy', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await page.locator('#gov-copy-pi-forum').dispatchEvent('click');
     await expect(page.locator('#gov-copy-pi-forum')).toContainText(/copied/i);
   });
 
   test('protect-me wording reveals safe line', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await expect(page.locator('.gov-command-answer')).toBeAttached();
     await page.locator('#gov-overflow-toggle').dispatchEvent('click');
     await page.locator('#gov-protect-me').dispatchEvent('click');
@@ -286,7 +301,7 @@ test.describe('Governance PI intelligence', () => {
 
   test('improvement lab opens from mount', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await page.evaluate(() => { document.getElementById('gov-secondary-chrome')?.removeAttribute('hidden'); });
     await page.locator('#gov-secondary-chrome summary').click({ force: true });
     await page.locator('#gov-open-feedback-lab').click({ force: true });
@@ -295,21 +310,21 @@ test.describe('Governance PI intelligence', () => {
 
   test('global agent bar hidden on governance (scope chip owns queue)', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await expect(page.locator('#gov-global-agent-bar')).toBeHidden();
-    await expect(page.locator('.gov-scope-status-chip')).toBeVisible();
+    await expect(legacyBrief(page, '.gov-scope-status-chip')).toBeAttached();
   });
 
   test('sticky answer mount exists', async ({ page }) => {
     await mockPiPage(page);
-    await page.goto('/governance');
+    await loadPiPage(page);
     await expect(page.locator('#gov-sticky-answer-mount')).toBeAttached();
   });
 
   test('telemetry clean on PI governance load', async ({ page }) => {
     const telemetry = await captureBrowserTelemetry(page, async () => {
       await mockPiPage(page);
-      await page.goto('/governance');
+      await loadPiPage(page);
       await openPiStripFoldIfPresent(page);
       await page.waitForSelector('.gov-pi-strip');
     });

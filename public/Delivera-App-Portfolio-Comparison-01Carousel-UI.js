@@ -8,20 +8,24 @@ function renderCard(card = {}) {
     <article class="portfolio-squad-card portfolio-squad-card--${statusClass}${selected}"
       data-squad-key="${escapeHtml(card.projectKey)}"
       ${card.selected ? 'aria-current="true"' : ''}
-      tabindex="0">
+      tabindex="0"
+      title="${escapeHtml(card.proofDetail || '')}">
       <header class="portfolio-squad-card-head">
         <h3>${escapeHtml(card.squadName || card.projectKey)}</h3>
         <span class="portfolio-squad-status portfolio-squad-status--${statusClass}">${escapeHtml(card.status || 'Watch')}</span>
       </header>
-      <dl class="portfolio-squad-metrics">
+      <dl class="portfolio-squad-intel">
+        <div><dt>Main issue</dt><dd>${escapeHtml(card.mainIssue || '')}</dd></div>
+        <div><dt>Affected commitments</dt><dd>${Number(card.affectedCommitmentCount) || 0}</dd></div>
+        <div><dt>Decision needed</dt><dd>${escapeHtml(card.decisionNeeded || '')}</dd></div>
+        <div><dt>Next action</dt><dd>${escapeHtml(card.nextAction || '')}</dd></div>
+      </dl>
+      <dl class="portfolio-squad-metrics portfolio-squad-metrics--compact">
         <div><dt>Delivered</dt><dd>${Number(m.delivered) || 0}%</dd></div>
-        <div><dt>Off-plan load</dt><dd>${Number(m.offPlanLoad) || 0}%</dd></div>
-        <div><dt>Proof confidence</dt><dd>${Number(m.proofConfidence) || 0}%</dd></div>
-        <div><dt>Commitments</dt><dd>${Number(m.commitments) || 0}</dd></div>
+        <div><dt>Proof</dt><dd>${Number(m.proofConfidence) || 0}%</dd></div>
       </dl>
       <p class="portfolio-squad-explanation" data-squad-explanation="${escapeHtml(card.projectKey)}">${escapeHtml(card.explanation || '')}</p>
-      <button type="button" class="btn btn-primary btn-compact portfolio-squad-action portfolio-squad-action--${statusClass}" data-squad-action="${escapeHtml(card.action?.id || 'review')}">${escapeHtml(card.action?.label || 'Review scope')} →</button>
-      <a class="portfolio-squad-view" href="${escapeHtml(card.viewSquadHref || '#')}">View squad</a>
+      ${card.hidePrimaryCta ? '' : `<a class="portfolio-squad-view" href="${escapeHtml(card.viewSquadHref || '#')}">View squad details</a>`}
     </article>`;
 }
 
@@ -29,23 +33,24 @@ export function renderPortfolioCarousel(comparison = {}) {
   const strip = comparison.actionsStrip || {};
   const cards = comparison.cards || [];
   const overflow = Number(comparison.overflowCount) || 0;
+  const hideArrows = cards.length <= 2;
   return `
-    <section class="portfolio-carousel-wrap" aria-label="Compare squads" data-portfolio-carousel>
+    <section class="portfolio-carousel-wrap${hideArrows ? ' portfolio-carousel-wrap--no-arrows' : ''}" aria-label="Compare squads" data-portfolio-carousel>
       <div class="portfolio-carousel-head">
-        <h2>Compare squads</h2>
+        <h2>Squad comparison</h2>
         <p class="portfolio-carousel-strip" data-portfolio-actions-strip>
-          Actions: ${strip.nudgesReady || 0} nudge${strip.nudgesReady === 1 ? '' : 's'} ready
+          ${strip.nudgesReady || 0} nudge${strip.nudgesReady === 1 ? '' : 's'} ready
           · ${strip.pending || 0} pending
           · Proof: ${escapeHtml(strip.proofLevel || 'Medium')}
         </p>
       </div>
       <div class="portfolio-carousel-controls">
-        <button type="button" class="portfolio-carousel-arrow" data-carousel-dir="prev" aria-label="Previous squad">‹</button>
+        ${hideArrows ? '' : '<button type="button" class="portfolio-carousel-arrow" data-carousel-dir="prev" aria-label="Previous squad">‹</button>'}
         <div class="portfolio-carousel-track" data-carousel-track tabindex="0" role="list">
           ${cards.map(renderCard).join('')}
           ${overflow > 0 ? `<div class="portfolio-squad-card portfolio-squad-card--overflow" role="listitem">+${overflow} more</div>` : ''}
         </div>
-        <button type="button" class="portfolio-carousel-arrow" data-carousel-dir="next" aria-label="Next squad">›</button>
+        ${hideArrows ? '' : '<button type="button" class="portfolio-carousel-arrow" data-carousel-dir="next" aria-label="Next squad">›</button>'}
       </div>
       <div class="portfolio-carousel-dots" data-carousel-dots aria-hidden="true"></div>
     </section>`;

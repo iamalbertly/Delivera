@@ -42,7 +42,9 @@ import {
 } from './Delivera-Governance-Brief-Page-02Loading-State.js';
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
-import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
+import { installPortfolioSurfaceHook, refreshPortfolioSurface } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
+import { seedFromBrief } from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
+import { readPortfolioAnchor } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 
 const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
@@ -94,9 +96,19 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
   renderBriefUi(brief);
   if (document.getElementById('portfolio-signal-mount')) {
     try {
-      const { refreshPortfolio } = await import('./Delivera-Portfolio-Page-Controller.js');
-      await refreshPortfolio();
-    } catch (_) { /* portfolio shell optional */ }
+      const anchor = readPortfolioAnchor(brief?.projects);
+      const periodKey = govPage.scopeBarApi?.getQuarterLabel?.() || brief?.meta?.quarter || '';
+      const seeded = await seedFromBrief({
+        brief,
+        projectsCsv: projectsCsv(),
+        periodKey,
+        anchorOnly: anchor,
+      });
+      govPage.lastPortfolioCases = seeded.cases || [];
+      await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
+    } catch (_) {
+      await refreshPortfolioSurface(brief, govPage.lastPortfolioCases || []);
+    }
   } else {
     deferScorecardUntilEvidenceOpen();
     hideGovernanceLoading();

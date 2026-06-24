@@ -3,6 +3,13 @@ import {
   captureBrowserTelemetry,
   assertTelemetryClean,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
+import {
+  waitForPortfolioReady,
+  legacyBrief,
+  clickLegacy,
+  mockPortfolioDecision,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 
 const SD_FIXTURE = {
   portfolio: 'SD',
@@ -79,20 +86,30 @@ test.describe('Executive Brief pulse realtime validation', () => {
       body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }),
     }));
 
-    await test.step('Stage A: hero squad layout visible, no attention table above fold', async () => {
+    await routeProjectsCatalog(page);
+    await mockPortfolioDecision(page, {
+      decision: {
+        narrative: { headline: 'DELIVERY BLOCKED. M-Pesa integration at risk', summary: SD_FIXTURE.leadershipNarrative.meetingAnswer },
+        aboveFold: { exposedCommitments: 1, actionsReady: 2, poResponsesRequired: 1 },
+      },
+    });
+
+    await test.step('Stage A: portfolio signal visible, legacy brief hydrated', async () => {
       await page.goto('/governance');
       if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-      await expect(page.locator('.gov-owner-cluster')).toBeVisible();
-      await expect(page.locator('.gov-scope-status-chip--blocked, .gov-scope-status-chip').first()).toContainText(/blocked|at risk/i);
-      await expect(page.locator('#gov-verdict-mount .gov-portfolio-grid-wrap--single, .gov-owner-cluster').first()).toBeVisible();
-      await expect(page.locator('.gov-command-answer, .gov-owner-cluster').first()).toContainText(/M-Pesa|blocked/i);
+      await waitForPortfolioReady(page);
+      await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+      await expect(legacyBrief(page, '.gov-owner-cluster')).toBeAttached();
+      await expect(legacyBrief(page, '.gov-scope-status-chip--blocked, .gov-scope-status-chip').first()).toContainText(/blocked|at risk/i);
+      await expect(legacyBrief(page, '#gov-verdict-mount .gov-portfolio-grid-wrap--single, .gov-owner-cluster').first()).toBeAttached();
+      await expect(legacyBrief(page, '.gov-command-answer, .gov-owner-cluster').first()).toContainText(/M-Pesa|blocked/i);
       await expect(page.locator('main .attention-queue-table')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
 
     await test.step('Stage B: owner cluster with grouped nudge', async () => {
-      await expect(page.locator('.gov-owner-cluster')).toHaveCount(1);
-      await expect(page.locator('[data-grouped-nudge="0"]')).toBeVisible();
+      await expect(legacyBrief(page, '.gov-owner-cluster')).toHaveCount(1);
+      await expect(legacyBrief(page, '[data-grouped-nudge="0"]')).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 

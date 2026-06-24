@@ -1,4 +1,5 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { listCases, loadCase, renderActionsCaseCard } from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
 
 const TABS = [
   { id: 'ready', label: 'Ready' },
@@ -38,25 +39,6 @@ function tabCounts(cases = []) {
   }, {});
 }
 
-function renderCaseCard(row = {}, { highlight = false } = {}) {
-  const proof = row.proofLevel || 'Medium';
-  return `
-    <article class="actions-case-card${highlight ? ' is-highlighted' : ''}" data-case-id="${escapeHtml(row.id)}" id="case-${escapeHtml(row.id)}">
-      <h2>${escapeHtml(row.title || `${row.project} scope review`)}</h2>
-      <p>${escapeHtml((row.issueKeys || []).length)} related issues · ${row.needsApproval ? '1+ nudges ready' : 'monitoring'} · Proof: ${escapeHtml(proof)}</p>
-      <button type="button" class="btn btn-primary btn-compact" data-open-case="${escapeHtml(row.id)}">Review case</button>
-    </article>`;
-}
-
-async function loadCases() {
-  const project = readQuery().get('project') || '';
-  const qs = project ? `?project=${encodeURIComponent(project)}&status=open` : '?status=open';
-  const res = await fetch(`/api/governance/interventions.json${qs}`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.cases || [];
-}
-
 function renderTabs(tab, counts = {}) {
   const mount = document.getElementById('actions-tabs');
   if (!mount) return;
@@ -77,7 +59,8 @@ function renderTabs(tab, counts = {}) {
 }
 
 async function paint(tab = activeTab()) {
-  const cases = await loadCases();
+  const project = readQuery().get('project') || '';
+  const cases = await listCases({ project, status: 'open' });
   const counts = tabCounts(cases);
   renderTabs(tab, counts);
   const list = document.getElementById('actions-list');
@@ -96,7 +79,7 @@ async function paint(tab = activeTab()) {
   if (list) {
     list.hidden = false;
     list.innerHTML = visible.length
-      ? visible.map((row) => renderCaseCard(row, { highlight: row.id === highlightId })).join('')
+      ? visible.map((row) => renderActionsCaseCard(row, { highlight: row.id === highlightId })).join('')
       : '<p class="actions-empty">No action needed now — monitoring continues.</p>';
     if (highlightId) {
       document.getElementById(`case-${highlightId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -106,10 +89,12 @@ async function paint(tab = activeTab()) {
 
 async function openCaseReview(caseId) {
   if (!caseId) return;
-  const res = await fetch(`/api/governance/interventions/${encodeURIComponent(caseId)}`);
-  if (!res.ok) return;
-  const data = await res.json();
-  const row = data.case || data;
+  let row;
+  try {
+    row = await loadCase(caseId);
+  } catch (_) {
+    return;
+  }
   const list = document.getElementById('actions-list');
   const card = document.getElementById(`case-${caseId}`);
   if (!card || !list) return;

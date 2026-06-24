@@ -15,24 +15,26 @@ import {
   refreshNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 
-const PAGE_DASHBOARD = 'dashboard';
-const PAGE_PI = 'program-increment';
-const PAGE_REPORT = 'report';
-const PAGE_EVIDENCE = 'evidence';
-const PAGE_SPRINTS = 'sprints';
-const PAGE_VALUE = 'value-delivery';
-const PAGE_RISKS = 'risks-blockers';
-const PAGE_LEADERSHIP = 'leadership';
-const PAGE_ACTIONS = 'actions';
-const PAGE_GOVERNANCE = 'governance';
-const PAGE_TEAMS = 'teams';
-const PAGE_SETTINGS = 'settings';
-const PAGE_LOGIN = 'login';
+import {
+  PAGE_DASHBOARD,
+  PAGE_PI,
+  PAGE_REPORT,
+  PAGE_EVIDENCE,
+  PAGE_SPRINTS,
+  PAGE_VALUE,
+  PAGE_RISKS,
+  PAGE_LEADERSHIP,
+  PAGE_ACTIONS,
+  PAGE_GOVERNANCE,
+  PAGE_TEAMS,
+  PAGE_SETTINGS,
+  PAGE_LOGIN,
+  LEADERSHIP_HASH,
+  PRIMARY_NAV_KEYS,
+  getPathState,
+  getCurrentPage,
+} from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
 const MOBILE_BREAKPOINT = 1200;
-const LEADERSHIP_HASH = '#trends';
-/** Portfolio command surface primaries. */
-const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_ACTIONS, PAGE_SETTINGS];
-const MORE_NAV_KEYS = [];
 const NAV_HREF_OVERRIDES = {
   [PAGE_RISKS]: '/current-sprint#stuck-card',
   [PAGE_TEAMS]: '/current-sprint',
@@ -136,30 +138,7 @@ const NAV_ITEMS = [
   },
 ];
 
-function getPathState() {
-  const path = typeof window !== 'undefined' && window.location ? window.location.pathname || '' : '';
-  const hash = typeof window !== 'undefined' && window.location ? window.location.hash || '' : '';
-  return { path, hash };
-}
-
-function getCurrentPage() {
-  const { path, hash } = getPathState();
-  if (path === '/login' || path.endsWith('/login')) return PAGE_LOGIN;
-  if (path === '/dashboard' || path.endsWith('/dashboard') || path === '/home' || path.endsWith('/home')) return PAGE_DASHBOARD;
-  if (path === '/program-increment' || path.endsWith('/program-increment') || path === '/roadmap' || path.endsWith('/roadmap')) return PAGE_PI;
-  if ((path === '/report' || path.endsWith('/report')) && hash === LEADERSHIP_HASH) return PAGE_REPORT;
-  if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
-  if (path === '/evidence' || path.endsWith('/evidence') || path === '/impact' || path.endsWith('/impact') || path === '/actions' || path.endsWith('/actions')) return PAGE_ACTIONS;
-  if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
-  if (path === '/value-delivery' || path.endsWith('/value-delivery') || path === '/backlog-intake' || path.endsWith('/backlog-intake')) return PAGE_VALUE;
-  if (path === '/risks-blockers' || path.endsWith('/risks-blockers')) return PAGE_RISKS;
-  if (path === '/leadership' || path.endsWith('/leadership') || path === '/sprint-leadership' || path.endsWith('/sprint-leadership')) return PAGE_GOVERNANCE;
-  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief') || path === '/portfolio' || path.endsWith('/portfolio')) return PAGE_GOVERNANCE;
-  if (path === '/teams' || path.endsWith('/teams')) return PAGE_TEAMS;
-  if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
-  return PAGE_REPORT;
-}
-
+const MORE_NAV_KEYS = [];
 function getNavItems(current) {
   const { path, hash } = getPathState();
   const onSprintRisksLens = (path === '/current-sprint' || path.endsWith('/current-sprint'))

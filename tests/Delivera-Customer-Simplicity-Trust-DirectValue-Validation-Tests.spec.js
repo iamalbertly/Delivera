@@ -5,6 +5,12 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 import {
+  waitForPortfolioReady,
+  legacyBrief,
+  clickLegacy,
+  mockPortfolioDecision,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
+import {
   assertTelemetryClean,
   captureBrowserTelemetry,
   skipIfRedirectedToLogin,
@@ -88,7 +94,10 @@ async function mockCustomerSimplicityRoutes(page) {
     try { localStorage.setItem(projectsKey, 'SD'); } catch (_) {}
   }, PROJECTS_SSOT_KEY);
   await routeProjectsCatalog(page);
-  await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**/api/governance/**', (r) => {
+    if (r.request().url().includes('portfolio-decision.json')) return r.continue();
+    return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: stubBlockedBrief(),
   }));
@@ -118,6 +127,7 @@ async function mockCustomerSimplicityRoutes(page) {
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ provider: 'openrouter', label: 'OpenRouter', configured: true, slideVisionReady: true, source: 'server' }),
   }));
+  await mockPortfolioDecision(page);
 }
 
 test.describe('Customer simplicity trust direct value validation', () => {
@@ -128,18 +138,18 @@ test.describe('Customer simplicity trust direct value validation', () => {
     await mockCustomerSimplicityRoutes(page);
     await page.setViewportSize({ width: 1400, height: 900 });
 
-    await test.step('01 brief loads owner cluster without extra scroll target', async () => {
+    await test.step('01 brief loads portfolio signal and legacy owner cluster', async () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('.gov-owner-cluster')).toBeVisible({ timeout: 20000 });
+      await waitForPortfolioReady(page);
+      await expect(page.locator('[data-portfolio-signal]')).toBeVisible({ timeout: 20000 });
+      await expect(legacyBrief(page, '.gov-owner-cluster')).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('02 desktop grid uses two columns', async () => {
-      const grid = page.locator('#main-content.governance-shell--desktop-grid');
-      await expect(grid).toBeVisible();
-      const cols = await grid.evaluate((el) => getComputedStyle(el).gridTemplateColumns);
-      expect(cols.split(' ').length).toBeGreaterThanOrEqual(2);
+    await test.step('02 portfolio shell active on governance', async () => {
+      const main = page.locator('#main-content.portfolio-shell--active, #main-content[data-gov-brief-state="content"]');
+      await expect(main.first()).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 
@@ -325,7 +335,10 @@ test.describe('Customer simplicity trust direct value validation', () => {
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ jiraBrowseHost: 'https://jira.example.com', boards: [{ projectKey: 'BIO' }] }),
     }));
-    await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    await page.route('**/api/governance/**', (r) => {
+    if (r.request().url().includes('portfolio-decision.json')) return r.continue();
+    return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
     await page.route('**/api/governance/pi-baseline/propose**', (r) => r.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ method: 'manual', candidates: [], guidanceCode: 'empty-board' }),

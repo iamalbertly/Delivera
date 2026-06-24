@@ -10,13 +10,14 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
 import net from 'net';
-import { getSteps } from './Delivera-Test-Orchestration-Steps.js';
+import { getSteps, getPrioritySteps } from './Delivera-Test-Orchestration-Steps.js';
 import { getSpecPathFromStep, selectStepsForRun } from './Delivera-Test-Selection-Helper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
-const steps = getSteps(projectRoot);
+if (process.argv.includes('--priority')) process.env.PRIORITY_ONLY = '1';
+const steps = process.env.PRIORITY_ONLY === '1' ? getPrioritySteps(projectRoot) : getSteps(projectRoot);
 const stateFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-State.json');
 const cancelFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-Cancel.json');
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';

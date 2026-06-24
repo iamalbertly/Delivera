@@ -29,8 +29,7 @@ export function getSteps(projectRoot) {
       ? []
       : [{ name: 'Install Dependencies', command: 'npm', args: ['install'], cwd: projectRoot }];
 
-  return [
-    ...installStep,
+  const tier0Css = [
     {
       name: 'Build CSS From Partials',
       command: 'npm',
@@ -43,6 +42,9 @@ export function getSteps(projectRoot) {
       args: ['run', 'check:css'],
       cwd: projectRoot,
     },
+  ];
+
+  const tier1Recent = [
     {
       name: 'Server Lifecycle Unit Tests (uptime guards)',
       command: 'node',
@@ -53,6 +55,18 @@ export function getSteps(projectRoot) {
       name: 'Governance Intervention Unit Tests (most recent code)',
       command: 'node',
       args: ['--test', 'tests/Delivera-Governance-Intervention-Case-Unit.mjs'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Portfolio Decision Intelligence Unit Tests',
+      command: 'node',
+      args: ['--test', 'tests/Delivera-Portfolio-Decision-Intelligence-Unit.mjs'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Cache Age-Tier TTL Unit Tests',
+      command: 'node',
+      args: ['--test', 'tests/Delivera-Cache-AgeTier-TTL-Unit.mjs'],
       cwd: projectRoot,
     },
     {
@@ -67,12 +81,9 @@ export function getSteps(projectRoot) {
       args: ['run', 'test:journey:portfolio'],
       cwd: projectRoot,
     },
-    {
-      name: 'Run Settings Master Plan Journey',
-      command: 'npm',
-      args: ['run', 'test:journey:settings-masterplan'],
-      cwd: projectRoot,
-    },
+  ];
+
+  const tier2LastFailed = [
     {
       name: 'Run Cross-Page Persistence (last failed)',
       command: 'npx',
@@ -86,9 +97,9 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
-      name: 'Run Direct Value Master Plan Journey',
+      name: 'Run Current Sprint Dedupe Fold Journey',
       command: 'npm',
-      args: ['run', 'test:journey:direct-value-masterplan'],
+      args: ['run', 'test:current-sprint:dedupe-fold'],
       cwd: projectRoot,
     },
     {
@@ -97,22 +108,43 @@ export function getSteps(projectRoot) {
       args: ['run', 'test:focused'],
       cwd: projectRoot,
     },
+  ];
+
+  const tier3Critical = [
+    {
+      name: 'Run Brief SSOT Loading And Scope Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:brief-ssot'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Governance Decision Cockpit Journey',
+      command: 'npx',
+      args: pwJourneyArgs('journey.governance'),
+      cwd: projectRoot,
+    },
+  ];
+
+  const tier4Layout = [
     {
       name: 'Run Layout Overlap Journey',
       command: 'npm',
       args: ['run', 'test:journey:layout-overlap'],
       cwd: projectRoot,
     },
+  ];
+
+  const tier5Regression = [
     {
-      name: 'Run Current Sprint Dedupe Fold Journey',
+      name: 'Run Settings Master Plan Journey',
       command: 'npm',
-      args: ['run', 'test:current-sprint:dedupe-fold'],
+      args: ['run', 'test:journey:settings-masterplan'],
       cwd: projectRoot,
     },
     {
-      name: 'Run Brief SSOT Loading And Scope Journey',
+      name: 'Run Direct Value Master Plan Journey',
       command: 'npm',
-      args: ['run', 'test:journey:brief-ssot'],
+      args: ['run', 'test:journey:direct-value-masterplan'],
       cwd: projectRoot,
     },
     {
@@ -125,12 +157,6 @@ export function getSteps(projectRoot) {
       name: 'PI Baseline Slide Upload Probe (WhatsApp JPEG)',
       command: 'node',
       args: ['scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js'],
-      cwd: projectRoot,
-    },
-    {
-      name: 'Run Governance Decision Cockpit Journey',
-      command: 'npx',
-      args: pwJourneyArgs('journey.governance'),
       cwd: projectRoot,
     },
     {
@@ -176,4 +202,37 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
   ];
+
+  const allSteps = [
+    ...installStep,
+    ...tier0Css,
+    ...tier1Recent,
+    ...tier2LastFailed,
+    ...tier3Critical,
+    ...tier4Layout,
+    ...tier5Regression,
+  ];
+  return allSteps;
+}
+
+const PRIORITY_STEP_NAMES = new Set([
+  'Install Dependencies',
+  'Build CSS From Partials',
+  'Verify Generated CSS Is In Sync',
+  'Server Lifecycle Unit Tests (uptime guards)',
+  'Governance Intervention Unit Tests (most recent code)',
+  'Portfolio Decision Intelligence Unit Tests',
+  'Cache Age-Tier TTL Unit Tests',
+  'Governance Intervention Loop Journey (most recent code)',
+  'Portfolio Command Surface Journey (most recent code)',
+  'Run Cross-Page Persistence (last failed)',
+  'Run Value Retention Master Plan Journey',
+  'Run Current Sprint Dedupe Fold Journey',
+  'Run Focused Playwright Contracts',
+  'Run Brief SSOT Loading And Scope Journey',
+  'Run Governance Decision Cockpit Journey',
+]);
+
+export function getPrioritySteps(projectRoot) {
+  return getSteps(projectRoot).filter((step) => PRIORITY_STEP_NAMES.has(step.name));
 }

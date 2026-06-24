@@ -30,39 +30,24 @@ export const TOP_CHROME_SELECTORS = {
   avatar: '[data-top-action="avatar"]',
 };
 
-const PAGE_LOGIN = 'login';
-const PAGE_ACTIONS = 'actions';
-const PAGE_GOVERNANCE = 'governance';
-const PAGE_SPRINTS = 'sprints';
-const PAGE_REPORT = 'report';
-const PAGE_EVIDENCE = 'evidence';
-const PAGE_SETTINGS = 'settings';
+import {
+  PAGE_LOGIN,
+  PAGE_ACTIONS,
+  PAGE_GOVERNANCE,
+  PAGE_SPRINTS,
+  PAGE_REPORT,
+  PAGE_EVIDENCE,
+  PAGE_SETTINGS,
+  SURFACE_SWITCHER,
+  getChromeSurfacePage,
+  getCurrentPageForChrome,
+  getCurrentPage,
+} from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
+
 const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
 const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
 
-const SURFACE_SWITCHER = [
-  { key: PAGE_GOVERNANCE, label: 'Portfolio', href: '/governance' },
-  { key: PAGE_SPRINTS, label: 'Squads', href: '/current-sprint' },
-  { key: PAGE_ACTIONS, label: 'Actions', href: '/actions' },
-  { key: PAGE_SETTINGS, label: 'Settings', href: '/settings' },
-];
-
-function getPathState() {
-  const path = typeof window !== 'undefined' && window.location ? window.location.pathname || '' : '';
-  const hash = typeof window !== 'undefined' && window.location ? window.location.hash || '' : '';
-  return { path, hash };
-}
-
-export function getCurrentPageForChrome() {
-  const { path } = getPathState();
-  if (path === '/login' || path.endsWith('/login')) return PAGE_LOGIN;
-  if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief') || path === '/portfolio' || path.endsWith('/portfolio')) return PAGE_GOVERNANCE;
-  if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
-  if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
-  if (path === '/actions' || path.endsWith('/actions') || path === '/evidence' || path.endsWith('/evidence') || path === '/impact' || path.endsWith('/impact')) return PAGE_ACTIONS;
-  if (path === '/report' || path.endsWith('/report')) return PAGE_ACTIONS;
-  return PAGE_REPORT;
-}
+export { getCurrentPageForChrome, getChromeSurfacePage };
 
 function searchPlaceholder(page) {
   if (page === PAGE_GOVERNANCE) return 'Search squads…';
@@ -105,10 +90,11 @@ export function syncSidebarCollapsedFromStorage() {
   writeSidebarCollapsed(readSidebarCollapsed());
 }
 
-function applyDefaultSidebarCollapsed(current) {
+function applyDefaultSidebarCollapsed() {
   try {
     if (localStorage.getItem(SIDEBAR_COLLAPSED_PRESET_KEY)) return;
-    if (current === PAGE_REPORT || current === PAGE_GOVERNANCE) {
+    const page = getCurrentPage();
+    if (page === PAGE_REPORT || page === PAGE_GOVERNANCE) {
       writeSidebarCollapsed(true);
       localStorage.setItem(SIDEBAR_COLLAPSED_PRESET_KEY, '1');
     }
@@ -232,7 +218,7 @@ function truncate(s, max) {
 function delegateSearch(page, query) {
   const q = String(query || '').trim();
   if (page === PAGE_GOVERNANCE) {
-    const mount = document.getElementById('gov-scope-bar-mount');
+    const mount = document.getElementById('portfolio-scope-bar-mount') || document.getElementById('gov-scope-bar-mount');
     const target = mount?.querySelector('#gov-scope-expanded [data-project]') || mount;
     target?.focus?.({ preventScroll: true });
     const input = document.querySelector('#gov-scope-bar-mount input[type="search"], #gov-scope-bar-mount input[type="text"]');
@@ -340,13 +326,13 @@ function bindTopChromeInteractions(chrome, current) {
   search?.addEventListener('input', () => {
     if (searchTimer) window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(() => {
-      delegateSearch(getCurrentPageForChrome(), search.value);
+      delegateSearch(getCurrentPage(), search.value);
     }, 200);
   });
   search?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      delegateSearch(getCurrentPageForChrome(), search.value);
+      delegateSearch(getCurrentPage(), search.value);
     }
   });
   search?.addEventListener('focus', () => {
@@ -509,7 +495,7 @@ export function ensureSubChromeSlot() {
 
 function syncGovernanceScopeBarHeight() {
   if (getCurrentPageForChrome() !== PAGE_GOVERNANCE) return;
-  const bar = document.getElementById('gov-scope-bar-mount');
+  const bar = document.getElementById('portfolio-scope-bar-mount') || document.getElementById('gov-scope-bar-mount');
   if (!bar) return;
   const publish = () => {
     const h = Math.ceil(bar.getBoundingClientRect().height || 44);
@@ -547,7 +533,7 @@ export function ensureTopChrome() {
   delete chrome.dataset.topChromeBound;
   chrome.innerHTML = buildTopChromeHTML(current);
   document.body.classList.add('has-top-chrome', 'chrome-suppress-page-create');
-  applyDefaultSidebarCollapsed(current);
+  applyDefaultSidebarCollapsed();
   syncSidebarCollapsedFromStorage();
   bindTopChromeInteractions(chrome, current);
   syncMobileSearchCollapse(chrome);

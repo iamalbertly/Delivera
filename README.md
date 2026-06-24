@@ -14,7 +14,7 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 | `/report` | **Proof** | Evidence and drill-down (unchanged route; top chrome links here from legacy bookmarks) |
 | `/settings` | **Settings** | My workspace prefs, read-only org catalog, integrations health, Jira activity |
 
-**Portfolio command surface (`/governance`):** mockup-aligned scope filters (**Selected / Compare with / Timeframe / Baseline**), circular metric gauges, squad carousel with working **Review scope →** and card-select anchor, decision trio (Keep funding · Review investment · Move capacity), and **Review actions →** deep-link to `/actions`. SSOT: `Delivera-App-Portfolio-ScopeBar-01Render-UI.js`, `Delivera-Governance-PortfolioDecision-01SSOT.js`. Gate: `npm run test:journey:portfolio` (16 journey-value steps).
+**Portfolio command surface (`/governance`):** decision-intelligence layout — AI portfolio signal with above-fold stats (exposed commitments, actions ready, PO responses, deadline), **Affected commitments** list, **Prepared actions** strip, squad comparison cards (main issue / decision / next action), and decision rail with impact previews + progression ladder. Compact metric row (no circular gauges). Single load pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js`. Decision SSOT: `Delivera-Governance-PortfolioDecision-01SSOT.js` + `Delivera-Governance-PortfolioExposure-01SSOT.js` (gap classification, commitments, prepared actions, peer narrative). Scope SSOT: `Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js` + `03Shared-Kernel-SSOT.js` + `04Portfolio-Mode-Render-UI.js`. Intervention client: `Delivera-App-Governance-InterventionCase-02Client-SSOT.js`. Nav routes: `Delivera-Shared-Page-Route-01Resolve-SSOT.js`. Gate: `npm run test:journey:portfolio` + `tests/Delivera-Portfolio-Decision-Intelligence-Unit.mjs`.
 
 **Actions (`/actions`):** tab badges show ready-case counts; `?caseId=` highlights the matching card. `/evidence` and `/impact` redirect here. `/portfolio` redirects to `/governance`.
 
@@ -28,10 +28,11 @@ Impact adds a role-aware intelligence layer without replacing Jira, SuccessFacto
 
 Root `/` lands on Brief when auth is off; otherwise follows your configured auth landing.
 
-## Global chrome
+**Global chrome**
 
 Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Shared-Top-Chrome-01Render-UI.js`):
 
+- **Site-wide nav SSOT:** `Delivera-Shared-Page-Route-01Resolve-SSOT.js` — `SURFACE_SWITCHER`, `PRIMARY_NAV_KEYS`, `getSurfaceQuickLinks()` (settings quick-nav), `getChromeSurfacePage()`. Sidebar + mobile bottom nav + top switcher all derive labels/hrefs from this module via `Delivera-Shared-Global-Nav.js`.
 - **Answer · Today · Proof** surface switcher maps to **Portfolio · Squads · Actions · Settings** (`Delivera-Shared-Top-Chrome-01Render-UI.js`)
 - Sidebar toggle, workspace context, search, **Create**, notifications, help, settings, avatar
 - Left sidebar: context card + data pulse only (nav links hidden on desktop)
@@ -49,6 +50,8 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - **Cache-first paint:** `peekGovernanceBriefCache` renders the last scoped answer before network; **Refresh** calls `invalidateBriefCacheEntry` + `?refresh=1` on client and server
 - **Scope SSOT:** project changes call `notifyScopeChanged()` (`Delivera-Shared-Scope-Notify-01Bridge.js`) so sidebar, top chrome, and scope bar stay aligned; cross-tab `storage` events also notify; scope change invalidates brief cache and forces reload; quarter key is `GOVERNANCE_QUARTER_KEY` in `Delivera-Shared-Storage-Keys.js`
 - Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) keys on `periodWindow` as well as projects/quarter — period chip invalidates cache before reload; deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
+- **Server cache (age-tier TTL):** `lib/Delivera-Cache-AgeTier-01TTL-SSOT.js` drives `governanceBrief` and `portfolioDecision` namespaces in `lib/cache.js` (fresher data → shorter TTL; stale serve on Jira outage via `getWithStaleFallback`). Set `CACHE_BACKEND=redis` + `REDIS_URL` for shared cache across Node instances.
+- **Client portfolio-decision cache:** `Delivera-Shared-Portfolio-Decision-Client-Cache-01Bridge.js` — peek + background revalidate on scope refresh (3m cap, respects server `meta.cacheTtlMs`).
 - Brief load runs inbox + brief in parallel; scorecard defers until evidence `<details>` opens
 - **Intervention stream:** `#gov-intervention-case-mount` appears only when the Brief has Jira-backed cases needing a human decision. It seeds/dedupes intervention cases from existing risks, reviews Teams/email-ready nudges, blocks unresolved recipients or changed issues, and keeps `/api/governance/intervention-shortlist.json` compatible.
 - **Above-fold order (single squad):** squad hero card (`#gov-verdict-mount[data-hero-squad]`) first — portfolio banner, compare tray, sprint pulse, cause/action, open sprint/evidence — then compact copy/overflow actions → owner clusters → setup debt → proof preview; **right rail** holds agent queue + PI strip only (desktop sticky column 2). Duplicate lead-blocker strip and command visual blocks hide when hero is active (`governance-shell--hero-squad`). Multi-squad: heat tiles in hero mount; supporting evidence `<details>` stays collapsed when owner clusters exist; feedback in collapsed `<details>`
@@ -105,7 +108,8 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run validate:jira-env` | Probe Jira `/myself` with `.env` |
 | `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
-| `npm run test:all` | Full fail-fast orchestration |
+| `npm run test:all` | Full fail-fast orchestration (reordered tiers) |
+| `npm run test:all:priority` | Tier 0–3 gate: CSS, portfolio units, cross-page/value/sprint/focused, brief-ssot + governance journey |
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:journey:settings-masterplan` | Settings hub, display names, integrations deep links |
