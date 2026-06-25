@@ -67,6 +67,14 @@ export function renderWhyThisMatters(drivers = []) {
   return renderDrivers(drivers);
 }
 
+function primaryDecisionLabel(decision = {}) {
+  const ready = Number(decision.preparedActions?.totalReady) || Number(decision.trust?.nudgesReady) || 0;
+  const anchor = decision.anchorProject || 'squad';
+  if (ready > 0) return `Deploy ${ready} prepared intervention${ready === 1 ? '' : 's'}`;
+  if (decision.epicLineage?.unalignedStoryCount) return 'Map stories to PI Epic';
+  return `Resolve ${anchor} delivery gap`;
+}
+
 export function renderPortfolioDecisionPanel(decision = {}) {
   const recommended = decision.recommendation?.id || 'track-commitments';
   return `
@@ -75,7 +83,7 @@ export function renderPortfolioDecisionPanel(decision = {}) {
       ${renderProgression(decision.decisionProgression)}
       ${renderDrivers(decision.drivers)}
       ${renderDecisionBasis(decision.decisionBasis || {})}
-      <button type="button" class="btn btn-primary portfolio-decision-confirm" data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}">Confirm tracking posture</button>
+      <button type="button" class="btn btn-primary portfolio-decision-confirm" data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}">${escapeHtml(primaryDecisionLabel(decision))}</button>
       <p class="portfolio-decision-calibration-hint">Use the Calibration shield above for the room-ready defense.</p>
     </section>`;
 }

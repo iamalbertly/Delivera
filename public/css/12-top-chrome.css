@@ -22,6 +22,9 @@ body.governance-page .app-top-brand-context {
 .app-top-ai-trust-pill[data-ai-trust-pill="server"] {
   background: rgba(120, 220, 160, 0.22);
 }
+.app-top-ai-trust-pill--busy {
+  background: rgba(252, 211, 77, 0.22);
+}
 .app-top-ai-trust-pill--dot {
   width: 28px;
   min-width: 28px;
@@ -57,6 +60,13 @@ body.governance-page .app-top-brand-context {
   background: var(--top-chrome-bg, var(--primary-strong));
   color: #fff;
   box-shadow: 0 2px 12px rgba(72, 22, 22, 0.22);
+}
+
+body.has-top-chrome {
+  --sticky-global-nav-top: var(--top-chrome-height, 56px);
+  --sticky-offset: var(--top-chrome-height, 56px);
+  box-sizing: border-box;
+  padding-top: var(--top-chrome-height, 56px);
 }
 
 .app-top-chrome-inner {
@@ -433,10 +443,6 @@ body.governance-page .app-top-brand-context {
   text-decoration: underline;
 }
 
-body.has-top-chrome {
-  padding-top: var(--top-chrome-height, 56px);
-}
-
 body.has-top-chrome .app-sidebar {
   top: var(--top-chrome-height, 56px);
   height: calc(100vh - var(--top-chrome-height, 56px));
@@ -552,11 +558,13 @@ body.governance-page .app-notification-slot .app-notification-dock {
   pointer-events: auto;
 }
 
-body.governance-page.notification-dock-open #gov-scope-bar-mount {
+body.governance-page.notification-dock-open #gov-scope-bar-mount,
+body.governance-page.notification-dock-open #portfolio-scope-bar-mount {
   scroll-margin-top: calc(var(--top-chrome-height, 56px) + 12px);
 }
 
-body.governance-page.notification-dock-open .gov-scope-capsule {
+body.governance-page.notification-dock-open .gov-scope-capsule,
+body.governance-page.notification-dock-open .portfolio-scope-filters {
   padding-right: 8px;
 }
 
@@ -740,3 +748,11 @@ body.governance-page.notification-dock-open .gov-scope-capsule {
 .delivera-improve-check { display: block; font-size: 0.82rem; margin-bottom: 8px; }
 .delivera-improve-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .delivera-improve-status { font-size: 0.82rem; color: #1b4f9c; min-height: 1.2em; }
+
+@media (max-width: 768px) {
+  .app-top-switcher-item {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.5rem;
+    letter-spacing: 0.01em;
+  }
+}

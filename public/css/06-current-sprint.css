@@ -4532,6 +4532,15 @@ body.current-sprint-page .current-sprint-header-bar {
   backdrop-filter: saturate(1.18) blur(12px);
 }
 
+body.current-sprint-page.has-top-chrome .current-sprint-header-bar {
+  top: var(--sticky-global-nav-top, var(--top-chrome-height, 56px));
+  scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + 8px);
+}
+
+body.current-sprint-page.has-top-chrome #main-content {
+  scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + 12px);
+}
+
 body.current-sprint-page .header-row,
 body.current-sprint-page .header-follow-up-row,
 body.current-sprint-page .header-health-note,

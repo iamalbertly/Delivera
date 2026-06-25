@@ -2,6 +2,7 @@ import { escapeHtml, renderStructuredEvidence } from './Delivera-App-Governance-
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { renderInvestmentBodyHtml } from './Delivera-App-Governance-Brief-17Render-InvestmentDrawer-UI.js';
+import { ensureLegacyBriefSurfacesHydrated } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import {
   GOV_DRAWER_TAB_KEY,
   activateTabStrip,
@@ -12,6 +13,7 @@ import {
 const DRAWER_TAB_KEYS = ['proof', 'investment'];
 
 export function openEvidenceDrawer(brief, risks = [], { initialTab = 'proof' } = {}) {
+  ensureLegacyBriefSurfacesHydrated(brief);
   const rows = brief?.evidencePack?.rows || [];
   const keys = new Set(risks.map((r) => String(r.issueKey || '').toUpperCase()).filter(Boolean));
   const filtered = keys.size
@@ -19,7 +21,7 @@ export function openEvidenceDrawer(brief, risks = [], { initialTab = 'proof' } =
     : rows;
   let body = '';
   if (!filtered.length) {
-    body = '<p class="governance-empty">No changelog evidence fetched for these items.</p>';
+    body = '<p class="governance-empty">No proof packet is ready for these items yet. Delivera keeps the Jira watch in the background; this is not a second backlog to browse.</p>';
   } else {
     body = filtered.map((row) => {
       const risk = risks.find((r) => String(r.issueKey).toUpperCase() === String(row.issueKey).toUpperCase()) || { issueKey: row.issueKey, evidence: row.whyFlagged };
@@ -34,6 +36,7 @@ export function openEvidenceDrawer(brief, risks = [], { initialTab = 'proof' } =
   const activeTab = DRAWER_TAB_KEYS.includes(initialTab) ? initialTab : savedTab;
   const proofActive = activeTab !== 'investment';
   const drawerBody = `
+    <p class="gov-evidence-drawer-framing">Proof is not another Jira table or PowerBI view. It is the defendable trail for why a PI commitment is blocked, diverted, or not traceable.</p>
     <div class="gov-drawer-tabs gov-tab-strip" role="tablist">
       <button type="button" class="gov-drawer-tab gov-tab${proofActive ? ' is-active' : ''}" data-drawer-tab="proof">${escapeHtml(COPY.drawerTabProof)}</button>
       <button type="button" class="gov-drawer-tab gov-tab${!proofActive ? ' is-active' : ''}" data-drawer-tab="investment">${escapeHtml(COPY.drawerTabInvestment)}</button>

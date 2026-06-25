@@ -14,7 +14,7 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 | `/report` | **Proof** | Evidence and drill-down (unchanged route; top chrome links here from legacy bookmarks) |
 | `/settings` | **Settings** | My workspace prefs, read-only org catalog, integrations health, Jira activity |
 
-**Portfolio command surface (`/governance`):** direct-to-value layout — one operational headline, compressed compare summary (`+N Squads`), text fiscal timebox, single PI alignment rail, visible epic context, baseline-to-Jira reconciler strip, Action Stream, and audience-aware **Calibration Shield** copy. Legacy brief DOM hydrates on-demand via `ensureLegacyBriefSurfacesHydrated` (not on initial portfolio paint). Keyboard: `R` refresh scope, `C` copy defense, `N` nudge/drawer. Pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js` + `Delivera-App-Portfolio-Signal-01Render-UI.js` + `Delivera-App-Portfolio-Actions-01Bridge.js`.
+**Portfolio command surface (`/governance`):** direct-to-value layout — one operational headline, compressed compare summary (`+N Squads`), text fiscal timebox, single PI alignment rail, visible epic context, baseline-to-Jira reconciler strip, unaligned-story warning, Action Stream, and audience-aware **Calibration Shield** copy. The squad performance grid mounts directly under `#portfolio-signal-mount` on wide screens, not buried in the right rail. Legacy brief DOM hydrates on-demand via `ensureLegacyBriefSurfacesHydrated` (not on initial portfolio paint). Keyboard: `R` refresh scope, `C` copy defense, `N` nudge/drawer. Pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js` + `Delivera-App-Portfolio-Signal-01Render-UI.js` + `Delivera-App-Portfolio-Actions-01Bridge.js`.
 
 **Actions (`/actions`):** tab badges show ready-case counts; `?caseId=` highlights the matching card. `/evidence` and `/impact` redirect here. `/portfolio` redirects to `/governance`.
 
@@ -33,6 +33,7 @@ Root `/` lands on Brief when auth is off; otherwise follows your configured auth
 Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Shared-Top-Chrome-01Render-UI.js`):
 
 - **Site-wide nav SSOT:** `Delivera-Shared-Page-Route-01Resolve-SSOT.js` — `SURFACE_SWITCHER`, `PRIMARY_NAV_KEYS`, `getSurfaceQuickLinks()` (settings quick-nav), `getChromeSurfacePage()`. Sidebar + mobile bottom nav + top switcher all derive labels/hrefs from this module via `Delivera-Shared-Global-Nav.js`.
+- **Layout contract:** `body.has-top-chrome` owns `--sticky-global-nav-top` and `--sticky-offset`; sprint and governance sticky bars consume those variables so page content does not render behind the global nav.
 - **Answer · Today · Proof** surface switcher maps to **Portfolio · Squads · Actions · Settings** (`Delivera-Shared-Top-Chrome-01Render-UI.js`)
 - Sidebar toggle, workspace context, search, **Create**, notifications, help, settings, avatar
 - Left sidebar: context card + data pulse only (nav links hidden on desktop)
@@ -47,7 +48,7 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 
 - Shared project catalog (`GET /api/projects-catalog.json` + optional `data/Delivera-Org-Project-Catalog.json`; display names via `Delivera-Shared-Project-Display-01Resolve-SSOT.js`)
 - **Loading shell:** portfolio path paints `#portfolio-signal-mount` skeleton only (`showPortfolioLoading`); legacy `#gov-brief-content` stays hidden during load. Scope bar hides **Refresh** when client/server cache is fresh and shows an **Updating…** chip during background revalidate (`setCacheUxState` on `ScopeBar-04Portfolio-Mode-Render-UI.js`).
-- **Shared UI primitives:** Jira story/epic titles render through `Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js` for full hover titles + preview-ready issue keys; long-running waits render through `Delivera-Shared-Loading-State-01Render-UI.js`.
+- **Shared UI primitives:** Jira story/epic titles render through `Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js` for full hover/focus titles + preview-ready issue keys; long-running waits render through `Delivera-Shared-Loading-State-01Render-UI.js`.
 - **Cache-first paint:** `peekGovernanceBriefCache` renders the last scoped answer before network; **Refresh** calls `invalidateBriefCacheEntry` + `?refresh=1` on client and server
 - **Scope SSOT:** project changes call `notifyScopeChanged()` (`Delivera-Shared-Scope-Notify-01Bridge.js`) so sidebar, top chrome, and scope bar stay aligned; cross-tab `storage` events also notify; scope change invalidates brief cache and forces reload; quarter key is `GOVERNANCE_QUARTER_KEY` in `Delivera-Shared-Storage-Keys.js`
 - Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) keys on `periodWindow` as well as projects/quarter — period chip invalidates cache before reload; deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips

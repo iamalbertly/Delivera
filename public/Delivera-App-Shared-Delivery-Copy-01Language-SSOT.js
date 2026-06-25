@@ -157,8 +157,8 @@ export const COPY = {
   scrumMaster: 'SM',
   productOwner: 'PO',
   alignmentSummary: 'items PI-aligned',
-  drawerTabProof: 'Proof',
-  drawerTabInvestment: 'Investment',
+  drawerTabProof: 'Proof trail',
+  drawerTabInvestment: 'PI baseline',
   portfolioStaleHint: 'Stale — refresh for live nudge',
 };
 

@@ -65,6 +65,7 @@ test('portfolio decision exposes epic lineage for user-story context', async () 
         stories: [
           { issueKey: 'SD-1', epicKey: 'SD-100', epicSummary: 'Recharge Growth Modernization', status: 'In Progress' },
           { issueKey: 'SD-2', epicKey: 'SD-100', epicSummary: 'Recharge Growth Modernization', status: 'Done' },
+          { issueKey: 'SD-3', summary: 'Ad hoc production recovery', status: 'In Progress' },
         ],
       },
     }],
@@ -82,6 +83,8 @@ test('portfolio decision exposes epic lineage for user-story context', async () 
   const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', cases: [] });
   assert.equal(decision.epicLineage.primary.epicKey, 'SD-100');
   assert.equal(decision.epicLineage.coveredStoryCount, 2);
+  assert.equal(decision.epicLineage.unalignedStoryCount, 1);
+  assert.equal(decision.epicLineage.unalignedStories[0].issueKey, 'SD-3');
   assert.match(decision.epicLineage.label, /Recharge Growth Modernization/);
   assert.equal(decision.metrics.delivery.methodLabel, 'Progress by delivery evidence');
   assert.equal(decision.timebox.totalDays, 90);

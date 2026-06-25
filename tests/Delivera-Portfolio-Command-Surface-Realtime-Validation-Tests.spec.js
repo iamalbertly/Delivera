@@ -101,6 +101,8 @@ async function mockPortfolioPage(page) {
         epics: [{ epicKey: 'SD-100', title: 'Recharge Growth Modernization', storyCount: 2 }],
         count: 1,
         coveredStoryCount: 2,
+        unalignedStoryCount: 1,
+        unalignedStories: [{ issueKey: 'SD-9090', title: 'Emergency customer remediation without PI Epic', status: 'In Progress' }],
         affectedCommitmentCount: 1,
         label: 'SD-100: Recharge Growth Modernization',
         hasLineage: true,
@@ -192,12 +194,15 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-portfolio-signal]', { timeout: 120000 });
     await expect(page.locator('[data-portfolio-signal]')).toContainText(/AI portfolio signal/i);
+    await expect(page.locator('#portfolio-signal-mount + #portfolio-rail-carousel-mount')).toHaveCount(1);
     await expect(page.locator('.portfolio-gauge')).toHaveCount(0);
     await expect(page.locator('.portfolio-metric-row .portfolio-progress-row')).toHaveCount(3);
     await expect(page.locator('[data-portfolio-timebox-rail]')).toContainText(/Day 45 of 90/i);
     await expect(page.locator('[data-portfolio-reconciler]')).toContainText(/Live Jira epic/i);
     await expect(page.locator('[data-portfolio-commitments]')).toBeVisible();
     await expect(page.locator('[data-portfolio-epic-lineage]')).toContainText(/Recharge Growth Modernization/i);
+    await expect(page.locator('[data-portfolio-unaligned-stories]')).toContainText(/missing aligned Epic/i);
+    await expect(page.locator('[data-portfolio-unaligned-stories] [data-jira-work-item-link]')).toHaveAttribute('title', /Emergency customer remediation/i);
     await expect(page.locator('.portfolio-commitment-title [data-jira-work-item-link]').first()).toHaveAttribute('title', /Recharge/i);
     await expect(page.locator('[data-trust-live-cases]')).toContainText(/live case/i);
     await expect(page.locator('[data-portfolio-calibration-inline] [data-portfolio-action="copy-calibration-defense"]')).toBeVisible();

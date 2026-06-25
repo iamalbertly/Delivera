@@ -1,6 +1,7 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { buildCalibrationExcerpt } from './Delivera-App-Portfolio-Actions-01Bridge.js';
 import { portfolioCanonicalCounts } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
 
 const MAX_HEADLINE = 92;
 
@@ -121,6 +122,29 @@ function renderCommitmentReconciler(decision = {}) {
     </div>`;
 }
 
+function renderUnalignedStories(epic = {}) {
+  const count = Number(epic.unalignedStoryCount) || 0;
+  if (!count) return '';
+  const stories = Array.isArray(epic.unalignedStories) ? epic.unalignedStories.slice(0, 4) : [];
+  const rows = stories.map((story) => `
+    <li>
+      ${renderJiraWorkItemLink({
+        issueKey: story.issueKey,
+        title: story.title,
+        issueUrl: story.issueUrl || '',
+        kind: 'story',
+        className: 'portfolio-unaligned-story-link',
+      })}
+      <span>${escapeHtml(story.status || 'Needs epic')}</span>
+    </li>`).join('');
+  return `
+    <div class="portfolio-unaligned-stories" data-portfolio-unaligned-stories>
+      <strong>${count} user stor${count === 1 ? 'y' : 'ies'} missing aligned Epic</strong>
+      <p>Governance cannot call this PI-safe until the story is tied to the committed Epic.</p>
+      ${rows ? `<ul>${rows}</ul>` : ''}
+    </div>`;
+}
+
 export function renderPortfolioSignal(decision = {}, { cachedAt = '', cached = false, brief = {} } = {}) {
   const m = decision.metrics || {};
   const trust = decision.trust || {};
@@ -153,6 +177,7 @@ export function renderPortfolioSignal(decision = {}, { cachedAt = '', cached = f
           <p class="portfolio-signal-main-issue"><strong>Main issue:</strong> ${escapeHtml(above.mainIssue || narrative.mainIssue || '')}</p>
           ${epic.label ? `<p class="portfolio-signal-epic" data-portfolio-epic-lineage><strong>Epic context:</strong> ${escapeHtml(epic.label)}${epic.coveredStoryCount ? ` - ${Number(epic.coveredStoryCount)} user stor${Number(epic.coveredStoryCount) === 1 ? 'y' : 'ies'} tied to this decision` : ''}</p>` : ''}
           ${renderCommitmentReconciler(decision)}
+          ${renderUnalignedStories(epic)}
           ${renderTimeboxRail(decision, brief)}
           <div class="portfolio-signal-metrics portfolio-metric-row portfolio-alignment-rail" role="group" aria-label="PI alignment progress rail">
             ${compactMetric('Delivery', m.delivery)}
