@@ -95,6 +95,46 @@ async function mockPortfolioPage(page) {
         escalationReady: true,
       },
       aboveFold: { exposedCommitments: 2, actionsReady: 1, poResponsesRequired: 1, nextDeadline: 'Today 15:00', mainIssue: 'Evidence gap' },
+      portfolioSummary: {
+        squadCount: 3,
+        commitmentsTotal: 18,
+        commitmentsOnTrack: 13,
+        commitmentsAtRisk: 5,
+        commitmentsBlocked: 1,
+        decisionsOverdue: 1,
+        commitmentsMapped: 2,
+        dataGaps: 1,
+      },
+      decisionRequired: {
+        issue: 'Scope and ownership not confirmed',
+        impact: '5 commitments at risk',
+        owner: 'Product Owner',
+        dueAt: 'Today 15:00',
+        recommendedAction: 'Confirm PI scope',
+        escalationAfter: '24 hours after due date',
+        evidenceConfidence: 'Low',
+        relatedCommitmentIds: ['c1'],
+      },
+      evidenceBreakdown: {
+        confidence: 38,
+        confidenceLabel: 'Low',
+        available: 4,
+        required: 12,
+        delivery: { available: 2, required: 5 },
+        acceptance: { available: 0, required: 2 },
+        outcome: { available: 1, required: 3 },
+        contribution: { available: 1, required: 2 },
+        interpretation: 'Low evidence confidence: 4 of 12 evidence points available',
+      },
+      dataTrust: {
+        lastSync: 'Updated 4m ago',
+        boardsConnected: { connected: 3, total: 3 },
+        commitmentsMapped: { mapped: 2, total: 3 },
+        manualOverrides: 0,
+        dataGaps: 1,
+        confidenceLabel: 'Medium',
+      },
+      statusSemantics: { primary: 'decision-required' },
       peerComparison: { sentence: 'DMS and peer squads both show low confirmed delivery. The current difference is evidence quality.', deliveryBothZero: true },
       epicLineage: {
         primary: { epicKey: 'SD-100', title: 'Recharge Growth Modernization', storyCount: 2 },
@@ -187,16 +227,22 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('02 portfolio signal renders compact metrics, commitments, and trust row', async ({ page }) => {
+  test('02 portfolio signal renders decision cockpit, commitments, and trust row', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-portfolio-signal]', { timeout: 120000 });
-    await expect(page.locator('[data-portfolio-signal]')).toContainText(/AI portfolio signal/i);
+    await expect(page.locator('[data-portfolio-signal]')).toContainText(/Portfolio decision cockpit/i);
+    await expect(page.locator('[data-portfolio-signal] .portfolio-signal-headline')).toContainText(/FY27 Q1 Portfolio Delivery Health/i);
+    await expect(page.locator('[data-portfolio-signal] .portfolio-signal-headline')).not.toContainText(/DMS needs|recharge|story/i);
     await expect(page.locator('#portfolio-signal-mount + #portfolio-rail-carousel-mount')).toHaveCount(1);
     await expect(page.locator('.portfolio-gauge')).toHaveCount(0);
-    await expect(page.locator('.portfolio-metric-row .portfolio-progress-row')).toHaveCount(3);
+    await expect(page.locator('[data-portfolio-summary] .portfolio-summary-metric')).toHaveCount(6);
+    await expect(page.locator('[data-portfolio-summary]')).toContainText(/Evidence confidence/i);
+    await expect(page.locator('[data-portfolio-summary]')).toContainText(/Low, 4 of 12/i);
+    await expect(page.locator('[data-portfolio-data-trust]')).toContainText(/Boards connected/i);
+    await expect(page.locator('[data-portfolio-data-trust]')).toContainText(/3 of 3/i);
     await expect(page.locator('[data-portfolio-timebox-rail]')).toContainText(/Day 45 of 90/i);
     await expect(page.locator('[data-portfolio-reconciler]')).toContainText(/Live Jira epic/i);
     await expect(page.locator('[data-portfolio-commitments]')).toBeVisible();
@@ -204,10 +250,9 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await expect(page.locator('[data-portfolio-unaligned-stories]')).toContainText(/missing aligned Epic/i);
     await expect(page.locator('[data-portfolio-unaligned-stories] [data-jira-work-item-link]')).toHaveAttribute('title', /Emergency customer remediation/i);
     await expect(page.locator('.portfolio-commitment-title [data-jira-work-item-link]').first()).toHaveAttribute('title', /Recharge/i);
-    await expect(page.locator('[data-trust-live-cases]')).toContainText(/live case/i);
-    await expect(page.locator('[data-portfolio-calibration-inline] [data-portfolio-action="copy-calibration-defense"]')).toBeVisible();
-    await expect(page.locator('[data-calibration-format]')).toHaveCount(3);
-    await expect(page.locator('.portfolio-performance-matrix')).toBeVisible();
+    await expect(page.locator('[data-portfolio-evidence-summary]')).toContainText(/Decision evidence/i);
+    await expect(page.locator('[data-portfolio-calibration-inline]')).toHaveCount(0);
+    await expect(page.locator('[data-portfolio-signal]')).not.toContainText(/Calibration Shield|Copy defense/i);
     assertTelemetryClean(t);
   });
 
@@ -327,13 +372,16 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('11 calibration defense shows inline excerpt with copy CTA', async ({ page }) => {
+  test('11 governance evidence opens from summary without shield language', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-portfolio-calibration-inline]', { timeout: 120000 });
-    await expect(page.locator('[data-portfolio-action="copy-calibration-defense"]')).toBeVisible();
+    await page.waitForSelector('[data-portfolio-evidence-summary]', { timeout: 120000 });
+    await expect(page.locator('[data-portfolio-evidence-summary]')).toContainText(/Decision evidence/i);
+    await page.locator('[data-portfolio-action="view-governance-evidence"]').first().click();
+    await expect(page.locator('[data-portfolio-calibration-drawer]')).toContainText(/governance evidence summary/i);
+    await expect(page.locator('[data-portfolio-calibration-drawer]')).not.toContainText(/defense/i);
     assertTelemetryClean(t);
   });
 
@@ -374,30 +422,36 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('14 decision panel shows commitment tracking matrix instead of funding choices', async ({ page }) => {
+  test('14 decision panel is a single decision-required cockpit', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('#portfolio-decision', { timeout: 120000 });
-    await expect(page.locator('.portfolio-performance-matrix')).toContainText(/Commitment tracking/i);
+    await expect(page.locator('#portfolio-decision')).toContainText(/Decision required/i);
+    await expect(page.locator('#portfolio-decision')).toContainText(/Product Owner/i);
+    await expect(page.locator('#portfolio-decision')).toContainText(/Today 15:00/i);
+    await expect(page.locator('#portfolio-decision')).toContainText(/Low/i);
+    await expect(page.locator('[data-portfolio-action="confirm-decision"]')).toContainText(/Confirm PI scope/i);
+    await expect(page.locator('[data-portfolio-action="view-governance-evidence"]').first()).toBeVisible();
     await expect(page.locator('#portfolio-decision')).not.toContainText(/Keep funding/i);
     await expect(page.locator('#portfolio-decision')).not.toContainText(/Review investment/i);
+    await expect(page.locator('#portfolio-decision')).not.toContainText(/tracking posture/i);
     assertTelemetryClean(t);
   });
 
-  test('15 calibration defense copy is one-click from signal', async ({ page, context }) => {
+  test('15 governance evidence copy is one-click from signal', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForFunction(
-      () => document.querySelector('[data-portfolio-action="copy-calibration-defense"]')
+      () => document.querySelector('[data-portfolio-action="copy-evidence-summary"]')
         && !document.querySelector('.portfolio-signal-error'),
       { timeout: 120000 },
     );
-    const btn = page.locator('[data-portfolio-action="copy-calibration-defense"]').first();
+    const btn = page.locator('[data-portfolio-action="copy-evidence-summary"]').first();
     await btn.scrollIntoViewIfNeeded();
     await btn.click();
     await expect(page.locator('.portfolio-signal-error')).toHaveCount(0);

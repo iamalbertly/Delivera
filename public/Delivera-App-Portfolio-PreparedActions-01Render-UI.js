@@ -4,6 +4,10 @@ function actionLabel(item = {}) {
   return item.label || item.title || item.action || 'Confirm next step';
 }
 
+function ownerLabel(item = {}) {
+  return item.owner || item.role || item.decisionNeededFrom || 'Owner';
+}
+
 export function renderPortfolioPreparedActions(decision = {}, { inlineInSignal = false } = {}) {
   if (inlineInSignal) return '';
   const prepared = decision.preparedActions || {};
@@ -32,9 +36,11 @@ export function renderPortfolioPreparedActions(decision = {}, { inlineInSignal =
       <ul class="portfolio-prepared-items">
         ${items.slice(0, 4).map((it) => `
           <li class="portfolio-prepared-item">
-            <span class="portfolio-prepared-role">${escapeHtml(it.role || it.owner || 'Owner')}</span>
-            <span>${escapeHtml(actionLabel(it))}</span>
-            <span class="portfolio-prepared-status">${it.needsApproval ? 'Ready' : 'Draft'}</span>
+            <span class="portfolio-prepared-role">${escapeHtml(ownerLabel(it))}</span>
+            <strong>${escapeHtml(actionLabel(it))}</strong>
+            <span>${escapeHtml(it.dueAt || prepared.nextDeadline || decision.decisionRequired?.dueAt || 'Set due date')}</span>
+            <span>${escapeHtml(it.caseId || decision.decisionRequired?.relatedCommitmentIds?.[0] || 'Related commitment')}</span>
+            <span class="portfolio-prepared-status">${it.needsApproval ? 'Decision required' : 'Draft'}</span>
           </li>`).join('')}
       </ul>
       ${prepared.nextDeadline ? `<p class="portfolio-prepared-deadline">Next response due: <strong>${escapeHtml(prepared.nextDeadline)}</strong></p>` : ''}

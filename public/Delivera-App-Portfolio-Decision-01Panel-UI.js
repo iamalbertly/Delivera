@@ -1,7 +1,24 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
-function renderDrivers(drivers = []) {
-  const rows = (drivers || []).slice(0, 4);
+function renderDecisionRow(label, value, source = 'Fact') {
+  return `
+    <div class="portfolio-decision-required-row">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value || 'Not set'))}</strong>
+      <small>${escapeHtml(source)}</small>
+    </div>`;
+}
+
+function decisionActionLabel(decision = {}) {
+  const action = decision.decisionRequired?.recommendedAction || '';
+  if (/scope/i.test(action)) return 'Confirm PI scope';
+  if (/clarification|confirm/i.test(action)) return 'Request clarification';
+  if (/escalat/i.test(action)) return 'Escalate decision';
+  return 'Confirm commitment status';
+}
+
+export function renderWhyThisMatters(drivers = []) {
+  const rows = (drivers || []).slice(0, 3);
   if (!rows.length) return '';
   return `
     <section class="portfolio-why" aria-label="Root-cause rows">
@@ -16,75 +33,24 @@ function renderDrivers(drivers = []) {
     </section>`;
 }
 
-function renderProgression(steps = []) {
-  if (!steps.length) return '';
-  return `
-    <div class="portfolio-decision-progression" aria-label="Commitment progression">
-      <p class="portfolio-progression-label">Commitment progression</p>
-      <ol class="portfolio-progression-steps">
-        ${steps.map((s) => `<li class="portfolio-progression-step${s.active ? ' is-active' : ''}">${escapeHtml(s.label)}</li>`).join('')}
-      </ol>
-    </div>`;
-}
-
-function renderPerformanceMatrix(decision = {}) {
-  const metrics = decision.metrics || {};
-  const monitoring = decision.monitoring || {};
-  const rows = [
-    ['Delivery method', metrics.delivery?.methodLabel || 'Delivery evidence'],
-    ['Baseline drift', `${Number(metrics.offPlanLoad?.value) || 0}% off-plan load`],
-    ['Proof posture', `${Number(metrics.proofConfidence?.value) || 0}% evidence strength`],
-  ];
-  return `
-    <section class="portfolio-performance-matrix" aria-label="Commitment tracking and performance matrix">
-      <h2>Commitment tracking</h2>
-      <p class="portfolio-performance-summary">
-        ${Number(monitoring.exposedCommitmentCount) || 0} exposed of ${Number(monitoring.commitmentCount) || 0} tracked commitments.
-      </p>
-      <div class="portfolio-performance-rows">
-        ${rows.map(([label, value]) => `
-          <div class="portfolio-performance-row">
-            <span>${escapeHtml(label)}</span>
-            <strong>${escapeHtml(String(value))}</strong>
-          </div>`).join('')}
-      </div>
-    </section>`;
-}
-
-function renderDecisionBasis(basis = {}) {
-  if (!basis.why && !basis.nextCheckpoint && !basis.peerConclusion) return '';
-  return `
-    <div class="portfolio-decision-basis" data-portfolio-decision-basis>
-      <h3 class="portfolio-basis-title">Operating decision</h3>
-      ${basis.why ? `<p class="portfolio-basis-row"><span>Posture:</span> ${escapeHtml(basis.why)}</p>` : ''}
-      ${basis.nextCheckpoint ? `<p class="portfolio-basis-row"><span>Next checkpoint:</span> ${escapeHtml(basis.nextCheckpoint)}</p>` : ''}
-      ${basis.preparedNudges ? `<p class="portfolio-basis-row"><span>Prepared interventions:</span> ${Number(basis.preparedNudges)}</p>` : ''}
-      ${basis.peerConclusion ? `<p class="portfolio-basis-row portfolio-basis-peer">${escapeHtml(basis.peerConclusion)}</p>` : ''}
-    </div>`;
-}
-
-export function renderWhyThisMatters(drivers = []) {
-  return renderDrivers(drivers);
-}
-
-function primaryDecisionLabel(decision = {}) {
-  const ready = Number(decision.preparedActions?.totalReady) || Number(decision.trust?.nudgesReady) || 0;
-  const anchor = decision.anchorProject || 'squad';
-  if (ready > 0) return `Deploy ${ready} prepared intervention${ready === 1 ? '' : 's'}`;
-  if (decision.epicLineage?.unalignedStoryCount) return 'Map stories to PI Epic';
-  return `Resolve ${anchor} delivery gap`;
-}
-
 export function renderPortfolioDecisionPanel(decision = {}) {
+  const required = decision.decisionRequired || {};
   const recommended = decision.recommendation?.id || 'track-commitments';
   return `
-    <section class="portfolio-decision" aria-label="Commitment tracking matrix" id="portfolio-decision">
-      ${renderPerformanceMatrix(decision)}
-      ${renderProgression(decision.decisionProgression)}
-      ${renderDrivers(decision.drivers)}
-      ${renderDecisionBasis(decision.decisionBasis || {})}
-      <button type="button" class="btn btn-primary portfolio-decision-confirm" data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}">${escapeHtml(primaryDecisionLabel(decision))}</button>
-      <p class="portfolio-decision-calibration-hint">Use the Calibration shield above for the room-ready defense.</p>
+    <section class="portfolio-decision portfolio-decision-required" aria-label="Decision required" id="portfolio-decision">
+      <p class="portfolio-decision-eyebrow">Decision required</p>
+      <h2>${escapeHtml(required.issue || decision.narrative?.mainIssue || 'Confirm portfolio decision')}</h2>
+      <div class="portfolio-decision-required-rows">
+        ${renderDecisionRow('Impact', required.impact || 'Commitment exposure unknown', 'Derived metric')}
+        ${renderDecisionRow('Owner', required.owner || 'Product Owner', 'Fact')}
+        ${renderDecisionRow('Due', required.dueAt || decision.aboveFold?.nextDeadline || 'Set owner due date', 'Fact')}
+        ${renderDecisionRow('Evidence', required.evidenceConfidence || decision.evidenceBreakdown?.confidenceLabel || 'Medium', 'Derived metric')}
+        ${renderDecisionRow('Escalation', required.escalationAfter || '24 hours after due date', 'Human confirmation pending')}
+      </div>
+      <div class="portfolio-decision-actions">
+        <button type="button" class="btn btn-primary portfolio-decision-confirm" data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}">${escapeHtml(decisionActionLabel(decision))}</button>
+        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="view-governance-evidence">View evidence</button>
+      </div>
     </section>`;
 }
 

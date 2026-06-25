@@ -168,17 +168,19 @@ function handlePortfolioDelegatedClick(ev) {
 
   if (action === 'review-actions' || action === 'view-prepared-items') {
     openPortfolioCalibrationDrawer(decision, cases);
-  } else if (action === 'calibration-defense' || action === 'copy-calibration-defense') {
+  } else if (action === 'view-governance-evidence') {
+    openPortfolioCalibrationDrawer(decision, cases);
+  } else if (action === 'calibration-defense' || action === 'copy-calibration-defense' || action === 'copy-evidence-summary') {
     ensureLegacyBriefSurfacesHydrated();
     const format = document.querySelector('[data-calibration-format].is-active')?.getAttribute('data-calibration-format') || 'successfactors';
     const prefix = format === 'hr-review'
       ? 'HR Review format\n'
       : format === 'hod-briefing'
         ? 'HOD Briefing format\n'
-        : 'SuccessFactors format\n';
+        : '';
     const text = `${prefix}${buildCalibrationDefenseText(govPage.lastBrief || {}, decision)}`;
     writeTextToClipboardWithFallback(text).then(() => {
-      showInlineToast(document.getElementById('main-content'), 'Calibration defense copied', 'info');
+      showInlineToast(document.getElementById('main-content'), 'Evidence summary copied', 'info');
     }).catch(() => {
       openPortfolioCalibrationDrawer(decision, cases);
     });

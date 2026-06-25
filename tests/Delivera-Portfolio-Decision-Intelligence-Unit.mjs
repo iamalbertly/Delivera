@@ -144,3 +144,39 @@ test('comparison cards include squad-specific intelligence fields', async () => 
   assert.ok(comparison.cards[0].decisionNeeded);
   assert.notEqual(comparison.cards[0].explanation, comparison.cards[1].explanation);
 });
+
+test('portfolio decision contract exposes cockpit IA fields', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const brief = {
+    projects: ['SD', 'MAS'],
+    generatedAt: '2026-06-25T09:00:00.000Z',
+    meta: { quarter: 'FY27 Q1', manualOverrideCount: 1 },
+    _boardPayloads: [{
+      board: { location: { projectKey: 'SD' } },
+      payload: { stories: [{ issueKey: 'SD-4', summary: 'Story without PI Epic', status: 'In Progress' }] },
+    }],
+    squadInsights: [
+      { projectKey: 'SD', boardName: 'DMS', boardResolved: true, piCommitted: 8, piDone: 1, sprintPulse: { committed: 8, done: 1 }, verdictTier: 'blocked', cardRisks: [{ issueKey: 'SD-4' }] },
+      { projectKey: 'MAS', boardName: 'MAS', boardResolved: false, piCommitted: 4, piDone: 2, sprintPulse: { committed: 4, done: 2 }, verdictTier: 'watch', cardRisks: [] },
+    ],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const cases = [{
+    id: 'case-1',
+    project: 'SD',
+    needsApproval: true,
+    state: 'clarification-required',
+    primaryAction: { action: 'Confirm PI scope', owner: 'Product Owner', dueAt: '2026-06-26T14:00:00.000Z' },
+  }];
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', compareProjects: ['MAS'], cases, baselineMissing: true, partialSquads: 1 });
+  assert.equal(decision.portfolioSummary.commitmentsTotal, 12);
+  assert.equal(decision.portfolioSummary.commitmentsAtRisk >= 1, true);
+  assert.equal(decision.decisionRequired.owner, 'Product Owner');
+  assert.equal(decision.decisionRequired.recommendedAction, 'Confirm PI scope');
+  assert.equal(decision.evidenceBreakdown.required, 12);
+  assert.match(decision.evidenceBreakdown.interpretation, /evidence confidence/i);
+  assert.equal(decision.dataTrust.boardsConnected.connected, 1);
+  assert.equal(decision.dataTrust.boardsConnected.total, 2);
+  assert.ok(decision.dataTrust.dataGaps >= 2);
+  assert.ok(['material-risk', 'evidence-gap', 'decision-required', 'not-assessed', 'healthy'].includes(decision.statusSemantics.primary));
+});

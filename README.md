@@ -8,13 +8,13 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 
 | Route | Surface | Purpose |
 |-------|---------|---------|
-| `/governance` | **Portfolio** | AI portfolio signal, squad comparison, confirm decision, open Actions |
+| `/governance` | **Portfolio** | Portfolio/RTE decision cockpit, squad comparison, governance evidence, open Actions |
 | `/current-sprint` | **Squads** | What must move today (blockers, owners, nudges) |
 | `/actions` | **Actions** | Intervention cases — ready nudges, waiting, escalations, proof |
 | `/report` | **Proof** | Evidence and drill-down (unchanged route; top chrome links here from legacy bookmarks) |
 | `/settings` | **Settings** | My workspace prefs, read-only org catalog, integrations health, Jira activity |
 
-**Portfolio command surface (`/governance`):** direct-to-value layout — one operational headline, compressed compare summary (`+N Squads`), text fiscal timebox, single PI alignment rail, visible epic context, baseline-to-Jira reconciler strip, unaligned-story warning, Action Stream, and audience-aware **Calibration Shield** copy. The squad performance grid mounts directly under `#portfolio-signal-mount` on wide screens, not buried in the right rail. Legacy brief DOM hydrates on-demand via `ensureLegacyBriefSurfacesHydrated` (not on initial portfolio paint). Keyboard: `R` refresh scope, `C` copy defense, `N` nudge/drawer. Pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js` + `Delivera-App-Portfolio-Signal-01Render-UI.js` + `Delivera-App-Portfolio-Actions-01Bridge.js`.
+**Portfolio command surface (`/governance`):** neutral Portfolio/RTE decision cockpit — quarter-level delivery health, trust bar, decision-ready commitment ratios, decision owner/due date, evidence confidence, latest safe decision date, visible epic context, baseline-to-Jira reconciler strip, unaligned-story warning, Action Stream, and **Governance evidence** drawer. The squad performance grid mounts directly under `#portfolio-signal-mount` on wide screens, not buried in the right rail. Legacy brief DOM hydrates on-demand via `ensureLegacyBriefSurfacesHydrated` (not on initial portfolio paint). Keyboard: `R` refresh scope, `C` copy evidence summary, `N` nudge/drawer. Pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js` + `Delivera-App-Portfolio-Signal-01Render-UI.js` + `Delivera-App-Portfolio-Actions-01Bridge.js`.
 
 **Actions (`/actions`):** tab badges show ready-case counts; `?caseId=` highlights the matching card. `/evidence` and `/impact` redirect here. `/portfolio` redirects to `/governance`.
 

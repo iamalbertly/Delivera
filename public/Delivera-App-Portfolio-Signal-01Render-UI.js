@@ -1,23 +1,5 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { buildCalibrationExcerpt } from './Delivera-App-Portfolio-Actions-01Bridge.js';
-import { portfolioCanonicalCounts } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
-
-const MAX_HEADLINE = 92;
-
-function cleanOperationalHeadline(raw = '') {
-  const text = String(raw || '')
-    .replace(/\s+/g, ' ')
-    .replace(/^DELIVERY\s+BLOCKED\.?\s*/i, '')
-    .replace(/^BLOCKED\.?\s*/i, '')
-    .trim();
-  const base = text || 'Delivery needs intervention';
-  const sentence = base.split(/(?<=[.!?])\s+/)[0] || base;
-  const clipped = sentence.length > MAX_HEADLINE
-    ? `${sentence.slice(0, MAX_HEADLINE - 1).replace(/\s+\S*$/, '')}...`
-    : sentence;
-  return clipped.charAt(0).toUpperCase() + clipped.slice(1);
-}
 
 function formatCachedFreshness(cachedAt) {
   if (!cachedAt) return '';
@@ -34,20 +16,28 @@ function quarterDayLabel(decision = {}, brief = {}) {
   return { total, elapsed, pct: Math.round((elapsed / total) * 100) };
 }
 
-function compactMetric(label, metric = {}) {
-  const value = Math.max(0, Math.min(100, Number(metric.value) || 0));
-  const peer = Number(metric.peerMedian) || 0;
-  const expected = Math.max(0, Math.min(100, Number(metric.expectedTarget) || peer || 0));
-  const method = metric.methodLabel || (value === 0 && peer === 0 ? 'Needs baseline' : 'Live');
+function statusLabel(id = '') {
+  const map = {
+    'material-risk': 'Material risk',
+    'evidence-gap': 'Evidence gap',
+    'decision-required': 'Decision required',
+    'not-assessed': 'Not assessed',
+    healthy: 'Healthy',
+  };
+  return map[id] || 'Decision required';
+}
+
+function renderSourceBadge(label = 'Derived metric') {
+  return `<span class="portfolio-source-badge">${escapeHtml(label)}</span>`;
+}
+
+function renderSummaryMetric(label, value, hint = '', source = 'Derived metric', status = '') {
   return `
-    <div class="portfolio-progress-row" data-metric="${escapeHtml(label.toLowerCase().replace(/\s+/g, '-'))}">
-      <span class="portfolio-metric-label">${escapeHtml(label)}</span>
-      <span class="portfolio-progress-track" aria-hidden="true">
-        <span class="portfolio-progress-expected" style="width:${expected}%"></span>
-        <span class="portfolio-progress-value" style="width:${value}%"></span>
-      </span>
-      <strong class="portfolio-metric-value">${value}%</strong>
-      <span class="portfolio-metric-peer">${expected ? `target ${expected}%` : method}</span>
+    <div class="portfolio-summary-metric${status ? ` portfolio-summary-metric--${escapeHtml(status)}` : ''}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value))}</strong>
+      ${hint ? `<small>${escapeHtml(hint)}</small>` : ''}
+      ${renderSourceBadge(source)}
     </div>`;
 }
 
@@ -69,47 +59,6 @@ function renderTimeboxRail(decision = {}, brief = {}) {
     </div>`;
 }
 
-function bulletizeSummary(summary = '', peer = {}) {
-  const bullets = [];
-  if (peer.sentence) bullets.push(peer.sentence.replace(/[.!?]+$/, ''));
-  for (const line of String(summary || '').split(/(?<=[.!?])\s+/)) {
-    const cleaned = line.trim().replace(/[.!?]+$/, '');
-    if (cleaned && !bullets.includes(cleaned)) bullets.push(cleaned);
-  }
-  return bullets.slice(0, 4);
-}
-
-function renderSummaryBullets(summary = '', peer = {}) {
-  const bullets = bulletizeSummary(summary, peer);
-  if (!bullets.length) return '';
-  return `
-    <ul class="portfolio-signal-bullets" data-portfolio-signal-bullets>
-      ${bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}
-    </ul>`;
-}
-
-function trustOneLiner(trust = {}) {
-  const proof = trust.proofLevel || 'Medium';
-  const verified = trust.claimsVerified ? 'verified' : 'needs review';
-  const source = trust.wordingSource === 'template' ? 'template wording' : 'AI-polished when available';
-  return `Proof ${proof} - claims ${verified} - ${source} - human approval always required`;
-}
-
-function renderCalibrationShield(calibrationExcerpt = '') {
-  if (!calibrationExcerpt || !calibrationExcerpt.trim()) return '';
-  return `
-    <aside class="portfolio-calibration-shield" data-portfolio-calibration-inline aria-label="Calibration shield">
-      <p class="portfolio-calibration-inline-label">Calibration shield</p>
-      <div class="portfolio-calibration-formats" aria-label="Format calibration defense">
-        <button type="button" class="is-active" data-calibration-format="successfactors">SuccessFactors</button>
-        <button type="button" data-calibration-format="hr-review">HR Review</button>
-        <button type="button" data-calibration-format="hod-briefing">HOD Briefing</button>
-      </div>
-      <p class="portfolio-calibration-inline-excerpt">${escapeHtml(calibrationExcerpt)}</p>
-      <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="copy-calibration-defense">Copy defense</button>
-    </aside>`;
-}
-
 function renderCommitmentReconciler(decision = {}) {
   const epic = decision.epicLineage || {};
   if (!epic.label) return '';
@@ -119,6 +68,61 @@ function renderCommitmentReconciler(decision = {}) {
       <span><strong>Baseline commitment</strong>${escapeHtml(decision.periodKey || 'Current PI')}</span>
       <span><strong>Live Jira epic</strong>${escapeHtml(epic.label)}</span>
       <span class="portfolio-reconciler-status">${escapeHtml(confidence)}</span>
+    </div>`;
+}
+
+function renderDataTrust(dataTrust = {}, freshness = '') {
+  const boards = dataTrust.boardsConnected || {};
+  const mapped = dataTrust.commitmentsMapped || {};
+  return `
+    <div class="portfolio-trust-bar" data-portfolio-data-trust>
+      <span><strong>Last Jira sync</strong>${escapeHtml(freshness || dataTrust.lastSync || 'Live')}</span>
+      <span><strong>Boards connected</strong>${Number(boards.connected) || 0} of ${Number(boards.total) || 0}</span>
+      <span><strong>Commitments mapped</strong>${Number(mapped.mapped) || 0} of ${Number(mapped.total) || 0}</span>
+      <span><strong>Data gaps</strong>${Number(dataTrust.dataGaps) || 0}</span>
+      <span class="portfolio-trust-confidence"><strong>Confidence</strong>${escapeHtml(dataTrust.confidenceLabel || 'Medium')}</span>
+    </div>`;
+}
+
+function renderEvidenceSummary(evidence = {}) {
+  const tiers = [
+    ['Delivery evidence', evidence.delivery],
+    ['Acceptance evidence', evidence.acceptance],
+    ['Outcome evidence', evidence.outcome],
+    ['Contribution evidence', evidence.contribution],
+  ];
+  return `
+    <aside class="portfolio-evidence-summary" data-portfolio-evidence-summary aria-label="Decision evidence">
+      <p class="portfolio-evidence-label">Decision evidence</p>
+      <h3>${escapeHtml(evidence.confidenceLabel || 'Medium')} confidence</h3>
+      <p>${escapeHtml(evidence.interpretation || `${Number(evidence.available) || 0} of ${Number(evidence.required) || 0} evidence points available`)}</p>
+      <dl>
+        ${tiers.map(([label, tier]) => `
+          <div>
+            <dt>${escapeHtml(label)}</dt>
+            <dd>${Number(tier?.available) || 0}/${Number(tier?.required) || 0}</dd>
+          </div>`).join('')}
+      </dl>
+      <div class="portfolio-evidence-actions">
+        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="view-governance-evidence">View evidence</button>
+        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="copy-evidence-summary">Copy evidence summary</button>
+      </div>
+    </aside>`;
+}
+
+function renderInterpretationRows(decision = {}) {
+  const narrative = decision.narrative || {};
+  const peer = decision.peerComparison || {};
+  const rows = [
+    ['Fact', decision.decisionRequired?.impact || 'No material commitment exposure detected'],
+    ['Derived metric', decision.evidenceBreakdown?.interpretation || 'Evidence confidence is being calculated'],
+    ['AI draft', peer.sentence || narrative.summary || 'No AI interpretation required for this view'],
+    ['Human confirmation pending', decision.decisionRequired?.recommendedAction || 'Confirm the portfolio decision owner'],
+  ];
+  return `
+    <div class="portfolio-interpretation-rows" data-portfolio-interpretation-rows>
+      ${rows.map(([label, value]) => `
+        <p><span>${escapeHtml(label)}</span>${escapeHtml(value)}</p>`).join('')}
     </div>`;
 }
 
@@ -146,53 +150,42 @@ function renderUnalignedStories(epic = {}) {
 }
 
 export function renderPortfolioSignal(decision = {}, { cachedAt = '', cached = false, brief = {} } = {}) {
-  const m = decision.metrics || {};
-  const trust = decision.trust || {};
-  const narrative = decision.narrative || {};
-  const above = decision.aboveFold || {};
-  const peer = decision.peerComparison || {};
   const epic = decision.epicLineage || {};
-  const canonical = portfolioCanonicalCounts(decision);
-  const rawHeadline = narrative.headline || decision.headline || 'Portfolio signal';
-  const headline = cleanOperationalHeadline(rawHeadline);
-  const summary = narrative.summary || decision.summary || '';
+  const summary = decision.portfolioSummary || {};
+  const evidence = decision.evidenceBreakdown || {};
+  const required = decision.decisionRequired || {};
+  const status = decision.statusSemantics?.primary || 'decision-required';
+  const quarter = decision.periodKey || brief?.meta?.quarter || 'Current quarter';
+  const tb = quarterDayLabel(decision, brief);
   const freshness = cached || cachedAt ? formatCachedFreshness(cachedAt) : '';
-  const calibrationExcerpt = buildCalibrationExcerpt(brief, decision);
 
   return `
-    <section class="portfolio-signal" aria-label="AI portfolio signal" data-portfolio-signal>
+    <section class="portfolio-signal portfolio-decision-cockpit" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
       <div class="portfolio-signal-top">
-        <p class="portfolio-signal-kicker">AI portfolio signal${freshness ? ` - <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
+        <p class="portfolio-signal-kicker">Portfolio decision cockpit${freshness ? ` - <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
+        <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
         <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
       </div>
+      ${renderDataTrust(decision.dataTrust || {}, freshness)}
       <div class="portfolio-signal-grid">
         <div class="portfolio-signal-primary">
-          <h2 class="portfolio-signal-headline" title="${escapeHtml(rawHeadline)}">${escapeHtml(headline)}</h2>
-          <div class="portfolio-above-fold" data-portfolio-above-fold>
-            <span class="portfolio-fold-stat"><strong>${canonical.exposedCommitments}</strong> commitment${canonical.exposedCommitments === 1 ? '' : 's'} exposed</span>
-            <span class="portfolio-fold-stat"><strong>${canonical.actionsReady}</strong> action${canonical.actionsReady === 1 ? '' : 's'} ready</span>
-            <span class="portfolio-fold-stat"><strong>${canonical.poResponsesRequired}</strong> PO response${canonical.poResponsesRequired === 1 ? '' : 's'} required</span>
-            ${above.nextDeadline ? `<span class="portfolio-fold-stat">Next deadline: <strong>${escapeHtml(above.nextDeadline)}</strong></span>` : ''}
+          <h2 class="portfolio-signal-headline">${escapeHtml(quarter)} Portfolio Delivery Health</h2>
+          <div class="portfolio-summary-metrics" data-portfolio-summary>
+            ${renderSummaryMetric('On track', `${Number(summary.commitmentsOnTrack) || 0} of ${Number(summary.commitmentsTotal) || 0}`, 'PI commitments', 'Derived metric', 'healthy')}
+            ${renderSummaryMetric('At risk', `${Number(summary.commitmentsAtRisk) || 0} of ${Number(summary.commitmentsTotal) || 0}`, required.impact || 'Commitments needing decision', 'Derived metric', summary.commitmentsAtRisk ? 'evidence-gap' : 'healthy')}
+            ${renderSummaryMetric('Blocked', Number(summary.commitmentsBlocked) || 0, 'Squads with blocked delivery tier', 'Fact', summary.commitmentsBlocked ? 'material-risk' : 'healthy')}
+            ${renderSummaryMetric('Decisions overdue', Number(summary.decisionsOverdue) || 0, 'Owner response required', 'Fact', summary.decisionsOverdue ? 'decision-required' : 'healthy')}
+            ${renderSummaryMetric('Evidence confidence', `${escapeHtml(evidence.confidenceLabel || 'Medium')}, ${Number(evidence.available) || 0} of ${Number(evidence.required) || 0}`, 'Required evidence points', 'Derived metric', evidence.confidenceLabel === 'Low' ? 'evidence-gap' : '')}
+            ${renderSummaryMetric('Latest safe decision', required.dueAt || 'Set owner due date', `Day ${tb.elapsed} of ${tb.total}`, 'Derived metric', 'decision-required')}
           </div>
-          <p class="portfolio-signal-main-issue"><strong>Main issue:</strong> ${escapeHtml(above.mainIssue || narrative.mainIssue || '')}</p>
+          <p class="portfolio-signal-main-issue"><strong>Decision needed:</strong> ${escapeHtml(required.issue || 'Confirm portfolio scope and owner')}</p>
+          ${renderInterpretationRows(decision)}
           ${epic.label ? `<p class="portfolio-signal-epic" data-portfolio-epic-lineage><strong>Epic context:</strong> ${escapeHtml(epic.label)}${epic.coveredStoryCount ? ` - ${Number(epic.coveredStoryCount)} user stor${Number(epic.coveredStoryCount) === 1 ? 'y' : 'ies'} tied to this decision` : ''}</p>` : ''}
           ${renderCommitmentReconciler(decision)}
           ${renderUnalignedStories(epic)}
           ${renderTimeboxRail(decision, brief)}
-          <div class="portfolio-signal-metrics portfolio-metric-row portfolio-alignment-rail" role="group" aria-label="PI alignment progress rail">
-            ${compactMetric('Delivery', m.delivery)}
-            ${compactMetric('Off-plan', m.offPlanLoad)}
-            ${compactMetric('Proof', m.proofConfidence)}
-          </div>
-          ${renderSummaryBullets(summary, peer)}
-          <div class="portfolio-signal-trust portfolio-signal-trust--inline" data-portfolio-trust>
-            <span class="portfolio-trust-item" data-trust-live-cases>${trust.liveCases || 0} live case${trust.liveCases === 1 ? '' : 's'}</span>
-            <span class="portfolio-trust-item" data-trust-proof>Proof: ${escapeHtml(canonical.proofLevel)}</span>
-            ${narrative.escalationReady ? '<span class="portfolio-trust-item portfolio-trust-escalation">Escalation ready if no response</span>' : ''}
-          </div>
-          <p class="portfolio-signal-trust-line">${escapeHtml(trustOneLiner(trust))}</p>
         </div>
-        ${renderCalibrationShield(calibrationExcerpt)}
+        ${renderEvidenceSummary(evidence)}
       </div>
     </section>`;
 }
