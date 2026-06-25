@@ -6,9 +6,9 @@
 
 import { renderPortfolioSignal } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 
-import { renderPortfolioCommitments } from './Delivera-App-Portfolio-Commitments-01Render-UI.js';
-
+import { renderPortfolioCommitments, renderPortfolioRailCommitments } from './Delivera-App-Portfolio-Commitments-01Render-UI.js';
 import { renderPortfolioPreparedActions } from './Delivera-App-Portfolio-PreparedActions-01Render-UI.js';
+import { shouldHidePreparedActionsSection } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
 import { renderPortfolioCarousel, bindPortfolioCarousel } from './Delivera-App-Portfolio-Comparison-01Carousel-UI.js';
 
@@ -20,7 +20,9 @@ import {
 
 } from './Delivera-App-Portfolio-Decision-01Panel-UI.js';
 
-import { openPortfolioActionsDrawer } from './Delivera-App-Portfolio-Actions-01Bridge.js';
+import { openPortfolioCalibrationDrawer, buildCalibrationDefenseText } from './Delivera-App-Portfolio-Actions-01Bridge.js';
+import { writeTextToClipboardWithFallback } from './Delivera-Shared-Clipboard-01Bridge.js';
+import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 
 import { openPortfolioTrustDrawer } from './Delivera-App-Portfolio-Trust-01Drawer-UI.js';
 
@@ -44,6 +46,8 @@ import { setBriefNavBadge } from './Delivera-Shared-Global-Nav.js';
 
 import { hideGovernanceLoading } from './Delivera-Governance-Brief-Page-02Loading-State.js';
 import { fetchPortfolioDecisionCached } from './Delivera-Shared-Portfolio-Decision-Client-Cache-01Bridge.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { ensureLegacyBriefSurfacesHydrated } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 
 
 
@@ -135,6 +139,23 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
 
 function handlePortfolioDelegatedClick(ev) {
 
+  const formatBtn = ev.target.closest('[data-calibration-format]');
+  if (formatBtn) {
+    ev.preventDefault();
+    formatBtn.parentElement?.querySelectorAll('[data-calibration-format]').forEach((b) => b.classList.toggle('is-active', b === formatBtn));
+    return;
+  }
+
+  const commitmentRow = ev.target.closest('.portfolio-commitment-row[data-commitment-issue]');
+  if (commitmentRow && commitmentRow.getAttribute('data-commitment-issue')) {
+    const issueKey = commitmentRow.getAttribute('data-commitment-issue');
+    if (issueKey && govPage.lastBrief) {
+      ev.preventDefault();
+      openEvidenceDrawer(govPage.lastBrief, [{ issueKey }]);
+      return;
+    }
+  }
+
   const btn = ev.target.closest('[data-portfolio-action]');
 
   if (!btn || btn.tagName === 'A') return;
@@ -145,8 +166,23 @@ function handlePortfolioDelegatedClick(ev) {
 
   const cases = govPage.lastPortfolioCases || [];
 
-  if (action === 'review-actions' || action === 'view-prepared-items') openPortfolioActionsDrawer(decision, cases);
-  else if (action === 'how-ai-decides') openPortfolioTrustDrawer(decision);
+  if (action === 'review-actions' || action === 'view-prepared-items') {
+    openPortfolioCalibrationDrawer(decision, cases);
+  } else if (action === 'calibration-defense' || action === 'copy-calibration-defense') {
+    ensureLegacyBriefSurfacesHydrated();
+    const format = document.querySelector('[data-calibration-format].is-active')?.getAttribute('data-calibration-format') || 'successfactors';
+    const prefix = format === 'hr-review'
+      ? 'HR Review format\n'
+      : format === 'hod-briefing'
+        ? 'HOD Briefing format\n'
+        : 'SuccessFactors format\n';
+    const text = `${prefix}${buildCalibrationDefenseText(govPage.lastBrief || {}, decision)}`;
+    writeTextToClipboardWithFallback(text).then(() => {
+      showInlineToast(document.getElementById('main-content'), 'Calibration defense copied', 'info');
+    }).catch(() => {
+      openPortfolioCalibrationDrawer(decision, cases);
+    });
+  } else if (action === 'how-ai-decides') openPortfolioTrustDrawer(decision);
   else if (action === 'expand-commitments') {
     const overflow = btn.closest('.portfolio-commitments-more')?.querySelector('.portfolio-commitments-overflow');
     if (overflow) {
@@ -163,6 +199,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
   if (!brief) return;
 
+  govPage.scopeBarApi?.setCacheUxState?.({ fresh: false, updating: true });
   const payload = await fetchPortfolioPayload(brief, cases);
   const { decision = {}, comparison = {}, cases: payloadCases = cases, meta = payload?.meta || {} } = payload;
   govPage.lastPortfolioMeta = meta;
@@ -187,32 +224,68 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
 
 
-  if (signalMount) signalMount.innerHTML = renderPortfolioSignal(decision, { cachedAt: meta.cachedAt, cached: meta.cached });
+  const railCommitmentsMount = $('portfolio-rail-commitments-mount');
+  const railCarouselMount = $('portfolio-rail-carousel-mount');
+
+  if (signalMount) {
+    signalMount.innerHTML = renderPortfolioSignal(decision, {
+      cachedAt: meta.cachedAt,
+      cached: meta.cached,
+      brief,
+    });
+    if (payload.error) {
+      signalMount.insertAdjacentHTML('afterbegin', `<p class="portfolio-signal-error" role="alert">${escapeHtml(String(payload.error))}</p>`);
+    }
+  }
 
   if (commitmentsMount) commitmentsMount.innerHTML = renderPortfolioCommitments(decision);
 
-  if (preparedMount) preparedMount.innerHTML = renderPortfolioPreparedActions(decision);
+  if (railCommitmentsMount) railCommitmentsMount.innerHTML = renderPortfolioRailCommitments(decision);
+
+  if (preparedMount) {
+    preparedMount.innerHTML = shouldHidePreparedActionsSection(decision)
+      ? ''
+      : renderPortfolioPreparedActions(decision);
+    preparedMount.hidden = shouldHidePreparedActionsSection(decision);
+  }
+
+  const carouselHtml = (comparison.cards || []).length
+    ? renderPortfolioCarousel(comparison)
+    : '';
+
+  const bindCarousel = (mount) => {
+    if (!mount || !carouselHtml) return;
+    mount.innerHTML = carouselHtml;
+    bindPortfolioCarousel(mount, {
+      onSelectSquad: async (projectKey) => {
+        if (!projectKey) return;
+        govPage.scopeBarApi?.setAnchor?.(projectKey);
+        govPage._portfolioBriefToken = null;
+        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
+      },
+    });
+  };
+
+  const isWideDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1440px)').matches;
 
   if (carouselMount) {
+    if (isWideDesktop || !carouselHtml) {
+      carouselMount.innerHTML = '';
+      carouselMount.hidden = true;
+    } else {
+      carouselMount.hidden = false;
+      bindCarousel(carouselMount);
+    }
+  }
 
-    carouselMount.innerHTML = renderPortfolioCarousel(comparison);
-
-    bindPortfolioCarousel(carouselMount, {
-
-      onSelectSquad: async (projectKey) => {
-
-        if (!projectKey) return;
-
-        govPage.scopeBarApi?.setAnchor?.(projectKey);
-
-        govPage._portfolioBriefToken = null;
-
-        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
-
-      },
-
-    });
-
+  if (railCarouselMount) {
+    if (!isWideDesktop || !carouselHtml) {
+      railCarouselMount.innerHTML = '';
+      railCarouselMount.hidden = true;
+    } else {
+      railCarouselMount.hidden = false;
+      bindCarousel(railCarouselMount);
+    }
   }
 
   if (decisionMount) {
@@ -256,18 +329,8 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   }
 
   if (footerMount) {
-
-    const mon = decision.monitoring || {};
-
-    const exposed = mon.exposedCommitmentCount ?? decision.aboveFold?.exposedCommitments ?? 0;
-
-    const piCount = mon.piBaselineCount ?? mon.commitmentCount ?? 0;
-
-    footerMount.innerHTML = `
-      <footer class="portfolio-monitor portfolio-monitor--compact" data-portfolio-monitor>
-        <p>Monitoring ${mon.squadCount || 0} squads · ${exposed} exposed · ${piCount} PI items · ${decision.trust?.liveCases || 0} live cases · <button type="button" class="btn-link portfolio-monitor-trust" data-portfolio-action="how-ai-decides">How AI decides</button></p>
-      </footer>`;
-
+    footerMount.innerHTML = '';
+    footerMount.hidden = true;
   }
 
 
@@ -275,6 +338,11 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   await mountPortfolioAiAgentBadge(document.getElementById('portfolio-signal-ai-mount'), decision, { compact: true });
 
   hideGovernanceLoading();
+
+  govPage.scopeBarApi?.setCacheUxState?.({
+    fresh: true,
+    updating: false,
+  });
 
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
 

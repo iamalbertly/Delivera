@@ -2,10 +2,7 @@
  * Governance brief loading state — reuses Sprint spinner markup + Shared-Status-View-Helpers.
  */
 import { showLoadingView, clearErrorView } from './Delivera-Shared-Status-View-Helpers.js';
-
-const SPINNER_HTML = ''
-  + '<div class="current-sprint-loading-spinner" aria-hidden="true"></div>'
-  + '<p class="current-sprint-loading-msg gov-loading-msg" aria-live="polite"></p>';
+import { renderSharedLoadingState } from './Delivera-Shared-Loading-State-01Render-UI.js';
 
 const REFRESH_COPY_HTML = '<div class="current-sprint-loading-copy current-sprint-loading-copy-inline gov-loading-msg" aria-live="polite"></div>';
 
@@ -18,6 +15,7 @@ function getDom() {
 }
 
 export function hasGovernanceBriefContent() {
+  if (document.getElementById('portfolio-signal-mount')?.querySelector('[data-portfolio-signal]')) return true;
   const el = document.getElementById('gov-brief-content');
   if (!el) return false;
   return Boolean(el.querySelector('.gov-command-answer, .gov-owner-cluster, .governance-empty'));
@@ -36,9 +34,7 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
       }
       loadingEl.classList.remove('current-sprint-loading-with-spinner');
     } else {
-      loadingEl.innerHTML = SPINNER_HTML;
-      const msgEl = loadingEl.querySelector('.gov-loading-msg');
-      if (msgEl) msgEl.textContent = msg;
+      loadingEl.innerHTML = renderSharedLoadingState({ message: msg, variant: 'spinner' });
       loadingEl.classList.add('current-sprint-loading-with-spinner');
     }
     loadingEl.style.display = 'block';
@@ -65,24 +61,37 @@ export function hideGovernanceLoading() {
   }
   if (contentEl) {
     clearScopeStaleOverlay();
-    contentEl.style.display = 'block';
+    const isPortfolio = Boolean(document.getElementById('portfolio-signal-mount'));
+    if (isPortfolio) {
+      contentEl.style.display = 'none';
+      contentEl.setAttribute('hidden', '');
+    } else {
+      contentEl.style.display = 'block';
+      contentEl.removeAttribute('hidden');
+    }
   }
   document.body?.classList?.remove('gov-brief-loading');
   clearErrorView(getDom());
 }
 
 export function setScopeStaleOverlay(active, message = '') {
-  const contentEl = document.getElementById('gov-brief-content');
-  if (!contentEl) return;
+  const briefContent = document.getElementById('gov-brief-content');
+  const portfolioLayout = document.getElementById('portfolio-layout');
+  const isPortfolio = Boolean(document.getElementById('portfolio-signal-mount'));
+  const overlayHost = isPortfolio
+    ? (document.getElementById('main-content') || portfolioLayout || briefContent)
+    : (briefContent || portfolioLayout);
+  if (!overlayHost) return;
   if (active) {
-    contentEl.setAttribute('data-scope-stale', 'true');
-    let overlay = contentEl.querySelector('.gov-scope-stale-overlay');
+    briefContent?.setAttribute('data-scope-stale', 'true');
+    let overlay = overlayHost.querySelector(':scope > .gov-scope-stale-overlay')
+      || overlayHost.querySelector('.gov-scope-stale-overlay');
     if (!overlay) {
       overlay = document.createElement('p');
       overlay.className = 'gov-scope-stale-overlay';
       overlay.setAttribute('role', 'status');
       overlay.setAttribute('aria-live', 'polite');
-      contentEl.prepend(overlay);
+      overlayHost.prepend(overlay);
     }
     overlay.textContent = message || 'Updating scope…';
   } else {
@@ -91,24 +100,31 @@ export function setScopeStaleOverlay(active, message = '') {
 }
 
 export function clearScopeStaleOverlay() {
-  const contentEl = document.getElementById('gov-brief-content');
-  if (!contentEl) return;
-  contentEl.removeAttribute('data-scope-stale');
-  contentEl.querySelector('.gov-scope-stale-overlay')?.remove();
+  const briefContent = document.getElementById('gov-brief-content');
+  briefContent?.removeAttribute('data-scope-stale');
+  document.querySelectorAll('.gov-scope-stale-overlay').forEach((el) => el.remove());
 }
 
 export function showPortfolioLoading(msg = 'AI agent is learning from your squad data…') {
+  const signalMount = document.getElementById('portfolio-signal-mount');
+  if (signalMount) {
+    signalMount.innerHTML = `
+      <div class="portfolio-signal-skeleton" data-portfolio-signal-skeleton aria-busy="true" aria-label="${msg}">
+        ${renderSharedLoadingState({ message: msg, variant: 'skeleton', compact: true })}
+        <div class="portfolio-signal-skeleton-line portfolio-signal-skeleton-line--head"></div>
+        <div class="portfolio-signal-skeleton-line"></div>
+        <div class="portfolio-signal-skeleton-line portfolio-signal-skeleton-line--short"></div>
+      </div>`;
+  }
+  const contentEl = document.getElementById('gov-brief-content');
+  if (contentEl) {
+    contentEl.style.display = 'none';
+    contentEl.setAttribute('hidden', '');
+  }
   const loadingEl = document.getElementById('gov-loading');
   if (loadingEl) {
-    loadingEl.innerHTML = `
-      <div class="portfolio-ai-loading" data-portfolio-ai-loading>
-        <span class="portfolio-ai-agent-pulse portfolio-ai-agent-pulse--solo" aria-hidden="true"></span>
-        <span class="portfolio-ai-agent-sparkle" aria-hidden="true">✦</span>
-        <p class="portfolio-ai-loading-msg">${msg}</p>
-      </div>`;
-    loadingEl.classList.remove('current-sprint-loading-with-spinner');
-    loadingEl.style.display = 'block';
-    loadingEl.removeAttribute('hidden');
+    loadingEl.style.display = 'none';
+    loadingEl.setAttribute('hidden', '');
   }
   document.getElementById('portfolio-layout')?.removeAttribute('hidden');
   document.body?.classList?.add('gov-brief-loading');

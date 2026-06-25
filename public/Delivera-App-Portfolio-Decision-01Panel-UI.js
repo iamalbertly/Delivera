@@ -1,61 +1,89 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
-const DRIVER_ICONS = {
-  'promised-impact': '◎',
-  'capacity-drag': '⏱',
-  'proof-gap': '◇',
-};
-
-export function renderWhyThisMatters(drivers = []) {
-  const rows = (drivers || []).slice(0, 3);
+function renderDrivers(drivers = []) {
+  const rows = (drivers || []).slice(0, 4);
+  if (!rows.length) return '';
   return `
-    <section class="portfolio-why" aria-label="Why this matters">
-      <h2 class="portfolio-why-title">Why this matters</h2>
-      <ul class="portfolio-why-list">
+    <section class="portfolio-why" aria-label="Root-cause rows">
+      <h2 class="portfolio-why-title">Root causes</h2>
+      <dl class="portfolio-keyvalue-list">
         ${rows.map((d) => `
-          <li class="portfolio-why-item" title="${escapeHtml(d.detail || '')}">
-            <span class="portfolio-why-icon" aria-hidden="true">${DRIVER_ICONS[d.id] || '•'}</span>
-            <div class="portfolio-why-copy">
-              <strong>${escapeHtml(d.title || '')}</strong>
-              <span>${escapeHtml(d.summary || '')}</span>
-            </div>
-          </li>`).join('')}
-      </ul>
+          <div class="portfolio-keyvalue-row" title="${escapeHtml(d.detail || '')}">
+            <dt>${escapeHtml(d.title || 'Signal')}</dt>
+            <dd>${escapeHtml(d.summary || '')}</dd>
+          </div>`).join('')}
+      </dl>
     </section>`;
 }
 
-export function renderPortfolioDecisionPanel(decision = {}, { selectedId = '' } = {}) {
-  const options = decision.decisionOptions || [];
-  const defaultId = selectedId || (options.find((o) => o.id === 'review-investment')?.id) || options[0]?.id || '';
+function renderProgression(steps = []) {
+  if (!steps.length) return '';
   return `
-    <section class="portfolio-decision" aria-label="Next portfolio decision" id="portfolio-decision">
-      <h2>Next portfolio decision</h2>
-      <fieldset class="portfolio-decision-options">
-        <legend class="gov-visually-hidden">Portfolio decision options</legend>
-        ${options.map((o) => `
-          <label class="portfolio-decision-option${o.id === defaultId ? ' is-selected' : ''}">
-            <input type="radio" name="portfolio-decision" value="${escapeHtml(o.id)}" ${o.id === defaultId ? 'checked' : ''}>
-            <span class="portfolio-decision-option-copy">
-              <strong>${escapeHtml(o.label)}</strong>
-              <span>${escapeHtml(o.hint || '')}</span>
-            </span>
-          </label>`).join('')}
-      </fieldset>
-      <button type="button" class="btn btn-primary portfolio-decision-confirm" data-portfolio-action="confirm-decision">Confirm decision</button>
-      <a class="portfolio-decision-proof-link" href="/actions?tab=proof">Open proof in Actions ↗</a>
+    <div class="portfolio-decision-progression" aria-label="Commitment progression">
+      <p class="portfolio-progression-label">Commitment progression</p>
+      <ol class="portfolio-progression-steps">
+        ${steps.map((s) => `<li class="portfolio-progression-step${s.active ? ' is-active' : ''}">${escapeHtml(s.label)}</li>`).join('')}
+      </ol>
+    </div>`;
+}
+
+function renderPerformanceMatrix(decision = {}) {
+  const metrics = decision.metrics || {};
+  const monitoring = decision.monitoring || {};
+  const rows = [
+    ['Delivery method', metrics.delivery?.methodLabel || 'Delivery evidence'],
+    ['Baseline drift', `${Number(metrics.offPlanLoad?.value) || 0}% off-plan load`],
+    ['Proof posture', `${Number(metrics.proofConfidence?.value) || 0}% evidence strength`],
+  ];
+  return `
+    <section class="portfolio-performance-matrix" aria-label="Commitment tracking and performance matrix">
+      <h2>Commitment tracking</h2>
+      <p class="portfolio-performance-summary">
+        ${Number(monitoring.exposedCommitmentCount) || 0} exposed of ${Number(monitoring.commitmentCount) || 0} tracked commitments.
+      </p>
+      <div class="portfolio-performance-rows">
+        ${rows.map(([label, value]) => `
+          <div class="portfolio-performance-row">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(String(value))}</strong>
+          </div>`).join('')}
+      </div>
+    </section>`;
+}
+
+function renderDecisionBasis(basis = {}) {
+  if (!basis.why && !basis.nextCheckpoint && !basis.peerConclusion) return '';
+  return `
+    <div class="portfolio-decision-basis" data-portfolio-decision-basis>
+      <h3 class="portfolio-basis-title">Operating decision</h3>
+      ${basis.why ? `<p class="portfolio-basis-row"><span>Posture:</span> ${escapeHtml(basis.why)}</p>` : ''}
+      ${basis.nextCheckpoint ? `<p class="portfolio-basis-row"><span>Next checkpoint:</span> ${escapeHtml(basis.nextCheckpoint)}</p>` : ''}
+      ${basis.preparedNudges ? `<p class="portfolio-basis-row"><span>Prepared interventions:</span> ${Number(basis.preparedNudges)}</p>` : ''}
+      ${basis.peerConclusion ? `<p class="portfolio-basis-row portfolio-basis-peer">${escapeHtml(basis.peerConclusion)}</p>` : ''}
+    </div>`;
+}
+
+export function renderWhyThisMatters(drivers = []) {
+  return renderDrivers(drivers);
+}
+
+export function renderPortfolioDecisionPanel(decision = {}) {
+  const recommended = decision.recommendation?.id || 'track-commitments';
+  return `
+    <section class="portfolio-decision" aria-label="Commitment tracking matrix" id="portfolio-decision">
+      ${renderPerformanceMatrix(decision)}
+      ${renderProgression(decision.decisionProgression)}
+      ${renderDrivers(decision.drivers)}
+      ${renderDecisionBasis(decision.decisionBasis || {})}
+      <button type="button" class="btn btn-primary portfolio-decision-confirm" data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}">Confirm tracking posture</button>
+      <p class="portfolio-decision-calibration-hint">Use the Calibration shield above for the room-ready defense.</p>
     </section>`;
 }
 
 export function bindPortfolioDecisionPanel(root, onConfirm) {
   if (!root) return;
-  root.addEventListener('change', (ev) => {
-    const input = ev.target.closest('input[name="portfolio-decision"]');
-    if (!input) return;
-    root.querySelectorAll('.portfolio-decision-option').forEach((el) => el.classList.remove('is-selected'));
-    input.closest('.portfolio-decision-option')?.classList.add('is-selected');
-  });
-  root.querySelector('[data-portfolio-action="confirm-decision"]')?.addEventListener('click', async () => {
-    const selected = root.querySelector('input[name="portfolio-decision"]:checked')?.value || '';
+  root.querySelector('[data-portfolio-action="confirm-decision"]')?.addEventListener('click', async (ev) => {
+    const selected = ev.currentTarget?.getAttribute('data-decision-id') || 'track-commitments';
     if (onConfirm) await onConfirm(selected);
   });
 }

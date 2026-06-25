@@ -48,6 +48,43 @@ test('affected commitments derived from risks when piCommitted is zero', async (
   const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', cases: [{ project: 'SD', title: 'Case A', id: 'c1' }] });
   assert.ok(decision.affectedCommitments.length >= 1);
   assert.ok(decision.monitoring.exposedCommitmentCount >= 1);
+  assert.equal(decision.metrics.delivery.methodLabel, 'Progress by issue count');
+});
+
+test('portfolio decision exposes epic lineage for user-story context', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const brief = {
+    projects: ['SD'],
+    meta: {
+      quarter: 'FY27 Q1',
+      boardEpicIndex: [{ issueKey: 'SD-100', title: 'Recharge Growth Modernization', projectKey: 'SD' }],
+    },
+    _boardPayloads: [{
+      board: { location: { projectKey: 'SD' } },
+      payload: {
+        stories: [
+          { issueKey: 'SD-1', epicKey: 'SD-100', epicSummary: 'Recharge Growth Modernization', status: 'In Progress' },
+          { issueKey: 'SD-2', epicKey: 'SD-100', epicSummary: 'Recharge Growth Modernization', status: 'Done' },
+        ],
+      },
+    }],
+    squadInsights: [{
+      projectKey: 'SD',
+      boardName: 'DMS',
+      boardResolved: true,
+      piCommitted: 2,
+      piDone: 1,
+      sprintPulse: { committed: 2, done: 1 },
+      cardRisks: [{ issueKey: 'SD-1', epicKey: 'SD-100', epicSummary: 'Recharge Growth Modernization' }],
+    }],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', cases: [] });
+  assert.equal(decision.epicLineage.primary.epicKey, 'SD-100');
+  assert.equal(decision.epicLineage.coveredStoryCount, 2);
+  assert.match(decision.epicLineage.label, /Recharge Growth Modernization/);
+  assert.equal(decision.metrics.delivery.methodLabel, 'Progress by delivery evidence');
+  assert.equal(decision.timebox.totalDays, 90);
 });
 
 test('prepared actions grouped by role with deadline', async () => {

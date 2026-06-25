@@ -14,7 +14,7 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 | `/report` | **Proof** | Evidence and drill-down (unchanged route; top chrome links here from legacy bookmarks) |
 | `/settings` | **Settings** | My workspace prefs, read-only org catalog, integrations health, Jira activity |
 
-**Portfolio command surface (`/governance`):** decision-intelligence layout — AI portfolio signal with above-fold stats (exposed commitments, actions ready, PO responses, deadline), **Affected commitments** list, **Prepared actions** strip, squad comparison cards (main issue / decision / next action), and decision rail with impact previews + progression ladder. Compact metric row (no circular gauges). Single load pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js`. Decision SSOT: `Delivera-Governance-PortfolioDecision-01SSOT.js` + `Delivera-Governance-PortfolioExposure-01SSOT.js` (gap classification, commitments, prepared actions, peer narrative). Scope SSOT: `Delivera-App-Governance-Brief-ScopeBar-01Render-UI.js` + `03Shared-Kernel-SSOT.js` + `04Portfolio-Mode-Render-UI.js`. Intervention client: `Delivera-App-Governance-InterventionCase-02Client-SSOT.js`. Nav routes: `Delivera-Shared-Page-Route-01Resolve-SSOT.js`. Gate: `npm run test:journey:portfolio` + `tests/Delivera-Portfolio-Decision-Intelligence-Unit.mjs`.
+**Portfolio command surface (`/governance`):** direct-to-value layout — one operational headline, compressed compare summary (`+N Squads`), text fiscal timebox, single PI alignment rail, visible epic context, baseline-to-Jira reconciler strip, Action Stream, and audience-aware **Calibration Shield** copy. Legacy brief DOM hydrates on-demand via `ensureLegacyBriefSurfacesHydrated` (not on initial portfolio paint). Keyboard: `R` refresh scope, `C` copy defense, `N` nudge/drawer. Pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js` + `Delivera-App-Portfolio-Signal-01Render-UI.js` + `Delivera-App-Portfolio-Actions-01Bridge.js`.
 
 **Actions (`/actions`):** tab badges show ready-case counts; `?caseId=` highlights the matching card. `/evidence` and `/impact` redirect here. `/portfolio` redirects to `/governance`.
 
@@ -46,7 +46,8 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 ## Brief highlights
 
 - Shared project catalog (`GET /api/projects-catalog.json` + optional `data/Delivera-Org-Project-Catalog.json`; display names via `Delivera-Shared-Project-Display-01Resolve-SSOT.js`)
-- **Loading shell:** `#gov-loading` reuses Sprint spinner markup (`Delivera-Governance-Brief-Page-02Loading-State.js`); cache hit paints instantly with a scope-bar “Refreshing…” chip (`preserveContent` pattern)
+- **Loading shell:** portfolio path paints `#portfolio-signal-mount` skeleton only (`showPortfolioLoading`); legacy `#gov-brief-content` stays hidden during load. Scope bar hides **Refresh** when client/server cache is fresh and shows an **Updating…** chip during background revalidate (`setCacheUxState` on `ScopeBar-04Portfolio-Mode-Render-UI.js`).
+- **Shared UI primitives:** Jira story/epic titles render through `Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js` for full hover titles + preview-ready issue keys; long-running waits render through `Delivera-Shared-Loading-State-01Render-UI.js`.
 - **Cache-first paint:** `peekGovernanceBriefCache` renders the last scoped answer before network; **Refresh** calls `invalidateBriefCacheEntry` + `?refresh=1` on client and server
 - **Scope SSOT:** project changes call `notifyScopeChanged()` (`Delivera-Shared-Scope-Notify-01Bridge.js`) so sidebar, top chrome, and scope bar stay aligned; cross-tab `storage` events also notify; scope change invalidates brief cache and forces reload; quarter key is `GOVERNANCE_QUARTER_KEY` in `Delivera-Shared-Storage-Keys.js`
 - Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) keys on `periodWindow` as well as projects/quarter — period chip invalidates cache before reload; deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
@@ -109,7 +110,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
 | `npm run test:all` | Full fail-fast orchestration (reordered tiers) |
-| `npm run test:all:priority` | Tier 0–3 gate: CSS, portfolio units, cross-page/value/sprint/focused, brief-ssot + governance journey |
+| `npm run test:all:priority` | Tier 0–3 gate: CSS, portfolio units, PI intelligence, cross-page/API/value/direct-value/focused/layout/dedupe-fold, brief-ssot + governance journey |
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:journey:settings-masterplan` | Settings hub, display names, integrations deep links |
@@ -120,7 +121,8 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
 | `npm run test:journey:governance` | Brief / governance Playwright bundle |
 | `npm run test:journey:governance-intervention-loop` | Intervention case API journey and approval gates |
-| `npm run test:journey:portfolio` | Portfolio signal, carousel, decision confirm, Actions bridge |
+| `npm run test:journey:pi-intelligence` | PI confidence, scope intelligence, epic hygiene, feedback lab (on-demand legacy hydrate) |
+| `npm run test:journey:portfolio` | Portfolio signal, inline calibration, carousel, decision confirm |
 | `npm run test:journey:ux-core` | Cross-surface UX gate |
 | `npm run vercel:deploy` | Manual Vercel deploy after `vercel login` |
 
