@@ -1,7 +1,7 @@
 import {
   COPY, deliveryStatusLabel, freshnessShortLabel,
 } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { buildDecisionsRows } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 
 export function renderMeetingHero(brief) {

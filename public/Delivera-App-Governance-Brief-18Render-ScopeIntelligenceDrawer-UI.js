@@ -1,5 +1,5 @@
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { SCOPE_FILTER_PRESETS } from './Delivera-App-Governance-Brief-ScopeFilters-01SSOT.js';
 
 function cardRow(card) {

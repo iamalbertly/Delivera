@@ -47,8 +47,8 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 ## Brief highlights
 
 - Shared project catalog (`GET /api/projects-catalog.json` + optional `data/Delivera-Org-Project-Catalog.json`; display names via `Delivera-Shared-Project-Display-01Resolve-SSOT.js`)
-- **Loading shell:** portfolio path paints `#portfolio-signal-mount` skeleton only (`showPortfolioLoading`); legacy `#gov-brief-content` stays hidden during load. Scope bar hides **Refresh** when client/server cache is fresh and shows an **Updating…** chip during background revalidate (`setCacheUxState` on `ScopeBar-04Portfolio-Mode-Render-UI.js`).
-- **Shared UI primitives:** Jira story/epic titles render through `Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js` for full hover/focus titles + preview-ready issue keys; long-running waits render through `Delivera-Shared-Loading-State-01Render-UI.js`.
+- **Loading shell:** portfolio path paints `#portfolio-signal-mount` skeleton only (`showPortfolioLoading`); legacy `#gov-brief-content` stays hidden during load. Scope bar shows a **time-box chip** (`Day X/Y · Z% time elapsed`) + **since-last-check chip** + **labeled status pill** (`✕ Blocked` / `● Watch` / `✓ OK` / `○ Setup`) in the summary strip. No Refresh button — auto-refresh fires on `visibilitychange` (debounced >2s, deferred during open drawers).
+- **Shared UI primitives:** Jira story/epic titles render through `Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js` for full hover/focus titles + preview-ready issue keys; long-running waits render through `Delivera-Shared-Loading-State-01Render-UI.js`. HTML escaping is SSOT in `Delivera-Shared-Dom-Escape-Helpers.js` (client) + `Delivera-Server-Url-And-Escape-Helpers.js` (server) — no re-exports from governance modules.
 - **Cache-first paint:** `peekGovernanceBriefCache` renders the last scoped answer before network; **Refresh** calls `invalidateBriefCacheEntry` + `?refresh=1` on client and server
 - **Scope SSOT:** project changes call `notifyScopeChanged()` (`Delivera-Shared-Scope-Notify-01Bridge.js`) so sidebar, top chrome, and scope bar stay aligned; cross-tab `storage` events also notify; scope change invalidates brief cache and forces reload; quarter key is `GOVERNANCE_QUARTER_KEY` in `Delivera-Shared-Storage-Keys.js`
 - Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) keys on `periodWindow` as well as projects/quarter — period chip invalidates cache before reload; deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
@@ -65,6 +65,7 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - Page-level **Export brief** hides when top chrome is present — **Export brief** moves to command overflow (`#gov-export-overflow`)
 - PI baseline wizard with optional slide upload; AI keys live in **Settings** (`/settings#integrations`) or `.env` — providers: OpenAI, Claude, **OpenRouter** (`OPENROUTER_API_KEY`). Work-draft canvas links to Settings (no duplicate key UI).
 - Inbox drawer with icon tabs; guided nudge review (not silent approve)
+- **Direct-value master plan (2026-06):** single console patch (`Delivera-Shared-Runtime-Notification-Bridge.js` is the only `console.error` wrapper — extension noise filtered by regex, no double-fire); owner cluster dismiss chips hover-reveal on desktop / always visible on touch; evidence drawer has no tabs (investment summary inlined above proof list); micro-survey 4h timer disabled (post-nudge thumb chip only via `renderPostNudgeSurvey`); 14 dead `DeleteThisFile_*` files removed; `escapeHtml` imports consolidated to the SSOT (no re-exports from `02Render-Decisions-UI`).
 
 Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brief-ssot`. Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
 
@@ -114,6 +115,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:all:priority` | Tier 0–3 gate: CSS, portfolio units, PI intelligence, cross-page/API/value/direct-value/focused/layout/dedupe-fold, brief-ssot + governance journey |
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
+| `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan: single console patch, time-box chips, labeled status pill, auto-refresh, hover-reveal dismiss, evidence inline, micro-survey post-nudge (13 fail-fast tests) |
 | `npm run test:journey:settings-masterplan` | Settings hub, display names, integrations deep links |
 | `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan cross-surface validation |
 | `npm run test:journey:value-retention` | Value retention master plan (27 steps: desktop 1024px density, alignment, investment drawer, period lens, edge cases E2/E6/E8, proof drawer tab) |

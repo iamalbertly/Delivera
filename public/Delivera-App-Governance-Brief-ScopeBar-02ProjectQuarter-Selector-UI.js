@@ -1,7 +1,7 @@
 /**
  * Governance scope — project + period selectors (scroll pills desktop, native select mobile).
  */
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';

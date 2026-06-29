@@ -7,7 +7,7 @@ import {
   simpleStatusLabel,
   verdictTierFromBrief,
 } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { commandAnswerSentence, sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { renderAiContributionStrip } from './Delivera-Shared-AgentQueue-01UI.js';
 

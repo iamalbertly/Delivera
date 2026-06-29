@@ -26,5 +26,8 @@ test('stale data shows plain English minutes warning', async ({ page }) => {
   await page.goto('/governance');
   if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
   await waitForGovernanceReady(page);
-  await expect(page.locator('#portfolio-scope-refresh')).toBeVisible();
+  // B4: Refresh button removed — auto-refresh on visibilitychange.
+  // Verify stale data is surfaced via the status pill or stale overlay instead.
+  const statusPill = page.locator('[data-scope-status-action]').first();
+  await expect(statusPill).toBeVisible({ timeout: 15000 });
 });

@@ -1,4 +1,4 @@
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
 import { COPY, setupGapImpact, setupGapTitle } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 

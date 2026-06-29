@@ -1,6 +1,6 @@
 import { COPY, initialsFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderPulseBars } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
 import { classifyWorkAlignment, renderAlignmentChip } from './Delivera-Shared-WorkAlignment-01Chip-SSOT.js';
 

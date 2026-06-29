@@ -271,8 +271,14 @@ test.describe('Governance growth master plan Round 2', () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await waitForGovernanceReady(page);
+      // B4: Refresh button removed — simulate rapid visibility changes (auto-refresh).
       for (let i = 0; i < 5; i++) {
-        await page.locator('#portfolio-scope-refresh').click({ timeout: 3000 }).catch(() => {});
+        await page.evaluate(() => {
+          Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+          document.dispatchEvent(new Event('visibilitychange'));
+          Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+          document.dispatchEvent(new Event('visibilitychange'));
+        });
       }
       await page.waitForTimeout(800);
       await expect(page.locator('#main-content')).toHaveAttribute('data-gov-brief-state', 'content');

@@ -290,12 +290,12 @@ test.describe('Governance click friction master plan', () => {
 
     await test.step('10 negative double refresh', async () => {
       await page.keyboard.press('Escape');
+      // B4: Refresh button removed — auto-refresh fires on visibilitychange.
+      // Simulate two rapid visibility changes to verify no double-refresh crash.
       await page.evaluate(() => {
-        const btn = document.getElementById('portfolio-scope-refresh');
-        if (!btn) return;
-        btn.removeAttribute('hidden');
-        btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+        document.dispatchEvent(new Event('visibilitychange'));
+        document.dispatchEvent(new Event('visibilitychange'));
       });
       await page.waitForTimeout(800);
       await expect(page.locator('#main-content')).toHaveAttribute('data-gov-brief-state', 'content');

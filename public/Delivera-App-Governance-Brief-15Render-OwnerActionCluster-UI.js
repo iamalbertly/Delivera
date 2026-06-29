@@ -1,4 +1,4 @@
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { proofChipSummary } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { renderClusterProofPreviewHtml } from './Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js';

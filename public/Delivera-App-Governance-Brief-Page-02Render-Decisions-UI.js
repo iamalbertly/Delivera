@@ -3,8 +3,6 @@
  */
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
-export { escapeHtml };
-
 export function truthChip(label, value, tone) {
   const v = value == null ? '-' : value;
   return `<div class="governance-truth-chip${tone ? ' tone-' + tone : ''}"><span class="gov-chip-value">${escapeHtml(v)}</span><span class="gov-chip-label">${escapeHtml(label)}</span></div>`;

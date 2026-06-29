@@ -1,5 +1,5 @@
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 
 export function renderAdHocChip(brief) {

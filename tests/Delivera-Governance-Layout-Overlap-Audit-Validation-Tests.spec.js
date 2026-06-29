@@ -409,11 +409,11 @@ test.describe('Governance layout overlap audit', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
     await waitForLayoutGovernanceReady(page);
 
-    await expect(page.locator('#portfolio-scope-refresh')).toBeAttached({ timeout: 15000 });
+    await expect(page.locator('[data-scope-status-action]').first()).toBeAttached({ timeout: 15000 });
     await expect(page.locator('#app-notification-dock')).toHaveCount(0);
 
     const overlap = await getLayoutOverlapReport(page, {
-      selectors: ['#gov-scope-refresh', '#app-notification-dock', '.gov-command-answer'],
+      selectors: ['[data-scope-status-action]', '#app-notification-dock', '.gov-command-answer'],
     });
     expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
 

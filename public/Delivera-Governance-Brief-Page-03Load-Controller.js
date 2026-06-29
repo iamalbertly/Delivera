@@ -13,7 +13,8 @@ import { mountGovernanceInterventionCases } from './Delivera-App-Governance-Inte
 import { renderOwnerActionClusters } from './Delivera-App-Governance-Brief-15Render-OwnerActionCluster-UI.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { renderSetupDebtStrip, bindSetupDebtStripExpand } from './Delivera-App-Governance-Brief-17Render-SetupDebtStrip-UI.js';
-import { escapeHtml, briefToMarkdown } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { briefToMarkdown } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import {
   renderProofRisks, renderEvidenceTable, renderEvidencePreview, renderTechnicalDetails,
   renderReadiness, renderBaseline, deferScorecardUntilEvidenceOpen, mountEvidenceTabShell,

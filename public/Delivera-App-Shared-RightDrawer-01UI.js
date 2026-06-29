@@ -1,7 +1,7 @@
 /**
  * SSOT: right-side drawer host (inbox, evidence, scope sheet, etc.).
  */
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 let host = null;
 let drawerCloseFn = null;
