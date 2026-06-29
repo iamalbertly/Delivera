@@ -1,18 +1,30 @@
-# Phase 0 - Browser exploration enrichment (after deterministic collectors)
+# Phase 0 — MCP browser exploration (MANDATORY)
 
-Read {{BRAIN_FILE}}, {{EVIDENCE_BUNDLE}}, {{EXPLORATION_JSON}}, {{HIDDEN_VALUE_JSON}}, {{VOID_JSON}}.
+Read FIRST: {{EVIDENCE_DIGEST}}, {{BRAIN_FILE}}, {{STATE_MATRIX_JSON}}, {{SCREENSHOT_FOLD_PATH}}.
 
-Use Playwright MCP on **desktop ({{DESKTOP_VIEWPORT}})** and **mobile ({{MOBILE_VIEWPORT}})** at {{TARGET_URL}}.
-Click through interactive controls. If MCP unavailable, read exploration JSON/MD only - do NOT report MCP status or stop.
+**Hard requirement:** Use Playwright MCP on **desktop ({{DESKTOP_VIEWPORT}})** AND **mobile ({{MOBILE_VIEWPORT}})**.
+If MCP tools are unavailable, write `MCP_BLOCKED` to {{EXPLORATION_MD}} and STOP — do not guess from JSON alone.
 
-Mission:
-- Confirm or refute intra-card void gaps and hidden-value findings with screenshots and repro steps.
-- Challenge visual speed and dead vertical space - cite foldDeadBandPx, maxVoidPx, hiddenValueCount from evidence.
-- Identify 20+ real click/scroll reductions (no generic filler ideas).
-- Read console during journey; list errors/warnings with repro.
-- Negative tests: empty scope, double refresh, escape dismiss, mobile overflow, scroll while drawer open.
+## Journey
+1. {{TARGET_URL}}
+2. {{JOURNEY_URL_2}}
+3. Return to governance
 
-Output narrative to {{EXPLORATION_MD}} append section "MCP enrichment".
+## Evidence to confirm or refute (cite numbers)
+- leftWhitespaceRatio={{LEFT_WHITESPACE_RATIO}} (max {{MAX_LEFT_WHITESPACE}})
+- hiddenValueCount={{HIDDEN_VALUE_COUNT}} (max 8)
+- duplicateCount={{DUPLICATE_COUNT}}
+- brokenClicks={{BROKEN_CLICK_COUNT}}
+
+## Mission
+- Click every interactive control; read console each step.
+- Take MCP screenshots at fold on desktop and mobile; compare to {{SCREENSHOT_FOLD_PATH}}.
+- Challenge visual speed and dead vertical space (foldDeadBandPx, maxVoidPx).
+- Identify **20+ real** click/scroll reductions (no filler).
+- **Negative tests:** empty scope, double-click, escape dismiss, scroll-while-drawer-open, mobile overflow.
+
+Append section `## MCP enrichment` to **{{EXPLORATION_MD}}** with repro steps, console errors, screenshot notes, and ranked reductions.
+
 Align to: {{CORE_VALUES}}.
 
 {{PATCH_TEXT}}

@@ -19,17 +19,14 @@ import { buildGovernanceNudgeDraft, isScopeConfirmationTrigger } from '../lib/De
 import { buildEscalationDraft, resolveEscalationLevel } from '../lib/Delivera-Governance-Escalation-01Ladder-SSOT.js';
 import { recordImprovementEvent } from '../lib/Delivera-Improvement-Events-01Store-IO.js';
 import { appendInboxItem } from '../lib/Delivera-Governance-Worker-02Jobs-IO.js';
-import { buildPortfolioDecision } from '../lib/Delivera-Governance-PortfolioDecision-01SSOT.js';
-import { buildPortfolioComparisonCards } from '../lib/Delivera-Governance-PortfolioComparison-01SSOT.js';
-import { cache } from '../lib/cache.js';
 import {
-  CACHE_NS,
-  deriveCacheTtlMs,
-  portfolioDecisionCacheKey,
-} from '../lib/Delivera-Cache-AgeTier-01TTL-SSOT.js';
+  getOrBuildPortfolioDecision,
+  invalidatePortfolioDecisionForScope,
+  invalidatePortfolioDecisionForCase,
+  compactCasesForScope,
+} from '../lib/Delivera-Governance-PortfolioDecision-01Service.js';
 
 const router = express.Router();
-const PORTFOLIO_DECISION_NS = CACHE_NS.PORTFOLIO_DECISION;
 
 export function riskListFromBrief(body = {}) {
   const brief = body.brief || {};
@@ -99,128 +96,6 @@ async function recordCaseEvent(eventType, caseRow, payload = {}) {
     scope: { project: caseRow?.project || payload.project || '*' },
     payload: { caseId: caseRow?.id || '', ...payload },
   }).catch(() => null);
-}
-
-function primaryProjectFromRequest(value = '') {
-  return String(value || '').split(',').map((p) => normalizeProjectKey(p)).filter(Boolean)[0] || '';
-}
-
-async function compactCasesForScope({ project = '', periodKey = '', status = 'open', limit = 12 } = {}) {
-  return getCompactInterventionCases({
-    project: primaryProjectFromRequest(project),
-    status,
-    periodKey,
-    limit,
-  });
-}
-
-async function invalidatePortfolioDecisionCache({ anchor = '', periodKey = '' } = {}) {
-  const anchorKey = normalizeProjectKey(anchor);
-  if (!anchorKey) return;
-  const prefix = `${PORTFOLIO_DECISION_NS}:${anchorKey}:`;
-  await cache.invalidateByPrefix(prefix);
-}
-
-async function invalidatePortfolioDecisionForCase(row = {}) {
-  await invalidatePortfolioDecisionCache({
-    anchor: row.project || row.anchorProject,
-    periodKey: row.periodKey,
-  });
-}
-
-function buildPortfolioDecisionPayload({
-  brief,
-  anchor,
-  compareRaw,
-  cases,
-  baselineMode,
-  baselineMissing,
-  partialSquads = 0,
-  wordingSource,
-  claimsVerified,
-}) {
-  const decision = buildPortfolioDecision({
-    brief,
-    anchorProject: anchor || brief.projects?.[0],
-    compareProjects: compareRaw.length ? compareRaw : (brief.projects || []).filter((p) => p !== anchor),
-    cases,
-    baselineMissing,
-    baselineMode,
-    wordingSource: wordingSource || (brief.meta?._aiProviderFallback ? 'template' : 'verified'),
-    claimsVerified: claimsVerified !== false,
-    partialSquads,
-  });
-  const comparison = buildPortfolioComparisonCards({
-    decision,
-    brief,
-    insights: decision.insights || brief.squadInsights || [],
-    cases,
-  });
-  return { decision, comparison, cases };
-}
-
-async function getOrBuildPortfolioDecision({
-  anchor,
-  compareRaw,
-  periodKey,
-  baselineMode,
-  brief,
-  baselineMissing,
-  partialSquads,
-  wordingSource,
-  claimsVerified,
-  forceRefresh = false,
-}) {
-  const cases = await compactCasesForScope({ project: anchor, status: 'open', periodKey, limit: 20 });
-  const briefId = String(brief?.meta?.briefId || brief?.generatedAt || '').slice(0, 64);
-  const cacheKey = portfolioDecisionCacheKey({
-    anchor,
-    compare: compareRaw,
-    periodKey,
-    briefId,
-    cases,
-    baselineMode,
-  });
-
-  if (!forceRefresh) {
-    const cached = await cache.get(cacheKey, { namespace: PORTFOLIO_DECISION_NS });
-    const payload = cached?.value || cached;
-    if (payload?.decision) {
-      const cachedAt = cached?.cachedAt || payload?.meta?.cachedAt || new Date().toISOString();
-      return {
-        ...payload,
-        meta: {
-          ...(payload.meta || {}),
-          cached: true,
-          cachedAt,
-          cacheKey,
-          cacheTtlMs: payload.meta?.cacheTtlMs,
-        },
-      };
-    }
-  } else {
-    await cache.delete(cacheKey, { namespace: PORTFOLIO_DECISION_NS });
-  }
-
-  const built = buildPortfolioDecisionPayload({
-    brief,
-    anchor,
-    compareRaw,
-    cases,
-    baselineMode,
-    baselineMissing,
-    partialSquads,
-    wordingSource,
-    claimsVerified,
-  });
-  const { ttlMs } = deriveCacheTtlMs({
-    generatedAt: brief?.generatedAt,
-    periodEnd: brief?.period?.end || brief?.meta?.periodEnd,
-  });
-  const meta = { cached: false, cacheTtlMs: ttlMs, cacheKey };
-  const envelope = { ok: true, ...built, meta };
-  await cache.set(cacheKey, envelope, ttlMs, { namespace: PORTFOLIO_DECISION_NS });
-  return envelope;
 }
 
 router.post('/api/governance/portfolio-decision.json', requireAuth, async (req, res, next) => {
@@ -312,7 +187,7 @@ router.post('/api/governance/portfolio-decision/confirm', requireAuth, async (re
       actions: [...(row.actions || []), action],
     }, 'portfolio-decision-confirmed');
     await recordCaseEvent('portfolio-decision-confirmed', row, { decisionId });
-    await invalidatePortfolioDecisionCache({ anchor: project, periodKey });
+    await invalidatePortfolioDecisionForScope({ anchor: project, periodKey });
     res.json({ ok: true, case: row, action });
   } catch (err) {
     next(err);
@@ -389,7 +264,7 @@ router.post('/api/governance/interventions/seed-from-brief', requireAuth, async 
       created.push(row);
     }
     const compact = await compactCasesForScope({ project: fallbackProject, periodKey, status: 'open', limit: 12 });
-    await invalidatePortfolioDecisionCache({ anchor: fallbackProject, periodKey });
+    await invalidatePortfolioDecisionForScope({ anchor: fallbackProject, periodKey });
     res.json({ ok: true, seeded: created.length, cases: compact });
   } catch (err) {
     next(err);

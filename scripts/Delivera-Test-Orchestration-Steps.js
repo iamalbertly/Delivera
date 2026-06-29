@@ -70,6 +70,12 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Governance PI Intelligence Validation (touched files)',
+      command: 'npm',
+      args: ['run', 'test:journey:pi-intelligence'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Governance Intervention Loop Journey (most recent code)',
       command: 'npm',
       args: ['run', 'test:journey:governance-intervention-loop'],
@@ -91,21 +97,39 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Run API Integration Contracts',
+      command: 'npm',
+      args: ['run', 'test:journey:api-integration'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Value Retention Master Plan Journey',
       command: 'npm',
       args: ['run', 'test:journey:value-retention'],
       cwd: projectRoot,
     },
     {
-      name: 'Run Current Sprint Dedupe Fold Journey',
+      name: 'Run Direct Value Master Plan Journey',
       command: 'npm',
-      args: ['run', 'test:current-sprint:dedupe-fold'],
+      args: ['run', 'test:journey:direct-value-masterplan'],
       cwd: projectRoot,
     },
     {
       name: 'Run Focused Playwright Contracts',
       command: 'npm',
       args: ['run', 'test:focused'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Layout Overlap Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:layout-overlap'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Current Sprint Dedupe Fold Journey',
+      command: 'npm',
+      args: ['run', 'test:current-sprint:dedupe-fold'],
       cwd: projectRoot,
     },
   ];
@@ -127,9 +151,15 @@ export function getSteps(projectRoot) {
 
   const tier4Layout = [
     {
-      name: 'Run Layout Overlap Journey',
+      name: 'Run Governance AutoHacker v6 Fold Journey',
       command: 'npm',
-      args: ['run', 'test:journey:layout-overlap'],
+      args: ['run', 'test:journey:governance-autohacker-v6'],
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Governance Flatten L3 Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:governance-flatten-l3'],
       cwd: projectRoot,
     },
   ];
@@ -139,12 +169,6 @@ export function getSteps(projectRoot) {
       name: 'Run Settings Master Plan Journey',
       command: 'npm',
       args: ['run', 'test:journey:settings-masterplan'],
-      cwd: projectRoot,
-    },
-    {
-      name: 'Run Direct Value Master Plan Journey',
-      command: 'npm',
-      args: ['run', 'test:journey:direct-value-masterplan'],
       cwd: projectRoot,
     },
     {
@@ -223,12 +247,16 @@ const PRIORITY_STEP_NAMES = new Set([
   'Governance Intervention Unit Tests (most recent code)',
   'Portfolio Decision Intelligence Unit Tests',
   'Cache Age-Tier TTL Unit Tests',
+  'Governance PI Intelligence Validation (touched files)',
   'Governance Intervention Loop Journey (most recent code)',
   'Portfolio Command Surface Journey (most recent code)',
   'Run Cross-Page Persistence (last failed)',
+  'Run API Integration Contracts',
   'Run Value Retention Master Plan Journey',
-  'Run Current Sprint Dedupe Fold Journey',
+  'Run Direct Value Master Plan Journey',
   'Run Focused Playwright Contracts',
+  'Run Layout Overlap Journey',
+  'Run Current Sprint Dedupe Fold Journey',
   'Run Brief SSOT Loading And Scope Journey',
   'Run Governance Decision Cockpit Journey',
 ]);

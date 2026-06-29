@@ -1,0 +1,260 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Answer
+        - link "Today" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Proof" [ref=e13] [cursor=pointer]:
+          - /url: /report
+      - link "Delivera" [ref=e15] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e16]: De
+        - generic [ref=e18]: Delivera
+      - generic [ref=e20]:
+        - img
+        - searchbox "Context search" [ref=e21]
+      - group "Global actions" [ref=e22]:
+        - button "Create" [ref=e23] [cursor=pointer]:
+          - generic [ref=e24]: +
+          - generic [ref=e25]: Create
+        - generic "Server AI (OpenRouter) — high template fallback" [ref=e111]: AI · templates (server busy)
+        - button "Notifications" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+        - button "Help" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+        - button "Improve Delivera" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+        - link "Settings" [ref=e36] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e37]
+        - button "Account menu" [ref=e39] [cursor=pointer]: LY
+  - group [ref=e112]:
+    - generic "Feedback and survey" [ref=e113] [cursor=pointer]
+  - main [ref=e40]:
+    - generic "Brief scope" [ref=e41]:
+      - generic "Brief scope" [ref=e114]:
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - text: 1 squad ·
+            - strong [ref=e117]: MAS
+            - text: · FY27 Q1 · 28d · 1 available · 0 no sprint · 0 with epics
+          - generic "Send readiness" [ref=e118]: Fix promised work first
+          - button "✕ Blocked" [ref=e119] [cursor=pointer]
+          - group "Scope actions" [ref=e120]:
+            - button "Copy answer" [ref=e121] [cursor=pointer]
+            - button "Refresh" [ref=e122] [cursor=pointer]
+        - group "Scope selectors" [ref=e124]:
+          - group "Projects" [ref=e125]:
+            - button "AMS2" [ref=e126] [cursor=pointer]
+            - button "ASG" [ref=e127] [cursor=pointer]
+            - button "BIO" [ref=e128] [cursor=pointer]
+            - button "FIN" [ref=e129] [cursor=pointer]
+            - button "MAS" [pressed] [ref=e130] [cursor=pointer]
+            - button "MPSA" [ref=e131] [cursor=pointer]
+            - button "MPSA2" [ref=e132] [cursor=pointer]
+            - button "MVA" [ref=e133] [cursor=pointer]
+            - button "RPA" [ref=e134] [cursor=pointer]
+            - button "SD" [ref=e135] [cursor=pointer]
+            - button "TRS" [ref=e136] [cursor=pointer]
+            - button "VB" [ref=e137] [cursor=pointer]
+          - group "Period" [ref=e138]:
+            - button "PI · FY27 Q1" [ref=e139] [cursor=pointer]
+            - button "14d" [ref=e140] [cursor=pointer]
+            - button "28d" [ref=e141] [cursor=pointer]
+            - button "PI" [ref=e142] [cursor=pointer]
+            - text: ·
+            - button "FY24 Q4" [ref=e143] [cursor=pointer]
+            - button "FY25 Q2" [ref=e144] [cursor=pointer]
+            - button "FY25 Q3" [ref=e145] [cursor=pointer]
+            - button "FY25 Q4" [ref=e146] [cursor=pointer]
+            - button "FY26 Q1" [ref=e147] [cursor=pointer]
+            - button "FY26 Q2" [ref=e148] [cursor=pointer]
+            - button "FY26 Q3" [ref=e149] [cursor=pointer]
+            - button "FY27 Q1" [ref=e150] [cursor=pointer]
+          - group [ref=e151]:
+            - generic "Advanced scope (1)" [ref=e152] [cursor=pointer]
+    - generic [ref=e153]:
+      - generic [ref=e154]:
+        - generic "Squad delivery pulse" [ref=e155]:
+          - generic "Executive leaderboard" [ref=e156]:
+            - paragraph [ref=e157]: Out of 1 squads · 1 behind PI · 1 blocker · 1 bottleneck
+            - group "Add squad to compare" [ref=e158]:
+              - generic [ref=e159]: Add to compare
+              - button "+ MPSA" [ref=e160] [cursor=pointer]
+              - button "+ RPA" [ref=e161] [cursor=pointer]
+              - button "+ MVA" [ref=e162] [cursor=pointer]
+            - generic [ref=e164]:
+              - group "Sprint pulse" [ref=e165]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]: Value delivered
+                  - generic [ref=e170]: 0/6
+                - generic [ref=e171]:
+                  - generic [ref=e172]: Time in sprint
+                  - generic [ref=e175]: 2d
+              - paragraph [ref=e176]:
+                - button "PI baseline not saved — Fix in 1 click" [ref=e177] [cursor=pointer]
+              - list [ref=e178]:
+                - listitem [ref=e179]: Mgodi Miniapp regression and functional testing.
+              - list "Top risks" [ref=e180]:
+                - listitem [ref=e181]: Mgodi Miniapp regression and functional testing.
+              - link "View sprint" [ref=e183] [cursor=pointer]:
+                - /url: /current-sprint
+        - generic [ref=e185]:
+          - region "Today's delivery answer" [ref=e186]
+          - group [ref=e188]:
+            - generic "Meeting script" [ref=e189]
+        - region "Do now" [ref=e191]:
+          - article [ref=e192]:
+            - generic [ref=e194]:
+              - heading "Tonny · 1 action" [level=3] [ref=e195]
+              - paragraph [ref=e196]: Leadership · no progress for 4 days
+            - list [ref=e197]:
+              - listitem [ref=e198]:
+                - link "MAS-2475" [ref=e199] [cursor=pointer]:
+                  - /url: /current-sprint?issue=MAS-2475
+                - text: Mgodi Miniapp regression and functional testing. 4d
+            - generic [ref=e200]:
+              - button "Highlight proof in right rail" [ref=e201] [cursor=pointer]: "Proof: 1 keys · 1 changelog checks · cached 17m"
+              - generic "Proof preview" [ref=e202]:
+                - table [ref=e203]:
+                  - rowgroup [ref=e204]:
+                    - row "Issue Status Why" [ref=e205]:
+                      - columnheader "Issue" [ref=e206]
+                      - columnheader "Status" [ref=e207]
+                      - columnheader "Why" [ref=e208]
+                  - rowgroup [ref=e209]:
+                    - row "MAS-2475 In Progress status unchanged for 87h in In Progress" [ref=e210]:
+                      - cell "MAS-2475" [ref=e211]
+                      - cell "In Progress" [ref=e212]
+                      - cell "status unchanged for 87h in In Progress" [ref=e213]
+            - generic [ref=e214]:
+              - button "✉ Draft nudge" [ref=e215] [cursor=pointer]
+              - group "Dismiss" [ref=e216]:
+                - button "✓" [ref=e217] [cursor=pointer]
+                - button "✕" [ref=e218] [cursor=pointer]
+        - region "Setup gaps" [ref=e220]:
+          - 'button "Promised work not saved Impact: Without this, carryover and removed work cannot be proven. Fix: Confirm promised work" [ref=e222] [cursor=pointer]':
+            - heading "Promised work not saved" [level=4] [ref=e223]
+            - paragraph [ref=e224]: "Impact: Without this, carryover and removed work cannot be proven."
+            - 'button "Fix: Confirm promised work" [ref=e225]'
+        - generic [ref=e226]:
+          - heading "Supporting evidence (3 rows)" [level=2] [ref=e227]
+          - group [ref=e229]:
+            - generic "Data gaps weakening this brief (4)" [ref=e230]
+          - table [ref=e232]:
+            - rowgroup [ref=e233]:
+              - row "Issue Status Last week Why" [ref=e234]:
+                - columnheader "Issue" [ref=e235]
+                - columnheader "Status" [ref=e236]
+                - columnheader "Last week" [ref=e237]
+                - columnheader "Why" [ref=e238]
+            - rowgroup [ref=e239]:
+              - row "unknown (no changelog) 0 done stories of 6 committed in scope" [ref=e240]:
+                - cell [ref=e241]:
+                  - link:
+                    - /url: /governance#gov-risk-
+                - cell [ref=e242]
+                - cell "unknown (no changelog)" [ref=e243]
+                - cell "0 done stories of 6 committed in scope" [ref=e244]
+              - row "MAS-2475 In Progress To Do status unchanged for 87h in In Progress" [ref=e245]:
+                - cell "MAS-2475" [ref=e246]:
+                  - link "MAS-2475" [ref=e247] [cursor=pointer]:
+                    - /url: /governance#gov-risk-MAS-2475
+                - cell "In Progress" [ref=e248]
+                - cell "To Do" [ref=e249]
+                - cell "status unchanged for 87h in In Progress" [ref=e250]
+              - row "unknown (no changelog) no story points in current sprint scope" [ref=e251]:
+                - cell [ref=e252]:
+                  - link:
+                    - /url: /governance#gov-risk-
+                - cell [ref=e253]
+                - cell "unknown (no changelog)" [ref=e254]
+                - cell "no story points in current sprint scope" [ref=e255]
+          - paragraph [ref=e257]: "Technical: Brief MAS-NA-2026-W25 · narrated by template · First check-in for this scope — compare again after the next refresh."
+          - heading "Backlog readiness" [level=3] [ref=e258]
+          - region "Backlog readiness" [ref=e259]:
+            - heading "Backlog readiness" [level=3] [ref=e260]
+            - paragraph [ref=e261]: 6 items carry backlog-readiness risk, not only delivery risk.
+            - generic [ref=e262]:
+              - generic [ref=e263]: "noEstimate: 6"
+              - generic [ref=e264]: "noPILink: 6"
+          - heading "Plan vs now" [level=3] [ref=e265]
+          - region "Plan vs now"
+          - heading "Pilot metrics" [level=3] [ref=e266]
+          - region "Pilot scorecard" [ref=e267]:
+            - paragraph [ref=e268]: No pilot data yet.
+      - complementary "Agent queue and PI confidence" [ref=e269]:
+        - region "Proof preview" [ref=e271]:
+          - generic [ref=e272]:
+            - heading "Proof preview" [level=3] [ref=e273]
+            - button "All proof (3)" [ref=e274] [cursor=pointer]
+          - table [ref=e276]:
+            - rowgroup [ref=e277]:
+              - row "Issue Status Why" [ref=e278]:
+                - columnheader "Issue" [ref=e279]
+                - columnheader "Status" [ref=e280]
+                - columnheader "Why" [ref=e281]
+            - rowgroup [ref=e282]:
+              - row "0 done stories of 6 committed in scope" [ref=e283]:
+                - cell [ref=e284]
+                - cell [ref=e285]
+                - cell "0 done stories of 6 committed in scope" [ref=e286]
+              - row "MAS-2475 In Progress status unchanged for 87h in In Progress" [ref=e287]:
+                - cell "MAS-2475" [ref=e288]:
+                  - link "MAS-2475" [ref=e289] [cursor=pointer]:
+                    - /url: https://vodacomtz.atlassian.net/browse/MAS-2475
+                - cell "In Progress" [ref=e290]
+                - cell "status unchanged for 87h in In Progress" [ref=e291]
+        - status [ref=e293]:
+          - 'generic "Agent Last run: just now · Checked: Jira, sprint, evidence · Prepared: 2724 brief, 8 nudges, 2724 review · Needs: pi baseline" [ref=e294] [cursor=pointer]':
+            - generic [ref=e295]: Agent
+            - generic [ref=e296]: "Last run: just now · Checked: Jira, sprint, evidence · Prepared: 2724 brief, 8 nudges, 2724 review · Needs: pi baseline"
+        - generic "Agent queue" [ref=e297]:
+          - group "Agent queue" [ref=e298]:
+            - list "Top queue items" [ref=e299]:
+              - listitem [ref=e300]:
+                - button "Unassigned — 2735 items" [ref=e301] [cursor=pointer]:
+                  - strong [ref=e302]: Unassigned
+                  - generic [ref=e303]: Brief has claims that need human confirmation before sharing externally.
+                  - emphasis [ref=e304]: "2735"
+                - button "Review" [ref=e306] [cursor=pointer]: 👁
+              - listitem [ref=e307]:
+                - button "Unassigned — 8 items" [ref=e308] [cursor=pointer]:
+                  - strong [ref=e309]: Unassigned
+                  - generic [ref=e310]: "MPSA-8174: MPSA-8174 looks blocked (17 days with no update). Who owns the next step today? (As a CBU admin I want to able to attach"
+                  - emphasis [ref=e311]: "8"
+                - button "Review" [ref=e313] [cursor=pointer]: 👁
+            - generic [ref=e314]:
+              - generic [ref=e315]: Agent queue
+              - button "2741 to review" [ref=e316] [cursor=pointer]
+              - button "Show full agent queue inline" [ref=e317] [cursor=pointer]: All queue (5492)
+        - generic "Compares promised work this quarter to what is on the board now." [ref=e319]: "PI: Not set · 0 committed"
+    - button [ref=e84]: Create work
+  - dialog "Create work draft" [ref=e85]:
+    - generic [ref=e86]:
+      - button "Project ▾" [ref=e88] [cursor=pointer]:
+        - generic [ref=e89]: Project
+        - text: ▾
+      - generic [ref=e90]: Create work
+      - button "AI provider settings" [ref=e91] [cursor=pointer]: ⚙
+      - button "Close" [ref=e92] [cursor=pointer]: ✕
+    - generic [ref=e94]:
+      - generic [ref=e95] [cursor=pointer]:
+        - text: Upload PI plan slide (screenshot or export)
+        - generic [ref=e96]: Drag & drop or click
+        - button "Upload PI plan slide (screenshot or export) Drag & drop or click" [ref=e97]
+      - textbox "Narrative source text" [ref=e99]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e101]: ✓
+      - list "Work items" [ref=e102]
+    - generic [ref=e103]:
+      - generic "Set estimate for all items" [ref=e104]:
+        - generic [ref=e105]: "All:"
+        - slider "Set estimate for all items" [ref=e106] [cursor=pointer]: "0"
+        - generic [ref=e107]: —
+      - button "Create 0 issues" [disabled] [ref=e109]

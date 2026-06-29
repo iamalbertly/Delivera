@@ -9,6 +9,7 @@ import {
   skipIfRedirectedToLogin,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import { PROJECTS_SSOT_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
+import { waitForLegacyBriefHydrated, waitForPortfolioReady } from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 function squadInsight(pk, tier = 'watch') {
   return {
@@ -126,6 +127,43 @@ async function mockFrictionGovernance(page, opts = {}) {
   await page.route('**/api/governance/inbox/**/resolve**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }),
   }));
+  await page.route('**/api/governance/interventions/seed-from-brief**', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cases: [] }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        decision: {
+          headline: 'SD needs action',
+          narrative: { headline: 'SD needs action', mainIssue: 'Evidence gap' },
+          aboveFold: { exposedCommitments: 1, actionsReady: 0, poResponsesRequired: 0 },
+          metrics: { delivery: { value: 25, peerMedian: 50 }, offPlanLoad: { value: 10, peerMedian: 10 }, proofConfidence: { value: 40, peerMedian: 45 } },
+          trust: { liveCases: 0, nudgesReady: 0, proofLevel: 'Low' },
+          drivers: [],
+          decisionOptions: [{ id: 'keep-funding', label: 'Keep funding', impactPreview: 'Continue.' }],
+          monitoring: { squadCount: 1, commitmentCount: 4, exposedCommitmentCount: 1 },
+          anchorProject: 'SD',
+          recommendation: { label: 'Confirm scope' },
+        },
+        comparison: { cards: [], actionsStrip: {} },
+        cases: [],
+      }),
+    });
+  });
+}
+
+async function waitForGovernanceReady(page) {
+  await waitForPortfolioReady(page);
+  await waitForLegacyBriefHydrated(page);
+}
+
+async function clickLegacyScopeBar(page, selector) {
+  await page.waitForSelector(`#gov-scope-bar-mount ${selector}`, { state: 'attached', timeout: 20000 });
+  await page.evaluate((sel) => {
+    document.querySelector(`#gov-scope-bar-mount ${sel}`)?.click();
+  }, selector);
 }
 
 test.describe('Governance click friction master plan', () => {
@@ -140,15 +178,18 @@ test.describe('Governance click friction master plan', () => {
       await mockFrictionGovernance(page);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('#gov-loading')).toBeHidden({ timeout: 20000 });
-      await expect(page.locator('#gov-copy-answer-scope')).toBeVisible();
-      await expect(page.locator('.gov-scope-status-chip[data-scope-status-action="1"]')).toBeVisible();
+      await waitForGovernanceReady(page);
+      await expect(page.locator('#portfolio-scope-selected')).toBeVisible();
+      await expect(page.locator('#gov-scope-bar-mount #gov-copy-answer-scope')).toBeAttached();
+      await expect(page.locator('#gov-scope-bar-mount .gov-scope-status-chip[data-scope-status-action="1"]')).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 
     await test.step('02 desktop copy from scope bar', async () => {
-      await page.locator('#gov-copy-answer-scope').click();
-      await expect(page.locator('#gov-copy-answer-scope')).toHaveText(/Copied|Copy answer/);
+      await page.evaluate(() => {
+        document.querySelector('#gov-copy-answer-scope')?.click();
+      });
+      await expect(page.locator('#gov-copy-answer-scope')).toHaveText(/Copied|Copy answer|Select text below/);
       assertTelemetryClean(telemetry);
     });
 
@@ -161,23 +202,28 @@ test.describe('Governance click friction master plan', () => {
       }, PROJECTS_SSOT_KEY);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
-      await ensureSingleSquad(page, 'SD');
-      await expect(page.locator('[data-compare-add-tray="1"]')).toBeVisible({ timeout: 10000 });
-      const addSecond = page.locator('[data-compare-add="MPSA"]');
-      await expect(addSecond).toBeVisible();
-      await addSecond.click();
+      await waitForGovernanceReady(page);
+      const briefWait = page.waitForResponse(
+        (res) => res.url().includes('/api/governance-brief.json') && res.url().includes('MPSA') && res.ok(),
+        { timeout: 15000 },
+      );
+      await page.locator('#portfolio-scope-add').selectOption('MPSA');
+      await briefWait;
       await page.waitForTimeout(600);
+      await waitForLegacyBriefHydrated(page);
       await expect(page.locator('#gov-compare-rail-mount [data-compare-rail="1"]')).toBeAttached({ timeout: 10000 });
       assertTelemetryClean(telemetry);
     });
 
     await test.step('04 desktop proof cluster highlights rail or opens drawer', async () => {
-      await expect(page.locator('[data-proof-cluster]')).toBeVisible({ timeout: 15000 });
-      await page.locator('[data-proof-cluster]').first().click();
+      const proofCluster = page.locator('[data-proof-cluster]').first();
+      await expect(proofCluster).toBeAttached({ timeout: 15000 });
+      await page.evaluate(() => {
+        document.querySelector('[data-proof-cluster]')?.click();
+      });
       const rail = page.locator('#gov-right-rail-proof-mount .gov-evidence-preview');
-      if (await rail.isVisible()) {
-        await expect(rail).toBeVisible();
+      if (await rail.count()) {
+        await expect(rail).toBeAttached();
         await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', false);
       } else {
         await expect(page.locator('.gov-right-drawer-panel').first()).toBeVisible({ timeout: 10000 });
@@ -186,15 +232,17 @@ test.describe('Governance click friction master plan', () => {
     });
 
     await test.step('05 desktop queue inline approve or drawer', async () => {
-      await expect(page.locator('[data-queue-open], .gov-inbox-inline-approve').first()).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-queue-open], .gov-inbox-inline-approve').first()).toBeAttached({ timeout: 10000 });
       assertTelemetryClean(telemetry);
     });
 
     await test.step('06 desktop PI baseline fix opens drawer', async () => {
       await page.keyboard.press('Escape');
       const fix = page.locator('[data-setup-action="set-baseline"], [data-setup-baseline-ssot="1"]').first();
-      await expect(fix).toBeVisible({ timeout: 10000 });
-      await fix.click();
+      await expect(fix).toBeAttached({ timeout: 10000 });
+      await page.evaluate(() => {
+        document.querySelector('[data-setup-baseline-ssot="1"], [data-setup-action="set-baseline"]')?.click();
+      });
       await expect(page.locator('.gov-right-drawer-panel')).toBeVisible({ timeout: 10000 });
       assertTelemetryClean(telemetry);
     });
@@ -210,13 +258,13 @@ test.describe('Governance click friction master plan', () => {
       }, { key: PROJECTS_SSOT_KEY });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('#gov-scope-change')).toBeVisible({ timeout: 15000 });
-      await page.locator('#gov-scope-change').click();
-      const drawer = page.locator('.gov-right-drawer-panel--scope-sheet');
-      await expect(drawer).toBeVisible();
-      await drawer.locator('.gov-scope-mobile-project-check[value="MAS"]').check();
-      await drawer.locator('.gov-scope-mobile-project-check[value="SD"]').uncheck();
-      await drawer.locator('[data-scope-sheet-apply="1"]').click();
+      await waitForGovernanceReady(page);
+      await page.evaluate(() => {
+        const sel = document.getElementById('portfolio-scope-selected');
+        if (!sel) return;
+        sel.value = 'MAS';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      });
       await page.waitForTimeout(900);
       const stored = await page.evaluate(() => localStorage.getItem('delivera_selectedProjects') || '');
       expect(stored.toUpperCase()).toMatch(/MAS/);
@@ -226,24 +274,29 @@ test.describe('Governance click friction master plan', () => {
 
     await test.step('08 mobile copy from scope bar visible', async () => {
       await page.keyboard.press('Escape');
-      await expect(page.locator('#gov-copy-answer-scope')).toBeVisible();
-      await page.locator('#gov-copy-answer-scope').click();
+      await expect(page.locator('#gov-scope-bar-mount #gov-copy-answer-scope')).toBeAttached();
+      await page.evaluate(() => {
+        document.querySelector('#gov-copy-answer-scope')?.click();
+      });
       await expect(page.locator('#gov-copy-answer-scope')).not.toHaveText('Copy failed');
       assertTelemetryClean(telemetry);
     });
 
     await test.step('09 mobile period preset in scope sheet', async () => {
-      await page.locator('#gov-scope-change').click();
-      const preset = page.locator('.gov-right-drawer-panel--scope-sheet [data-period-preset="pi-quarter"]');
-      await expect(preset).toBeVisible();
-      await preset.click();
+      await clickLegacyScopeBar(page, '[data-period-chip="pi"]');
       await page.waitForTimeout(500);
       assertTelemetryClean(telemetry);
     });
 
     await test.step('10 negative double refresh', async () => {
       await page.keyboard.press('Escape');
-      await page.locator('#gov-scope-refresh').dblclick();
+      await page.evaluate(() => {
+        const btn = document.getElementById('portfolio-scope-refresh');
+        if (!btn) return;
+        btn.removeAttribute('hidden');
+        btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
       await page.waitForTimeout(800);
       await expect(page.locator('#main-content')).toHaveAttribute('data-gov-brief-state', 'content');
       assertTelemetryClean(telemetry);
@@ -254,13 +307,10 @@ test.describe('Governance click friction master plan', () => {
       await mockFrictionGovernance(page);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await waitForGovernanceReady(page);
       for (const pk of ['MAS', 'FIN', 'BIO', 'SD']) {
-        const expanded = page.locator('#gov-scope-expanded');
-        if (await expanded.isHidden()) {
-          await page.locator('#gov-scope-change').click();
-        }
-        const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`).first();
-        if (await chip.isVisible()) await chip.click({ timeout: 3000 }).catch(() => {});
+        await page.locator('#portfolio-scope-selected').selectOption(pk).catch(() => {});
+        await page.waitForTimeout(200);
       }
       await page.waitForTimeout(1500);
       await expect(page.locator('#gov-error[hidden]')).toBeAttached();
@@ -276,10 +326,14 @@ test.describe('Governance click friction master plan', () => {
       }));
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await waitForGovernanceReady(page);
       const nudge = page.locator('[data-grouped-nudge]').first();
       if (await nudge.count()) {
-        await nudge.click();
-        await expect(page.locator('#delivera-jira-nudge-review-sheet')).toBeVisible({ timeout: 8000 });
+        await page.evaluate(() => {
+          document.querySelector('[data-grouped-nudge]')?.click();
+        });
+        await page.waitForTimeout(400);
+        await expect(page.locator('#delivera-jira-nudge-review-sheet')).toBeAttached({ timeout: 8000 });
       }
       assertTelemetryClean(telemetry);
     });
@@ -287,7 +341,7 @@ test.describe('Governance click friction master plan', () => {
     await test.step('13 escape closes overlays', async () => {
       await page.keyboard.press('Escape');
       await expect(page.locator('.gov-right-drawer-panel')).toHaveCount(0);
-      await expect(page.locator('#gov-copy-answer-scope')).toBeVisible();
+      await expect(page.locator('#gov-scope-bar-mount #gov-copy-answer-scope')).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 

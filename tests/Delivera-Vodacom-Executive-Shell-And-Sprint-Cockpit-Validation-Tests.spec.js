@@ -257,13 +257,13 @@ test.describe('Vodacom executive shell and sprint cockpit', () => {
     const topChrome = page.locator('#app-top-chrome');
     if (await topChrome.isVisible().catch(() => false)) {
       const surfaces = topChrome.locator('[data-top-surface]');
-      await expect(surfaces).toHaveCount(3);
-      await expect(surfaces.filter({ hasText: /Today|Sprint|Answer|Brief|Proof/i })).toHaveCount(3);
+      await expect(surfaces).toHaveCount(4);
+      await expect(surfaces.filter({ hasText: /Portfolio|Squads|Actions|Settings/i })).toHaveCount(4);
     } else {
       await expect(page.locator('.app-sidebar')).toBeVisible();
-      const nav = page.locator('.app-sidebar .sidebar-link');
-      await expect(nav).toHaveCount(3);
-      await expect(page.locator('.app-sidebar')).toContainText(/Current Sprint|Delivery|Leadership/i);
+      const nav = page.locator('.app-sidebar .sidebar-link, .app-sidebar a.sidebar-link');
+      await expect(nav).toHaveCount(4);
+      await expect(page.locator('.app-sidebar')).toContainText(/Portfolio|Squads|Actions|Settings/i);
     }
     const sidebarMore = page.locator('.sidebar-more');
     if (await sidebarMore.count()) {

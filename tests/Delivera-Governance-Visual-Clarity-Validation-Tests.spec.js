@@ -2,7 +2,7 @@ import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validat
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 import { captureBrowserTelemetry, assertTelemetryClean } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import {
-  waitForPortfolioReady,
+  waitForGovernanceReady,
   legacyBrief,
   clickLegacy,
   mockPortfolioDecision,
@@ -75,7 +75,7 @@ async function mockClarityPage(page) {
 async function loadClarityPage(page) {
   await page.goto('/governance');
   if (page.url().includes('/login')) return false;
-  await waitForPortfolioReady(page);
+  await waitForGovernanceReady(page);
   return true;
 }
 

@@ -94,7 +94,7 @@ export function renderCommandAnswerBar(brief, surfaces = null, opts = {}) {
     `Trust ${trustTierLabel(brief)}`,
     hasOwnerClusters ? null : `Proof ${evidenceCount} keys`,
     `Data ${fresh}`,
-    `<a href="/settings#gov-ai-helper">${escapeHtml(narratedBy === 'advisor' ? 'AI helped' : 'Templates')}</a>`,
+    `<a href="/settings#integrations">${escapeHtml(narratedBy === 'advisor' ? 'AI helped' : 'Templates')}</a>`,
     escapeHtml(readiness.label),
   ].filter(Boolean);
   const trustLine = `<p class="gov-trust-line" aria-label="Trust summary">${trustLineParts.join(' · ')}</p>`;

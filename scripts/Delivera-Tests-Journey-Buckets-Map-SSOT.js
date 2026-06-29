@@ -385,6 +385,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/settings',
   },
+  'tests/Delivera-Governance-DirectValue-MasterPlan-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-direct-value-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint',
+  },
   'tests/Delivera-Governance-Click-Friction-MasterPlan-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-click-friction-masterplan',
     layer: 'cross-surface-ux',
@@ -658,6 +663,13 @@ export const journeyBuckets = {
     label: 'Churn Retention – Direct-to-value governance dedupe',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.churn-retention-masterplan',
+    ),
+  },
+  'journey.governance-direct-value-masterplan': {
+    id: 'journey.governance-direct-value-masterplan',
+    label: 'Governance Direct Value Master Plan — single render, loading theater, time-box, decision dock, dedupe, kill buttons',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-direct-value-masterplan',
     ),
   },
   'journey.governance-click-friction-masterplan': {

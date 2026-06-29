@@ -47,6 +47,62 @@ export const GOVERNANCE_QUARTER_KEY = 'delivera_gov_quarter_v1';
 /** Portfolio anchor squad (compare list remains in PROJECTS_SSOT_KEY). */
 export const PORTFOLIO_ANCHOR_KEY = 'delivera_portfolio_anchor_v1';
 export const PORTFOLIO_BASELINE_MODE_KEY = 'delivera_portfolio_baseline_mode_v1';
+export const GOV_PERIOD_WINDOW_KEY = 'gov-period-window';
+export const GOV_SCOPE_COLLAPSED_KEY = 'gov-scope-collapsed';
+export const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
+export const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
+export const APP_NOTIFICATIONS_KEY = 'appNotificationsV1';
+export const GOV_DRAWER_TAB_KEY = 'gov-drawer-active-tab';
+export const GOV_EVIDENCE_TAB_KEY = 'gov-evidence-active-tab';
+export const BRIEF_CLIENT_CACHE_KEY = 'delivera:brief:cache:v1';
+export const LAST_VERDICT_TIER_KEY = 'delivera_lastVerdictTier';
+export const REPORT_LAST_OUTCOME_PROJECT_KEY = 'report_last_outcome_project_v1';
+
+/**
+ * Safe localStorage read/write with quota handling.
+ */
+export const safeLocalStorage = {
+  get(key, fallback = null) {
+    try {
+      const v = localStorage.getItem(key);
+      return v == null ? fallback : v;
+    } catch (_) {
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  },
+  remove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  },
+  getJson(key, fallback = null) {
+    const raw = safeLocalStorage.get(key, null);
+    if (raw == null) return fallback;
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return fallback;
+    }
+  },
+  setJson(key, value) {
+    try {
+      return safeLocalStorage.set(key, JSON.stringify(value));
+    } catch (_) {
+      return false;
+    }
+  },
+};
 
 const LEGACY_KEY_PAIRS = [
   [PROJECTS_SSOT_KEY, 'vodaAgileBoard_selectedProjects'],

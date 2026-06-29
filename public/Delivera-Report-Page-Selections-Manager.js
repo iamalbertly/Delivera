@@ -3,6 +3,12 @@ import { PROJECTS_SSOT_KEY, REPORT_ADVANCED_OPTIONS_OPEN_KEY } from './Delivera-
 import { hydrateReportProjectCheckboxes } from './Delivera-Report-Projects-Catalog-01Hydrate.js';
 import { notifyScopeChanged } from './Delivera-Shared-Scope-Notify-01Bridge.js';
 
+let reportCatalogHydratePromise = Promise.resolve();
+
+export function whenReportCatalogHydrated() {
+  return reportCatalogHydratePromise;
+}
+
 export function getSelectedProjects() {
   return Array.from(document.querySelectorAll('.project-checkbox[data-project]:checked'))
     .map(input => input.dataset.project)
@@ -106,7 +112,7 @@ function initAdvancedOptionsToggle() {
 }
 
 export function initProjectSelection() {
-  hydrateReportProjectCheckboxes().then(() => {
+  reportCatalogHydratePromise = hydrateReportProjectCheckboxes().then(() => {
     try {
       const stored = localStorage.getItem(PROJECTS_SSOT_KEY);
       if (stored && typeof stored === 'string') {
@@ -126,8 +132,10 @@ export function initProjectSelection() {
     updatePreviewButtonState(window.__reportPreviewButtonSync);
     updateProjectSelectionStatus();
   });
-  initProjectSearch();
-  initAdvancedOptionsToggle();
+  reportCatalogHydratePromise.then(() => {
+    initProjectSearch();
+    initAdvancedOptionsToggle();
+  });
 
   const predictabilityCheckbox = document.getElementById('include-predictability');
   const predictabilityModeGroup = document.getElementById('predictability-mode-group');

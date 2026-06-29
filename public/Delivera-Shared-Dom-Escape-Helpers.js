@@ -10,6 +10,11 @@ export function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+/** Escape for HTML attribute values (alias of escapeHtml for attribute contexts). */
+export function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
 export function safeText(value, fallback = '') {
   if (value === null || value === undefined) {
     return fallback;

@@ -80,6 +80,27 @@ function killPid(pid) {
 }
 
 async function resolvePort() {
+  if (process.env.BASE_URL) {
+    try {
+      const parsed = new URL(process.env.BASE_URL);
+      const port = parsed.port
+        ? Number(parsed.port)
+        : (parsed.protocol === 'https:' ? 443 : 80);
+      process.env.PORT = String(port);
+      writeDevPortFile(port);
+      console.log(`[port-guard] Using BASE_URL port ${port} (skip scan)`);
+      return port;
+    } catch (_) { /* fall through */ }
+  }
+  if (process.env.SKIP_WEBSERVER === 'true' && process.env.PORT) {
+    const locked = Number(process.env.PORT);
+    if (Number.isFinite(locked) && locked > 0) {
+      writeDevPortFile(locked);
+      console.log(`[port-guard] SKIP_WEBSERVER — keeping PORT ${locked}`);
+      return locked;
+    }
+  }
+
   const inUse = await isPortInUse(preferredPort);
   if (!inUse) {
     process.env.PORT = String(preferredPort);

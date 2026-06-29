@@ -6,6 +6,7 @@ import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 export const govPage = {
   els: {},
   lastBrief: null,
+  lastDecision: null,
   lastSurfaces: null,
   proofRisks: [],
   ownerGroups: [],

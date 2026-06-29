@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delivera Agentic Simplicity Mockups</title>
+  <style>
+    :root {
+      --red: #c40000;
+      --red-dark: #990000;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #e7eaf0;
+      --soft: #f7f8fb;
+      --card: #ffffff;
+      --green: #047857;
+      --amber: #b45309;
+      --blue: #2459d6;
+      --shadow: 0 18px 50px rgba(16, 24, 40, .10);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #dfe3ea;
+      color: var(--ink);
+    }
+
+    .stage {
+      width: 1600px;
+      height: 1000px;
+      background: linear-gradient(180deg, #fff 0, #f7f8fb 100%);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .topbar {
+      height: 64px;
+      background: var(--red);
+      color: #fff;
+      display: grid;
+      grid-template-columns: 240px 1fr auto;
+      align-items: center;
+      gap: 24px;
+      padding: 0 24px;
+      box-shadow: 0 2px 14px rgba(153, 0, 0, .22);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--red);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+
+    .home-btn {
+      border: 1px solid rgba(255,255,255,.28);
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      height: 40px;
+      border-radius: 8px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      width: max-content;
+    }
+
+    .search {
+      height: 40px;
+      max-width: 560px;
+      border-radius: 8px;
+      background: rgba(65,0,0,.23);
+      border: 1px solid rgba(255,255,255,.18);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      color: rgba(255,255,255,.82);
+      justify-self: center;
+      width: 100%;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+    }
+
+    .top-pill {
+      height: 38px;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--red-dark);
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.35);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .shell {
+      height: calc(1000px - 64px);
+      display: grid;
+      grid-template-columns: 248px 1fr;
+    }
+
+    .rail {
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,.72);
+      padding: 28px 18px;
+    }
+
+    .rail-title {
+      color: #98a2b3;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+      font-weight: 800;
+      margin: 0 0 14px;
+    }
+
+    .nav-item {
+      min-height: 44px;
+      border-radius: 8px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #344054;
+      font-weight: 650;
+      margin-bottom: 6px;
+    }
+
+    .nav-item.active {
+      background: #fff0f0;
+      color: var(--red-dark);
+      box-shadow: inset 3px 0 0 var(--red);
+    }
+
+    .rail-card {
+      margin-top: 34px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .rail-card strong { display: block; margin-bottom: 8px; }
+    .rail-card p { color: var(--muted); margin: 0; line-height: 1.45; font-size: 14px; }
+
+    .main {
+      padding: 30px 40px 46px;
+      overflow: hidden;
+    }
+
+    .page-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 34px;
+      line-height: 1.15;
+      margin: 0 0 8px;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .context {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: 580px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 700;
+      color: #344054;
+      font-size: 14px;
+    }
+
+    .chip.alert {
+      color: var(--red-dark);
+      background: #fff3f3;
+      border-color: #ffd1d1;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #344054;
+      height: 40px;
+      border-radius: 8px;
+      padding: 0 14px;
+      font-weight: 750;
+    }
+
+    .btn.primary {
+      border-color: var(--red-dark);
+      background: var(--red-dark);
+      color: #fff;
+    }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) 360px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .03);
+    }
+
+    .answer-card {
+      padding: 30px;
+      border-top: 4px solid var(--red);
+    }
+
+    .agent-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .agent-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px #e8f7ef;
+    }
+
+    .answer {
+      font-size: 28px;
+      line-height: 1.28;
+      max-width: 820px;
+      margin: 0 0 22px;
+      letter-spacing: 0;
+    }
+
+    .decision-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .decision {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: #fbfcfe;
+      min-height: 124px;
+    }
+
+    .decision b { display: block; margin-bottom: 8px; }
+    .decision p { color: var(--muted); margin: 0; line-height: 1.45; font-size: 14px; }
+
+    .next-actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .section {
+      padding: 20px;
+      margin-top: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .quiet-link {
+      color: var(--blue);
+      font-weight: 750;
+      font-size: 14px;
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .task:first-of-type { border-top: 0; }
+    .task b { display: block; margin-bottom: 4px; }
+    .task span { color: var(--muted); font-size: 14px; }
+
+    .status {
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 800;
+      font-size: 12px;
+      background: #ecfdf3;
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .status.warn {
+      background: #fff7ed;
+      color: var(--amber);
+    }
+
+    .right-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .side-card {
+      padding: 18px;
+    }
+
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .metric:first-of-type { border-top: 0; }
+    .metric strong { color: var(--ink); }
+
+    .menu-pop {
+      position: absolute;
+      top: 74px;
+      left: 170px;
+      width: 372px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      z-index: 2;
+      display: none;
+    }
+
+    .menu-pop h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+
+    .menu-pop p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .menu-tile {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 70px;
+    }
+
+    .menu-tile b { display: block; margin-bottom: 4px; }
+    .menu-tile span { color: var(--muted); font-size: 13px; }
+
+    .menu-tile.active {
+      border-color: #ffcccc;
+      background: #fff7f7;
+    }
+
+    .mini-map {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .mini-map span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 750;
+      color: #344054;
+      background: #fbfcfe;
+    }
+
+    .settings-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 760px) 430px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .setup-card {
+      padding: 26px;
+    }
+
+    .setup-step {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 14px;
+      align-items: start;
+      padding: 18px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .setup-step:first-of-type { border-top: 0; }
+
+    .num {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #fff0f0;
+      color: var(--red-dark);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+
+    .setup-step h3 {
+      margin: 0 0 6px;
+      font-size: 17px;
+    }
+
+    .setup-step p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .field-card {
+      padding: 18px;
+      margin-top: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .label {
+      color: #344054;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .input {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 12px;
+      color: var(--muted);
+    }
+
+    .token-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .token {
+      border: 1px solid var(--line);
+      background: #f9fafb;
+      border-radius: 999px;
+      padding: 7px 10px;
+      color: #344054;
+      font-weight: 700;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <section class="stage" id="governance">
+    <header class="topbar">
+      <div class="brand"><span class="mark">D</span><span>Delivera</span></div>
+      <div class="search">Search or ask: "What should we unblock today?"</div>
+      <div class="top-actions">
+        <button class="home-btn">Delivera Home</button>
+        <span class="top-pill">Agent ready</span>
+        <span class="avatar">LY</span>
+      </div>
+    </header>
+    <div class="menu-pop">
+      <h3>Delivera Home</h3>
+      <p>One place for answers, proof, settings, and agent work.</p>
+      <div class="menu-grid">
+        <div class="menu-tile active"><b>Ask</b><span>Get the team answer</span></div>
+        <div class="menu-tile"><b>Today</b><span>Focus the sprint</span></div>
+        <div class="menu-tile"><b>Proof</b><span>Validate evidence</span></div>
+        <div class="menu-tile"><b>Impact</b><span>Show outcomes</span></div>
+        <div class="menu-tile"><b>Agents</b><span>Nudges and follow-up</span></div>
+        <div class="menu-tile"><b>Settings</b><span>Trust and connections</span></div>
+      </div>
+    </div>
+    <div class="shell">
+      <aside class="rail">
+        <p class="rail-title">Workspace</p>
+        <div class="nav-item active">Ask</div>
+        <div class="nav-item">Today</div>
+        <div class="nav-item">Proof</div>
+        <div class="nav-item">Impact</div>
+        <div class="nav-item">Agent queue</div>
+        <div class="rail-card">
+          <strong>Delivera Home</strong>
+          <p>Ask, focus today, prove impact, and review agent work from one calm menu.</p>
+          <div class="mini-map"><span>Ask</span><span>Today</span><span>Proof</span><span>Impact</span><span>Agents</span><span>Settings</span></div>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Governance</div>
+            <h1>What should the team do next?</h1>
+            <p class="sub">An agent-prepared answer for DMS Squad, with proof tucked behind it.</p>
+          </div>
+          <div class="context">
+            <span class="chip">DMS Squad</span>
+            <span class="chip">FY27 Q1</span>
+            <span class="chip alert">PI 5 blocked</span>
+            <button class="btn">Change context</button>
+          </div>
+        </div>
+        <div class="grid-two">
+          <div>
+            <section class="card answer-card">
+              <div class="agent-line"><span class="agent-dot"></span>Agent reviewed Jira, proof, and stale work 2 minutes ago</div>
+              <p class="answer">Confirm promised work, then send two nudges. Five committed items are still in progress and none have enough fresh proof to share with leadership.</p>
+              <div class="next-actions">
+                <button class="btn primary">Confirm promised work</button>
+                <button class="btn">Review nudge drafts</button>
+                <button class="btn">Show proof trail</button>
+              </div>
+              <div class="decision-row">
+                <div class="decision"><b>1. Confirm the scope</b><p>Save the work the team still promises for this PI so carryover is explainable.</p></div>
+                <div class="decision"><b>2. Let agents follow up</b><p>Draft owner-specific nudges for Amani and Albert. Nothing posts without review.</p></div>
+                <div class="decision"><b>3. Keep proof light</b><p>Attach only the evidence needed for the answer, not another report.</p></div>
+              </div>
+            </section>
+            <section class="card section">
+              <div class="section-head">
+                <h2>Agent-prepared work</h2>
+                <span class="quiet-link">Open queue</span>
+              </div>
+              <div class="task"><div><b>Amani: nudge ready</b><span>Two blocked issues, copied from delivery grammar and current facts.</span></div><span class="status warn">Review</span></div>
+              <div class="task"><div><b>Albert: proof request ready</b><span>One stale item needs a decision or fresh evidence.</span></div><span class="status warn">Review</span></div>
+              <div class="task"><div><b>Leadership answer prepared</b><span>Short summary with links to the exact proof trail.</span></div><span class="status">Ready</span></div>
+            </section>
+          </div>
+          <aside class="right-stack">
+            <section class="card side-card">
+              <div class="section-head"><h2>Signals</h2><span class="quiet-link">Details</span></div>
+              <div class="metric"><span>Confidence</span><strong>Low</strong></div>
+              <div class="metric"><span>Blocked work</span><strong>5 items</strong></div>
+              <div class="metric"><span>Proof health</span><strong>40%</strong></div>
+              <div class="metric"><span>Needs human review</span><strong>3 actions</strong></div>
+            </section>
+            <section class="card side-card">
+              <div class="section-head"><h2>Connections</h2><span class="status">Healthy</span></div>
+              <div class="metric"><span>Jira</span><strong>Connected</strong></div>
+              <div class="metric"><span>Evidence sync</span><strong>2m ago</strong></div>
+              <div class="metric"><span>AI provider</span><strong>Available</strong></div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <section class="stage" id="settings">
+    <header class="topbar">
+      <div class="brand"><span class="mark">D</span><span>Delivera</span></div>
+      <div class="search">Search settings or ask: "Why can’t the agent send nudges?"</div>
+      <div class="top-actions">
+        <button class="home-btn">Delivera Home</button>
+        <span class="top-pill">Trust center</span>
+        <span class="avatar">LY</span>
+      </div>
+    </header>
+    <div class="shell">
+      <aside class="rail">
+        <p class="rail-title">Settings</p>
+        <div class="nav-item active">Agent setup</div>
+        <div class="nav-item">My workspace</div>
+        <div class="nav-item">Connections</div>
+        <div class="nav-item">Guardrails</div>
+        <div class="nav-item">Activity</div>
+        <div class="rail-card">
+          <strong>Delivera Home</strong>
+          <p>Settings stay focused on what agents can read, suggest, and prepare.</p>
+          <div class="mini-map"><span>Ask</span><span>Today</span><span>Proof</span><span>Impact</span><span>Agents</span><span>Settings</span></div>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Settings</div>
+            <h1>Your workspace & trust</h1>
+            <p class="sub">Connect the tools, choose the defaults, and decide what agents may prepare.</p>
+          </div>
+          <div class="context">
+            <button class="btn">Test connections</button>
+            <button class="btn">View activity</button>
+            <button class="btn primary">Save changes</button>
+          </div>
+        </div>
+        <div class="settings-layout">
+          <div>
+            <section class="card setup-card">
+              <div class="section-head">
+                <h2>Agent setup</h2>
+                <span class="status warn">1 setup item</span>
+              </div>
+              <div class="setup-step">
+                <span class="num">1</span>
+                <div><h3>Connect organization profile</h3><p>Unlock org-wide defaults, access rules, and audit ownership. This replaces the old broken 404 state.</p></div>
+                <button class="btn primary">Connect</button>
+              </div>
+              <div class="setup-step">
+                <span class="num">2</span>
+                <div><h3>Confirm Jira access</h3><p>Delivera can read boards and prepare issue links. Posting stays human-approved.</p></div>
+                <span class="status">Connected</span>
+              </div>
+              <div class="setup-step">
+                <span class="num">3</span>
+                <div><h3>Choose agent guardrails</h3><p>Allowed: brief wording, proof checks, nudge drafts. Blocked: Jira writes and final counts.</p></div>
+                <button class="btn">Edit</button>
+              </div>
+            </section>
+            <section class="card field-card">
+              <div class="section-head"><h2>Workspace defaults</h2><span class="quiet-link">Reset</span></div>
+              <div class="field"><span class="label">Default project scope</span><div class="token-row"><span class="token">DMS Squad</span><span class="token">Mini - Apps Squad</span><span class="token">TRANSFORMERS</span><span class="token">+ Add project</span></div></div>
+              <div class="field"><span class="label">Saved views</span><div class="input">Sprint focus, At risk stories, Release readiness</div></div>
+            </section>
+          </div>
+          <aside class="right-stack">
+            <section class="card side-card">
+              <div class="section-head"><h2>What agents can do</h2><span class="quiet-link">Audit log</span></div>
+              <div class="metric"><span>Read Jira signals</span><strong>Allowed</strong></div>
+              <div class="metric"><span>Draft nudges</span><strong>Review first</strong></div>
+              <div class="metric"><span>Post to Jira</span><strong>Blocked</strong></div>
+              <div class="metric"><span>Use AI provider</span><strong>OpenRouter</strong></div>
+            </section>
+            <section class="card side-card">
+              <div class="section-head"><h2>Connection health</h2><span class="status">Live</span></div>
+              <div class="metric"><span>Jira boards</span><strong>13 found</strong></div>
+              <div class="metric"><span>Last sync</span><strong>9:41 AM</strong></div>
+              <div class="metric"><span>Fallback rate</span><strong>12%</strong></div>
+            </section>
+            <section class="card side-card">
+              <div class="section-head"><h2>Recent activity</h2><span class="quiet-link">All</span></div>
+              <div class="task"><div><b>Nudge draft created</b><span>For SD-5184, awaiting review.</span></div></div>
+              <div class="task"><div><b>Boards synced</b><span>Project access refreshed.</span></div></div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </section>
+</body>
+</html>

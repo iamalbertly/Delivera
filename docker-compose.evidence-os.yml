@@ -1,0 +1,15 @@
+services:
+  delivera-evidence-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: delivera_evidence
+      POSTGRES_USER: delivera
+      POSTGRES_PASSWORD: delivera_local
+    ports:
+      - "54329:5432"
+    volumes:
+      - delivera_evidence_pg:/var/lib/postgresql/data
+
+volumes:
+  delivera_evidence_pg:
+

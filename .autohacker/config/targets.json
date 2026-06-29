@@ -11,7 +11,11 @@
       "#app-top-chrome",
       "#gov-scope-bar-mount"
     ],
-    "defaultTest": "npm run test:journey:governance-autohacker-v3",
+    "defaultTest": "npm run test:journey:governance-autohacker-v6",
+    "journeyUrls": [
+      "/governance",
+      "/current-sprint?boardId=6"
+    ],
     "collectorTiers": [1, 2, 3]
   }
 }

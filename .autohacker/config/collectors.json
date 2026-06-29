@@ -28,6 +28,57 @@
       "outputs": [".autohacker/runs/{runId}/intra-card-void-report.json"]
     },
     {
+      "id": "duplicate-text",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-duplicate-visible-text.mjs",
+      "outputs": [".autohacker/runs/{runId}/duplicate-text-report.json"]
+    },
+    {
+      "id": "main-column-void",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-main-column-void.mjs",
+      "outputs": [".autohacker/runs/{runId}/main-column-void-report.json"]
+    },
+    {
+      "id": "negative-void",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-negative-void.mjs",
+      "outputs": [".autohacker/runs/{runId}/negative-void-report.json"]
+    },
+    {
+      "id": "horizontal-void",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-horizontal-void.mjs",
+      "outputs": [".autohacker/runs/{runId}/horizontal-void-report.json"]
+    },
+    {
+      "id": "content-overlap",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-content-overlap.mjs",
+      "outputs": [".autohacker/runs/{runId}/content-overlap-report.json"]
+    },
+    {
+      "id": "fold-clipping",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/detect-fold-clipping.mjs",
+      "outputs": [".autohacker/runs/{runId}/fold-clipping-report.json"]
+    },
+    {
+      "id": "screenshot-density",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/analyze-screenshot-density.mjs",
+      "outputs": [
+        ".autohacker/runs/{runId}/screenshot-density-report.json",
+        ".autohacker/runs/{runId}/screenshots/desktop-fold.png"
+      ]
+    },
+    {
+      "id": "state-matrix",
+      "tier": 1,
+      "cmd": "node .autohacker/collectors/synthesize-state-matrix.mjs",
+      "outputs": [".autohacker/runs/{runId}/state-matrix-summary.json"]
+    },
+    {
       "id": "click-fast",
       "tier": 1,
       "cmd": "node scripts/audit-governance-clicks-fast.mjs",
@@ -42,6 +93,13 @@
         "test-results/governance-layout-rects-audit.json",
         "test-results/governance-layout-overlap-plan.md"
       ]
+    },
+    {
+      "id": "duplicate-text-full-catalog",
+      "tier": 2,
+      "cmd": "node .autohacker/collectors/detect-duplicate-visible-text.mjs",
+      "env": { "AUTOHACKER_CATALOG": "full", "AUTOHACKER_DUP_OUT": "duplicate-text-full-catalog-report.json" },
+      "outputs": [".autohacker/runs/{runId}/duplicate-text-full-catalog-report.json"]
     },
     {
       "id": "click-full",

@@ -23,8 +23,7 @@ export function renderNotes(data) {
     '</div>';
   html += '</div>';
   html += '<div class="notes-actions">' +
-    '<button id="notes-save" class="btn btn-primary btn-compact" type="button">Save notes</button>' +
-    '<div id="notes-status" class="notes-status"></div>' +
+    '<div id="notes-status" class="notes-status" aria-live="polite">Autosaves as you type</div>' +
     '</div>';
   if (notes.updatedAt) {
     html += '<p class="notes-updated">Last updated: ' + escapeHtml(formatDate(notes.updatedAt)) + '</p>';

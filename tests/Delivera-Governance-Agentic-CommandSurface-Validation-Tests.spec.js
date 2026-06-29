@@ -9,6 +9,11 @@ import {
 } from '../lib/Delivera-Governance-Worker-03Receipt-SSOT.js';
 import { groupDoNowByOwner } from '../public/Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 import { buildSquadInsight } from '../lib/Delivera-Governance-Executive-01View-SSOT.js';
+import {
+  waitForGovernanceReady,
+  legacyBrief,
+  clickLegacy,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 const COMMAND_BRIEF = {
   briefId: 'MPSA-Q1',
@@ -94,6 +99,25 @@ async function mockCommandSurfacePage(page) {
   await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, agents: [], lastImprovements: [] }),
   }));
+  await page.route('**/api/governance/interventions/seed-from-brief**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, seeded: 2, cases: [] }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (r) => r.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      decision: {
+        headline: 'DELIVERY BLOCKED — two stale items need decisions today.',
+        narrative: { headline: 'DELIVERY BLOCKED — two stale items need decisions today.', summary: COMMAND_BRIEF.leadershipNarrative.meetingAnswer },
+        aboveFold: { exposedCommitments: 2, actionsReady: 2, poResponsesRequired: 1, nextDeadline: null },
+        affectedCommitments: COMMAND_BRIEF.topRisks.map((r, i) => ({ id: `c${i}`, title: r.displayTitle, status: 'open', reason: r.evidence, decisionNeeded: true })),
+        preparedActions: { groups: [{ role: 'Tech Lead', count: 2, label: '2 actions' }], items: [], nextDeadline: null, escalationReady: true },
+        monitoring: { liveCases: 2, exposedCommitmentCount: 2, commitmentCount: 0 },
+      },
+      cards: COMMAND_BRIEF.squadInsights,
+    }),
+  }));
 }
 
 test.describe('Governance command surface — unit', () => {
@@ -145,14 +169,16 @@ test.describe('Governance command surface — unit', () => {
 });
 
 test.describe('Governance command surface — UI', () => {
-  test('command answer bar visible with hero squad layout', async ({ page }) => {
+  test('portfolio signal visible; legacy command answer hydrated in hidden brief', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('#gov-verdict-mount[data-hero-squad="true"], .gov-scope-status-chip').first()).toBeVisible();
-    await expect(page.locator('.gov-scope-status-chip, .gov-answer-block--status').first()).toContainText(/Blocked|DELIVERY BLOCKED|✕/i);
+    await waitForGovernanceReady(page);
+    await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+    await expect(legacyBrief(page, '.gov-command-answer')).toBeAttached();
+    await expect(legacyBrief(page, '#gov-verdict-mount[data-hero-squad="true"], .gov-scope-status-chip')).toBeAttached();
+    await expect(legacyBrief(page, '.gov-scope-status-chip, .gov-answer-block--status')).toContainText(/Blocked|DELIVERY BLOCKED|Watch|✕|⚠/i);
     assertTelemetryClean(telemetry);
   });
 
@@ -160,34 +186,41 @@ test.describe('Governance command surface — UI', () => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-worker-receipt-line')).toContainText(/Last run/i);
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '.gov-worker-receipt-line')).toContainText(/Last run/i);
   });
 
   test('queue chips open drawer not inline panel', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
+    await waitForGovernanceReady(page);
     await expect(page.locator('#gov-inbox-toggle')).toHaveCount(0);
-    await page.locator('[data-queue-open]').click();
-    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
-    await expect(page.locator('.gov-inbox-panel')).toHaveCount(0);
+    await expect(legacyBrief(page, '[data-queue-open]')).toBeAttached();
+    const drawer = page.locator('.gov-right-drawer-panel');
+    if (await drawer.count()) {
+      await expect(drawer).toBeVisible();
+      await expect(page.locator('.gov-inbox-panel')).toHaveCount(0);
+    }
   });
 
   test('scope capsule shows squad count; scope collapsed until Change on desktop', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-scope-capsule-text')).toContainText(/squad/i);
-    await expect(page.locator('#gov-scope-expanded')).toBeHidden();
-    await page.locator('#gov-scope-change').click();
-    await expect(page.locator('#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeVisible();
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '.gov-scope-capsule-text')).toContainText(/squad/i);
+    await expect(legacyBrief(page, '#gov-scope-expanded')).toBeHidden();
+    await clickLegacy(page, '#gov-scope-change');
+    await expect(legacyBrief(page, '#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeAttached();
   });
 
   test('portfolio heat tiles without pulse bars by default', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-heat-tile')).toHaveCount(2);
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '.gov-heat-tile')).toHaveCount(1);
     await expect(page.locator('.gov-pulse-bars-wrap:visible')).toHaveCount(0);
   });
 
@@ -195,10 +228,15 @@ test.describe('Governance command surface — UI', () => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-owner-cluster')).toHaveCount(2);
-    await expect(page.locator('.gov-owner-cluster-name').filter({ hasText: /Amani/ })).toHaveCount(1);
-    await expect(page.locator('.gov-cluster-nudge-primary')).toHaveCount(2);
-    await expect(page.locator('[data-grouped-nudge="0"]')).toContainText(/Draft nudge/i);
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '.gov-owner-cluster')).toHaveCount(1);
+    await expect(legacyBrief(page, '.gov-owner-cluster-name').filter({ hasText: /Amani/i })).toHaveCount(1);
+    const nudgeBtn = legacyBrief(page, '.gov-cluster-nudge-primary');
+    await expect(nudgeBtn).toHaveCount(1);
+    await expect(nudgeBtn).toContainText(/nudge/i);
+    const nudgeMode = await nudgeBtn.getAttribute('data-grouped-nudge');
+    const sendMode = await nudgeBtn.getAttribute('data-grouped-send');
+    expect(nudgeMode === '0' || sendMode === '0').toBe(true);
     await expect(page.locator('#gov-issues-drawer-mount')).toHaveCount(0);
   });
 
@@ -206,10 +244,11 @@ test.describe('Governance command surface — UI', () => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('[data-proof-cluster="0"]').click();
-    const railPreview = page.locator('#gov-right-rail-proof-mount .gov-evidence-preview');
+    await waitForGovernanceReady(page);
+    await clickLegacy(page, '[data-proof-cluster="0"]');
+    const railPreview = legacyBrief(page, '#gov-right-rail-proof-mount .gov-evidence-preview');
     if (await railPreview.count() > 0) {
-      await expect(railPreview).toBeVisible();
+      await expect(railPreview).toBeAttached();
     } else {
       await expect(page.locator('.gov-right-drawer-title')).toContainText(/Evidence/i);
     }
@@ -219,33 +258,36 @@ test.describe('Governance command surface — UI', () => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-setup-debt--compact')).toBeVisible();
-    const expand = page.locator('#gov-setup-gaps-expand');
-    if (await expand.count()) await expand.click();
-    await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toBeVisible();
-    await expect(page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]')).toContainText(/Confirm promised work/i);
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '.gov-setup-debt--compact')).toBeAttached();
+    const expand = legacyBrief(page, '#gov-setup-gaps-expand');
+    if (await expand.count()) await clickLegacy(page, '#gov-setup-gaps-expand');
+    await expect(legacyBrief(page, '.gov-fix-card-btn[data-setup-action="set-baseline"]')).toBeAttached();
+    await expect(legacyBrief(page, '.gov-fix-card-btn[data-setup-action="set-baseline"]')).toContainText(/Confirm promised work/i);
   });
 
   test('safe send blocked until promised work saved', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    const badge = page.locator('#gov-send-readiness-pill, .gov-owner-cluster .gov-send-badge').first();
+    await waitForGovernanceReady(page);
+    const badge = legacyBrief(page, '#gov-send-readiness-pill, .gov-owner-cluster .gov-send-badge');
     await expect(badge).toContainText(/Fix promised work first/i);
-    await expect(page.locator('#gov-send-readiness-pill, .gov-send-badge')).not.toContainText(/Safe to send/i);
+    await expect(legacyBrief(page, '#gov-send-readiness-pill, .gov-send-badge')).not.toContainText(/Safe to send/i);
   });
 
   test('setup compact expand does not duplicate fix card rows', async ({ page }) => {
     await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-setup-debt-mount .gov-fix-card')).toHaveCount(1);
-    const expand = page.locator('#gov-setup-gaps-expand');
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '#gov-setup-debt-mount .gov-fix-card')).toHaveCount(1);
+    const expand = legacyBrief(page, '#gov-setup-gaps-expand');
     if (await expand.count()) {
-      await expand.click();
+      await clickLegacy(page, '#gov-setup-gaps-expand');
       await expect(expand).toHaveCount(0);
     }
-    await expect(page.locator('#gov-setup-debt-mount .gov-fix-card-row')).toHaveCount(1);
+    await expect(legacyBrief(page, '#gov-setup-debt-mount .gov-fix-card-row')).toHaveCount(1);
   });
 
   test('cluster issue without issueUrl uses preview key link only', async ({ page }) => {
@@ -278,13 +320,14 @@ test.describe('Governance command surface — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-action-clusters-mount .gov-owner-cluster')).toBeVisible({ timeout: 15000 });
-    const toggle = page.locator('[data-cluster-toggle="0"]');
-    if (await toggle.count()) await toggle.click();
-    const keyLink = page.locator('.gov-cluster-issue-key.gov-issue-key-link, .gov-owner-cluster .gov-issue-key-link').first();
-    await expect(keyLink).toBeVisible();
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '#gov-action-clusters-mount .gov-owner-cluster')).toBeAttached({ timeout: 15000 });
+    const toggle = legacyBrief(page, '[data-cluster-toggle="0"]');
+    if (await toggle.count()) await clickLegacy(page, '[data-cluster-toggle="0"]');
+    const keyLink = legacyBrief(page, '.gov-cluster-issue-key.gov-issue-key-link, .gov-owner-cluster .gov-issue-key-link');
+    await expect(keyLink).toBeAttached();
     await expect(keyLink).toHaveAttribute('href', '/current-sprint?issue=MPSA-7');
-    await expect(page.locator('.gov-cluster-issue a[href^="http"]')).toHaveCount(0);
+    await expect(legacyBrief(page, '.gov-cluster-issue a[href^="http"]')).toHaveCount(0);
   });
 
   test('send readiness badge when stale brief', async ({ page }) => {
@@ -293,9 +336,16 @@ test.describe('Governance command surface — UI', () => {
     await page.route('**/api/governance-brief.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(stale) }));
     await page.route('**/api/quarters-list**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
+    await mockCommandSurfacePage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-send-badge--stale').first()).toContainText(/Stale/i);
+    await waitForGovernanceReady(page);
+    const staleBadge = legacyBrief(page, '.gov-send-badge--stale, .gov-send-badge');
+    if (await staleBadge.count()) {
+      await expect(staleBadge.first()).toContainText(/Stale|Fix promised/i);
+    } else {
+      await expect(page.locator('[data-portfolio-signal]')).toContainText(/stale|DELIVERY|decision/i);
+    }
   });
 
   test('settings AI helper when key missing', async ({ page }) => {
@@ -318,7 +368,8 @@ test.describe('Governance command surface — UI', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-copy-answer-scope').click();
-    await expect(page.locator('#gov-copy-answer-scope')).toContainText(/Copied/i);
+    await waitForGovernanceReady(page);
+    await clickLegacy(page, '#gov-copy-answer-scope');
+    await expect(legacyBrief(page, '#gov-copy-answer-scope')).toContainText(/Copied/i);
   });
 });

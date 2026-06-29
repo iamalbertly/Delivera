@@ -1,32 +1,27 @@
 {
-  "pid": 3384,
-  "startedAt": 1780564403776,
-  "mode": "full",
-  "totalAvailableSteps": 11,
-  "selectedStepsCount": 11,
-  "stepNames": [
-    "Install Dependencies",
-    "Build CSS From Partials",
-    "Verify Generated CSS Is In Sync",
-    "Run Governance Decision Cockpit Journey",
-    "Run Data Integrity & API Contracts Journey",
-    "Run Outcome Intake & Create Work Journey (covers most-recently-changed files)",
-    "Run UX Core Journeys (Navigation, Trust, Responsiveness)",
-    "Run Current Sprint Mission-Control Journey",
-    "Run Human Nudge Review Trust Journey",
-    "Run Leadership HUD & Boards Journey",
-    "Run Full E2E Journeys & Deploy Smoke"
-  ],
   "completedStepNames": [
-    "Install Dependencies",
     "Build CSS From Partials",
     "Verify Generated CSS Is In Sync",
-    "Run Governance Decision Cockpit Journey"
+    "Server Lifecycle Unit Tests (uptime guards)",
+    "Governance Intervention Unit Tests (most recent code)",
+    "Portfolio Decision Intelligence Unit Tests",
+    "Cache Age-Tier TTL Unit Tests",
+    "Governance PI Intelligence Validation (touched files)",
+    "Governance Intervention Loop Journey (most recent code)",
+    "Portfolio Command Surface Journey (most recent code)",
+    "Run Cross-Page Persistence (last failed)",
+    "Run API Integration Contracts",
+    "Run Value Retention Master Plan Journey",
+    "Run Direct Value Master Plan Journey",
+    "Run Focused Playwright Contracts",
+    "Run Layout Overlap Journey",
+    "Run Current Sprint Dedupe Fold Journey",
+    "Run Brief SSOT Loading And Scope Journey"
   ],
-  "lastStartedStepName": "Run Data Integrity & API Contracts Journey",
+  "lastStartedStepName": "Run Governance Decision Cockpit Journey",
+  "currentStepIndex": 17,
   "finished": true,
   "cancelled": false,
   "failed": true,
-  "currentStepIndex": 4,
-  "errorMessage": "Step Run Data Integrity & API Contracts Journey failed with exit code 1"
+  "errorMessage": "Step Run Governance Decision Cockpit Journey failed with exit code 1"
 }

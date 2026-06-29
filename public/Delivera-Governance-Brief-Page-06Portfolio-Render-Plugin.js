@@ -207,6 +207,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   govPage.lastPortfolioMeta = meta;
 
   govPage.lastPortfolioDecision = decision;
+  govPage.lastDecision = decision;
 
   govPage.lastPortfolioCases = payloadCases;
 
@@ -345,6 +346,8 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
     fresh: true,
     updating: false,
   });
+  // Refresh time-box + since-last-check + status pill in the scope bar with the new decision data.
+  govPage.scopeBarApi?.refreshCapsule?.();
 
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
 

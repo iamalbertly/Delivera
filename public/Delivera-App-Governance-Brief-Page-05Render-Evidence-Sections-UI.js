@@ -15,6 +15,7 @@ function evidenceRowFor(brief, issueKey) {
 
 export function renderProofRisks(risks, opts = {}) {
   govPage.proofRisks = risks;
+  if (!govPage.els.proofRisks) return;
   if (opts.hideWhenPreview && risks.length) {
     govPage.els.proofRisks.innerHTML = '';
     govPage.els.proofRisks.hidden = true;
@@ -58,6 +59,7 @@ export function renderProofRisks(risks, opts = {}) {
 }
 
 export function renderEvidenceTable(brief) {
+  if (!govPage.els.evidence) return;
   const rows = brief?.evidencePack?.rows || [];
   if (!rows.length) {
     govPage.els.evidence.innerHTML = '<p class="governance-empty">No proof rows for flagged items.</p>';
@@ -105,7 +107,7 @@ export function renderClusterProofPreviewHtml(brief, issueKeys = [], maxRows = 3
   if (!rows.length) return '';
   const body = renderCompactProofTableRows(brief, rows);
   return `
-    <div class="gov-cluster-proof-preview" aria-label="Proof preview">
+    <div class="gov-cluster-proof-preview" data-direct-value="evidence" aria-label="Proof preview">
       <table class="governance-evidence-table gov-cluster-proof-table">
         <thead><tr><th>Issue</th><th>Status</th><th>Why</th></tr></thead>
         <tbody>${body}</tbody>
@@ -114,6 +116,18 @@ export function renderClusterProofPreviewHtml(brief, issueKeys = [], maxRows = 3
 }
 
 /** Above-fold proof preview — top rows without opening supporting evidence. */
+/** Scroll proof rail into view with brief highlight — durable outcome, not flash-only. */
+export function focusProofRail(rail) {
+  if (!rail) return;
+  rail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  rail.setAttribute('data-proof-active', '1');
+  rail.classList.add('gov-proof-rail-highlight');
+  setTimeout(() => {
+    rail.removeAttribute('data-proof-active');
+    rail.classList.remove('gov-proof-rail-highlight');
+  }, 1200);
+}
+
 export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
   const mount = mountEl || document.getElementById('gov-evidence-preview-mount')
     || document.getElementById('gov-right-rail-proof-mount');
@@ -128,7 +142,7 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
   const body = renderCompactProofTableRows(brief, rows, { linkKeys: true });
   mount.hidden = false;
   mount.innerHTML = `
-    <section class="gov-evidence-preview" aria-label="Proof preview">
+    <section class="gov-evidence-preview" data-direct-value="evidence" aria-label="Proof preview">
       <header class="gov-evidence-preview-head">
         <h3 class="gov-evidence-preview-title">Proof preview</h3>
         <button type="button" class="btn btn-link btn-compact" id="gov-evidence-preview-more">All proof (${total})</button>
@@ -140,12 +154,7 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
   mount.querySelector('#gov-evidence-preview-more')?.addEventListener('click', () => {
     const rail = document.getElementById('gov-right-rail-proof-mount');
     if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {
-      rail.setAttribute('data-proof-active', '1');
-      rail.classList.add('gov-proof-rail-highlight');
-      setTimeout(() => {
-        rail.removeAttribute('data-proof-active');
-        rail.classList.remove('gov-proof-rail-highlight');
-      }, 1200);
+      focusProofRail(rail);
       return;
     }
     openEvidenceDrawer(brief, brief?.evidencePack?.rows || []);
@@ -163,6 +172,7 @@ export function renderTechnicalDetails(brief) {
 }
 
 export function renderReadiness(brief) {
+  if (!govPage.els.readiness) return;
   const po = brief?.poReadiness;
   if (!po) { govPage.els.readiness.innerHTML = ''; return; }
   const s = po.signals || {};
@@ -176,6 +186,7 @@ export function renderReadiness(brief) {
 }
 
 export function renderBaseline(brief) {
+  if (!govPage.els.baseline) return;
   const b = brief?.baselineComparison;
   if (!b) { govPage.els.baseline.innerHTML = ''; return; }
   const s = b.summary || {};

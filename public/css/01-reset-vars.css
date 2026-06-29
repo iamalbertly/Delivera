@@ -45,10 +45,11 @@
   --sticky-global-nav-top: var(--top-chrome-height);
   --sticky-summary-top: calc(var(--sticky-global-nav-top) + 8px);
   --sticky-table-head-top: 64px;
+  --portfolio-scope-z: 1290;
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
   --brief-desktop-gap: 12px;
-  --brief-desktop-cols: minmax(0, 1fr) minmax(320px, 1fr);
+  --brief-desktop-cols: minmax(0, 1.55fr) minmax(240px, 0.72fr);
   /* Work draft canvas — type chip colours */
   --chip-epic: #6d28d9;
   --chip-epic-bg: #f5f3ff;

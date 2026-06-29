@@ -17,12 +17,20 @@
     "maxStickyChromeRatio": 0.45,
     "maxFoldDeadBandPx": 200,
     "maxIntraCardVoidPx": 120,
-    "maxHiddenValueCount": 8
+    "maxHiddenValueCount": 8,
+    "maxLeftWhitespaceRatio": 0.55,
+    "maxDuplicateInstances": 1,
+    "maxBrokenClicks": 0,
+    "minExplorationIdeas": 20,
+    "mcpEnrichmentRequired": true
   },
   "trustWeights": {
-    "evidenceComplete": 0.25,
-    "explorationQuality": 0.15,
-    "testsPass": 0.35,
-    "metricsImprove": 0.25
+    "evidenceComplete": 0.15,
+    "explorationQuality": 0.1,
+    "testsPass": 0.3,
+    "metricsImprove": 0.2,
+    "stateMatrixPass": 0.1,
+    "mcpEnrichment": 0.1,
+    "screenshotDensityPass": 0.05
   }
 }

@@ -17,17 +17,27 @@ import {
   bindProjectsStorageSync,
 } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
+import { renderTimeboxChip, renderSinceLastCheckChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 const BASELINE_OPTIONS = [
   { id: 'pi-baseline', label: 'PI baseline' },
   { id: 'none', label: 'No baseline' },
 ];
 
+/** Labeled status pill — color + glyph + word (accessible, not color-only). */
+const STATUS_GLYPH = { blocked: '✕', watch: '●', onTrack: '✓', setup: '○' };
+function renderStatusPill(tier) {
+  const label = simpleStatusLabel(tier, true);
+  const glyph = STATUS_GLYPH[tier] || '●';
+  return `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(tier)}" data-scope-status-action="1" title="Jump to actions">${glyph} ${escapeHtml(label)}</button>`;
+}
+
 function displayName(key) {
   return resolveProjectDisplay(key).primary || key;
 }
 
-export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange } = {}) {
+export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, getBrief, getLastDecision } = {}) {
   if (!mount) {
     return { getProjects: () => [], getQuarterLabel: () => '', getPeriodWindow: () => 'pi' };
   }
@@ -67,13 +77,17 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange } =
 
     mount.innerHTML = `
       <div class="portfolio-scope-filters${scopeCollapsed ? ' portfolio-scope-filters--collapsed' : ''}" data-portfolio-scope-filters>
+        <div class="portfolio-scope-summary-strip" data-portfolio-scope-summary>
+          ${renderTimeboxChip(getLastDecision?.() || {}, getBrief?.() || {})}
+          ${renderSinceLastCheckChip(getBrief?.() || {})}
+          ${renderStatusPill(statusTier)}
+        </div>
         <button type="button" class="portfolio-scope-collapse-toggle btn btn-link btn-compact" data-portfolio-scope-toggle aria-expanded="${scopeCollapsed ? 'false' : 'true'}">
           ${scopeCollapsed ? `Filters: ${escapeHtml(displayName(anchor))} / ${escapeHtml(activeQuarter || 'Current')}` : 'Close filters'}
         </button>
         <div class="portfolio-scope-filters-body" data-portfolio-scope-body${scopeCollapsed ? ' hidden' : ''}>
           <label class="portfolio-scope-field">
             <span class="portfolio-scope-select-wrap">
-              <span class="portfolio-scope-status-dot portfolio-scope-status-dot--${escapeHtml(statusTier)}" aria-hidden="true"></span>
               <select id="portfolio-scope-selected" class="portfolio-scope-select" aria-label="Selected squad">
                 ${allOptions.map((pk) => `<option value="${escapeHtml(pk)}"${String(pk).toUpperCase() === String(anchor).toUpperCase() ? ' selected' : ''}>${escapeHtml(displayName(pk))}</option>`).join('')}
               </select>
@@ -101,11 +115,24 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange } =
               ${BASELINE_OPTIONS.map((b) => `<option value="${escapeHtml(b.id)}"${b.id === baselineMode ? ' selected' : ''}>${escapeHtml(b.label)}</option>`).join('')}
             </select>
           </label>
-          <button type="button" id="portfolio-scope-refresh" class="btn btn-primary btn-compact portfolio-scope-refresh"${cacheFresh && !cacheUpdating ? ' hidden' : ''}>Refresh</button>
           <span class="portfolio-scope-updating" id="portfolio-scope-updating"${cacheUpdating ? '' : ' hidden'} aria-live="polite">Updating...</span>
         </div>
       </div>`;
     mount.dataset.portfolioScope = '1';
+
+    // Auto-refresh on focus-return if data older than 5 min (replaces manual Refresh button).
+    if (!mount._autoRefreshBound) {
+      mount._autoRefreshBound = true;
+      let lastVisibleAt = Date.now();
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { lastVisibleAt = Date.now(); return; }
+        const hiddenFor = Date.now() - lastVisibleAt;
+        if (hiddenFor < 2000) return; // debounce devtools open/close
+        // Defer if a drawer/modal is open (user is mid-action).
+        if (document.querySelector('.gov-right-drawer-panel:not([hidden]), dialog[data-outcome-modal]:not([hidden])')) return;
+        onRefresh?.({ force: true });
+      });
+    }
 
     mount.querySelector('#portfolio-scope-selected')?.addEventListener('change', (ev) => {
       const next = ev.target.value;
@@ -138,7 +165,6 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange } =
       writePortfolioBaselineMode(baselineMode);
       onRefresh?.();
     });
-    mount.querySelector('#portfolio-scope-refresh')?.addEventListener('click', () => onRefresh?.({ force: true }));
     mount.querySelector('[data-portfolio-scope-toggle]')?.addEventListener('click', () => {
       scopeCollapsed = !scopeCollapsed;
       render();
@@ -176,9 +202,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange } =
     setCacheUxState({ fresh = false, updating = false } = {}) {
       cacheFresh = Boolean(fresh);
       cacheUpdating = Boolean(updating);
-      const refreshBtn = mount.querySelector('#portfolio-scope-refresh');
       const updatingChip = mount.querySelector('#portfolio-scope-updating');
-      if (refreshBtn) refreshBtn.hidden = cacheFresh && !cacheUpdating;
       if (updatingChip) updatingChip.hidden = !cacheUpdating;
     },
     setAdvancedWarnCount: () => {},

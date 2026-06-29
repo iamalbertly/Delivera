@@ -54,7 +54,7 @@ export function renderOwnerActionClusters(brief, groups = []) {
         </div>
         <div class="gov-owner-cluster-actions">
           ${nudgeActions}
-          <div class="gov-cluster-dismiss-chips" role="group" aria-label="Dismiss">
+          <div class="gov-cluster-dismiss-chips gov-cluster-dismiss-chips--hover-reveal" role="group" aria-label="Dismiss">
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="handled" title="Handled">✓</button>
             <button type="button" class="gov-inbox-dismiss-chip" data-cluster-dismiss="${gi}" data-dismiss-reason="irrelevant" title="Irrelevant">✕</button>
           </div>

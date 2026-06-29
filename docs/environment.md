@@ -74,6 +74,21 @@ JIRA_API_TOKEN=your_jira_api_token
 - `CACHE_ENABLE_REMOTE_SCAN` (`1` default)
 - `ALLOW_TEST_CACHE_CLEAR` (enables `/api/test/clear-cache` outside test mode)
 
+### Evidence OS
+
+- `EVIDENCE_OS_ENABLED` (`1` default; set `0` to disable `/api/evidence-os/*`)
+- `DATABASE_URL` for Drizzle/Postgres migrations
+- `EVIDENCE_OS_RETENTION_DAYS` for Class 2 retention policy planning
+
+Local Postgres:
+
+```bash
+npm run evidence-os:db:up
+npm run evidence-os:db:migrate
+```
+
+If `DATABASE_URL` is omitted, the local dev/test fallback writes to `data/Delivera-EvidenceOS-Store.json` so `/evidence` can be validated without Docker.
+
 ## Validation command
 
 To verify Jira credentials without using the browser:

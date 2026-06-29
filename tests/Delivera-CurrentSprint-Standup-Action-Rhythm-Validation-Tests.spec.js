@@ -7,7 +7,7 @@ import {
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 
 test.describe('Delivera current sprint standup action rhythm', () => {
-  test('top shortlist actions are visible and actionable', async ({ page }) => {
+  test('compact strip intervention actions are visible and actionable', async ({ page }) => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
 
@@ -23,15 +23,15 @@ test.describe('Delivera current sprint standup action rhythm', () => {
     await page.waitForSelector('.current-sprint-header-bar', { timeout: 45000 }).catch(() => null);
     await expect(page.locator('.current-sprint-header-bar')).toBeVisible();
 
-    const shortlist = page.locator('.header-action-shortlist-item');
-    const count = await shortlist.count();
+    const intervention = page.locator('.sprint-intervention-item');
+    const count = await intervention.count();
     if (count === 0) {
-      test.skip(true, 'No intervention shortlist rendered for this sprint state');
+      test.skip(true, 'No intervention strip rendered for this sprint state');
       return;
     }
 
-    await expect(shortlist.first()).toBeVisible();
-    await shortlist.first().click({ force: true }).catch(() => null);
+    await expect(intervention.first()).toBeVisible();
+    await intervention.first().click({ force: true }).catch(() => null);
     await expect(page.locator('#stories-card, #stuck-card').first()).toBeVisible();
     assertTelemetryClean(telemetry);
   });

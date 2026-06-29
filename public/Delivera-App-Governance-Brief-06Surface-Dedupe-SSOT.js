@@ -132,3 +132,24 @@ export function groupDoNowByOwner(drawerIssues = []) {
   }
   return Array.from(map.values()).sort((a, b) => b.issues.length - a.issues.length);
 }
+
+/**
+ * Portfolio command surface — canonical counts for viewport dedupe.
+ * @returns {{ exposedCommitments: number, actionsReady: number, poResponsesRequired: number, proofLevel: string }}
+ */
+export function portfolioCanonicalCounts(decision = {}) {
+  const above = decision.aboveFold || {};
+  const trust = decision.trust || {};
+  const mon = decision.monitoring || {};
+  return {
+    exposedCommitments: above.exposedCommitments ?? mon.exposedCommitmentCount ?? (decision.affectedCommitments || []).length,
+    actionsReady: above.actionsReady ?? trust.nudgesReady ?? 0,
+    poResponsesRequired: above.poResponsesRequired ?? 0,
+    proofLevel: trust.proofLevel || 'Medium',
+  };
+}
+
+/** Keep one dedicated action stream; the signal never renders duplicate prepared chips. */
+export function shouldHidePreparedActionsSection(decision = {}) {
+  return false;
+}

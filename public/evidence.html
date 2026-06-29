@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impact | Delivera</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="evidence-os-page">
+  <a class="skip-to-content" href="#main-content">Skip to main content</a>
+
+  <main id="main-content" class="evidence-os-shell" role="main">
+    <section class="evidence-os-loading" id="eos-loading" aria-live="polite">
+      <div class="evidence-os-skeleton evidence-os-skeleton--wide"></div>
+      <div class="evidence-os-skeleton-grid">
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </section>
+
+    <section class="evidence-os-header" aria-labelledby="evidence-title">
+      <div>
+        <p class="evidence-os-kicker">Impact cockpit</p>
+        <h1 id="evidence-title">What needs my attention?</h1>
+        <p class="evidence-os-subtitle">Agents observe delivery systems, draft only what they can infer, and ask for the missing human context.</p>
+      </div>
+      <div class="evidence-os-actions">
+        <button type="button" class="btn btn-secondary btn-compact" data-eos-action="run-agents">Run agents</button>
+        <button type="button" class="btn btn-primary btn-compact" data-eos-action="capture">Add context</button>
+      </div>
+    </section>
+
+    <section id="eos-attention" class="evidence-os-attention" aria-label="Actions and decisions"></section>
+
+    <section class="evidence-os-workbench" aria-label="Impact workbench">
+      <section class="evidence-os-panel evidence-os-panel--manager">
+        <div class="evidence-os-panel-head">
+          <h2>Nuru brief</h2>
+          <span id="eos-brief-status">Auto generated</span>
+        </div>
+        <div id="eos-manager-brief"></div>
+      </section>
+
+      <details class="evidence-os-panel evidence-os-panel--fold">
+        <summary class="evidence-os-panel-head">
+          <h2>Linked commitments</h2>
+          <span>Source goals</span>
+        </summary>
+        <button type="button" class="btn btn-secondary btn-compact evidence-os-fold-action" data-eos-action="link-commitment">Link existing</button>
+        <div id="eos-commitments" class="evidence-os-list"></div>
+      </details>
+
+      <details class="evidence-os-panel evidence-os-panel--portfolio evidence-os-panel--fold">
+        <summary class="evidence-os-panel-head">
+          <h2>Portfolio intelligence</h2>
+          <span>Preprocessed signals</span>
+        </summary>
+        <div id="eos-portfolio" class="evidence-os-portfolio"></div>
+      </details>
+
+      <details class="evidence-os-panel evidence-os-panel--streams evidence-os-panel--fold">
+        <summary class="evidence-os-panel-head">
+          <h2>Impact streams</h2>
+          <span>Generation / protection / multiplication</span>
+        </summary>
+        <div id="eos-value-streams" class="evidence-os-streams"></div>
+      </details>
+
+      <details class="evidence-os-panel evidence-os-panel--fold">
+        <summary class="evidence-os-panel-head">
+          <h2>Agent activity</h2>
+          <span>Detected, drafted, escalated</span>
+        </summary>
+        <div id="eos-agent-activity" class="evidence-os-list"></div>
+      </details>
+
+      <details class="evidence-os-panel evidence-os-panel--timeline evidence-os-panel--fold">
+        <summary class="evidence-os-panel-head">
+          <h2>Evidence trail</h2>
+          <span id="eos-counts">Background output</span>
+        </summary>
+        <div id="eos-timeline" class="evidence-os-timeline"></div>
+      </details>
+    </section>
+  </main>
+
+  <aside id="eos-capture-drawer" class="evidence-os-drawer" hidden aria-hidden="true" aria-labelledby="eos-drawer-title">
+    <div class="evidence-os-drawer-head">
+      <h2 id="eos-drawer-title">Add missing context</h2>
+      <button type="button" class="modal-close-btn" data-overlay-close aria-label="Close">x</button>
+    </div>
+    <form id="eos-capture-form" class="evidence-os-form">
+      <label>Jira item or source<input name="workItemKey" autocomplete="off" placeholder="MPSA-123"></label>
+      <label>Situation<textarea name="teamStatement" rows="3" required placeholder="What was blocked, unclear, late, risky, or invisible?"></textarea></label>
+      <label>My action<textarea name="individualActionStatement" rows="3" required placeholder="What did I personally do that Jira cannot infer?"></textarea></label>
+      <label>Observed result<textarea name="impactStatement" rows="3" placeholder="What objectively changed after the intervention?"></textarea></label>
+      <div class="evidence-os-form-row">
+        <label>Evidence tier<select name="tier"><option value="user_statement">User statement</option><option value="system_fact">System fact</option><option value="business_record">Business record</option><option value="ai_interpretation">AI interpretation</option></select></label>
+        <label>Value stream<select name="typeName"><option value="risk-escalation">Value protection</option><option value="delivery">Value generation</option><option value="coaching">Capability multiplication</option><option value="dependency-management">Dependency flow</option></select></label>
+      </div>
+      <p class="evidence-os-form-note">Delivera stores only the context Jira cannot know. Existing goals and delivery status stay in their source systems.</p>
+      <button type="submit" class="btn btn-primary">Save context</button>
+      <div id="eos-form-status" class="evidence-os-status" aria-live="polite"></div>
+    </form>
+  </aside>
+
+  <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
+  <script type="module" src="Delivera-EvidenceOS-Timeline-01UI.js"></script>
+</body>
+</html>

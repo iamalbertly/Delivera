@@ -13,20 +13,7 @@ import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-B
 import { bindGovernancePageInteractions, openInboxNudgeReview, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import { installPortfolioSurfaceHook } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
 
-function installExtensionTrustHint() {
-  if (window.__deliveraExtTrustHint) return;
-  window.__deliveraExtTrustHint = true;
-  const show = () => document.getElementById('gov-extension-trust-hint')?.removeAttribute('hidden');
-  const origError = console.error;
-  console.error = (...args) => {
-    const msg = args.map((a) => String(a || '')).join(' ');
-    if (/runtime\.lastError|message port closed|extension/i.test(msg)) show();
-    return origError.apply(console, args);
-  };
-}
-
 function init() {
-  installExtensionTrustHint();
   govPage.els.freshness = $('gov-freshness');
   govPage.els.piStripMount = $('gov-pi-strip-mount');
   govPage.els.feedbackLabMount = $('gov-feedback-lab-mount');
@@ -70,6 +57,8 @@ function init() {
       openScopeIntelligenceDrawer(govPage.lastBrief);
     },
     getScopeCounts: () => scopeCapsuleCounts(govPage.lastBrief) || {},
+    getBrief: () => govPage.lastBrief,
+    getLastDecision: () => govPage.lastDecision || null,
   });
   govPage.inboxApi = mountGovernanceInbox({
     mount: $('gov-queue-mount'),

@@ -1,0 +1,127 @@
+- generic [active] [ref=e1]:
+  - complementary "Primary" [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: De
+      - generic [ref=e5]: Delivera
+      - generic [ref=e6]: Grow my Impact
+    - navigation "Main" [ref=e7]
+  - link "Skip to main content" [ref=e8] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e9]:
+    - generic [ref=e10]:
+      - button "Expand or collapse sidebar" [ref=e12] [cursor=pointer]:
+        - img [ref=e13]
+      - navigation "Surfaces" [ref=e16]:
+        - generic [ref=e17] [cursor=pointer]: Answer
+        - link "Today" [ref=e18] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Proof" [ref=e19] [cursor=pointer]:
+          - /url: /report
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22] [cursor=pointer]
+      - group "Global actions" [ref=e23]:
+        - button [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+        - generic "Checking AI status"
+        - button "Notifications" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+        - button "Improve Delivera" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+        - link "Settings" [ref=e32] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e33]
+  - main [ref=e35]:
+    - generic "Brief scope" [ref=e36]:
+      - generic "Brief scope" [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - text: 1 squad ·
+            - strong [ref=e40]: MAS
+            - text: · FY27 Q1 · 28d
+          - button "✕ Blocked" [ref=e41] [cursor=pointer]
+          - button "Hide scope" [expanded] [ref=e42] [cursor=pointer]
+          - group "Scope actions" [ref=e43]:
+            - button "Copy answer" [ref=e44] [cursor=pointer]
+            - button "Refresh" [ref=e45] [cursor=pointer]
+        - generic [ref=e47]:
+          - group "Projects" [ref=e48]:
+            - generic [ref=e49]:
+              - checkbox "AMS2" [ref=e50]
+              - generic [ref=e51]: AMS2
+            - generic [ref=e52]:
+              - checkbox "ASG" [ref=e53]
+              - generic [ref=e54]: ASG
+            - generic [ref=e55]:
+              - checkbox "BIO" [ref=e56]
+              - generic [ref=e57]: BIO
+            - generic [ref=e58]:
+              - checkbox "FIN" [ref=e59]
+              - generic [ref=e60]: FIN
+            - generic [ref=e61]:
+              - checkbox "MAS" [checked] [ref=e62]
+              - generic [ref=e63]: MAS
+            - generic [ref=e64]:
+              - checkbox "MPSA" [ref=e65]
+              - generic [ref=e66]: MPSA
+            - generic [ref=e67]:
+              - checkbox "MPSA2" [ref=e68]
+              - generic [ref=e69]: MPSA2
+            - generic [ref=e70]:
+              - checkbox "MVA" [ref=e71]
+              - generic [ref=e72]: MVA
+            - generic [ref=e73]:
+              - checkbox "RPA" [ref=e74]
+              - generic [ref=e75]: RPA
+            - generic [ref=e76]:
+              - checkbox "SD" [ref=e77]
+              - generic [ref=e78]: SD
+            - generic [ref=e79]:
+              - checkbox "TRS" [ref=e80]
+              - generic [ref=e81]: TRS
+            - generic [ref=e82]:
+              - checkbox "VB" [ref=e83]
+              - generic [ref=e84]: VB
+          - group "Period" [ref=e85]:
+            - generic [ref=e86]:
+              - button "PI · FY27 Q1" [ref=e87] [cursor=pointer]
+              - button "14d" [ref=e88] [cursor=pointer]
+              - button "28d" [ref=e89] [cursor=pointer]
+              - button "PI" [ref=e90] [cursor=pointer]
+              - generic [ref=e91]: ·
+              - button "FY24 Q4" [ref=e92] [cursor=pointer]
+              - button "FY25 Q2" [ref=e93] [cursor=pointer]
+              - button "FY25 Q3" [ref=e94] [cursor=pointer]
+              - button "FY25 Q4" [ref=e95] [cursor=pointer]
+              - button "FY26 Q1" [ref=e96] [cursor=pointer]
+              - button "FY26 Q2" [ref=e97] [cursor=pointer]
+              - button "FY26 Q3" [ref=e98] [cursor=pointer]
+              - button "FY27 Q1" [ref=e99] [cursor=pointer]
+          - group [ref=e100]:
+            - generic "Advanced scope" [ref=e101]
+    - paragraph [ref=e104]: Loading your delivery answer…
+    - alert [ref=e105]
+    - button [ref=e106]: Create work
+  - dialog "Create work draft" [ref=e107]:
+    - generic [ref=e108]:
+      - button "Project ▾" [ref=e110] [cursor=pointer]:
+        - generic [ref=e111]: Project
+        - text: ▾
+      - generic [ref=e112]: Create work
+      - button "AI provider settings" [ref=e113] [cursor=pointer]: ⚙
+      - button "Close" [ref=e114] [cursor=pointer]: ✕
+    - generic [ref=e116]:
+      - generic [ref=e117] [cursor=pointer]:
+        - text: Upload PI plan slide (screenshot or export)
+        - generic [ref=e118]: Drag & drop or click
+        - button "Upload PI plan slide (screenshot or export) Drag & drop or click" [ref=e119]
+      - textbox "Narrative source text" [ref=e121]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e123]: ✓
+      - list "Work items" [ref=e124]
+    - generic [ref=e125]:
+      - generic "Set estimate for all items" [ref=e126]:
+        - generic [ref=e127]: "All:"
+        - slider "Set estimate for all items" [ref=e128] [cursor=pointer]: "0"
+        - generic [ref=e129]: —
+      - button "Create 0 issues" [disabled] [ref=e131]

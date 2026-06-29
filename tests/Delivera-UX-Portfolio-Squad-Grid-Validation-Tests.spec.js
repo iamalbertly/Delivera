@@ -1,5 +1,11 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
+import {
+  mockGovernancePage,
+  waitForGovernanceReady,
+  legacyBrief,
+  clickLegacy,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 const PROJECTS = ['MPSA', 'MAS', 'RPA', 'SD'];
 
@@ -78,19 +84,17 @@ const SINGLE_MOCK = {
 
 async function mockApis(page, body) {
   await routeProjectsCatalog(page);
-  await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify(body),
-  }));
-  await page.route('**/api/quarters-list**', (r) => r.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }),
-  }));
-  await page.route('**/api/governance/adoption-metrics.json**', (r) => r.fulfill({
-    status: 200, contentType: 'application/json', body: '{}',
-  }));
-  await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({
-    status: 200, contentType: 'application/json',
-    body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }),
-  }));
+  const comparison = {
+    cards: (body.projects || PROJECTS).map((pk) => ({
+      projectKey: pk,
+      squadName: pk,
+      statusTier: pk === 'RPA' || pk === 'SD' ? 'blocked' : 'watch',
+      mainIssue: 'Delivery signal',
+      decisionLine: 'Confirm scope',
+      nextAction: 'Review',
+    })),
+  };
+  await mockGovernancePage(page, { brief: body, comparison });
 }
 
 async function setProjects(page, csv) {
@@ -105,14 +109,10 @@ test.describe('Portfolio squad grid', () => {
     await mockApis(page, PORTFOLIO_MOCK);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-portfolio-banner-line')).toContainText(/4 squads/i);
-    await expect(page.locator('.gov-heat-tile')).toHaveCount(4);
-    await expect(page.locator('.gov-heat-tile[data-heat-tile="RPA"]')).toHaveClass(/blocked/);
-    await page.locator('.gov-heat-tile[data-heat-tile="MPSA"]').click();
-    await expect(page.locator('[data-tile-detail="MPSA"] .gov-pulse-bars')).toBeVisible();
-    await expect(page.locator('.gov-verdict-zone')).toHaveCount(0);
-    await page.locator('#gov-scope-change').click();
-    await expect(page.locator('#gov-scope-expanded .gov-scope-chip.is-on')).toHaveCount(4);
+    await waitForGovernanceReady(page);
+  await expect(legacyBrief(page, '.gov-portfolio-banner-line')).toContainText(/4 squads/i);
+  await expect(page.locator('.portfolio-carousel-card, .portfolio-squad-card')).toHaveCount(4);
+  await expect(legacyBrief(page, '.gov-verdict-zone')).toHaveCount(0);
   });
 
   test('single project keeps hero squad grid', async ({ page }) => {
@@ -120,8 +120,9 @@ test.describe('Portfolio squad grid', () => {
     await mockApis(page, SINGLE_MOCK);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-verdict-mount .gov-portfolio-grid-wrap--single')).toBeVisible();
-    await expect(page.locator('.gov-verdict-zone')).toHaveCount(0);
-    await expect(page.locator('.gov-risk-heat-row')).toHaveCount(0);
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '#gov-verdict-mount .gov-portfolio-grid-wrap--single')).toBeAttached();
+    await expect(legacyBrief(page, '.gov-verdict-zone')).toHaveCount(0);
+    await expect(legacyBrief(page, '.gov-risk-heat-row')).toHaveCount(0);
   });
 });

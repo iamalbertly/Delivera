@@ -20,7 +20,18 @@ if (process.argv.includes('--priority')) process.env.PRIORITY_ONLY = '1';
 const steps = process.env.PRIORITY_ONLY === '1' ? getPrioritySteps(projectRoot) : getSteps(projectRoot);
 const stateFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-State.json');
 const cancelFilePath = join(projectRoot, 'scripts', 'Delivera-Test-Orchestration-Cancel.json');
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+function resolveOrchestrationBaseUrl() {
+  if (process.env.BASE_URL) return process.env.BASE_URL;
+  try {
+    const portFile = join(projectRoot, '.delivera-dev-port');
+    if (fs.existsSync(portFile)) {
+      const port = Number(fs.readFileSync(portFile, 'utf8').trim());
+      if (Number.isFinite(port) && port > 0) return `http://localhost:${port}`;
+    }
+  } catch (_) { /* ignore */ }
+  return 'http://localhost:3000';
+}
+const baseUrl = resolveOrchestrationBaseUrl();
 const resolvedPort = (() => {
   try {
     const parsed = new URL(baseUrl);
@@ -487,7 +498,7 @@ async function runAllTests() {
       });
       await runStep(step, i, totalToRun, {
         BASE_URL: baseUrl,
-        PORT: process.env.PORT || String(resolvedPort),
+        PORT: String(resolvedPort),
         SKIP_WEBSERVER: skipWebServer ? 'true' : (process.env.SKIP_WEBSERVER || ''),
         PLAYWRIGHT_LIST_PRINT_STEPS: '1',
         CI: process.env.CI || '',

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delivera Agentic Value Queue Mockups</title>
+  <style>
+    :root {
+      --red: #c40000;
+      --red-700: #9f0000;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #e5e7eb;
+      --soft: #f7f8fa;
+      --green: #047857;
+      --amber: #b45309;
+      --blue: #1d4ed8;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #d7dce5; color: var(--ink); }
+    .artboard {
+      width: 1600px;
+      height: 1000px;
+      background: var(--soft);
+      overflow: hidden;
+      position: relative;
+      border-bottom: 8px solid #c8ced8;
+    }
+    .top {
+      height: 62px;
+      background: var(--red);
+      color: #fff;
+      display: grid;
+      grid-template-columns: 230px 1fr 350px;
+      align-items: center;
+      gap: 20px;
+      padding: 0 24px;
+      box-shadow: 0 2px 14px rgba(153,0,0,.18);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 850; }
+    .mark { width: 34px; height: 34px; border-radius: 8px; background: #fff; color: var(--red); display: grid; place-items: center; font-weight: 900; }
+    .switcher { display: flex; gap: 8px; justify-self: start; }
+    .switcher span { color: rgba(255,255,255,.82); font-weight: 750; padding: 8px 12px; border-radius: 8px; }
+    .switcher .on { background: rgba(255,255,255,.18); color: #fff; }
+    .askbar { justify-self: center; width: 520px; height: 38px; border: 1px solid rgba(255,255,255,.22); border-radius: 8px; display: flex; align-items: center; padding: 0 14px; color: rgba(255,255,255,.86); background: rgba(80,0,0,.22); }
+    .top-actions { justify-self: end; display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .pill-white { background: #fff; color: var(--red-700); height: 38px; border-radius: 8px; padding: 0 14px; display: inline-flex; align-items: center; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); display: grid; place-items: center; }
+    .shell { display: grid; grid-template-columns: 236px 1fr; height: calc(1000px - 62px); }
+    .rail { background: rgba(255,255,255,.74); border-right: 1px solid var(--line); padding: 28px 18px; }
+    .rail h2 { margin: 0 0 18px; color: #98a2b3; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .nav { display: grid; gap: 6px; }
+    .nav span { min-height: 42px; border-radius: 8px; display: flex; align-items: center; padding: 0 12px; font-weight: 760; color: #344054; }
+    .nav .on { background: #fff0f0; color: var(--red-700); box-shadow: inset 3px 0 0 var(--red); }
+    .rail-note { margin-top: 34px; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 16px; }
+    .rail-note b { display: block; margin-bottom: 8px; }
+    .rail-note p { margin: 0; color: var(--muted); line-height: 1.45; font-size: 14px; }
+    .main { padding: 34px 44px; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; }
+    .eyebrow { color: var(--red); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    h1 { margin: 0; font-size: 36px; line-height: 1.12; letter-spacing: 0; }
+    .lead { margin: 10px 0 0; color: var(--muted); font-size: 17px; }
+    .scope { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; max-width: 520px; }
+    .chip { background: #fff; border: 1px solid var(--line); color: #344054; border-radius: 999px; padding: 8px 12px; font-weight: 760; font-size: 14px; }
+    .chip.alert { background: #fff4f4; border-color: #ffd6d6; color: var(--red-700); }
+    .btn { height: 40px; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 0 14px; color: #344054; font-weight: 800; }
+    .btn.primary { background: var(--red-700); border-color: var(--red-700); color: #fff; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+    .answer { padding: 30px; border-top: 4px solid var(--red); }
+    .quiet { color: var(--muted); font-weight: 760; font-size: 15px; margin-bottom: 14px; }
+    .big { font-size: 30px; line-height: 1.28; margin: 0 0 20px; max-width: 850px; }
+    .actions { display: flex; gap: 10px; margin: 20px 0 0; }
+    .three { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 22px; }
+    .mini { background: #fbfcfe; border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-height: 116px; }
+    .mini b { display: block; margin-bottom: 8px; }
+    .mini p { color: var(--muted); margin: 0; line-height: 1.45; font-size: 14px; }
+    .list { padding: 20px; margin-top: 18px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    h3 { margin: 0; font-size: 18px; }
+    .link { color: var(--blue); font-weight: 820; font-size: 14px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; border-top: 1px solid var(--line); padding: 15px 0; }
+    .row:first-of-type { border-top: 0; }
+    .row b { display: block; margin-bottom: 4px; }
+    .row span { color: var(--muted); font-size: 14px; }
+    .state { padding: 6px 10px; border-radius: 999px; background: #ecfdf3; color: var(--green); font-size: 12px; font-weight: 900; }
+    .state.warn { background: #fff7ed; color: var(--amber); }
+    .side { display: grid; gap: 16px; }
+    .side .card { padding: 18px; }
+    .metric { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding: 13px 0; color: var(--muted); }
+    .metric:first-of-type { border-top: 0; }
+    .metric strong { color: var(--ink); }
+    .flow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .flow span { border: 1px solid var(--line); border-radius: 999px; padding: 7px 10px; background: #fff; font-weight: 780; font-size: 13px; }
+    .wide-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; }
+    .proof-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .proof-tabs span { padding: 8px 12px; border-radius: 8px; background: #f2f4f7; color: #344054; font-weight: 800; }
+    .proof-tabs .on { background: #fff0f0; color: var(--red-700); }
+    .muted-box { background: #fbfcfe; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    .setup-step { display: grid; grid-template-columns: 34px 1fr auto; gap: 14px; align-items: start; border-top: 1px solid var(--line); padding: 18px 0; }
+    .setup-step:first-of-type { border-top: 0; }
+    .num { width: 34px; height: 34px; border-radius: 50%; background: #fff0f0; color: var(--red-700); display: grid; place-items: center; font-weight: 900; }
+    .setup-step p { color: var(--muted); margin: 5px 0 0; line-height: 1.45; }
+  </style>
+</head>
+<body>
+  <section class="artboard" id="brief">
+    <header class="top"><div class="brand"><span class="mark">D</span>Delivera</div><div class="switcher"><span class="on">Answer</span><span>Today</span><span>Proof</span><span>Impact</span></div><div class="top-actions"><span class="pill-white">Create</span><span class="avatar">LY</span></div></header>
+    <div class="shell"><aside class="rail"><h2>Workspace</h2><div class="nav"><span class="on">Answer</span><span>Today</span><span>Proof</span><span>Impact</span><span>Settings</span></div><div class="rail-note"><b>Connection path</b><p>Answer opens Today for chase, Proof for evidence, Impact for missing context.</p><div class="flow"><span>Today</span><span>Proof</span><span>Impact</span></div></div></aside>
+    <main class="main"><div class="head"><div><div class="eyebrow">Brief</div><h1>What should we say now?</h1><p class="lead">The delivery answer first. Evidence and mechanics stay behind it.</p></div><div class="scope"><span class="chip">DMS Squad</span><span class="chip">FY27 Q1</span><span class="chip alert">PI 5 blocked</span><button class="btn">Change scope</button></div></div>
+      <div class="grid"><div><section class="card answer"><div class="quiet">Prepared from Jira status, proof, and stale-work signals</div><p class="big">Tell leadership the squad is blocked until promised work is confirmed. Chase Amani and Albert, then show the proof trail for the five stale items.</p><div class="actions"><button class="btn primary">Copy answer</button><button class="btn">Open today</button><button class="btn">Show proof</button></div><div class="three"><div class="mini"><b>What to say</b><p>Blocked, not forecastable, needs a scope decision today.</p></div><div class="mini"><b>Who to chase</b><p>Amani and Albert have the oldest owner actions.</p></div><div class="mini"><b>What proof to show</b><p>Five unchanged issues and the promised-work receipt.</p></div></div></section>
+      <section class="card list"><div class="section-head"><h3>Review queue</h3><span class="link">Open queue</span></div><div class="row"><div><b>Nudge draft ready</b><span>Human review required before anything posts.</span></div><span class="state warn">Review</span></div><div class="row"><div><b>Proof receipt ready</b><span>Links back to Proof for the current Brief.</span></div><span class="state">Ready</span></div></section></div>
+      <aside class="side"><section class="card"><div class="section-head"><h3>Signals</h3><span class="link">Details</span></div><div class="metric"><span>Confidence</span><strong>Low</strong></div><div class="metric"><span>Owner actions</span><strong>3</strong></div><div class="metric"><span>Proof health</span><strong>40%</strong></div></section><section class="card"><h3>Next links</h3><div class="metric"><span>Today</span><strong>Chase owners</strong></div><div class="metric"><span>Proof</span><strong>Show evidence</strong></div><div class="metric"><span>Impact</span><strong>Add context</strong></div></section></aside></div></main></div>
+  </section>
+
+  <section class="artboard" id="sprint">
+    <header class="top"><div class="brand"><span class="mark">D</span>Delivera</div><div class="switcher"><span>Answer</span><span class="on">Today</span><span>Proof</span><span>Impact</span></div><div class="top-actions"><span class="pill-white">Create</span><span class="avatar">LY</span></div></header>
+    <div class="shell"><aside class="rail"><h2>Today</h2><div class="nav"><span>Answer</span><span class="on">Today</span><span>Proof</span><span>Impact</span><span>Settings</span></div><div class="rail-note"><b>From Brief</b><p>Owner chase and sprint movement are the working view for the answer.</p><div class="flow"><span>Back to Brief</span><span>Proof</span></div></div></aside>
+    <main class="main"><div class="head"><div><div class="eyebrow">Sprint</div><h1>What must move today?</h1><p class="lead">A focused work queue, not a second Jira board.</p></div><div class="scope"><span class="chip">DMS Squad</span><span class="chip">PI 5 current</span><button class="btn">Filter work</button></div></div>
+      <div class="grid"><div><section class="card answer"><div class="quiet">Sprint answer</div><p class="big">Move the two oldest blocked items first. If owners cannot confirm by standup, reduce promised work before the Brief is shared.</p><div class="actions"><button class="btn primary">Review owner nudges</button><button class="btn">Open stories</button><button class="btn">Back to Brief</button></div><div class="three"><div class="mini"><b>Main blocker</b><p>Oldest stale item has no recent comment.</p></div><div class="mini"><b>Who to chase</b><p>Amani first, then Albert for proof context.</p></div><div class="mini"><b>Proof receipt</b><p>Today’s movement updates Proof automatically.</p></div></div></section>
+      <section class="card list"><div class="section-head"><h3>Owner follow-up</h3><span class="link">View work & flow</span></div><div class="row"><div><b>Amani</b><span>Two blocked issues need response.</span></div><span class="state warn">Chase</span></div><div class="row"><div><b>Albert</b><span>One proof request is pending.</span></div><span class="state warn">Chase</span></div></section></div>
+      <aside class="side"><section class="card"><h3>Sprint signals</h3><div class="metric"><span>Value stories</span><strong>0 / 5</strong></div><div class="metric"><span>Blockers</span><strong>5</strong></div><div class="metric"><span>Days left</span><strong>7</strong></div></section><section class="card"><h3>Connects to</h3><div class="metric"><span>Brief</span><strong>Answer copy</strong></div><div class="metric"><span>Proof</span><strong>Movement receipt</strong></div></section></aside></div></main></div>
+  </section>
+
+  <section class="artboard" id="proof">
+    <header class="top"><div class="brand"><span class="mark">D</span>Delivera</div><div class="switcher"><span>Answer</span><span>Today</span><span class="on">Proof</span><span>Impact</span></div><div class="top-actions"><span class="pill-white">Refresh</span><span class="pill-white">Export</span><span class="avatar">LY</span></div></header>
+    <div class="shell"><aside class="rail"><h2>Proof</h2><div class="nav"><span>Answer</span><span>Today</span><span class="on">Proof</span><span>Impact</span><span>Settings</span></div><div class="rail-note"><b>Supports Brief</b><p>Proof answers why the Brief is true. Heavy drill-down stays collapsed until needed.</p><div class="flow"><span>Brief</span><span>Evidence gap</span></div></div></aside>
+    <main class="main"><div class="head"><div><div class="eyebrow">Proof</div><h1>What proof supports the answer?</h1><p class="lead">A short evidence receipt before any table or export.</p></div><div class="scope"><span class="chip">DMS Squad</span><span class="chip">FY27 Q1</span><button class="btn">Back to Brief</button></div></div>
+      <div class="wide-grid"><section class="card answer"><div class="proof-tabs"><span class="on">Delivery proof</span><span>Leaders</span><span>Sprint list</span><span>Resolved work</span><span>Data issues</span></div><p class="big">The Brief is supported by five unchanged in-progress items, zero delivered committed stories, and stale proof on owner actions.</p><div class="actions"><button class="btn primary">Copy proof receipt</button><button class="btn">Open evidence</button><button class="btn">Export</button></div><div class="three"><div class="mini"><b>Evidence used</b><p>Status unchanged for stale items in scope.</p></div><div class="mini"><b>Evidence missing</b><p>Fresh owner confirmation for promised work.</p></div><div class="mini"><b>Next route</b><p>Send missing context to Impact.</p></div></div></section>
+      <aside class="side"><section class="card"><h3>Filters</h3><div class="metric"><span>Who</span><strong>DMS Squad</strong></div><div class="metric"><span>When</span><strong>FY27 Q1</strong></div><div class="metric"><span>Rules</span><strong>Optional</strong></div></section><section class="card"><h3>Connects to</h3><div class="metric"><span>Brief</span><strong>Proof trail</strong></div><div class="metric"><span>Impact</span><strong>Context gap</strong></div></section></aside></div></main></div>
+  </section>
+
+  <section class="artboard" id="impact">
+    <header class="top"><div class="brand"><span class="mark">D</span>Delivera</div><div class="switcher"><span>Answer</span><span>Today</span><span>Proof</span><span class="on">Impact</span></div><div class="top-actions"><span class="pill-white">Run agents</span><span class="pill-white">Add context</span><span class="avatar">LY</span></div></header>
+    <div class="shell"><aside class="rail"><h2>Impact</h2><div class="nav"><span>Answer</span><span>Today</span><span>Proof</span><span class="on">Impact</span><span>Settings</span></div><div class="rail-note"><b>Human context</b><p>Stores only what Jira cannot know: situation, action, result, and evidence tier.</p><div class="flow"><span>Brief</span><span>Settings</span></div></div></aside>
+    <main class="main"><div class="head"><div><div class="eyebrow">Impact cockpit</div><h1>What needs my attention?</h1><p class="lead">Intervention and value context, with background evidence folded away.</p></div><div class="scope"><button class="btn">Run agents</button><button class="btn primary">Add context</button></div></div>
+      <div class="grid"><div><section class="card answer"><div class="quiet">Attention item</div><p class="big">Add the missing human context for the blocked PI item: what changed, what you did, and what result leadership should understand.</p><div class="actions"><button class="btn primary">Add missing context</button><button class="btn">Link commitment</button><button class="btn">Open Brief</button></div><div class="three"><div class="mini"><b>Situation</b><p>Blocked or unclear work that Jira cannot fully explain.</p></div><div class="mini"><b>My action</b><p>The intervention, escalation, or coaching contribution.</p></div><div class="mini"><b>Result</b><p>The observed outcome or evidence still missing.</p></div></div></section>
+      <section class="card list"><div class="section-head"><h3>Nuru brief</h3><span class="state">Auto generated</span></div><div class="row"><div><b>Decision-ready manager visibility</b><span>Purpose, what changed, at risk, decision required.</span></div><span class="link">Review</span></div></section></div>
+      <aside class="side"><section class="card"><h3>Background folds</h3><div class="metric"><span>Linked commitments</span><strong>Collapsed</strong></div><div class="metric"><span>Portfolio intelligence</span><strong>Collapsed</strong></div><div class="metric"><span>Evidence trail</span><strong>Collapsed</strong></div></section><section class="card"><h3>Connects to</h3><div class="metric"><span>Proof</span><strong>Evidence gap</strong></div><div class="metric"><span>Settings</span><strong>Trust rules</strong></div></section></aside></div></main></div>
+  </section>
+
+  <section class="artboard" id="settings">
+    <header class="top"><div class="brand"><span class="mark">D</span>Delivera</div><div class="switcher"><span>Answer</span><span>Today</span><span>Proof</span><span>Impact</span></div><div class="top-actions"><span class="pill-white">Settings</span><span class="avatar">LY</span></div></header>
+    <div class="shell"><aside class="rail"><h2>Settings</h2><div class="nav"><span class="on">My workspace</span><span>Organization</span><span>Integrations</span><span>Activity</span></div><div class="rail-note"><b>Trust hub</b><p>Personal defaults first. Organization and integrations are read-only unless managed by admin.</p><div class="flow"><span>Brief</span><span>Today</span><span>Proof</span><span>Impact</span></div></div></aside>
+    <main class="main"><div class="head"><div><div class="eyebrow">Settings</div><h1>What can Delivera read and remember?</h1><p class="lead">The least amount of setup needed for useful answers and safe prepared work.</p></div><div class="scope"><button class="btn primary">Save defaults</button><button class="btn">Reset to org defaults</button></div></div>
+      <div class="wide-grid"><section class="card answer"><div class="section-head"><h3>Trust and defaults</h3><span class="state warn">Read-only org</span></div><div class="setup-step"><span class="num">1</span><div><b>My workspace</b><p>Simple mode and default project scope stay in this browser.</p></div><button class="btn primary">Save</button></div><div class="setup-step"><span class="num">2</span><div><b>Organization</b><p>Squad names and delivery rules are configured by the administrator.</p></div><span class="state">Verified</span></div><div class="setup-step"><span class="num">3</span><div><b>Integrations</b><p>Jira health, project access, cache, and AI trust are visible here.</p></div><button class="btn">Check</button></div><div class="setup-step"><span class="num">4</span><div><b>Activity</b><p>Jira comments sent from Current Sprint can be reviewed here.</p></div><button class="btn">Open</button></div></section>
+      <aside class="side"><section class="card"><h3>Feeds value to</h3><div class="metric"><span>Brief</span><strong>Scope + language</strong></div><div class="metric"><span>Today</span><strong>Saved sprint view</strong></div><div class="metric"><span>Proof</span><strong>Saved filters</strong></div><div class="metric"><span>Impact</span><strong>Trust state</strong></div></section><section class="card"><h3>Connection health</h3><div class="metric"><span>Jira</span><strong>Boards found</strong></div><div class="metric"><span>Cache</span><strong>Memory</strong></div><div class="metric"><span>AI trust</span><strong>Server managed</strong></div></section></aside></div></main></div>
+  </section>
+</body>
+</html>

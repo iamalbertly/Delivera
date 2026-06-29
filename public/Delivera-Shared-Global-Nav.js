@@ -31,9 +31,11 @@ import {
   PAGE_LOGIN,
   LEADERSHIP_HASH,
   PRIMARY_NAV_KEYS,
+  SURFACE_SWITCHER,
   getPathState,
   getCurrentPage,
 } from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
+const SURFACE_LABELS = Object.fromEntries(SURFACE_SWITCHER.map((s) => [s.key, s.label]));
 const MOBILE_BREAKPOINT = 1200;
 const NAV_HREF_OVERRIDES = {
   [PAGE_RISKS]: '/current-sprint#stuck-card',
@@ -43,24 +45,22 @@ const NAV_HREF_OVERRIDES = {
 };
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
-  [PAGE_SPRINTS]: 'Squads',
+  [PAGE_SPRINTS]: SURFACE_LABELS[PAGE_SPRINTS] || 'Squads',
   [PAGE_REPORT]: 'Actions',
   [PAGE_EVIDENCE]: 'Actions',
   [PAGE_RISKS]: 'Risks',
-  [PAGE_TEAMS]: 'Squads',
-  [PAGE_LEADERSHIP]: 'Portfolio',
-  [PAGE_GOVERNANCE]: 'Portfolio',
+  [PAGE_TEAMS]: SURFACE_LABELS[PAGE_SPRINTS] || 'Squads',
+  [PAGE_LEADERSHIP]: SURFACE_LABELS[PAGE_GOVERNANCE] || 'Portfolio',
+  [PAGE_GOVERNANCE]: SURFACE_LABELS[PAGE_GOVERNANCE] || 'Portfolio',
   [PAGE_PI]: 'PI Baseline',
   [PAGE_VALUE]: 'Actions',
-  [PAGE_SETTINGS]: 'Settings',
-  [PAGE_ACTIONS]: 'Actions',
+  [PAGE_SETTINGS]: SURFACE_LABELS[PAGE_SETTINGS] || 'Settings',
+  [PAGE_ACTIONS]: SURFACE_LABELS[PAGE_ACTIONS] || 'Actions',
 };
 const MOBILE_LABELS = {
-  [PAGE_GOVERNANCE]: 'Portfolio',
-  [PAGE_SPRINTS]: 'Squads',
+  ...SURFACE_LABELS,
   [PAGE_REPORT]: 'Actions',
   [PAGE_EVIDENCE]: 'Actions',
-  [PAGE_ACTIONS]: 'Actions',
 };
 
 const NAV_ITEMS = [

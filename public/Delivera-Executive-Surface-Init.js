@@ -96,7 +96,9 @@ function renderSurfaceContext() {
       });
   }
   if (summaryEl) {
-    summaryEl.textContent = buildSurfaceSummary(projects);
+    const isSettings = document.body?.classList?.contains('settings-page');
+    summaryEl.textContent = isSettings ? '' : buildSurfaceSummary(projects);
+    summaryEl.hidden = isSettings;
   }
 }
 

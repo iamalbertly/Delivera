@@ -11,15 +11,23 @@ This project uses Playwright for end-to-end and integration tests. The root orch
 
 ### Fail-fast gate order (after CSS)
 
-`npm run test:all` runs these Playwright gates in order before the wider journey bundles:
+`npm run test:all` and `npm run test:all:priority` run Playwright gates in this order (fail-fast on first failure):
 
-1. `npm run test:journey:value-retention` — `journey.value-retention` bucket (desktop density, alignment SSOT, investment drawer, period lens)
-2. `npm run test:journey:direct-value-masterplan` — cross-surface direct value contracts
-3. `npm run test:focused` — specs tagged `@focused`
-4. `npm run test:journey:layout-overlap` — governance/report/sprint overlap + mobile clip
-5. `npm run test:current-sprint:dedupe-fold` — sprint header/viewport declutter gate
+**Tier 0:** `build:css` → `check:css`
 
-Current orchestration prepends the newest governance intervention checks before the older list above: `node --test tests/Delivera-Governance-Intervention-Case-Unit.mjs`, then `npm run test:journey:governance-intervention-loop`, then settings, last-failed cross-page persistence, and the broader value/direct-value/layout/current-sprint/governance bundles. Every step remains serial and fail-fast.
+**Tier 1 (recent governance):** server lifecycle unit → governance intervention unit → portfolio decision unit → cache age-tier TTL unit → **PI intelligence spec** → intervention loop journey → portfolio command surface journey
+
+**Tier 2 (last-failed + core contracts):** cross-page persistence → **API integration contracts** → value retention → direct-value masterplan → focused (`@focused`) → layout overlap → current-sprint dedupe-fold
+
+**Tier 3:** brief SSOT → governance decision cockpit journey
+
+**Tier 4 (layout/fold):** AutoHacker v6 fold → governance flatten L3
+
+**Tier 5+:** settings, PI baseline, data integrity, outcome intake, ux-core, current-sprint, leadership, full E2E
+
+`npm run test:all:priority` includes tiers 0–3 only (stops before tier 4 layout/fold bundles).
+
+Every Playwright step uses `--max-failures=1`, `--workers=1`, `--reporter=list`. The runner clears server cache via `POST /api/test/clear-cache` before browser steps when `NODE_ENV=test`.
 
 ### Default behavior
 

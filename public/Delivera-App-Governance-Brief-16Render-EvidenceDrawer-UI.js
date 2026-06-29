@@ -32,26 +32,12 @@ export function openEvidenceDrawer(brief, risks = [], { initialTab = 'proof' } =
       </div>`;
     }).join('');
   }
-  const savedTab = readStoredTab(GOV_DRAWER_TAB_KEY, DRAWER_TAB_KEYS, initialTab === 'investment' ? 'investment' : 'proof');
-  const activeTab = DRAWER_TAB_KEYS.includes(initialTab) ? initialTab : savedTab;
-  const proofActive = activeTab !== 'investment';
+  // Inline investment summary above proof list — no tabs, one scroll.
+  const investmentStrip = `<div class="gov-evidence-investment-strip" data-evidence-investment-strip>${renderInvestmentBodyHtml(brief)}</div>`;
   const drawerBody = `
     <p class="gov-evidence-drawer-framing">Proof is not another Jira table or PowerBI view. It is the defendable trail for why a PI commitment is blocked, diverted, or not traceable.</p>
-    <div class="gov-drawer-tabs gov-tab-strip" role="tablist">
-      <button type="button" class="gov-drawer-tab gov-tab${proofActive ? ' is-active' : ''}" data-drawer-tab="proof">${escapeHtml(COPY.drawerTabProof)}</button>
-      <button type="button" class="gov-drawer-tab gov-tab${!proofActive ? ' is-active' : ''}" data-drawer-tab="investment">${escapeHtml(COPY.drawerTabInvestment)}</button>
-    </div>
-    <div class="gov-drawer-tab-panel gov-tab-panel${proofActive ? ' is-active' : ''}" data-drawer-panel="proof">${body}</div>
-    <div class="gov-drawer-tab-panel gov-tab-panel${!proofActive ? ' is-active' : ''}" data-drawer-panel="investment">${renderInvestmentBodyHtml(brief)}</div>`;
+    ${investmentStrip}
+    <div class="gov-evidence-proof-list" data-evidence-proof-list>${body}</div>`;
   const { el } = openRightDrawer({ title: 'Evidence pack', bodyHtml: drawerBody });
-  if (el) {
-    bindTabStrip(el, {
-      tabAttr: 'data-drawer-tab',
-      panelAttr: 'data-drawer-panel',
-      storageKey: GOV_DRAWER_TAB_KEY,
-      validKeys: DRAWER_TAB_KEYS,
-      defaultKey: activeTab,
-    });
-    activateTabStrip(el, { tabAttr: 'data-drawer-tab', panelAttr: 'data-drawer-panel', activeKey: activeTab });
-  }
+  return { el };
 }

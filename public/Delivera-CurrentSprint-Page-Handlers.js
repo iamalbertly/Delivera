@@ -119,28 +119,16 @@ export function wireDynamicHandlers(data) {
   bindCardToggles();
   bindIssueJump();
   bindNotesAutosave(data);
-
-  const saveBtn = document.getElementById('notes-save');
-  // Clean event listener replacement
-  if (saveBtn && data?.sprint) {
-    const newBtn = saveBtn.cloneNode(true);
-    saveBtn.parentNode.replaceChild(newBtn, saveBtn);
-    newBtn.addEventListener('click', () => saveNotes(data.board?.id, data.sprint?.id));
-  }
-
-  // Purged legacy notification logic (Removed ~80 lines of dead code)
 }
 
 function saveNotes(boardId, sprintId) {
   const depsEl = document.getElementById('notes-dependencies');
   const learningsEl = document.getElementById('notes-learnings');
   const statusEl = document.getElementById('notes-status');
-  const saveBtn = document.getElementById('notes-save');
   if (!depsEl || !learningsEl || !statusEl) return;
   if (!boardId || !sprintId) return;
 
   statusEl.textContent = 'Saving...';
-  if (saveBtn) saveBtn.disabled = true;
 
   fetch('/api/current-sprint-notes', {
     method: 'POST',
@@ -152,8 +140,7 @@ function saveNotes(boardId, sprintId) {
       statusEl.textContent = 'Saved just now';
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
     })
-    .catch(() => { statusEl.textContent = 'Save failed.'; })
-    .finally(() => { if (saveBtn) saveBtn.disabled = false; });
+    .catch(() => { statusEl.textContent = 'Save failed.'; });
 }
 
 function bindNotesAutosave(data) {

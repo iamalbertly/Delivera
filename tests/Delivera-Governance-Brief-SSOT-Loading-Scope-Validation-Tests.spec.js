@@ -92,16 +92,21 @@ async function mockGovernanceApis(page, brief = SD_BRIEF, delayMs = 0) {
       contentType: 'application/json',
       body: JSON.stringify({
         decision: {
-          headline: 'Review SD scope now',
-          summary: 'SD portfolio signal',
+          headline: 'SD needs scope and proof confirmation today',
+          summary: 'SD portfolio signal with exposed commitments.',
           anchorProject: 'SD',
           periodKey: 'FY27 Q1',
+          narrative: { headline: 'SD needs scope and proof confirmation today', mainIssue: 'Evidence gap' },
+          aboveFold: { exposedCommitments: 1, actionsReady: 0, poResponsesRequired: 0 },
+          affectedCommitments: [{ id: 'SD-1', title: 'Stuck item', status: 'At risk', reason: 'Stuck', decisionNeeded: 'Confirm scope' }],
+          preparedActions: { groups: [], items: [] },
           metrics: { delivery: { value: 30, peerMedian: 50 }, offPlanLoad: { value: 20, peerMedian: 15 }, proofConfidence: { value: 40, peerMedian: 55 } },
           trust: { liveCases: 0, nudgesReady: 0, proofLevel: 'Medium' },
           drivers: [],
-          decisionOptions: [{ id: 'review-investment', label: 'Review investment', hint: 'Fix issues' }],
-          monitoring: { squadCount: 2, commitmentCount: 0 },
-          recommendation: { label: 'Review investment' },
+          decisionOptions: [{ id: 'keep-funding', label: 'Keep funding', useWhen: 'Scope confirmed', effect: 'No change', impactPreview: 'Continue monitoring.' }],
+          decisionBasis: { why: 'Confirm scope', preparedNudges: 0 },
+          monitoring: { squadCount: 2, commitmentCount: 0, exposedCommitmentCount: 1 },
+          recommendation: { label: 'Confirm scope and proof before investment review' },
         },
         comparison: { cards: [], actionsStrip: {} },
         cases: [],
@@ -116,10 +121,10 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await mockGovernanceApis(page, SD_BRIEF, 400);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    const loading = page.locator('#gov-loading');
-    await expect(loading).toBeVisible({ timeout: 2000 });
+    const skeleton = page.locator('#portfolio-signal-mount [data-portfolio-signal-skeleton]');
+    await expect(skeleton).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#portfolio-signal-mount .portfolio-signal, [data-portfolio-signal]')).toBeVisible({ timeout: 15000 });
-    await expect(loading).toBeHidden();
+    await expect(skeleton).toBeHidden();
     assertTelemetryClean(telemetry);
   });
 
@@ -174,21 +179,31 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#portfolio-signal-mount')).toBeVisible({ timeout: 15000 });
-    await page.locator('#portfolio-scope-refresh').click();
-    await page.waitForTimeout(800);
+    // B4: Refresh button removed — auto-refresh fires on visibilitychange (focus return).
+    // Simulate a real tab-hide → wait >2s (debounce threshold) → tab-show to trigger auto-refresh with force.
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.waitForTimeout(2200);
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.waitForTimeout(1200);
     expect(urls.some((u) => u.includes('refresh=1'))).toBe(true);
     assertTelemetryClean(telemetry);
   });
 
   test('cache peek paints portfolio before slow network completes', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    await page.addInitScript((brief) => {
+    await page.addInitScript(({ brief, anchorKey }) => {
       localStorage.setItem('delivera_selectedProjects', 'SD,BIO');
-      localStorage.setItem('delivera.portfolio.anchor.v1', 'SD');
+      localStorage.setItem(anchorKey, 'SD');
       const map = {};
       map['SD,BIO|FY27 Q1|pi'] = { brief, at: Date.now(), ttlMs: 180000 };
       sessionStorage.setItem('delivera:brief:cache:v1', JSON.stringify(map));
-    }, SD_BRIEF);
+    }, { brief: SD_BRIEF, anchorKey: PORTFOLIO_ANCHOR_KEY });
     await routeProjectsCatalog(page);
     await page.route('**/api/governance-brief.json**', async (route) => {
       await new Promise((r) => setTimeout(r, 1200));

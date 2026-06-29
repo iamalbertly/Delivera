@@ -46,6 +46,7 @@ export function draftNudgeText(risk) {
 }
 
 function openMarkWrongPanel(idx) {
+  if (!govPage.els.proofRisks) return;
   const panel = govPage.els.proofRisks.querySelector(`[data-wrong-panel="${idx}"]`);
   if (!panel) return;
   panel.hidden = false;
@@ -107,6 +108,7 @@ async function sendDoNowNudgeDirect(risk) {
 }
 
 function toggleDetail(idx) {
+  if (!govPage.els.proofRisks) return;
   const detail = govPage.els.proofRisks.querySelector(`[data-detail="${idx}"]`);
   const btn = govPage.els.proofRisks.querySelector(`[data-why="${idx}"]`);
   if (!detail) return;
@@ -457,6 +459,24 @@ export function bindPortfolioHeatMap(root, brief) {
   }, (squad, issueKey) => openSquadNudge(squad, issueKey));
 }
 
+function resolveGovernanceRefreshButton() {
+  return document.getElementById('portfolio-scope-refresh')
+    || document.getElementById('gov-scope-refresh');
+}
+
+function executePortfolioPreparedAction() {
+  const decision = govPage.lastPortfolioDecision || {};
+  const cases = govPage.lastPortfolioCases || [];
+  const prepared = decision.preparedActions || {};
+  if ((prepared.groups || []).length || (prepared.items || []).length) {
+    import('./Delivera-App-Portfolio-Actions-01Bridge.js').then((m) => {
+      m.openPortfolioCalibrationDrawer(decision, cases);
+    });
+    return;
+  }
+  executeFirstClusterNudge();
+}
+
 function bindGovernanceKeyboardShortcuts() {
   if (document.body.dataset.govKeyboardBound === '1') return;
   document.body.dataset.govKeyboardBound = '1';
@@ -470,11 +490,16 @@ function bindGovernanceKeyboardShortcuts() {
     }
     if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
     if (ev.key === 'c' || ev.key === 'C') {
-      document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer'));
+      const drawerOpen = document.getElementById('delivera-gov-right-drawer') && !document.getElementById('delivera-gov-right-drawer').hidden;
+      if (drawerOpen) {
+        document.querySelector('[data-calibration-copy]')?.click();
+      } else {
+        document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer'));
+      }
     } else if (ev.key === 'r' || ev.key === 'R') {
-      document.getElementById('gov-scope-refresh')?.click();
+      resolveGovernanceRefreshButton()?.click();
     } else if (ev.key === 'n' || ev.key === 'N') {
-      executeFirstClusterNudge();
+      executePortfolioPreparedAction();
     }
   });
 }

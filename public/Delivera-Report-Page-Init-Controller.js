@@ -151,8 +151,9 @@ function initReportPage() {
   function setReportContextLineText(contextText) {
     const reportContextLine = document.getElementById('report-context-line');
     if (!reportContextLine) return;
-    const nextText = String(contextText || '').trim() || 'No report run yet';
-    reportContextLine.textContent = nextText;
+    const raw = String(contextText || '').trim() || 'No report run yet';
+    const sentence = raw.split(/\s*\|\s*/)[0].trim();
+    reportContextLine.textContent = sentence;
     reportContextLine.classList.remove('visually-hidden');
     reportContextLine.removeAttribute('aria-hidden');
   }
@@ -452,16 +453,23 @@ function initReportPage() {
     });
     let currentSprintHref = '/current-sprint';
     try {
+      const urlParams = new URLSearchParams(window.location.search);
       const raw = localStorage.getItem(REPORT_CONTEXT_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
       const params = new URLSearchParams();
-      if (parsed?.boardId) params.set('boardId', parsed.boardId);
-      if (parsed?.sprintId) params.set('sprintId', parsed.sprintId);
-      if (parsed?.projects) params.set('projects', parsed.projects);
+      const boardId = urlParams.get('boardId') || parsed?.boardId;
+      const sprintId = urlParams.get('sprintId') || parsed?.sprintId;
+      const projects = urlParams.get('projects') || parsed?.projects;
+      if (boardId) params.set('boardId', boardId);
+      if (sprintId) params.set('sprintId', sprintId);
+      if (projects) params.set('projects', projects);
       const query = params.toString();
       if (query) currentSprintHref += '?' + query;
     } catch (_) {}
     const hasTopChrome = document.body?.classList?.contains('has-top-chrome');
+    const hasSprintContext = currentSprintHref.includes('?');
+    const sprintLinkHtml = '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact" data-report-sprint-context-link="1">Sprint context</a>';
+    const showInlineSprintLink = !hasTopChrome || hasSprintContext;
     wrap.innerHTML = ''
       + '<button type="button" id="report-header-preview-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary" data-report-refresh-proof="1">Refresh proof</button>'
       + '<button type="button" id="report-header-load-latest-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary" data-action="load-latest-preview" hidden>Refresh latest</button>'
@@ -470,10 +478,11 @@ function initReportPage() {
       + '<button type="button" class="btn btn-primary btn-compact report-outcome-intake-create-btn" data-shared-action-tier="primary" data-open-outcome-modal data-outcome-context="Create work from the active report context." data-outcome-projects="' + getSelectedProjects().join(',') + '">Create work</button>'
       + '</div>')
       + '<button type="button" id="report-header-export-btn" class="btn btn-secondary btn-compact" data-shared-action-tier="secondary">Export</button>'
-      + (hasTopChrome ? '' : '<a href="' + currentSprintHref + '" class="btn btn-secondary btn-compact">Sprint</a>')
+      + (showInlineSprintLink ? sprintLinkHtml : '')
       + '<details class="report-header-more-menu">'
       + '<summary class="btn btn-secondary btn-compact" aria-label="More report actions">More</summary>'
       + '<div class="report-header-more-panel" role="group" aria-label="Secondary report actions">'
+      + (hasTopChrome && !hasSprintContext ? sprintLinkHtml : '')
       + (hasTopChrome ? '' : '<button type="button" id="feedback-toggle" class="btn btn-secondary btn-compact" aria-expanded="false" aria-controls="feedback-panel">Feedback</button>')
       + '</div>'
       + '</details>';

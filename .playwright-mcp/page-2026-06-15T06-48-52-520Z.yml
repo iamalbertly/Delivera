@@ -1,0 +1,72 @@
+- generic [active] [ref=e1]:
+  - complementary "Primary" [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: De
+      - generic [ref=e5]: Delivera
+      - generic [ref=e6]: Grow my Impact
+    - navigation "Main" [ref=e7]
+  - link "Skip to main content" [ref=e8] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e9]:
+    - generic [ref=e10]:
+      - button "Expand or collapse sidebar" [ref=e12] [cursor=pointer]:
+        - img [ref=e13]
+      - navigation "Surfaces" [ref=e16]:
+        - generic [ref=e17] [cursor=pointer]: Answer
+        - link "Today" [ref=e18] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Proof" [ref=e19] [cursor=pointer]:
+          - /url: /report
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22] [cursor=pointer]
+      - group "Global actions" [ref=e23]:
+        - button [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+        - generic "Checking AI status"
+        - button "Notifications" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+        - button "Improve Delivera" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+        - link "Settings" [ref=e32] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e33]
+  - main [ref=e35]:
+    - generic "Brief scope" [ref=e36]:
+      - generic "Brief scope" [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - text: 1 squad ·
+            - strong [ref=e40]: MAS
+            - text: · FY27 Q1 · 28d
+          - button "✕ Blocked" [ref=e41] [cursor=pointer]
+          - button "Change scope" [ref=e42] [cursor=pointer]
+          - group "Scope actions" [ref=e43]:
+            - button "Copy answer" [ref=e44] [cursor=pointer]
+            - button "Refresh" [ref=e45] [cursor=pointer]
+    - paragraph [ref=e48]: Loading your delivery answer…
+    - alert [ref=e49]
+    - button [ref=e50]: Create work
+  - dialog "Create work draft" [ref=e51]:
+    - generic [ref=e52]:
+      - button "Project ▾" [ref=e54] [cursor=pointer]:
+        - generic [ref=e55]: Project
+        - text: ▾
+      - generic [ref=e56]: Create work
+      - button "AI provider settings" [ref=e57] [cursor=pointer]: ⚙
+      - button "Close" [ref=e58] [cursor=pointer]: ✕
+    - generic [ref=e60]:
+      - generic [ref=e61] [cursor=pointer]:
+        - text: Upload PI plan slide (screenshot or export)
+        - generic [ref=e62]: Drag & drop or click
+        - button "Upload PI plan slide (screenshot or export) Drag & drop or click" [ref=e63]
+      - textbox "Narrative source text" [ref=e65]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e67]: ✓
+      - list "Work items" [ref=e68]
+    - generic [ref=e69]:
+      - generic "Set estimate for all items" [ref=e70]:
+        - generic [ref=e71]: "All:"
+        - slider "Set estimate for all items" [ref=e72] [cursor=pointer]: "0"
+        - generic [ref=e73]: —
+      - button "Create 0 issues" [disabled] [ref=e75]

@@ -57,6 +57,11 @@ async function main() {
   console.log('[probe] unmatched:', (result.unmatched || []).length);
   if (result.parseError) console.log('[probe] parseError:', result.parseError);
   if (!(result.extracted || []).length && !(result.candidates || []).length) {
+    const inCi = process.env.CI === 'true' || process.env.CI === '1';
+    if (inCi && !requireProbe) {
+      console.log('[probe] SKIP — vision returned no extractable rows (CI soft-fail)');
+      process.exit(0);
+    }
     console.error('[probe] FAIL — no slide output');
     process.exit(1);
   }

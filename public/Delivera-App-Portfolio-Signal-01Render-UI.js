@@ -9,11 +9,37 @@ function formatCachedFreshness(cachedAt) {
   return mins < 60 ? `Updated ${mins}m ago` : `Updated ${Math.round(mins / 60)}h ago`;
 }
 
-function quarterDayLabel(decision = {}, brief = {}) {
+export function quarterDayLabel(decision = {}, brief = {}) {
   const range = decision.timebox || brief?.meta?.timebox || {};
-  const total = Math.max(1, Number(range.totalDays) || 90);
-  const elapsed = Math.max(1, Math.min(total, Number(range.elapsedDays) || Math.round(total / 2)));
-  return { total, elapsed, pct: Math.round((elapsed / total) * 100) };
+  const total = Number(range.totalDays) || 0;
+  const elapsed = Number(range.elapsedDays) || 0;
+  // Guard: missing timebox → return zeros so callers can show "Time-box not set".
+  if (!total || !elapsed) return { total: 0, elapsed: 0, pct: 0, isSet: false };
+  const safeTotal = Math.max(1, total);
+  const safeElapsed = Math.max(1, Math.min(safeTotal, elapsed));
+  return { total: safeTotal, elapsed: safeElapsed, pct: Math.round((safeElapsed / safeTotal) * 100), isSet: true };
+}
+
+/**
+ * Compact time-box chip for the scope bar — "Q2 2026 · Day 38/90 · 42% time elapsed".
+ * Returns empty string when time-box is not set (caller shows "Time-box not set" CTA).
+ */
+export function renderTimeboxChip(decision = {}, brief = {}) {
+  const tb = quarterDayLabel(decision, brief);
+  const periodKey = decision.periodKey || brief?.meta?.quarter || 'Current';
+  if (!tb.isSet) {
+    return `<span class="gov-scope-timebox-chip gov-scope-timebox-chip--unset" data-portfolio-timebox title="Set PI baseline to enable time-box">Time-box not set</span>`;
+  }
+  return `<span class="gov-scope-timebox-chip" data-portfolio-timebox>${escapeHtml(periodKey)} · Day ${tb.elapsed}/${tb.total} · ${tb.pct}% time elapsed</span>`;
+}
+
+/**
+ * Compact "Since last check" chip for the scope bar.
+ */
+export function renderSinceLastCheckChip(brief = {}) {
+  const summary = brief?.meta?.sinceLastRun?.summary || '';
+  if (!summary) return '';
+  return `<span class="gov-scope-since-chip" data-gov-since-chip title="Changes since your last visit">Since last check: ${escapeHtml(String(summary).slice(0, 60))}</span>`;
 }
 
 function statusLabel(id = '') {

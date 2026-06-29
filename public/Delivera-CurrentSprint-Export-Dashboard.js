@@ -13,6 +13,7 @@ import {
 } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { buildSprintAtAGlanceBriefing } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import { writeTextToClipboardWithFallback } from './Delivera-Shared-Clipboard-01Bridge.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 const SUMMARY_SECTION_KEYS = [
   'summary',
@@ -34,15 +35,6 @@ function createEmptySummaryModel() {
       mode: 'markdownEnhanced',
     },
   };
-}
-
-function escapeHtmlText(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 const SUMMARY_SEPARATOR = ' \u00b7 ';
@@ -427,7 +419,7 @@ function renderSummaryModelToClipboardHtml(model) {
   let html = '<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.4;color:#142334;max-width:760px">';
   const summary = model.sections.summary || [];
   if (summary[0]?.text) {
-    html += '<div style="font-size:16px;font-weight:700;margin:0 0 6px">' + escapeHtmlText(summary[0].text) + '</div>';
+    html += '<div style="font-size:16px;font-weight:700;margin:0 0 6px">' + escapeHtml(summary[0].text) + '</div>';
   }
 
   const order = ['health', 'blockers', 'scope', 'flowLogging', 'actions'];
@@ -437,11 +429,11 @@ function renderSummaryModelToClipboardHtml(model) {
     if (!section.length) return;
     hasSections = true;
     html += '<div style="margin:10px 0 0">';
-    html += '<div style="font-weight:700;margin:0 0 4px">' + escapeHtmlText(SECTION_TITLES[sectionKey]) + '</div>';
+    html += '<div style="font-weight:700;margin:0 0 4px">' + escapeHtml(SECTION_TITLES[sectionKey]) + '</div>';
     html += '<ul style="margin:0;padding-left:18px">';
     section.forEach((line) => {
       if (!line?.text) return;
-      html += '<li style="margin:0 0 4px">' + escapeHtmlText(normalizeBulletText(line.text)) + '</li>';
+      html += '<li style="margin:0 0 4px">' + escapeHtml(normalizeBulletText(line.text)) + '</li>';
     });
     html += '</ul></div>';
   });
@@ -456,7 +448,7 @@ function renderSummaryModelToQuickClipboardHtml(model) {
   const lines = renderSummaryModelToQuickClipboard(model).split('\n').map((line) => line.trim()).filter(Boolean);
   let html = '<div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.35;color:#142334;max-width:760px">';
   lines.forEach((line, index) => {
-    html += `<div style="margin:${index === 0 ? '0 0 6px' : '0 0 4px'};${index === 0 ? 'font-size:15px;font-weight:700;' : ''}">${escapeHtmlText(line)}</div>`;
+    html += `<div style="margin:${index === 0 ? '0 0 6px' : '0 0 4px'};${index === 0 ? 'font-size:15px;font-weight:700;' : ''}">${escapeHtml(line)}</div>`;
   });
   html += '</div>';
   return html;
@@ -489,7 +481,7 @@ function setLastExportStatus(actionLabel, detail) {
   const statusEl = document.querySelector('.export-dashboard-container .export-status-text');
   if (!statusEl) return;
   const ts = new Date().toLocaleTimeString();
-  const labelHtml = escapeHtmlText(actionLabel || 'Export');
+  const labelHtml = escapeHtml(actionLabel || 'Export');
   let compactDetail = detail ? String(detail).trim() : '';
   try {
     const snapshotBadge = document.querySelector('.current-sprint-header-bar .status-badge.status-snapshot');
@@ -501,7 +493,7 @@ function setLastExportStatus(actionLabel, detail) {
     }
   } catch (_) {}
   const metaHtml = `${ts}${compactDetail ? ` ${SUMMARY_SEPARATOR}${compactDetail}` : ''}`;
-  statusEl.innerHTML = `${labelHtml} ${SUMMARY_SEPARATOR}<span class="export-status-meta">${escapeHtmlText(metaHtml)}</span>`;
+  statusEl.innerHTML = `${labelHtml} ${SUMMARY_SEPARATOR}<span class="export-status-meta">${escapeHtml(metaHtml)}</span>`;
   statusEl.setAttribute('data-last-action', actionLabel);
   statusEl.setAttribute('data-last-timestamp', ts);
   statusEl.setAttribute('data-last-detail', compactDetail);
@@ -531,8 +523,6 @@ export function renderExportButton(inline = false) {
   html += '</span>';
   html += '<div class="export-menu hidden" id="export-menu" role="menu" aria-hidden="true">';
   html += '<button class="export-option" data-action="copy-text" role="menuitem">Copy as Text</button>';
-  html += '<button class="export-option" data-action="copy-standup" role="menuitem">Copy stand-up script</button>';
-  html += '<button class="export-option" data-action="export-markdown" role="menuitem">Markdown</button>';
   html += '<button class="export-option" data-action="export-png" role="menuitem">PNG snapshot</button>';
   html += '<button class="export-option" data-action="copy-link" role="menuitem">Copy link</button>';
   html += '<button class="export-option" data-action="email" role="menuitem">Email</button>';
@@ -644,10 +634,6 @@ export function wireExportHandlers(data) {
       menu.setAttribute('aria-hidden', 'true');
       if (action === 'copy-text') {
         copyDashboardAsText(data, btn || menuToggle);
-      } else if (action === 'copy-standup') {
-        copyDashboardAsStandup(data, btn || menuToggle);
-      } else if (action === 'export-markdown') {
-        exportDashboardAsMarkdown(data, btn || menuToggle);
       } else if (action === 'export-png') {
         exportDashboardAsPng(data, btn || menuToggle);
       } else if (action === 'copy-link') {

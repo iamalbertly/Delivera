@@ -17204,6 +17204,34 @@ body.governance-page .gov-top-chrome-details:not([open]) .gov-top-chrome-summary
 .gov-scope-mobile-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 8px; }
 .gov-scope-mobile-check input { width: 18px; height: 18px; }
 .gov-cluster-dismiss-chips { display: inline-flex; gap: 4px; }
+/* Hover-reveal dismiss: hidden by default on desktop, visible on hover + always on touch */
+.gov-cluster-dismiss-chips--hover-reveal { opacity: 0; transition: opacity 0.15s ease; pointer-events: none; }
+.gov-owner-cluster:hover .gov-cluster-dismiss-chips--hover-reveal,
+.gov-cluster-dismiss-chips--hover-reveal:focus-within { opacity: 1; pointer-events: auto; }
+@media (hover: none) { .gov-cluster-dismiss-chips--hover-reveal { opacity: 1; pointer-events: auto; } }
+
+/* Labeled status pill + time-box + since-last-check chips in scope bar */
+.gov-scope-status-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; border: 1px solid transparent; cursor: pointer; }
+.gov-scope-status-chip--blocked { background: var(--tone-danger-bg); color: var(--danger); border-color: var(--tone-danger-border); }
+.gov-scope-status-chip--watch { background: var(--tone-warning-bg); color: var(--warning); border-color: var(--tone-warning-border); }
+.gov-scope-status-chip--onTrack { background: var(--tone-positive-bg); color: var(--accent); border-color: var(--tone-positive-border); }
+.gov-scope-status-chip--setup { background: #f3f4f6; color: #6b7280; border-color: #d1d5db; }
+.gov-scope-timebox-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: var(--surface-muted); border: 1px solid var(--border); color: var(--muted-strong); }
+.gov-scope-timebox-chip--unset { color: var(--warning); border-color: var(--tone-warning-border); background: var(--tone-warning-bg); }
+.gov-scope-since-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; color: var(--muted); background: transparent; }
+.portfolio-scope-summary-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 0 6px; }
+
+/* Post-nudge thumb chip (B11) */
+.gov-post-nudge-survey { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--surface-muted); border: 1px solid var(--border); font-size: 0.8rem; }
+.gov-post-nudge-label { color: var(--muted); }
+.gov-post-nudge-thumb { background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 2px 4px; border-radius: 6px; }
+.gov-post-nudge-thumb:hover { background: var(--surface-tint); }
+
+/* Evidence drawer inline investment strip (B8) */
+.gov-evidence-investment-strip { margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: var(--surface-muted); border: 1px solid var(--border); }
+.gov-evidence-investment-strip .gov-investment-period { margin: 0 0 4px; font-size: 0.8rem; color: var(--muted); }
+.gov-evidence-investment-strip .gov-investment-table { font-size: 0.85rem; }
+.gov-evidence-investment-strip .gov-investment-note { font-size: 0.75rem; color: var(--muted); margin: 4px 0 0; }
 
 .governance-freshness-pill--ellipsis { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body.has-top-chrome.governance-page .governance-actions #gov-export { display: none; }

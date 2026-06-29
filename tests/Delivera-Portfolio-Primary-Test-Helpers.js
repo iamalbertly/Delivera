@@ -39,8 +39,63 @@ export async function waitForPortfolioReady(page, timeout = 25000) {
   await page.waitForSelector('[data-portfolio-signal]', { timeout });
 }
 
+/** Portfolio signal plus on-demand legacy brief hydration (hidden #gov-brief-content). */
+export async function waitForGovernanceReady(page, timeout = 25000) {
+  await waitForPortfolioReady(page, timeout);
+  await page.waitForSelector('#main-content[data-gov-brief-state="content"]', { timeout }).catch(() => {});
+  await waitForLegacyBriefHydrated(page, timeout);
+}
+
 export function legacyBrief(page, selector) {
   return page.locator(`#gov-brief-content ${selector}`).first();
+}
+
+export async function forceLegacyBriefHydration(page) {
+  await page.evaluate(async () => {
+    const mod = await import('./Delivera-Governance-Brief-Page-03Load-Controller.js');
+    mod.ensureLegacyBriefSurfacesHydrated();
+  });
+}
+
+export async function waitForLegacyBriefHydrated(page, timeout = 12000) {
+  await page.waitForSelector('[data-portfolio-signal]', { timeout }).catch(() => {});
+  await page.waitForSelector('#main-content[data-gov-brief-state="content"]', { timeout }).catch(() => {});
+
+  const legacyReady = () => {
+    const root = document.getElementById('gov-brief-content');
+    if (!root) return false;
+    return Boolean(
+      root.querySelector('.gov-portfolio-grid-wrap')
+      || root.querySelector('.gov-comparison-refine')
+      || root.querySelector('.gov-pi-strip')
+      || root.querySelector('.gov-command-answer')
+      || root.querySelector('.gov-owner-cluster')
+      || root.querySelector('.gov-action-clusters .gov-cluster-nudge-primary'),
+    );
+  };
+
+  await page.evaluate(async () => {
+    const mod = await import('/Delivera-Governance-Brief-Page-03Load-Controller.js');
+    mod.ensureLegacyBriefSurfacesHydrated?.();
+  });
+  await page.waitForFunction(legacyReady, { timeout }).catch(() => {});
+
+  const ready = await page.evaluate(legacyReady);
+  if (!ready) {
+    await page.evaluate(async () => {
+      const mod = await import('/Delivera-Governance-Brief-Page-03Load-Controller.js');
+      mod.resetLegacyBriefHydration?.();
+      mod.ensureLegacyBriefSurfacesHydrated?.();
+    });
+    await page.waitForFunction(legacyReady, { timeout: 8000 }).catch(() => {});
+  }
+}
+
+export async function openLegacyDetails(page, selector) {
+  await page.evaluate((sel) => {
+    const el = document.querySelector(`#gov-brief-content ${sel}`);
+    if (el && 'open' in el) el.open = true;
+  }, selector);
 }
 
 export async function clickLegacy(page, selector) {
@@ -77,4 +132,50 @@ export async function gotoGovernancePortfolioReady(page, url = '/governance') {
   if (page.url().includes('/login')) return false;
   await waitForPortfolioReady(page);
   return true;
+}
+
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
+
+const GOVERNANCE_STUB_ROUTES = [
+  ['**/api/quarters-list**', { quarters: [] }],
+  ['**/api/governance/adoption-metrics.json**', {}],
+  ['**/api/governance/inbox.json**', { briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }],
+  ['**/api/governance/feedback-summary.json**', {}],
+  ['**/api/governance/worker-receipt.json**', { line: 'Ready', inboxTotal: 0 }],
+  ['**/api/governance/pi-confidence.json**', { trusted: false, headline: 'PI confidence' }],
+  ['**/api/governance/interventions/seed-from-brief**', { cases: [] }],
+  ['**/api/governance/interventions.json**', { cases: [] }],
+  ['**/api/governance/scope-intelligence.json**', { suggestions: [] }],
+];
+
+/**
+ * @param {import('@playwright/test').Page} page
+ * @param {{ brief?: object, decision?: object, comparison?: object, cases?: object[] }} [opts]
+ */
+export async function mockOutcomeDraft(page, payload = { ok: true, rows: [] }) {
+  await page.route('**/api/outcome-draft**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(payload),
+  }));
+}
+
+export async function mockGovernancePage(page, opts = {}) {
+  const { brief, decision, comparison, cases } = opts;
+  await routeProjectsCatalog(page);
+  if (brief) {
+    await page.route('**/api/governance-brief.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(brief),
+    }));
+  }
+  await mockPortfolioDecision(page, { decision, comparison, cases });
+  for (const [pattern, body] of GOVERNANCE_STUB_ROUTES) {
+    await page.route(pattern, (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    }));
+  }
 }

@@ -70,8 +70,9 @@ test.describe('Cross-Page Persistence', () => {
       });
     }, projectIds);
     await expect(page.locator('#project-sd')).toBeChecked();
-    await page.fill('#start-date', startVal);
-    await page.fill('#end-date', endVal);
+    await ensureReportFiltersVisible(page);
+    await page.fill('#start-date', startVal, { force: true });
+    await page.fill('#end-date', endVal, { force: true });
     await triggerPreview();
 
     await Promise.race([

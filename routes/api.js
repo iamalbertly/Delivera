@@ -5,10 +5,14 @@ import { requireAuth } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
 import {
-  CACHE_NS,
-  deriveCacheTtlMs,
-  governanceBriefCacheKey,
-} from '../lib/Delivera-Cache-AgeTier-01TTL-SSOT.js';
+    getCachedGovernanceBrief,
+    getOrBuildGovernanceBrief,
+    serveStaleBriefOrError,
+    invalidateGovernanceBriefCache,
+} from '../lib/Delivera-Governance-Brief-01Service.js';
+import { CACHE_NS } from '../lib/Delivera-Cache-AgeTier-01TTL-SSOT.js';
+
+const GOVERNANCE_NS = CACHE_NS.GOVERNANCE_BRIEF;
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
@@ -1426,101 +1430,11 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
 
 // ─── Governance brief surface ──────────────────────────────────────────────────
 
-const GOVERNANCE_NS = CACHE_NS.GOVERNANCE_BRIEF;
-
 function parseGovernanceProjects(req) {
     const raw = req.query.projects;
     return raw != null
         ? Array.from(new Set(String(raw).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)))
         : ['MPSA', 'MAS'];
-}
-
-/** Re-stamp a cached brief with cached freshness and clamp confidence accordingly. */
-function applyCachedFreshness(brief) {
-    if (!brief?.freshness) return brief;
-    const generatedMs = brief.generatedAt ? new Date(brief.generatedAt).getTime() : Date.now();
-    const ageMin = Math.max(0, Math.round((Date.now() - generatedMs) / 60000));
-    brief.freshness = { ...brief.freshness, confidenceLimit: 'cached', cacheAgeMinutes: ageMin };
-    if (brief.leadershipNarrative?.confidence) {
-        brief.leadershipNarrative.confidence = clampConfidenceToFreshness(brief.leadershipNarrative.confidence, 'cached');
-    }
-    return brief;
-}
-
-async function getCachedGovernanceBrief(projects) {
-    const cacheKey = governanceBriefCacheKey({ projects, periodWindow: '28d', includeEvidence: true, includePOReadiness: true });
-    const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
-    const cachedBrief = cached?.value || cached;
-    if (!cachedBrief) return null;
-    return { brief: applyCachedFreshness(cachedBrief), cached: true };
-}
-
-async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true, includePOReadiness = true }) {
-    const periodWindow = String(req.query?.periodWindow || '28d').toLowerCase();
-    const cacheKey = governanceBriefCacheKey({ projects, periodWindow, includeEvidence, includePOReadiness });
-    const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
-    const cachedBrief = cached?.value || cached;
-    if (cachedBrief) return { brief: applyCachedFreshness(cachedBrief), cached: true };
-
-    const agileClient = createAgileClient();
-    const version3Client = createVersion3Client();
-    const fields = await discoverFieldsWithCache(version3Client);
-    const { boards } = await discoverBoardsWithCache(projects, agileClient);
-
-    let baseline = null;
-    try { baseline = await getLatestPIBaseline(`${projects.join('+')}`); } catch (_) { baseline = null; }
-
-    let profileOverrides = null;
-    try {
-        profileOverrides = await resolveEffectiveGovernanceProfile({
-            portfolioKey: projects.join('+'),
-            project: projects[0] || '',
-            userId: req.session?.user || null,
-        });
-    } catch (_) { profileOverrides = null; }
-
-    const providerConfig = resolveProviderConfig(req.headers || {});
-    const brief = await assembleGovernanceBrief({
-        projects, boards, agileClient, version3Client, fields,
-        period: { vodacomQuarter: null, sprintNames: [], periodWindow },
-        cache, providerConfig, includeEvidence, includePOReadiness, baseline, profileOverrides,
-    });
-    const { ttlMs } = deriveCacheTtlMs({
-        generatedAt: brief?.generatedAt,
-        periodEnd: brief?.period?.end || brief?.meta?.periodEnd,
-    });
-    await cache.set(cacheKey, brief, ttlMs, { namespace: GOVERNANCE_NS });
-    const quarterLabel = brief?.period?.vodacomQuarter;
-    if (quarterLabel) {
-        void rememberQuarterLabel(quarterLabel, projects).catch((err) => {
-            logger.warn('quarter label index write failed', { error: err?.message });
-        });
-    }
-    // Safe telemetry: counts only, never issue bodies.
-    logger.info('governance-brief built', {
-        projects: projects.join(','), boards: brief.meta?.boardsResolved,
-        risks: brief.risks?.length || 0, narratedBy: brief.meta?.narratedBy,
-        evidenceFetched: brief.meta?.evidenceFetched,
-    });
-    return { brief, cached: false };
-}
-
-async function serveStaleBriefOrError(res, projects, err) {
-    const cacheKey = governanceBriefCacheKey({ projects, periodWindow: '28d', includeEvidence: true, includePOReadiness: true });
-    try {
-        const staleEntry = await cache.getWithStaleFallback(cacheKey);
-        if (staleEntry) {
-            const brief = staleEntry.value || staleEntry;
-            const ageMin = Math.max(0, Math.round((Number(staleEntry.staleAgeMs) || 0) / 60000));
-            brief.freshness = { ...(brief.freshness || {}), confidenceLimit: 'stale', cacheAgeMinutes: ageMin };
-            if (brief.leadershipNarrative?.confidence) {
-                brief.leadershipNarrative.confidence = clampConfidenceToFreshness(brief.leadershipNarrative.confidence, 'stale');
-            }
-            brief.meta = { ...(brief.meta || {}), servedStale: true, staleReason: err?.code || 'JIRA_UNREACHABLE' };
-            return res.json(brief);
-        }
-    } catch (_) { /* fall through */ }
-    return res.status(502).json({ error: 'Governance brief unavailable', code: 'GOVERNANCE_BRIEF_FAILED' });
 }
 
 router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
@@ -1530,8 +1444,7 @@ router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
     try {
         if (forceRefresh) {
             const periodWindow = String(req.query?.periodWindow || '28d').toLowerCase();
-            const cacheKey = governanceBriefCacheKey({ projects, periodWindow, includeEvidence: true, includePOReadiness: true });
-            await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
+            await invalidateGovernanceBriefCache(projects, { periodWindow, includeEvidence: true, includePOReadiness: true });
         }
         const { brief } = await getOrBuildGovernanceBrief({ projects, req });
         return res.json(brief);
@@ -1541,22 +1454,6 @@ router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
     }
 });
 
-router.get('/api/governance/intervention-shortlist.json', requireAuth, async (req, res) => {
-    const projects = parseGovernanceProjects(req);
-    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
-    try {
-        const { brief } = await getOrBuildGovernanceBrief({ projects, req, includeEvidence: false, includePOReadiness: false });
-        return res.json({
-            generatedAt: brief.generatedAt,
-            freshness: brief.freshness,
-            portfolio: brief.portfolio,
-            shortlist: brief.topRisks || [],
-        });
-    } catch (err) {
-        logger.error('intervention-shortlist failed', { error: err?.message });
-        return res.status(502).json({ error: 'Shortlist unavailable', code: 'SHORTLIST_FAILED' });
-    }
-});
 
 router.post('/api/governance/pi-baseline', requireAuth, async (req, res) => {
     try {
@@ -1640,9 +1537,8 @@ router.get('/api/governance/inbox.json', requireAuth, async (req, res) => {
         const project = projects[0] || null;
         let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
         if (!items.length) {
-            const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
-            const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
-            const cachedBrief = cached?.value || cached;
+            const cached = await getCachedGovernanceBrief(projects);
+            const cachedBrief = cached?.brief;
             if (cachedBrief?.briefId) {
                 items = [{
                     id: 'synthetic-cached-brief',
@@ -1802,9 +1698,8 @@ router.get('/api/governance/worker-receipt.json', requireAuth, async (req, res) 
         const jobs = await readRecentJobs({ project, limit: 5 });
         let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
         const grouped = groupInboxByType(items);
-        const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
-        const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
-        const brief = cached?.value || cached || {};
+        const cached = await getCachedGovernanceBrief(projects);
+        const brief = cached?.brief || {};
         const workerReceipt = await buildWorkerReceipt(brief, grouped, jobs);
         const aiContribution = await buildAiContributionSummary({ project });
         const aiUsage = await buildAiUsageSummary({ hours: 24 });

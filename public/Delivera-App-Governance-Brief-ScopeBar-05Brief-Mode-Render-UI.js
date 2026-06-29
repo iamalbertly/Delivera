@@ -242,7 +242,8 @@ export function mountBriefScopeBarMode({ mount, quarterLabel = '', onRefresh, on
     const periodChips = PERIOD_OPTIONS.map((p) => (
       `<button type="button" class="gov-period-chip${periodWindow === p.id ? ' is-on' : ''}" data-period-chip="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
     )).join('');
-    const showInvestment = isSimpleMode() || squadCount > 1;
+    const showInvestment = isSimpleMode() || squadCount > 1
+      || !!(govPage.lastBrief?.meta?.boardSummaries && Object.keys(govPage.lastBrief.meta.boardSummaries).length);
     const investmentChip = showInvestment
       ? `<button type="button" class="gov-investment-chip btn btn-link btn-compact" data-investment-open="1">${escapeHtml(COPY.investmentLens)}</button>`
       : '';

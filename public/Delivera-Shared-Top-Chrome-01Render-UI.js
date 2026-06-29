@@ -8,7 +8,7 @@ import {
   effectiveNotificationTotal,
   openNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
-import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml, escapeAttr } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { openImproveDeliveraModal } from './Delivera-Shared-ImproveDelivera-01Modal-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
@@ -205,9 +205,6 @@ function buildTopChromeHTML(current) {
     + '</div>';
 }
 
-function escapeAttr(s) {
-  return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 function truncate(s, max) {
   const t = String(s || '').trim();

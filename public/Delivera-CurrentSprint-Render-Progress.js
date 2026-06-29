@@ -314,16 +314,12 @@ export function renderStories(data) {
   html += '</div>';
   // Only render chips when count > 0 — zero-count chips are visual noise that erode trust
   const hasAnyRisk = blockerKeys.size > 0 || noLogKeys.size > 0 || missingEstimateKeys.size > 0 || parentUnassigned > 0 || scopeAddedKeys.size > 0;
+  // Risk filter chips live in header role-lens — avoid duplicate chip row here.
   if (hasAnyRisk) {
-    html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action shortcuts">';
-    if (blockerKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="blocker" title="Focus active blockers now">Unblock now (' + blockerKeys.size + ')</button>';
-    if (noLogKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="no-log" title="Focus estimated work with no logs">Logging gaps (' + noLogKeys.size + ')</button>';
-    if (missingEstimateKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="missing-estimate" title="Focus work missing estimate baseline">Estimate gaps (' + missingEstimateKeys.size + ')</button>';
-    if (parentUnassigned > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="unassigned" title="Focus unowned work">Ownership gaps (' + parentUnassigned + ')</button>';
-    if (scopeAddedKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="scope" title="Focus scope added mid-sprint">Scope changes (' + scopeAddedKeys.size + ')</button>';
     const topNudgeKey = blockerKeys.size > 0 ? Array.from(blockerKeys)[0] : (noLogKeys.size > 0 ? Array.from(noLogKeys)[0] : '');
     const nudgeBtnLabel = topNudgeKey ? ('Nudge ' + topNudgeKey) : 'Send nudge to Jira';
     const sendAllowed = isSprintCommentSendAllowed(data?.meta, data?.sprint);
+    html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action">';
     html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="send-top-nudge-to-jira" title="Send guided nudge to top visible risk directly to Jira" data-send-top-nudge'
       + (sendAllowed ? '' : ' disabled aria-disabled="true"')
       + '>' + nudgeBtnLabel + '</button>';

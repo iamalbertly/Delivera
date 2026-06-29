@@ -41,11 +41,192 @@ import {
   setScopeStaleOverlay, clearScopeStaleOverlay,
 } from './Delivera-Governance-Brief-Page-02Loading-State.js';
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
+import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { installPortfolioSurfaceHook, refreshPortfolioSurface } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
+import { mountBriefScopeBarMode } from './Delivera-App-Governance-Brief-ScopeBar-05Brief-Mode-Render-UI.js';
 import { seedFromBrief } from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
-import { readPortfolioAnchor } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
+import { readPortfolioAnchor, readPeriodWindow } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 
+let legacyBriefSurfacesHydrated = false;
+let legacyHydratedBriefKey = '';
+
+function legacyBriefHydrationKey(brief) {
+  if (!brief) return '';
+  const scope = selectedProjects(brief).join(',');
+  return `${brief.briefId || ''}|${scope}|${brief.generatedAt || ''}`;
+}
+
+/** Lightweight context for portfolio path — no legacy DOM paint until drawer/nudge needs it. */
+function prepareLegacyBriefContext(brief) {
+  if (!document.getElementById('portfolio-signal-mount')) return;
+  const scopeKeys = selectedProjects(brief);
+  govPage.lastSurfaces = partitionBriefSurfaces(brief, scopeKeys);
+  govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces?.drawerIssues || []);
+}
+
+function patchLegacySecondaryChrome(brief) {
+  if (!document.getElementById('portfolio-signal-mount') || !brief) return;
+  if (govPage.els.workerReceiptMount) {
+    govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
+  }
+  mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], govPage.lastFeedbackSummary);
+  const secondaryChrome = document.getElementById('gov-secondary-chrome');
+  if (secondaryChrome) {
+    const hasContent = Boolean(govPage.els.feedbackLabMount?.innerHTML?.trim() || govPage.els.microSurveyMount?.innerHTML?.trim());
+    secondaryChrome.classList.toggle('gov-secondary-chrome--has-content', hasContent);
+    secondaryChrome.classList.toggle('gov-secondary-chrome--open', hasContent);
+    if (hasContent) {
+      secondaryChrome.removeAttribute('hidden');
+      secondaryChrome.setAttribute('open', '');
+    }
+  }
+}
+
+export function ensureLegacyBriefSurfacesHydrated(brief = govPage.lastBrief) {
+  if (!brief || !document.getElementById('portfolio-signal-mount')) return;
+  const hydrationKey = legacyBriefHydrationKey(brief);
+  if (legacyBriefSurfacesHydrated && legacyHydratedBriefKey === hydrationKey) {
+    patchLegacySecondaryChrome(brief);
+    return;
+  }
+  legacyBriefSurfacesHydrated = true;
+  legacyHydratedBriefKey = hydrationKey;
+  hydrateHiddenLegacyBriefSurfaces(brief);
+}
+
+export function resetLegacyBriefHydration() {
+  legacyBriefSurfacesHydrated = false;
+  legacyHydratedBriefKey = '';
+}
+
+function hydrateHiddenLegacyBriefSurfaces(brief) {
+  if (!document.getElementById('portfolio-signal-mount')) return;
+  prepareLegacyBriefContext(brief);
+  const scopeKeys = selectedProjects(brief);
+  const squadCount = scopeKeys.length;
+  const showHeatMap = isPortfolioMode(brief) || squadCount >= 1;
+  if (govPage.els.verdictMount && showHeatMap) {
+    govPage.els.verdictMount.innerHTML = renderPortfolioGrid(brief, {
+      singleSquad: squadCount === 1,
+      hideSquadNudge: false,
+    });
+    bindPortfolioHeatMap(govPage.els.verdictMount, brief);
+    ensurePortfolioHeatDelegation();
+  }
+  const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
+  document.getElementById('main-content')?.classList.toggle('governance-shell--has-clusters', hasOwnerClusters);
+  if (govPage.els.actionClustersMount) {
+    govPage.els.actionClustersMount.innerHTML = hasOwnerClusters
+      ? renderOwnerActionClusters(brief, govPage.ownerGroups)
+      : '';
+    if (hasOwnerClusters) bindOwnerClusterInteractions();
+  }
+  if (govPage.els.piStripMount) {
+    const gaps = brief?.meta?.setupGaps || [];
+    const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
+    const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap });
+    const compactBadge = renderPICompactBadge(brief);
+    const rollupBehind = Number(brief?.portfolioRollup?.behindPiCount || 0) > 0;
+    let piStripHtml = (hasOwnerClusters && rollupBehind)
+      ? ''
+      : (hasOwnerClusters && piInner
+        ? `${compactBadge}<details class="gov-pi-strip-fold" open><summary>PI confidence</summary>${piInner}</details>`
+        : piInner);
+    if (!piStripHtml.trim() && (hasBaselineGap || piInner || compactBadge)) {
+      piStripHtml = compactBadge || piInner || '';
+    }
+    if (!piStripHtml.trim() && piInner) {
+      piStripHtml = `<details class="gov-pi-strip-fold" open><summary>PI confidence</summary>${piInner}</details>`;
+    }
+    govPage.els.piStripMount.innerHTML = piStripHtml;
+    bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
+    govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
+      openPiBaselineWizard();
+    });
+  }
+  const supportingEvidence = document.getElementById('gov-supporting-evidence');
+  if (supportingEvidence) {
+    if (hasOwnerClusters) supportingEvidence.removeAttribute('open');
+    supportingEvidence.hidden = false;
+  }
+  mountEvidenceTabShell();
+  const hiddenScope = document.getElementById('gov-scope-bar-mount');
+  if (hiddenScope && hiddenScope.dataset.briefScopeMounted !== '1') {
+    mountBriefScopeBarMode({
+      mount: hiddenScope,
+      onRefresh: () => loadBrief({ force: true }),
+      onScopeChange: () => loadBrief({ force: true }),
+    });
+    hiddenScope.dataset.briefScopeMounted = '1';
+  }
+  const gaps = brief?.meta?.setupGaps || [];
+  const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
+  const compareMount = document.getElementById('gov-compare-rail-mount');
+  if (compareMount) {
+    const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys, { hideBaselineCta: hasBaselineGap }) : '';
+    compareMount.innerHTML = compareHtml;
+    compareMount.toggleAttribute('hidden', !compareHtml);
+  }
+  if (govPage.els.answerMount) {
+    const tier = verdictTierFromBrief(brief);
+    const suppressAdvisor = Boolean(
+      brief?.meta?._aiProviderFallback
+      || brief?.meta?._advisorError
+      || govPage.aiTrustState?.suppressAdvisorBadge,
+    );
+    const promotedScript = tier === 'blocked' ? renderMeetingScript(brief, { promoted: true }) : '';
+    govPage.els.answerMount.innerHTML = renderCommandAnswerBar(brief, govPage.lastSurfaces, {
+      hasOwnerClusters,
+      suppressAdvisorBadge: suppressAdvisor,
+      hideLeadBlocker: squadCount === 1,
+      collapseHeroDedupe: squadCount === 1,
+    })
+      + (promotedScript ? `<div class="gov-promoted-meeting-script" data-promoted-script="1">${promotedScript}</div>` : '');
+    bindCommandOverflowMenu(govPage.els.answerMount);
+  }
+  if (govPage.els.setupDebtMount) {
+    govPage.els.setupDebtMount.innerHTML = renderSetupDebtStrip(brief, { compact: hasOwnerClusters });
+    bindSetupDebtStripExpand(govPage.els.setupDebtMount, brief);
+  }
+  if (govPage.els.workerReceiptMount) {
+    govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);
+  }
+  if (govPage.els.microSurveyMount) {
+    renderGovernanceMicroSurvey(govPage.els.microSurveyMount, projectsCsv().split(',')[0] || 'MPSA');
+  }
+  mountFeedbackLabButton(govPage.els.feedbackLabMount, projectsCsv().split(',')[0], govPage.lastFeedbackSummary);
+  const secondaryChrome = document.getElementById('gov-secondary-chrome');
+  if (secondaryChrome) {
+    const hasContent = Boolean(govPage.els.feedbackLabMount?.innerHTML?.trim() || govPage.els.microSurveyMount?.innerHTML?.trim());
+    secondaryChrome.classList.toggle('gov-secondary-chrome--has-content', hasContent);
+    secondaryChrome.classList.toggle('gov-secondary-chrome--open', hasContent);
+    if (hasContent) {
+      secondaryChrome.removeAttribute('hidden');
+      secondaryChrome.setAttribute('open', '');
+    }
+  }
+  const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+  const proofPreviewMount = document.getElementById('gov-right-rail-proof-mount');
+  const issueKeys = (brief?.evidencePack?.rows || []).map((r) => r.issueKey).filter(Boolean);
+  if (issueKeys.length) {
+    renderProofRisks(govPage.lastSurfaces.proofRows, { hideWhenPreview: Boolean(proofPreviewMount) });
+    if (proofPreviewMount && isDesktop) {
+      renderEvidencePreview(brief, hasOwnerClusters ? 2 : 3, proofPreviewMount);
+      proofPreviewMount.hidden = false;
+    }
+    const rightRail = document.getElementById('gov-right-rail-mount');
+    if (rightRail && (proofPreviewMount?.innerHTML?.trim() || govPage.inboxApi?.getInboxTotal?.())) {
+      rightRail.removeAttribute('hidden');
+    }
+  }
+  renderEvidenceTable(brief);
+  renderTechnicalDetails(brief);
+  renderReadiness(brief);
+  renderBaseline(brief);
+  bindProofInteractions();
+  wireGovernanceIssuePreview(brief, document);
+}
 const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
 let loadBriefSeq = 0;
@@ -95,6 +276,7 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
   }
   renderBriefUi(brief);
   if (document.getElementById('portfolio-signal-mount')) {
+    patchLegacySecondaryChrome(brief);
     try {
       const anchor = readPortfolioAnchor(brief?.projects);
       const periodKey = govPage.scopeBarApi?.getQuarterLabel?.() || brief?.meta?.quarter || '';
@@ -127,6 +309,7 @@ export function renderBriefUi(brief) {
     const confirmCount = govPage.inboxApi?.getConfirmCount?.() || 0;
     govPage.scopeBarApi?.updateStatus?.(tier, inboxTotal, brief?.meta?.sinceLastRun?.summary || '', confirmCount);
     refreshScopeBarCounts();
+    prepareLegacyBriefContext(brief);
     govPage._portfolioBriefToken = null;
     return;
   }
@@ -336,9 +519,19 @@ function renderNeedsScopePicker() {
   govPage.scopeBarApi?.focusScopeBar?.();
 }
 
+function resolveBriefPeriodWindow() {
+  const isPortfolioPage = Boolean(document.getElementById('portfolio-signal-mount'));
+  const fromBar = govPage.scopeBarApi?.getPeriodWindow?.() || '';
+  const stored = readPeriodWindow(isPortfolioPage ? 'pi' : '28d');
+  if (!isPortfolioPage) return fromBar || stored;
+  if (stored && stored !== 'pi') return stored;
+  return fromBar || 'pi';
+}
+
 export async function loadBrief(options = {}) {
   const force = options.force === true || loadBriefForce;
   loadBriefForce = false;
+  if (force) resetLegacyBriefHydration();
   if (govPage.els.error) govPage.els.error.hidden = true;
   if (!readSharedProjectsCsv().length) {
     try {
@@ -351,16 +544,23 @@ export async function loadBrief(options = {}) {
   const seq = ++loadBriefSeq;
   const requested = projectsCsv();
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
-  const periodWindow = govPage.scopeBarApi?.getPeriodWindow?.() || '28d';
+  const periodWindow = resolveBriefPeriodWindow();
   const pk = requested.split(',')[0] || 'MPSA';
   const preserve = hasGovernanceBriefContent();
   const switchingScope = preserve && govPage.lastBrief && !briefMatchesProjects(govPage.lastBrief, requested);
   const switchLabel = switchingScope ? `Switching to ${formatScopeSwitchLabel(requested)}…` : '';
   const cached = !force ? peekGovernanceBriefCache(requested, quarter, periodWindow) : null;
+  const isPortfolioPage = Boolean(document.getElementById('portfolio-signal-mount'));
+  if (isPortfolioPage) {
+    govPage.scopeBarApi?.setCacheUxState?.({
+      fresh: Boolean(cached) && !force,
+      updating: !cached || force,
+    });
+  }
   if (switchingScope) {
+    resetLegacyBriefHydration();
     setScopeStaleOverlay(true, switchLabel);
   }
-  const isPortfolioPage = Boolean(document.getElementById('portfolio-signal-mount'));
   if (isPortfolioPage) {
     const { showPortfolioLoading } = await import('./Delivera-Governance-Brief-Page-02Loading-State.js');
     showPortfolioLoading(
@@ -405,6 +605,9 @@ export async function loadBrief(options = {}) {
     clearScopeStaleOverlay();
     await applyBriefToUi(brief, govPage.lastFeedbackSummary);
     if (seq !== loadBriefSeq) return;
+    if (isPortfolioPage) {
+      govPage.scopeBarApi?.setCacheUxState?.({ fresh: true, updating: false });
+    }
     document.getElementById('gov-open-feedback-lab-inline')?.addEventListener('click', () => {
       document.getElementById('gov-open-feedback-lab')?.click();
     });
@@ -413,6 +616,9 @@ export async function loadBrief(options = {}) {
     clearScopeStaleOverlay();
     if (!govPage.lastBrief) showError(`Could not load the brief: ${err.message}`);
     else hideGovernanceLoading();
+    if (isPortfolioPage) {
+      govPage.scopeBarApi?.setCacheUxState?.({ fresh: Boolean(govPage.lastBrief), updating: false });
+    }
   }
 }
 

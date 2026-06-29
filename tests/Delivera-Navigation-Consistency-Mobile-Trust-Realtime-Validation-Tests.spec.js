@@ -51,9 +51,9 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
 
     await expect(page.locator('.app-sidebar')).toBeAttached();
     await expect(page.locator('#app-top-chrome')).toBeVisible();
-    await expect(page.locator('.app-top-switcher-item[data-top-surface="report"]')).toBeVisible();
+    await expect(page.locator('.app-top-switcher-item[data-top-surface="actions"]')).toBeVisible();
     await expect(page.locator('.app-top-switcher-item[data-top-surface="sprints"]')).toBeVisible();
-    await expectActiveSwitcher(page, 'report');
+    await expectActiveSwitcher(page, 'actions');
     assertTelemetryClean(telemetry);
   });
 
@@ -65,7 +65,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await page.click('#tab-btn-trends');
     await expect(page).toHaveURL(/\/report#trends/);
     await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
-    await expectActiveSwitcher(page, 'report');
+    await expectActiveSwitcher(page, 'actions');
     assertTelemetryClean(telemetry);
   });
 
@@ -75,7 +75,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     if (await skipIfAuthRedirect(page)) return;
 
     await expect(page.locator('#tab-btn-trends')).toHaveClass(/active/);
-    await expectActiveSwitcher(page, 'report');
+    await expectActiveSwitcher(page, 'actions');
     assertTelemetryClean(telemetry);
   });
 
@@ -86,7 +86,7 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
 
     await page.click('#tab-btn-project-epic-level');
     await expect(page).toHaveURL(/\/report$/);
-    await expectActiveSwitcher(page, 'report');
+    await expectActiveSwitcher(page, 'actions');
     assertTelemetryClean(telemetry);
   });
 
@@ -101,13 +101,13 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     assertTelemetryClean(telemetry);
   });
 
-  test('06 current sprint report nav resolves to report destination', async ({ page }) => {
+  test('06 current sprint actions nav resolves to actions destination', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.goto('/current-sprint');
     if (await skipIfAuthRedirect(page)) return;
 
-    await page.locator('.app-top-switcher-item[data-top-surface="report"]').click();
-    await expect(page).toHaveURL(/\/report$/);
+    await page.locator('.app-top-switcher-item[data-top-surface="actions"]').click();
+    await expect(page).toHaveURL(/\/actions/);
     assertTelemetryClean(telemetry);
   });
 
@@ -256,12 +256,14 @@ test.describe('Delivera - Navigation Consistency Mobile Trust Realtime Validatio
     await page.goto('/report');
     if (await skipIfAuthRedirect(page)) return;
 
+    await page.click('#tab-btn-trends');
+    await expect(page).toHaveURL(/\/report#trends/);
     await page.locator('.app-top-switcher-item[data-top-surface="sprints"]').click();
     await expect(page).toHaveURL(/\/current-sprint/);
-    await page.locator('.app-top-switcher-item[data-top-surface="report"]').click();
-    await expect(page).toHaveURL(/\/report$/);
-    await page.click('#tab-btn-project-epic-level');
-    await expect(page).toHaveURL(/\/report(#.*)?$/);
+    await page.locator('.app-top-switcher-item[data-top-surface="actions"]').click();
+    await expect(page).toHaveURL(/\/actions/);
+    await page.locator('.app-top-switcher-item[data-top-surface="governance"]').click();
+    await expect(page).toHaveURL(/\/governance/);
     assertTelemetryClean(telemetry);
   });
 });

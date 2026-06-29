@@ -45,6 +45,7 @@ export async function hydrateReportProjectCheckboxes() {
       <span class="project-desc">${entry.label || pk}</span>`;
     mount.appendChild(row);
   }
+  mount.dataset.catalogReady = '1';
   if (labelEl) labelEl.insertAdjacentElement('afterend', mount);
   else if (tools) tools.insertAdjacentElement('afterend', mount);
   else host.appendChild(mount);

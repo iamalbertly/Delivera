@@ -1,0 +1,29 @@
+{
+  "states": [
+    {
+      "id": "sd-collapsed",
+      "label": "SD sidebar collapsed",
+      "localStorage": { "delivera_selectedProjects": "SD", "delivera_sidebar_collapsed": "1" },
+      "sessionStorage": { "gov-pi-auto-open-dismissed": "1", "gov-scope-collapsed": "0" }
+    },
+    {
+      "id": "mpsa-mas-blocked",
+      "label": "MPSA+MAS blocked scope",
+      "localStorage": { "delivera_selectedProjects": "MPSA,MAS" },
+      "sessionStorage": { "gov-pi-auto-open-dismissed": "1" }
+    },
+    {
+      "id": "sidebar-expanded",
+      "label": "Sidebar expanded",
+      "localStorage": { "delivera_selectedProjects": "SD", "delivera_sidebar_collapsed": "0" },
+      "sessionStorage": { "gov-pi-auto-open-dismissed": "1" },
+      "bodyClassRemove": ["sidebar-collapsed"]
+    },
+    {
+      "id": "first-load-modals",
+      "label": "First load modals may open",
+      "localStorage": { "delivera_selectedProjects": "SD", "delivera_sidebar_collapsed": "1" },
+      "sessionStorage": {}
+    }
+  ]
+}

@@ -1487,7 +1487,7 @@ function renderSettingsPanel() {
   panel.innerHTML = `<div class="wdd-settings-title">AI Processing <button class="wdd-settings-close" aria-label="Close settings">✕</button></div>`
     + `<p class="wdd-ai-settings-link-lead">Manage API keys in one place — Settings → Connections.</p>`
     + `<p class="wdd-ai-provider-hint">${connected ? `Using ${esc(ai.provider)} in this browser.` : 'Built-in templates only until you add a key.'}</p>`
-    + `<a class="btn btn-secondary btn-compact" href="/settings#gov-ai-helper">Open Settings</a>`;
+    + `<a class="btn btn-secondary btn-compact" href="/settings#integrations">Open Settings</a>`;
 }
 
 // Handles radio change and key/host input change — NOT click (avoids double-fire on radio buttons)

@@ -84,29 +84,29 @@ test.describe('Jira-style top chrome E2E', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('sidebar has three primaries; settings only in top chrome', async ({ page }) => {
+  test('sidebar has four primaries including settings link', async ({ page }) => {
     await page.goto('/report');
     if (await skipIfLogin(page)) return;
-    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="settings"]')).toHaveCount(0);
-    await expect(page.locator('.app-sidebar .sidebar-link, .app-sidebar a.sidebar-link')).toHaveCount(3);
+    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="settings"]')).toHaveCount(1);
+    await expect(page.locator('.app-sidebar .sidebar-link, .app-sidebar a.sidebar-link')).toHaveCount(4);
     await expect(page.locator('[data-top-action="settings"]')).toBeVisible();
   });
 
-  test('surface switcher navigates Brief Sprint Proof', async ({ page }) => {
+  test('surface switcher navigates Portfolio Squads Actions', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceBrief(page);
     await page.goto('/governance');
     if (await skipIfLogin(page)) return;
 
-    await test.step('switch to Sprint', async () => {
+    await test.step('switch to Squads', async () => {
       await page.locator('.app-top-switcher-item[data-top-surface="sprints"]').click();
       await expect(page).toHaveURL(/\/current-sprint/);
     });
-    await test.step('switch to Proof', async () => {
-      await page.locator('.app-top-switcher-item[data-top-surface="report"]').click();
-      await expect(page).toHaveURL(/\/report/);
+    await test.step('switch to Actions', async () => {
+      await page.locator('.app-top-switcher-item[data-top-surface="actions"]').click();
+      await expect(page).toHaveURL(/\/actions/);
     });
-    await test.step('switch to Brief', async () => {
+    await test.step('switch to Portfolio', async () => {
       await page.locator('.app-top-switcher-item[data-top-surface="governance"]').click();
       await expect(page).toHaveURL(/\/governance/);
     });

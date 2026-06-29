@@ -17,7 +17,7 @@ function renderRoleAvatar(person, label) {
   return `<span class="gov-squad-role-avatar" title="${escapeHtml(person.displayName)}">${escapeHtml(label)}: ${escapeHtml(initialsFromDisplay(person.displayName))}</span>`;
 }
 
-function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = false, collapseHeroDedupe = false } = {}) {
+function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = false, collapseHeroDedupe = false, hideBaselineCta = false } = {}) {
   const pulse = squad.sprintPulse || {};
   const pulseHtml = squad.hidePulseBar ? '' : renderPulseBars(pulse);
   const risks = squad.cardRisks || [];
@@ -48,7 +48,7 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = fa
     ? ` ${renderAlignmentChip(driftAlignment)}`
     : '';
   const piRow = piCommitted === 0
-    ? `<p data-squad-pi-row="1" class="gov-pi-empty-cta"><button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1">${escapeHtml(COPY.piBaselineNotSavedCta)}</button></p>`
+    ? (hideBaselineCta ? '' : `<p data-squad-pi-row="1" class="gov-pi-empty-cta"><button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1">${escapeHtml(COPY.piBaselineNotSavedCta)}</button></p>`)
     : `<p data-squad-pi-row="1"><strong>PI:</strong> ${piDone}/${piCommitted} committed · ${piPct}% delivered</p>`;
   const detailRows = collapseHeroDedupe
     ? `${pulseHtml}${piRow}${rolesHtml}${partial ? '<p class="gov-partial-warn">Partial data — squad may be unavailable.</p>' : ''}${riskLines ? `<ul class="gov-risk-tile-risks">${riskLines}</ul>` : ''}`
@@ -60,10 +60,10 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = fa
     ? ''
     : `<button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-squad="${escapeHtml(squad.projectKey)}">Open evidence</button>`;
   const sprintLink = collapseHeroDedupe
-    ? `<a class="gov-squad-sprint-link" href="/current-sprint" data-direct-value="sprint-link">View sprint</a>`
+    ? `<a class="gov-squad-sprint-link" href="/current-sprint?boardId=${encodeURIComponent(squad.boardId || brief?.meta?.defaultBoardId || '6')}" data-direct-value="sprint-link">View sprint</a>`
     : `<a class="btn btn-secondary btn-compact" href="/current-sprint">${escapeHtml(COPY.openSprint)}</a>`;
   return `
-    <div class="gov-risk-tile-detail" data-tile-detail="${escapeHtml(squad.projectKey)}"${hiddenAttr}${collapseHeroDedupe ? ' data-hero-deduped="1" data-direct-value="squad-detail"' : ''}>
+    <div class="gov-risk-tile-detail" data-tile-detail="${escapeHtml(squad.projectKey)}"${hiddenAttr}${collapseHeroDedupe ? ' data-squad-detail-collapsed="1" data-direct-value="squad-detail"' : ''}>
       ${detailRows}
       ${inlineEvidence}
       <div class="gov-squad-detail-actions">
@@ -74,7 +74,7 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = fa
     </div>`;
 }
 
-export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge = false, collapseHeroDedupe = false } = {}) {
+export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge = false, collapseHeroDedupe = false, hideBaselineCta = false } = {}) {
   const rollup = brief?.portfolioRollup || {};
   const squads = Array.isArray(brief?.squadInsights) ? brief.squadInsights : [];
   const partialNote = (brief?.meta?.partialProjects || []).length
@@ -115,6 +115,7 @@ export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge
     autoExpand: singleSquad && idx === 0,
     hideNudge: hideSquadNudge,
     collapseHeroDedupe: collapseHeroDedupe && singleSquad,
+    hideBaselineCta,
   })).join('');
   const line = rollup.summaryLine || COPY.portfolioRollupOk;
   const isStale = String(brief?.freshness?.confidenceLimit || '').toLowerCase() === 'stale';
@@ -150,7 +151,7 @@ export function renderPortfolioGrid(brief, { singleSquad = false, hideSquadNudge
 }
 
 /** Compact side-by-side compare column for right rail (2+ squads). */
-export function renderCompareRail(brief, selectedKeys = []) {
+export function renderCompareRail(brief, selectedKeys = [], { hideBaselineCta = false } = {}) {
   const keys = (Array.isArray(selectedKeys) ? selectedKeys : []).map((k) => String(k).toUpperCase());
   if (keys.length < 2) return '';
   const squads = (Array.isArray(brief?.squadInsights) ? brief.squadInsights : [])
@@ -163,7 +164,9 @@ export function renderCompareRail(brief, selectedKeys = []) {
     return `<article class="gov-compare-rail-card gov-heat-tile--${escapeHtml(s.verdictTier || 'watch')}" data-compare-rail-card="${escapeHtml(s.projectKey)}">
       <header><strong>${escapeHtml(s.projectKey)}</strong> · ${escapeHtml(heatLabel(s))}</header>
       <p>${escapeHtml(s.bottleneckLine || s.statusLine || '—')}</p>
-      ${piCommitted > 0 ? `<p class="gov-compare-rail-pi">${piDone}/${piCommitted} PI</p>` : `<p class="gov-compare-rail-pi gov-pi-empty-cta">${escapeHtml(COPY.piBaselineNotSavedCta)}</p>`}
+      ${piCommitted > 0 ? `<p class="gov-compare-rail-pi">${piDone}/${piCommitted} PI</p>` : hideBaselineCta
+    ? `<p class="gov-compare-rail-pi gov-pi-empty-note">${escapeHtml(COPY.piBaselineNotSavedCta)}</p>`
+    : `<p class="gov-compare-rail-pi gov-pi-empty-cta">${escapeHtml(COPY.piBaselineNotSavedCta)}</p>`}
       ${partial ? '<p class="gov-partial-warn">Partial data</p>' : ''}
     </article>`;
   }).join('');

@@ -8,7 +8,7 @@ import { buildEvidencePack } from '../lib/Delivera-Governance-Evidence-01Pack-Bu
 import { clampConfidenceToFreshness, RISK_TYPES } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { attachExecutiveViewToBrief } from '../lib/Delivera-Governance-Executive-01View-SSOT.js';
 import {
-  waitForPortfolioReady,
+  waitForGovernanceReady,
   legacyBrief,
   clickLegacy,
   mockPortfolioDecision,
@@ -286,7 +286,7 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
     await mockPortfolioDecision(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required; skipping governance UI assertions'); return false; }
-    await waitForPortfolioReady(page);
+    await waitForGovernanceReady(page);
     return true;
   }
 

@@ -492,10 +492,8 @@ test.describe('CurrentSprint Redesign - Component Validation', () => {
     await menuToggle.dispatchEvent('click');
 
     const options = page.locator('.export-option');
-    await expect(options).toHaveCount(6);
+    await expect(options).toHaveCount(4);
     await expect(page.locator('[data-action="copy-text"]')).toBeVisible();
-    await expect(page.locator('[data-action="copy-standup"]')).toBeVisible();
-    await expect(page.locator('[data-action="export-markdown"]')).toBeVisible();
     await expect(page.locator('[data-action="export-png"]')).toBeVisible();
     await expect(page.locator('[data-action="copy-link"]')).toBeVisible();
     await expect(page.locator('[data-action="email"]')).toBeVisible();

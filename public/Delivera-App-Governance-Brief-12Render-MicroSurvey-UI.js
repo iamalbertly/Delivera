@@ -5,14 +5,9 @@ import { GOVERNANCE_SURVEY_LAST_ASKED_KEY } from './Delivera-Shared-Storage-Keys
 
 const FOUR_HOURS_MS = 4 * 3600 * 1000;
 
+// B11: 4h timer disabled — survey now only appears post-nudge via renderPostNudgeSurvey.
 function shouldShowSurvey() {
-  try {
-    const raw = localStorage.getItem(GOVERNANCE_SURVEY_LAST_ASKED_KEY);
-    if (!raw) return true;
-    return Date.now() - new Date(raw).getTime() > FOUR_HOURS_MS;
-  } catch (_) {
-    return true;
-  }
+  return false;
 }
 
 function markAsked() {
@@ -70,4 +65,37 @@ export function renderGovernanceMicroSurvey(mount, project = 'MPSA') {
       collapse();
     });
   });
+}
+
+/**
+ * B11: Post-nudge thumb chip — appears after a nudge is sent, never blocks the main view.
+ * @param {HTMLElement} mount
+ * @param {string} project
+ */
+export function renderPostNudgeSurvey(mount, project = 'MPSA') {
+  if (!mount) return;
+  // Don't re-show if dismissed within 24h.
+  try {
+    const last = localStorage.getItem('delivera:post-nudge-survey-dismissed');
+    if (last && Date.now() - Number(last) < 24 * 3600 * 1000) return;
+  } catch (_) { /* ignore */ }
+  mount.innerHTML = `
+    <div class="gov-post-nudge-survey" aria-label="Nudge feedback">
+      <span class="gov-post-nudge-label">Was this nudge useful?</span>
+      <button type="button" class="gov-post-nudge-thumb" data-post-nudge="up" aria-label="Yes, useful">👍</button>
+      <button type="button" class="gov-post-nudge-thumb" data-post-nudge="down" aria-label="No, not useful">👎</button>
+    </div>`;
+  const dismiss = () => {
+    try { localStorage.setItem('delivera:post-nudge-survey-dismissed', String(Date.now())); } catch (_) { /* ignore */ }
+    mount.innerHTML = '';
+  };
+  mount.querySelectorAll('[data-post-nudge]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const value = btn.getAttribute('data-post-nudge') === 'up' ? 1 : 0;
+      void recordMetric('nudgeUseful', value, project);
+      dismiss();
+    });
+  });
+  // Auto-dismiss after 30s if no interaction.
+  setTimeout(dismiss, 30000);
 }

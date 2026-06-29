@@ -27,6 +27,36 @@ export const SURFACE_SWITCHER = [
   { key: PAGE_SETTINGS, label: 'Settings', href: '/settings' },
 ];
 
+/** Short descriptions for settings quick-nav cards (keyed by page). */
+export const SURFACE_QUICK_DESC = {
+  [PAGE_GOVERNANCE]: 'AI signal & decisions',
+  [PAGE_SPRINTS]: 'Blockers & nudges today',
+  [PAGE_ACTIONS]: 'Ready nudges & proof',
+  [PAGE_REPORT]: 'Evidence drill-down',
+  [PAGE_SETTINGS]: 'Defaults & integrations',
+};
+
+/**
+ * Quick links for settings hub and cross-surface jumps.
+ * @param {string[]} [extraKeys] — e.g. PAGE_REPORT for Proof card
+ */
+export function getSurfaceQuickLinks(extraKeys = []) {
+  const keys = [...PRIMARY_NAV_KEYS.filter((k) => k !== PAGE_SETTINGS), ...extraKeys];
+  const byKey = Object.fromEntries(SURFACE_SWITCHER.map((s) => [s.key, s]));
+  if (extraKeys.includes(PAGE_REPORT)) {
+    byKey[PAGE_REPORT] = { key: PAGE_REPORT, label: 'Proof', href: '/report' };
+  }
+  return keys.map((key) => {
+    const item = byKey[key];
+    if (!item) return null;
+    return {
+      href: item.href,
+      label: item.label,
+      desc: SURFACE_QUICK_DESC[key] || '',
+    };
+  }).filter(Boolean);
+}
+
 export function getPathState(pathname, hash) {
   const path = pathname != null
     ? pathname

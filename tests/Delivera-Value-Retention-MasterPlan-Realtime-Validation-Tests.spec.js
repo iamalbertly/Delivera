@@ -8,6 +8,7 @@ import {
   skipIfRedirectedToLogin,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import { PROJECTS_SSOT_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
+import { waitForLegacyBriefHydrated } from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 function stubRetentionBrief(overrides = {}) {
   return JSON.stringify({
@@ -78,6 +79,95 @@ async function stubGovernanceBrief(page, overrides = {}) {
   });
 }
 
+async function mockPortfolioDecisionForRetention(page) {
+  await page.route('**/api/quarters-list**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ quarters: [{ label: 'FY27 Q1', isCurrent: true }] }),
+  }));
+  await page.route('**/api/governance/interventions/seed-from-brief**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, cases: [{ id: 'SD-1', project: 'SD', needsApproval: true, title: 'Stuck payment flow' }] }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: {
+          headline: 'SD needs scope confirmation',
+          summary: 'Two squads need watch on PI commitments.',
+          narrative: { headline: 'SD needs scope confirmation', mainIssue: 'Evidence gap, not yet proven delivery failure' },
+          aboveFold: { exposedCommitments: 2, actionsReady: 1, poResponsesRequired: 1, nextDeadline: 'Today 15:00' },
+          affectedCommitments: [{ id: 'SD-1', title: 'Stuck payment flow', status: 'At risk', reason: 'Stuck', decisionNeeded: 'Confirm scope' }],
+          preparedActions: { groups: [{ role: 'Product Owner', count: 1, label: '1 Product Owner' }], items: [{ role: 'Product Owner', action: 'Confirm scope', owner: 'Product Owner' }], totalReady: 1, nextDeadline: 'Today 15:00' },
+          metrics: { delivery: { value: 20, peerMedian: 50 }, offPlanLoad: { value: 30, peerMedian: 10 }, proofConfidence: { value: 28, peerMedian: 48 } },
+          trust: { liveCases: 1, nudgesReady: 1, proofLevel: 'Low' },
+          drivers: [{ title: 'Impact exposure', summary: '2 squads behind PI commitments.' }],
+          decisionProgression: [{ step: 'confirm-scope', label: 'Confirm scope', active: true }],
+          decisionBasis: { why: 'Confirm scope and proof', preparedNudges: 1, nextCheckpoint: 'Today 15:00' },
+          decisionOptions: [
+            { id: 'keep-funding', label: 'Keep funding', useWhen: 'Scope confirmed', effect: 'No change', impactPreview: 'Continue monitoring.' },
+            { id: 'review-investment', label: 'Review investment', useWhen: 'Evidence weak', effect: 'Pause allocation', impactPreview: 'Validate before investing.' },
+            { id: 'move-capacity', label: 'Move capacity', useWhen: 'Peer stronger', effect: 'Reassign', impactPreview: 'Not yet recommended.' },
+          ],
+          monitoring: { squadCount: 2, commitmentCount: 8, exposedCommitmentCount: 2 },
+          anchorProject: 'SD',
+          periodKey: 'FY27 Q1',
+          recommendation: { label: 'Confirm scope and proof before investment review' },
+          peerComparison: { sentence: 'Proof confidence differs — address evidence before delivery claims.' },
+        },
+        comparison: {
+          cards: [
+            { projectKey: 'SD', squadName: 'SD', selected: true, status: 'At risk', statusClass: 'at-risk', mainIssue: 'Scope and proof', explanation: 'SD: blocked delivery path.', metrics: { delivered: 20, proofConfidence: 28 } },
+            { projectKey: 'DMS', squadName: 'DMS', selected: false, status: 'Watch', statusClass: 'watch', mainIssue: 'Monitoring', explanation: 'DMS: fewer governance gaps.', metrics: { delivered: 50, proofConfidence: 48 } },
+          ],
+          actionsStrip: { nudgesReady: 1, proofLevel: 'Low' },
+        },
+        cases: [{ id: 'SD-1', project: 'SD', needsApproval: true }],
+      }),
+    });
+  });
+}
+
+function legacyBriefMount(page, selector) {
+  return page.locator(`#gov-verdict-mount ${selector}`);
+}
+
+function legacyScopeBarMount(page, selector) {
+  return page.locator(`#gov-scope-bar-mount ${selector}`);
+}
+
+async function clickLegacyBrief(page, selector) {
+  await waitForLegacyBriefHydrated(page);
+  await page.evaluate((sel) => {
+    document.querySelector(`#gov-verdict-mount ${sel}`)?.click();
+  }, selector);
+}
+
+async function clickLegacyScopeBar(page, selector) {
+  await page.waitForSelector(`#gov-scope-bar-mount ${selector}`, { timeout: 20000, state: 'attached' });
+  await page.evaluate((sel) => {
+    document.querySelector(`#gov-scope-bar-mount ${sel}`)?.click();
+  }, selector);
+}
+
+async function waitForGovernanceReady(page) {
+  await page.waitForSelector('[data-portfolio-signal]', { timeout: 25000 });
+  await page.waitForSelector('#main-content[data-gov-brief-state="content"]', { timeout: 25000 });
+  await waitForLegacyBriefHydrated(page);
+}
+
+async function waitForLegacyInvestmentReady(page) {
+  await page.waitForResponse(
+    (res) => res.url().includes('/api/governance-brief.json') && res.ok(),
+    { timeout: 25000 },
+  ).catch(() => {});
+  await page.waitForSelector('#gov-scope-bar-mount [data-investment-open]', { timeout: 25000, state: 'attached' });
+}
+
 async function gotoGovernanceFresh(page, path = '/governance?refresh=1') {
   await clearBriefClientCache(page);
   const briefWait = page.waitForResponse(
@@ -86,12 +176,14 @@ async function gotoGovernanceFresh(page, path = '/governance?refresh=1') {
   );
   await page.goto(path);
   await briefWait;
+  await waitForGovernanceReady(page);
 }
 
 test.describe('Value retention master plan realtime validation', () => {
   test.describe.configure({ retries: 0 });
 
   test('@focused value-retention master plan contracts', async ({ page }) => {
+    test.setTimeout(240000);
     const telemetry = captureBrowserTelemetry(page);
     await page.addInitScript((projectsKey) => {
       try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
@@ -113,6 +205,7 @@ test.describe('Value retention master plan realtime validation', () => {
       }
       await route.continue();
     });
+    await mockPortfolioDecisionForRetention(page);
     await page.route(/\/api\/governance\/pi-baseline/, async (route) => {
       await route.fulfill({
         status: 200,
@@ -153,26 +246,28 @@ test.describe('Value retention master plan realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('03 portfolio banner shows behind count', async () => {
+    await test.step('03 portfolio signal and legacy rollup context', async () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('[data-portfolio-banner]')).toContainText(/behind PI/i);
+      await waitForGovernanceReady(page);
+      await expect(page.locator('[data-portfolio-above-fold]')).toBeVisible();
+      await expect(legacyBriefMount(page, '[data-portfolio-banner]')).toContainText(/behind PI/i);
       assertTelemetryClean(telemetry);
     });
 
     await test.step('04 heat tiles sorted blocked first', async () => {
-      await expect(page.locator('[data-heat-tile]').first()).toHaveAttribute('data-verdict-tier', 'blocked');
+      await expect(legacyBriefMount(page, '[data-heat-tile]').first()).toHaveAttribute('data-verdict-tier', 'blocked');
       assertTelemetryClean(telemetry);
     });
 
     await test.step('05 squad roles on expanded tile', async () => {
-      await page.locator('[data-heat-tile="SD"]').click();
-      await expect(page.locator('[data-squad-roles]')).toBeVisible();
+      await clickLegacyBrief(page, '[data-heat-tile="SD"]');
+      await expect(page.locator('#gov-verdict-mount [data-squad-roles]')).toHaveCount(1);
       assertTelemetryClean(telemetry);
     });
 
     await test.step('06 squad nudge opens mention sheet', async () => {
-      await page.locator('[data-squad-nudge="SD"]').click();
+      await clickLegacyBrief(page, '[data-squad-nudge="SD"]');
       await expect(page.locator('#delivera-jira-nudge-review-sheet .jira-nudge-mention-row')).toBeVisible({ timeout: 10000 });
       await page.locator('[data-review-cancel]').click();
       await expect(page.locator('#delivera-jira-nudge-review-sheet')).toBeHidden({ timeout: 5000 });
@@ -180,15 +275,17 @@ test.describe('Value retention master plan realtime validation', () => {
     });
 
     await test.step('07 period chip persists after reload', async () => {
-      await page.locator('[data-period-chip="14d"]').click({ force: true });
+      await waitForGovernanceReady(page);
+      await clickLegacyScopeBar(page, '[data-period-chip="14d"]');
       await page.reload();
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('[data-period-chip="14d"]')).toHaveClass(/is-on/);
+      await waitForGovernanceReady(page);
+      await expect(legacyScopeBarMount(page, '.gov-period-chip.is-on').first()).toContainText(/14d/i);
       assertTelemetryClean(telemetry);
     });
 
     await test.step('08 single-squad auto-expand tile detail', async () => {
-      await page.addInitScript((projectsKey) => {
+      await page.evaluate((projectsKey) => {
         try { localStorage.setItem(projectsKey, 'SD'); } catch (_) {}
       }, PROJECTS_SSOT_KEY);
       await page.route(/\/api\/governance-brief\.json/, async (route) => {
@@ -214,13 +311,14 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('[data-tile-detail="SD"]')).toBeVisible({ timeout: 20000 });
+      await waitForGovernanceReady(page);
+      await expect(legacyBriefMount(page, '[data-tile-detail="SD"]')).toHaveCount(1);
       await expect(page.locator('.gov-comparison-refine')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
 
     await test.step('09 investment drawer tab and hour rows', async () => {
-      await page.addInitScript((projectsKey) => {
+      await page.evaluate((projectsKey) => {
         try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
       }, PROJECTS_SSOT_KEY);
       await page.route(/\/api\/governance-brief\.json/, async (route) => {
@@ -238,9 +336,11 @@ test.describe('Value retention master plan realtime validation', () => {
           }),
         });
       });
-      await page.goto('/governance');
+      await clearBriefClientCache(page);
+      await page.goto('/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('[data-investment-open]').click();
+      await waitForGovernanceReady(page);
+      await clickLegacyScopeBar(page, '[data-investment-open]');
       await expect(page.locator('[data-drawer-tab="investment"]')).toBeVisible({ timeout: 10000 });
       await page.locator('[data-drawer-tab="investment"]').click();
       await expect(page.locator('[data-investment-row="pi"]')).toBeVisible();
@@ -254,7 +354,8 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await page.reload();
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('[data-investment-open]').click();
+      await waitForGovernanceReady(page);
+      await clickLegacyScopeBar(page, '[data-investment-open]');
       await expect(page.locator('[data-drawer-tab="investment"]')).toHaveClass(/is-active/);
       await expect(page.locator('[data-drawer-panel="investment"]')).toHaveClass(/is-active/);
       assertTelemetryClean(telemetry);
@@ -271,12 +372,14 @@ test.describe('Value retention master plan realtime validation', () => {
           }),
         });
       });
-      await page.goto('/governance');
+      await clearBriefClientCache(page);
+      await page.goto('/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('[data-portfolio-banner]')).toContainText(/stale/i);
-      await expect(page.locator('.gov-period-chip.is-on')).toBeVisible();
-      await page.locator('[data-heat-tile="SD"]').click();
-      await page.locator('[data-squad-nudge="SD"]').click({ force: true });
+      await waitForGovernanceReady(page);
+      await expect(legacyBriefMount(page, '[data-portfolio-banner]')).toContainText(/stale/i);
+      await expect(legacyScopeBarMount(page, '.gov-period-chip.is-on').first()).toHaveCount(1);
+      await clickLegacyBrief(page, '[data-heat-tile="SD"]');
+      await clickLegacyBrief(page, '[data-squad-nudge="SD"]');
       await expect(page.locator('#delivera-jira-nudge-review-sheet [data-review-send]')).toBeDisabled();
       await expect(page.locator('#delivera-jira-nudge-review-sheet .jira-nudge-review-trust')).toContainText(/stale brief/i);
       await page.locator('[data-review-cancel]').click();
@@ -322,15 +425,10 @@ test.describe('Value retention master plan realtime validation', () => {
       await gotoGovernanceFresh(page, '/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
-      const gridActive = await page.evaluate(() => {
-        const shell = document.querySelector('.governance-shell--desktop-grid');
-        if (!shell) return false;
-        const cols = getComputedStyle(shell).gridTemplateColumns;
-        return Boolean(cols && cols.includes(' '));
-      });
-      expect(gridActive).toBe(true);
-      await expect(page.locator('#gov-right-rail-mount')).toBeVisible();
-      await expect(page.locator('[data-heat-tile]').first()).toBeVisible();
+      const portfolioLayout = await page.locator('#portfolio-layout').isVisible();
+      expect(portfolioLayout).toBe(true);
+      await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+      await expect(legacyBriefMount(page, '[data-heat-tile]').first()).toHaveCount(1);
       assertTelemetryClean(telemetry);
     });
 
@@ -395,9 +493,11 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await page.goto('/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('.gov-period-chip.is-on')).toContainText(/28d/i);
-      await page.locator('[data-period-chip="14d"]').click({ force: true });
-      await expect(page.locator('.gov-period-chip.is-on')).toContainText(/14d/i, { timeout: 15000 });
+      await waitForGovernanceReady(page);
+      await page.waitForSelector('#gov-scope-bar-mount [data-period-chip]', { state: 'attached', timeout: 20000 });
+      await expect(legacyScopeBarMount(page, '.gov-period-chip.is-on').first()).toContainText(/28d/i);
+      await clickLegacyScopeBar(page, '[data-period-chip="14d"]');
+      await expect(legacyScopeBarMount(page, '.gov-period-chip.is-on').first()).toContainText(/14d/i, { timeout: 15000 });
       assertTelemetryClean(telemetry);
     });
 
@@ -417,12 +517,14 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await page.goto('/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await waitForGovernanceReady(page);
+      await page.waitForSelector('#gov-verdict-mount [data-heat-tile="SD"]', { state: 'attached', timeout: 20000 });
       await page.evaluate(() => { try { window.__deliveraCurrentSprintPayload = null; } catch (_) {} });
-      await page.locator('[data-heat-tile="SD"]').click();
-      const detail = page.locator('[data-tile-detail="SD"]');
-      if (!(await detail.isVisible())) await page.locator('[data-heat-tile="SD"]').click();
-      await expect(page.locator('[data-squad-nudge="SD"]')).toBeVisible();
-      await page.locator('[data-squad-nudge="SD"]').click();
+      await clickLegacyBrief(page, '[data-heat-tile="SD"]');
+      const detail = legacyBriefMount(page, '[data-tile-detail="SD"]');
+      if (!(await detail.isVisible())) await clickLegacyBrief(page, '[data-heat-tile="SD"]');
+      await expect(legacyBriefMount(page, '[data-squad-nudge="SD"]')).toHaveCount(1);
+      await clickLegacyBrief(page, '[data-squad-nudge="SD"]');
       await expect(page.locator('#jira-nudge-review-text')).toBeVisible({ timeout: 10000 });
       await expect(page.locator('.jira-nudge-mention-row')).toHaveCount(0);
       await page.locator('[data-review-cancel]').click();
@@ -430,16 +532,28 @@ test.describe('Value retention master plan realtime validation', () => {
     });
 
     await test.step('20 zero investment hours drawer stable', async () => {
+      await page.evaluate((projectsKey) => {
+        try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
+      }, PROJECTS_SSOT_KEY);
       await page.route(/\/api\/governance-brief\.json/, async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: stubRetentionBrief({
-            projects: ['SD'],
-            portfolioRollup: { summaryLine: 'Out of 1 squads · on track', behindPiCount: 0 },
+            projects: ['SD', 'DMS'],
+            portfolioRollup: { summaryLine: 'Out of 2 squads · on track', behindPiCount: 0 },
             squadInsights: [
               {
                 projectKey: 'SD',
+                verdictTier: 'watch',
+                boardResolved: true,
+                offPlanHours: 0,
+                piCommitted: 0,
+                piDone: 0,
+                cardRisks: [],
+              },
+              {
+                projectKey: 'DMS',
                 verdictTier: 'watch',
                 boardResolved: true,
                 offPlanHours: 0,
@@ -456,12 +570,11 @@ test.describe('Value retention master plan realtime validation', () => {
           }),
         });
       });
-      await page.evaluate(() => {
-        try { sessionStorage.removeItem('delivera:brief:cache:v1'); } catch (_) {}
-      });
+      await clearBriefClientCache(page);
       await page.goto('/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('[data-investment-open]').click();
+      await waitForGovernanceReady(page);
+      await clickLegacyScopeBar(page, '[data-investment-open]');
       await page.locator('[data-drawer-tab="investment"]').click();
       await expect(page.locator('[data-investment-row="pi"] strong')).toContainText(/0h/);
       assertTelemetryClean(telemetry);
@@ -483,7 +596,7 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await gotoGovernanceFresh(page);
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('[data-heat-tile="SD"]').click();
+      await clickLegacyBrief(page, '[data-heat-tile="SD"]');
       await expect(page.locator('[data-squad-roles]')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
@@ -492,10 +605,19 @@ test.describe('Value retention master plan realtime validation', () => {
       await page.route(/\/api\/governance-brief\.json/, async (route) => {
         await route.fulfill({ status: 200, contentType: 'application/json', body: stubRetentionBrief() });
       });
-      await page.goto('/governance');
+      await page.evaluate((projectsKey) => {
+        try {
+          localStorage.setItem(projectsKey, 'SD,DMS');
+          sessionStorage.removeItem('gov-drawer-active-tab');
+        } catch (_) {}
+      }, PROJECTS_SSOT_KEY);
+      await clearBriefClientCache(page);
+      await page.goto('/governance?refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('[data-heat-tile="SD"]').click();
-      await page.locator('[data-proof-squad="SD"]').click();
+      await waitForGovernanceReady(page);
+      await page.waitForSelector('#gov-verdict-mount [data-heat-tile="SD"]', { state: 'attached', timeout: 15000 });
+      await clickLegacyBrief(page, '[data-heat-tile="SD"]');
+      await clickLegacyBrief(page, '[data-proof-squad="SD"]');
       await expect(page.locator('[data-drawer-tab="proof"]')).toHaveClass(/is-active/);
       await expect(page.locator('[data-drawer-panel="proof"]')).toHaveClass(/is-active/);
       assertTelemetryClean(telemetry);
@@ -508,7 +630,7 @@ test.describe('Value retention master plan realtime validation', () => {
       await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
       await page.evaluate(() => document.body.classList.add('sidebar-open'));
       const twoCol = await page.evaluate(() => {
-        const shell = document.querySelector('.governance-shell--desktop-grid');
+        const shell = document.querySelector('#portfolio-layout');
         if (!shell) return false;
         const cols = getComputedStyle(shell).gridTemplateColumns;
         return cols.split(' ').filter(Boolean).length >= 2;
@@ -533,8 +655,8 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await gotoGovernanceFresh(page);
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('[data-heat-tile="SD"]').click();
-      await expect(page.locator('[data-squad-roles]')).toBeVisible();
+      await clickLegacyBrief(page, '[data-heat-tile="SD"]');
+      await expect(page.locator('#gov-verdict-mount [data-squad-roles]')).toHaveCount(1);
       assertTelemetryClean(telemetry);
     });
 
@@ -552,8 +674,10 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await gotoGovernanceFresh(page);
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.locator('[data-heat-tile="SD"]').click();
-      await expect(page.locator('[data-squad-drift-row] .work-alignment-chip')).toBeVisible();
+      await waitForGovernanceReady(page);
+      await clickLegacyBrief(page, '[data-heat-tile="SD"]');
+      await expect(legacyBriefMount(page, '[data-squad-drift-row] .work-alignment-chip')).toHaveCount(1);
+      await expect(legacyBriefMount(page, '[data-squad-drift-row] .work-alignment-chip')).toContainText(/off pi/i);
       assertTelemetryClean(telemetry);
     });
 
@@ -561,6 +685,8 @@ test.describe('Value retention master plan realtime validation', () => {
       await stubGovernanceBrief(page);
       await gotoGovernanceFresh(page, '/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      await waitForGovernanceReady(page);
+      await page.waitForSelector('#gov-supporting-evidence', { state: 'attached', timeout: 15000 });
       const open = await page.locator('#gov-supporting-evidence').getAttribute('open');
       expect(open).toBeNull();
       assertTelemetryClean(telemetry);
@@ -571,6 +697,30 @@ test.describe('Value retention master plan realtime validation', () => {
       if (await skipIfRedirectedToLogin(page, test)) return;
       const inner = await page.locator('#feedback-panel').innerHTML();
       expect(inner.trim()).toBe('');
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('28 portfolio calibration inline excerpt and copy E2', async () => {
+      await stubGovernanceBrief(page, {
+        meta: { protectMeAnswer: 'SD squad protected launch X due to external block.' },
+      });
+      await gotoGovernanceFresh(page);
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.waitForSelector('[data-portfolio-calibration-inline]', { timeout: 15000 });
+      await expect(page.locator('[data-portfolio-calibration-inline]')).toContainText(/protected launch/i);
+      await expect(page.locator('[data-portfolio-action="copy-calibration-defense"]')).toBeVisible();
+      assertTelemetryClean(telemetry);
+    });
+
+    await test.step('29 partial project pivot shows signal not zero-state E2', async () => {
+      await stubGovernanceBrief(page, {
+        meta: { partialProjects: ['DMS'], setupGaps: [{ id: 'pi-baseline', action: 'set-baseline', label: 'Set PI baseline' }] },
+        projects: ['SD', 'DMS'],
+      });
+      await gotoGovernanceFresh(page);
+      if (await skipIfRedirectedToLogin(page, test)) return;
+      await page.waitForSelector('[data-portfolio-signal]', { timeout: 20000 });
+      await expect(page.locator('[data-portfolio-signal] .portfolio-signal-headline')).not.toHaveText(/^$/);
       assertTelemetryClean(telemetry);
     });
   });

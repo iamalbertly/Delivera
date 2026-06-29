@@ -1,4 +1,5 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { waitForGovernanceReady } from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 const MOCK_BRIEF = {
   briefId: 'MPSA-MAS-Q1-2026-W23',
@@ -46,6 +47,27 @@ async function mockGovernanceApis(page) {
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ velocity: { source: 'unavailable' }, reworkPct: { source: 'unavailable' } }),
   }));
+  await page.route('**/api/governance/interventions/seed-from-brief**', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ ok: true, seeded: 0, cases: [] }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      decision: {
+        headline: 'MPSA needs a scope and proof decision today',
+        narrative: { headline: 'MPSA needs a scope and proof decision today', summary: 'Test summary.' },
+        aboveFold: { exposedCommitments: 1, actionsReady: 1, poResponsesRequired: 0, nextDeadline: null },
+        affectedCommitments: [{ id: 'c1', title: 'Stale work', status: 'open', reason: 'Stale', decisionNeeded: true }],
+        preparedActions: { groups: [{ role: 'Product Owner', count: 1, label: '1 PO action' }], items: [], nextDeadline: null, escalationReady: false },
+        decisionOptions: [{ id: 'keep', label: 'Keep funding', impactPreview: 'Continue current path.' }],
+        monitoring: { liveCases: 1, exposedCommitmentCount: 1, commitmentCount: 0 },
+      },
+      cards: [],
+    }),
+  }));
 }
 
 test.describe('Governance root, nav, and scope cockpit', () => {
@@ -59,32 +81,34 @@ test.describe('Governance root, nav, and scope cockpit', () => {
     expect(page.url()).toMatch(/\/governance/);
   });
 
-  test('sidebar omits settings; top chrome provides settings gear', async ({ page }) => {
+  test('sidebar includes settings and top chrome provides settings gear', async ({ page }) => {
     await mockGovernanceApis(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) {
       test.skip(true, 'Auth required');
       return;
     }
-    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="settings"]')).toHaveCount(0);
+    await expect(page.locator('.app-sidebar a.sidebar-link[data-nav-key="settings"]')).toHaveCount(1);
     await expect(page.locator('#app-top-chrome [data-top-action="settings"]')).toBeVisible();
   });
 
-  test('nav lists Brief before Proof', async ({ page }) => {
+  test('nav lists Portfolio before Squads and Actions', async ({ page }) => {
     await mockGovernanceApis(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) {
       test.skip(true, 'Auth required');
       return;
     }
-    const labels = await page.locator('.app-sidebar-nav a span, .app-sidebar-nav .sidebar-link span').allTextContents();
-    const briefIdx = labels.findIndex((t) => /brief/i.test(t));
-    const proofIdx = labels.findIndex((t) => /proof/i.test(t));
-    expect(briefIdx).toBeGreaterThanOrEqual(0);
-    expect(proofIdx).toBeGreaterThan(briefIdx);
+    const labels = await page.locator('.app-top-switcher-item').allTextContents();
+    const portfolioIdx = labels.findIndex((t) => /portfolio/i.test(t));
+    const squadsIdx = labels.findIndex((t) => /squads/i.test(t));
+    const actionsIdx = labels.findIndex((t) => /actions/i.test(t));
+    expect(portfolioIdx).toBeGreaterThanOrEqual(0);
+    expect(squadsIdx).toBeGreaterThan(portfolioIdx);
+    expect(actionsIdx).toBeGreaterThan(squadsIdx);
   });
 
-  test('scope bar visible without overlay; action clusters precede verdict in DOM', async ({ page }) => {
+  test('portfolio scope visible; legacy brief surfaces stay hidden but hydrated', async ({ page }) => {
     await mockGovernanceApis(page);
     await page.addInitScript(() => {
       localStorage.setItem('delivera_selectedProjects', 'MPSA');
@@ -94,27 +118,25 @@ test.describe('Governance root, nav, and scope cockpit', () => {
       test.skip(true, 'Auth required');
       return;
     }
-    await expect(page.locator('.gov-command-answer, #gov-verdict-mount').first()).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('#gov-scope-bar-mount .gov-scope-chip')).toHaveCount(CATALOG_KEYS.length);
-    const verdict = page.locator('#gov-verdict-mount');
-    const clusters = page.locator('#gov-action-clusters-mount');
-    await expect(verdict).toBeVisible();
-    if (await clusters.locator('.gov-owner-cluster').count()) {
-      await expect(clusters).toBeVisible();
-    }
+    await waitForGovernanceReady(page);
+    await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+    await expect(page.locator('#portfolio-scope-bar-mount, .portfolio-scope-filters').first()).toBeVisible();
+    await expect(page.locator('#gov-brief-content')).toBeHidden();
+    await expect(page.locator('#gov-scope-bar-mount')).toBeAttached();
+    await expect(page.locator('#gov-verdict-mount')).toBeAttached();
+    await expect(page.locator('#gov-action-clusters-mount')).toBeAttached();
     await expect(page.locator('#gov-proof-risks, #gov-right-rail-proof-mount .gov-evidence-preview').first()).toBeAttached();
-    await expect(page.locator('.gov-verdict-fold .gov-verdict-zone, #gov-verdict-mount .gov-portfolio-grid-wrap, #gov-verdict-mount .gov-risk-tile-details').first()).toBeAttached();
     await expect(page.locator('.governance-decisions-table')).toHaveCount(0);
     await expect(page.locator('.app-notification-toggle')).toHaveCount(0);
   });
 
-  test('/leadership redirects to brief decision snapshot anchor', async ({ page }) => {
+  test('/leadership redirects to portfolio decision anchor', async ({ page }) => {
     await mockGovernanceApis(page);
     await page.goto('/leadership');
     if (page.url().includes('/login')) {
       test.skip(true, 'Auth required');
       return;
     }
-    expect(page.url()).toMatch(/\/governance#decision-snapshot/);
+    expect(page.url()).toMatch(/\/governance#portfolio-decision/);
   });
 });

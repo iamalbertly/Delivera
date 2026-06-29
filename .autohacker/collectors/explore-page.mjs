@@ -68,6 +68,7 @@ for (const vp of VIEWPORTS) {
 
   await page.addInitScript(() => {
     try { localStorage.setItem('delivera_selectedProjects', 'SD'); } catch (_) {}
+    try { localStorage.setItem('delivera_sidebar_collapsed', '1'); } catch (_) {}
     try { sessionStorage.setItem('gov-pi-auto-open-dismissed', '1'); } catch (_) {}
   });
 

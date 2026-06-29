@@ -17,6 +17,7 @@ import { getLiveReportFilterSnapshot } from './Delivera-Report-Page-Filter-Param
 import { reportState } from './Delivera-Report-Page-State.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
+import { formatRiskCountsRollup } from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
 import { formatProjectsCsvForDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 
 export const FRESHNESS_STALE_THRESHOLD_MS = 30 * 60 * 1000;
@@ -347,31 +348,76 @@ export function getContextDisplayString() {
 /**
  * Live sprint sidebar context from in-memory payload (avoids "No report run yet" on /current-sprint).
  */
+function isCurrentSprintSurface() {
+  if (typeof document === 'undefined') return false;
+  if (document.body?.classList?.contains('current-sprint-page')) return true;
+  const path = typeof window !== 'undefined' ? window.location?.pathname || '' : '';
+  return path === '/current-sprint' || path.endsWith('/current-sprint');
+}
+
+function readSprintNameFromDom() {
+  if (typeof document === 'undefined') return '';
+  const fromHeader = document.querySelector('.current-sprint-header-bar .header-sprint-name');
+  if (fromHeader?.textContent?.trim()) return fromHeader.textContent.trim();
+  const fromTitle = document.getElementById('current-sprint-name');
+  if (fromTitle?.textContent?.trim()) return fromTitle.textContent.trim();
+  const selectedTab = document.querySelector('[role="tab"][aria-selected="true"]');
+  if (selectedTab) {
+    const tabName = String(selectedTab.querySelector('div, span')?.textContent || selectedTab.textContent || '').trim();
+    if (tabName) return tabName.split(/\s{2,}|\n/)[0].trim();
+  }
+  return '';
+}
+
+function buildSprintStorageFallbackParts() {
+  const projects = readSharedProjectsCsv();
+  if (!projects.length) return null;
+  const sprintName = readSprintNameFromDom();
+  const parts = [
+    { label: 'Scope', value: formatProjectsCsvForDisplay(projects.join(',')), stateClass: '' },
+  ];
+  if (sprintName) {
+    parts.unshift({ label: 'Sprint', value: sprintName, stateClass: '' });
+  }
+  return parts;
+}
+
 function buildCurrentSprintSidebarContextParts() {
   const data = typeof window !== 'undefined' ? window.__deliveraCurrentSprintPayload : null;
-  if (!data?.sprint) return null;
-  const sprintName = String(data.sprint.name || 'Sprint').trim();
+  let sprintName = String(data?.sprint?.name || '').trim();
+  if (!sprintName && isCurrentSprintSurface()) {
+    sprintName = readSprintNameFromDom();
+  }
+  if (!sprintName) return null;
   const daysRemaining = data?.daysMeta?.daysRemaining;
   let timeValue = 'Live sprint';
   if (Number.isFinite(Number(daysRemaining))) {
     const whole = Math.floor(Number(daysRemaining));
     timeValue = whole <= 0 ? 'Ends today' : `Ends in ${whole}d`;
+  } else if (!data?.sprint) {
+    const verdictText = String(
+      document.querySelector('.current-sprint-header-bar .sprint-verdict-line')?.textContent || ''
+    ).trim();
+    const endsMatch = verdictText.match(/Ends in \d+d|Ends today/i);
+    if (endsMatch) timeValue = endsMatch[0];
   }
   const projects = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim() || 'All projects';
-  const counts = getUnifiedRiskCounts(data);
-  const rollup = formatRiskCountsRollup({
-    stale: Number(counts.blockersOwned || counts.blockers || 0),
-    missingEst: Number(counts.missingEstimate || 0),
-    missingLog: Number(counts.noLog || 0),
-    unowned: Number(counts.unassigned || 0),
-  });
   const parts = [
     { label: 'Sprint', value: sprintName, stateClass: '' },
     { label: 'Time', value: timeValue, stateClass: '' },
     { label: 'Scope', value: projects, stateClass: '' },
   ];
-  if (rollup) {
-    parts.push({ label: 'Signals', value: rollup, stateClass: ' is-warning' });
+  if (data) {
+    const counts = getUnifiedRiskCounts(data);
+    const rollup = formatRiskCountsRollup({
+      stale: Number(counts.blockersOwned || counts.blockers || 0),
+      missingEst: Number(counts.missingEstimate || 0),
+      missingLog: Number(counts.noLog || 0),
+      unowned: Number(counts.unassigned || 0),
+    });
+    if (rollup) {
+      parts.push({ label: 'Signals', value: rollup, stateClass: ' is-warning' });
+    }
   }
   return parts;
 }
@@ -383,7 +429,7 @@ function buildCurrentSprintSidebarContextParts() {
 export function getContextCardHtml() {
   const pieces = getContextPieces();
   const isReportPage = typeof document !== 'undefined' && document.body?.classList?.contains('report-page');
-  const isSprintPage = typeof document !== 'undefined' && document.body?.classList?.contains('current-sprint-page');
+  const isSprintPage = isCurrentSprintSurface();
   const previewActive = isReportPage && typeof document !== 'undefined' && document.body?.classList?.contains('preview-active');
   const sprintParts = isSprintPage ? buildCurrentSprintSidebarContextParts() : null;
 
@@ -397,6 +443,22 @@ export function getContextCardHtml() {
       stripAriaLabel: 'Current sprint context',
     });
     html += '</div>';
+    return html;
+  }
+
+  if (isSprintPage) {
+    const fallback = buildSprintStorageFallbackParts();
+    if (fallback?.length) {
+      html += renderContextPartList(fallback, {
+        className: 'context-card-segments context-card-segments--sprint-live',
+        segmentClass: 'context-card-segment',
+        containerAriaLabel: 'Current sprint context',
+        stripAriaLabel: 'Current sprint context',
+      });
+      html += '</div>';
+      return html;
+    }
+    html += '<p class="context-card-line">Loading sprint context…</p></div>';
     return html;
   }
 
@@ -442,7 +504,7 @@ export function getContextCardHtml() {
           Freshness: 'explain-freshness',
         }
         : {},
-    }) || '<p class="context-card-line">No report run yet</p>';
+    }) || (isSprintPage ? '' : '<p class="context-card-line">No report run yet</p>');
   }
   html += '</div>';
   return html;
@@ -450,5 +512,26 @@ export function getContextCardHtml() {
 
 export function renderSidebarContextCard() {
   const el = document.getElementById('sidebar-context-card');
-  if (el) el.innerHTML = getContextCardHtml();
+  if (!el) return;
+  el.innerHTML = getContextCardHtml();
+  if (
+    isCurrentSprintSurface()
+    && !el.querySelector('.context-card-segments--sprint-live')
+    && typeof window !== 'undefined'
+    && !renderSidebarContextCard._pendingRetry
+  ) {
+    renderSidebarContextCard._pendingRetry = true;
+    window.requestAnimationFrame(() => {
+      renderSidebarContextCard._pendingRetry = false;
+      const card = document.getElementById('sidebar-context-card');
+      if (!card || card.querySelector('.context-card-segments--sprint-live')) return;
+      card.innerHTML = getContextCardHtml();
+    });
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('delivera:currentSprintScopeRelocated', () => {
+    try { renderSidebarContextCard(); } catch (_) {}
+  });
 }

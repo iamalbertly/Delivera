@@ -754,28 +754,31 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
   });
 
   test('sidebar context shows live sprint signals instead of empty report fallback', async ({ page }) => {
+    await page.waitForSelector('.current-sprint-header-bar .header-sprint-name, [role="tab"][aria-selected="true"]', { timeout: 25000 });
+    await page.waitForFunction(() => {
+      return document.querySelector('#sidebar-context-card .context-card-segments--sprint-live');
+    }, { timeout: 15000 });
     const card = page.locator('#sidebar-context-card .context-card-segments--sprint-live');
     await expect(card).toBeVisible();
     await expect(page.locator('#sidebar-context-card')).not.toContainText(/No report run yet/i);
     await expect(card).toContainText(/Sprint|Ends|Live sprint/i);
   });
 
-  test('primary nav exposes three direct-to-value destinations', async ({ page }) => {
+  test('primary nav exposes four portfolio command destinations', async ({ page }) => {
     await loadSprintPage(page);
     const topChrome = page.locator('#app-top-chrome');
     if (await topChrome.isVisible().catch(() => false)) {
       const surfaces = topChrome.locator('[data-top-surface]');
-      await expect(surfaces).toHaveCount(3);
-      await expect(surfaces.filter({ hasText: /Today|Sprint/i })).toHaveCount(1);
-      await expect(surfaces.filter({ hasText: /Brief|Answer/i })).toHaveCount(1);
-      await expect(surfaces.filter({ hasText: /Proof/i })).toHaveCount(1);
+      await expect(surfaces).toHaveCount(4);
+      await expect(surfaces.filter({ hasText: /Portfolio/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Squads/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Actions/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Settings/i })).toHaveCount(1);
       return;
     }
-    const primaries = page.locator('.app-sidebar .sidebar-link');
-    await expect(primaries).toHaveCount(3);
-    await expect(primaries.filter({ hasText: /Current Sprint/i })).toHaveCount(1);
-    await expect(primaries.filter({ hasText: /Delivery/i })).toHaveCount(1);
-    await expect(primaries.filter({ hasText: /Leadership/i })).toHaveCount(1);
+    const primaries = page.locator('.app-sidebar .sidebar-link, .app-sidebar a.sidebar-link');
+    await expect(primaries).toHaveCount(4);
+    await expect(primaries.filter({ hasText: /Portfolio|Squads|Actions|Settings/i })).toHaveCount(4);
   });
 
   test('Daily completion timeline filters Issues table by completion day', async ({ page }) => {

@@ -6,6 +6,7 @@ import { mountOrganizationPanel } from './Delivera-Settings-Organization-01ReadO
 import { mountIntegrationsPanel } from './Delivera-Settings-Integrations-01Health-Panel-UI.js';
 import { initSettingsJiraActivityPanel } from './Delivera-Settings-JiraActivity-01Page-01Controller.js';
 import { ensureProjectCatalogLoaded } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
+import { getSurfaceQuickLinks, PAGE_REPORT } from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
 
 const SECTIONS = [
   { id: 'my-workspace', label: 'My workspace' },
@@ -14,12 +15,7 @@ const SECTIONS = [
   { id: 'jira-activity', label: 'Activity' },
 ];
 
-const SURFACE_QUICK_LINKS = [
-  { href: '/governance', label: 'Portfolio', desc: 'AI signal & decisions' },
-  { href: '/current-sprint', label: 'Squads', desc: 'Blockers & nudges today' },
-  { href: '/actions', label: 'Actions', desc: 'Ready nudges & proof' },
-  { href: '/report', label: 'Proof', desc: 'Evidence drill-down' },
-];
+const SURFACE_QUICK_LINKS = getSurfaceQuickLinks([PAGE_REPORT]);
 
 function renderQuickNav() {
   const mount = document.getElementById('settings-quick-nav');

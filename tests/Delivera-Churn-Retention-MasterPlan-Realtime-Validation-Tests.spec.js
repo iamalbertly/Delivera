@@ -9,6 +9,7 @@ import {
   skipIfRedirectedToLogin,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import { PROJECTS_SSOT_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
+import { waitForLegacyBriefHydrated, waitForPortfolioReady } from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 function squadInsight(pk, tier = 'watch') {
   return {
@@ -59,6 +60,46 @@ function stubChurnBrief(projects = ['SD'], overrides = {}) {
   });
 }
 
+async function mockPortfolioDecision(page) {
+  await page.route('**/api/governance/interventions/seed-from-brief**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      cases: [{ id: 'SD-5184', project: 'SD', title: 'Stuck epic', needsApproval: true }],
+    }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: {
+          headline: 'SD needs scope confirmation',
+          narrative: { headline: 'SD needs scope confirmation', mainIssue: 'Evidence gap' },
+          aboveFold: { exposedCommitments: 1, actionsReady: 1, poResponsesRequired: 0, nextDeadline: 'Today' },
+          affectedCommitments: [{ id: 'SD-5184', title: 'Stuck epic', status: 'At risk', reason: 'Stuck', decisionNeeded: 'Confirm scope' }],
+          preparedActions: { groups: [{ role: 'Product Owner', count: 1, label: '1 Product Owner' }], items: [], totalReady: 1 },
+          metrics: { delivery: { value: 25, peerMedian: 50 }, offPlanLoad: { value: 20, peerMedian: 10 }, proofConfidence: { value: 35, peerMedian: 48 } },
+          trust: { liveCases: 1, nudgesReady: 1, proofLevel: 'Low' },
+          drivers: [{ title: 'Evidence', summary: 'Proof confidence is low.' }],
+          decisionOptions: [{ id: 'review-scope', label: 'Review scope', impactPreview: 'Confirm scope before investment review.' }],
+          monitoring: { squadCount: 1, commitmentCount: 4, exposedCommitmentCount: 1 },
+          anchorProject: 'SD',
+          recommendation: { label: 'Confirm scope and proof before investment review' },
+          peerComparison: { sentence: 'The current difference is evidence quality, not proven delivery underperformance.' },
+        },
+        comparison: {
+          cards: [{ projectKey: 'SD', squadName: 'DMS Squad', selected: true, status: 'Blocked', statusClass: 'blocked', explanation: 'SD blocked path.' }],
+          actionsStrip: {},
+        },
+        cases: [],
+      }),
+    });
+  });
+}
+
 async function mockChurnGovernance(page, opts = {}) {
   const { projects = 'SD', briefDelayMs = 0, mismatch = false, periodBodies = null } = opts;
   await page.addInitScript(({ key, pk }) => {
@@ -67,6 +108,7 @@ async function mockChurnGovernance(page, opts = {}) {
     try { sessionStorage.setItem('gov-pi-auto-open-dismissed', '1'); } catch (_) {}
   }, { key: PROJECTS_SSOT_KEY, pk: projects });
   await routeProjectsCatalog(page);
+  await mockPortfolioDecision(page);
   await page.route('**/api/governance-brief.json**', async (route) => {
     if (briefDelayMs > 0) await new Promise((r) => setTimeout(r, briefDelayMs));
     const url = route.request().url();
@@ -129,10 +171,18 @@ async function mockChurnGovernance(page, opts = {}) {
   }));
 }
 
-async function clickScopeProject(page, pk) {
-  const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`);
-  await expect(chip).toBeVisible({ timeout: 10000 });
-  await chip.click();
+async function clickLegacyScopeProject(page, pk) {
+  await page.waitForSelector(`#gov-scope-bar-mount [data-project="${pk}"]`, { state: 'attached', timeout: 15000 });
+  await page.evaluate((projectKey) => {
+    document.querySelector(`#gov-scope-bar-mount [data-project="${projectKey}"]`)?.click();
+  }, pk);
+}
+
+async function clickLegacyScopeBar(page, selector) {
+  await page.waitForSelector(`#gov-scope-bar-mount ${selector}`, { timeout: 20000, state: 'attached' });
+  await page.evaluate((sel) => {
+    document.querySelector(`#gov-scope-bar-mount ${sel}`)?.click();
+  }, selector);
 }
 
 test.describe('Churn retention master plan realtime validation', () => {
@@ -146,7 +196,7 @@ test.describe('Churn retention master plan realtime validation', () => {
       await mockChurnGovernance(page);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
+      await waitForPortfolioReady(page);
       assertTelemetryClean(telemetry);
     });
 
@@ -154,10 +204,14 @@ test.describe('Churn retention master plan realtime validation', () => {
       await mockChurnGovernance(page, { projects: 'SD', briefDelayMs: 600 });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
-      await clickScopeProject(page, 'BIO');
+      await waitForPortfolioReady(page);
+      const briefWait = page.waitForResponse(
+        (res) => res.url().includes('/api/governance-brief.json') && res.url().includes('BIO') && res.ok(),
+        { timeout: 15000 },
+      );
+      await page.locator('#portfolio-scope-selected').selectOption('BIO');
       await expect(page.locator('#gov-brief-content')).toHaveAttribute('data-scope-stale', 'true', { timeout: 3000 });
-      await expect(page.locator('.gov-scope-stale-overlay')).toBeVisible();
+      await briefWait;
       await expect(page.locator('#gov-brief-content')).not.toHaveAttribute('data-scope-stale', 'true', { timeout: 15000 });
       assertTelemetryClean(telemetry);
     });
@@ -179,23 +233,14 @@ test.describe('Churn retention master plan realtime validation', () => {
       }, PROJECTS_SSOT_KEY);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
-      if (!(await page.locator('.gov-scope-capsule-text').textContent())?.includes('1 squad')) {
-        await clickScopeProject(page, 'SD');
-        await page.waitForTimeout(400);
-      }
-      await expect(page.locator('.gov-scope-capsule-text')).toContainText('1 squad');
-      await expect(page.locator('[data-compare-add-tray="1"]')).toBeVisible({ timeout: 10000 });
-      const addSecond = page.locator('[data-compare-add="MPSA"]');
-      await expect(addSecond).toBeVisible();
+      await waitForPortfolioReady(page);
       const briefWait = page.waitForResponse(
         (res) => res.url().includes('/api/governance-brief.json') && res.url().includes('MPSA') && res.ok(),
         { timeout: 15000 },
       );
-      await addSecond.click();
+      await page.locator('#portfolio-scope-add').selectOption('MPSA');
       await briefWait;
       await page.waitForTimeout(400);
-      await expect(page.locator('.gov-scope-capsule-text')).toContainText('2 squad');
       const stored = await page.evaluate(() => localStorage.getItem('delivera_selectedProjects') || '');
       expect(stored.split(',').filter(Boolean).length).toBe(2);
       expect(stored.toUpperCase()).toMatch(/SD/);
@@ -204,9 +249,10 @@ test.describe('Churn retention master plan realtime validation', () => {
     });
 
     await test.step('05 two-squad compare renders in right rail mount', async () => {
-      await expect(page.locator('#gov-compare-rail-mount [data-compare-rail="1"]')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('[data-compare-rail-card="SD"]')).toBeVisible();
-      await expect(page.locator('[data-compare-rail-card="MPSA"]')).toBeVisible();
+      await waitForLegacyBriefHydrated(page);
+      await expect(page.locator('#gov-compare-rail-mount [data-compare-rail="1"]')).toBeAttached({ timeout: 10000 });
+      await expect(page.locator('[data-compare-rail-card="SD"]')).toBeAttached();
+      await expect(page.locator('[data-compare-rail-card="MPSA"]')).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 
@@ -232,12 +278,14 @@ test.describe('Churn retention master plan realtime validation', () => {
       }, PROJECTS_SSOT_KEY);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await clickScopeProject(page, 'SD');
-      await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
+      await waitForPortfolioReady(page);
+      await waitForLegacyBriefHydrated(page);
       await page.keyboard.press('Escape');
       const baselineBtn = page.locator('[data-setup-baseline-ssot="1"]').first();
-      await expect(baselineBtn).toBeVisible({ timeout: 15000 });
-      await baselineBtn.click();
+      await expect(baselineBtn).toBeAttached({ timeout: 15000 });
+      await page.evaluate(() => {
+        document.querySelector('[data-setup-baseline-ssot="1"]')?.click();
+      });
       await expect(page.locator('[data-testid="gov-baseline-context"]')).toBeVisible({ timeout: 10000 });
       await expect(page.locator('[data-ai-key-hint="1"]')).toHaveCount(0);
       await expect(page.locator('[data-ai-server-ready="1"]')).toBeAttached();
@@ -258,14 +306,21 @@ test.describe('Churn retention master plan realtime validation', () => {
       await page.evaluate((key) => {
         localStorage.setItem(key, 'SD');
         sessionStorage.removeItem('delivera:brief:cache:v1');
+        sessionStorage.setItem('gov-period-window', '28d');
       }, PROJECTS_SSOT_KEY);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await clickScopeProject(page, 'SD');
-      await expect(page.locator('#main-content')).toContainText('PERIOD-28D', { timeout: 15000 });
-      await page.locator('[data-period-chip="14d"]').click();
-      await page.waitForTimeout(500);
-      await expect(page.locator('#main-content')).toContainText('PERIOD-14D', { timeout: 15000 });
+      await waitForPortfolioReady(page);
+      await waitForLegacyBriefHydrated(page);
+      await expect.poll(async () => page.evaluate(() => document.querySelector('#gov-answer-mount')?.textContent || '')).toContain('PERIOD-28D', { timeout: 15000 });
+      const brief14Wait = page.waitForResponse(
+        (res) => res.url().includes('/api/governance-brief.json') && res.url().includes('periodWindow=14d') && res.ok(),
+        { timeout: 15000 },
+      );
+      await clickLegacyScopeBar(page, '[data-period-chip="14d"]');
+      await brief14Wait;
+      await waitForLegacyBriefHydrated(page);
+      await expect.poll(async () => page.evaluate(() => document.querySelector('#gov-answer-mount')?.textContent || '')).toContain('PERIOD-14D', { timeout: 15000 });
       assertTelemetryClean(telemetry);
     });
 
@@ -273,7 +328,9 @@ test.describe('Churn retention master plan realtime validation', () => {
       await mockChurnGovernance(page);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('#gov-right-rail-proof-mount .gov-evidence-preview')).toBeVisible({ timeout: 15000 });
+      await waitForPortfolioReady(page);
+      await waitForLegacyBriefHydrated(page);
+      await expect(page.locator('#gov-right-rail-proof-mount .gov-evidence-preview')).toBeAttached({ timeout: 15000 });
       await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', false);
       assertTelemetryClean(telemetry);
     });
@@ -287,12 +344,14 @@ test.describe('Churn retention master plan realtime validation', () => {
       await mockChurnGovernance(page, { projects: 'SD' });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('#gov-right-rail-mount [data-inbox-inline="1"]')).toBeVisible({ timeout: 15000 });
+      await waitForPortfolioReady(page);
+      await waitForLegacyBriefHydrated(page);
+      await expect(page.locator('#gov-right-rail-mount [data-inbox-inline="1"]')).toBeAttached({ timeout: 15000 });
       const statusChip = page.locator('#gov-scope-bar-mount .gov-scope-status-chip');
-      await expect(statusChip).toBeVisible();
+      await expect(statusChip).toBeAttached();
       const chipText = await statusChip.textContent();
       expect(chipText || '').not.toMatch(/pending/i);
-      await expect(page.locator('[data-queue-rail-head="1"]')).toBeVisible();
+      await expect(page.locator('[data-queue-rail-head="1"]')).toBeAttached();
       assertTelemetryClean(telemetry);
     });
 
@@ -317,14 +376,17 @@ test.describe('Churn retention master plan realtime validation', () => {
       await mockChurnGovernance(page, { projects: 'SD' });
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
-      const addSecond = page.locator('[data-compare-add="MPSA"]');
-      if (await addSecond.count()) await addSecond.click();
-      await page.waitForTimeout(400);
-      await clickScopeProject(page, 'SD');
+      await waitForPortfolioReady(page);
+      await waitForLegacyBriefHydrated(page);
+      const addSecond = page.locator('#portfolio-scope-add');
+      if (await addSecond.count()) await addSecond.selectOption('MPSA');
       await page.waitForTimeout(400);
       const approve = page.locator('[data-inbox-approve]').first();
-      if (await approve.count()) await approve.click();
+      if (await approve.count()) {
+        await page.evaluate(() => {
+          document.querySelector('[data-inbox-approve]')?.click();
+        });
+      }
       assertTelemetryClean(telemetry);
     });
   });

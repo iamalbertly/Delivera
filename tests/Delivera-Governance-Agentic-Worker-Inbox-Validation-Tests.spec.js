@@ -10,6 +10,10 @@ import { RISK_TYPES } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { GOVERNANCE_THRESHOLDS } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
 import { briefToMarkdown } from '../public/Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { buildGuidedNudgeText } from '../public/Delivera-CurrentSprint-Action-Bridge.js';
+import {
+  waitForGovernanceReady,
+  legacyBrief,
+} from './Delivera-Portfolio-Primary-Test-Helpers.js';
 
 function mockBoardPayload() {
   return {
@@ -70,12 +74,15 @@ async function disableSidebarPointerBlock(page) {
   await page.evaluate(() => {
     const sidebar = document.getElementById('app-sidebar');
     if (sidebar) sidebar.style.pointerEvents = 'none';
+    const scope = document.getElementById('portfolio-scope-bar-mount');
+    if (scope) scope.style.pointerEvents = 'none';
   });
 }
 
-/** Scroll right rail into view when queue chip is below fold in CI viewports. */
+/** Queue chip lives in hidden legacy right rail on portfolio-primary governance. */
 async function openGovernanceAgentQueueChrome(page) {
-  await page.locator('#gov-right-rail-mount').scrollIntoViewIfNeeded();
+  await waitForGovernanceReady(page);
+  await page.waitForSelector('#gov-brief-content [data-queue-open]', { state: 'attached', timeout: 20000 });
 }
 
 async function openGovernanceDetails(page, elementId) {
@@ -102,6 +109,41 @@ async function mockGovernancePage(page) {
   await page.route('**/api/governance/feedback-summary.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, agents: [], lastImprovements: [] }),
   }));
+  await page.route('**/api/governance/interventions/seed-from-brief**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, seeded: 0, cases: [] }),
+  }));
+  await page.route('**/api/governance/portfolio-decision.json**', (r) => {
+    if (r.request().method() !== 'POST') return r.continue();
+    return r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        decision: {
+          headline: 'DELIVERY BLOCKED',
+          narrative: { headline: 'DELIVERY BLOCKED', summary: 'One stale item.' },
+          aboveFold: { exposedCommitments: 1, actionsReady: 1, poResponsesRequired: 0, nextDeadline: null },
+          affectedCommitments: [{ id: 'c1', title: 'Stuck', status: 'open', reason: 'dependency label', decisionNeeded: true }],
+          preparedActions: { groups: [{ role: 'Scrum Master', count: 1, label: '1 action' }], items: [], escalationReady: false },
+          monitoring: { liveCases: 1, exposedCommitmentCount: 1, commitmentCount: 0 },
+        },
+        cards: [],
+      }),
+    });
+  });
+}
+
+async function clickLegacy(page, selector) {
+  const loc = page.locator(`#gov-brief-content ${selector}`).first();
+  await loc.waitFor({ state: 'attached', timeout: 20000 });
+  await loc.dispatchEvent('click');
+}
+
+async function openQueueDrawerFromLegacy(page) {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await openGovernanceAgentQueueChrome(page);
+  await clickLegacy(page, '[data-queue-open]');
+  await expect(page.locator('.gov-right-drawer-panel')).toBeVisible({ timeout: 15000 });
 }
 
 test.describe('Governance agentic worker — unit logic', () => {
@@ -164,7 +206,8 @@ test.describe('Governance agentic worker — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await expect(page.locator('#gov-queue-mount [data-queue-open]')).toBeVisible();
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '[data-queue-open]')).toBeAttached();
     assertTelemetryClean(telemetry);
   });
 
@@ -180,7 +223,8 @@ test.describe('Governance agentic worker — UI', () => {
     });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-queue-mount .gov-inbox-hint')).toContainText(/Brief is preparing/i);
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '.gov-inbox-hint')).toContainText(/Brief is preparing/i);
   });
 
   test('freshness review link opens confirm tab in drawer', async ({ page }) => {
@@ -208,8 +252,13 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.locator('#gov-rail-review-claims, #gov-freshness-review').first().click();
-    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await waitForGovernanceReady(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.evaluate(() => {
+      document.querySelector('#gov-brief-content #gov-rail-review-claims')?.click()
+        || document.querySelector('#gov-brief-content #gov-freshness-review')?.click();
+    });
+    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-queue-tab="doNow"].is-active, [data-queue-tab="confirm"].is-active').first()).toBeVisible();
   });
 
@@ -221,11 +270,7 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await openGovernanceAgentQueueChrome(page);
-    const queueOpen = page.locator('[data-queue-open]');
-    await expect(queueOpen).toBeVisible({ timeout: 15000 });
-    await queueOpen.click({ force: true });
-    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await openQueueDrawerFromLegacy(page);
     await expect(page.locator('.gov-inbox-group-card')).toBeVisible();
   });
 
@@ -248,8 +293,7 @@ test.describe('Governance agentic worker — UI', () => {
     const telemetry = await captureBrowserTelemetry(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await openGovernanceAgentQueueChrome(page);
-    await page.locator('[data-queue-open]').click({ force: true });
+    await openQueueDrawerFromLegacy(page);
     await expect(page.locator('.gov-inbox-cached-hint, .gov-inbox-hint')).toBeVisible();
     assertTelemetryClean(telemetry);
   });
@@ -268,9 +312,7 @@ test.describe('Governance agentic worker — UI', () => {
     });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await openGovernanceAgentQueueChrome(page);
-    await page.locator('[data-queue-open]').click({ force: true });
-    await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
+    await openQueueDrawerFromLegacy(page);
     const drawerApprove = page.locator('.gov-right-drawer-panel [data-inbox-approve="n1"]');
     await expect(drawerApprove).toBeVisible();
     await disableSidebarPointerBlock(page);
@@ -286,8 +328,7 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await openGovernanceAgentQueueChrome(page);
-    await page.locator('[data-queue-open]').click({ force: true });
+    await openQueueDrawerFromLegacy(page);
     await expect(page.locator('.gov-inbox-group-card')).toContainText(/PI drift/i);
   });
 
@@ -296,8 +337,10 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-secondary-chrome')).toHaveAttribute('hidden', '');
-    await expect(page.locator('#gov-micro-survey-mount')).toBeAttached();
+    await waitForGovernanceReady(page);
+    await expect(page.locator('#gov-brief-content')).toHaveAttribute('hidden', '');
+    await expect(legacyBrief(page, '#gov-micro-survey-mount .gov-micro-pill').first()).toBeAttached();
+    await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
   });
 
   test('nudges tab shows draft excerpt and review opens sheet', async ({ page }) => {
@@ -324,9 +367,7 @@ test.describe('Governance agentic worker — UI', () => {
     }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await openGovernanceAgentQueueChrome(page);
-    await page.locator('[data-queue-open]').click({ force: true });
-    await page.locator('[data-queue-tab="doNow"], [data-queue-tab="nudges"]').first().click();
+    await openQueueDrawerFromLegacy(page);
     await expect(page.locator('.gov-inbox-draft-excerpt')).toContainText(/confirm next step/i);
     await disableSidebarPointerBlock(page);
     await page.locator('[data-group-review]').first().click();
@@ -339,11 +380,11 @@ test.describe('Governance agentic worker — UI', () => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.route('**/api/governance/adoption-metric', (r) => { posted = true; return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }); });
+    await page.addInitScript((key) => { localStorage.removeItem(key); }, GOVERNANCE_SURVEY_LAST_ASKED_KEY);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.evaluate(() => { document.getElementById('gov-secondary-chrome')?.removeAttribute('hidden'); });
-    await openGovernanceDetails(page, 'gov-secondary-chrome');
-    await page.locator('.gov-micro-pill[data-minutes="10"]').click();
+    await waitForGovernanceReady(page);
+    await clickLegacy(page, '.gov-micro-pill[data-minutes="10"]');
     await expect.poll(() => posted).toBe(true);
   });
 
@@ -359,7 +400,8 @@ test.describe('Governance agentic worker — UI', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     const telemetry = await captureBrowserTelemetry(page);
-    await page.locator('#gov-copy-answer-inline').click();
+    await waitForGovernanceReady(page);
+    await page.evaluate(() => { document.dispatchEvent(new CustomEvent('delivera-gov-copy-answer')); });
     await expect.poll(() => feedbackBody?.source, { timeout: 3000 }).toBe('sm-accepted');
     assertTelemetryClean(telemetry);
   });
@@ -371,11 +413,9 @@ test.describe('Governance agentic worker — UI', () => {
     await page.addInitScript((key) => { localStorage.removeItem(key); }, GOVERNANCE_SURVEY_LAST_ASKED_KEY);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await page.evaluate(() => { document.getElementById('gov-secondary-chrome')?.removeAttribute('hidden'); });
-    await openGovernanceDetails(page, 'gov-secondary-chrome');
-    await disableSidebarPointerBlock(page);
-    await page.locator('.gov-micro-pill[data-minutes="3"]').click({ force: true });
-    await expect(page.locator('#gov-micro-survey-mount')).toHaveClass(/gov-micro-survey--done/);
+    await waitForGovernanceReady(page);
+    await clickLegacy(page, '.gov-micro-pill[data-minutes="3"]');
+    await expect(legacyBrief(page, '#gov-micro-survey-mount')).toHaveClass(/gov-micro-survey--done/);
   });
 
   test('briefToMarkdown includes Grow My Impact section', () => {
@@ -389,9 +429,10 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('.gov-owner-cluster')).toContainText(/Scrum Master/i);
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '.gov-owner-cluster')).toContainText(/Scrum Master/i);
     await openGovernanceDetails(page, 'gov-supporting-evidence');
-    await expect(page.locator('#gov-proof-risks')).toBeAttached();
+    await expect(legacyBrief(page, '#gov-proof-risks')).toBeAttached();
   });
 
   test('quarter pills in scope drawer panel', async ({ page }) => {
@@ -399,8 +440,10 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await disableSidebarPointerBlock(page);
-    await expect(page.locator('#gov-scope-expanded .gov-scope-quarter-pill')).toHaveCount(1);
+    await waitForGovernanceReady(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForSelector('#gov-brief-content #gov-scope-expanded .gov-scope-quarter-pill', { state: 'attached', timeout: 20000 });
+    await expect(legacyBrief(page, '#gov-scope-expanded .gov-scope-quarter-pill')).toHaveCount(1);
   });
 
   test('merged supporting evidence details', async ({ page }) => {
@@ -408,7 +451,8 @@ test.describe('Governance agentic worker — UI', () => {
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    await expect(page.locator('#gov-supporting-evidence')).toBeVisible();
+    await waitForGovernanceReady(page);
+    await expect(legacyBrief(page, '#gov-supporting-evidence')).toBeAttached();
     await expect(page.locator('#gov-evidence-wrap')).toHaveCount(0);
   });
 });

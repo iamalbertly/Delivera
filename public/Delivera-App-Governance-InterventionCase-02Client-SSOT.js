@@ -22,7 +22,8 @@ export function briefRisks(brief = {}) {
   return [
     ...(Array.isArray(brief.topRisks) ? brief.topRisks : []),
     ...(Array.isArray(brief?.leadershipNarrative?.decisionsNeeded) ? brief.leadershipNarrative.decisionsNeeded : []),
-  ].slice(0, 8);
+    ...(Array.isArray(brief?.meta?.actionPlan?.groupedActions) ? brief.meta.actionPlan.groupedActions : []),
+  ].slice(0, 12);
 }
 
 export async function seedFromBrief({ brief, projectsCsv, periodKey, anchorOnly = '' } = {}) {

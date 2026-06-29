@@ -1,4 +1,5 @@
 import { formatDateTimeLocalForInput } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { fetchDateRangeMemo } from './Delivera-Shared-DateRange-01Fetch-Memo.js';
 
 export function getFiscalShortLabel(endDate) {
   if (!endDate || Number.isNaN(endDate.getTime())) return '';
@@ -81,10 +82,7 @@ export function initQuarterQuickRange(options = {}) {
       btn.classList.add('is-active');
       btn.setAttribute('aria-pressed', 'true');
       let data = null;
-      const res = await fetch(`/api/date-range?quarter=Q${encodeURIComponent(q)}`);
-      if (res.ok) {
-        data = await res.json();
-      }
+      data = await fetchDateRangeMemo(q);
       if (!data || !data.start || !data.end) {
         data = getVodacomQuarterFallback(q);
       }
@@ -111,8 +109,7 @@ export function initQuarterQuickRange(options = {}) {
 
   const fetches = [1, 2, 3, 4].map(async (q) => {
     try {
-      const res = await fetch(`/api/date-range?quarter=Q${q}`);
-      const data = res.ok ? await res.json() : null;
+      const data = await fetchDateRangeMemo(q);
       return { q, data: (data && data.label) ? data : getVodacomQuarterFallback(q) };
     } catch (_) {
       return { q, data: getVodacomQuarterFallback(q) };

@@ -1,5 +1,6 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
+import { mockGovernancePage } from './Delivera-Portfolio-Primary-Test-Helpers.js';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { execSync } from 'child_process';
@@ -39,9 +40,7 @@ async function mockGovernanceBriefPage(page) {
     sessionStorage.setItem('gov-pi-auto-open-dismissed', '1');
   }, AI_PREF);
   await routeProjectsCatalog(page);
-  await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify(CLARITY_BRIEF),
-  }));
+  await mockGovernancePage(page, { brief: CLARITY_BRIEF });
   await page.route('**/api/quarters-list**', (r) => r.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ quarters: [{ label: 'FY27 Q1', isCurrent: true }] }),

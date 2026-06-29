@@ -12,7 +12,7 @@ import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 import { readNotificationSummary } from './Delivera-Shared-Notifications-Dock-Manager.js';
 import { buildDistinctSprintFilterViews, getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
 import { renderHealthDashboard, buildEvidenceLine } from './Delivera-CurrentSprint-Health-Dashboard.js';
-import { getContextPieces, renderContextSegments } from './Delivera-Shared-Context-From-Storage.js';
+import { getContextPieces, renderContextSegments, renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import { formatProjectsCsvForDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import {
   deriveUseCaseFromRiskTags,
@@ -516,9 +516,6 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-drawer-links">';
   html += '<button type="button" class="header-follow-up-link" data-header-action="reset-filters">' + escapeHtml(SPRINT_COPY.resetLens) + '</button>';
   if (!isHistoricalSprint) {
-    html += '<button type="button" class="header-follow-up-link" data-header-action="focus-remediation-secondary">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</button>';
-  }
-  if (!isHistoricalSprint) {
     if (selectedProject && boardName) {
       html += '<a class="header-follow-up-link header-leadership-link" href="/leadership?project=' + encodeURIComponent(selectedProject) + '&board=' + encodeURIComponent(boardName) + '" data-header-action="open-leadership-trend">' + escapeHtml(SPRINT_COPY.leadershipTrend) + '</a>';
     }
@@ -558,21 +555,6 @@ export function renderHeaderBar(data, options = {}) {
     html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';
   }
   html += '</div>';
-  if (hasPriorityInterventions && !viewportLean) {
-    html += '<div class="header-action-shortlist" aria-label="Top intervention shortlist">';
-    compactStripInterventions.slice(0, 2).forEach((item, index) => {
-      const tags = Array.isArray(item.riskTags) ? item.riskTags.join(' ') : '';
-      const label = String(item.label || SPRINT_COPY.focusRiskFallback).trim();
-      html += '<button type="button" class="header-action-shortlist-item"'
-        + ' data-header-action="focus-remediation-shortlist"'
-        + ' data-shortlist-index="' + escapeHtml(String(index)) + '"'
-        + ' data-risk-tags="' + escapeHtml(tags) + '"'
-        + '>'
-        + escapeHtml(label)
-        + '</button>';
-    });
-    html += '</div>';
-  }
   const showIntelligenceStrip = issuesCount > 0 && !viewportLean && (edgeStateAttr !== 'none' || stuckCount > 0);
   if (showIntelligenceStrip) {
     html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
@@ -647,6 +629,9 @@ export function wireHeaderBarHandlers() {
     if (headerBarsAll.length > 1) {
       headerBarsAll.slice(1).forEach((hb) => { try { hb.remove(); } catch (_) {} });
     }
+  } catch (_) {}
+  try {
+    renderSidebarContextCard();
   } catch (_) {}
   if (headerBar.dataset.headerBarHandlersWired === '1') return;
   headerBar.dataset.headerBarHandlersWired = '1';

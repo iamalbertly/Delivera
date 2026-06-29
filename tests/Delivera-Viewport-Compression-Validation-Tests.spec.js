@@ -203,23 +203,24 @@ test.describe('Viewport compression and layering', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('governance first paint keeps agent queue and secondary chrome collapsed', async ({ page }) => {
+  test('governance first paint keeps portfolio surface and legacy chrome collapsed', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#gov-right-rail-mount')).toBeVisible();
-    await expect(page.locator('#gov-secondary-chrome')).not.toHaveAttribute('open', /.+/);
-    await expect(page.locator('#gov-supporting-evidence')).not.toHaveAttribute('open', /.+/);
+    await page.waitForSelector('[data-portfolio-signal]', { timeout: 25000 });
+    await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+    await expect(page.locator('#gov-brief-content')).toBeHidden();
+    await expect(page.locator('#gov-right-rail-mount')).toBeAttached();
+    await expect(page.locator('#gov-right-rail-mount')).toBeHidden();
+    await expect(page.locator('#portfolio-layout #gov-secondary-chrome')).toHaveCount(0);
+    await expect(page.locator('#gov-brief-content #gov-secondary-chrome')).toBeAttached();
     await expect(page.locator('#app-top-chrome')).toBeVisible();
     await expect(page.locator('[data-top-action="agent"]')).toHaveCount(0);
 
-    const answerMount = page.locator('#gov-answer-mount');
-    if (await answerMount.locator('.gov-command-answer, .gov-visual-answer-blocks').count()) {
-      const box = await answerMount.boundingBox();
-      expect(box?.y ?? 9999).toBeLessThan(900);
-    }
+    const signalBox = await page.locator('[data-portfolio-signal]').boundingBox();
+    expect(signalBox?.y ?? 9999).toBeLessThan(900);
 
     assertTelemetryClean(telemetry);
   });

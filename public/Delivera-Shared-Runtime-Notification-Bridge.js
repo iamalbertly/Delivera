@@ -74,7 +74,10 @@ export function initRuntimeNotificationBridge() {
     try {
       origError(...args);
     } finally {
-      appendRuntimeAlert({ level: 'error', message: normalizeArgs(args), source: 'console.error' });
+      const text = normalizeArgs(args);
+      // Single SSOT for extension noise — replaces the deleted installExtensionTrustHint wrapper.
+      if (/runtime\.lastError|message port closed|extension/i.test(text)) return;
+      appendRuntimeAlert({ level: 'error', message: text, source: 'console.error' });
     }
   };
 
@@ -82,7 +85,9 @@ export function initRuntimeNotificationBridge() {
     try {
       origWarn(...args);
     } finally {
-      appendRuntimeAlert({ level: 'warn', message: normalizeArgs(args), source: 'console.warn' });
+      const text = normalizeArgs(args);
+      if (/runtime\.lastError|message port closed|extension/i.test(text)) return;
+      appendRuntimeAlert({ level: 'warn', message: text, source: 'console.warn' });
     }
   };
 

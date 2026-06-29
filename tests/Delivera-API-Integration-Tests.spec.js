@@ -498,7 +498,7 @@ test.describe('Delivera - API Integration Tests', () => {
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('text/html');
     const body = await response.text();
-    expect(body).toContain('Current Sprint');
+    expect(body).toMatch(/Today|Current Sprint/);
   });
 
   test('GET /sprint-leadership should redirect/resolve to report trends page', async ({ request }) => {

@@ -4,7 +4,7 @@ import {
   assertTelemetryClean,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
 import {
-  waitForPortfolioReady,
+  waitForGovernanceReady,
   legacyBrief,
   clickLegacy,
   mockPortfolioDecision,
@@ -97,7 +97,7 @@ test.describe('Executive Brief pulse realtime validation', () => {
     await test.step('Stage A: portfolio signal visible, legacy brief hydrated', async () => {
       await page.goto('/governance');
       if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-      await waitForPortfolioReady(page);
+      await waitForGovernanceReady(page);
       await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
       await expect(legacyBrief(page, '.gov-owner-cluster')).toBeAttached();
       await expect(legacyBrief(page, '.gov-scope-status-chip--blocked, .gov-scope-status-chip').first()).toContainText(/blocked|at risk/i);
