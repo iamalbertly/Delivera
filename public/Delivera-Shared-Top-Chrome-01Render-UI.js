@@ -12,6 +12,19 @@ import { escapeHtml, escapeAttr } from './Delivera-Shared-Dom-Escape-Helpers.js'
 import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { openImproveDeliveraModal } from './Delivera-Shared-ImproveDelivera-01Modal-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import {
+  PAGE_LOGIN,
+  PAGE_ACTIONS,
+  PAGE_GOVERNANCE,
+  PAGE_SPRINTS,
+  PAGE_REPORT,
+  PAGE_EVIDENCE,
+  PAGE_SETTINGS,
+  SURFACE_SWITCHER,
+  getChromeSurfacePage,
+  getCurrentPageForChrome,
+  getCurrentPage,
+} from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
 
 export const TOP_CHROME_ID = 'app-top-chrome';
 export const NOTIFICATION_SLOT_ID = 'app-notification-slot';
@@ -29,20 +42,6 @@ export const TOP_CHROME_SELECTORS = {
   improve: '[data-top-action="improve-delivera"]',
   avatar: '[data-top-action="avatar"]',
 };
-
-import {
-  PAGE_LOGIN,
-  PAGE_ACTIONS,
-  PAGE_GOVERNANCE,
-  PAGE_SPRINTS,
-  PAGE_REPORT,
-  PAGE_EVIDENCE,
-  PAGE_SETTINGS,
-  SURFACE_SWITCHER,
-  getChromeSurfacePage,
-  getCurrentPageForChrome,
-  getCurrentPage,
-} from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
 
 const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
 const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
@@ -179,7 +178,7 @@ function buildTopChromeHTML(current) {
     + `<button type="button" class="app-top-create" data-top-action="create-work" data-open-outcome-modal data-outcome-context="Create work from global chrome." data-outcome-projects="${escapeAttr(projects)}">`
     + '<span aria-hidden="true">+</span><span class="app-top-create-label">Create</span></button>'
     + buildAiTrustPillHTML()
-    + (current === PAGE_GOVERNANCE ? '' : `<button type="button" class="app-top-agent-pill is-visible" data-top-action="agent">Actions</button>`)
+    + (current === PAGE_GOVERNANCE || current === PAGE_ACTIONS ? '' : `<button type="button" class="app-top-agent-pill is-visible" data-top-action="agent">Actions</button>`)
     + `<button type="button" class="app-top-btn app-top-icon-btn" data-top-action="notifications" id="app-top-notifications-btn" aria-label="Notifications" title="Notifications">`
     + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"/></svg>'
     + '<span class="app-top-notify-badge" id="app-top-notify-badge" hidden></span></button>'
@@ -187,8 +186,8 @@ function buildTopChromeHTML(current) {
     + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg></button>'
     + `<button type="button" class="app-top-btn app-top-icon-btn" data-top-action="improve-delivera" aria-label="${escapeAttr(COPY.improveDelivera)}" title="${escapeAttr(COPY.improveDelivera)}">`
     + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12zM7 9h2v2H7V9zm4 0h2v2h-2V9zm4 0h2v2h-2V9z"/></svg></button>'
-    + `<a class="app-top-btn app-top-icon-btn" data-top-action="settings" href="/settings" aria-label="Settings" title="Settings">`
-    + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m19.4 13 .1-2-1.8-.7a5.6 5.6 0 0 0-.4-1l.8-1.8-1.4-1.4-1.8.8a5.6 5.6 0 0 0-1-.4L13 3h-2l-.7 1.8a5.6 5.6 0 0 0-1 .4l-1.8-.8-1.4 1.4.8 1.8a5.6 5.6 0 0 0-.4 1L3 11v2l1.8.7a5.6 5.6 0 0 0 .4 1l-.8 1.8 1.4 1.4 1.8-.8a5.6 5.6 0 0 0 1 .4L11 21h2l.7-1.8a5.6 5.6 0 0 0 1-.4l1.8.8 1.4-1.4-.8-1.8a5.6 5.6 0 0 0 .4-1ZM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5Z"/></svg></a>'
+    + (current === PAGE_SETTINGS ? '' : (`<a class="app-top-btn app-top-icon-btn" data-top-action="settings" href="/settings" aria-label="Settings" title="Settings">`
+    + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m19.4 13 .1-2-1.8-.7a5.6 5.6 0 0 0-.4-1l.8-1.8-1.4-1.4-1.8.8a5.6 5.6 0 0 0-1-.4L13 3h-2l-.7 1.8a5.6 5.6 0 0 0-1 .4l-1.8-.8-1.4 1.4.8 1.8a5.6 5.6 0 0 0-.4 1L3 11v2l1.8.7a5.6 5.6 0 0 0 .4 1l-.8 1.8 1.4 1.4 1.8-.8a5.6 5.6 0 0 0 1 .4L11 21h2l.7-1.8a5.6 5.6 0 0 0 1-.4l1.8.8 1.4-1.4-.8-1.8a5.6 5.6 0 0 0 .4-1ZM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5Z"/></svg></a>'))
     + `<button type="button" class="app-top-avatar" data-top-action="avatar" aria-label="Account menu" title="Account">DL</button>`
     + '</div></div>'
     + '<div id="app-top-help-popover" class="app-top-help-popover" hidden role="dialog" aria-label="Help">'

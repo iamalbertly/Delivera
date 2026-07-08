@@ -99,6 +99,8 @@ export function setPageState(state, options = {}) {
       if (contentEl && options.html != null) {
         contentEl.innerHTML = options.html;
         contentEl.style.display = 'block';
+        contentEl.style.contentVisibility = 'auto';
+        contentEl.classList.add('current-sprint-content-ready');
       }
       break;
 

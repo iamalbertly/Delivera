@@ -1,5 +1,6 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
+import { dedupeCommitmentsByIssueKey } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
 const MAX_INLINE = 5;
 
@@ -26,8 +27,15 @@ function renderCommitmentRow(c, decision, { compact = false } = {}) {
         <span class="portfolio-commitment-status portfolio-commitment-status--${escapeHtml(String(c.status || '').toLowerCase().replace(/\s+/g, '-'))}">${escapeHtml(c.status || '')}</span>
       </div>
       <p class="portfolio-commitment-meta">${escapeHtml(c.periodKey || decision.periodKey || '')}${c.projectKey ? ` · ${escapeHtml(c.projectKey)}` : ''}</p>
-      <p class="portfolio-commitment-reason"><span>Reason:</span> ${escapeHtml(c.reason || '')}</p>
-      <p class="portfolio-commitment-decision"><span>Decision:</span> ${escapeHtml(c.decisionNeeded || '')}</p>
+      ${(() => {
+        const reason = String(c.reason || '').trim();
+        const move = String(c.decisionNeeded || '').trim();
+        if (reason && move && reason === move) {
+          return `<p class="portfolio-commitment-next-move"><span>Next move:</span> ${escapeHtml(move)}</p>`;
+        }
+        return `<p class="portfolio-commitment-reason"><span>Reason:</span> ${escapeHtml(reason)}</p>
+      <p class="portfolio-commitment-decision"><span>Decision:</span> ${escapeHtml(move)}</p>`;
+      })()}
     </li>`;
 }
 
@@ -37,7 +45,7 @@ export function renderPortfolioRailCommitments(_decision = {}) {
 }
 
 export function renderPortfolioCommitments(decision = {}) {
-  const rows = decision.affectedCommitments || [];
+  const rows = dedupeCommitmentsByIssueKey(decision.affectedCommitments || []);
   const visible = rows.slice(0, MAX_INLINE);
   if (!rows.length) {
     return `

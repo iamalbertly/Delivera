@@ -419,7 +419,9 @@ export function renderHeaderBar(data, options = {}) {
       ? `${remainingChipLabel} · ${donePercentage}% done`
       : missionBriefing.headerExplain;
   }
-  const suppressDuplicateRiskChrome = viewportLean && missionBriefing && edgeStateAttr === 'none';
+  const suppressMissionDupChrome = viewportLean && missionBriefing && edgeStateAttr === 'none';
+  const smartQueueActive = viewportLean && stuckCount > 0;
+  const suppressDuplicateRiskChrome = suppressMissionDupChrome || smartQueueActive;
   const verdictExplainTitle =
     edgeStateAttr === 'low-confidence' ? SPRINT_COPY.lowConfidenceHint : verdictInfo.trackingReasons || '';
   const doneDelta = computeDoneDeltaVsPriorClosed(data, donePercentage);
@@ -500,7 +502,7 @@ export function renderHeaderBar(data, options = {}) {
     html += sectionLinksHtml;
     html += '</div>';
   }
-  if (viewportLean && hasPriorityInterventions && !suppressDuplicateRiskChrome
+  if (viewportLean && hasPriorityInterventions && !suppressMissionDupChrome
     && (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0 || missingLoggedItems > 0)) {
     html += '<div class="header-drawer-section header-drawer-intervention-section">';
     html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</div>';
@@ -544,7 +546,7 @@ export function renderHeaderBar(data, options = {}) {
     html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
       + (sendAllowed ? '' : ' disabled aria-disabled="true"')
       + ' title="' + escapeHtml(takeActionTitle) + '">' + escapeHtml(takeActionLabel) + '</button>';
-    if (primaryTags) {
+    if (primaryTags && !suppressDuplicateRiskChrome) {
       html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">' + escapeHtml(SPRINT_COPY.focusRisk(primaryIntervention.label || SPRINT_COPY.focusRiskFallback)) + '</button>';
     }
     if (!viewportLean) {
@@ -1042,6 +1044,22 @@ export function wireHeaderBarHandlers() {
       applyRoleMode(mode);
     });
   });
+
+  try {
+    const payload = getCurrentSprintPayload();
+    const sprintId = payload?.sprint?.id || '';
+    const autoKey = sprintId ? `delivera:sprint-auto-blocker:${sprintId}` : '';
+    const autoVerdict = deriveSprintVerdict(payload || {});
+    const autoBlocked = String(autoVerdict?.verdict || '').toLowerCase().includes('blocked')
+      || Number((payload?.stuckCandidates || []).length || 0) > 0;
+    if (autoKey && autoBlocked && sessionStorage.getItem(autoKey) !== '1') {
+      sessionStorage.setItem(autoKey, '1');
+      setRiskTagsState(['blocker']);
+      window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
+        detail: { riskTags: ['blocker'], source: 'auto-blocked-verdict' },
+      }));
+    }
+  } catch (_) {}
 
   renderHeaderActiveFilterLabel();
 }

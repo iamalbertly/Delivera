@@ -4,7 +4,7 @@
 
  */
 
-import { renderPortfolioSignal } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import { renderPortfolioSignal, renderPortfolioDataTrust } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 
 import { renderPortfolioCommitments, renderPortfolioRailCommitments } from './Delivera-App-Portfolio-Commitments-01Render-UI.js';
 import { renderPortfolioPreparedActions } from './Delivera-App-Portfolio-PreparedActions-01Render-UI.js';
@@ -171,6 +171,7 @@ function handlePortfolioDelegatedClick(ev) {
   if (action === 'review-actions' || action === 'view-prepared-items') {
     openPortfolioCalibrationDrawer(decision, cases);
   } else if (action === 'view-governance-evidence') {
+    try { sessionStorage.setItem('delivera:legacy-brief-needed', '1'); } catch (_) { /* ignore */ }
     openPortfolioCalibrationDrawer(decision, cases);
   } else if (action === 'calibration-defense' || action === 'copy-calibration-defense' || action === 'copy-evidence-summary') {
     ensureLegacyBriefSurfacesHydrated();
@@ -296,6 +297,8 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   if (decisionMount) {
 
     decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, brief);
+    const freshness = meta.cachedAt ? '' : (decision.dataTrust?.lastSync || 'Live');
+    decisionMount.insertAdjacentHTML('beforeend', renderPortfolioDataTrust(decision, freshness));
 
     bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
 
@@ -385,8 +388,24 @@ export function installPortfolioSurfaceHook() {
     openPiBaselineWizard();
   });
 
+  window.addEventListener('portfolio:decision-revalidated', async (ev) => {
+    const payload = ev?.detail?.payload;
+    if (!payload?.decision || !govPage.lastBrief) return;
+    govPage.lastPortfolioDecision = payload.decision;
+    govPage.lastDecision = payload.decision;
+    govPage.lastPortfolioMeta = { ...(govPage.lastPortfolioMeta || {}), ...(payload.meta || {}), cached: false };
+    await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases || []);
+    govPage.scopeBarApi?.setCacheUxState?.({ fresh: true, updating: false });
+  });
+
   try {
     const params = new URLSearchParams(window.location.search);
+    if (params.get('flash') === 'leadership-merged') {
+      showInlineToast(document.getElementById('main-content'), 'Leadership view now lives in Portfolio decisions.', 'info');
+      params.delete('flash');
+      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}${window.location.hash || ''}`;
+      window.history.replaceState({}, '', next);
+    }
     if (params.get('openAlignment') === '1' || params.get('openAlignment') === 'slide') {
       const mode = params.get('openAlignment') === 'slide' ? { initialMode: 'slide' } : {};
       queueMicrotask(() => openPiBaselineWizard(mode));

@@ -268,6 +268,7 @@ Journey membership is implemented in `scripts/Delivera-Tests-Journey-Buckets-Map
 
 - `scripts/Delivera-Tests-Journey-Runner-SSOT.js` – `node` CLI behind `npm run test:journey:*`.
 - `scripts/Delivera-Test-Orchestration-Steps.js` – orchestration steps now run one journey at a time instead of one spec per step.
+- **Direct-Value Round4 (2026-07):** `tests/Delivera-Direct-Value-MasterPlan-Round4-Realtime-Validation-Tests.spec.js` → `journey.governance` (`npm run test:journey:direct-value-r4`); validates single portfolio CTA SSOT, SWR cached paint, scope defaults, sprint today mode, route-aware chrome.
 
 ### SIZE-EXEMPT Notes
 

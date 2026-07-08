@@ -11,10 +11,10 @@ import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verd
 function renderSprintSwitcher(data) {
   if (!Array.isArray(data.recentSprints) || data.recentSprints.length <= 1) return '';
   return ''
-    + '<section class="sprint-switcher-card sprint-switcher-card-inline" aria-label="Switch sprint" open>'
-    + '<div class="header-drawer-section-label">Switch sprint</div>'
-    + renderSprintCarousel(data)
-    + '</section>';
+    + '<details class="sprint-history-fold sprint-switcher-card sprint-switcher-card-inline" aria-label="Switch sprint">'
+    + '<summary class="header-drawer-section-label">Past sprints</summary>'
+    + renderSprintCarousel(data, { viewportLean: true })
+    + '</details>';
 }
 
 export function renderCurrentSprintPage(data) {

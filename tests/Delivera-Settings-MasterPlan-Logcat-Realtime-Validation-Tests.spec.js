@@ -84,7 +84,7 @@ test.describe('Settings master plan logcat realtime validation', () => {
     await test.step('01 settings hub nav and sections', async () => {
       await page.goto('/settings');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('#settings-quick-nav')).toBeVisible();
+      await expect(page.locator('#settings-quick-nav')).toHaveCount(0);
       await expect(page.locator('[data-settings-surface-link="/governance"]')).toContainText(/Portfolio/i);
       await expect(page.locator('[data-settings-surface-link="/actions"]')).toContainText(/Actions/i);
       await expect(page.locator('#settings-nav-rail')).toBeVisible();

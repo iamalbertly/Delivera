@@ -385,7 +385,10 @@ export function renderStories(data) {
       const ageLabel = formatBlockerAge(row.hoursInStatus);
       const ageTone = blockerAgeTone(row.hoursInStatus);
       const isFormerRep = isFormerUserLabel(row.reporter);
-      panelHtml += '<article class="sprint-blocker-row' + (isOrphan ? ' sprint-blocker-row--orphan' : '') + '">';
+      const likelyOwner = ownerRaw && !isOrphan ? ownerRaw : (row.reporter || 'Unassigned');
+      const canNudge = Boolean((likelyOwner && likelyOwner !== 'Unassigned') || getCurrentSprintPayload()?.meta?.teamRoster?.length);
+      panelHtml += '<article class="sprint-blocker-row' + (isOrphan ? ' sprint-blocker-row--orphan' : '') + (canNudge ? ' sprint-blocker-row--tap-nudge' : '') + '"'
+        + (canNudge ? ' tabindex="0" role="button" data-blocker-nudge="' + escapeHtml(row.issueKey || row.key || '') + '"' : '') + '>';
       if (isOrphan) {
         panelHtml += '<div class="sprint-blocker-orphan-alert" data-blocker-orphan-alert>No active owner — deactivated account. Assign before escalating.</div>';
       }
@@ -396,17 +399,12 @@ export function renderStories(data) {
       const rootCause = hours >= 24
         ? `Status unchanged ${Math.round(hours)}h — likely blocking sprint flow`
         : 'Needs ownership or unblock decision';
-      const likelyOwner = ownerRaw && !isOrphan ? ownerRaw : (row.reporter || 'Unassigned');
       panelHtml += '<p class="sprint-blocker-root-cause" data-blocker-root-cause="1">' + escapeHtml(rootCause) + '</p>';
       panelHtml += '<div class="sprint-blocker-meta">'
         + '<span class="sprint-blocker-owner' + (isOrphan ? ' sprint-blocker-owner--missing' : '') + '" data-blocker-owner>' + escapeHtml(COPY.likelyOwner) + ': ' + escapeHtml(likelyOwner) + '</span>'
         + '<span class="sprint-blocker-age ' + escapeHtml(ageTone) + '" data-blocker-age>' + escapeHtml(ageLabel) + '</span>'
         + (isFormerRep ? '<span class="sprint-blocker-former-reporter" data-former-reporter>Reporter deactivated</span>' : '')
         + '</div>';
-      const canNudge = Boolean((likelyOwner && likelyOwner !== 'Unassigned') || getCurrentSprintPayload()?.meta?.teamRoster?.length);
-      if (canNudge) {
-        panelHtml += '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(row.issueKey || row.key || '') + '">Review nudge</button>';
-      }
       panelHtml += '</article>';
     });
     panelHtml += '</div></article>';

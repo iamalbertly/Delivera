@@ -280,8 +280,9 @@ test.describe('Governance PI baseline slide upload', () => {
     await page.goto('/governance');
     await waitForGovernanceReady(page);
     await expect(page.locator('[data-testid="gov-pi-focus-strip"]')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="gov-pi-focus-baseline"]')).toBeVisible();
-    await expect(page.locator('[data-testid="gov-pi-focus-confirm"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toContainText(/Alignment Studio/i);
+    await expect(page.locator('[data-testid="gov-pi-focus-baseline"]')).toHaveCount(0);
     await page.locator('[data-testid="gov-pi-focus-more"]').click();
     await expect(page.locator('[data-testid="gov-pi-focus-slide"]')).toBeVisible();
     await expect(page.locator('[data-testid="gov-cadence-pack"]')).toBeVisible();

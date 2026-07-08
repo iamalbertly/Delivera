@@ -149,6 +149,20 @@ export function portfolioCanonicalCounts(decision = {}) {
   };
 }
 
+/** SSOT: primary portfolio CTA lives only on the decision rail mount. */
+export const PORTFOLIO_PRIMARY_CTA_MOUNT_ID = 'portfolio-decision-mount';
+
+/** Dedupe affected commitments by issueKey (first wins). */
+export function dedupeCommitmentsByIssueKey(rows = []) {
+  const seen = new Set();
+  return (Array.isArray(rows) ? rows : []).filter((c) => {
+    const key = String(c.issueKey || c.issueKeys?.[0] || c.id || '').trim().toUpperCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /** Hide prepared-actions stream when empty or when PI focus owns the verb. */
 export function shouldHidePreparedActionsSection(decision = {}, brief = {}) {
   const items = decision?.preparedActions?.items || [];

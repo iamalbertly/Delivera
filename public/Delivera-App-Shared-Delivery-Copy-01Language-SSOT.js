@@ -222,6 +222,26 @@ export function simpleStatusLabel(tier = 'watch', withIcon = false) {
   return withIcon ? COPY.statusIconWatch : COPY.statusWatch;
 }
 
+/** Human-readable decision due label from ISO or plain date string. */
+export function formatDecisionDueLabel(iso = '') {
+  const raw = String(iso || '').trim();
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return 'Due date pending';
+    return raw;
+  }
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDue = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayDiff = Math.round((startOfDue - startOfToday) / 86400000);
+  if (dayDiff === 0) return 'Due today';
+  if (dayDiff === 1) return 'Due tomorrow';
+  if (dayDiff === -1) return 'Due yesterday';
+  if (dayDiff > 1 && dayDiff <= 7) return `Due in ${dayDiff} days`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export function verdictTierFromBrief(brief = {}) {
   const ev = brief?.executiveView || {};
   const tier = String(ev.verdictTier || '').toLowerCase();

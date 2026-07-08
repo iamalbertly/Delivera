@@ -91,6 +91,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('scope status chip visible after load', async ({ page }) => {
     await mockClarityPage(page);
     await loadClarityPage(page);
+    await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toHaveCount(1);
     await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
     const portfolioStatus = page.locator('#portfolio-scope-bar-mount .portfolio-scope-status-pill, #portfolio-scope-bar-mount [data-portfolio-status], #portfolio-scope-bar-mount button').filter({ hasText: /Watch|Blocked|On track|✕|⚠/i });
     const legacyStatus = legacyBrief(page, '.gov-scope-status-chip');

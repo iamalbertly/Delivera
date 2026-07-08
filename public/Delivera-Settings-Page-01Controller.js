@@ -22,15 +22,8 @@ const SURFACE_QUICK_LINKS = getSurfaceQuickLinks([PAGE_REPORT]);
 function renderQuickNav() {
   const mount = document.getElementById('settings-quick-nav');
   if (!mount) return;
-  mount.innerHTML = `
-    <p class="settings-quick-nav-label">Go to</p>
-    <div class="settings-quick-nav-grid">
-      ${SURFACE_QUICK_LINKS.map((link) => `
-        <a class="settings-quick-nav-card" href="${link.href}" data-settings-surface-link="${link.href}">
-          <strong>${link.label}</strong>
-          <span>${link.desc}</span>
-        </a>`).join('')}
-    </div>`;
+  mount.hidden = true;
+  mount.innerHTML = '';
 }
 
 function renderNavRail(navEl, activeId) {

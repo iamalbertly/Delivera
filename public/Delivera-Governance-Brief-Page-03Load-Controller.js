@@ -86,6 +86,9 @@ function patchLegacySecondaryChrome(brief) {
 
 export function ensureLegacyBriefSurfacesHydrated(brief = govPage.lastBrief) {
   if (!brief || !document.getElementById('portfolio-signal-mount')) return;
+  try {
+    if (sessionStorage.getItem('delivera:legacy-brief-needed') !== '1') return;
+  } catch (_) { return; }
   const hydrationKey = legacyBriefHydrationKey(brief);
   if (legacyBriefSurfacesHydrated && legacyHydratedBriefKey === hydrationKey) {
     patchLegacySecondaryChrome(brief);
@@ -564,8 +567,10 @@ export async function loadBrief(options = {}) {
   }
   if (isPortfolioPage) {
     const { showPortfolioLoading } = await import('./Delivera-Governance-Brief-Page-02Loading-State.js');
+    const preservePortfolio = hasGovernanceBriefContent() || Boolean(cached);
     showPortfolioLoading(
       switchLabel || (cached ? 'Refreshing AI portfolio signal…' : 'AI agent is learning from your squad data…'),
+      { preserveContent: preservePortfolio },
     );
   } else {
     showGovernanceLoading(

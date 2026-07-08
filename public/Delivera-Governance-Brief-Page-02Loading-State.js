@@ -105,9 +105,10 @@ export function clearScopeStaleOverlay() {
   document.querySelectorAll('.gov-scope-stale-overlay').forEach((el) => el.remove());
 }
 
-export function showPortfolioLoading(msg = 'AI agent is learning from your squad data…') {
+export function showPortfolioLoading(msg = 'AI agent is learning from your squad data…', options = {}) {
   const signalMount = document.getElementById('portfolio-signal-mount');
-  if (signalMount) {
+  const preserve = options.preserveContent === true && hasGovernanceBriefContent();
+  if (signalMount && !preserve) {
     signalMount.innerHTML = `
       <div class="portfolio-signal-skeleton" data-portfolio-signal-skeleton aria-busy="true" aria-label="${msg}">
         ${renderSharedLoadingState({ message: msg, variant: 'skeleton', compact: true })}
@@ -115,6 +116,8 @@ export function showPortfolioLoading(msg = 'AI agent is learning from your squad
         <div class="portfolio-signal-skeleton-line"></div>
         <div class="portfolio-signal-skeleton-line portfolio-signal-skeleton-line--short"></div>
       </div>`;
+  } else if (preserve) {
+    setScopeStaleOverlay(true, msg || 'Refreshing…');
   }
   const contentEl = document.getElementById('gov-brief-content');
   if (contentEl) {

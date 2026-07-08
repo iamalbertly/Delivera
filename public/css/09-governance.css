@@ -1983,3 +1983,13 @@ body.governance-page .gov-compare-add-tray { position: relative; z-index: 2; }
     justify-content: flex-start;
   }
 }
+
+/* Round4: loading overflow — prevent glyph bleed during portfolio skeleton (P4) */
+.portfolio-page #gov-loading,
+.portfolio-page .portfolio-signal-mount,
+.portfolio-page .portfolio-signal-skeleton {
+  overflow: hidden;
+}
+.portfolio-page[data-gov-brief-state="loading"] .portfolio-signal-mount {
+  min-height: 0;
+}

@@ -52,6 +52,7 @@ export function legacyBrief(page, selector) {
 
 export async function forceLegacyBriefHydration(page) {
   await page.evaluate(async () => {
+    try { sessionStorage.setItem('delivera:legacy-brief-needed', '1'); } catch (_) {}
     const mod = await import('./Delivera-Governance-Brief-Page-03Load-Controller.js');
     mod.ensureLegacyBriefSurfacesHydrated();
   });
@@ -75,6 +76,7 @@ export async function waitForLegacyBriefHydrated(page, timeout = 12000) {
   };
 
   await page.evaluate(async () => {
+    try { sessionStorage.setItem('delivera:legacy-brief-needed', '1'); } catch (_) {}
     const mod = await import('/Delivera-Governance-Brief-Page-03Load-Controller.js');
     mod.ensureLegacyBriefSurfacesHydrated?.();
   });
@@ -83,6 +85,7 @@ export async function waitForLegacyBriefHydrated(page, timeout = 12000) {
   const ready = await page.evaluate(legacyReady);
   if (!ready) {
     await page.evaluate(async () => {
+      try { sessionStorage.setItem('delivera:legacy-brief-needed', '1'); } catch (_) {}
       const mod = await import('/Delivera-Governance-Brief-Page-03Load-Controller.js');
       mod.resetLegacyBriefHydration?.();
       mod.ensureLegacyBriefSurfacesHydrated?.();

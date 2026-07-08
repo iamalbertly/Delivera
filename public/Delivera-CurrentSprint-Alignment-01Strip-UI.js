@@ -41,17 +41,17 @@ export function renderAlignmentStripHtml(data, baselineKeys = []) {
   }).join('');
   const misaligned = Math.max(0, stories.length - aligned);
   const summaryDetail = [piCount ? `${piCount} PI` : '', offPiCount ? `${offPiCount} off-PI` : '', adHocCount ? `${adHocCount} ad-hoc` : ''].filter(Boolean).join(' · ');
-  const studioLink = misaligned > 0
-    ? `<a class="btn btn-secondary btn-compact" href="/governance?openAlignment=1" data-testid="sprint-open-alignment-studio">${escapeHtml(COPY.alignmentOpenStudio)} (${misaligned})</a>`
+  const studioChip = misaligned > 0
+    ? `<a class="sprint-off-pi-chip verdict-pill" href="/governance?openAlignment=1" data-testid="sprint-open-alignment-studio">${misaligned} off-PI</a>`
     : '';
   return `
     <section class="sprint-alignment-strip" data-alignment-strip="1" aria-label="Work alignment">
       <div class="sprint-alignment-head">
         <strong>${aligned} of ${stories.length}</strong> ${escapeHtml(COPY.alignmentSummary || 'aligned')}
         ${summaryDetail ? `<span>· ${escapeHtml(summaryDetail)}</span>` : ''}
-        ${studioLink}
+        ${studioChip}
       </div>
-      <details>
+      <details open>
         <summary>Recent stories</summary>
         <ul class="sprint-alignment-list">${rows}</ul>
       </details>

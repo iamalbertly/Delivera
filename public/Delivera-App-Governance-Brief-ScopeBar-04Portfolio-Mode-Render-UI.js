@@ -25,13 +25,32 @@ const BASELINE_OPTIONS = [
   { id: 'pi-baseline', label: 'PI baseline' },
   { id: 'none', label: 'No baseline' },
 ];
+const SCOPE_SEEN_KEY = 'delivera:portfolio-scope-seen';
+
+function readScopeSeen() {
+  try { return localStorage.getItem(SCOPE_SEEN_KEY) === '1'; } catch (_) { return false; }
+}
+
+function writeScopeSeen() {
+  try { localStorage.setItem(SCOPE_SEEN_KEY, '1'); } catch (_) { /* ignore */ }
+}
+
+function baselineOptionsForBrief(brief = {}) {
+  const gaps = brief?.meta?.setupGaps || [];
+  const missing = gaps.some((g) => g.action === 'set-baseline');
+  if (!missing) return BASELINE_OPTIONS;
+  return [
+    { id: 'pi-baseline', label: 'Set baseline →' },
+    { id: 'none', label: 'No baseline' },
+  ];
+}
 
 /** Labeled status pill — color + glyph + word (accessible, not color-only). */
 const STATUS_GLYPH = { blocked: '✕', watch: '●', onTrack: '✓', setup: '○' };
 function renderStatusPill(tier) {
-  const label = simpleStatusLabel(tier, true);
+  const label = simpleStatusLabel(tier, false);
   const glyph = STATUS_GLYPH[tier] || '●';
-  return `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(tier)}" data-scope-status-action="1" title="Jump to actions">${glyph} ${escapeHtml(label)}</button>`;
+  return `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(tier)}" data-scope-status-action="1" title="Jump to decision">${glyph} ${escapeHtml(label)}</button>`;
 }
 
 function displayName(key) {
@@ -52,10 +71,11 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   let statusTier = 'watch';
   let cacheFresh = false;
   let cacheUpdating = false;
-  let scopeCollapsed = true;
+  let scopeCollapsed = readScopeSeen();
   let catalogKeys = unionScopeProjectKeys([anchor, ...compare]);
 
   function commitScope({ reload = true } = {}) {
+    writeScopeSeen();
     writePortfolioAnchor(anchor);
     writePortfolioProjectsCsv(anchor, compare);
     projects = [anchor, ...compare];
@@ -76,10 +96,16 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       return U !== String(anchor).toUpperCase() && !compare.some((c) => String(c).toUpperCase() === U);
     });
 
+    const cadenceHtml = renderScopeCadenceLine(getLastDecision?.() || {}, getBrief?.() || {});
+    const hideTimeframeDup = Boolean(cadenceHtml.trim());
+    const baselineOptions = baselineOptionsForBrief(getBrief?.() || {});
+    const hideCompareSelect = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+      && Boolean(document.querySelector('[data-portfolio-carousel]'));
+
     mount.innerHTML = `
       <div class="portfolio-scope-filters${scopeCollapsed ? ' portfolio-scope-filters--collapsed' : ''}" data-portfolio-scope-filters>
         <div class="portfolio-scope-summary-strip" data-portfolio-scope-summary>
-          ${renderScopeCadenceLine(getLastDecision?.() || {}, getBrief?.() || {})}
+          ${cadenceHtml}
           <span class="gov-scope-since-wrap">${renderSinceLastCheckChip(getBrief?.() || {})}</span>
           ${renderStatusPill(statusTier)}
         </div>
@@ -98,13 +124,13 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
             <span class="portfolio-scope-field-label">Compare</span>
             <div class="portfolio-scope-compare-row">
               ${compareSummary}
-              <select id="portfolio-scope-add" class="portfolio-scope-add" aria-label="Add squad to compare">
+              <select id="portfolio-scope-add" class="portfolio-scope-add" aria-label="Add squad to compare"${hideCompareSelect ? ' hidden' : ''}>
                 <option value="">+ Add comparison</option>
                 ${availableToAdd.map((pk) => `<option value="${escapeHtml(pk)}">${escapeHtml(displayName(pk))}</option>`).join('')}
               </select>
             </div>
           </div>
-          <label class="portfolio-scope-field">
+          <label class="portfolio-scope-field"${hideTimeframeDup ? ' hidden' : ''}>
             <span class="portfolio-scope-field-label">Timeframe</span>
             <select id="portfolio-scope-quarter" class="portfolio-scope-select" aria-label="Timeframe">
               ${(quarters.length ? quarters : [{ label: activeQuarter || 'Current' }]).map((q) => `<option value="${escapeHtml(q.label)}"${q.label === activeQuarter ? ' selected' : ''}>${escapeHtml(q.label)}</option>`).join('')}
@@ -113,10 +139,10 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
           <label class="portfolio-scope-field">
             <span class="portfolio-scope-field-label">Baseline</span>
             <select id="portfolio-scope-baseline" class="portfolio-scope-select" aria-label="Baseline">
-              ${BASELINE_OPTIONS.map((b) => `<option value="${escapeHtml(b.id)}"${b.id === baselineMode ? ' selected' : ''}>${escapeHtml(b.label)}</option>`).join('')}
+              ${baselineOptions.map((b) => `<option value="${escapeHtml(b.id)}"${b.id === baselineMode ? ' selected' : ''}>${escapeHtml(b.label)}</option>`).join('')}
             </select>
           </label>
-          <span class="portfolio-scope-updating" id="portfolio-scope-updating"${cacheUpdating ? '' : ' hidden'} aria-live="polite">Updating...</span>
+          <span class="portfolio-scope-updating" id="portfolio-scope-updating"${cacheUpdating || cacheFresh ? '' : ' hidden'} aria-live="polite">${cacheUpdating && cacheFresh ? 'Showing cached · refreshing…' : cacheUpdating ? 'Updating…' : 'Cached view'}</span>
         </div>
       </div>`;
     mount.dataset.portfolioScope = '1';
@@ -170,6 +196,16 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       scopeCollapsed = !scopeCollapsed;
       render();
     });
+    mount.querySelector('[data-scope-status-action]')?.addEventListener('click', () => {
+      document.getElementById('portfolio-decision')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    mount.querySelector('.gov-scope-cadence-line')?.addEventListener('click', () => {
+      if (scopeCollapsed) {
+        scopeCollapsed = false;
+        render();
+        mount.querySelector('#portfolio-scope-quarter')?.focus();
+      }
+    });
     mount.dataset.mobileScopeInit = scopeCollapsed ? 'tray' : 'inline';
   }
 
@@ -204,7 +240,15 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       cacheFresh = Boolean(fresh);
       cacheUpdating = Boolean(updating);
       const updatingChip = mount.querySelector('#portfolio-scope-updating');
-      if (updatingChip) updatingChip.hidden = !cacheUpdating;
+      if (updatingChip) {
+        const show = cacheUpdating || cacheFresh;
+        updatingChip.hidden = !show;
+        updatingChip.textContent = cacheUpdating && cacheFresh
+          ? 'Showing cached · refreshing…'
+          : cacheUpdating
+            ? 'Updating…'
+            : 'Cached view';
+      }
     },
     setAdvancedWarnCount: () => {},
     focusScopeBar: () => mount.querySelector('#portfolio-scope-selected')?.focus(),

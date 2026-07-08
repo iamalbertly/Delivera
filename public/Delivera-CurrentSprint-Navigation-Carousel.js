@@ -30,7 +30,7 @@ function computeCarouselTrendSummary(sprints, currentSprint) {
   return { label: '↓ ' + Math.round(delta) + '% vs last sprint' + suffix, className: 'down' };
 }
 
-export function renderSprintCarousel(data) {
+export function renderSprintCarousel(data, { viewportLean = false } = {}) {
   const currentSprint = data.sprint || {};
   const sprints = [...(data.recentSprints || [])].sort((a, b) => {
     const aCurrent = a?.id === currentSprint?.id ? 1 : 0;
@@ -45,6 +45,12 @@ export function renderSprintCarousel(data) {
 
   const maxTabs = 8;
   const slice = sprints.slice(0, maxTabs);
+  const tabSlice = viewportLean
+    ? slice.filter((s) => s.id === currentSprint.id)
+    : slice;
+  const historySlice = viewportLean
+    ? slice.filter((s) => s.id !== currentSprint.id)
+    : [];
   const hasEnoughHistory = slice.length >= 3;
   const trend = computeCarouselTrendSummary(slice, currentSprint);
 
@@ -88,7 +94,7 @@ export function renderSprintCarousel(data) {
 
   html += '<div class="sprint-carousel" role="tablist" aria-label="Sprint navigation">';
 
-  slice.forEach((sprint) => {
+  function renderTab(sprint) {
     const isActive = sprint.id === currentSprint.id;
     const isOpen = (sprint.state || '').toLowerCase() === 'active';
     const isClosed = (sprint.state || '').toLowerCase() === 'closed';
@@ -110,19 +116,31 @@ export function renderSprintCarousel(data) {
 
     const noDataClass = noData ? ' carousel-tab--no-data' : '';
     const noDataTooltip = noData ? sprintName + '\n' + startDate + ' -> ' + endDate + '\nNo data - SP tracking may not have been enabled for this sprint.' : tooltip;
-    html += '<button class="carousel-tab ' + (isActive ? 'active carousel-tab-current' : '') + ' ' + completionColor + noDataClass + '" ';
-    html += 'type="button" role="tab" aria-selected="' + (isActive ? 'true' : 'false') + '" data-sprint-id="' + sprint.id + '" title="' + escapeHtml(noDataTooltip) + '">';
-    html += '<span class="carousel-tab-name">' + escapeHtml(sprintName) + '</span>';
-    html += '<span class="carousel-tab-meta">' + stateLabel + ' · ' + durationLabel + '</span>';
-    if (!noData) {
-      html += '<span class="carousel-tab-dates">' + startDate + ' -> ' + endDate + '</span>';
-      html += '<div class="carousel-health-indicator" style="width: ' + completionPercent + '%;" role="img" aria-label="' + completionPercent + '% complete"></div>';
+    let tabHtml = '<button class="carousel-tab ' + (isActive ? 'active carousel-tab-current' : '') + ' ' + completionColor + noDataClass + '" ';
+    tabHtml += 'type="button" role="tab" aria-selected="' + (isActive ? 'true' : 'false') + '" data-sprint-id="' + sprint.id + '" title="' + escapeHtml(noDataTooltip) + '">';
+    tabHtml += '<span class="carousel-tab-name">' + escapeHtml(sprintName) + '</span>';
+    if (!viewportLean || isActive) {
+      tabHtml += '<span class="carousel-tab-meta">' + stateLabel + ' · ' + durationLabel + '</span>';
+      if (!noData) {
+        tabHtml += '<span class="carousel-tab-dates">' + startDate + ' -> ' + endDate + '</span>';
+        tabHtml += '<div class="carousel-health-indicator" style="width: ' + completionPercent + '%;" role="img" aria-label="' + completionPercent + '% complete"></div>';
+      }
+      if (isOpen) tabHtml += '<span class="carousel-status current">Current</span>';
+      else if (isClosed && !noData) tabHtml += '<span class="carousel-status closed">Closed</span>';
+      tabHtml += '<span class="carousel-completion">' + (noData ? '-' : completionPercent + '%') + '</span>';
+    } else {
+      tabHtml += '<span class="carousel-completion">' + (noData ? '-' : completionPercent + '%') + '</span>';
     }
-    if (isOpen) html += '<span class="carousel-status current">Current</span>';
-    else if (isClosed && !noData) html += '<span class="carousel-status closed">Closed</span>';
-    html += '<span class="carousel-completion">' + (noData ? '-' : completionPercent + '%') + '</span>';
-    html += '</button>';
-  });
+    tabHtml += '</button>';
+    return tabHtml;
+  }
+
+  tabSlice.forEach((sprint) => { html += renderTab(sprint); });
+
+  if (viewportLean && historySlice.length) {
+    html += '</div><div class="sprint-carousel sprint-carousel-history" role="tablist" aria-label="Past sprints">';
+    historySlice.forEach((sprint) => { html += renderTab(sprint); });
+  }
 
   html += '</div>';
   if (slice.length <= 1) {

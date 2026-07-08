@@ -6764,3 +6764,28 @@ body.jira-nudge-review-open { overflow: hidden; }
 .work-alignment-chip--offPi { background: #fffbeb; color: #92400e; }
 .work-alignment-chip--adHoc { background: #fef2f2; color: #991b1b; }
 .sprint-blocker-root-cause { margin: 4px 0; font-size: 0.82rem; color: #4b5563; }
+
+/* Round4: sprint history fold + content-visibility guard (P11/E6) */
+details.sprint-history-fold > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.sprint-carousel-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.current-sprint-content-ready {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+@media (max-width: 1024px) {
+  .portfolio-decision-actions,
+  body.current-sprint-page .sprint-intervention-item-primary {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+  }
+}

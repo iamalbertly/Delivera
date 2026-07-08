@@ -91,13 +91,17 @@ function renderDataTrust(dataTrust = {}, freshness = '') {
   const boards = dataTrust.boardsConnected || {};
   const mapped = dataTrust.commitmentsMapped || {};
   return `
-    <div class="portfolio-trust-bar" data-portfolio-data-trust>
+    <div class="portfolio-trust-bar" data-portfolio-data-trust data-testid="portfolio-data-trust">
       <span><strong>Last Jira sync</strong>${escapeHtml(freshness || dataTrust.lastSync || 'Live')}</span>
       <span><strong>Boards connected</strong>${Number(boards.connected) || 0} of ${Number(boards.total) || 0}</span>
       <span><strong>Commitments mapped</strong>${Number(mapped.mapped) || 0} of ${Number(mapped.total) || 0}</span>
       <span><strong>Data gaps</strong>${Number(dataTrust.dataGaps) || 0}</span>
       <span class="portfolio-trust-confidence"><strong>Confidence</strong>${escapeHtml(dataTrust.confidenceLabel || 'Medium')}</span>
     </div>`;
+}
+
+export function renderPortfolioDataTrust(decision = {}, freshness = '') {
+  return renderDataTrust(decision.dataTrust || {}, freshness);
 }
 
 function renderEvidenceSummary(evidence = {}) {
@@ -224,7 +228,7 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
           <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
         </div>
         <p class="portfolio-signal-verdict" data-portfolio-signal-verdict>${escapeHtml(verdict)}</p>
-        <a class="btn btn-link btn-compact portfolio-signal-studio-link" href="/governance?openAlignment=1" data-testid="portfolio-signal-open-studio">${escapeHtml(COPY.alignmentStudioOpen)}</a>
+        <a class="portfolio-signal-rail-hint" href="#portfolio-decision" data-testid="portfolio-signal-summary">Review decision below</a>
       </section>`;
   }
 

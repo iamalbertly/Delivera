@@ -48,16 +48,11 @@ export function renderPiFocusStrip(brief = {}) {
   const headline = headlineFor(piFocus);
   const counts = countsLine(piFocus);
   const narrative = piFocus.createWorkNarrative || '';
-  const primaryIsCreate = piFocus.primaryAction === 'create-work';
-
-  const primaryBtn = primaryIsCreate
-    ? studioOpenBtn(COPY.alignmentStudioOpen, 'gov-pi-focus-baseline', { primary: true })
-    : studioOpenBtn(COPY.piFocusConfirmBaseline, 'gov-pi-focus-baseline', { primary: true });
 
   const overflowItems = [
     `<button type="button" class="btn btn-link btn-compact" data-pi-focus-slide data-testid="gov-pi-focus-slide">${escapeHtml(COPY.piFocusUploadSlide)}</button>`,
   ];
-  if (primaryIsCreate || narrative) {
+  if (piFocus.primaryAction === 'create-work' || narrative) {
     overflowItems.push(renderCreateWorkButton({
       projectsCsv,
       prefill: narrative,
@@ -74,8 +69,7 @@ export function renderPiFocusStrip(brief = {}) {
         <p class="gov-pi-focus-counts" data-testid="gov-pi-focus-counts">${escapeHtml(counts)}</p>
       </div>
       <div class="gov-pi-focus-actions">
-        ${primaryBtn}
-        <details class="gov-pi-focus-more">
+        <details class="gov-pi-focus-more" open>
           <summary class="btn btn-secondary btn-compact" data-testid="gov-pi-focus-more">${escapeHtml(COPY.piFocusMore)}</summary>
           <div class="gov-pi-focus-more-menu">${overflowItems.join('')}</div>
         </details>

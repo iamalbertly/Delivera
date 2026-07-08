@@ -1,12 +1,12 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, formatDecisionDueLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
-function renderDecisionRow(label, value, source = 'Fact') {
+function renderDecisionRow(label, value, source = 'Fact', { showSource = false } = {}) {
   return `
-    <div class="portfolio-decision-required-row">
+    <div class="portfolio-decision-required-row" data-decision-meta-source="${escapeHtml(source)}">
       <span>${escapeHtml(label)}</span>
       <strong>${escapeHtml(String(value || 'Not set'))}</strong>
-      <small>${escapeHtml(source)}</small>
+      ${showSource ? `<small>${escapeHtml(source)}</small>` : ''}
     </div>`;
 }
 
@@ -42,6 +42,12 @@ export function renderPortfolioDecisionPanel(decision = {}, brief = {}) {
   const primaryAttr = synergyLow
     ? 'data-portfolio-action="open-alignment-studio" data-setup-action="set-baseline" data-setup-baseline-ssot="1"'
     : `data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}"`;
+  const dueRaw = required.dueAt || decision.aboveFold?.nextDeadline || '';
+  const dueLabel = formatDecisionDueLabel(dueRaw) || 'Set owner due date';
+  const topProof = (brief?.evidencePack?.rows || [])[0];
+  const inlineProof = topProof
+    ? `<p class="portfolio-decision-inline-proof" data-testid="portfolio-inline-evidence"><strong>${escapeHtml(topProof.issueKey || 'Proof')}</strong> · ${escapeHtml(topProof.whyFlagged || topProof.statusNow || 'Needs review')}</p>`
+    : '';
   return `
     <section class="portfolio-decision portfolio-decision-required" aria-label="Decision required" id="portfolio-decision">
       <p class="portfolio-decision-eyebrow">Decision required</p>
@@ -49,13 +55,24 @@ export function renderPortfolioDecisionPanel(decision = {}, brief = {}) {
       <div class="portfolio-decision-required-rows">
         ${renderDecisionRow('Impact', required.impact || 'Commitment exposure unknown', 'Derived metric')}
         ${renderDecisionRow('Owner', required.owner || 'Product Owner', 'Fact')}
-        ${renderDecisionRow('Due', required.dueAt || decision.aboveFold?.nextDeadline || 'Set owner due date', 'Fact')}
+        ${renderDecisionRow('Due', dueLabel, 'Fact')}
         ${renderDecisionRow('Evidence', required.evidenceConfidence || decision.evidenceBreakdown?.confidenceLabel || 'Medium', 'Derived metric')}
         ${renderDecisionRow('Escalation', required.escalationAfter || '24 hours after due date', 'Human confirmation pending')}
       </div>
+      ${inlineProof}
+      <details class="portfolio-decision-meta">
+        <summary class="btn btn-link btn-compact">Source details</summary>
+        <div class="portfolio-decision-required-rows portfolio-decision-required-rows--meta">
+          ${renderDecisionRow('Impact', required.impact || 'Commitment exposure unknown', 'Derived metric', { showSource: true })}
+          ${renderDecisionRow('Owner', required.owner || 'Product Owner', 'Fact', { showSource: true })}
+          ${renderDecisionRow('Due', dueLabel, 'Fact', { showSource: true })}
+          ${renderDecisionRow('Evidence', required.evidenceConfidence || decision.evidenceBreakdown?.confidenceLabel || 'Medium', 'Derived metric', { showSource: true })}
+          ${renderDecisionRow('Escalation', required.escalationAfter || '24 hours after due date', 'Human confirmation pending', { showSource: true })}
+        </div>
+      </details>
       <div class="portfolio-decision-actions">
-        <button type="button" class="btn btn-primary portfolio-decision-confirm" ${primaryAttr}>${escapeHtml(decisionActionLabel(decision, brief))}</button>
-        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="view-governance-evidence">View evidence</button>
+        <button type="button" class="btn btn-primary portfolio-decision-confirm" data-testid="portfolio-primary-cta" ${primaryAttr}>${escapeHtml(decisionActionLabel(decision, brief))}</button>
+        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="view-governance-evidence">${topProof ? 'See all evidence' : 'View evidence'}</button>
       </div>
     </section>`;
 }

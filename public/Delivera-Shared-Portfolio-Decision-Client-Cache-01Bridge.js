@@ -129,6 +129,9 @@ export async function fetchPortfolioDecisionCached({
             briefId,
             payload: fresh,
           });
+          try {
+            window.dispatchEvent(new CustomEvent('portfolio:decision-revalidated', { detail: { payload: fresh } }));
+          } catch (_) { /* ignore */ }
         }
       }).catch(() => {});
       return { payload: peeked.payload, servedFromCache: true, stale: true };

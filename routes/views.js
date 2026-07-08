@@ -183,7 +183,7 @@ router.get('/sprints', requireAuth, (req, res) => {
  * GET /leadership - merged into Brief decision snapshot (bookmark-safe redirect)
  */
 router.get('/leadership', requireAuth, (req, res) => {
-    res.redirect(302, '/governance#portfolio-decision');
+    res.redirect(302, '/governance?flash=leadership-merged#portfolio-decision');
 });
 
 /**
@@ -200,7 +200,7 @@ router.get('/brief', requireAuth, (req, res) => {
 
 // Legacy alias — /sprint-leadership → /leadership (2024-12). Keep for bookmarks.
 router.get('/sprint-leadership', requireAuth, (req, res) => {
-    res.redirect(302, '/governance#portfolio-decision');
+    res.redirect(302, '/governance?flash=leadership-merged#portfolio-decision');
 });
 
 export default router;

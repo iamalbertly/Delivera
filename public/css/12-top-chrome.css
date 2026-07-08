@@ -756,3 +756,12 @@ body.governance-page.notification-dock-open .portfolio-scope-filters {
     letter-spacing: 0.01em;
   }
 }
+
+/* Round4: route-aware top chrome suppression (P13) */
+body.actions-page .app-top-agent-pill,
+body.actions-page [data-top-action="agent"] {
+  display: none !important;
+}
+body.settings-page [data-top-action="settings"] {
+  display: none !important;
+}

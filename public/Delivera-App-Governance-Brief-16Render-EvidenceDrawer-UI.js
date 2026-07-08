@@ -14,6 +14,7 @@ import {
 const DRAWER_TAB_KEYS = ['proof', 'investment'];
 
 export function openEvidenceDrawer(brief, risks = [], { initialTab = 'proof' } = {}) {
+  try { sessionStorage.setItem('delivera:legacy-brief-needed', '1'); } catch (_) { /* ignore */ }
   ensureLegacyBriefSurfacesHydrated(brief);
   const rows = brief?.evidencePack?.rows || [];
   const keys = new Set(risks.map((r) => String(r.issueKey || '').toUpperCase()).filter(Boolean));

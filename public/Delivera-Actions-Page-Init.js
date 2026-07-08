@@ -23,6 +23,37 @@ function readQuery() {
   }
 }
 
+async function maybeRenderBlockerBanner(readyCount = 0) {
+  const existing = document.getElementById('actions-blocker-banner');
+  if (readyCount > 0) {
+    existing?.remove();
+    return;
+  }
+  try {
+    const res = await fetch('/api/current-sprint.json');
+    if (!res.ok) {
+      existing?.remove();
+      return;
+    }
+    const data = await res.json();
+    const blockers = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates.length : 0;
+    if (!blockers) {
+      existing?.remove();
+      return;
+    }
+    let banner = existing;
+    if (!banner) {
+      banner = document.createElement('p');
+      banner.id = 'actions-blocker-banner';
+      banner.className = 'actions-blocker-banner';
+      document.getElementById('actions-tabs')?.insertAdjacentElement('afterend', banner);
+    }
+    banner.innerHTML = `Blockers on Squads → <a href="/current-sprint">Open sprint blockers</a>`;
+  } catch (_) {
+    existing?.remove();
+  }
+}
+
 function activeTab() {
   return readQuery().get('tab') || 'ready';
 }
@@ -48,7 +79,8 @@ function tabCounts(cases = []) {
 function renderTabs(tab, counts = {}) {
   const mount = document.getElementById('actions-tabs');
   if (!mount) return;
-  mount.innerHTML = TABS.map((t) => {
+  const visibleTabs = TABS.filter((t) => (counts[t.id] || 0) > 0 || t.id === 'ready');
+  mount.innerHTML = visibleTabs.map((t) => {
     const n = counts[t.id] || 0;
     const badge = n > 0 && t.id !== 'proof' ? ` <span class="actions-tab-count">${n}</span>` : '';
     return `<button type="button" class="actions-tab${t.id === tab ? ' is-active' : ''}" data-tab="${t.id}">${escapeHtml(t.label)}${badge}</button>`;
@@ -90,6 +122,7 @@ async function paint(tab = activeTab()) {
   const proof = document.getElementById('actions-proof');
   const highlightId = readQuery().get('caseId') || '';
   const visible = filterCases(cases, tab);
+  await maybeRenderBlockerBanner(counts.ready || 0);
   if (tab === 'proof') {
     if (list) list.hidden = true;
     if (proof) {
