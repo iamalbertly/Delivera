@@ -402,8 +402,8 @@ export function mountBriefScopeBarMode({ mount, quarterLabel = '', onRefresh, on
     getQuarterLabel: () => activeQuarter,
     getPeriodWindow: () => periodWindow,
     refreshCapsule: () => render(),
-    openBaselineWizard: () => baselineWizard?.open(),
-    openPiBaselineWizard: () => baselineWizard?.open(),
+    openPiBaselineWizard: (opts) => baselineWizard?.open(false, opts),
+    openBaselineWizard: (opts) => baselineWizard?.open(false, opts),
     focusScopeBar: () => {
       const target = mount.querySelector('#gov-scope-expanded [data-project], #gov-scope-expanded .gov-scope-mobile-project-check')
         || mount.querySelector('.gov-scope-capsule-text');

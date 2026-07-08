@@ -346,11 +346,11 @@ export function renderDecisionCockpit(data, options = {}) {
     + renderTopRisks(topRisks)
     + renderQuickActions(quickActions)
     + '</section>'
-    + '<details class="decision-rail-card decision-automation-card">'
+    + (viewportLean ? '' : ('<details class="decision-rail-card decision-automation-card">'
     + '<summary>Paste tasks -> structure work</summary>'
     + '<p>Turn notes into clean Jira-ready work aligned to outcomes, owners, and next actions.</p>'
     + '<button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Structure sprint notes into realistic Jira work for this squad.">Structure now</button>'
-    + '</details>'
+    + '</details>'))
     + '</aside>'
     + '</div>'
     + '<div class="decision-metrics-row">'

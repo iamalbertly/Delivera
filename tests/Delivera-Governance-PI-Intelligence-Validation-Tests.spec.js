@@ -303,6 +303,27 @@ test.describe('Governance PI intelligence', () => {
     await expect(legacyBrief(page, '.gov-fix-card')).toBeAttached();
   });
 
+  test('pi-synergy gap precedes set-baseline in compact setup strip', async ({ page }) => {
+    const synergyGaps = {
+      ...PI_BRIEF,
+      meta: {
+        ...PI_BRIEF.meta,
+        piFocus: { synergy: 'low', primaryAction: 'create-work', boardEpicCount: 1 },
+        setupGaps: [
+          { id: 'pi-synergy', action: 'create-work', severity: 'high' },
+          { id: 'pi-baseline', action: 'set-baseline', severity: 'high' },
+        ],
+      },
+    };
+    await mockPiPage(page);
+    await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify(synergyGaps),
+    }));
+    await loadPiPage(page);
+    const firstCard = legacyBrief(page, '.gov-fix-card').first();
+    await expect(firstCard.locator('[data-testid="gov-setup-create-work"]')).toBeAttached();
+  });
+
   test('narration trust badge and PI forum copy', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await mockPiPage(page);

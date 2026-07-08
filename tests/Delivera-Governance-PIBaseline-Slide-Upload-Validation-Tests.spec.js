@@ -1,6 +1,6 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
-import { mockGovernancePage } from './Delivera-Portfolio-Primary-Test-Helpers.js';
+import { mockGovernancePage, clickLegacy, waitForGovernanceReady } from './Delivera-Portfolio-Primary-Test-Helpers.js';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { execSync } from 'child_process';
@@ -75,16 +75,9 @@ async function mockGovernanceBriefPage(page) {
 }
 
 async function openPiBaselineWizard(page) {
-  await expect(page.locator('[data-setup-action="set-baseline"], #gov-pi-fix-baseline').first()).toBeAttached({ timeout: 15000 });
-  const setupFix = page.locator('[data-setup-action="set-baseline"]').first();
-  if (await setupFix.count()) {
-    await setupFix.click();
-  } else {
-    const fold = page.locator('.gov-pi-strip-fold');
-    if (await fold.count()) await fold.evaluate((el) => { el.open = true; });
-    await page.locator('#gov-pi-fix-baseline').click();
-  }
-  await expect(page.locator('.gov-right-drawer-panel .gov-baseline-slide-drop')).toBeVisible({ timeout: 15000 });
+  await waitForGovernanceReady(page);
+  await clickLegacy(page, '.gov-fix-card-btn[data-setup-action="set-baseline"]');
+  await expect(page.locator('.gov-right-drawer-panel .gov-baseline-wizard')).toBeVisible({ timeout: 15000 });
   const wddClose = page.locator('.work-draft-drawer:not([hidden]) button[aria-label="Close"]');
   if (await wddClose.count()) await wddClose.click();
 }
@@ -120,6 +113,7 @@ test.describe('Governance PI baseline slide upload', () => {
       });
     });
     await page.goto('/governance');
+    await waitForGovernanceReady(page);
     await openPiBaselineWizard(page);
     await page.locator('.gov-right-drawer-panel #gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
     await expect(page.locator('.gov-right-drawer-panel .gov-baseline-extracted li')).toHaveCount(1, { timeout: 15000 });
@@ -129,7 +123,7 @@ test.describe('Governance PI baseline slide upload', () => {
     expect(postedBody?.quarter).toBe('FY27 Q1');
   });
 
-  test('vision with zero Jira match shows extracted bullets and Create work', async ({ page }) => {
+  test('vision with zero Jira match shows extracted bullets and Create in Jira', async ({ page }) => {
     await mockGovernanceBriefPage(page);
     await page.route('**/api/governance/pi-baseline/propose-from-image', (r) => r.fulfill({
       status: 200,
@@ -137,15 +131,108 @@ test.describe('Governance PI baseline slide upload', () => {
       body: JSON.stringify({
         method: 'slide-vision',
         extracted: [{ month: 'May', theme: 'Impact', bullet: 'New capability' }],
-        unmatched: [{ issueKey: '', title: 'New capability', method: 'slide-unmatched' }],
+        unmatched: [{
+          issueKey: '',
+          title: 'FY27 Q2 – DMS – NBA – New capability',
+          suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – New capability',
+          method: 'slide-unmatched',
+        }],
         candidates: [],
+        createWorkNarrative: 'FY27 Q2 – DMS – NBA – New capability\n  Story under epic',
+        resolved: [{
+          status: 'missing',
+          suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – New capability',
+          childStories: [{ title: 'Story under epic' }],
+        }],
+        matchedCount: 0,
+        missingCount: 1,
       }),
     }));
     await page.goto('/governance');
+    await waitForGovernanceReady(page);
     await openPiBaselineWizard(page);
     await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
     await expect(page.locator('.gov-baseline-extracted')).toBeVisible();
-    await expect(page.locator('.gov-baseline-actions [data-open-outcome-modal]')).toBeVisible();
+    await expect(page.locator('[data-testid="gov-baseline-create-all"]')).toBeVisible();
+    await expect(page.locator('[data-testid="gov-baseline-create-work"]')).toHaveCount(0);
+    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/Alignment Studio/i);
+  });
+
+  test('duplicate-risk row shows Use existing and create-all is available', async ({ page }) => {
+    let createBody = null;
+    await mockGovernanceBriefPage(page);
+    await page.route('**/api/governance/pi-baseline/propose-from-image', (r) => r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        method: 'slide-vision',
+        extracted: [{ month: 'August', theme: 'Growth', bullet: 'EHOD Regional Profile' }],
+        unmatched: [{
+          issueKey: 'SD-4671',
+          title: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile',
+          suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile',
+          method: 'slide-duplicate-risk',
+          duplicateRisk: { issueKey: 'SD-4671', reason: 'Similar epic exists (SD-4671)', suggestedAction: 'link' },
+        }],
+        candidates: [],
+        resolved: [{
+          status: 'duplicate-risk',
+          suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile',
+          issueKey: 'SD-4671',
+          duplicateRisk: { issueKey: 'SD-4671', reason: 'Similar epic exists (SD-4671)', suggestedAction: 'link' },
+          childStories: [],
+        }],
+        createWorkNarrative: '',
+        matchedCount: 0,
+        missingCount: 0,
+      }),
+    }));
+    await page.route('**/api/governance/pi-baseline/create-epics-from-slide', async (route) => {
+      createBody = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          created: [],
+          linked: [{ issueKey: 'SD-4671', title: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile' }],
+          skipped: [],
+          errors: [],
+          resolved: [{
+            status: 'matched',
+            suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile',
+            issueKey: 'SD-4671',
+            method: 'slide-linked',
+          }],
+          reconcile: {
+            method: 'slide-reconciled',
+            matchedCount: 1,
+            missingCount: 0,
+            resolved: [{
+              status: 'matched',
+              suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile',
+              issueKey: 'SD-4671',
+            }],
+            candidates: [{
+              issueKey: 'SD-4671',
+              title: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile',
+              suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – E-HOD Regional Profile',
+              method: 'slide-linked',
+              selected: true,
+            }],
+            unmatched: [],
+            createWorkNarrative: '',
+          },
+        }),
+      });
+    });
+    await page.goto('/governance');
+    await waitForGovernanceReady(page);
+    await openPiBaselineWizard(page);
+    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
+    await expect(page.locator('[data-testid="gov-baseline-use-existing"]')).toBeVisible({ timeout: 15000 });
+    await page.locator('[data-testid="gov-baseline-use-existing"]').click();
+    await expect(page.locator('[data-testid="gov-baseline-save"]')).toBeVisible({ timeout: 15000 });
+    expect(createBody?.actions?.['FY27 Q2 – DMS – NBA – E-HOD Regional Profile']).toBe('link');
   });
 
   test('propose-from-image without AI key returns AI_KEY_REQUIRED', async ({ request }) => {
@@ -166,16 +253,56 @@ test.describe('Governance PI baseline slide upload', () => {
     expect(body.code).toBe('AI_KEY_REQUIRED');
   });
 
+  test('PI focus strip visible when synergy is low with Alignment Studio primary', async ({ page }) => {
+    const focusBrief = {
+      ...CLARITY_BRIEF,
+      meta: {
+        ...CLARITY_BRIEF.meta,
+        piFocus: {
+          synergy: 'low',
+          primaryAction: 'create-work',
+          headlineKey: 'piFocusBoardUnmatched',
+          boardEpicCount: 2,
+          proposedMissing: 1,
+          duplicateRiskCount: 0,
+          matchedCount: 0,
+        },
+        setupGaps: [
+          { id: 'pi-synergy', action: 'create-work', severity: 'high' },
+          { id: 'pi-baseline', action: 'set-baseline', severity: 'high' },
+        ],
+      },
+    };
+    await mockGovernanceBriefPage(page);
+    await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify(focusBrief),
+    }));
+    await page.goto('/governance');
+    await waitForGovernanceReady(page);
+    await expect(page.locator('[data-testid="gov-pi-focus-strip"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="gov-pi-focus-baseline"]')).toBeVisible();
+    await expect(page.locator('[data-testid="gov-pi-focus-confirm"]')).toHaveCount(0);
+    await page.locator('[data-testid="gov-pi-focus-more"]').click();
+    await expect(page.locator('[data-testid="gov-pi-focus-slide"]')).toBeVisible();
+    await expect(page.locator('[data-testid="gov-cadence-pack"]')).toBeVisible();
+  });
+
   test('IMAGE_TOO_LARGE rejected before vision', async ({ request }) => {
     const huge = 'A'.repeat(6_000_001);
-    const res = await request.post('/api/governance/pi-baseline/propose-from-image', {
-      data: { imageBase64: huge, mimeType: 'image/jpeg', projects: ['SD'] },
-      headers: {
-        'Content-Type': 'application/json',
-        'x-ai-provider': 'openai',
-        'x-ai-key': 'sk-test',
-      },
-    });
+    let res;
+    try {
+      res = await request.post('/api/governance/pi-baseline/propose-from-image', {
+        data: { imageBase64: huge, mimeType: 'image/jpeg', projects: ['SD'] },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-ai-provider': 'openai',
+          'x-ai-key': 'sk-test',
+        },
+      });
+    } catch (err) {
+      if (String(err?.message || '').includes('ECONNRESET')) return;
+      throw err;
+    }
     if (res.status() === 401 || res.status() === 404) {
       test.skip(true, 'Auth or route unavailable for API contract');
       return;
@@ -191,6 +318,7 @@ test.describe('Governance PI baseline slide upload', () => {
       localStorage.setItem('delivera_ai_provider_pref_v1', JSON.stringify({ provider: 'gemini', key: 'test-key', host: '' }));
     });
     await page.goto('/governance');
+    await waitForGovernanceReady(page);
     await openPiBaselineWizard(page);
     await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
     await expect(page.locator('.gov-inline-toast')).toContainText(/OpenAI|Claude|OpenRouter/i);

@@ -48,6 +48,8 @@ import { hideGovernanceLoading } from './Delivera-Governance-Brief-Page-02Loadin
 import { fetchPortfolioDecisionCached } from './Delivera-Shared-Portfolio-Decision-Client-Cache-01Bridge.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { ensureLegacyBriefSurfacesHydrated } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
+import { mountPiFocusStrip } from './Delivera-App-Governance-PIFocus-01Strip-Render-UI.js';
+import { openPiBaselineWizard } from './Delivera-Governance-Brief-Page-01Context.js';
 
 
 
@@ -236,6 +238,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
       cached: meta.cached,
       brief,
     });
+    mountPiFocusStrip(brief, signalMount, { openPiBaselineWizard });
     if (payload.error) {
       signalMount.insertAdjacentHTML('afterbegin', `<p class="portfolio-signal-error" role="alert">${escapeHtml(String(payload.error))}</p>`);
     }
@@ -246,10 +249,9 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   if (railCommitmentsMount) railCommitmentsMount.innerHTML = renderPortfolioRailCommitments(decision);
 
   if (preparedMount) {
-    preparedMount.innerHTML = shouldHidePreparedActionsSection(decision)
-      ? ''
-      : renderPortfolioPreparedActions(decision);
-    preparedMount.hidden = shouldHidePreparedActionsSection(decision);
+    const hidePrepared = shouldHidePreparedActionsSection(decision, brief);
+    preparedMount.innerHTML = hidePrepared ? '' : renderPortfolioPreparedActions(decision);
+    preparedMount.hidden = hidePrepared;
   }
 
   const carouselHtml = (comparison.cards || []).length
@@ -293,7 +295,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
   if (decisionMount) {
 
-    decisionMount.innerHTML = renderPortfolioDecisionPanel(decision);
+    decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, brief);
 
     bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
 
@@ -378,6 +380,18 @@ export function installPortfolioSurfaceHook() {
     if (govPage.lastBrief) refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases);
 
   });
+
+  document.addEventListener('gov:open-alignment-studio', () => {
+    openPiBaselineWizard();
+  });
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('openAlignment') === '1' || params.get('openAlignment') === 'slide') {
+      const mode = params.get('openAlignment') === 'slide' ? { initialMode: 'slide' } : {};
+      queueMicrotask(() => openPiBaselineWizard(mode));
+    }
+  } catch (_) { /* ignore */ }
 
 }
 

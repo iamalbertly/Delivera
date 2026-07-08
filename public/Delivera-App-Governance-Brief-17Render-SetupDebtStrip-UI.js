@@ -1,6 +1,8 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
 import { COPY, setupGapImpact, setupGapTitle } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { renderCreateWorkButton } from './Delivera-App-Shared-CreateWork-01Button-Render-SSOT.js';
+import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
 const ACTION_LABELS = {
   'set-baseline': COPY.piBaselineCta,
@@ -17,14 +19,24 @@ function renderGapCard(g, hidden = false) {
   const act = ACTION_LABELS[g.action] || 'Open settings';
   const impact = setupGapImpact(g);
   const title = setupGapTitle(g);
-  const createWorkAttrs = g.action === 'create-work'
-    ? ' data-open-outcome-modal data-outcome-context="Create work in Jira for selected squads."'
-    : '';
+  const projectsCsv = readSharedProjectsCsv().join(',');
+  let fixBtn;
+  if (g.action === 'create-work') {
+    fixBtn = renderCreateWorkButton({
+      projectsCsv,
+      label: `Fix: ${act}`,
+      testId: 'gov-setup-create-work',
+      context: 'Create work in Jira for selected squads.',
+      variant: 'btn-primary',
+    }).replace('btn-compact"', 'btn-compact gov-fix-card-btn"');
+  } else {
+    fixBtn = `<button type="button" class="btn btn-primary btn-compact gov-fix-card-btn" data-setup-action="${escapeHtml(g.action)}"${g.action === 'set-baseline' ? ' data-setup-baseline-ssot="1"' : ''}>Fix: ${escapeHtml(act)}</button>`;
+  }
   return `
       <article class="gov-fix-card gov-fix-card--${escapeHtml(g.severity || 'medium')}" data-setup-gap-card data-hover-proof="setup-gap"${hidden ? ' hidden' : ''}>
         <h4 class="gov-fix-card-title">${escapeHtml(title)}</h4>
         <p class="gov-fix-card-impact">Impact: ${escapeHtml(impact)}</p>
-        <button type="button" class="btn btn-primary btn-compact gov-fix-card-btn" data-setup-action="${escapeHtml(g.action)}"${g.action === 'set-baseline' ? ' data-setup-baseline-ssot="1"' : ''}${createWorkAttrs}>Fix: ${escapeHtml(act)}</button>
+        ${fixBtn}
       </article>`;
 }
 

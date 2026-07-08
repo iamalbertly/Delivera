@@ -138,9 +138,10 @@ test.describe('PI baseline wizard direct-value', () => {
     });
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    const expand = page.locator('#gov-setup-gaps-expand');
-    if (await expand.count()) await expand.click();
-    await page.locator('.gov-fix-card-btn[data-setup-action="set-baseline"]').click();
+    await waitForGovernanceReady(page);
+    const expand = legacyBrief(page, '#gov-setup-gaps-expand');
+    if (await expand.count()) await clickLegacy(page, '#gov-setup-gaps-expand');
+    await clickLegacy(page, '.gov-fix-card-btn[data-setup-action="set-baseline"]');
     await page.locator('[data-testid="gov-baseline-save"]').click();
     await expect.poll(() => saved).toBe(true);
     await expect(page.locator('#delivera-gov-right-drawer')).toBeHidden();
@@ -150,8 +151,11 @@ test.describe('PI baseline wizard direct-value', () => {
     await mockWizardPage(page);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
-    const badge = page.locator('.gov-send-badge');
-    await expect(badge.first()).toContainText(/Fix promised work first/i);
-    await expect(page.locator('.gov-send-badge:has-text("Safe to send")')).toHaveCount(0);
+    await waitForGovernanceReady(page);
+    const workDraft = page.locator('#delivera-work-draft-drawer, dialog[aria-label="Create work draft"]');
+    if (await workDraft.count()) await workDraft.locator('button[aria-label="Close"]').click().catch(() => {});
+    const badge = legacyBrief(page, '#gov-send-readiness-pill, .gov-owner-cluster .gov-send-badge');
+    await expect(badge).toContainText(/Fix promised work first/i);
+    await expect(legacyBrief(page, '#gov-send-readiness-pill, .gov-send-badge')).not.toContainText(/Safe to send/i);
   });
 });

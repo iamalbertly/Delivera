@@ -149,7 +149,12 @@ export function portfolioCanonicalCounts(decision = {}) {
   };
 }
 
-/** Keep one dedicated action stream; the signal never renders duplicate prepared chips. */
-export function shouldHidePreparedActionsSection(decision = {}) {
+/** Hide prepared-actions stream when empty or when PI focus owns the verb. */
+export function shouldHidePreparedActionsSection(decision = {}, brief = {}) {
+  const items = decision?.preparedActions?.items || [];
+  const groups = decision?.preparedActions?.groups || [];
+  const empty = !items.length && !groups.some((g) => Number(g.count) > 0);
+  if (empty) return true;
+  if (brief?.meta?.piFocus?.synergy === 'low') return true;
   return false;
 }

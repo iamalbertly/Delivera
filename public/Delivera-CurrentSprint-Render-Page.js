@@ -132,15 +132,15 @@ export function renderCurrentSprintPage(data) {
   html += '<div id="sprint-alignment-strip-mount"></div>';
   html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean">';
 
-  if (hasStories) {
-    html += '<div class="sprint-cards-column full-width">';
-    html += renderStories(data);
-    html += '</div>';
-  }
-
   html += '<div class="sprint-cockpit-column full-width">';
   html += renderDecisionCockpit(data, { viewportLean: true });
   html += '</div>';
+
+  if (hasStories) {
+    html += '<div class="sprint-cards-column full-width" id="stories-card-wrap">';
+    html += renderStories(data);
+    html += '</div>';
+  }
 
   if (hasBurndownData) {
     html += '<div class="sprint-cards-row risks-row">';

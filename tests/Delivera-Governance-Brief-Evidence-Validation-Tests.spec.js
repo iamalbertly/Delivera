@@ -236,6 +236,26 @@ test.describe('Governance Brief - deterministic logic (mocked Jira)', () => {
     expect(diff.summary.delivered).toBe(1);
     expect(diff.summary.removed).toBe(0);
   });
+
+  test('PI baseline marks delayed vs on-track using targetDate from slide month', () => {
+    const baseline = {
+      piName: 'SD',
+      baselineDate: '2026-07-01',
+      committedItems: [
+        { issueKey: 'SD-1', title: 'July epic', targetDate: '2020-07-31' },
+        { issueKey: 'SD-2', title: 'Future epic', targetDate: '2099-09-30' },
+      ],
+    };
+    const currentByKey = new Map([
+      ['SD-1', { status: 'In Progress' }],
+      ['SD-2', { status: 'To Do' }],
+    ]);
+    const diff = comparePIBaselineToNow({ baseline, currentByKey, currentKeys: ['SD-1', 'SD-2'] });
+    expect(diff.summary.delayed).toBe(1);
+    expect(diff.summary.onTrack).toBe(1);
+    expect(diff.items.find((i) => i.issueKey === 'SD-1').verdict).toBe(BASELINE_VERDICTS.DELAYED);
+    expect(diff.items.find((i) => i.issueKey === 'SD-2').verdict).toBe(BASELINE_VERDICTS.ON_TRACK);
+  });
 });
 
 test.describe('Governance Brief - UI surface (mocked brief)', () => {
@@ -316,7 +336,10 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
       status: 200, contentType: 'application/json', body: JSON.stringify({ markdown: '## Grow My Impact\n\n- Briefs: 1' }),
     }));
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await clickLegacy(page, '#gov-export-overflow');
+    await page.evaluate(async () => {
+      const mod = await import('/Delivera-Governance-Brief-Page-03Load-Controller.js');
+      await mod.copyBrief({ triggerEl: document.getElementById('gov-export-overflow') });
+    });
     await expect.poll(async () => page.evaluate(() => navigator.clipboard.readText()), { timeout: 15000 }).toContain("Today's delivery answer");
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toContain('Tech Lead');
@@ -359,8 +382,8 @@ test.describe('Governance Brief - UI surface (mocked brief)', () => {
 
   test('nudge is blocked when data is stale (trust guard)', async ({ page }) => {
     if (!(await mockAndGo(page))) return;
-    await expect(page.locator('[data-grouped-nudge="0"]')).toBeVisible();
-    await page.locator('[data-grouped-nudge="0"]').click();
+    await expect(legacyBrief(page, '[data-grouped-nudge="0"]')).toBeAttached();
+    await clickLegacy(page, '[data-grouped-nudge="0"]');
     await expect(page.locator('body')).toHaveClass(/jira-nudge-review-open/);
     await expect(page.locator('#delivera-jira-nudge-review-sheet')).not.toHaveAttribute('hidden', '');
     await expect(page.locator('.jira-nudge-review-trust')).toContainText(/Stale brief|Live sprint required/i);

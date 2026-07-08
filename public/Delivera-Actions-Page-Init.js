@@ -1,5 +1,11 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { listCases, loadCase, renderActionsCaseCard } from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import {
+  listCases,
+  loadCase,
+  approveDraft,
+  renderActionsCaseCard,
+} from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
 
 const TABS = [
   { id: 'ready', label: 'Ready' },
@@ -58,6 +64,23 @@ function renderTabs(tab, counts = {}) {
   };
 }
 
+function renderProofPacks(cases = []) {
+  const withProof = cases.filter((c) => (c.facts || []).length || (c.issueKeys || []).length).slice(0, 8);
+  if (!withProof.length) {
+    return `<p class="actions-proof-lead">${escapeHtml(COPY.actionsCaseNudgeLabel)} — no open proof packs yet.</p>`;
+  }
+  return `
+    <p class="actions-proof-lead">${escapeHtml(COPY.actionsCaseNudgeLabel)} evidence (same contract as Portfolio)</p>
+    <ul class="actions-proof-list">
+      ${withProof.map((c) => `
+        <li class="actions-proof-item">
+          <strong>${escapeHtml(c.title || c.project || c.id)}</strong>
+          <span>${escapeHtml((c.issueKeys || []).slice(0, 3).join(', ') || '—')}</span>
+          <span>Proof: ${escapeHtml(c.proofLevel || 'Medium')}</span>
+        </li>`).join('')}
+    </ul>`;
+}
+
 async function paint(tab = activeTab()) {
   const project = readQuery().get('project') || '';
   const cases = await listCases({ project, status: 'open' });
@@ -71,7 +94,7 @@ async function paint(tab = activeTab()) {
     if (list) list.hidden = true;
     if (proof) {
       proof.hidden = false;
-      proof.innerHTML = '<p class="actions-proof-lead">Proof packs use the same intervention evidence contract as Portfolio.</p>';
+      proof.innerHTML = renderProofPacks(visible);
     }
     return;
   }
@@ -105,11 +128,18 @@ async function openCaseReview(caseId) {
     card.appendChild(panel);
   }
   const issues = (row.issueKeys || []).join(', ');
+  const canApprove = Boolean(row.needsApproval);
   panel.innerHTML = `
+    <p class="actions-case-kind"><strong>${escapeHtml(COPY.actionsCaseNudgeLabel)}</strong> (not a Squads Jira comment nudge)</p>
     <p><strong>State:</strong> ${escapeHtml(row.state || 'open')}</p>
     <p><strong>Issues:</strong> ${escapeHtml(issues || '—')}</p>
     <p>${escapeHtml(row.primaryAction?.action || 'Review facts and approve the next nudge when ready.')}</p>
-    <a class="btn btn-primary btn-compact" href="/governance">Open portfolio context</a>`;
+    <div class="actions-case-inline-actions">
+      ${canApprove ? `<button type="button" class="btn btn-primary btn-compact" data-approve-case="${escapeHtml(caseId)}">${escapeHtml(COPY.actionsApproveInline)}</button>` : ''}
+      <button type="button" class="btn btn-secondary btn-compact" data-decline-case="${escapeHtml(caseId)}">${escapeHtml(COPY.actionsDeclineInline)}</button>
+      <a class="btn btn-link btn-compact" href="/governance">${escapeHtml('Portfolio context')}</a>
+    </div>
+    <p class="actions-case-status" data-case-status hidden></p>`;
   panel.hidden = false;
   card.classList.add('is-expanded');
   card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -121,6 +151,26 @@ async function init() {
   const reviewId = readQuery().get('caseId');
   if (readQuery().get('review') === '1' && reviewId) await openCaseReview(reviewId);
   document.getElementById('actions-list')?.addEventListener('click', async (ev) => {
+    const approve = ev.target.closest('[data-approve-case]');
+    if (approve) {
+      const id = approve.getAttribute('data-approve-case');
+      const status = approve.closest('.actions-case-detail')?.querySelector('[data-case-status]');
+      try {
+        await approveDraft(id, true);
+        if (status) { status.hidden = false; status.textContent = 'Approved'; }
+        await paint(activeTab());
+      } catch (err) {
+        if (status) { status.hidden = false; status.textContent = err?.message || 'Approve failed'; }
+      }
+      return;
+    }
+    const decline = ev.target.closest('[data-decline-case]');
+    if (decline) {
+      const panel = decline.closest('.actions-case-detail');
+      if (panel) panel.hidden = true;
+      decline.closest('.actions-case-card')?.classList.remove('is-expanded');
+      return;
+    }
     const btn = ev.target.closest('[data-open-case]');
     if (!btn) return;
     const id = btn.getAttribute('data-open-case');

@@ -4,11 +4,9 @@ import {
   readAiProviderPref,
   saveAiProviderPref,
   aiProviderRequestHeaders,
-  hasAiProviderKey,
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { postSlidePropose } from './Delivera-App-Shared-PIBaseline-Slide-01Client-Helper.js';
-import { bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
+import { dispatchPiBaselineEpicsCreated } from './Delivera-App-Shared-PIBaseline-02Slide-Outcome-Bridge-SSOT.js';
 import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -198,12 +196,6 @@ function ensureDrawer() {
 </div>
 <div class="wdd-trust-strip" id="wdd-trust-strip"></div>
 <div class="wdd-body" id="wdd-body">
-  <label class="wdd-slide-upload" id="wdd-slide-upload-label">
-    <span>${esc(COPY.baselineSlideUpload || 'Upload PI plan slide')}</span>
-    <span class="gov-baseline-slide-hint">Drag &amp; drop or click</span>
-    <input type="file" id="wdd-slide-input" accept="image/png,image/jpeg,image/webp" />
-  </label>
-  <p class="wdd-slide-status" id="wdd-slide-status" hidden aria-live="polite"></p>
   <div class="wdd-source is-open" id="wdd-source">
     <button class="wdd-source-toggle" id="wdd-source-toggle" aria-label="Toggle source text">▲ Source</button>
     <textarea class="wdd-source-textarea" id="wdd-source-textarea" rows="5"
@@ -257,11 +249,6 @@ export function openWorkDraftDrawer(prefill = {}) {
 
   const ta = document.getElementById('wdd-source-textarea');
   if (ta) ta.value = String(_prefill.narrative || '').trim();
-
-  const slideLabel = document.getElementById('wdd-slide-upload-label');
-  if (slideLabel) slideLabel.style.display = hasAiProviderKey() ? '' : 'none';
-  const slideStatus = document.getElementById('wdd-slide-status');
-  if (slideStatus) slideStatus.hidden = true;
 
   const followUp = document.getElementById('wdd-follow-up');
   if (followUp) { followUp.hidden = true; followUp.innerHTML = ''; }
@@ -1384,6 +1371,13 @@ async function createSafeIssues(forceCreate = false) {
     persistActivity(json, _projectKey);
     renderFollowUp(json);
 
+    const createdKeys = extractCreatedIssues(json)
+      .map((issue) => String(issue?.key || issue?.issueKey || '').toUpperCase())
+      .filter(Boolean);
+    if (createdKeys.length) {
+      dispatchPiBaselineEpicsCreated(createdKeys, 'work-draft');
+    }
+
     safeItems.forEach((item) => {
       const i = _items.indexOf(item);
       if (i !== -1) _items.splice(i, 1);
@@ -1668,34 +1662,6 @@ function wireEvents() {
     if (!sourceEl) return;
     if (sourceEl.classList.contains('is-collapsed')) { expandSource(); } else { collapseSource(); }
   });
-
-  async function onWddSlideSelected(file) {
-    const status = document.getElementById('wdd-slide-status');
-    const ta = document.getElementById('wdd-source-textarea');
-    if (!file || !ta) return;
-    if (status) { status.hidden = false; status.textContent = COPY.baselineSlideReading || 'Reading slide…'; }
-    try {
-      const projects = _projectOptions.length ? _projectOptions : [_projectKey].filter(Boolean);
-      const data = await postSlidePropose({ file, projects, projectsCsv: projects.join(',') });
-      const lines = (data.extracted || []).map((r) => {
-        const parts = [r.month, r.theme, r.bullet].filter(Boolean);
-        return parts.join(' — ');
-      });
-      const matched = (data.candidates || []).filter((c) => c.issueKey).map((c) => `${c.issueKey}: ${c.title}`);
-      ta.value = [...lines, ...matched].filter(Boolean).join('\n');
-      ta.dispatchEvent(new Event('input', { bubbles: true }));
-      if (status) status.textContent = `${COPY.baselineSlideMethod || 'From slide'}: ${lines.length} items`;
-    } catch (err) {
-      const body = document.getElementById('wdd-body');
-      if (body) showInlineToast(body, err?.message || 'Slide read failed', 'error');
-      if (status) status.textContent = '';
-    }
-  }
-
-  const wddSlideZone = document.getElementById('wdd-slide-upload-label');
-  if (wddSlideZone) {
-    bindSlideDropZone(wddSlideZone, (file) => { void onWddSlideSelected(file); });
-  }
 
   document.addEventListener('click', (e) => {
     const trigger = e.target?.closest('[data-open-outcome-modal]');

@@ -339,7 +339,8 @@ test.describe('Governance agentic worker — UI', () => {
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await waitForGovernanceReady(page);
     await expect(page.locator('#gov-brief-content')).toHaveAttribute('hidden', '');
-    await expect(legacyBrief(page, '#gov-micro-survey-mount .gov-micro-pill').first()).toBeAttached();
+    await expect(page.locator('#gov-micro-survey-mount')).toBeAttached();
+    await expect(page.locator('#gov-micro-survey-mount .gov-micro-pill')).toHaveCount(0);
     await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
   });
 
@@ -380,11 +381,15 @@ test.describe('Governance agentic worker — UI', () => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.route('**/api/governance/adoption-metric', (r) => { posted = true; return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }); });
-    await page.addInitScript((key) => { localStorage.removeItem(key); }, GOVERNANCE_SURVEY_LAST_ASKED_KEY);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await waitForGovernanceReady(page);
-    await clickLegacy(page, '.gov-micro-pill[data-minutes="10"]');
+    await page.evaluate(async () => {
+      const mount = document.getElementById('gov-micro-survey-mount');
+      const mod = await import('/Delivera-App-Governance-Brief-12Render-MicroSurvey-UI.js');
+      mod.renderPostNudgeSurvey(mount, 'MPSA');
+    });
+    await clickLegacy(page, '[data-post-nudge="up"]');
     await expect.poll(() => posted).toBe(true);
   });
 
@@ -406,16 +411,20 @@ test.describe('Governance agentic worker — UI', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('micro-survey collapses after selection', async ({ page }) => {
+  test('post-nudge survey dismisses after thumb selection', async ({ page }) => {
     await mockGovernancePage(page);
     await page.route('**/api/governance/inbox.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], total: 0 }) }));
     await page.route('**/api/governance/adoption-metric', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) }));
-    await page.addInitScript((key) => { localStorage.removeItem(key); }, GOVERNANCE_SURVEY_LAST_ASKED_KEY);
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await waitForGovernanceReady(page);
-    await clickLegacy(page, '.gov-micro-pill[data-minutes="3"]');
-    await expect(legacyBrief(page, '#gov-micro-survey-mount')).toHaveClass(/gov-micro-survey--done/);
+    await page.evaluate(async () => {
+      const mount = document.getElementById('gov-micro-survey-mount');
+      const mod = await import('/Delivera-App-Governance-Brief-12Render-MicroSurvey-UI.js');
+      mod.renderPostNudgeSurvey(mount, 'MPSA');
+    });
+    await clickLegacy(page, '[data-post-nudge="up"]');
+    await expect(page.locator('#gov-micro-survey-mount .gov-post-nudge-survey')).toHaveCount(0);
   });
 
   test('briefToMarkdown includes Grow My Impact section', () => {

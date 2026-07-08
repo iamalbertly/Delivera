@@ -1,5 +1,5 @@
 /**
- * "Your work" PI alignment strip on Current Sprint.
+ * "Your work" PI alignment strip on Current Sprint — one hop to Alignment Studio.
  */
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { classifyWorkAlignment, renderAlignmentChip } from './Delivera-Shared-WorkAlignment-01Chip-SSOT.js';
@@ -39,11 +39,20 @@ export function renderAlignmentStripHtml(data, baselineKeys = []) {
     const key = s.issueKey || s.key || '';
     return `<li><a href="#story-row-${escapeHtml(key)}">${escapeHtml(key)}</a> ${renderAlignmentChip(alignment)}</li>`;
   }).join('');
+  const misaligned = Math.max(0, stories.length - aligned);
   const summaryDetail = [piCount ? `${piCount} PI` : '', offPiCount ? `${offPiCount} off-PI` : '', adHocCount ? `${adHocCount} ad-hoc` : ''].filter(Boolean).join(' · ');
+  const studioLink = misaligned > 0
+    ? `<a class="btn btn-secondary btn-compact" href="/governance?openAlignment=1" data-testid="sprint-open-alignment-studio">${escapeHtml(COPY.alignmentOpenStudio)} (${misaligned})</a>`
+    : '';
   return `
     <section class="sprint-alignment-strip" data-alignment-strip="1" aria-label="Work alignment">
+      <div class="sprint-alignment-head">
+        <strong>${aligned} of ${stories.length}</strong> ${escapeHtml(COPY.alignmentSummary || 'aligned')}
+        ${summaryDetail ? `<span>· ${escapeHtml(summaryDetail)}</span>` : ''}
+        ${studioLink}
+      </div>
       <details>
-        <summary><strong>${aligned} of ${stories.length}</strong> ${COPY.alignmentSummary}${summaryDetail ? ` · ${summaryDetail}` : ''}</summary>
+        <summary>Recent stories</summary>
         <ul class="sprint-alignment-list">${rows}</ul>
       </details>
     </section>`;
