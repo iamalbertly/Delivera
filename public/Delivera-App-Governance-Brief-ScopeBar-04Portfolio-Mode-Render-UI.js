@@ -17,7 +17,8 @@ import {
   bindProjectsStorageSync,
 } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
-import { renderTimeboxChip, renderSinceLastCheckChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import { renderSinceLastCheckChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import { renderScopeCadenceLine } from './Delivera-App-Governance-Cadence-01Pack-Render-UI.js';
 import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 const BASELINE_OPTIONS = [
@@ -51,7 +52,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   let statusTier = 'watch';
   let cacheFresh = false;
   let cacheUpdating = false;
-  let scopeCollapsed = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+  let scopeCollapsed = true;
   let catalogKeys = unionScopeProjectKeys([anchor, ...compare]);
 
   function commitScope({ reload = true } = {}) {
@@ -78,8 +79,8 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     mount.innerHTML = `
       <div class="portfolio-scope-filters${scopeCollapsed ? ' portfolio-scope-filters--collapsed' : ''}" data-portfolio-scope-filters>
         <div class="portfolio-scope-summary-strip" data-portfolio-scope-summary>
-          ${renderTimeboxChip(getLastDecision?.() || {}, getBrief?.() || {})}
-          ${renderSinceLastCheckChip(getBrief?.() || {})}
+          ${renderScopeCadenceLine(getLastDecision?.() || {}, getBrief?.() || {})}
+          <span class="gov-scope-since-wrap">${renderSinceLastCheckChip(getBrief?.() || {})}</span>
           ${renderStatusPill(statusTier)}
         </div>
         <button type="button" class="portfolio-scope-collapse-toggle btn btn-link btn-compact" data-portfolio-scope-toggle aria-expanded="${scopeCollapsed ? 'false' : 'true'}">
@@ -214,8 +215,8 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       commitScope();
       render();
     },
-    openPiBaselineWizard: () => baselineWizard?.open(),
-    openBaselineWizard: () => baselineWizard?.open(),
+    openPiBaselineWizard: (opts) => baselineWizard?.open(false, opts),
+    openBaselineWizard: (opts) => baselineWizard?.open(false, opts),
     setAnchor(nextAnchor) {
       if (!nextAnchor) return;
       compare = [anchor, ...compare.filter((p) => String(p).toUpperCase() !== String(nextAnchor).toUpperCase())]

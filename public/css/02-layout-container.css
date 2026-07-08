@@ -651,6 +651,9 @@ a.surface-card--linked:hover .surface-card-kicker {
   display: grid;
   gap: 18px;
 }
+.settings-quick-nav {
+  grid-column: 1 / -1;
+}
 @media (min-width: 900px) {
   .settings-hub-layout {
     grid-template-columns: 200px 1fr;
@@ -660,12 +663,18 @@ a.surface-card--linked:hover .surface-card-kicker {
     grid-column: 1 / -1;
   }
   .settings-nav-rail {
+    grid-column: 1;
+    grid-row: 3;
     position: sticky;
     top: 72px;
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding: 14px;
+  }
+  .settings-hub-panels {
+    grid-column: 2;
+    grid-row: 3;
   }
 }
 .settings-nav-rail {
@@ -777,6 +786,17 @@ body.settings-page .settings-hero-lead {
 }
 body.settings-page #surface-context-bar:empty {
   display: none;
+}
+body.settings-page .settings-return-banner {
+  margin: 10px 0 0;
+}
+body.current-sprint-page.executive-surface-page .app-top-brand-mark,
+body.current-sprint-page.executive-surface-page .app-top-brand-name {
+  color: var(--primary-strong, #c41e3a);
+}
+body.current-sprint-page.executive-surface-page .app-sidebar .sidebar-nav-link.is-active {
+  color: var(--primary-strong, #c41e3a);
+  background: rgba(196, 30, 58, 0.08);
 }
 @media (max-width: 720px) {
   body.settings-page .settings-hero-lead {

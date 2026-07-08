@@ -51,6 +51,78 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
+.portfolio-signal--hero {
+  padding: 0.75rem 1rem;
+}
+
+.portfolio-signal--hero .portfolio-signal-headline--hero {
+  font-size: 1rem;
+  line-height: 1.35;
+  margin: 0.35rem 0 0.5rem;
+  font-weight: 700;
+}
+
+.portfolio-signal-verdict {
+  margin: 0.35rem 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #475569);
+}
+
+.portfolio-signal--synergy-low .portfolio-signal-studio-link {
+  margin-top: 0.25rem;
+  padding-left: 0;
+}
+
+.portfolio-summary-metrics--compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  margin: 0.35rem 0;
+}
+
+.portfolio-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.portfolio-summary-chip strong {
+  font-weight: 700;
+}
+
+.portfolio-summary-chip--healthy { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.portfolio-summary-chip--evidence-gap { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.portfolio-summary-chip--material-risk { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.portfolio-summary-chip--action { cursor: pointer; }
+
+.portfolio-signal-warning-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #c2410c;
+}
+
+.portfolio-signal-details-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+  margin: 0.65rem 0;
+}
+
+.portfolio-signal-details .portfolio-evidence-summary {
+  margin-top: 0.75rem;
+}
+
 .portfolio-signal-kicker {
   font-size: 0.7rem;
   font-weight: 700;

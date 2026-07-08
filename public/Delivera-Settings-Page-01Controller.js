@@ -7,6 +7,8 @@ import { mountIntegrationsPanel } from './Delivera-Settings-Integrations-01Healt
 import { initSettingsJiraActivityPanel } from './Delivera-Settings-JiraActivity-01Page-01Controller.js';
 import { ensureProjectCatalogLoaded } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import { getSurfaceQuickLinks, PAGE_REPORT } from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 const SECTIONS = [
   { id: 'my-workspace', label: 'My workspace' },
@@ -55,6 +57,20 @@ function scrollToSection(sectionId) {
   el.focus({ preventScroll: true });
 }
 
+function renderReturnBanner() {
+  const params = new URLSearchParams(window.location.search);
+  const ret = params.get('return');
+  if (!ret || !ret.startsWith('/')) return;
+  const open = params.get('openAlignment');
+  const href = open ? `${ret}?openAlignment=${encodeURIComponent(open)}` : ret;
+  const hero = document.querySelector('.settings-hero-compact');
+  if (!hero || hero.querySelector('[data-settings-return-banner]')) return;
+  hero.insertAdjacentHTML('beforeend', `
+    <p class="settings-return-banner" data-settings-return-banner>
+      <a class="btn btn-primary btn-compact" href="${escapeHtml(href)}">${escapeHtml(COPY.settingsReturnToGovernance)}</a>
+    </p>`);
+}
+
 export function initSettingsHub() {
   const navEl = document.getElementById('settings-nav-rail');
   const hash = (window.location.hash || '').replace('#', '') || 'my-workspace';
@@ -62,6 +78,7 @@ export function initSettingsHub() {
 
   renderNavRail(navEl, activeId);
   renderQuickNav();
+  renderReturnBanner();
   navEl?.addEventListener('click', (ev) => {
     const link = ev.target.closest('[data-settings-section]');
     if (!link) return;

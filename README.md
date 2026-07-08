@@ -14,9 +14,11 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 | `/report` | **Proof** | Evidence and drill-down (unchanged route; top chrome links here from legacy bookmarks) |
 | `/settings` | **Settings** | My workspace prefs, read-only org catalog, integrations health, Jira activity |
 
-**Portfolio command surface (`/governance`):** neutral Portfolio/RTE decision cockpit — quarter-level delivery health, trust bar, decision-ready commitment ratios, decision owner/due date, evidence confidence, latest safe decision date, visible epic context, baseline-to-Jira reconciler strip, unaligned-story warning, Action Stream, and **Governance evidence** drawer. The squad performance grid mounts directly under `#portfolio-signal-mount` on wide screens, not buried in the right rail. Legacy brief DOM hydrates on-demand via `ensureLegacyBriefSurfacesHydrated` (not on initial portfolio paint). Keyboard: `R` refresh scope, `C` copy evidence summary, `N` nudge/drawer. Pipeline: `Delivera-Governance-Brief-Page-03Load-Controller.js` + `Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js` + `Delivera-App-Portfolio-Signal-01Render-UI.js` + `Delivera-App-Portfolio-Actions-01Bridge.js`.
+**Portfolio command surface (`/governance`):** neutral Portfolio/RTE decision cockpit — quarter-level delivery health, **Cadence Pack** (last sprint / idle / quarter delivery) on the scope bar, trust bar, decision-ready commitment ratios, and **Alignment Studio** (single drawer for board align / slide read / lock promised work). When `meta.piFocus.synergy === 'low'`, an **Intent strip** shows one primary verb + More overflow (no duplicate Confirm). Create Work drafts stories only; PI slides upload **only** in Alignment Studio. Epic create uses studio `Create in Jira` (batch SSOT). Commitments list is singular (rail does not duplicate “At risk”). Decision rail defers to Alignment Studio when synergy is low. Legacy brief DOM hydrates on-demand via `ensureLegacyBriefSurfacesHydrated`. Keyboard: `R` refresh scope, `C` copy evidence summary, `N` nudge/drawer. Pipeline: `Page-03Load-Controller.js` + `Page-06Portfolio-Render-Plugin.js` + `PIFocus-01Strip-Render-UI.js` + `Cadence-01Pack-Render-UI.js` + `PIBaseline` wizard modules + `routes/Delivera-Governance-PIBaseline-01Routes.js`.
 
-**Actions (`/actions`):** tab badges show ready-case counts; `?caseId=` highlights the matching card. `/evidence` and `/impact` redirect here. `/portfolio` redirects to `/governance`.
+**Actions (`/actions`):** Ready-tab **Approve / Decline in place** (intervention cases — distinct from Squads Jira comment nudges). Proof tab lists evidence packs. `/evidence` and `/impact` redirect here. `/portfolio` redirects to `/governance`.
+
+**Squads (`/current-sprint`):** Decision cockpit above the work table in lean mode; PI alignment strip one-hop links to `/governance?openAlignment=1`. One Create work chip above the fold (Structure now buried in non-lean only).
 
 Impact adds a role-aware intelligence layer without replacing Jira, SuccessFactors, Teams, email, Portfolio, Squads, or Proof. It uses `/api/evidence-os/*`, checked-in Postgres migrations under `db/migrations/`, Drizzle schema under `db/schema/`, and the existing governed AI orchestrator for Tier 4 draft assistance only. Evidence, validation, commitments, and reports are background records; the user-facing surface is decisions and intervention.
 
@@ -67,7 +69,9 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - Inbox drawer with icon tabs; guided nudge review (not silent approve)
 - **Direct-value master plan (2026-06):** single console patch (`Delivera-Shared-Runtime-Notification-Bridge.js` is the only `console.error` wrapper — extension noise filtered by regex, no double-fire); owner cluster dismiss chips hover-reveal on desktop / always visible on touch; evidence drawer has no tabs (investment summary inlined above proof list); micro-survey 4h timer disabled (post-nudge thumb chip only via `renderPostNudgeSurvey`); 14 dead `DeleteThisFile_*` files removed; `escapeHtml` imports consolidated to the SSOT (no re-exports from `02Render-Decisions-UI`).
 
-Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brief-ssot`. Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
+Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brief-ssot`. Layout gate: `npm run test:journey:layout-overlap`. **Governance fail-fast P0:** `npm run test:journey:governance-p0` (29 PI units + ~50 Playwright). Full governance bundle: `npm run test:journey:governance`.
+
+**Governance above-fold contract:** Portfolio signal hero (`[data-portfolio-signal].portfolio-signal--hero`) shows verdict + 3 chips (on track / at risk / evidence); trust bar and six-metric grid live in `<details>`. Scope bar uses one cadence line (`[data-testid="gov-cadence-pack"]`); PI focus strip is a single compact row when `meta.piFocus.synergy === 'low'`.
 
 ## Quickstart
 
@@ -122,6 +126,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
 | `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync, Refresh bypass |
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
+| `npm run test:journey:governance-p0` | Fail-fast governance gate: PI baseline units + Alignment Studio / scope / visual-clarity P0 Playwright |
 | `npm run test:journey:governance` | Brief / governance Playwright bundle |
 | `npm run test:journey:governance-intervention-loop` | Intervention case API journey and approval gates |
 | `npm run test:journey:pi-intelligence` | PI confidence, scope intelligence, epic hygiene, feedback lab (on-demand legacy hydrate) |

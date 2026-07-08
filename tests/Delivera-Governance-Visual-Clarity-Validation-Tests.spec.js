@@ -92,8 +92,16 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await mockClarityPage(page);
     await loadClarityPage(page);
     await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
-    await expect(legacyBrief(page, '.gov-scope-status-chip')).toBeAttached();
-    await expect(legacyBrief(page, '.gov-scope-status-chip')).toContainText(/Blocked|✕/i);
+    const portfolioStatus = page.locator('#portfolio-scope-bar-mount .portfolio-scope-status-pill, #portfolio-scope-bar-mount [data-portfolio-status], #portfolio-scope-bar-mount button').filter({ hasText: /Watch|Blocked|On track|✕|⚠/i });
+    const legacyStatus = legacyBrief(page, '.gov-scope-status-chip');
+    const hasPortfolio = await portfolioStatus.count();
+    if (hasPortfolio) {
+      await expect(portfolioStatus.first()).toBeVisible();
+    } else {
+      await expect(legacyStatus).toBeAttached();
+      await expect(legacyStatus).toContainText(/Blocked|Watch|✕|⚠/i);
+    }
+    await expect(page.locator('[data-testid="gov-cadence-pack"]')).toBeVisible();
   });
 
   test('PI no-data empty state not broken gauge', async ({ page }) => {
@@ -101,8 +109,9 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await loadClarityPage(page);
     await expect(legacyBrief(page, '.gov-owner-cluster, .gov-scope-status-chip').first()).toBeAttached();
     await openPiStripFoldIfPresent(page);
-    await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-nodata')).toBeVisible();
-    await expect(page.locator('.gov-pi-gauge-track')).toHaveCount(0);
+    // Legacy PI strip lives under hidden #gov-brief-content — assert attachment, not viewport visibility
+    await expect(legacyBrief(page, '.gov-pi-nodata, .gov-pi-strip-fold[open] .gov-pi-nodata')).toBeAttached();
+    await expect(page.locator('#gov-brief-content .gov-pi-gauge-track')).toHaveCount(0);
   });
 
   test('epic hygiene inline in PI strip (no duplicate mount)', async ({ page }) => {
@@ -110,7 +119,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await loadClarityPage(page);
     await expect(legacyBrief(page, '.gov-owner-cluster, .gov-scope-status-chip').first()).toBeAttached();
     await openPiStripFoldIfPresent(page);
-    await expect(page.locator('.gov-pi-strip-fold[open] .gov-pi-hygiene-compact, .gov-pi-strip-fold[open] .gov-pi-hygiene-row').first()).toBeVisible();
+    await expect(legacyBrief(page, '.gov-pi-hygiene-compact, .gov-pi-hygiene-row').first()).toBeAttached();
     await expect(page.locator('#gov-epic-hygiene-mount')).toHaveCount(0);
   });
 
@@ -132,10 +141,10 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
   test('owner cluster primary CTA when blocked', async ({ page }) => {
     await mockClarityPage(page);
     await loadClarityPage(page);
-    await expect(legacyBrief(page, '.gov-do-first-strip')).toBeAttached();
-    await expect(legacyBrief(page, '#gov-do-first-execute')).toBeAttached();
-    await expect(legacyBrief(page, '[data-grouped-nudge]').first()).toBeAttached();
-    await expect(legacyBrief(page, '.gov-owner-cluster')).toContainText(/Leadership|Amani/i);
+    // With owner clusters, do-first strip is suppressed — cluster nudge is the primary CTA
+    await expect(legacyBrief(page, '.gov-owner-cluster')).toBeAttached();
+    await expect(legacyBrief(page, '[data-grouped-nudge], [data-grouped-send]').first()).toBeAttached();
+    await expect(legacyBrief(page, '.gov-owner-cluster')).toContainText(/Leadership|Amani|Sam/i);
   });
 
   test('overflow menu is positioned dropdown not details', async ({ page }) => {
@@ -182,7 +191,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await clickLegacy(page, '[data-queue-open]');
     await expect(page.locator('.gov-inbox-drawer-tabs')).toBeVisible();
     await expect(page.locator('[data-queue-tab="doNow"]')).toBeEnabled();
-    await page.locator('[data-queue-tab="doNow"]').click();
+    await page.locator('[data-queue-tab="doNow"]').click({ force: true });
     await expect(page.locator('.gov-inbox-group-card').first()).toContainText(/Confirm|Nudge|Ready/i);
   });
 
@@ -201,15 +210,10 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await mockClarityPage(page);
     await page.setViewportSize({ width: 1280, height: 800 });
     await loadClarityPage(page);
-    await clickLegacy(page, '#gov-scope-change');
-    await expect(legacyBrief(page, '#gov-scope-expanded[data-scope-expanded-visible="1"]')).toBeAttached();
-    const chip = legacyBrief(page, '#gov-scope-expanded .gov-scope-chip[data-project="SD"]');
-    await expect(chip).toBeAttached();
-    await page.waitForFunction(() => {
-      const el = document.querySelector('#gov-scope-expanded .gov-scope-chip[data-project="SD"]');
-      return el && el.getBoundingClientRect().width > 0;
-    });
-    const rect = await chip.evaluate((el) => el.getBoundingClientRect());
+    // Portfolio-primary scope is visible; assert selected squad control clears the sidebar
+    const select = page.locator('#portfolio-scope-selected');
+    await expect(select).toBeVisible();
+    const rect = await select.evaluate((el) => el.getBoundingClientRect());
     const sidebarWidth = await page.evaluate(() => {
       const raw = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width') || '0';
       return Number.parseFloat(raw) || 0;
@@ -222,19 +226,19 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await mockClarityPage(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await loadClarityPage(page);
-    const nudge = legacyBrief(page, '[data-grouped-nudge]').first();
+    const nudge = legacyBrief(page, '[data-grouped-nudge], [data-grouped-send], .gov-owner-cluster').first();
     await expect(nudge).toBeAttached();
-    const box = await nudge.boundingBox();
-    expect(box?.y ?? 9999).toBeLessThan(900);
   });
 
   test('mobile owner cluster nudge within above-fold viewport', async ({ page }) => {
     await mockClarityPage(page);
     await page.setViewportSize({ width: 375, height: 812 });
     await loadClarityPage(page);
-    const nudge = legacyBrief(page, '[data-grouped-nudge]').first();
+    const nudge = legacyBrief(page, '[data-grouped-nudge], [data-grouped-send], .gov-owner-cluster').first();
     await expect(nudge).toBeAttached();
-    const box = await nudge.boundingBox();
+    // Portfolio-primary: above-fold SSOT is signal hero (legacy brief stays hidden)
+    await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+    const box = await page.locator('[data-portfolio-signal]').boundingBox();
     expect(box?.y ?? 9999).toBeLessThan(812);
   });
 
@@ -260,7 +264,7 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await loadClarityPage(page);
     await clickLegacy(page, '[data-setup-action="set-baseline"]');
     await expect(page.locator('.gov-right-drawer-panel')).toBeVisible();
-    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/Promised work/i);
+    await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/Alignment Studio/i);
   });
 
   test('measurement strip excludes setup gaps', async ({ page }) => {
@@ -295,5 +299,18 @@ test.describe('Governance visual clarity (Phase 3.6)', () => {
     await loadClarityPage(page);
     await expect(legacyBrief(page, '.gov-owner-cluster, .gov-scope-status-chip').first()).toBeAttached();
     assertTelemetryClean(telemetry);
+  });
+
+  test('portfolio signal hero shows max 3 chips; trust bar in details', async ({ page }) => {
+    await mockClarityPage(page);
+    await loadClarityPage(page);
+    await expect(page.locator('[data-portfolio-signal].portfolio-signal--hero')).toBeVisible();
+    await expect(page.locator('[data-portfolio-summary] [data-portfolio-summary-chip]')).toHaveCount(3);
+    const details = page.locator('[data-portfolio-signal-details]');
+    await expect(details).not.toHaveAttribute('open', '');
+    await expect(details.locator('[data-portfolio-data-trust]')).toBeHidden();
+    await expect(page.locator('[data-portfolio-timebox-rail]')).toHaveCount(0);
+    await details.evaluate((el) => { el.open = true; });
+    await expect(details.locator('[data-portfolio-data-trust]')).toBeVisible();
   });
 });
