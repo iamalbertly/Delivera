@@ -413,6 +413,16 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
   text-align: center;
 }
 .gov-baseline-slide-drop:hover { border-color: #1e3a5f; background-color: #eff6ff; }
+.gov-baseline-slide-drop--disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+.gov-baseline-slide-drop--disabled:hover { border-color: #cbd5e1; background: repeating-linear-gradient(-45deg, #f8fafc, #f8fafc 8px, #f1f5f9 8px, #f1f5f9 16px); }
+.gov-baseline-loading-sub { display: block; font-size: 0.72rem; color: #64748b; margin-top: 4px; font-weight: 400; }
+@media (max-width: 480px) {
+  .gov-baseline-slide-drop { min-height: 44px; padding: 14px 12px; }
+}
 .gov-baseline-slide-drop.is-dragover,
 .wdd-slide-upload.is-dragover { border-color: #1e3a5f; background: #eff6ff; }
 .gov-baseline-slide-drop input[type="file"],

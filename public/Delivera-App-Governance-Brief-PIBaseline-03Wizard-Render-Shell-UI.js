@@ -2,7 +2,6 @@
  * PI baseline wizard — shell / empty / slide / candidates HTML.
  */
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { hasAiProviderKey } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderCreateWorkButton } from './Delivera-App-Shared-CreateWork-01Button-Render-SSOT.js';
 import {
@@ -44,28 +43,37 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
     </div>`;
 }
 
-export function slideUploadInner(serverAiStatus = null) {
-  const serverReady = Boolean(serverAiStatus?.slideVisionReady) && !hasAiProviderKey();
-  const keyHint = (!serverReady && !hasAiProviderKey())
-    ? `<p class="gov-inbox-hint gov-baseline-ai-hint" data-ai-key-hint="1">${escapeHtml(COPY.aiKeyRequiredSlide)} <a href="/settings?return=/governance&amp;openAlignment=slide">Settings</a></p>`
-    : '';
-  const serverHint = serverReady
-    ? `<p class="gov-inbox-hint gov-baseline-ai-hint gov-baseline-ai-hint--ready" data-ai-server-ready="1">${escapeHtml(COPY.aiSlideServerReady.replace('{label}', serverAiStatus?.label || 'server'))}</p>`
-    : '';
+export function slideUploadInner(aiCapability = null) {
+  const ready = Boolean(aiCapability?.slideVisionReady);
+  const label = aiCapability?.label || 'server';
+  const source = aiCapability?.source || 'none';
+  const readyAttr = ready ? '1' : '0';
+  let hintHtml = '';
+  if (ready) {
+    const msg = source === 'browser'
+      ? COPY.aiSlideBrowserReady.replace('{label}', label)
+      : COPY.aiSlideServerReady.replace('{label}', label);
+    hintHtml = `<p class="gov-inbox-hint gov-baseline-ai-hint gov-baseline-ai-hint--ready" data-ai-slide-ready="1">${escapeHtml(msg)}</p>`;
+  } else if (aiCapability?.reason === 'browser_test_required') {
+    hintHtml = `<p class="gov-inbox-hint gov-baseline-ai-hint" data-ai-slide-ready="0">Test your browser API key in Settings, or use server AI in .env. <a href="/settings?return=/governance&amp;openAlignment=slide">Settings</a></p>`;
+  } else {
+    hintHtml = `<p class="gov-inbox-hint gov-baseline-ai-hint" data-ai-slide-ready="0">${escapeHtml(COPY.aiKeyRequiredSlide)} <a href="/settings?return=/governance&amp;openAlignment=slide">Settings</a></p>`;
+  }
+  const disabledClass = ready ? '' : ' gov-baseline-slide-drop--disabled';
   return `
-    <label class="gov-baseline-slide-drop" id="gov-baseline-slide-drop">
+    <label class="gov-baseline-slide-drop${disabledClass}" id="gov-baseline-slide-drop" data-ai-slide-ready="${readyAttr}"${ready ? '' : ' aria-disabled="true"'}>
       <span>${escapeHtml(COPY.baselineSlideUpload)}</span>
       <span class="gov-baseline-slide-hint">Drag &amp; drop or click</span>
-      <input type="file" id="gov-baseline-slide-input" accept="image/png,image/jpeg,image/webp" />
+      <input type="file" id="gov-baseline-slide-input" accept="image/png,image/jpeg,image/webp"${ready ? '' : ' disabled'} />
     </label>
-    ${serverHint}${keyHint}`;
+    ${hintHtml}`;
 }
 
-export function slideUploadOptional(collapsed = true, serverAiStatus = null) {
+export function slideUploadOptional(collapsed = true, aiCapability = null) {
   return `
     <details class="gov-baseline-optional"${collapsed ? '' : ' open'}>
       <summary>${escapeHtml(COPY.piBaselineOptionalSlide)}</summary>
-      ${slideUploadInner(serverAiStatus)}
+      ${slideUploadInner(aiCapability)}
     </details>`;
 }
 
@@ -91,7 +99,7 @@ export function renderSlideActionsBar(data, projectsCsv) {
   const createAll = missingN > 0
     ? `<button type="button" class="btn btn-primary btn-compact" id="gov-baseline-create-all" data-testid="gov-baseline-create-all">${escapeHtml(COPY.baselineSlideCreateAll.replace('{n}', String(missingN)))}</button>`
     : '';
-  const reviewBtn = narrative && missingN === 0 && !receipt?.failed
+  const reviewBtn = narrative
     ? renderCreateWorkButton({ projectsCsv, prefill: narrative, testId: 'gov-baseline-create-work' })
     : '';
   return `${receiptRow}${aligned}${summary}<div class="gov-baseline-slide-actions">${createAll}${reviewBtn}</div>`;
@@ -110,7 +118,7 @@ export function renderBaselineWizardShell({
   jiraUrl = '',
   stepsOpen = false,
   slideCollapsed = true,
-  serverAiStatus = null,
+  aiCapability = null,
   slideActionsHtml = '',
   contextOpts = {},
 }) {
@@ -133,7 +141,7 @@ export function renderBaselineWizardShell({
     : '';
   // Empty board: slide-first in Studio — no fork to Work Draft for epic create
   const createBtn = '';
-  const slideBlock = mode === 'empty' ? slideUploadOptional(false, serverAiStatus) : slideUploadOptional(slideCollapsed, serverAiStatus);
+  const slideBlock = mode === 'empty' ? slideUploadOptional(false, aiCapability) : slideUploadOptional(slideCollapsed, aiCapability);
   const refreshListBtn = mode === 'candidates' || mode === 'slide'
     ? `<button type="button" class="btn btn-link btn-compact" id="gov-baseline-refresh-list">${escapeHtml(COPY.refreshBrief)} list</button>`
     : '';
@@ -159,7 +167,7 @@ export function renderBaselineWizardShell({
     </div>`;
 }
 
-export function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = false, errorHint = '', serverAiStatus = null) {
+export function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = false, errorHint = '', aiCapability = null) {
   return renderBaselineWizardShell({
     mode: 'empty',
     data,
@@ -169,13 +177,13 @@ export function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = 
     showRefresh: true,
     showCreate: false,
     jiraUrl,
-    stepsOpen: true,
+    stepsOpen: false,
     slideCollapsed: false,
-    serverAiStatus,
+    aiCapability,
   });
 }
 
-export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = null, serverAiStatus = null) {
+export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = null, aiCapability = null) {
   const extracted = (data.extracted || []).slice(0, 12).map((r) => `
     <li>${escapeHtml([r.month, r.theme, r.bullet].filter(Boolean).join(' · '))}</li>`).join('');
   // Prefer candidates that are confirmable; unmatched holds missing / dup-risk for actions
@@ -199,7 +207,7 @@ export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = nu
     showConfirm: hasConfirmable,
     showCreate: false,
     slideCollapsed: true,
-    serverAiStatus,
+    aiCapability,
     slideActionsHtml: renderSlideActionsBar(data, projectsCsv),
     contextOpts: {
       inferredSquad: data.inferredSquad,
@@ -209,7 +217,7 @@ export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = nu
   });
 }
 
-export function renderCandidates(data, projectsCsv, quarterLabel, jiraHost = null, serverAiStatus = null) {
+export function renderCandidates(data, projectsCsv, quarterLabel, jiraHost = null, aiCapability = null) {
   const rows = (data.candidates || []).map((c, i) => candidateRow(c, i, jiraHost)).join('');
   const few = (data.candidates || []).length <= 3;
   return renderBaselineWizardShell({
@@ -221,6 +229,6 @@ export function renderCandidates(data, projectsCsv, quarterLabel, jiraHost = nul
     showConfirm: true,
     slideCollapsed: true,
     stepsOpen: !few,
-    serverAiStatus,
+    aiCapability,
   });
 }

@@ -7,7 +7,16 @@ import { execSync } from 'child_process';
 
 const SLIDE_JPEG = join(process.cwd(), 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg');
 const SLIDE_DMS_Q2 = join(process.cwd(), 'data', 'testing_q2fy27_dms_commitments.png');
-const AI_PREF = JSON.stringify({ provider: 'openai', key: 'sk-test-probe', host: '' });
+const AI_PREF = JSON.stringify({ provider: 'openai', key: 'sk-test-probe', host: '', lastTestOk: true, lastTestAt: '2026-01-01T00:00:00.000Z' });
+
+const AI_STATUS_OPENROUTER = {
+  provider: 'openrouter',
+  label: 'OpenRouter',
+  configured: true,
+  slideVisionReady: true,
+  source: 'server',
+  slideVision: { ready: true, provider: 'openrouter', source: 'server', envProvider: 'openrouter', envReady: true },
+};
 
 const CLARITY_BRIEF = {
   briefId: 'SLIDE-UPLOAD-TEST',
@@ -72,6 +81,10 @@ async function mockGovernanceBriefPage(page) {
   await page.route('**/api/governance/pi-baseline/propose?**', (r) => r.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ method: 'board-epics', candidates: [], guidanceCode: null }),
+  }));
+  await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify(AI_STATUS_OPENROUTER),
   }));
 }
 
@@ -155,7 +168,7 @@ test.describe('Governance PI baseline slide upload', () => {
     await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
     await expect(page.locator('.gov-baseline-extracted')).toBeVisible();
     await expect(page.locator('[data-testid="gov-baseline-create-all"]')).toBeVisible();
-    await expect(page.locator('[data-testid="gov-baseline-create-work"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="gov-baseline-create-work"]')).toBeVisible();
     await expect(page.locator('.gov-baseline-wizard-title')).toContainText(/Alignment Studio/i);
   });
 
@@ -317,7 +330,9 @@ test.describe('Governance PI baseline slide upload', () => {
   test('gemini provider shows vision not supported error before upload', async ({ page }) => {
     await mockGovernanceBriefPage(page);
     await page.addInitScript(() => {
-      localStorage.setItem('delivera_ai_provider_pref_v1', JSON.stringify({ provider: 'gemini', key: 'test-key', host: '' }));
+      localStorage.setItem('delivera_ai_provider_pref_v1', JSON.stringify({
+        provider: 'gemini', key: 'test-key', host: '', lastTestOk: true, lastTestAt: '2026-01-01T00:00:00.000Z',
+      }));
     });
     await page.goto('/governance');
     await waitForGovernanceReady(page);
@@ -360,6 +375,39 @@ test.describe('Governance PI baseline slide upload', () => {
     await expect(page.locator('[data-testid="gov-baseline-context"]')).toContainText(/DMS/i);
     await expect(page.locator('[data-testid="gov-baseline-context"]')).toContainText(/FY27 Q2/i);
     await expect(page.locator('[data-testid="gov-baseline-aligned"]')).toBeVisible({ timeout: 15000 });
+  });
+
+  test('upload error restores wizard shell not stuck on Reading slide', async ({ page }) => {
+    await mockGovernanceBriefPage(page);
+    await page.route('**/api/governance/pi-baseline/propose-from-image', (r) => r.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Vision failed', code: 'SLIDE_FAILED' }),
+    }));
+    await page.goto('/governance');
+    await waitForGovernanceReady(page);
+    await openPiBaselineWizard(page);
+    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
+    await expect(page.locator('.gov-baseline-loading[aria-busy="true"]')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('.gov-baseline-wizard')).toBeVisible();
+    await expect(page.locator('.gov-inline-toast')).toContainText(/Vision failed|SLIDE_FAILED/i);
+  });
+
+  test('drop zone disabled when slide vision not ready', async ({ page }) => {
+    await mockGovernanceBriefPage(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('delivera_ai_provider_pref_v1', JSON.stringify({ provider: 'built-in', key: '', host: '' }));
+    });
+    await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ provider: 'built-in', configured: false, slideVisionReady: false, slideVision: { ready: false } }),
+    }));
+    await page.goto('/governance');
+    await waitForGovernanceReady(page);
+    await openPiBaselineWizard(page);
+    await expect(page.locator('#gov-baseline-slide-drop[data-ai-slide-ready="0"]')).toBeVisible();
+    await expect(page.locator('#gov-baseline-slide-input')).toBeDisabled();
   });
 });
 

@@ -405,6 +405,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/actions,/api/governance/inbox.json',
   },
+  'tests/Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/actions,/settings,/api/ai-provider-status.json',
+  },
   'tests/Delivera-Governance-DirectValue-MasterPlan-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-direct-value-masterplan',
     layer: 'cross-surface-ux',

@@ -17,11 +17,15 @@ const FIXTURES = {
 };
 
 function pickProviderConfig() {
+  const envDefault = resolveProviderConfig({});
+  if (envDefault.apiKey && envDefault.provider === 'openrouter') return envDefault;
+  const openrouter = resolveProviderConfig({ 'x-ai-provider': 'openrouter' });
+  if (openrouter.apiKey && openrouter.provider === 'openrouter') return openrouter;
   const openai = resolveProviderConfig({ 'x-ai-provider': 'openai' });
   if (openai.apiKey && openai.provider === 'openai') return openai;
   const claude = resolveProviderConfig({ 'x-ai-provider': 'claude' });
   if (claude.apiKey && claude.provider === 'claude') return claude;
-  return resolveProviderConfig({});
+  return envDefault;
 }
 
 async function runProbe({ imagePath, mimeType, projects, quarter, boardEpics, label }) {
@@ -33,11 +37,11 @@ async function runProbe({ imagePath, mimeType, projects, quarter, boardEpics, la
   const providerConfig = pickProviderConfig();
   const requireProbe = process.env.DELIVERA_REQUIRE_AI_PROBE === 'true';
   if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
-    console.log(`[probe:${label}] SKIP — set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env`);
+    console.log(`[probe:${label}] SKIP — set OPENROUTER_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY in .env`);
     return requireProbe ? 'fail' : 'skip';
   }
   if (providerConfig.provider === 'gemini') {
-    console.log(`[probe:${label}] SKIP — slide vision needs OpenAI or Claude`);
+    console.log(`[probe:${label}] SKIP — slide vision needs OpenAI, Claude, or OpenRouter`);
     return 'skip';
   }
   const buf = readFileSync(imagePath);
@@ -54,6 +58,16 @@ async function runProbe({ imagePath, mimeType, projects, quarter, boardEpics, la
   console.log(`[probe:${label}] method:`, result.method);
   console.log(`[probe:${label}] inferredSquad:`, result.inferredSquad || '(none)');
   console.log(`[probe:${label}] inferredQuarter:`, result.inferredQuarter || '(none)');
+  if (label === 'dms-q2') {
+    if (String(result.inferredSquad || '').toUpperCase() !== 'DMS') {
+      console.error(`[probe:${label}] FAIL — expected inferredSquad DMS`);
+      return 'fail';
+    }
+    if (!String(result.inferredQuarter || '').includes('FY27 Q2')) {
+      console.error(`[probe:${label}] FAIL — expected inferredQuarter FY27 Q2`);
+      return 'fail';
+    }
+  }
   console.log(`[probe:${label}] extracted:`, (result.extracted || []).length);
   console.log(`[probe:${label}] candidates:`, (result.candidates || []).length);
   if (result.parseError) console.log(`[probe:${label}] parseError:`, result.parseError);

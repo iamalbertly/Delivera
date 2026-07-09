@@ -16,6 +16,7 @@ import {
   enrichActivityFromJiraExistence,
 } from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
 import { resolveProviderConfig } from '../lib/Delivera-AI-Provider-Gateway.js';
+import { buildAiProviderStatus } from '../lib/Delivera-AI-Provider-Status-01SSOT.js';
 
 function parseProjectsFromBodyOrQuery(req, bodyProjects, bodyCsv) {
   if (Array.isArray(bodyProjects) && bodyProjects.length) {
@@ -120,9 +121,13 @@ export function registerPiBaselineRoutes(router, deps) {
       }
       const providerConfig = resolveProviderConfig(req.headers || {});
       if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
+        const envStatus = buildAiProviderStatus({});
+        const missing = envStatus.slideVision?.envReady ? 'browser_key' : 'server_env';
         return res.status(400).json({
-          error: 'AI provider key required for slide reading. Add OpenAI or Claude key in Settings.',
+          error: 'AI provider key required for slide reading. Configure OpenRouter, OpenAI, or Claude in .env or Settings.',
           code: 'AI_KEY_REQUIRED',
+          missing,
+          providers: ['openrouter', 'openai', 'claude'],
         });
       }
       const board = await proposeFromBoardCache({ projects, cache, quarter });

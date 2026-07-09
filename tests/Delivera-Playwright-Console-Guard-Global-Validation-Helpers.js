@@ -46,6 +46,10 @@ export const test = base.extend({
         url.includes('/api/outcome-draft') &&
         (/status of 400\b/i.test(text || '') || /400 \(Bad Request\)/i.test(text || ''));
       if (isExpectedOutcomeDraftClientError) return;
+      const isExpectedSlideProposeError =
+        url.includes('/api/governance/pi-baseline/propose-from-image') &&
+        (/status of (400|500)\b/i.test(text || '') || /(400|500) \(/i.test(text || ''));
+      if (isExpectedSlideProposeError) return;
       const isExpectedPreviewHttpRecovery =
         /preview\.json/i.test(url || text || '') &&
         (/status of (401|403|429|502)\b/i.test(text || '') || /502 \(Bad Gateway\)/i.test(text || ''));

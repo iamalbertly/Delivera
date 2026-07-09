@@ -4,7 +4,11 @@
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
-import { aiProviderRequestHeaders, fetchAiProviderStatus } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import {
+  aiProviderRequestHeaders,
+  invalidateAiStatusCache,
+} from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
+import { resolveEffectiveAiCapability } from './Delivera-AI-Readiness-01SSOT.js';
 import { readGovernanceQuarter } from './Delivera-App-Shared-PIBaseline-Slide-01Client-Helper.js';
 import {
   drawerTitle,
@@ -29,13 +33,16 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
   const state = {
     unbindSlide: null,
     unbindCreated: null,
+    unbindCapability: null,
     jiraHost: null,
+    aiCapability: null,
     serverAiStatus: null,
     lastSlideData: null,
     lastProjects: [],
     lastCsv: '',
     lastQuarter: '',
     lastBodyEl: null,
+    lastPanelData: null,
   };
 
   function close() {
@@ -43,6 +50,8 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     state.unbindSlide = null;
     state.unbindCreated?.();
     state.unbindCreated = null;
+    state.unbindCapability?.();
+    state.unbindCapability = null;
     drawerClose?.();
     drawerClose = null;
     state.lastBodyEl = null;
@@ -53,19 +62,38 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     close,
     onSaved,
     open: (...args) => open(...args),
+    refreshCapability: () => refreshWizardCapability(),
   });
   const { bindPanel, reconcileFromResolved } = actions;
+
+  async function loadCapability(force = false) {
+    if (force) invalidateAiStatusCache();
+    state.aiCapability = await resolveEffectiveAiCapability({ force });
+    state.serverAiStatus = state.aiCapability?.serverStatus || state.aiCapability?.envStatus || null;
+    return state.aiCapability;
+  }
+
+  async function refreshWizardCapability() {
+    await loadCapability(true);
+    if (state.lastBodyEl && state.lastPanelData) {
+      actions.patchSlideUpload(state.lastBodyEl, state.lastPanelData, state.lastProjects, state.lastCsv, state.lastQuarter);
+    }
+  }
 
   async function open(forceRefresh = false, opts = {}) {
     close();
     const slideMode = opts?.initialMode === 'slide';
-    state.serverAiStatus = await fetchAiProviderStatus(forceRefresh);
+    await loadCapability(forceRefresh);
     const csv = getProjectsCsv?.() || 'MPSA,MAS';
     const projects = csv.split(',').map((p) => p.trim()).filter(Boolean);
     const quarterLabel = getQuarterLabel?.() || readGovernanceQuarter();
     const quarterQs = quarterLabel ? `&quarter=${encodeURIComponent(quarterLabel)}` : '';
 
     state.jiraHost = await resolveJiraBrowseHost(projects);
+
+    const onCapability = () => { void refreshWizardCapability(); };
+    window.addEventListener('app:aiCapabilityChanged', onCapability);
+    state.unbindCapability = () => window.removeEventListener('app:aiCapabilityChanged', onCapability);
 
     const { close: closeFn, el } = openRightDrawer({
       title: drawerTitle(csv, quarterLabel),
@@ -102,8 +130,9 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
         quarterLabel,
         false,
         err?.message || COPY.baselineProposeFailed,
-        state.serverAiStatus,
+        state.aiCapability,
       );
+      state.lastPanelData = data;
       bindPanel(body, data, projects, csv, quarterLabel);
       return;
     }
@@ -111,26 +140,29 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     if (!data.candidates?.length) {
       const jiraUrl = await jiraUrlPromise;
       const partial = Boolean(data.guidanceCode === 'jira-unmatched' || (data.totalBoardEpics || 0) > 0);
-      body.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, partial, '', state.serverAiStatus);
+      body.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, partial, '', state.aiCapability);
       if (slideMode) {
         const drop = body.querySelector('.gov-baseline-optional');
         drop?.setAttribute('open', '');
       }
+      state.lastPanelData = data;
       bindPanel(body, data, projects, csv, quarterLabel);
       return;
     }
 
     if (slideMode) {
-      body.innerHTML = renderEmpty(data, await jiraUrlPromise, csv, quarterLabel, true, '', state.serverAiStatus);
+      body.innerHTML = renderEmpty(data, await jiraUrlPromise, csv, quarterLabel, true, '', state.aiCapability);
       const drop = body.querySelector('.gov-baseline-optional');
       drop?.setAttribute('open', '');
+      state.lastPanelData = data;
       bindPanel(body, data, projects, csv, quarterLabel);
       return;
     }
 
-    body.innerHTML = renderCandidates(data, csv, quarterLabel, state.jiraHost, state.serverAiStatus);
+    body.innerHTML = renderCandidates(data, csv, quarterLabel, state.jiraHost, state.aiCapability);
+    state.lastPanelData = data;
     bindPanel(body, data, projects, csv, quarterLabel);
   }
 
-  return { open, close };
+  return { open, close, refreshWizardCapability };
 }

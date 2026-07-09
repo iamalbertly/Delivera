@@ -5,6 +5,7 @@ import { AI_PROVIDER_PREF_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 
 const LEGACY_SESSION_KEY = 'wdd_ai_provider_v1';
+const STATUS_CACHE_TTL_MS = 60_000;
 
 function migrateSessionToLocal() {
   try {
@@ -24,35 +25,54 @@ export function readAiProviderPref() {
       provider: data.provider || 'built-in',
       key: data.key || '',
       host: data.host || '',
+      lastTestOk: Boolean(data.lastTestOk),
+      lastTestAt: data.lastTestAt || null,
     };
   } catch (_) {
-    return { provider: 'built-in', key: '', host: '' };
+    return { provider: 'built-in', key: '', host: '', lastTestOk: false, lastTestAt: null };
   }
 }
 
 export function saveAiProviderPref(data = {}) {
   try {
-    localStorage.setItem(AI_PROVIDER_PREF_KEY, JSON.stringify({
+    const prior = readAiProviderPref();
+    const next = {
       provider: data.provider || 'built-in',
-      key: data.key || '',
-      host: data.host || '',
-    }));
+      key: data.key !== undefined ? data.key : prior.key,
+      host: data.host !== undefined ? data.host : prior.host,
+      lastTestOk: data.lastTestOk !== undefined ? Boolean(data.lastTestOk) : prior.lastTestOk,
+      lastTestAt: data.lastTestAt !== undefined ? data.lastTestAt : prior.lastTestAt,
+    };
+    localStorage.setItem(AI_PROVIDER_PREF_KEY, JSON.stringify(next));
+    emitAiCapabilityChanged();
   } catch (_) { /* quota */ }
 }
 
 export function clearAiProviderPref() {
   try { localStorage.removeItem(AI_PROVIDER_PREF_KEY); } catch (_) {}
+  emitAiCapabilityChanged();
 }
 
-/** Headers for fetch calls that use optional AI (never log key). */
-export function aiProviderRequestHeaders() {
+export function emitAiCapabilityChanged() {
+  try {
+    window.dispatchEvent(new CustomEvent('app:aiCapabilityChanged'));
+  } catch (_) { /* ignore */ }
+}
+
+/** Browser override active only when key saved and last provider test succeeded. */
+export function browserOverrideActive() {
   const ai = readAiProviderPref();
-  const headers = {};
-  if (ai.provider && ai.provider !== 'built-in') {
-    headers['x-ai-provider'] = ai.provider;
-    if (ai.key) headers['x-ai-key'] = ai.key;
-    if (ai.host) headers['x-ai-host'] = ai.host;
-  }
+  return Boolean(ai.key && ai.provider && ai.provider !== 'built-in' && ai.lastTestOk);
+}
+
+/** Headers for fetch calls — only when browser override is confirmed working. */
+export function aiProviderRequestHeaders() {
+  if (!browserOverrideActive()) return {};
+  const ai = readAiProviderPref();
+  const headers = { 'x-ai-provider': ai.provider };
+  if (ai.key) headers['x-ai-key'] = ai.key;
+  if (ai.host) headers['x-ai-host'] = ai.host;
+  headers['x-ai-override'] = '1';
   return headers;
 }
 
@@ -61,21 +81,64 @@ export function hasAiProviderKey() {
   return Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
 }
 
-let cachedServerAiStatus = null;
+const statusCache = { env: null, effective: null, envAt: 0, effectiveAt: 0 };
 
-/** Server env + browser header resolution for slide vision readiness. */
-export async function fetchAiProviderStatus(force = false) {
-  if (cachedServerAiStatus && !force) return cachedServerAiStatus;
-  try {
-    cachedServerAiStatus = await fetchJson('/api/ai-provider-status.json', {}, 'ai-provider-status');
-  } catch (_) {
-    cachedServerAiStatus = { provider: 'built-in', configured: false, slideVisionReady: false, label: 'Built-in templates' };
-  }
-  return cachedServerAiStatus;
+export function invalidateAiStatusCache() {
+  statusCache.env = null;
+  statusCache.effective = null;
+  statusCache.envAt = 0;
+  statusCache.effectiveAt = 0;
 }
 
+function cacheFresh(at) {
+  return at > 0 && (Date.now() - at) < STATUS_CACHE_TTL_MS;
+}
+
+async function fetchStatusFromServer(headers = {}) {
+  const init = Object.keys(headers).length ? { headers } : {};
+  return fetchJson('/api/ai-provider-status.json', init, 'ai-provider-status');
+}
+
+/**
+ * @param {boolean|{ force?: boolean, effective?: boolean }} opts
+ */
+export async function fetchAiProviderStatus(opts = false) {
+  const force = typeof opts === 'boolean' ? opts : Boolean(opts?.force);
+  const wantEffective = typeof opts === 'object' ? opts.effective !== false : true;
+  const override = browserOverrideActive();
+  const bucket = wantEffective && override ? 'effective' : 'env';
+  if (!force && cacheFresh(statusCache[`${bucket}At`]) && statusCache[bucket]) {
+    return statusCache[bucket];
+  }
+  try {
+    const headers = wantEffective && override ? aiProviderRequestHeaders() : {};
+    const status = await fetchStatusFromServer(headers);
+    statusCache[bucket] = status;
+    statusCache[`${bucket}At`] = Date.now();
+    if (bucket === 'effective') {
+      statusCache.env = null;
+      statusCache.envAt = 0;
+    }
+    return status;
+  } catch (_) {
+    const fallback = {
+      provider: 'built-in',
+      configured: false,
+      slideVisionReady: false,
+      label: 'Built-in templates',
+      slideVision: { ready: false, provider: 'built-in', source: 'none', envProvider: 'built-in' },
+    };
+    if (!force) {
+      statusCache[bucket] = fallback;
+      statusCache[`${bucket}At`] = Date.now();
+    }
+    return fallback;
+  }
+}
+
+/** @deprecated use resolveEffectiveAiCapability from Delivera-AI-Readiness-01SSOT.js */
 export async function slideVisionReady() {
-  if (hasAiProviderKey()) return true;
-  const status = await fetchAiProviderStatus();
-  return Boolean(status?.slideVisionReady);
+  const override = browserOverrideActive();
+  const status = await fetchAiProviderStatus({ effective: override });
+  return Boolean(status?.slideVisionReady || status?.slideVision?.ready);
 }

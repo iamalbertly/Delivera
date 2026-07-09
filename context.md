@@ -347,6 +347,15 @@ Journey membership is implemented in `scripts/Delivera-Tests-Journey-Buckets-Map
 - **Unit tests:** `tests/Delivera-CurrentSprint-Blocker-Signal-Unit.mjs`, `tests/Delivera-Governance-Compare-Diff-Unit.mjs`.
 - **Probe:** `scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js` supports WhatsApp JPEG + DMS Q2 PNG (`--dms-q2`).
 
+### Direct-Value Round 8 — AI Trust Sync & Slide Fast-Path (2026-07-09)
+
+- **AI capability SSOT:** `resolveEffectiveAiCapability()` in `public/Delivera-AI-Readiness-01SSOT.js` — env-first; browser override when `lastTestOk` in `delivera_ai_provider_pref_v1`.
+- **Provider precedence:** `resolveProviderConfig()` in `lib/Delivera-AI-Provider-Gateway.js` — browser wins only with `x-ai-override: 1` + key; else `.env`.
+- **Status contract:** `buildAiProviderStatus()` adds `slideVision: { ready, provider, source, envProvider, envReady }` (`lib/Delivera-AI-Provider-Status-01SSOT.js`).
+- **UI signal:** single `data-ai-slide-ready="0|1"` on wizard drop zone + trust pill; disabled drop until ready.
+- **Journey SSOT:** `test:journey:direct-value-r8` → `tests/Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js`; `test:mcp:round8` → Playwright + `scripts/Delivera-BrowserUse-MCP-Round8-Validation-01SSOT.mjs`.
+- **Unit:** `tests/Delivera-AI-Capability-Precedence-Unit.mjs`.
+
 
 - **Entry:** `AutoHacker_v8.ps1` delegates to `.autohacker/AutoHacker.ps1` (v6).
 - **Collectors (16):** registered in `.autohacker/config/collectors.json` — explore, ux-metrics, hidden-value, intra-card-void, duplicate-text, main-column-void, negative-void, horizontal-void, content-overlap, fold-clipping, screenshot-density, state-matrix, click-fast, layout-rects, duplicate-text-full-catalog, click-full.

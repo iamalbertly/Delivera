@@ -5,6 +5,8 @@ import {
   readAiProviderPref,
   saveAiProviderPref,
   clearAiProviderPref,
+  invalidateAiStatusCache,
+  emitAiCapabilityChanged,
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
@@ -80,24 +82,54 @@ export function mountGovernanceAiHelper(mount, options = {}) {
         <p id="gov-ai-test-result" class="gov-ai-helper-result" aria-live="polite"></p>
       </div>`;
 
-    mount.querySelector('#gov-ai-save')?.addEventListener('click', () => {
+    const saveBtn = mount.querySelector('#gov-ai-save');
+    const syncSaveDisabled = () => {
       const provider = mount.querySelector('#gov-ai-provider')?.value || 'built-in';
       const keyInput = mount.querySelector('#gov-ai-key');
       const raw = keyInput?.value || '';
       const key = raw.includes('●') ? (readAiProviderPref().key || '') : raw.trim();
-      saveAiProviderPref({ provider, key: provider === 'built-in' ? '' : key });
+      const serverCovers = Boolean(trust.slideVisionReady && !hasKey);
+      if (saveBtn) {
+        saveBtn.disabled = provider !== 'built-in' && !key && !serverCovers;
+      }
+    };
+    syncSaveDisabled();
+    mount.querySelector('#gov-ai-provider')?.addEventListener('change', syncSaveDisabled);
+    mount.querySelector('#gov-ai-key')?.addEventListener('input', syncSaveDisabled);
+
+    saveBtn?.addEventListener('click', () => {
+      const provider = mount.querySelector('#gov-ai-provider')?.value || 'built-in';
+      const keyInput = mount.querySelector('#gov-ai-key');
+      const raw = keyInput?.value || '';
+      const prior = readAiProviderPref();
+      const key = raw.includes('●') ? (prior.key || '') : raw.trim();
+      const keyUnchanged = key && key === prior.key && provider === prior.provider;
+      saveAiProviderPref({
+        provider,
+        key: provider === 'built-in' ? '' : key,
+        lastTestOk: provider === 'built-in' ? false : (keyUnchanged ? prior.lastTestOk : false),
+        lastTestAt: keyUnchanged ? prior.lastTestAt : null,
+      });
+      invalidateAiStatusCache();
+      emitAiCapabilityChanged();
       render();
     });
 
     mount.querySelector('#gov-ai-clear')?.addEventListener('click', () => {
       clearAiProviderPref();
+      invalidateAiStatusCache();
+      emitAiCapabilityChanged();
       render();
     });
 
     mount.querySelector('#gov-ai-test')?.addEventListener('click', async () => {
       const result = mount.querySelector('#gov-ai-test-result');
-      const aiPref = readAiProviderPref();
-      if (!aiPref.key || aiPref.provider === 'built-in') {
+      const provider = mount.querySelector('#gov-ai-provider')?.value || 'built-in';
+      const keyInput = mount.querySelector('#gov-ai-key');
+      const raw = keyInput?.value || '';
+      const prior = readAiProviderPref();
+      const key = raw.includes('●') ? (prior.key || '') : raw.trim();
+      if (!key || provider === 'built-in') {
         if (result) result.textContent = 'Built-in template is always available.';
         return;
       }
@@ -107,12 +139,23 @@ export function mountGovernanceAiHelper(mount, options = {}) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-ai-key': aiPref.key,
-            'x-ai-provider': aiPref.provider,
+            'x-ai-key': key,
+            'x-ai-provider': provider,
+            'x-ai-override': '1',
           },
-          body: JSON.stringify({ action: 'test', provider: aiPref.provider }),
+          body: JSON.stringify({ action: 'test', provider }),
         });
         const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          saveAiProviderPref({
+            provider,
+            key,
+            lastTestOk: true,
+            lastTestAt: new Date().toISOString(),
+          });
+          invalidateAiStatusCache();
+          emitAiCapabilityChanged();
+        }
         if (result) {
           result.textContent = res.ok
             ? `OK — ${escapeHtml(data.message || 'Provider responded')}`

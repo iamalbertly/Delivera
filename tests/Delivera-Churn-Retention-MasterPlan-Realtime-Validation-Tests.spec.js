@@ -287,8 +287,8 @@ test.describe('Churn retention master plan realtime validation', () => {
         document.querySelector('[data-setup-baseline-ssot="1"]')?.click();
       });
       await expect(page.locator('[data-testid="gov-baseline-context"]')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('[data-ai-key-hint="1"]')).toHaveCount(0);
-      await expect(page.locator('[data-ai-server-ready="1"]')).toBeAttached();
+      await expect(page.locator('.gov-baseline-wizard #gov-baseline-slide-drop[data-ai-slide-ready="1"]')).toBeAttached();
+      await expect(page.locator('.gov-baseline-wizard #gov-baseline-slide-drop[data-ai-slide-ready="0"]')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
 

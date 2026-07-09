@@ -9,6 +9,7 @@ import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { cacheSlideProposeResult } from './Delivera-App-Shared-PIBaseline-02Slide-Outcome-Bridge-SSOT.js';
+import { refreshAiTrustPill } from './Delivera-Shared-Top-Chrome-01Render-UI.js';
 import {
   findCandidateByIndex,
   resolveJiraBoardUrl,
@@ -17,17 +18,20 @@ import {
   renderCandidates,
   renderEmpty,
   renderSlideReview,
+  slideUploadInner,
 } from './Delivera-App-Governance-Brief-PIBaseline-03Wizard-Render-Shell-UI.js';
+
+const SLIDE_UPLOAD_OK_KEY = 'delivera_baseline_slide_ok_v1';
 
 /**
  * @param {object} ctx
- * @param {() => void} ctx.close
- * @param {() => void} [ctx.onSaved]
- * @param {(force?: boolean, opts?: object) => void|Promise<void>} ctx.open
- * @param {object} ctx.state mutable: unbindSlide, lastBodyEl, lastSlideData, lastProjects, lastCsv, lastQuarter, jiraHost, serverAiStatus
  */
 export function createPiBaselineWizardActions(ctx) {
   const { state } = ctx;
+
+  function cap() {
+    return state.aiCapability;
+  }
 
   function applyReconcilePayload(bodyEl, projects, csv, quarterLabel, payload, prior) {
     const next = {
@@ -38,7 +42,7 @@ export function createPiBaselineWizardActions(ctx) {
       createReceipt: prior?.createReceipt || null,
     };
     state.lastSlideData = next;
-    bodyEl.innerHTML = renderSlideReview(next, csv, quarterLabel, state.jiraHost, state.serverAiStatus);
+    bodyEl.innerHTML = renderSlideReview(next, csv, quarterLabel, state.jiraHost, cap());
     bindPanel(bodyEl, next, projects, csv, quarterLabel);
     const matched = Number(next.matchedCount) || (next.candidates || []).filter((c) => c.issueKey).length;
     const total = (next.resolved || []).length || matched;
@@ -101,33 +105,66 @@ export function createPiBaselineWizardActions(ctx) {
       }
     } catch (err) {
       showInlineToast(bodyEl, err?.message || COPY.baselineSlideCreateFailed, 'error');
-      bodyEl.innerHTML = renderSlideReview(data, csv, quarterLabel, state.jiraHost, state.serverAiStatus);
+      bodyEl.innerHTML = renderSlideReview(data, csv, quarterLabel, state.jiraHost, cap());
       bindPanel(bodyEl, data, projects, csv, quarterLabel);
     }
   }
 
+  async function restoreAfterUploadError(bodyEl, priorData, projects, csv, quarterLabel, err) {
+    const code = err?.code ? ` (${err.code})` : '';
+    const msg = `${err?.message || COPY.baselineProposeFailed}${code}`;
+    const jiraUrl = await resolveJiraBoardUrl(projects);
+    if (priorData?.candidates?.length) {
+      bodyEl.innerHTML = renderCandidates(priorData, csv, quarterLabel, state.jiraHost, cap());
+    } else {
+      bodyEl.innerHTML = renderEmpty(priorData || {}, jiraUrl, csv, quarterLabel, true, msg, cap());
+    }
+    bindPanel(bodyEl, priorData || { candidates: [] }, projects, csv, quarterLabel);
+    showInlineToast(bodyEl, msg, 'error');
+  }
+
   async function handleSlideUpload(file, bodyEl, projects, csv, quarterLabel, priorData) {
     if (!file || !bodyEl) return;
-    bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}</p>`;
+    bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}<br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.aiSlideReadingSub)}</span></p>`;
     try {
       const data = await postSlidePropose({ file, projects, projectsCsv: csv });
       cacheSlideProposeResult(data);
       state.lastSlideData = data;
+      try { sessionStorage.setItem(SLIDE_UPLOAD_OK_KEY, '1'); } catch (_) { /* ignore */ }
+      void refreshAiTrustPill();
       const confirmable = (data.candidates || []).filter((c) => c.issueKey);
       if (!confirmable.length && !(data.extracted || []).length) {
         const jiraUrl = await resolveJiraBoardUrl(projects);
-        bodyEl.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, true);
+        bodyEl.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, true, data.guidance || '', cap());
         bindPanel(bodyEl, priorData || data, projects, csv, quarterLabel);
         return;
       }
-      bodyEl.innerHTML = renderSlideReview(data, csv, quarterLabel, state.jiraHost, state.serverAiStatus);
+      bodyEl.innerHTML = renderSlideReview(data, csv, quarterLabel, state.jiraHost, cap());
       bindPanel(bodyEl, data, projects, csv, quarterLabel);
     } catch (err) {
-      showInlineToast(bodyEl, err?.message || COPY.baselineProposeFailed, 'error');
-      if (priorData?.candidates?.length) {
-        bodyEl.innerHTML = renderCandidates(priorData, csv, quarterLabel, state.jiraHost, state.serverAiStatus);
-        bindPanel(bodyEl, priorData, projects, csv, quarterLabel);
-      }
+      void refreshAiTrustPill();
+      await restoreAfterUploadError(bodyEl, priorData, projects, csv, quarterLabel, err);
+    }
+  }
+
+  function patchSlideUpload(el, data, projects, csv, quarterLabel) {
+    const details = el.querySelector('.gov-baseline-optional');
+    if (!details) return;
+    const oldHint = details.querySelector('.gov-baseline-ai-hint');
+    oldHint?.remove();
+    const oldDrop = details.querySelector('.gov-baseline-slide-drop');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = slideUploadInner(cap());
+    const newDrop = wrap.querySelector('.gov-baseline-slide-drop');
+    const newHint = wrap.querySelector('.gov-baseline-ai-hint');
+    if (oldDrop && newDrop) oldDrop.replaceWith(newDrop);
+    if (newHint) details.appendChild(newHint);
+    state.unbindSlide?.();
+    const dropZone = el.querySelector('#gov-baseline-slide-drop');
+    if (dropZone && cap()?.slideVisionReady) {
+      state.unbindSlide = bindSlideDropZone(dropZone, (file) => {
+        void handleSlideUpload(file, el, projects, csv, quarterLabel, data);
+      });
     }
   }
 
@@ -135,6 +172,7 @@ export function createPiBaselineWizardActions(ctx) {
     state.unbindSlide?.();
     state.lastBodyEl = el;
     state.lastSlideData = data;
+    state.lastPanelData = data;
     state.lastProjects = projects;
     state.lastCsv = csv;
     state.lastQuarter = quarterLabel;
@@ -155,9 +193,12 @@ export function createPiBaselineWizardActions(ctx) {
       ctx.open(true);
     });
     const dropZone = el.querySelector('#gov-baseline-slide-drop');
-    if (dropZone) {
+    if (dropZone && cap()?.slideVisionReady) {
       state.unbindSlide = bindSlideDropZone(dropZone, (file) => {
-        void handleSlideUpload(file, el, projects, csv, quarterLabel, data);
+        const input = dropZone.querySelector('#gov-baseline-slide-input');
+        void handleSlideUpload(file, el, projects, csv, quarterLabel, data).finally(() => {
+          if (input) input.value = '';
+        });
       });
     }
 
@@ -257,5 +298,6 @@ export function createPiBaselineWizardActions(ctx) {
     createEpicsBatch,
     reconcileFromResolved,
     applyReconcilePayload,
+    patchSlideUpload,
   };
 }

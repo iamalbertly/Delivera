@@ -125,7 +125,14 @@ async function mockCustomerSimplicityRoutes(page) {
   }));
   await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ provider: 'openrouter', label: 'OpenRouter', configured: true, slideVisionReady: true, source: 'server' }),
+    body: JSON.stringify({
+      provider: 'openrouter',
+      label: 'OpenRouter',
+      configured: true,
+      slideVisionReady: true,
+      source: 'server',
+      slideVision: { ready: true, provider: 'openrouter', source: 'server', envProvider: 'openrouter', envReady: true },
+    }),
   }));
   await mockPortfolioDecision(page);
 }
@@ -329,7 +336,14 @@ test.describe('Customer simplicity trust direct value validation', () => {
     }));
     await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify({ provider: 'openrouter', label: 'OpenRouter', configured: true, slideVisionReady: true, source: 'server' }),
+      body: JSON.stringify({
+      provider: 'openrouter',
+      label: 'OpenRouter',
+      configured: true,
+      slideVisionReady: true,
+      source: 'server',
+      slideVision: { ready: true, provider: 'openrouter', source: 'server', envProvider: 'openrouter', envReady: true },
+    }),
     }));
     await page.route('**/api/boards.json**', (r) => r.fulfill({
       status: 200, contentType: 'application/json',
@@ -355,8 +369,8 @@ test.describe('Customer simplicity trust direct value validation', () => {
 
     await test.step('25 PI wizard hides key hint when server OpenRouter ready', async () => {
       await page.locator('[data-setup-baseline-ssot="1"]').click();
-      await expect(page.locator('[data-ai-server-ready="1"]')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('[data-ai-key-hint="1"]')).toHaveCount(0);
+      await expect(page.locator('.gov-baseline-wizard #gov-baseline-slide-drop[data-ai-slide-ready="1"]')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.gov-baseline-wizard #gov-baseline-slide-drop[data-ai-slide-ready="0"]')).toHaveCount(0);
       assertTelemetryClean(telemetry);
     });
   });

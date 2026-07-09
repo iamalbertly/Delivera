@@ -87,7 +87,7 @@ async function mockRound6Governance(page, opts = {}) {
     pk: projects,
     cacheKey: BRIEF_CLIENT_CACHE_KEY,
     cacheBody: brief,
-    aiPref: JSON.stringify({ provider: 'openai', key: 'sk-test-probe', host: '' }),
+    aiPref: JSON.stringify({ provider: 'openai', key: 'sk-test-probe', host: '', lastTestOk: true, lastTestAt: '2026-01-01T00:00:00.000Z' }),
   });
   await routeProjectsCatalog(page);
   const commitments = fuzzyCommitment
@@ -168,7 +168,14 @@ async function mockRound6Governance(page, opts = {}) {
   }));
   await page.route('**/api/ai-provider-status.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ provider: 'openrouter', configured: true, source: 'server' }),
+    body: JSON.stringify({
+      provider: 'openrouter',
+      label: 'OpenRouter',
+      configured: true,
+      slideVisionReady: true,
+      source: 'server',
+      slideVision: { ready: true, provider: 'openrouter', source: 'server', envProvider: 'openrouter', envReady: true },
+    }),
   }));
 }
 
