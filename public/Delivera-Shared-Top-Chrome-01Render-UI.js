@@ -423,7 +423,11 @@ function bindTopChromeInteractions(chrome, current) {
         || document.getElementById('gov-right-rail-mount')?.querySelector('button')?.focus?.({ preventScroll: true });
       return;
     }
-    window.location.href = '/settings#integrations';
+    if (current === PAGE_SPRINTS) {
+      window.location.href = '/actions';
+      return;
+    }
+    window.location.href = '/actions';
   });
 
   document.addEventListener('click', (e) => {

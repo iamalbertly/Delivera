@@ -19,7 +19,7 @@ import {
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { renderSinceLastCheckChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 import { renderScopeCadenceLine } from './Delivera-App-Governance-Cadence-01Pack-Render-UI.js';
-import { simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { simpleStatusLabel, COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 const BASELINE_OPTIONS = [
   { id: 'pi-baseline', label: 'PI baseline' },
@@ -40,7 +40,7 @@ function baselineOptionsForBrief(brief = {}) {
   const missing = gaps.some((g) => g.action === 'set-baseline');
   if (!missing) return BASELINE_OPTIONS;
   return [
-    { id: 'pi-baseline', label: 'Set baseline →' },
+    { id: 'pi-baseline', label: COPY.piBaselineSetupLabel },
     { id: 'none', label: 'No baseline' },
   ];
 }

@@ -88,6 +88,8 @@ export function mountMyWorkspacePanel(mount) {
         </label>
 
         <h3 class="gov-ai-helper-sub">Default project scope</h3>
+        <input type="search" id="settings-scope-search" class="input-compact settings-scope-search" placeholder="Search squads…" aria-label="Search project scope" />
+        <div id="settings-recent-squads" class="settings-recent-squads" hidden></div>
         <div class="settings-workspace-projects" role="group" aria-label="Default projects">${checks || '<p class="gov-ai-helper-note">Could not load project catalog.</p>'}</div>
         <div class="gov-ai-helper-actions">
           <button type="button" class="btn btn-primary btn-compact" id="settings-save-workspace">Save defaults</button>
@@ -121,6 +123,43 @@ export function mountMyWorkspacePanel(mount) {
       render();
       const status = mount.querySelector('#settings-workspace-status');
       if (status) status.textContent = 'Reset to organization defaults.';
+    });
+
+    const recentKeys = (() => {
+      try {
+        const raw = localStorage.getItem(PROJECTS_SSOT_KEY) || '';
+        return raw.split(',').map((k) => k.trim().toUpperCase()).filter(Boolean).slice(0, 5);
+      } catch (_) {
+        return [];
+      }
+    })();
+    const recentMount = mount.querySelector('#settings-recent-squads');
+    if (recentMount && recentKeys.length) {
+      recentMount.hidden = false;
+      recentMount.innerHTML = `<p class="gov-ai-helper-note">Recent squads</p><div class="settings-recent-squad-chips">${recentKeys.map((key) => `<button type="button" class="btn btn-secondary btn-compact settings-recent-squad-chip" data-recent-squad="${escapeHtml(key)}">${escapeHtml(key)}</button>`).join('')}</div>`;
+      recentMount.querySelectorAll('[data-recent-squad]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-recent-squad');
+          const input = mount.querySelector('#settings-scope-search');
+          if (input) input.value = key;
+          mount.querySelectorAll('.settings-workspace-check').forEach((label) => {
+            const match = String(label.querySelector('input')?.value || '').toUpperCase() === key;
+            label.hidden = !match;
+          });
+        });
+      });
+    }
+
+    mount.querySelector('#settings-scope-search')?.addEventListener('input', (ev) => {
+      const q = String(ev.target.value || '').trim().toLowerCase();
+      mount.querySelectorAll('.settings-workspace-check').forEach((label) => {
+        if (!q) {
+          label.hidden = false;
+          return;
+        }
+        const text = (label.textContent || '').toLowerCase();
+        label.hidden = !text.includes(q);
+      });
     });
   }
 

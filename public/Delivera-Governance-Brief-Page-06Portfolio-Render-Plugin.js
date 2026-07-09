@@ -23,6 +23,7 @@ import {
 import { openPortfolioCalibrationDrawer, buildCalibrationDefenseText } from './Delivera-App-Portfolio-Actions-01Bridge.js';
 import { writeTextToClipboardWithFallback } from './Delivera-Shared-Clipboard-01Bridge.js';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
+import { focusProofRail } from './Delivera-App-Governance-Brief-Page-05Render-Evidence-Sections-UI.js';
 
 import { openPortfolioTrustDrawer } from './Delivera-App-Portfolio-Trust-01Drawer-UI.js';
 
@@ -171,8 +172,13 @@ function handlePortfolioDelegatedClick(ev) {
   if (action === 'review-actions' || action === 'view-prepared-items') {
     openPortfolioCalibrationDrawer(decision, cases);
   } else if (action === 'view-governance-evidence') {
-    try { sessionStorage.setItem('delivera:legacy-brief-needed', '1'); } catch (_) { /* ignore */ }
-    openPortfolioCalibrationDrawer(decision, cases);
+    const brief = govPage.lastBrief || {};
+    const rail = document.getElementById('gov-right-rail-proof-mount');
+    if (rail && !rail.hidden && rail.querySelector('[data-direct-value="evidence"], .gov-evidence-preview')) {
+      focusProofRail(rail);
+      return;
+    }
+    openEvidenceDrawer(brief, brief?.evidencePack?.rows || [], { skipLegacyFlag: true, docked: true });
   } else if (action === 'calibration-defense' || action === 'copy-calibration-defense' || action === 'copy-evidence-summary') {
     ensureLegacyBriefSurfacesHydrated();
     const format = document.querySelector('[data-calibration-format].is-active')?.getAttribute('data-calibration-format') || 'successfactors';
@@ -357,6 +363,12 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
 
   document.getElementById('main-content')?.classList.add('portfolio-shell--active');
+  try {
+    document.body.classList.toggle(
+      'portfolio-rail-visible',
+      Boolean(decisionMount?.querySelector('.portfolio-decision, #portfolio-decision')),
+    );
+  } catch (_) { /* ignore */ }
 
   document.title = 'Portfolio | Delivera';
 

@@ -163,6 +163,19 @@ export function buildSprintAtAGlanceBriefing(data) {
   };
 }
 
+/** SSOT: one blocker key for header, cockpit hero, nudge prefill, and focus-remediation scroll. */
+export function resolvePrimaryBlockerKey(data = {}) {
+  const cockpit = data?.decisionCockpit || {};
+  const nbaKey = String(cockpit?.nextBestAction?.issueKey || '').trim();
+  if (nbaKey) return nbaKey.toUpperCase();
+  const topRisks = Array.isArray(cockpit.topRisks) ? cockpit.topRisks : [];
+  const topKey = String(topRisks[0]?.issueKey || '').trim();
+  if (topKey) return topKey.toUpperCase();
+  const stuck = data?.stuckCandidates?.[0];
+  const stuckKey = String(stuck?.issueKey || stuck?.key || '').trim();
+  return stuckKey ? stuckKey.toUpperCase() : '';
+}
+
 export function renderMissionBriefingHtml(briefing, escapeHtml) {
   if (!briefing || typeof escapeHtml !== 'function') return '';
   if (briefing.isHistorical) return '';

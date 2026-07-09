@@ -1,4 +1,5 @@
 import { escapeHtml, renderIssueKeyLink } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { resolvePrimaryBlockerKey } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import { cockpitRisksToAttentionItems, renderAttentionQueueTable } from './Delivera-Shared-Attention-Queue.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { formatDayLabel, formatNumber } from './Delivera-Shared-Format-DateNumber-Helpers.js';
@@ -286,7 +287,9 @@ export function renderDecisionCockpit(data, options = {}) {
 
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
   const quickCreateChip = '<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context." style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>';
-  const blocker = topRisks[0] || {};
+  const primaryBlockerKey = resolvePrimaryBlockerKey(data);
+  const blocker = topRisks.find((risk) => String(risk.issueKey || '').toUpperCase() === primaryBlockerKey)
+    || (primaryBlockerKey ? { issueKey: primaryBlockerKey, assignee: nextBestAction.assignee, summary: nextBestAction.summary } : topRisks[0] || {});
   const verdictLabel = health.tone === 'critical'
     ? COPY.verdictBlocked
     : health.tone === 'warning'
@@ -297,21 +300,26 @@ export function renderDecisionCockpit(data, options = {}) {
     + '<h2>Sprint today</h2>'
     + `<p class="sprint-today-verdict"><strong>${escapeHtml(verdictLabel)}</strong></p>`
     + `<p class="sprint-today-answer">${escapeHtml(health.message || 'Review sprint signals.')}</p>`
-    + (blocker.issueKey ? `<p><strong>Main blocker:</strong> ${escapeHtml(blocker.issueKey)}</p>` : '')
-    + (nextBestAction.issueKey ? `<p><strong>Who to chase:</strong> ${escapeHtml(nextBestAction.assignee || nextBestAction.issueKey || 'Owner in Jira')}</p>` : '')
+    + (blocker.issueKey ? `<p data-testid="cockpit-main-blocker"><strong>Main blocker:</strong> ${escapeHtml(blocker.issueKey)}</p>` : '')
+    + (nextBestAction.assignee && nextBestAction.issueKey !== primaryBlockerKey ? `<p><strong>Who to chase:</strong> ${escapeHtml(nextBestAction.assignee)}</p>` : '')
+    + (!nextBestAction.assignee && nextBestAction.issueKey && nextBestAction.issueKey !== primaryBlockerKey ? `<p><strong>Who to chase:</strong> ${escapeHtml(nextBestAction.issueKey)}</p>` : '')
     + `<p><strong>Next move:</strong> ${escapeHtml(nextBestAction.ctaLabel || nextBestAction.summary || 'Review work queue')}</p>`
+    + (viewportLean && hasBlockers ? '<p class="sprint-today-scroll-note" data-testid="cockpit-blockers-below">Showing blockers below</p>' : '')
     + '</section>';
-  const attentionQueueHtml = renderAttentionQueueTable({
+  const attentionQueueHtml = viewportLean ? '' : renderAttentionQueueTable({
     title: COPY.attentionQueue,
     items: cockpitRisksToAttentionItems(topRisks),
     maxRows: 5,
   });
+  const nextActionLinkHtml = viewportLean && hasBlockers
+    ? ''
+    : `<a href="#stories-card" class="decision-primary-link" data-cockpit-risk-tags="${escapeHtml((nextBestAction.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">${escapeHtml(nextActionCta)}</a>`;
   return ''
     + sprintTodayHero
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
     + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))
-    + '<details class="decision-cockpit-details" open>'
+    + '<details class="decision-cockpit-details">'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'
     + `<p class="decision-cockpit-subtitle">${escapeHtml(dateLabel)} <span>|</span> ${escapeHtml(remainingDaysLabel)}</p>`
@@ -329,7 +337,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + '<p class="decision-card-label">Next action</p>'
     + `<h2>${escapeHtml(nextActionTitle)}</h2>`
     + `<p>${escapeHtml(nextActionReason)}</p>`
-    + `<a href="#stories-card" class="decision-primary-link" data-cockpit-risk-tags="${escapeHtml((nextBestAction.riskTags || []).join(' '))}" data-cockpit-target="#stories-card">${escapeHtml(nextActionCta)}</a>`
+    + nextActionLinkHtml
     + '</article>'
     + '<article class="decision-signals-card">'
     + '<p class="decision-card-label">Signals</p>'

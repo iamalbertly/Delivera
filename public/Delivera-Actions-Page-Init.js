@@ -25,33 +25,31 @@ function readQuery() {
 
 async function maybeRenderBlockerBanner(readyCount = 0) {
   const existing = document.getElementById('actions-blocker-banner');
-  if (readyCount > 0) {
-    existing?.remove();
-    return;
-  }
+  let hasBlockers = false;
   try {
     const res = await fetch('/api/current-sprint.json');
-    if (!res.ok) {
-      existing?.remove();
-      return;
+    if (res.ok) {
+      const data = await res.json();
+      hasBlockers = Number((data?.stuckCandidates || []).length || 0) > 0;
     }
-    const data = await res.json();
-    const blockers = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates.length : 0;
-    if (!blockers) {
-      existing?.remove();
-      return;
-    }
-    let banner = existing;
-    if (!banner) {
-      banner = document.createElement('p');
-      banner.id = 'actions-blocker-banner';
-      banner.className = 'actions-blocker-banner';
-      document.getElementById('actions-tabs')?.insertAdjacentElement('afterend', banner);
-    }
-    banner.innerHTML = `Blockers on Squads → <a href="/current-sprint">Open sprint blockers</a>`;
-  } catch (_) {
+  } catch (_) { /* ignore */ }
+
+  document.body.classList.toggle('actions-empty-ready', readyCount === 0);
+  document.body.classList.toggle('actions-has-blockers', hasBlockers);
+
+  if (readyCount > 0 || !hasBlockers) {
     existing?.remove();
+    return hasBlockers;
   }
+  let banner = existing;
+  if (!banner) {
+    banner = document.createElement('p');
+    banner.id = 'actions-blocker-banner';
+    banner.className = 'actions-blocker-banner';
+    document.getElementById('actions-tabs')?.insertAdjacentElement('afterend', banner);
+  }
+  banner.innerHTML = 'Blockers on Squads → <a href="/current-sprint">Open sprint blockers</a>';
+  return hasBlockers;
 }
 
 function activeTab() {
@@ -122,7 +120,7 @@ async function paint(tab = activeTab()) {
   const proof = document.getElementById('actions-proof');
   const highlightId = readQuery().get('caseId') || '';
   const visible = filterCases(cases, tab);
-  await maybeRenderBlockerBanner(counts.ready || 0);
+  const hasBlockers = await maybeRenderBlockerBanner(counts.ready || 0);
   if (tab === 'proof') {
     if (list) list.hidden = true;
     if (proof) {
@@ -136,7 +134,9 @@ async function paint(tab = activeTab()) {
     list.hidden = false;
     list.innerHTML = visible.length
       ? visible.map((row) => renderActionsCaseCard(row, { highlight: row.id === highlightId })).join('')
-      : '<p class="actions-empty">No action needed now — monitoring continues.</p>';
+      : (hasBlockers
+        ? '<p class="actions-empty"><a class="btn btn-primary btn-compact" href="/current-sprint">Open sprint blockers →</a></p>'
+        : '<p class="actions-empty">No action needed now — monitoring continues.</p>');
     if (highlightId) {
       document.getElementById(`case-${highlightId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }

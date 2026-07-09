@@ -132,25 +132,31 @@ export function renderCurrentSprintPage(data) {
   html += '<div id="sprint-alignment-strip-mount"></div>';
   html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean">';
 
-  html += '<div class="sprint-cockpit-column full-width">';
-  html += renderDecisionCockpit(data, { viewportLean: true });
-  html += '</div>';
-
   if (hasStories) {
     html += '<div class="sprint-cards-column full-width" id="stories-card-wrap">';
     html += renderStories(data);
     html += '</div>';
   }
 
-  if (hasBurndownData) {
-    html += '<div class="sprint-cards-row risks-row">';
-    html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
-    html += '</div>';
+  html += '<div class="sprint-cockpit-column full-width">';
+  html += renderDecisionCockpit(data, { viewportLean: true });
+  html += '</div>';
+
+  const belowFold = (hasBurndownData ? ('<div class="sprint-cards-row risks-row">'
+    + '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>'
+    + '</div>') : '')
+    + '<div class="sprint-cards-row secondary-row">'
+    + '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>'
+    + '</div>';
+
+  if (belowFold.trim()) {
+    html += '<details class="sprint-full-sprint-fold">';
+    html += '<summary>Full sprint</summary>';
+    html += '<div class="sprint-full-sprint-fold-body">';
+    html += belowFold;
+    html += '</div></details>';
   }
 
-  html += '<div class="sprint-cards-row secondary-row">';
-  html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
-  html += '</div>';
   html += '</div>';
 
   try {

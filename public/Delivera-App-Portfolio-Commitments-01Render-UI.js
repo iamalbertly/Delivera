@@ -1,8 +1,8 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
-import { dedupeCommitmentsByIssueKey } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { dedupeCommitmentsByIssueKey, shouldMergeCommitmentLines } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
-const MAX_INLINE = 5;
+const MAX_INLINE = 1;
 
 function renderCommitmentRow(c, decision, { compact = false } = {}) {
   const issueKey = c.issueKey || c.issueKeys?.[0] || c.id || '';
@@ -30,8 +30,8 @@ function renderCommitmentRow(c, decision, { compact = false } = {}) {
       ${(() => {
         const reason = String(c.reason || '').trim();
         const move = String(c.decisionNeeded || '').trim();
-        if (reason && move && reason === move) {
-          return `<p class="portfolio-commitment-next-move"><span>Next move:</span> ${escapeHtml(move)}</p>`;
+        if (shouldMergeCommitmentLines(reason, move)) {
+          return `<p class="portfolio-commitment-next-move"><span>Next move:</span> ${escapeHtml(move || reason)}</p>`;
         }
         return `<p class="portfolio-commitment-reason"><span>Reason:</span> ${escapeHtml(reason)}</p>
       <p class="portfolio-commitment-decision"><span>Decision:</span> ${escapeHtml(move)}</p>`;
@@ -47,6 +47,7 @@ export function renderPortfolioRailCommitments(_decision = {}) {
 export function renderPortfolioCommitments(decision = {}) {
   const rows = dedupeCommitmentsByIssueKey(decision.affectedCommitments || []);
   const visible = rows.slice(0, MAX_INLINE);
+  const overflow = rows.slice(MAX_INLINE);
   if (!rows.length) {
     return `
       <section class="portfolio-commitments portfolio-commitments--empty" aria-label="Affected commitments" data-portfolio-commitments>
@@ -60,5 +61,12 @@ export function renderPortfolioCommitments(decision = {}) {
       <ul class="portfolio-commitments-list portfolio-commitments-list--scroll">
         ${visible.map((c) => renderCommitmentRow(c, decision)).join('')}
       </ul>
+      ${overflow.length ? `
+      <div class="portfolio-commitments-more">
+        <button type="button" class="btn btn-link btn-compact" data-portfolio-action="expand-commitments">+${overflow.length} more</button>
+        <ul class="portfolio-commitments-list portfolio-commitments-overflow" hidden>
+          ${overflow.map((c) => renderCommitmentRow(c, decision)).join('')}
+        </ul>
+      </div>` : ''}
     </section>`;
 }

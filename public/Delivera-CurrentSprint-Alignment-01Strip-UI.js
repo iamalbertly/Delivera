@@ -51,7 +51,7 @@ export function renderAlignmentStripHtml(data, baselineKeys = []) {
         ${summaryDetail ? `<span>· ${escapeHtml(summaryDetail)}</span>` : ''}
         ${studioChip}
       </div>
-      <details open>
+      <details class="sprint-off-pi-fold">
         <summary>Recent stories</summary>
         <ul class="sprint-alignment-list">${rows}</ul>
       </details>

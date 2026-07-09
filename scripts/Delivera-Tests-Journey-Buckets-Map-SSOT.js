@@ -390,6 +390,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/governance',
   },
+  'tests/Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/actions',
+  },
   'tests/Delivera-Governance-DirectValue-MasterPlan-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-direct-value-masterplan',
     layer: 'cross-surface-ux',

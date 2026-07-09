@@ -13337,6 +13337,54 @@ details.sprint-history-fold > summary {
   }
 }
 
+/* Round5: Today mode collapse + hero line + filter chip + sprint fold */
+.decision-cockpit-details:not([open]) .decision-cockpit-details-body {
+  display: none;
+}
+.header-hero-line {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+.current-sprint-header-bar[data-viewport-lean="true"] .header-identity-metrics {
+  display: none;
+}
+.header-active-filter-chip.is-visible {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+details.sprint-full-sprint-fold > summary,
+details.sprint-off-pi-fold > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+.decision-primary-static {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #92400e;
+}
+.story-value-card--tap-nudge {
+  cursor: pointer;
+}
+@media (min-width: 1280px) {
+  body.current-sprint-page #issue-jump-input {
+    display: none;
+  }
+}
+body.actions-empty-ready.actions-has-blockers .app-top-search-wrap {
+  display: none;
+}
+
 /* todo-copy-map-and-tokens: align HUD header title with Current Sprint tokens */
 :root {
   --header-sprint-name-size: 0.95rem;
@@ -18203,6 +18251,33 @@ body.governance-page .gov-compare-add-tray { position: relative; z-index: 2; }
 .portfolio-page[data-gov-brief-state="loading"] .portfolio-signal-mount {
   min-height: 0;
 }
+
+/* Round5: evidence rail dock + signal link hide + grid action column */
+.gov-right-drawer-panel--gov-evidence-drawer-docked {
+  max-width: 480px;
+}
+.gov-evidence-meeting-answer-primary {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.gov-proof-rail-highlight,
+#gov-right-rail-proof-mount[data-proof-active="1"] {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+@media (min-width: 1280px) {
+  body.portfolio-rail-visible [data-testid="portfolio-signal-summary"] {
+    display: none;
+  }
+  body.portfolio-rail-visible .portfolio-grid-action,
+  body.portfolio-rail-visible .portfolio-performance-grid-head span:last-child {
+    display: none;
+  }
+}
 /* Meeting-first product surfaces — light, high-contrast, red as signal only */
 
 body.executive-surface-page,
@@ -20855,6 +20930,31 @@ body.delivera-api-degraded::before {
 }
 .actions-blocker-banner a {
   font-weight: 700;
+}
+
+.portfolio-commitments-more {
+  margin-top: 0.35rem;
+}
+.portfolio-commitments-overflow[hidden] {
+  display: none;
+}
+.portfolio-grid-squad-select {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+}
+.settings-scope-search {
+  width: 100%;
+  max-width: 420px;
+  margin: 0.35rem 0 0.65rem;
+}
+.settings-recent-squad-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
 }
 .evidence-os-page {
   background: linear-gradient(180deg, #fffdfd 0%, #fff8f8 100%);

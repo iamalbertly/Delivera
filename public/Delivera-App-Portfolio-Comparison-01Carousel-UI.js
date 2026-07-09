@@ -16,10 +16,10 @@ function renderRow(card = {}) {
     className: 'portfolio-grid-squad-link',
   });
   return `
-    <button type="button" class="portfolio-performance-grid-row${card.selected ? ' is-selected' : ''}"
+    <div class="portfolio-performance-grid-row${card.selected ? ' is-selected' : ''}"
       data-squad-key="${escapeHtml(card.projectKey)}"
       title="${escapeHtml(card.proofDetail || card.explanation || '')}">
-      <span class="portfolio-grid-squad">
+      <span class="portfolio-grid-squad portfolio-grid-squad-select" role="button" tabindex="0" data-squad-select="${escapeHtml(card.projectKey)}">
         <strong>${squadLabel}</strong>
         <small class="portfolio-squad-status portfolio-squad-status--${escapeHtml(statusClass)}">${escapeHtml(card.status || 'Watch')}</small>
       </span>
@@ -32,7 +32,7 @@ function renderRow(card = {}) {
       </span>
       <span class="portfolio-grid-number">${Number(card.affectedCommitmentCount) || 0}</span>
       <span class="portfolio-grid-action">${escapeHtml(card.nextAction || card.decisionNeeded || '')}</span>
-    </button>`;
+    </div>`;
 }
 
 export function renderPortfolioCarousel(comparison = {}) {
@@ -58,12 +58,14 @@ export function bindPortfolioCarousel(root, { onSelectSquad } = {}) {
   const rows = Array.from(root.querySelectorAll('[data-squad-key]'));
   root.addEventListener('click', (ev) => {
     if (ev.target.closest('[data-jira-work-item-link]')) return;
-    const row = ev.target.closest('[data-squad-key]');
-    if (!row) return;
+    const row = ev.target.closest('[data-squad-select]')?.closest('[data-squad-key]')
+      || ev.target.closest('[data-squad-key]');
+    if (!row || !ev.target.closest('[data-squad-select]')) return;
     onSelectSquad?.(row.getAttribute('data-squad-key'));
   });
   root.querySelector('[data-carousel-track]')?.addEventListener('keydown', (ev) => {
-    const current = ev.target.closest('[data-squad-key]');
+    const current = ev.target.closest('[data-squad-select]')?.closest('[data-squad-key]')
+      || ev.target.closest('[data-squad-key]');
     const idx = Math.max(0, rows.indexOf(current));
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowRight') {
       ev.preventDefault();

@@ -69,7 +69,8 @@ export function renderPiFocusStrip(brief = {}) {
         <p class="gov-pi-focus-counts" data-testid="gov-pi-focus-counts">${escapeHtml(counts)}</p>
       </div>
       <div class="gov-pi-focus-actions">
-        <details class="gov-pi-focus-more" open>
+        ${studioOpenBtn(COPY.piBaselineSetupLabel, 'gov-pi-focus-set-baseline', { primary: true })}
+        <details class="gov-pi-focus-more">
           <summary class="btn btn-secondary btn-compact" data-testid="gov-pi-focus-more">${escapeHtml(COPY.piFocusMore)}</summary>
           <div class="gov-pi-focus-more-menu">${overflowItems.join('')}</div>
         </details>

@@ -2209,3 +2209,28 @@ body.delivera-api-degraded::before {
 .actions-blocker-banner a {
   font-weight: 700;
 }
+
+.portfolio-commitments-more {
+  margin-top: 0.35rem;
+}
+.portfolio-commitments-overflow[hidden] {
+  display: none;
+}
+.portfolio-grid-squad-select {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+}
+.settings-scope-search {
+  width: 100%;
+  max-width: 420px;
+  margin: 0.35rem 0 0.65rem;
+}
+.settings-recent-squad-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}

@@ -448,8 +448,11 @@ export function renderStories(data) {
     const storyKey = String(story?.issueKey || story?.key || '').toUpperCase();
     const riskTags = Array.from(new Set(storyRiskTagMap.get(storyKey) || []));
     const riskSummary = riskTags.length ? riskTags.map(mapRiskTagLabel).join(' | ') : 'No active blocker';
-    let cardHtml = '<article class="story-value-card" data-parent-key="' + escapeHtml(storyKey) + '"';
+    let cardHtml = '<article class="story-value-card' + (riskTags.includes('blocker') ? ' story-value-card--tap-nudge' : '') + '" data-parent-key="' + escapeHtml(storyKey) + '"';
     if (riskTags.length) cardHtml += ' data-risk-tags="' + escapeHtml(riskTags.join(' ')) + '"';
+    if (riskTags.includes('blocker')) {
+      cardHtml += ' tabindex="0" role="button" data-blocker-nudge="' + escapeHtml(storyKey) + '"';
+    }
     cardHtml += '>';
     cardHtml += '<div class="story-value-card-top">';
     cardHtml += '<div><p class="story-value-card-key">' + renderIssueKeyLink(story.issueKey || story.key, story.issueUrl) + '</p><h4>' + escapeHtml(story.summary || '-') + '</h4></div>';

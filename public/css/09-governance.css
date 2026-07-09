@@ -1993,3 +1993,30 @@ body.governance-page .gov-compare-add-tray { position: relative; z-index: 2; }
 .portfolio-page[data-gov-brief-state="loading"] .portfolio-signal-mount {
   min-height: 0;
 }
+
+/* Round5: evidence rail dock + signal link hide + grid action column */
+.gov-right-drawer-panel--gov-evidence-drawer-docked {
+  max-width: 480px;
+}
+.gov-evidence-meeting-answer-primary {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.gov-proof-rail-highlight,
+#gov-right-rail-proof-mount[data-proof-active="1"] {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+@media (min-width: 1280px) {
+  body.portfolio-rail-visible [data-testid="portfolio-signal-summary"] {
+    display: none;
+  }
+  body.portfolio-rail-visible .portfolio-grid-action,
+  body.portfolio-rail-visible .portfolio-performance-grid-head span:last-child {
+    display: none;
+  }
+}

@@ -71,6 +71,8 @@ export const COPY = {
   statusIconSetup: '○ Setup',
   fixPiBaseline: 'Confirm promised work',
   piBaselineCta: 'Confirm promised work',
+  piBaselineSetupLabel: 'Set baseline →',
+  copyMeetingAnswer: 'Copy meeting answer',
   piBaselineWhy: 'Save what your squad agreed to deliver this quarter.',
   piBaselineImpact: 'Without this, carryover and removed work cannot be proven.',
   piBaselineDrawerTitle: 'Alignment Studio',

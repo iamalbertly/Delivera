@@ -152,6 +152,42 @@ export function portfolioCanonicalCounts(decision = {}) {
 /** SSOT: primary portfolio CTA lives only on the decision rail mount. */
 export const PORTFOLIO_PRIMARY_CTA_MOUNT_ID = 'portfolio-decision-mount';
 
+/** SSOT: decision headline lives only on the decision rail mount. */
+export const PORTFOLIO_HEADLINE_MOUNT_ID = 'portfolio-decision-mount';
+
+function normalizeCommitmentText(value = '') {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function commitmentTokenSet(value = '') {
+  return new Set(
+    normalizeCommitmentText(value)
+      .split(/\W+/)
+      .filter((token) => token.length > 2),
+  );
+}
+
+function commitmentJaccard(a = '', b = '') {
+  const left = commitmentTokenSet(a);
+  const right = commitmentTokenSet(b);
+  if (!left.size || !right.size) return 0;
+  let overlap = 0;
+  left.forEach((token) => {
+    if (right.has(token)) overlap += 1;
+  });
+  return overlap / (left.size + right.size - overlap);
+}
+
+/** Merge duplicate Reason/Decision lines when text is equal, substring, or near-duplicate. */
+export function shouldMergeCommitmentLines(reason = '', move = '') {
+  const normalizedReason = normalizeCommitmentText(reason);
+  const normalizedMove = normalizeCommitmentText(move);
+  if (!normalizedReason || !normalizedMove) return false;
+  if (normalizedReason === normalizedMove) return true;
+  if (normalizedReason.includes(normalizedMove) || normalizedMove.includes(normalizedReason)) return true;
+  return commitmentJaccard(reason, move) >= 0.65;
+}
+
 /** Dedupe affected commitments by issueKey (first wins). */
 export function dedupeCommitmentsByIssueKey(rows = []) {
   const seen = new Set();

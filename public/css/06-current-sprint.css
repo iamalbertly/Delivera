@@ -6789,3 +6789,51 @@ details.sprint-history-fold > summary {
     z-index: 5;
   }
 }
+
+/* Round5: Today mode collapse + hero line + filter chip + sprint fold */
+.decision-cockpit-details:not([open]) .decision-cockpit-details-body {
+  display: none;
+}
+.header-hero-line {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+.current-sprint-header-bar[data-viewport-lean="true"] .header-identity-metrics {
+  display: none;
+}
+.header-active-filter-chip.is-visible {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+details.sprint-full-sprint-fold > summary,
+details.sprint-off-pi-fold > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+.decision-primary-static {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #92400e;
+}
+.story-value-card--tap-nudge {
+  cursor: pointer;
+}
+@media (min-width: 1280px) {
+  body.current-sprint-page #issue-jump-input {
+    display: none;
+  }
+}
+body.actions-empty-ready.actions-has-blockers .app-top-search-wrap {
+  display: none;
+}

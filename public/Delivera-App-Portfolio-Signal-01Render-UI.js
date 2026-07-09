@@ -227,7 +227,6 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
           <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
           <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
         </div>
-        <p class="portfolio-signal-verdict" data-portfolio-signal-verdict>${escapeHtml(verdict)}</p>
         <a class="portfolio-signal-rail-hint" href="#portfolio-decision" data-testid="portfolio-signal-summary">Review decision below</a>
       </section>`;
   }
@@ -239,7 +238,7 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
         <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
         <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
       </div>
-      <h2 class="portfolio-signal-headline portfolio-signal-headline--hero">${escapeHtml(quarter)} · ${escapeHtml(verdict)}</h2>
+      <h2 class="portfolio-signal-headline portfolio-signal-headline--hero">${escapeHtml(quarter)}</h2>
       ${renderHeroCompactMetrics(summary, evidence, required)}
       <div class="portfolio-signal-actions portfolio-signal-actions--above-fold">
         <button type="button" class="btn btn-secondary btn-compact portfolio-summary-chip portfolio-summary-chip--action" data-portfolio-action="view-governance-evidence" data-testid="portfolio-signal-evidence-chip">View evidence</button>
