@@ -10,17 +10,45 @@ import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verd
 import { resolvePrimaryBlockerKey } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
-function renderSprintProofRail(data) {
-  const blockerKey = resolvePrimaryBlockerKey(data);
-  if (!blockerKey) return '';
-  const nba = data?.decisionCockpit?.nextBestAction || {};
+function renderNextUpStrip(data) {
+  const meta = data?.meta || {};
+  if (!meta.limbo && !meta.noActiveSprintFallback) return '';
+  const nc = meta.nextSprintCandidate;
+  if (!nc?.name && !meta.cadenceLine) return '';
+  const ncName = String(nc?.name || 'Upcoming sprint').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const ncGoal = String(nc?.goal || '').trim().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const overdue = meta.nextSprintStartOverdue === true;
   return ''
-    + '<aside class="sprint-proof-rail" id="sprint-proof-rail" data-testid="sprint-proof-rail">'
-    + '<p class="sprint-proof-rail-kicker">Unblock today</p>'
-    + '<strong class="sprint-proof-rail-key" data-primary-blocker-key="' + escapeHtml(blockerKey) + '">' + escapeHtml(blockerKey) + '</strong>'
-    + '<p class="sprint-proof-rail-summary">' + escapeHtml(nba.summary || nba.reason || '') + '</p>'
-    + '<a href="#stories-card" class="btn btn-primary btn-compact">Open blocker</a>'
-    + '</aside>';
+    + '<section class="sprint-next-up-strip transparency-card" data-testid="sprint-next-up" aria-label="Next sprint">'
+    + '<p class="sprint-next-up-kicker">What is next</p>'
+    + '<strong class="sprint-next-up-title">' + escapeHtml(ncName) + '</strong>'
+    + (meta.cadenceLine ? '<p class="sprint-next-up-cadence">' + escapeHtml(meta.cadenceLine) + '</p>' : '')
+    + (ncGoal ? '<p class="sprint-next-up-goal">' + ncGoal + '</p>' : '')
+    + (overdue ? '<p class="sprint-next-up-overdue">Planned start has passed — activate sprint in Jira.</p>' : '')
+    + '</section>';
+}
+
+function renderSprintProofRail(data) {
+  const meta = data?.meta || {};
+  const blockerKey = resolvePrimaryBlockerKey(data);
+  const nba = data?.decisionCockpit?.nextBestAction || {};
+  if (blockerKey) {
+    return ''
+      + '<aside class="sprint-proof-rail" id="sprint-proof-rail" data-testid="sprint-proof-rail">'
+      + '<p class="sprint-proof-rail-kicker">Unblock today</p>'
+      + '<strong class="sprint-proof-rail-key" data-primary-blocker-key="' + escapeHtml(blockerKey) + '">' + escapeHtml(blockerKey) + '</strong>'
+      + '<p class="sprint-proof-rail-summary">' + escapeHtml(nba.summary || nba.reason || '') + '</p>'
+      + '</aside>';
+  }
+  if (meta.limbo && meta.nextSprintCandidate?.name) {
+    return ''
+      + '<aside class="sprint-proof-rail sprint-proof-rail--next" id="sprint-proof-rail" data-testid="sprint-proof-rail">'
+      + '<p class="sprint-proof-rail-kicker">Next sprint</p>'
+      + '<strong class="sprint-proof-rail-key">' + escapeHtml(meta.nextSprintCandidate.name) + '</strong>'
+      + '<p class="sprint-proof-rail-summary">' + escapeHtml(meta.explanatoryLine || meta.cadenceLine || '') + '</p>'
+      + '</aside>';
+  }
+  return '';
 }
 
 function renderSprintSwitcher(data) {
@@ -80,10 +108,11 @@ export function renderCurrentSprintPage(data) {
     + '</div>'
     + '</div>';
 
-  const headerOpts = { sectionLinksHtml, viewportLean: true, sectionLinksInDrawer: true };
+  const headerOpts = { sectionLinksHtml: '', viewportLean: true, sectionLinksInDrawer: true };
   html += renderHeaderBar(data, headerOpts);
+  html += renderNextUpStrip(data);
   html += renderSprintSwitcher(data);
-  if (data?.meta?.noActiveSprintFallback) {
+  if (data?.meta?.noActiveSprintFallback || data?.meta?.limbo) {
     const nc = data.meta.nextSprintCandidate;
     if (data.meta.suggestStartSprint && nc) {
       const ncName = String(nc.name || 'Upcoming sprint').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -144,15 +173,10 @@ export function renderCurrentSprintPage(data) {
     return html;
   }
 
-  const healthStatus = String(data?.decisionCockpit?.health?.status || '');
-  const isBlockedView = /blocked|needs attention/i.test(healthStatus);
-  if (isBlockedView) {
-    html += '<div id="sprint-alignment-strip-mount" data-alignment-above-fold="1"></div>';
-  } else {
-    html += '<div id="sprint-alignment-strip-mount"></div>';
-  }
+  html += '<div id="sprint-alignment-strip-mount" data-alignment-above-fold="1"></div>';
   const blockerKey = resolvePrimaryBlockerKey(data);
-  html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean' + (blockerKey ? ' sprint-rail-visible' : '') + '">';
+  const showRail = blockerKey || data?.meta?.limbo;
+  html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean' + (showRail ? ' sprint-rail-visible' : '') + '">';
   html += '<div class="sprint-main-column">';
 
   if (hasStories) {
@@ -173,13 +197,15 @@ export function renderCurrentSprintPage(data) {
     + '</div>';
 
   if (belowFold.trim()) {
+    const healthStatus = String(data?.decisionCockpit?.health?.status || '');
+    const isBlockedView = /blocked|needs attention/i.test(healthStatus);
     const foldOpen = isBlockedView ? '' : ' open';
     html += '<details class="sprint-full-sprint-fold"' + foldOpen + '>';
     html += '<summary>Full sprint</summary>';
     html += '<div class="sprint-full-sprint-fold-body">';
     html += belowFold;
     html += '</div></details>';
-  } else if (isBlockedView) {
+  } else if (/blocked|needs attention/i.test(String(data?.decisionCockpit?.health?.status || ''))) {
     html += '<details class="sprint-full-sprint-fold">';
     html += '<summary>Full sprint</summary>';
     html += '<div class="sprint-full-sprint-fold-body"></div></details>';
@@ -224,36 +250,4 @@ export function renderCurrentSprintPageParts(data) {
     fullHtml,
     hasDeferredSections: true,
   };
-}
-
-function buildCapacityAllocationCard(capacitySummary, data) {
-  const summary = capacitySummary || {};
-  const unassignedDetail = summary.unassignedCount > 0
-    ? summary.unassignedCount + ' issue' + (summary.unassignedCount === 1 ? '' : 's') + ' unassigned'
-    : 'All issues have an owner';
-
-  const baseClass = summary.state === 'critical'
-    ? 'capacity-health red'
-    : summary.state === 'warning'
-      ? 'capacity-health yellow'
-      : 'capacity-health green';
-
-  const totalStories = (data.summary && data.summary.totalStories) || 0;
-
-  let html = '<div class="transparency-card capacity-allocation-card" id="capacity-card">';
-  html += '<h2>Capacity and ownership</h2>';
-  html += '<div class="' + baseClass + '">' + (summary.label || 'Capacity signal loading') + '</div>';
-  html += '<div class="capacity-warning">' + (summary.detail || 'Sprint ownership will appear once issues are fully assigned.') + '</div>';
-  html += '<div class="capacity-allocations">';
-  html += '<div class="allocation-item">';
-  html += '<div class="allocation-header">';
-  html += '<span class="allocation-name">Ownership coverage</span>';
-  html += '<span class="allocation-stats">' + summary.assigneeCount + ' owner' + (summary.assigneeCount === 1 ? '' : 's') +
-    (totalStories ? ' · ' + totalStories + ' stories' : '') + '</span>';
-  html += '</div>';
-  html += '<p>' + unassignedDetail + '.</p>';
-  html += '</div>';
-  html += '</div>';
-  html += '</div>';
-  return html;
 }

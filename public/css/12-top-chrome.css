@@ -58,7 +58,7 @@ body.governance-page .app-top-brand-context {
   left: 0;
   right: 0;
   height: var(--top-chrome-height, 56px);
-  z-index: 1300;
+  z-index: var(--z-chrome, 1200);
   display: flex;
   align-items: center;
   gap: 10px;

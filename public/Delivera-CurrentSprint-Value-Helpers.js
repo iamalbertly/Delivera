@@ -91,10 +91,25 @@ export function buildDeliveredImpactBullets(stories = [], storyRiskTagMap = new 
   });
   const valueStories = doneStories.filter((story) => deriveStoryGroup(story, storyRiskTagMap.get(String(story?.issueKey || story?.key || '').toUpperCase()) || []) === 'value');
   const source = valueStories.length ? valueStories : doneStories;
-  return source.slice(0, 4).map((story) => {
+  const seen = new Set();
+  const bullets = [];
+  for (const story of source) {
+    if (bullets.length >= 3) break;
     const summary = String(story?.summary || '').trim();
-    if (/alert/i.test(summary)) return `${summary} is now active for end users.`;
-    if (/report|dashboard|visibility/i.test(summary)) return `${summary} is now visible in daily decision-making.`;
-    return deriveBusinessOutcome(story);
-  });
+    let text = '';
+    if (/alert/i.test(summary)) text = `${summary} is now active for end users.`;
+    else if (/report|dashboard|visibility/i.test(summary)) text = `${summary} is now visible in daily decision-making.`;
+    else text = deriveBusinessOutcome(story);
+    const key = String(text || '').trim().toLowerCase();
+    if (!key || seen.has(key)) {
+      const fallback = summary ? `${summary} completed this sprint.` : '';
+      if (!fallback || seen.has(fallback.toLowerCase())) continue;
+      seen.add(fallback.toLowerCase());
+      bullets.push(fallback);
+      continue;
+    }
+    seen.add(key);
+    bullets.push(text);
+  }
+  return bullets;
 }

@@ -429,8 +429,9 @@ header[data-shared-header="true"] {
 }
 
 body.has-top-chrome {
-  --chrome-z: 1300;
-  --overlay-z: 1400;
+  --chrome-z: 1200;
+  --overlay-z: 1600;
+  --modal-z: 1700;
 }
 
 .app-header-row {

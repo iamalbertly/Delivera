@@ -27,35 +27,48 @@ async function loadBaselineKeys(projectsCsv) {
 export function renderAlignmentStripHtml(data, baselineKeys = []) {
   const stories = (Array.isArray(data?.stories) ? data.stories : []).slice(-5).reverse();
   if (!stories.length) return '';
-  let aligned = 0;
-  let piCount = 0;
-  let offPiCount = 0;
-  let adHocCount = 0;
-  const rows = stories.map((s) => {
+  let alignedTotal = 0;
+  let offPiTotal = 0;
+  let adHocTotal = 0;
+  stories.forEach((s) => {
     const alignment = classifyWorkAlignment({ epicKey: s.epicKey, piBaselineCommittedKeys: baselineKeys });
-    if (alignment.tier === 'pi') { aligned += 1; piCount += 1; }
-    else if (alignment.tier === 'offPi') offPiCount += 1;
-    else if (alignment.tier === 'adHoc') adHocCount += 1;
+    if (alignment.tier === 'pi') alignedTotal += 1;
+    else if (alignment.tier === 'offPi') offPiTotal += 1;
+    else if (alignment.tier === 'adHoc') adHocTotal += 1;
+  });
+  const rows = stories.slice(0, 3).map((s) => {
+    const alignment = classifyWorkAlignment({ epicKey: s.epicKey, piBaselineCommittedKeys: baselineKeys });
     const key = s.issueKey || s.key || '';
-    return `<li><a href="#story-row-${escapeHtml(key)}">${escapeHtml(key)}</a> ${renderAlignmentChip(alignment)}</li>`;
+    const title = String(s.summary || '').trim().slice(0, 72);
+    return `<li><a href="#story-row-${escapeHtml(key)}">${escapeHtml(key)}</a> <span class="sprint-alignment-title">${escapeHtml(title)}</span> ${renderAlignmentChip(alignment)}</li>`;
   }).join('');
-  const misaligned = Math.max(0, stories.length - aligned);
-  const summaryDetail = [piCount ? `${piCount} PI` : '', offPiCount ? `${offPiCount} off-PI` : '', adHocCount ? `${adHocCount} ad-hoc` : ''].filter(Boolean).join(' · ');
+  const misaligned = Math.max(0, stories.length - alignedTotal);
+  const summaryDetail = [alignedTotal ? `${alignedTotal} PI` : '', offPiTotal ? `${offPiTotal} off-PI` : '', adHocTotal ? `${adHocTotal} ad-hoc` : ''].filter(Boolean).join(' · ');
   const studioChip = misaligned > 0
     ? `<a class="sprint-off-pi-chip verdict-pill" href="/governance?openAlignment=1" data-testid="sprint-open-alignment-studio">${misaligned} off-PI</a>`
     : '';
   return `
-    <section class="sprint-alignment-strip" data-alignment-strip="1" aria-label="Work alignment">
+    <section class="sprint-alignment-strip" data-alignment-strip="1" data-testid="sprint-commitment-risk" aria-label="Work alignment">
       <div class="sprint-alignment-head">
-        <strong>${aligned} of ${stories.length}</strong> ${escapeHtml(COPY.alignmentSummary || 'aligned')}
+        <strong>${alignedTotal} of ${stories.length}</strong> ${escapeHtml(COPY.alignmentSummary || 'aligned')}
         ${summaryDetail ? `<span>· ${escapeHtml(summaryDetail)}</span>` : ''}
         ${studioChip}
       </div>
-      <details class="sprint-off-pi-fold">
-        <summary>Recent stories</summary>
-        <ul class="sprint-alignment-list">${rows}</ul>
-      </details>
+      <ul class="sprint-alignment-list sprint-alignment-list--expanded">${rows}</ul>
     </section>`;
+}
+
+export function countAlignmentFromStories(stories = [], baselineKeys = []) {
+  let offPi = 0;
+  let adHoc = 0;
+  let aligned = 0;
+  stories.forEach((s) => {
+    const alignment = classifyWorkAlignment({ epicKey: s.epicKey, piBaselineCommittedKeys: baselineKeys });
+    if (alignment.tier === 'pi') aligned += 1;
+    else if (alignment.tier === 'offPi') offPi += 1;
+    else if (alignment.tier === 'adHoc') adHoc += 1;
+  });
+  return { aligned, offPi, adHoc, total: stories.length };
 }
 
 export async function mountAlignmentStrip(container, data) {
@@ -65,5 +78,13 @@ export async function mountAlignmentStrip(container, data) {
   }
   const projects = data?.meta?.projects || data?.board?.projectKeys?.join(',') || '';
   const keys = await loadBaselineKeys(projects);
+  const counts = countAlignmentFromStories(data.stories, keys);
+  data.meta = data.meta || {};
+  data.meta.commitmentRisk = {
+    offPi: counts.offPi,
+    adHoc: counts.adHoc,
+    aligned: counts.aligned,
+    hasCommitmentRisk: counts.offPi > 0 || counts.adHoc > 0,
+  };
   container.innerHTML = renderAlignmentStripHtml(data, keys);
 }

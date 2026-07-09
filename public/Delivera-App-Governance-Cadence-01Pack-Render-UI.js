@@ -4,7 +4,7 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { quarterDayLabel } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
-import { maxStaleHoursFromBrief } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { maxStaleHoursFromBrief, resolveBaselineEntryPoint } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
 function staleLabelFromBrief(brief = {}) {
   const h = maxStaleHoursFromBrief(brief);
@@ -48,7 +48,10 @@ function daysAgo(iso) {
   return Math.max(0, Math.floor((Date.now() - ms) / 86400000));
 }
 
-function deriveMovementHealth(brief = {}) {
+function deriveMovementHealth(brief = {}, cadenceStatus = 'idle') {
+  if (cadenceStatus === 'none' || cadenceStatus === 'idle' || cadenceStatus === 'ended') {
+    return 'dormant';
+  }
   const selected = (brief?.projects || []).map((p) => String(p).toUpperCase());
   const squad = (brief?.squadInsights || []).find((s) => selected.includes(String(s.projectKey || '').toUpperCase()))
     || brief?.squadInsights?.[0]
@@ -85,7 +88,7 @@ export function buildCadencePackState(brief = {}) {
   const deliveryPct = Number(brief?.executiveView?.deliveryPct
     ?? brief?.meta?.piConfidence?.confidencePct
     ?? cadenceMeta.deliveryPct) || null;
-  const movementHealth = deriveMovementHealth(brief);
+  const movementHealth = deriveMovementHealth(brief, status);
   const squad = (brief?.squadInsights || []).find((s) => selected.includes(String(s.projectKey || '').toUpperCase()))
     || brief?.squadInsights?.[0]
     || null;
@@ -112,15 +115,17 @@ export function renderScopeCadenceLine(decision = {}, brief = {}) {
   const periodKey = decision.periodKey || brief?.meta?.quarter || 'Current';
   const c = buildCadencePackState(brief);
   const sprintPart = sprintCadencePart(c, brief);
+  const baselineEntry = resolveBaselineEntryPoint(brief);
   const timePart = tb.isSet
     ? `${periodKey} · Day ${tb.elapsed}/${tb.total}`
-    : COPY.piBaselineNotSavedCta;
+    : (baselineEntry.showScopeCadenceBaselineCta ? COPY.piBaselineNotSavedCta : `${periodKey} · ${COPY.piBaselineNotSaved}`);
   const line = `${timePart} · ${sprintPart}`;
   const deliveryLine = c.deliveryPct != null
     ? COPY.cadenceQuarterDelivery.replace('{pct}', String(c.deliveryPct))
     : '';
+  const dormantAttr = c.movementHealth === 'dormant' ? ' data-testid="gov-cadence-dormant"' : '';
   return `
-    <div class="gov-cadence-pack gov-scope-cadence-line" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" data-movement-health="${escapeHtml(c.movementHealth || 'healthy')}" aria-label="${escapeHtml(COPY.cadencePackLabel)}" title="${escapeHtml(line)}">
+    <div class="gov-cadence-pack gov-scope-cadence-line" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" data-movement-health="${escapeHtml(c.movementHealth || 'healthy')}"${dormantAttr} aria-label="${escapeHtml(COPY.cadencePackLabel)}" title="${escapeHtml(line)}">
       <span class="gov-cadence-chip gov-cadence-chip--scope">${escapeHtml(line)}</span>
       ${deliveryLine ? `<span class="gov-cadence-chip gov-cadence-chip--delivery">${escapeHtml(deliveryLine)}</span>` : ''}
     </div>`;

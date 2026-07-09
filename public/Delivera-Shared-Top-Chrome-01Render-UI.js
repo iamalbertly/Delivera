@@ -93,7 +93,7 @@ function applyDefaultSidebarCollapsed() {
   try {
     if (localStorage.getItem(SIDEBAR_COLLAPSED_PRESET_KEY)) return;
     const page = getCurrentPage();
-    if (page === PAGE_REPORT || page === PAGE_GOVERNANCE) {
+    if (page === PAGE_REPORT || page === PAGE_GOVERNANCE || page === PAGE_SPRINTS || page === PAGE_ACTIONS) {
       writeSidebarCollapsed(true);
       localStorage.setItem(SIDEBAR_COLLAPSED_PRESET_KEY, '1');
     }

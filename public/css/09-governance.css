@@ -525,6 +525,11 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
 }
 .gov-cadence-chip--sprint { background: #ecfeff; color: #0e7490; }
 .gov-cadence-chip--delivery { background: #f0fdf4; color: #15803d; }
+.gov-cadence-pack[data-movement-health="dormant"] .gov-cadence-chip--scope,
+.gov-cadence-pack[data-movement-health="dormant"] .gov-cadence-chip--sprint {
+  background: #fef3c7;
+  color: #92400e;
+}
 .gov-cadence-pack[data-cadence-status="none"] .gov-cadence-chip--sprint,
 .gov-cadence-pack[data-cadence-status="idle"] .gov-cadence-chip--sprint {
   background: #fff7ed; color: #c2410c;

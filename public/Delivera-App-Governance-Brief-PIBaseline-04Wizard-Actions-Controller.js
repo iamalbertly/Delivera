@@ -183,6 +183,13 @@ export function createPiBaselineWizardActions(ctx) {
       ctx.close();
       window.location.reload();
     });
+    el.querySelector('[data-baseline-switch-quarter]')?.addEventListener('click', (ev) => {
+      const q = ev.currentTarget?.getAttribute('data-baseline-switch-quarter') || '';
+      if (!q) return;
+      try { localStorage.setItem('delivera_gov_quarter_v1', q); } catch (_) { /* ignore */ }
+      ctx.close();
+      window.location.reload();
+    });
     el.querySelector('#gov-baseline-refresh')?.addEventListener('click', () => {
       ctx.close();
       ctx.onSaved?.();

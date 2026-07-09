@@ -6839,7 +6839,7 @@ body.actions-empty-ready.actions-has-blockers .app-top-search-wrap {
 }
 
 /* Round6: ultrawide proof rail + blocked fold default closed */
-@media (min-width: 1600px) {
+@media (min-width: 1280px) {
   .current-sprint-grid-layout.sprint-rail-visible {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 280px;
@@ -6887,4 +6887,43 @@ body.sprint-blocked-fold .decision-cockpit-details:not([open]) .decision-cockpit
 .current-sprint-header-bar .status-stale {
   background: #fef2f2;
   color: #991b1b;
+}
+
+body.executive-surface-page .app-top-chrome {
+  background: var(--top-chrome-bg, var(--primary-strong)) !important;
+  color: #fff;
+}
+
+.sprint-next-up-strip {
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border-left: 4px solid var(--primary-strong);
+}
+
+.sprint-next-up-kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.sprint-alignment-list--expanded {
+  margin: 0.5rem 0 0;
+  padding-left: 1rem;
+}
+
+.sprint-alignment-title {
+  color: #374151;
+  font-size: 0.82rem;
+}
+
+.actions-cadence-strip,
+.actions-batch-bar {
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.actions-batch-bar {
+  margin-bottom: 0.75rem;
 }

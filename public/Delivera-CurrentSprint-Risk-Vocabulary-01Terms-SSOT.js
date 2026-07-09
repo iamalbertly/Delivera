@@ -42,6 +42,19 @@ export function formatRiskCountsRollup({
   ].filter(Boolean).join(' · ');
 }
 
+/** PI + operational commitment risk rollup for header risk row. */
+export function formatCommitmentRiskRollup({
+  offPi = 0,
+  adHoc = 0,
+  operationalRollup = '',
+} = {}) {
+  const parts = [];
+  if (offPi > 0) parts.push(`${offPi} off-PI`);
+  if (adHoc > 0) parts.push(`${adHoc} ad-hoc`);
+  if (operationalRollup) parts.push(operationalRollup);
+  return parts.filter(Boolean).join(' · ');
+}
+
 export function formatEvidenceSummary({
   stale = 0,
   missingEst = 0,

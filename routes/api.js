@@ -16,6 +16,7 @@ const GOVERNANCE_NS = CACHE_NS.GOVERNANCE_BRIEF;
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
+import { attachSquadRealityToPayload } from '../lib/Delivera-CurrentSprint-SquadReality-01Verdict-SSOT.js';
 import { streamCSV, CSV_COLUMNS } from '../lib/csv.js';
 import { generateExcelWorkbook, generateExcelFilename, formatDateRangeForFilename } from '../lib/excel.js';
 import { getQuarterLabelAndPeriod, getQuartersUpToCurrent } from '../lib/Delivera-Data-VodacomQuarters-01Bounds.js';
@@ -50,9 +51,17 @@ import {
     readRecentJobs,
     groupInboxByType,
 } from '../lib/Delivera-Governance-Worker-02Jobs-IO.js';
-import { buildWorkerReceipt } from '../lib/Delivera-Governance-Worker-03Receipt-SSOT.js';
+import {
+    buildWorkerReceipt,
+    computeSinceLastRun,
+    buildSetupGaps,
+} from '../lib/Delivera-Governance-Worker-03Receipt-SSOT.js';
 import { buildScopeIntelligence } from '../lib/Delivera-Governance-BoardIntelligence-01Scope-SSOT.js';
-import { buildPIConfidenceStrip } from '../lib/Delivera-Governance-PIConfidence-01Strip-SSOT.js';
+import {
+    buildPIConfidenceStrip,
+    buildPIForumAnswer,
+    buildProtectMeAnswer,
+} from '../lib/Delivera-Governance-PIConfidence-01Strip-SSOT.js';
 import { buildFeedbackTriageSummary } from '../lib/Delivera-Governance-FeedbackTriage-01Agents-SSOT.js';
 import { buildAiUsageSummary } from '../lib/Delivera-AI-Usage-01Audit-IO.js';
 import { recordImprovementEvent } from '../lib/Delivera-Improvement-Events-01Store-IO.js';
@@ -1130,6 +1139,9 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                 out.meta.snapshotAt = cached?.cachedAt ?? null;
                 out.meta.jiraHost = resolvedJiraHost();
                 out.meta.jiraHostResolved = out.meta.jiraHost || '';
+                attachSquadRealityToPayload(out, {
+                    requestedSprintId: sprintId != null && !Number.isNaN(sprintId) ? sprintId : null,
+                });
                 return res.json(out);
             }
         }
@@ -1161,7 +1173,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
 
         const selectedSprintState = String(payload?.sprint?.state || '').toLowerCase();
         const activeCount = Number(payload?.meta?.activeSprintCount || 0);
-        const noActiveSprintFallback = !sprintId && selectedSprintState === 'closed' && activeCount === 0;
+        const noActiveSprintFallback = selectedSprintState === 'closed' && activeCount === 0;
         if (noActiveSprintFallback) {
             payload.meta.noActiveSprintFallback = true;
             const next = payload.nextSprint;
@@ -1185,6 +1197,10 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                 payload.meta.explanatoryLine = 'No active sprint — showing last completed sprint.';
             }
         }
+
+        attachSquadRealityToPayload(payload, {
+            requestedSprintId: sprintId != null && !Number.isNaN(sprintId) ? sprintId : null,
+        });
 
         writeReportContextToSession(req, buildCurrentSprintSessionContext(projectKeys, boardId, payload?.sprint?.id || sprintId));
 
@@ -1432,6 +1448,22 @@ function parseGovernanceProjects(req) {
         : ['MPSA', 'MAS'];
 }
 
+async function resolveGovernanceBriefForSubChrome(req, projects) {
+    const periodWindow = String(req.query?.periodWindow || '28d').toLowerCase();
+    const cached = await getCachedGovernanceBrief(projects, {
+        periodWindow,
+        includeEvidence: false,
+        includePOReadiness: false,
+    });
+    if (cached?.brief) return cached;
+    return getOrBuildGovernanceBrief({
+        projects,
+        req,
+        includeEvidence: false,
+        includePOReadiness: false,
+    });
+}
+
 registerPiBaselineRoutes(router, {
     requireAuth,
     cache,
@@ -1460,6 +1492,73 @@ router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
     }
 });
 
+router.get('/api/governance/worker-receipt.json', requireAuth, async (req, res) => {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    try {
+        const { brief, cached } = await resolveGovernanceBriefForSubChrome(req, projects);
+        const jobs = await readRecentJobs({ project: projects[0], limit: 5 });
+        const inboxItems = await readPendingInboxItems({ project: projects[0] });
+        const inboxGrouped = groupInboxByType(inboxItems);
+        const workerReceipt = brief?.meta?.workerReceipt
+            || await buildWorkerReceipt(brief, inboxGrouped, jobs);
+        const sinceLastRun = brief?.meta?.sinceLastRun
+            || computeSinceLastRun(brief, jobs.find((j) => j.status === 'completed'));
+        const setupGaps = brief?.meta?.setupGaps || buildSetupGaps(brief);
+        return res.json({
+            workerReceipt,
+            inboxTotal: workerReceipt?.inboxTotal ?? 0,
+            setupGaps,
+            sinceLastRun,
+            cached: Boolean(cached),
+        });
+    } catch (err) {
+        logger.warn('worker-receipt failed', { error: err?.message });
+        return res.status(502).json({ error: 'Worker receipt unavailable', code: 'WORKER_RECEIPT_FAILED' });
+    }
+});
+
+router.get('/api/governance/pi-confidence.json', requireAuth, async (req, res) => {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    try {
+        const { brief, cached } = await resolveGovernanceBriefForSubChrome(req, projects);
+        const piConfidence = brief?.meta?.piConfidence || buildPIConfidenceStrip(brief);
+        return res.json({
+            piConfidence,
+            piForumAnswer: buildPIForumAnswer(brief),
+            protectMeAnswer: buildProtectMeAnswer(brief),
+            cached: Boolean(cached),
+        });
+    } catch (err) {
+        logger.warn('pi-confidence failed', { error: err?.message });
+        return res.status(502).json({ error: 'PI confidence unavailable', code: 'PI_CONFIDENCE_FAILED' });
+    }
+});
+
+router.get('/api/governance/scope-intelligence.json', requireAuth, async (req, res) => {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
+    try {
+        const { brief, cached } = await resolveGovernanceBriefForSubChrome(req, projects);
+        const scope = brief?.meta?.scopeIntelligence || buildScopeIntelligence({
+            boards: [],
+            boardPayloads: [],
+            selectedProjects: projects,
+            projectErrors: [],
+        });
+        const boards = Number(brief?.meta?.boardsResolved) || scope?.available || 0;
+        return res.json({
+            scope,
+            boards,
+            projectErrors: scope?.projectErrors || [],
+            cached: Boolean(cached),
+        });
+    } catch (err) {
+        logger.warn('scope-intelligence failed', { error: err?.message });
+        return res.status(502).json({ error: 'Scope intelligence unavailable', code: 'SCOPE_INTELLIGENCE_FAILED' });
+    }
+});
 
 router.get('/api/governance/impact-pack.json', requireAuth, async (req, res) => {
     try {

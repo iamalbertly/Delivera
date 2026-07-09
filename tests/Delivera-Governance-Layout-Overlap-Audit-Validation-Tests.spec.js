@@ -546,7 +546,7 @@ test.describe('Governance layout overlap audit', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('current-sprint loads global status pills in sub-chrome slot', async ({ page }) => {
+  test('current-sprint loads global agent bar in sub-chrome slot (Round 9: max 2 pills, sprint may suppress queue)', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.route('**/api/governance/worker-receipt.json**', (r) => r.fulfill({
       status: 200, contentType: 'application/json',
@@ -561,7 +561,8 @@ test.describe('Governance layout overlap audit', () => {
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await expect(page.locator('#app-sub-chrome-slot #gov-global-agent-bar')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('#app-sub-chrome-slot .gov-global-pill').first()).toBeVisible();
+    const pillCount = await page.locator('#app-sub-chrome-slot .gov-global-pill').count();
+    expect(pillCount).toBeLessThanOrEqual(2);
 
     assertTelemetryClean(telemetry);
   });

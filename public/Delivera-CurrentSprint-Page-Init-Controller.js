@@ -309,11 +309,36 @@ function loadAndRenderSprint({
     .then((data) => {
       if (!data) return null;
       try {
-        const urlHasSprintId = new URLSearchParams(window.location.search).has('sprintId');
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlHasSprintId = urlParams.has('sprintId');
         const selectedState = String(data?.sprint?.state || '').toLowerCase();
         const activeAlternative = Array.isArray(data?.recentSprints)
           ? data.recentSprints.find((s) => String(s?.state || '').toLowerCase() === 'active' && String(s?.id || '') !== String(data?.sprint?.id || ''))
           : null;
+        const trapActive = data?.meta?.preferredActiveSprintId != null
+          ? String(data.meta.preferredActiveSprintId)
+          : null;
+        if (data?.meta?.sprintIdTrap && trapActive && String(trapActive) !== String(data?.sprint?.id || '')) {
+          showRibbon(data.meta.explanatoryLine || data.meta.cadenceLine || 'No active sprint — showing last completed sprint.', 'closest');
+          if (urlHasSprintId) {
+            urlParams.delete('sprintId');
+            const nextQs = urlParams.toString();
+            const nextUrl = window.location.pathname + (nextQs ? ('?' + nextQs) : '') + window.location.hash;
+            try {
+              window.history.replaceState({}, '', nextUrl);
+            } catch (_) {}
+          }
+          currentSprintId = String(trapActive);
+          persistSelection(currentBoardId, currentSprintId);
+          return loadAndRenderSprint({
+            boardId,
+            sprintId: currentSprintId,
+            loadingText: 'Loading live squad state...',
+            retryFactory,
+            errorTitle,
+            errorPrimaryLabel,
+          });
+        }
         if (!urlHasSprintId && sprintId && selectedState !== 'active' && activeAlternative?.id) {
           const hint = document.getElementById('current-sprint-single-project-hint');
           if (hint) hint.textContent = 'Active sprint';
@@ -332,8 +357,8 @@ function loadAndRenderSprint({
       currentSprintId = data?.sprint?.id || sprintId || null;
       persistSelection(currentBoardId, currentSprintId);
       saveCurrentSprintSnapshot(getProjectsParam(), boardId, data);
-      if (data?.meta?.noActiveSprintFallback) {
-        showRibbon(data.meta.explanatoryLine || 'No active sprint - showing last completed sprint.', 'closest');
+      if (data?.meta?.noActiveSprintFallback || data?.meta?.limbo) {
+        showRibbon(data.meta.explanatoryLine || data.meta.cadenceLine || 'No active sprint - showing last completed sprint.', 'closest');
       } else if (data?.meta?.partialPermissions) {
         showRibbon('Some Jira fields are hidden by permissions. Showing the data that is still available.', 'closest');
       }
@@ -373,13 +398,12 @@ function safeInitBoot() {
     });
     initSharedTableScrollIndicators();
   } catch (error) {
-    // Surface a clear, user-facing error instead of leaving the page stuck in a welcome state.
-    try {
-      // eslint-disable-next-line no-console
-      console.warn('Current Sprint init failed', error);
-    } catch (_) {}
     const message = (error && error.message) ? error.message : 'Unexpected error during Current Sprint setup.';
-    showError('Could not initialise Current Sprint view: ' + message);
+    try {
+      if (typeof showError === 'function') {
+        showError({ title: 'Could not initialise Current Sprint view', message });
+      }
+    } catch (_) {}
   }
 }
 

@@ -10,11 +10,11 @@ import { fetchSprintBlockerSignal } from './Delivera-CurrentSprint-Action-Bridge
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 
 const TABS = [
-  { id: 'ready', label: 'Ready' },
-  { id: 'waiting', label: 'Waiting' },
+  { id: 'ready', label: 'Send now' },
+  { id: 'waiting', label: 'Needs decision' },
   { id: 'escalations', label: 'Escalations' },
   { id: 'proof', label: 'Proof' },
-  { id: 'closed', label: 'Closed' },
+  { id: 'closed', label: 'Sent' },
 ];
 
 function readQuery() {
@@ -90,7 +90,7 @@ function tabCounts(cases = []) {
 function renderTabs(tab, counts = {}) {
   const mount = document.getElementById('actions-tabs');
   if (!mount) return;
-  const visibleTabs = TABS.filter((t) => (counts[t.id] || 0) > 0 || t.id === 'ready');
+  const visibleTabs = TABS.filter((t) => (counts[t.id] || 0) > 0 || t.id === 'ready' || t.id === 'escalations');
   mount.innerHTML = visibleTabs.map((t) => {
     const n = counts[t.id] || 0;
     const badge = n > 0 && t.id !== 'proof' ? ` <span class="actions-tab-count">${n}</span>` : '';
@@ -124,6 +124,47 @@ function renderProofPacks(cases = []) {
     </ul>`;
 }
 
+async function renderCadenceStrip() {
+  const mount = document.getElementById('actions-cadence-strip');
+  if (!mount) return;
+  try {
+    const res = await fetch('/api/governance/worker-receipt.json', { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const line = data?.sinceLastRun?.summary || data?.workerReceipt?.line || '';
+    if (!line) return;
+    mount.textContent = line;
+    mount.hidden = false;
+  } catch (_) {}
+}
+
+async function batchApproveSafe(cases = []) {
+  const safe = cases.filter((c) => c.needsApproval && c.state !== 'closed' && c.safeToSend !== false);
+  for (const row of safe) {
+    try { await approveDraft(row.id, true); } catch (_) {}
+  }
+  await paint('ready');
+}
+
+function renderBatchBar(cases = [], tab = 'ready') {
+  const bar = document.getElementById('actions-batch-bar');
+  if (!bar || tab !== 'ready') {
+    if (bar) bar.hidden = true;
+    return;
+  }
+  const safe = cases.filter((c) => c.needsApproval && c.state !== 'closed');
+  if (safe.length < 2) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  bar.innerHTML = `<button type="button" class="btn btn-primary btn-compact" data-batch-approve="1">Approve ${safe.length} safe nudges</button>`;
+  bar.onclick = async (ev) => {
+    if (!ev.target.closest('[data-batch-approve]')) return;
+    await batchApproveSafe(safe);
+  };
+}
+
 async function paint(tab = activeTab()) {
   const project = readQuery().get('project') || '';
   const cases = await listCases({ project, status: 'open' });
@@ -148,13 +189,10 @@ async function paint(tab = activeTab()) {
     const caseHtml = visible.length
       ? visible.map((row) => renderActionsCaseCard(row, { highlight: row.id === highlightId })).join('')
       : '';
-    const blockerHtml = (counts.ready === 0 && signal.hasBlockers)
-      ? renderBlockerQueueHtml(signal)
-      : '';
-    list.innerHTML = caseHtml || blockerHtml || '<p class="actions-empty">No action needed now — monitoring continues.</p>';
-    if (caseHtml && blockerHtml) {
-      list.insertAdjacentHTML('afterbegin', blockerHtml);
-    }
+    const blockerHtml = signal.hasBlockers ? renderBlockerQueueHtml(signal) : '';
+    const inner = `${blockerHtml}${caseHtml}` || '<p class="actions-empty">No action needed now — <a href="/governance">open portfolio decision</a>.</p>';
+    list.innerHTML = `<section class="actions-do-now-stream" data-testid="actions-do-now-stream">${inner}</section>`;
+    renderBatchBar(visible, tab);
     if (highlightId) {
       document.getElementById(`case-${highlightId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
@@ -198,6 +236,7 @@ async function openCaseReview(caseId) {
 
 async function init() {
   document.title = 'Actions | Delivera';
+  await renderCadenceStrip();
   await paint();
   const reviewId = readQuery().get('caseId');
   if (readQuery().get('review') === '1' && reviewId) await openCaseReview(reviewId);

@@ -560,6 +560,10 @@ export function renderStories(data) {
       rowHtml += ' data-risk-tags="' + escapeHtml(rowTags.join(' ')) + '"';
     }
     const rowHoursInStatus = stuckHoursMap.get(rowKey) || 0;
+    if (rowTags.includes('blocker')) {
+      rowHtml += ' data-story-nudge="' + escapeHtml(rowKey) + '"';
+      parentRowClasses.push('story-row-nudgeable');
+    }
     if (rowHoursInStatus > 0) {
       rowHtml += ' data-hours-in-status="' + rowHoursInStatus + '"';
     }
@@ -789,6 +793,20 @@ export function renderStories(data) {
   }
   html += '</div>';
   return html;
+}
+
+export function wireStoryRowNudgeHandlers() {
+  const table = document.getElementById('stories-table');
+  if (!table || table.dataset.nudgeWired === '1') return;
+  table.dataset.nudgeWired = '1';
+  table.addEventListener('click', (ev) => {
+    if (ev.target.closest('a, button, .story-row-toggle')) return;
+    const row = ev.target.closest('tr[data-story-nudge]');
+    if (!row) return;
+    const issueKey = row.getAttribute('data-story-nudge');
+    if (!issueKey) return;
+    openJiraNudgeReviewSheet({ issueKey, prefillContext: `Unblock ${issueKey} today.` });
+  });
 }
 
 export function wireProgressShowMoreHandlers() {

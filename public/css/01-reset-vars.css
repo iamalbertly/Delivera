@@ -46,6 +46,11 @@
   --sticky-summary-top: calc(var(--sticky-global-nav-top) + 8px);
   --sticky-table-head-top: 64px;
   --portfolio-scope-z: 1290;
+  --z-chrome: 1200;
+  --z-scope-sticky: 1250;
+  --z-drawer: 1400;
+  --z-modal: 1500;
+  --shared-header-z: var(--z-chrome);
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
   --brief-desktop-gap: 12px;

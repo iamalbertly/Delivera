@@ -18,11 +18,47 @@ function getRiskCounts(data) {
   };
 }
 
+function verdictFromMeta(data) {
+  const meta = data?.meta || {};
+  if (!meta.squadRealityVerdict) return null;
+  const counts = getRiskCounts(data);
+  const donePct = counts.totalStories > 0
+    ? Math.round((counts.doneStories / counts.totalStories) * 100)
+    : 0;
+  const color = meta.squadRealityColor || 'green';
+  const detail = meta.verdictLine || `${meta.squadRealityVerdict} · ${donePct}% done`;
+  const commitment = meta.commitmentRisk || {};
+  const noRiskSignals =
+    counts.stuckCount === 0
+    && counts.missingEstimate === 0
+    && counts.missingLogged === 0
+    && counts.unassignedParents === 0
+    && !commitment.hasCommitmentRisk;
+  return {
+    verdict: meta.squadRealityVerdict,
+    color,
+    detail,
+    summary: detail,
+    topRemediation: meta.limbo ? (data?.meta?.explanatoryLine || 'Start the next sprint in Jira.') : '',
+    trackingReasons: meta.cadenceLine || detail,
+    trustLabel: meta.trustLabel || 'Signals from live sprint data',
+    justStarted: noRiskSignals && counts.totalStories > 0 && donePct === 0 && !meta.limbo,
+    stuckCount: counts.stuckCount,
+    missingEstimate: counts.missingEstimate,
+    missingLogged: counts.missingLogged,
+    unassignedParents: counts.unassignedParents,
+    commitmentRisk: commitment,
+  };
+}
+
 /**
  * Sprint Health is an operational signal:
  * Healthy -> Caution -> At Risk -> Critical.
  */
 export function deriveSprintVerdict(data) {
+  const fromMeta = verdictFromMeta(data);
+  if (fromMeta) return fromMeta;
+
   const counts = getRiskCounts(data);
   const donePct = counts.totalStories > 0
     ? Math.round((counts.doneStories / counts.totalStories) * 100)

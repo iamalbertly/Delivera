@@ -29,6 +29,7 @@ import {
 } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import {
   formatRiskCountsRollup,
+  formatCommitmentRiskRollup,
   nudgeActionLabel,
 } from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
 import {
@@ -297,8 +298,17 @@ export function renderHeaderBar(data, options = {}) {
       aria: 'Filter issues to unowned outcomes',
     });
   }
-
-  const boardName = data.board?.name || '';
+  const commitment = meta.commitmentRisk || verdictInfo.commitmentRisk || {};
+  const offPiCount = Number(commitment.offPi || 0);
+  if (offPiCount > 0) {
+    verdictRiskChips.push({
+      tags: ['off-pi'],
+      label: `${offPiCount} off-PI`,
+      aria: 'Open alignment studio for off-PI work',
+    });
+  }
+  const hasCommitmentRisk = commitment.hasCommitmentRisk || offPiCount > 0;
+  const showNoRisksPill = verdictRiskChips.length === 0 && !hasCommitmentRisk && !meta.limbo;
   const boardId = data.board?.id || '';
   const sprintId = sprint.id || '';
   const selectedProject = Array.isArray(data.board?.projectKeys) && data.board.projectKeys.length > 0
@@ -440,8 +450,11 @@ export function renderHeaderBar(data, options = {}) {
     ? ('<p class="header-hero-line" data-testid="sprint-hero-line">'
       + escapeHtml(verdictPresentation.verdict) + ' · ' + escapeHtml(String(donePercentage)) + '% done · '
       + escapeHtml(String(issuesCount)) + ' items · ' + escapeHtml(remainingChipLabel)
+      + (meta.cadenceLine && meta.limbo ? (' · ' + escapeHtml(meta.cadenceLine)) : '')
       + '</p>')
     : '';
+
+  const boardName = data.board?.name || '';
   const identityMetricsHtml = viewportLean
     ? heroLineHtml
     : renderHeaderIdentityMetricsRow({
@@ -474,7 +487,7 @@ export function renderHeaderBar(data, options = {}) {
       if (verdictRiskChips.length) {
         const primaryVerdictChip = verdictRiskChips[0];
         html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(primaryVerdictChip.tags.join(' '))}" aria-label="${escapeHtml(primaryVerdictChip.aria)}">${escapeHtml(primaryVerdictChip.label)}</button>`;
-      } else {
+      } else if (showNoRisksPill) {
         html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
       }
     }
@@ -488,7 +501,7 @@ export function renderHeaderBar(data, options = {}) {
     if (verdictRiskChips.length) {
       const primaryVerdictChip = verdictRiskChips[0];
       html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(primaryVerdictChip.tags.join(' '))}" aria-label="${escapeHtml(primaryVerdictChip.aria)}">${escapeHtml(primaryVerdictChip.label)}</button>`;
-    } else {
+    } else if (showNoRisksPill) {
       html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
     }
   }
@@ -513,7 +526,7 @@ export function renderHeaderBar(data, options = {}) {
     verdictRiskChips.slice(0, 4).forEach((chip) => {
       html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(chip.tags.join(' '))}" aria-label="${escapeHtml(chip.aria)}">${escapeHtml(chip.label)}</button>`;
     });
-    if (!verdictRiskChips.length) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
+    if (!verdictRiskChips.length && showNoRisksPill) html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
     html += '</div>';
   }
   // Hygiene meta in drawer when lean (context strip moved here) or when no inline context strip.

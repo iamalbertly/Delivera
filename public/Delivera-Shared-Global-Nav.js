@@ -162,9 +162,11 @@ function buildSidebarHTML() {
   const primaryItems = PRIMARY_NAV_KEYS.map((key) => items.find((item) => item.key === key)).filter(Boolean);
   const moreItems = items.filter((item) => MORE_NAV_KEYS.includes(item.key));
   const moreIsActive = moreItems.some((item) => item.active);
+  const hidePrimaryNav = document.body?.classList?.contains('executive-surface-page');
   let html = '<div class="sidebar-brand"><span class="sidebar-brand-mark" aria-hidden="true">De</span><span class="sidebar-brand-text">Delivera</span><span class="sidebar-brand-tagline">Grow my Impact</span></div>';
-  html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
-  for (const item of primaryItems) {
+  if (!hidePrimaryNav) {
+    html += '<nav class="app-sidebar-nav app-nav" aria-label="Main">';
+    for (const item of primaryItems) {
     const className = 'sidebar-link' + (item.active ? ' active current' : '');
     const badge = item.key === PAGE_GOVERNANCE ? '<span class="sidebar-nav-badge" data-sidebar-badge="governance" hidden></span>' : '';
     if (item.active) {
@@ -188,6 +190,7 @@ function buildSidebarHTML() {
     html += '</div></details>';
   }
   html += '</nav>';
+  }
   html += '<div id="sidebar-context-card" class="sidebar-context-card" aria-live="polite"></div>';
   html += '<div class="sidebar-footer sidebar-data-pulse" id="sidebar-data-pulse" aria-live="polite" title="Data freshness indicator"></div>';
   return html;

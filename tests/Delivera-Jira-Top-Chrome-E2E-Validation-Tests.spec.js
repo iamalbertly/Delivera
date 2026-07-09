@@ -52,7 +52,9 @@ test.describe('Jira-style top chrome E2E', () => {
         if (await skipIfLogin(page)) return;
         await expect(page.locator('#app-top-chrome')).toHaveCount(1);
         await expect(page.locator('[data-top-action="create-work"]')).toBeVisible();
-        await expect(page.locator('[data-top-action="settings"]')).toBeVisible();
+        if (path !== '/settings') {
+          await expect(page.locator('[data-top-action="settings"]')).toBeVisible();
+        }
       });
     }
     const ratio = await page.evaluate(() => {

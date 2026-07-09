@@ -6,13 +6,15 @@
   <title>Actions | Delivera</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="actions-page">
+<body class="actions-page executive-surface-page">
   <a class="skip-to-content" href="#main-content">Skip to main content</a>
   <main id="main-content" class="actions-shell" role="main">
     <header class="actions-header">
       <h1>Actions</h1>
       <p class="actions-subtitle">Nudges, decisions, escalations, and proof — grouped by case.</p>
+      <p id="actions-cadence-strip" class="actions-cadence-strip" data-testid="actions-cadence-strip" hidden></p>
     </header>
+    <div id="actions-batch-bar" class="actions-batch-bar" hidden></div>
     <nav class="actions-tabs" aria-label="Actions tabs" id="actions-tabs"></nav>
     <section id="actions-list" class="actions-list" aria-live="polite"></section>
     <section id="actions-proof" class="actions-proof" hidden aria-label="Proof"></section>

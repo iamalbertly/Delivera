@@ -279,3 +279,19 @@ export function filterSetupGapsForPiFocus(brief = {}) {
   if (brief?.meta?.piFocus?.synergy !== 'low') return gaps;
   return gaps.filter((g) => g.action !== 'set-baseline');
 }
+
+/** Single SSOT for which surfaces may show baseline entry CTAs. */
+export function resolveBaselineEntryPoint(brief = {}) {
+  const gaps = brief?.meta?.setupGaps || [];
+  const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
+  const piFocusOwns = brief?.meta?.piFocus?.synergy === 'low';
+  const hideDupes = hasBaselineGap && piFocusOwns;
+  return {
+    hasBaselineGap,
+    piFocusOwns,
+    hideDuplicateBaselineCtAs: hideDupes || piFocusOwns,
+    showScopeCadenceBaselineCta: hasBaselineGap && !piFocusOwns,
+    showPiFocusStrip: piFocusOwns && hasBaselineGap,
+    primaryTestId: piFocusOwns ? 'gov-pi-focus-set-baseline' : 'gov-scope-baseline',
+  };
+}

@@ -30,8 +30,13 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   const squad = opts.inferredSquad || ((pk === 'SD' || /dms/i.test(pk)) ? 'DMS' : pk);
   const quarter = opts.inferredQuarter || quarterLabel || 'Not set';
   const slideMismatch = Boolean(opts.slideScopeMismatch);
+  const quarterMismatch = Boolean(opts.inferredQuarter && quarterLabel
+    && String(opts.inferredQuarter).trim() !== String(quarterLabel).trim());
   const mismatchHint = slideMismatch
     ? `<p class="gov-baseline-squad-warn" data-testid="gov-baseline-squad-mismatch">${escapeHtml(COPY.baselineSquadMismatch)} <button type="button" class="btn btn-link btn-compact" data-baseline-switch-sd="1">Use SD (DMS)</button></p>`
+    : '';
+  const quarterHint = quarterMismatch
+    ? `<p class="gov-baseline-quarter-warn" data-testid="gov-baseline-quarter-mismatch">Slide shows ${escapeHtml(String(opts.inferredQuarter))} — <button type="button" class="btn btn-link btn-compact" data-baseline-switch-quarter="${escapeHtml(String(opts.inferredQuarter))}">Switch to ${escapeHtml(String(opts.inferredQuarter))}</button></p>`
     : '';
   return `
     <div class="gov-baseline-context" data-testid="gov-baseline-context">
@@ -40,6 +45,7 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
       <span><strong>Quarter:</strong> ${escapeHtml(quarter)}</span>
       <p class="gov-baseline-context-why">${escapeHtml(COPY.piBaselineWhy)}</p>
       ${mismatchHint}
+      ${quarterHint}
     </div>`;
 }
 

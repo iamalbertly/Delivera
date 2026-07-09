@@ -103,7 +103,7 @@ test.describe('Delivera - Adaptive nudge role and edge-case validation', () => {
     expect(result.second).toContain('Duplicate nudge suppressed');
   });
 
-  test('no-click journey: send-nudge-to-jira button exists in sprint stories strip', async ({ page }) => {
+  test('no-click journey: send-nudge-to-jira button exists in sprint header or stories strip', async ({ page }) => {
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
     await page.waitForSelector('#current-sprint-content, #current-sprint-error', { state: 'attached', timeout: 30000 });
@@ -112,9 +112,9 @@ test.describe('Delivera - Adaptive nudge role and edge-case validation', () => {
       test.skip(true, 'No active sprint for current dataset');
       return;
     }
-    const quickBtn = page.locator('#stories-card [data-send-top-nudge]').first();
+    const quickBtn = page.locator('[data-send-top-nudge], .sprint-intervention-item-primary').first();
     await expect(quickBtn).toBeVisible();
-    await expect(quickBtn).toContainText(/Nudge|Send nudge/i);
+    await expect(quickBtn).toContainText(/Nudge|Send nudge|Take action|Ping\b|· [A-Z]+-\d+/i);
   });
 
   test('no-click journey: send-nudge-to-jira button posts to Jira on click', async ({ page }) => {
@@ -134,8 +134,14 @@ test.describe('Delivera - Adaptive nudge role and edge-case validation', () => {
         return orig ? orig(url, ...args) : new Response('{}', { status: 200 });
       };
     });
-    await page.locator('#stories-card [data-send-top-nudge]').first().click().catch(() => null);
-    const label = await page.locator('#stories-card [data-send-top-nudge]').first().textContent().catch(() => '');
+    const nudgeBtn = page.locator('[data-send-top-nudge]').first();
+    const hasNudge = await nudgeBtn.isVisible().catch(() => false);
+    if (!hasNudge) {
+      test.skip(true, 'Stories nudge suppressed when header owns primary blocker action');
+      return;
+    }
+    await nudgeBtn.click().catch(() => null);
+    const label = await nudgeBtn.textContent().catch(() => '');
     const fetched = await page.evaluate(() => window.__jiraNudgeFetched || '');
     if (!label && !fetched) {
       test.skip(true, 'No visible row available for nudge send');

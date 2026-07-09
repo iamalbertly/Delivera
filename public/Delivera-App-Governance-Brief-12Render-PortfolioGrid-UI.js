@@ -165,8 +165,8 @@ export function renderCompareRail(brief, selectedKeys = [], { hideBaselineCta = 
     return `<article class="gov-compare-rail-card gov-heat-tile--${escapeHtml(s.verdictTier || 'watch')}" data-compare-rail-card="${escapeHtml(s.projectKey)}">
       <header><strong>${escapeHtml(s.projectKey)}</strong> · ${escapeHtml(heatLabel(s))}</header>
       <p>${escapeHtml(s.bottleneckLine || s.statusLine || '—')}</p>
-      ${piCommitted > 0 ? `<p class="gov-compare-rail-pi">${piDone}/${piCommitted} PI</p>` : hideBaselineCta
-    ? `<p class="gov-compare-rail-pi gov-pi-empty-note">${escapeHtml(COPY.piBaselineNotSavedCta)}</p>`
+      ${piCommitted > 0 ? `<p class="gov-compare-rail-pi">${piDone}/${piCommitted} PI</p>` : (hideBaselineCta || piFocusOwnsBaseline)
+    ? ''
     : `<p class="gov-compare-rail-pi gov-pi-empty-cta">${escapeHtml(COPY.piBaselineNotSavedCta)}</p>`}
       ${partial ? '<p class="gov-partial-warn">Partial data</p>' : ''}
     </article>`;

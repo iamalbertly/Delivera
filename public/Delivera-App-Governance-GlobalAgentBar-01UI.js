@@ -45,11 +45,11 @@ export function updateGlobalAgentBar(brief) {
   const deltaPill = since
     ? `<span class="gov-global-pill gov-since-delta">${escapeHtml(since.slice(0, 60))}</span>`
     : (inbox > 0 ? `<span class="gov-global-pill">Brief queue: ${inbox}</span>` : '');
-  bar.innerHTML = `
-    ${deltaPill}
-    ${poPill}
-    <span class="gov-global-pill">Gaps ${gaps}</span>
-    <span class="gov-global-pill">${escapeHtml(pi.slice(0, 50))}</span>`;
+  const pills = [deltaPill, poPill].filter(Boolean).slice(0, 2);
+  if (!pills.length && gaps > 0) {
+    pills.push(`<span class="gov-global-pill">Gaps ${gaps}</span>`);
+  }
+  bar.innerHTML = pills.join('');
   bar.hidden = false;
   document.body.classList.add('has-sub-chrome');
 }

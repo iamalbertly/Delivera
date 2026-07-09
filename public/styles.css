@@ -51,6 +51,11 @@
   --sticky-summary-top: calc(var(--sticky-global-nav-top) + 8px);
   --sticky-table-head-top: 64px;
   --portfolio-scope-z: 1290;
+  --z-chrome: 1200;
+  --z-scope-sticky: 1250;
+  --z-drawer: 1400;
+  --z-modal: 1500;
+  --shared-header-z: var(--z-chrome);
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
   --brief-desktop-gap: 12px;
@@ -525,8 +530,9 @@ header[data-shared-header="true"] {
 }
 
 body.has-top-chrome {
-  --chrome-z: 1300;
-  --overlay-z: 1400;
+  --chrome-z: 1200;
+  --overlay-z: 1600;
+  --modal-z: 1700;
 }
 
 .app-header-row {
@@ -1547,7 +1553,7 @@ body.governance-page .app-top-brand-context {
   left: 0;
   right: 0;
   height: var(--top-chrome-height, 56px);
-  z-index: 1300;
+  z-index: var(--z-chrome, 1200);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -13397,7 +13403,7 @@ body.actions-empty-ready.actions-has-blockers .app-top-search-wrap {
 }
 
 /* Round6: ultrawide proof rail + blocked fold default closed */
-@media (min-width: 1600px) {
+@media (min-width: 1280px) {
   .current-sprint-grid-layout.sprint-rail-visible {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 280px;
@@ -13445,6 +13451,45 @@ body.sprint-blocked-fold .decision-cockpit-details:not([open]) .decision-cockpit
 .current-sprint-header-bar .status-stale {
   background: #fef2f2;
   color: #991b1b;
+}
+
+body.executive-surface-page .app-top-chrome {
+  background: var(--top-chrome-bg, var(--primary-strong)) !important;
+  color: #fff;
+}
+
+.sprint-next-up-strip {
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border-left: 4px solid var(--primary-strong);
+}
+
+.sprint-next-up-kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.sprint-alignment-list--expanded {
+  margin: 0.5rem 0 0;
+  padding-left: 1rem;
+}
+
+.sprint-alignment-title {
+  color: #374151;
+  font-size: 0.82rem;
+}
+
+.actions-cadence-strip,
+.actions-batch-bar {
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.actions-batch-bar {
+  margin-bottom: 0.75rem;
 }
 
 /* todo-copy-map-and-tokens: align HUD header title with Current Sprint tokens */
@@ -14908,7 +14953,7 @@ body.hud-mode {
   max-width: 90vw;
   margin-top: 0;
   padding: 20px;
-  z-index: 1300;
+  z-index: var(--z-modal, 1500);
   background: var(--card);
   box-shadow: 4px 0 20px rgba(0,0,0,0.1);
   transform: translateX(-100%);
@@ -15132,7 +15177,7 @@ button.attention-queue-item,
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.20);
-  z-index: 1490;
+  z-index: var(--overlay-z, 1600);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
@@ -15150,7 +15195,7 @@ button.attention-queue-item,
   width: min(560px, calc(100vw - var(--sidebar-width, 240px) - 8px));
   transform: translateX(100%);
   transition: transform 0.25s ease;
-  z-index: 1500;
+  z-index: var(--modal-z, 1700);
   background: var(--card);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
   display: flex;
@@ -16845,6 +16890,11 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
 }
 .gov-cadence-chip--sprint { background: #ecfeff; color: #0e7490; }
 .gov-cadence-chip--delivery { background: #f0fdf4; color: #15803d; }
+.gov-cadence-pack[data-movement-health="dormant"] .gov-cadence-chip--scope,
+.gov-cadence-pack[data-movement-health="dormant"] .gov-cadence-chip--sprint {
+  background: #fef3c7;
+  color: #92400e;
+}
 .gov-cadence-pack[data-cadence-status="none"] .gov-cadence-chip--sprint,
 .gov-cadence-pack[data-cadence-status="idle"] .gov-cadence-chip--sprint {
   background: #fff7ed; color: #c2410c;

@@ -13,7 +13,7 @@ import { wireRisksAndInsightsHandlers } from './Delivera-CurrentSprint-Risks-Ins
 import { wireSprintCarouselHandlers } from './Delivera-CurrentSprint-Navigation-Carousel.js';
 import { wireCountdownTimerHandlers } from './Delivera-CurrentSprint-Countdown-Timer.js';
 import { wireSubtasksShowMoreHandlers } from './Delivera-CurrentSprint-Render-Subtasks.js';
-import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers } from './Delivera-CurrentSprint-Render-Progress.js';
+import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers, wireStoryRowNudgeHandlers } from './Delivera-CurrentSprint-Render-Progress.js';
 import { wireExportHandlers } from './Delivera-CurrentSprint-Export-Dashboard.js';
 import { wireIssuePreviewHandlers } from './Delivera-CurrentSprint-Issue-Preview.js';
 import { initJiraNudgeReviewSheetGlobal } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
@@ -314,6 +314,7 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireCountdownTimerHandlers();
   wireSubtasksShowMoreHandlers();
   wireProgressShowMoreHandlers();
+  wireStoryRowNudgeHandlers();
   wireDailyCompletionTimelineHandlers();
   wireSprintCarouselHandlers((sprintId) => onSelectSprintById(sprintId));
   wireExportHandlers(data);

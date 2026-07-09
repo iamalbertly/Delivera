@@ -277,30 +277,43 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
   govPage.lastFeedbackSummary = feedbackSummary;
   const confirmCount = govPage.inboxApi?.getConfirmCount?.() || 0;
   renderFreshness(brief, confirmCount);
-  try {
-    const trust = await resolveAiTrustDisplay();
-    govPage.aiTrustState = trust;
-  } catch (_) {
-    govPage.aiTrustState = null;
-  }
+  const isPortfolioPage = Boolean(document.getElementById('portfolio-signal-mount'));
   renderBriefUi(brief);
-  if (document.getElementById('portfolio-signal-mount')) {
-    patchLegacySecondaryChrome(brief);
+
+  if (isPortfolioPage) {
     try {
-      const anchor = readPortfolioAnchor(brief?.projects);
-      const periodKey = govPage.scopeBarApi?.getQuarterLabel?.() || brief?.meta?.quarter || '';
-      const seeded = await seedFromBrief({
-        brief,
-        projectsCsv: projectsCsv(),
-        periodKey,
-        anchorOnly: anchor,
-      });
-      govPage.lastPortfolioCases = seeded.cases || [];
-      await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
-    } catch (_) {
       await refreshPortfolioSurface(brief, govPage.lastPortfolioCases || []);
+    } catch (_) {
+      await refreshPortfolioSurface(brief, []);
     }
+    void (async () => {
+      try {
+        const trust = await resolveAiTrustDisplay();
+        govPage.aiTrustState = trust;
+      } catch (_) {
+        govPage.aiTrustState = null;
+      }
+      patchLegacySecondaryChrome(brief);
+      try {
+        const anchor = readPortfolioAnchor(brief?.projects);
+        const periodKey = govPage.scopeBarApi?.getQuarterLabel?.() || brief?.meta?.quarter || '';
+        const seeded = await seedFromBrief({
+          brief,
+          projectsCsv: projectsCsv(),
+          periodKey,
+          anchorOnly: anchor,
+        });
+        govPage.lastPortfolioCases = seeded.cases || [];
+        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
+      } catch (_) { /* first paint already shown */ }
+    })();
   } else {
+    try {
+      const trust = await resolveAiTrustDisplay();
+      govPage.aiTrustState = trust;
+    } catch (_) {
+      govPage.aiTrustState = null;
+    }
     deferScorecardUntilEvidenceOpen();
     hideGovernanceLoading();
     document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
@@ -589,18 +602,21 @@ export async function loadBrief(options = {}) {
   }
 
   try {
-    const inboxRefresh = govPage.inboxApi?.refresh?.();
+    void govPage.inboxApi?.refresh?.();
     const [brief, feedbackRes] = await Promise.all([
       fetchGovernanceBriefCached({ projects: requested, quarter, periodWindow, force }),
       fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`),
-      inboxRefresh,
     ]);
     if (seq !== loadBriefSeq) return;
     if (!brief) {
       if (!govPage.lastBrief) showError('Could not load the brief for selected scope.');
       else {
         clearScopeStaleOverlay();
-        hideGovernanceLoading();
+        if (isPortfolioPage) {
+          await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases || []);
+        } else {
+          hideGovernanceLoading();
+        }
       }
       return;
     }
@@ -625,7 +641,11 @@ export async function loadBrief(options = {}) {
     if (seq !== loadBriefSeq) return;
     clearScopeStaleOverlay();
     if (!govPage.lastBrief) showError(`Could not load the brief: ${err.message}`);
-    else hideGovernanceLoading();
+    else if (isPortfolioPage) {
+      await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases || []);
+    } else {
+      hideGovernanceLoading();
+    }
     if (isPortfolioPage) {
       govPage.scopeBarApi?.setCacheUxState?.({ fresh: Boolean(govPage.lastBrief), updating: false });
     }

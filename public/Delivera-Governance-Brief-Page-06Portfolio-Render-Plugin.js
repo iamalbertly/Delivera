@@ -207,9 +207,8 @@ function handlePortfolioDelegatedClick(ev) {
 
 
 export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfolioCases || []) {
-
   if (!brief) return;
-
+  try {
   govPage.scopeBarApi?.setCacheUxState?.({ fresh: false, updating: true });
   const payload = await fetchPortfolioPayload(brief, cases);
   let { decision = {}, comparison = {}, cases: payloadCases = cases, meta = payload?.meta || {} } = payload;
@@ -251,6 +250,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
       cached: meta.cached,
       brief,
     });
+    signalMount.setAttribute('data-portfolio-signal-ready', '1');
     mountPiFocusStrip(brief, signalMount, { openPiBaselineWizard });
     if (payload.error) {
       signalMount.insertAdjacentHTML('afterbegin', `<p class="portfolio-signal-error" role="alert">${escapeHtml(String(payload.error))}</p>`);
@@ -357,8 +357,6 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
   await mountPortfolioAiAgentBadge(document.getElementById('portfolio-signal-ai-mount'), decision, { compact: true });
 
-  hideGovernanceLoading();
-
   govPage.scopeBarApi?.setCacheUxState?.({
     fresh: !meta.cached,
     updating: false,
@@ -366,8 +364,6 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   });
   // Refresh time-box + since-last-check + status pill in the scope bar with the new decision data.
   govPage.scopeBarApi?.refreshCapsule?.();
-
-  document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
 
   document.getElementById('main-content')?.classList.add('portfolio-shell--active');
   try {
@@ -379,6 +375,10 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
   document.title = 'Portfolio | Delivera';
 
+  } finally {
+    hideGovernanceLoading();
+    document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
+  }
 }
 
 

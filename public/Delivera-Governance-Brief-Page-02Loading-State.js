@@ -15,7 +15,9 @@ function getDom() {
 }
 
 export function hasGovernanceBriefContent() {
-  if (document.getElementById('portfolio-signal-mount')?.querySelector('[data-portfolio-signal]')) return true;
+  const signalMount = document.getElementById('portfolio-signal-mount');
+  if (signalMount?.querySelector('[data-portfolio-signal]')) return true;
+  if (signalMount?.querySelector('[data-portfolio-signal-skeleton]')) return false;
   const el = document.getElementById('gov-brief-content');
   if (!el) return false;
   return Boolean(el.querySelector('.gov-command-answer, .gov-owner-cluster, .governance-empty'));
@@ -54,14 +56,21 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
 
 export function hideGovernanceLoading() {
   const { loadingEl, contentEl } = getDom();
+  const signalMount = document.getElementById('portfolio-signal-mount');
   if (loadingEl) {
     loadingEl.style.display = 'none';
     loadingEl.setAttribute('hidden', '');
     loadingEl.classList.remove('current-sprint-loading-with-spinner');
   }
+  if (signalMount) {
+    const skeleton = signalMount.querySelector('[data-portfolio-signal-skeleton]');
+    if (skeleton && !signalMount.querySelector('[data-portfolio-signal]')) {
+      skeleton.remove();
+    }
+  }
   if (contentEl) {
     clearScopeStaleOverlay();
-    const isPortfolio = Boolean(document.getElementById('portfolio-signal-mount'));
+    const isPortfolio = Boolean(signalMount);
     if (isPortfolio) {
       contentEl.style.display = 'none';
       contentEl.setAttribute('hidden', '');

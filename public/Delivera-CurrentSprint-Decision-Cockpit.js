@@ -318,7 +318,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + sprintTodayHero
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
-    + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))
+    + (viewportLean ? buildSummaryStrip(data, cockpit) : buildSummaryStrip(data, cockpit))
     + '<details class="decision-cockpit-details">'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'
