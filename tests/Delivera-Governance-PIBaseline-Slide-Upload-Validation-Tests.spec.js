@@ -6,6 +6,7 @@ import { existsSync } from 'fs';
 import { execSync } from 'child_process';
 
 const SLIDE_JPEG = join(process.cwd(), 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg');
+const SLIDE_DMS_Q2 = join(process.cwd(), 'data', 'testing_q2fy27_dms_commitments.png');
 const AI_PREF = JSON.stringify({ provider: 'openai', key: 'sk-test-probe', host: '' });
 
 const CLARITY_BRIEF = {
@@ -281,7 +282,7 @@ test.describe('Governance PI baseline slide upload', () => {
     await waitForGovernanceReady(page);
     await expect(page.locator('[data-testid="gov-pi-focus-strip"]')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toHaveCount(1);
-    await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toContainText(/Alignment Studio/i);
+    await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toContainText(/Upload PI slide/i);
     await expect(page.locator('[data-testid="gov-pi-focus-baseline"]')).toHaveCount(0);
     await page.locator('[data-testid="gov-pi-focus-more"]').click();
     await expect(page.locator('[data-testid="gov-pi-focus-slide"]')).toBeVisible();
@@ -323,6 +324,42 @@ test.describe('Governance PI baseline slide upload', () => {
     await openPiBaselineWizard(page);
     await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
     await expect(page.locator('.gov-inline-toast')).toContainText(/OpenAI|Claude|OpenRouter/i);
+  });
+
+  test('DMS Q2 commitments slide shows squad context and reconcile rows', async ({ page }) => {
+    if (!existsSync(SLIDE_DMS_Q2)) {
+      test.skip(true, `Missing DMS slide fixture: ${SLIDE_DMS_Q2}`);
+    }
+    await mockGovernanceBriefPage(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('delivera_gov_quarter_v1', 'FY27 Q2');
+    });
+    await page.route('**/api/governance/pi-baseline/propose-from-image', (r) => r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        method: 'slide-vision',
+        quarter: 'FY27 Q2',
+        squad: 'DMS',
+        extracted: [{ month: 'July', theme: 'Growth', bullet: 'CVM channel productivity' }],
+        candidates: [{
+          issueKey: 'SD-100',
+          title: 'FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns',
+          method: 'slide-linked',
+          selected: true,
+        }],
+        resolved: [{ status: 'linked', issueKey: 'SD-100', suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns' }],
+        matchedCount: 1,
+        missingCount: 0,
+      }),
+    }));
+    await page.goto('/governance');
+    await waitForGovernanceReady(page);
+    await openPiBaselineWizard(page);
+    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_DMS_Q2);
+    await expect(page.locator('[data-testid="gov-baseline-context"]')).toContainText(/DMS/i);
+    await expect(page.locator('[data-testid="gov-baseline-context"]')).toContainText(/FY27 Q2/i);
+    await expect(page.locator('[data-testid="gov-baseline-aligned"]')).toBeVisible({ timeout: 15000 });
   });
 });
 

@@ -92,7 +92,7 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
 .gov-scope-period { font-size: 0.78rem; display: inline-flex; align-items: center; gap: 6px; }
 .gov-scope-select { font: inherit; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border, #d1d5db); }
 .gov-scope-meta-line { max-width: 960px; margin: 6px auto 0; font-size: 0.72rem; color: var(--text-muted, #6b7280); }
-.gov-scope-drawer { position: fixed; inset: 0; z-index: 100; display: flex; }
+.gov-scope-drawer { position: fixed; inset: 0; z-index: var(--overlay-z, 1400); display: flex; }
 .gov-scope-drawer[hidden] { display: none; }
 .gov-scope-drawer-backdrop { flex: 1; border: 0; background: rgba(0,0,0,0.35); cursor: pointer; }
 .gov-scope-drawer-panel {
@@ -874,12 +874,17 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
   padding: 4px 10px; cursor: pointer; font: inherit;
 }
 
-.gov-right-drawer-host { position: fixed; inset: 0; z-index: 120; display: flex; }
+.gov-right-drawer-host { position: fixed; inset: 0; z-index: var(--overlay-z, 1400); display: flex; }
 .gov-right-drawer-host[hidden] { display: none; }
 .gov-right-drawer-backdrop { flex: 1; background: rgba(0,0,0,0.35); border: 0; cursor: pointer; }
 .gov-right-drawer-panel {
   width: min(400px, 94vw); background: var(--surface, #fff);
-  box-shadow: -4px 0 24px rgba(0,0,0,0.12); display: flex; flex-direction: column; max-height: 100vh;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12); display: flex; flex-direction: column;
+  max-height: calc(100vh - var(--top-chrome-height, 56px));
+  margin-top: var(--top-chrome-height, 56px);
+}
+body.gov-right-drawer-open .app-top-chrome {
+  z-index: var(--chrome-z, 1300);
 }
 .gov-right-drawer-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -2019,4 +2024,46 @@ body.governance-page .gov-compare-add-tray { position: relative; z-index: 2; }
   body.portfolio-rail-visible .portfolio-performance-grid-head span:last-child {
     display: none;
   }
+}
+
+/* Round6: status honesty bar + cadence movement */
+.portfolio-status-honesty-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+}
+.portfolio-status-honesty-chip {
+  display: inline-flex;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.portfolio-status-honesty-chip--critical {
+  background: #fef2f2;
+  color: #991b1b;
+}
+.portfolio-status-honesty-chip--warn {
+  background: #fffbeb;
+  color: #92400e;
+}
+.portfolio-status-honesty-chip--muted {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.portfolio-status-honesty-chip--watch {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.portfolio-status-honesty-more {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+.gov-cadence-pack[data-movement-health="blocked"] .gov-cadence-chip--scope {
+  color: #991b1b;
+}
+.gov-cadence-pack[data-movement-health="stalled"] .gov-cadence-chip--scope,
+.gov-cadence-pack[data-movement-health="stalled"] .gov-cadence-chip--sprint {
+  color: #b45309;
 }

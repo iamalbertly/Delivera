@@ -7,6 +7,21 @@ import { renderSprintCarousel } from './Delivera-CurrentSprint-Navigation-Carous
 import { renderCountdownTimer } from './Delivera-CurrentSprint-Countdown-Timer.js';
 import { renderDecisionCockpit } from './Delivera-CurrentSprint-Decision-Cockpit.js';
 import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js';
+import { resolvePrimaryBlockerKey } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+
+function renderSprintProofRail(data) {
+  const blockerKey = resolvePrimaryBlockerKey(data);
+  if (!blockerKey) return '';
+  const nba = data?.decisionCockpit?.nextBestAction || {};
+  return ''
+    + '<aside class="sprint-proof-rail" id="sprint-proof-rail" data-testid="sprint-proof-rail">'
+    + '<p class="sprint-proof-rail-kicker">Unblock today</p>'
+    + '<strong class="sprint-proof-rail-key" data-primary-blocker-key="' + escapeHtml(blockerKey) + '">' + escapeHtml(blockerKey) + '</strong>'
+    + '<p class="sprint-proof-rail-summary">' + escapeHtml(nba.summary || nba.reason || '') + '</p>'
+    + '<a href="#stories-card" class="btn btn-primary btn-compact">Open blocker</a>'
+    + '</aside>';
+}
 
 function renderSprintSwitcher(data) {
   if (!Array.isArray(data.recentSprints) || data.recentSprints.length <= 1) return '';
@@ -129,8 +144,16 @@ export function renderCurrentSprintPage(data) {
     return html;
   }
 
-  html += '<div id="sprint-alignment-strip-mount"></div>';
-  html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean">';
+  const healthStatus = String(data?.decisionCockpit?.health?.status || '');
+  const isBlockedView = /blocked|needs attention/i.test(healthStatus);
+  if (isBlockedView) {
+    html += '<div id="sprint-alignment-strip-mount" data-alignment-above-fold="1"></div>';
+  } else {
+    html += '<div id="sprint-alignment-strip-mount"></div>';
+  }
+  const blockerKey = resolvePrimaryBlockerKey(data);
+  html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean' + (blockerKey ? ' sprint-rail-visible' : '') + '">';
+  html += '<div class="sprint-main-column">';
 
   if (hasStories) {
     html += '<div class="sprint-cards-column full-width" id="stories-card-wrap">';
@@ -150,13 +173,20 @@ export function renderCurrentSprintPage(data) {
     + '</div>';
 
   if (belowFold.trim()) {
-    html += '<details class="sprint-full-sprint-fold">';
+    const foldOpen = isBlockedView ? '' : ' open';
+    html += '<details class="sprint-full-sprint-fold"' + foldOpen + '>';
     html += '<summary>Full sprint</summary>';
     html += '<div class="sprint-full-sprint-fold-body">';
     html += belowFold;
     html += '</div></details>';
+  } else if (isBlockedView) {
+    html += '<details class="sprint-full-sprint-fold">';
+    html += '<summary>Full sprint</summary>';
+    html += '<div class="sprint-full-sprint-fold-body"></div></details>';
   }
 
+  html += '</div>';
+  html += renderSprintProofRail(data);
   html += '</div>';
 
   try {

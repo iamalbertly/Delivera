@@ -81,8 +81,16 @@ export function renderPiFocusStrip(brief = {}) {
 export function bindPiFocusStrip(root, { openPiBaselineWizard } = {}) {
   if (!root) return;
   root.querySelectorAll('[data-pi-focus-slide]').forEach((el) => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (ev) => {
+      ev.preventDefault();
       openPiBaselineWizard?.({ initialMode: 'slide' });
+    });
+  });
+  root.querySelectorAll('[data-setup-baseline-ssot]').forEach((el) => {
+    el.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openPiBaselineWizard?.();
     });
   });
 }

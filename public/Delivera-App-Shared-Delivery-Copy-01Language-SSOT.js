@@ -90,13 +90,16 @@ export const COPY = {
   piBaselineGapTitle: 'Promised work not saved',
   piBaselineNotSavedCta: 'PI baseline not saved — Fix in 1 click',
   alignmentStudioTitle: 'Alignment Studio',
-  alignmentStudioOpen: 'Open Alignment Studio',
+  alignmentStudioOpen: 'Upload PI slide',
   alignmentStudioModeBoard: 'Align board',
   alignmentStudioModeSlide: 'Read slide',
   alignmentStudioModeLock: 'Lock promised work',
   cadencePackLabel: 'Squad cadence',
   cadenceNoSprint: 'No active sprint',
   cadenceActiveSprint: 'In sprint · {name}',
+  cadenceActiveNoMovement: 'Sprint open · 0% movement',
+  cadenceActiveStalled: 'Sprint open · stalled',
+  cadenceActiveProgress: 'Sprint active · {done}/{committed} done',
   cadenceSprintEnded: '{name} ended {days}d ago',
   cadenceQuarterDelivery: 'Quarter delivery {pct}%',
   cadenceQuarterDeliveryUnknown: 'Quarter delivery pending',
@@ -163,6 +166,8 @@ export const COPY = {
   baselineSlideCreateFailed: 'Could not create epics',
   baselineSlideCreatePartial: '{created} created · {failed} failed — fix before saving promised work',
   baselineSlideEpicSummary: '{matched} in Jira · {missing} to create',
+  baselineSlideAligned: 'Aligned with board — save promised work to lock baseline',
+  baselineSquadMismatch: 'Selected squad may not match slide — confirm DMS + FY27 Q2',
   piFocusBoardUnmatched: 'Board work does not match PI commitments',
   piFocusCommittedDrift: 'Committed baseline and board epics have drifted',
   piFocusNoBaseline: 'PI promised work is not saved — align board and slide',
@@ -358,6 +363,18 @@ export function freshnessShortLabel(freshness = {}) {
   if (limit === 'stale') return age > 0 ? `Stale ${age}m` : 'Stale';
   if (limit === 'partial') return 'Partial';
   return limit;
+}
+
+/** Human-relative age from ISO timestamp (worker receipt, portfolio freshness). */
+export function formatHumanAge(iso) {
+  if (!iso) return '';
+  const ms = new Date(iso).getTime();
+  if (!Number.isFinite(ms)) return '';
+  const mins = Math.max(1, Math.round((Date.now() - ms) / 60000));
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 48) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
 }
 
 export function navLabel(key) {

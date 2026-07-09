@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../lib/middleware.js';
+import { logger } from '../lib/Delivera-Server-Logging-Utility.js';
 import { saveProfileOverride, listProfileOverrides } from '../lib/Delivera-Governance-Profile-01Resolve-SSOT.js';
 import { createAgentToolsRegistry } from '../lib/Delivera-Agent-Tools-01Registry-SSOT.js';
 import {
@@ -226,47 +227,77 @@ router.post('/api/governance/interventions/seed-from-brief', requireAuth, async 
   try {
     const risks = riskListFromBrief(req.body);
     const periodKey = req.body.periodKey || req.body.quarter || req.body.brief?.meta?.quarter || 'current';
-    const fallbackProject = String(req.body.projects || req.query.projects || '').split(',')[0] || 'PORTFOLIO';
+    const fallbackProject = String(req.body.projects || req.query.projects || '').split(',')[0].trim().toUpperCase() || 'PORTFOLIO';
+    if (!risks.length) {
+      const compact = await compactCasesForScope({ project: fallbackProject, periodKey, status: 'open', limit: 12 });
+      return res.json({ ok: true, seeded: 0, cases: compact });
+    }
     const registry = req.app.locals?.agentToolsRegistry || createAgentToolsRegistry();
+    if (!req.app.locals?.agentToolsRegistry) {
+      req.app.locals = req.app.locals || {};
+      req.app.locals.agentToolsRegistry = registry;
+    }
     const created = [];
+    const errors = [];
     for (const risk of risks) {
-      const project = riskProject(risk, fallbackProject);
-      const issueKeys = [risk.issueKey, ...(risk.issueKeys || [])].filter(Boolean);
-      let row = await upsertInterventionCase({
-        project,
-        periodKey,
-        issueKeys,
-        triggerType: risk.riskType || risk.triggerType || 'delivery-risk',
-        title: risk.displayTitle || risk.summary || risk.action || `${project} needs a decision`,
-        trigger: { ...risk, source: 'governance-brief' },
-        sourceSystemRefs: issueKeys.map((issueKey) => ({ system: 'jira', issueKey })),
-      });
-      const firstHistory = (row.history || []).length <= 1;
-      row = await evidenceCheckCase(row, risk, registry);
-      const role = await resolveGovernanceRole({ projectKey: project, risk, role: risk.decisionNeededFrom });
-      const draft = buildGovernanceNudgeDraft({ caseRow: row, risk, role });
-      const action = caseActionFromRisk(risk, draft);
-      action.safeToSend = draft ? draft.safeToSend : canSendToResolvedRole(role);
-      action.channel = 'teams-or-email';
-      action.nudgeDraft = draft;
-      const nextState = isScopeConfirmationTrigger(risk) || !canSendToResolvedRole(role)
-        ? INTERVENTION_STATES.CLARIFICATION_REQUIRED
-        : INTERVENTION_STATES.DECISION_REQUIRED;
-      row = await patchInterventionCase(row.id, {
-        decisionOwners: [role],
-        actions: [action],
-      }, 'case-owner-action-proposed');
-      if (row.state === INTERVENTION_STATES.EVIDENCE_CHECKED) {
-        row = await transitionInterventionCase(row.id, nextState);
+      try {
+        const project = riskProject(risk, fallbackProject);
+        const issueKeys = [risk.issueKey, ...(risk.issueKeys || [])].filter(Boolean);
+        let row = await upsertInterventionCase({
+          project,
+          periodKey,
+          issueKeys,
+          triggerType: risk.riskType || risk.triggerType || 'delivery-risk',
+          title: risk.displayTitle || risk.summary || risk.action || `${project} needs a decision`,
+          trigger: { ...risk, source: 'governance-brief' },
+          sourceSystemRefs: issueKeys.map((issueKey) => ({ system: 'jira', issueKey })),
+        });
+        const firstHistory = (row.history || []).length <= 1;
+        row = await evidenceCheckCase(row, risk, registry);
+        const role = await resolveGovernanceRole({ projectKey: project, risk, role: risk.decisionNeededFrom });
+        const draft = buildGovernanceNudgeDraft({ caseRow: row, risk, role });
+        const action = caseActionFromRisk(risk, draft);
+        action.safeToSend = draft ? draft.safeToSend : canSendToResolvedRole(role);
+        action.channel = 'teams-or-email';
+        action.nudgeDraft = draft;
+        const nextState = isScopeConfirmationTrigger(risk) || !canSendToResolvedRole(role)
+          ? INTERVENTION_STATES.CLARIFICATION_REQUIRED
+          : INTERVENTION_STATES.DECISION_REQUIRED;
+        row = await patchInterventionCase(row.id, {
+          decisionOwners: [role],
+          actions: [action],
+        }, 'case-owner-action-proposed');
+        if (row.state === INTERVENTION_STATES.EVIDENCE_CHECKED) {
+          row = await transitionInterventionCase(row.id, nextState);
+        }
+        await upsertCaseAction({ ...action, caseId: row.id, project: row.project });
+        if (firstHistory) await recordCaseEvent('case-opened', row, { triggerType: row.triggerType });
+        created.push(row);
+      } catch (riskErr) {
+        const issueKey = String(risk?.issueKey || risk?.issueKeys?.[0] || '').trim();
+        errors.push({ issueKey, error: String(riskErr?.message || 'seed-risk-failed') });
+        logger.warn('seed-from-brief risk failed', {
+          project: fallbackProject,
+          periodKey,
+          issueKey,
+          error: riskErr?.message,
+        });
       }
-      await upsertCaseAction({ ...action, caseId: row.id, project: row.project });
-      if (firstHistory) await recordCaseEvent('case-opened', row, { triggerType: row.triggerType });
-      created.push(row);
     }
     const compact = await compactCasesForScope({ project: fallbackProject, periodKey, status: 'open', limit: 12 });
     await invalidatePortfolioDecisionForScope({ anchor: fallbackProject, periodKey });
-    res.json({ ok: true, seeded: created.length, cases: compact });
+    res.json({
+      ok: true,
+      seeded: created.length,
+      cases: compact,
+      errors: errors.length ? errors : undefined,
+    });
   } catch (err) {
+    logger.error('seed-from-brief failed', {
+      project: String(req.body?.projects || req.query?.projects || ''),
+      periodKey: req.body?.periodKey || req.body?.quarter || '',
+      error: err?.message,
+    });
     next(err);
   }
 });

@@ -40,7 +40,7 @@ export function renderPortfolioDecisionPanel(decision = {}, brief = {}) {
   const recommended = decision.recommendation?.id || 'track-commitments';
   const synergyLow = brief?.meta?.piFocus?.synergy === 'low';
   const primaryAttr = synergyLow
-    ? 'data-portfolio-action="open-alignment-studio" data-setup-action="set-baseline" data-setup-baseline-ssot="1"'
+    ? 'data-portfolio-action="open-alignment-studio"'
     : `data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}"`;
   const dueRaw = required.dueAt || decision.aboveFold?.nextDeadline || '';
   const dueLabel = formatDecisionDueLabel(dueRaw) || 'Set owner due date';

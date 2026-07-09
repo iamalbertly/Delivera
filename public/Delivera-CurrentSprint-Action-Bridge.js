@@ -1,4 +1,6 @@
 import { buildHumanNudgeDraft, shortenIssueSummary as shortenIssueSummaryHuman } from './Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js';
+import { readSharedProjectsCsv, BRIEF_CLIENT_CACHE_KEY } from './Delivera-Shared-Storage-Keys.js';
+import { readWarmBoards } from './Delivera-Shared-Journey-Warmup.js';
 
 const SUMMARY_CONTEXT_KEY = 'delivera.currentSprint.summaryContext.v1';
 const NUDGE_RATE_LIMIT_PREFIX = 'delivera.currentSprint.nudgeRateLimit.v1.';
@@ -456,4 +458,58 @@ export function deriveUseCaseFromRiskTags(riskTags = []) {
   if (tags.includes('unassigned')) return 'unassigned';
   if (tags.includes('scope')) return 'scope';
   return 'ownership';
+}
+
+/** SSOT: blocker signal for Actions page + executive pulse (projects + boardId). */
+export async function fetchSprintBlockerSignal() {
+  const projects = readSharedProjectsCsv();
+  const csv = projects.join(',') || 'MPSA';
+  const primary = (projects[0] || csv.split(',')[0] || 'MPSA').trim().toUpperCase();
+  const mapItems = (stuck = [], source = 'live') => stuck.slice(0, 3).map((row) => ({
+    issueKey: row.issueKey || row.key || '',
+    summary: row.summary || row.displayTitle || '',
+    assignee: row.assignee || row.assigneeName || '',
+    hoursInStatus: Number(row.hoursInStatus) || 0,
+    source,
+  })).filter((r) => r.issueKey);
+  try {
+    let boardsBody = readWarmBoards(primary) || readWarmBoards(csv);
+    if (!boardsBody?.boards?.length) {
+      const res = await fetch(`/api/boards.json?projects=${encodeURIComponent(csv)}`, { credentials: 'same-origin' });
+      if (res.ok) boardsBody = await res.json();
+    }
+    const board = (boardsBody?.boards || []).find((b) => {
+      const pk = String(b.projectKey || b.location?.projectKey || '').toUpperCase();
+      return pk === primary;
+    }) || boardsBody?.boards?.[0];
+    if (board?.id != null) {
+      const qs = new URLSearchParams({ boardId: String(board.id), projects: csv });
+      const sprintRes = await fetch(`/api/current-sprint.json?${qs}`, { credentials: 'same-origin' });
+      if (sprintRes.ok) {
+        const data = await sprintRes.json();
+        const stuck = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates : [];
+        const items = mapItems(stuck, 'live');
+        return { hasBlockers: stuck.length > 0, stuckCount: stuck.length, primaryKey: stuck[0]?.issueKey || '', items, source: 'live' };
+      }
+    }
+  } catch (_) { /* fallback below */ }
+  try {
+    const mapRaw = sessionStorage.getItem(BRIEF_CLIENT_CACHE_KEY);
+    if (mapRaw) {
+      const map = JSON.parse(mapRaw);
+      const entry = Object.values(map || {}).find((v) => v?.brief);
+      const risks = Array.isArray(entry?.brief?.topRisks) ? entry.brief.topRisks : [];
+      if (risks.length) {
+        const items = risks.slice(0, 3).map((r) => ({
+          issueKey: r.issueKey || '',
+          summary: r.displayTitle || r.summary || '',
+          assignee: r.assigneeName || '',
+          hoursInStatus: Number(r.hoursInStatus) || 0,
+          source: 'cache',
+        })).filter((r) => r.issueKey);
+        return { hasBlockers: true, stuckCount: risks.length, primaryKey: risks[0]?.issueKey || '', items, source: 'cache' };
+      }
+    }
+  } catch (_) { /* ignore */ }
+  return { hasBlockers: false, stuckCount: 0, primaryKey: '', items: [], source: 'none' };
 }

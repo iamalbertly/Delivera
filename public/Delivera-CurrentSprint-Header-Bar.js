@@ -29,7 +29,7 @@ import {
 } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import {
   formatRiskCountsRollup,
-  unblockActionLabel,
+  nudgeActionLabel,
 } from './Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js';
 import {
   SPRINT_COPY,
@@ -241,8 +241,11 @@ export function renderHeaderBar(data, options = {}) {
   const donePercentage = summary.percentDone ?? 0;
   const remainingDays = days.daysRemainingWorking != null ? days.daysRemainingWorking : days.daysRemainingCalendar;
   const sprintState = String(sprint.state || '').toLowerCase();
-  const statusBadge = (meta.fromSnapshot || sprintState !== 'active') ? SPRINT_COPY.statusSnapshot : SPRINT_COPY.statusLive;
-  const statusClass = statusBadge === SPRINT_COPY.statusLive ? 'status-live' : 'status-snapshot';
+  const topStuckHours = Number(data?.stuckCandidates?.[0]?.hoursInStatus || 0);
+  const statusBadge = topStuckHours > 72
+    ? 'Stale work'
+    : ((meta.fromSnapshot || sprintState !== 'active') ? SPRINT_COPY.statusSnapshot : SPRINT_COPY.statusLive);
+  const statusClass = statusBadge === SPRINT_COPY.statusLive ? 'status-live' : (topStuckHours > 72 ? 'status-stale' : 'status-snapshot');
   const isHistoricalSprint = sprintState && sprintState !== 'active';
   const issuesCount = (data.stories || []).length;
   const verdictInfo = deriveSprintVerdict(data);
@@ -572,7 +575,8 @@ export function renderHeaderBar(data, options = {}) {
       .join(' | ');
     const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
     const topBlockerKey = resolvePrimaryBlockerKey(data);
-    const takeActionLabel = unblockActionLabel(topBlockerKey) || SPRINT_COPY.takeAction;
+    const stuckRow = (data.stuckCandidates || []).find((c) => String(c.issueKey || '').toUpperCase() === String(topBlockerKey || '').toUpperCase());
+    const takeActionLabel = nudgeActionLabel(topBlockerKey, stuckRow?.assignee) || SPRINT_COPY.takeAction;
     html += `<span class="sprint-intervention-blocker-key" data-primary-blocker-key="${escapeHtml(topBlockerKey)}" hidden aria-hidden="true"></span>`;
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;

@@ -8,7 +8,7 @@ import { renderPortfolioSignal, renderPortfolioDataTrust } from './Delivera-App-
 
 import { renderPortfolioCommitments, renderPortfolioRailCommitments } from './Delivera-App-Portfolio-Commitments-01Render-UI.js';
 import { renderPortfolioPreparedActions } from './Delivera-App-Portfolio-PreparedActions-01Render-UI.js';
-import { shouldHidePreparedActionsSection } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { shouldHidePreparedActionsSection, applyHonestTrustClamp, enrichComparisonForDiffOnly } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
 import { renderPortfolioCarousel, bindPortfolioCarousel } from './Delivera-App-Portfolio-Comparison-01Carousel-UI.js';
 
@@ -212,7 +212,13 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
   govPage.scopeBarApi?.setCacheUxState?.({ fresh: false, updating: true });
   const payload = await fetchPortfolioPayload(brief, cases);
-  const { decision = {}, comparison = {}, cases: payloadCases = cases, meta = payload?.meta || {} } = payload;
+  let { decision = {}, comparison = {}, cases: payloadCases = cases, meta = payload?.meta || {} } = payload;
+  comparison = enrichComparisonForDiffOnly(comparison);
+  const honest = applyHonestTrustClamp(brief, decision);
+  decision = honest.decision;
+  if (honest.brief?.leadershipNarrative && govPage.lastBrief?.leadershipNarrative) {
+    govPage.lastBrief.leadershipNarrative.confidence = honest.brief.leadershipNarrative.confidence;
+  }
   govPage.lastPortfolioMeta = meta;
 
   govPage.lastPortfolioDecision = decision;
@@ -354,8 +360,9 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   hideGovernanceLoading();
 
   govPage.scopeBarApi?.setCacheUxState?.({
-    fresh: true,
+    fresh: !meta.cached,
     updating: false,
+    cachedAt: meta.cachedAt,
   });
   // Refresh time-box + since-last-check + status pill in the scope bar with the new decision data.
   govPage.scopeBarApi?.refreshCapsule?.();
@@ -397,7 +404,7 @@ export function installPortfolioSurfaceHook() {
   });
 
   document.addEventListener('gov:open-alignment-studio', () => {
-    openPiBaselineWizard();
+    openPiBaselineWizard({ initialMode: 'slide' });
   });
 
   window.addEventListener('portfolio:decision-revalidated', async (ev) => {

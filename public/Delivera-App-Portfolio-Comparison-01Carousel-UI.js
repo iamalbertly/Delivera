@@ -1,5 +1,6 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
+import { enrichComparisonForDiffOnly } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
 function width(value) {
   return Math.max(0, Math.min(100, Number(value) || 0));
@@ -36,14 +37,19 @@ function renderRow(card = {}) {
 }
 
 export function renderPortfolioCarousel(comparison = {}) {
-  const cards = comparison.cards || [];
+  const enriched = enrichComparisonForDiffOnly(comparison);
+  const cards = enriched.cards || [];
   if (!cards.length) return '';
+  const sharedBanner = enriched.sharedRootIssue
+    ? `<p class="portfolio-compare-shared-root" data-testid="portfolio-compare-shared-root">Shared root issue: ${escapeHtml(enriched.sharedRootIssue)}</p>`
+    : '';
   return `
     <section class="portfolio-carousel-wrap portfolio-performance-grid" aria-label="Squad performance grid" data-portfolio-carousel>
       <div class="portfolio-carousel-head">
         <h2>Squad performance grid</h2>
         <p class="portfolio-carousel-strip">Delivery / proof / open commitment drift</p>
       </div>
+      ${sharedBanner}
       <div class="portfolio-performance-grid-table" data-carousel-track tabindex="0" role="list">
         <div class="portfolio-performance-grid-head" aria-hidden="true">
           <span>Squad</span><span>Root issue</span><span>Delivery</span><span>Proof</span><span>Gaps</span><span>Next move</span>

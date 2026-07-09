@@ -63,7 +63,15 @@ export function formatEvidenceSummary({
   return '';
 }
 
-export function unblockActionLabel(issueKey) {
+export function nudgeActionLabel(issueKey, owner = '') {
   const key = String(issueKey || '').trim();
-  return key ? `Unblock ${key}` : 'Take action';
+  const who = String(owner || '').trim();
+  if (key && who) return `Ping ${who} · ${key}`;
+  if (key) return `Nudge ${key}`;
+  return 'Take action';
+}
+
+/** @deprecated Use nudgeActionLabel — honest label for Jira nudge entry. */
+export function unblockActionLabel(issueKey) {
+  return nudgeActionLabel(issueKey);
 }

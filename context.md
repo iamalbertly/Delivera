@@ -336,7 +336,17 @@ Journey membership is implemented in `scripts/Delivera-Tests-Journey-Buckets-Map
   - `docs/readme-migration-map.md`
 - **Rationale:** reduce duplicated/stale instructions, keep command truth aligned with `package.json`, and isolate frequently changing operational details in purpose-specific documents.
 
-### AutoHacker v6 orchestrator (2026-06)
+### Direct-Value Round 7 — Friction Kill & Trust Seal (2026-07-09)
+
+- **Journey SSOT:** `test:journey:direct-value-r7` → `tests/Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js` (`journey.governance`, `cross-surface-ux`).
+- **Z-index ladder:** `--chrome-z: 1300`, `--overlay-z: 1400` in `public/css/02-layout-container.css`; governance drawers use overlay token (`09-governance.css`).
+- **Actions inline queue:** `fetchSprintBlockerSignal()` in `Delivera-CurrentSprint-Action-Bridge.js` returns `{ items[], source: live|cache|none }`; `Delivera-Actions-Page-Init.js` renders `[data-testid="actions-blocker-queue"]`.
+- **Sprint nudge SSOT:** `nudgeActionLabel()` in `Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js`; header owns primary nudge; stories suppress `[data-send-top-nudge]` when keys match.
+- **PI slide inference (public API):** `proposeFromSlideImage` / propose-from-image response adds `inferredSquad`, `inferredQuarter`, `slideScopeMismatch` (`lib/Delivera-Governance-PIBaseline-03Propose-Slide-02SSOT.js`).
+- **Fixture:** `data/testing_q2fy27_dms_commitments.png` for DMS FY27 Q2 slide validation.
+- **Unit tests:** `tests/Delivera-CurrentSprint-Blocker-Signal-Unit.mjs`, `tests/Delivera-Governance-Compare-Diff-Unit.mjs`.
+- **Probe:** `scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js` supports WhatsApp JPEG + DMS Q2 PNG (`--dms-q2`).
+
 
 - **Entry:** `AutoHacker_v8.ps1` delegates to `.autohacker/AutoHacker.ps1` (v6).
 - **Collectors (16):** registered in `.autohacker/config/collectors.json` — explore, ux-metrics, hidden-value, intra-card-void, duplicate-text, main-column-void, negative-void, horizontal-void, content-overlap, fold-clipping, screenshot-density, state-matrix, click-fast, layout-rects, duplicate-text-full-catalog, click-full.

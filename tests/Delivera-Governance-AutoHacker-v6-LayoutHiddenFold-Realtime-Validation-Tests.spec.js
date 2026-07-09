@@ -162,12 +162,20 @@ test.describe('Governance AutoHacker v6 @governance-autohacker-v6 @autohacker', 
         meta: {
           setupGaps: [{ id: 'pi-baseline', label: 'PI baseline missing', action: 'set-baseline', severity: 'high' }],
           piConfidence: { trusted: false, counts: { committed: 0 }, timelineChips: [] },
+          piFocus: {
+            synergy: 'low',
+            primaryAction: 'set-baseline',
+            headlineKey: 'piFocusBoardUnmatched',
+            boardEpicCount: 2,
+            proposedMissing: 1,
+          },
         },
       },
     });
     const t = captureBrowserTelemetry(page);
     if (!(await loadGov(page))) return;
-    await expect(page.locator('[data-setup-baseline-ssot="1"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid="gov-pi-focus-set-baseline"]')).toHaveCount(1);
+    await expect(page.locator('.gov-setup-debt [data-setup-baseline-ssot="1"]')).toHaveCount(0);
     await expect(page.locator('[data-squad-pi-row="1"] [data-setup-baseline-ssot]')).toHaveCount(0);
     assertTelemetryClean(t);
   });

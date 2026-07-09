@@ -19,7 +19,7 @@ import {
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { renderSinceLastCheckChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 import { renderScopeCadenceLine } from './Delivera-App-Governance-Cadence-01Pack-Render-UI.js';
-import { simpleStatusLabel, COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { simpleStatusLabel, COPY, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 const BASELINE_OPTIONS = [
   { id: 'pi-baseline', label: 'PI baseline' },
@@ -36,6 +36,7 @@ function writeScopeSeen() {
 }
 
 function baselineOptionsForBrief(brief = {}) {
+  if (brief?.meta?.piFocus?.synergy === 'low') return BASELINE_OPTIONS;
   const gaps = brief?.meta?.setupGaps || [];
   const missing = gaps.some((g) => g.action === 'set-baseline');
   if (!missing) return BASELINE_OPTIONS;
@@ -69,6 +70,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   let activeQuarter = readStoredQuarter();
   let baselineMode = readPortfolioBaselineMode();
   let statusTier = 'watch';
+  let cacheCachedAt = '';
   let cacheFresh = false;
   let cacheUpdating = false;
   let scopeCollapsed = readScopeSeen();
@@ -236,18 +238,20 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     getBaselineMode: () => baselineMode,
     refreshCapsule: () => render(),
     updateStatus(tier) { statusTier = tier || 'watch'; render(); },
-    setCacheUxState({ fresh = false, updating = false } = {}) {
+    setCacheUxState({ fresh = false, updating = false, cachedAt = '' } = {}) {
       cacheFresh = Boolean(fresh);
       cacheUpdating = Boolean(updating);
+      if (cachedAt) cacheCachedAt = cachedAt;
       const updatingChip = mount.querySelector('#portfolio-scope-updating');
       if (updatingChip) {
-        const show = cacheUpdating || cacheFresh;
+        const show = cacheUpdating || !cacheFresh;
         updatingChip.hidden = !show;
-        updatingChip.textContent = cacheUpdating && cacheFresh
-          ? 'Showing cached · refreshing…'
+        const age = formatHumanAge(cacheCachedAt);
+        updatingChip.textContent = cacheUpdating && !cacheFresh
+          ? (age ? `Cached · ${age} · refreshing…` : 'Showing cached · refreshing…')
           : cacheUpdating
             ? 'Updating…'
-            : 'Cached view';
+            : (age ? `Cached · ${age}` : 'Cached view');
       }
     },
     setAdvancedWarnCount: () => {},

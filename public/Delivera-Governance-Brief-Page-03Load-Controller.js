@@ -46,6 +46,13 @@ import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from '
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { installPortfolioSurfaceHook, refreshPortfolioSurface } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
 import { mountBriefScopeBarMode } from './Delivera-App-Governance-Brief-ScopeBar-05Brief-Mode-Render-UI.js';
+
+function resolveBaselineGapFlags(brief = {}) {
+  const gaps = brief?.meta?.setupGaps || [];
+  const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
+  const piFocusOwnsBaseline = brief?.meta?.piFocus?.synergy === 'low';
+  return { gaps, hasBaselineGap, piFocusOwnsBaseline, hideBaselineCta: hasBaselineGap || piFocusOwnsBaseline };
+}
 import { seedFromBrief } from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
 import { readPortfolioAnchor, readPeriodWindow } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 
@@ -110,10 +117,12 @@ function hydrateHiddenLegacyBriefSurfaces(brief) {
   const scopeKeys = selectedProjects(brief);
   const squadCount = scopeKeys.length;
   const showHeatMap = isPortfolioMode(brief) || squadCount >= 1;
+  const { hasBaselineGap, piFocusOwnsBaseline, hideBaselineCta } = resolveBaselineGapFlags(brief);
   if (govPage.els.verdictMount && showHeatMap) {
     govPage.els.verdictMount.innerHTML = renderPortfolioGrid(brief, {
       singleSquad: squadCount === 1,
       hideSquadNudge: false,
+      hideBaselineCta,
     });
     bindPortfolioHeatMap(govPage.els.verdictMount, brief);
     ensurePortfolioHeatDelegation();
@@ -127,9 +136,7 @@ function hydrateHiddenLegacyBriefSurfaces(brief) {
     if (hasOwnerClusters) bindOwnerClusterInteractions();
   }
   if (govPage.els.piStripMount) {
-    const gaps = brief?.meta?.setupGaps || [];
-    const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
-    const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap });
+    const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap || piFocusOwnsBaseline });
     const compactBadge = renderPICompactBadge(brief);
     const rollupBehind = Number(brief?.portfolioRollup?.behindPiCount || 0) > 0;
     let piStripHtml = (hasOwnerClusters && rollupBehind)
@@ -164,11 +171,9 @@ function hydrateHiddenLegacyBriefSurfaces(brief) {
     });
     hiddenScope.dataset.briefScopeMounted = '1';
   }
-  const gaps = brief?.meta?.setupGaps || [];
-  const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
   const compareMount = document.getElementById('gov-compare-rail-mount');
   if (compareMount) {
-    const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys, { hideBaselineCta: hasBaselineGap }) : '';
+    const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys, { hideBaselineCta: hasBaselineGap || piFocusOwnsBaseline }) : '';
     compareMount.innerHTML = compareHtml;
     compareMount.toggleAttribute('hidden', !compareHtml);
   }
@@ -323,13 +328,12 @@ export function renderBriefUi(brief) {
   const squadCount = selectedProjects(brief).length;
   const showHeatMap = isPortfolioMode(brief) || squadCount === 1;
   const singleSquadHero = showHeatMap && squadCount === 1;
-  const gaps = brief?.meta?.setupGaps || [];
-  const hasBaselineGap = gaps.some((g) => g.action === 'set-baseline');
+  const { hasBaselineGap, piFocusOwnsBaseline, hideBaselineCta } = resolveBaselineGapFlags(brief);
   document.getElementById('main-content')?.classList.toggle('governance-shell--has-clusters', hasOwnerClusters);
   document.getElementById('main-content')?.classList.toggle('governance-shell--desktop-grid', true);
   document.getElementById('main-content')?.classList.toggle('governance-shell--hero-squad', singleSquadHero);
   if (govPage.els.piStripMount) {
-    const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap });
+    const piInner = renderPIConfidenceStrip(brief, { hideBaselineCta: hasBaselineGap || piFocusOwnsBaseline });
     const compactBadge = renderPICompactBadge(brief);
     const rollupBehind = Number(brief?.portfolioRollup?.behindPiCount || 0) > 0;
     let piStripHtml = (hasOwnerClusters && rollupBehind)
@@ -389,7 +393,7 @@ export function renderBriefUi(brief) {
         singleSquad: squadCount === 1,
         hideSquadNudge: hasOwnerClusters && squadCount === 1,
         collapseHeroDedupe: singleSquadHero,
-        hideBaselineCta: hasBaselineGap,
+        hideBaselineCta,
       })
       : renderVerdictZone(brief);
     const skipStandaloneVerdict = !showHeatMap && !hasOwnerClusters;
@@ -409,7 +413,7 @@ export function renderBriefUi(brief) {
   }
   const compareMount = document.getElementById('gov-compare-rail-mount');
   if (compareMount) {
-    const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys, { hideBaselineCta: hasBaselineGap }) : '';
+    const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys, { hideBaselineCta: hasBaselineGap || piFocusOwnsBaseline }) : '';
     compareMount.innerHTML = compareHtml;
     compareMount.toggleAttribute('hidden', !compareHtml);
   }

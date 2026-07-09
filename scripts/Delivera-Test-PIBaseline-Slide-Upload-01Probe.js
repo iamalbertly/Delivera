@@ -1,6 +1,6 @@
 /**
- * Probe: PI slide vision on WhatsApp JPEG (requires OPENAI_API_KEY or ANTHROPIC_API_KEY in .env).
- * Usage: node scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js
+ * Probe: PI slide vision — WhatsApp JPEG (FY27 Q1) and DMS Q2 commitments PNG (FY27 Q2).
+ * Usage: node scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js [--dms-q2]
  */
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
@@ -11,7 +11,10 @@ import { proposeFromSlideImage } from '../lib/Delivera-Governance-PIBaseline-03P
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');
-const IMAGE_PATH = join(ROOT, 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg');
+const FIXTURES = {
+  whatsapp: join(ROOT, 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg'),
+  dmsQ2: join(ROOT, 'data', 'testing_q2fy27_dms_commitments.png'),
+};
 
 function pickProviderConfig() {
   const openai = resolveProviderConfig({ 'x-ai-provider': 'openai' });
@@ -21,51 +24,93 @@ function pickProviderConfig() {
   return resolveProviderConfig({});
 }
 
-async function main() {
-  if (!existsSync(IMAGE_PATH)) {
+async function runProbe({ imagePath, mimeType, projects, quarter, boardEpics, label }) {
+  if (!existsSync(imagePath)) {
     const inCi = process.env.CI === 'true' || process.env.CI === '1';
-    console.log(`[probe] SKIP — missing fixture image (${inCi ? 'CI' : 'local'}): ${IMAGE_PATH}`);
-    process.exit(inCi ? 0 : 1);
+    console.log(`[probe:${label}] SKIP — missing fixture (${inCi ? 'CI' : 'local'}): ${imagePath}`);
+    return inCi ? 'skip' : 'missing';
   }
   const providerConfig = pickProviderConfig();
   const requireProbe = process.env.DELIVERA_REQUIRE_AI_PROBE === 'true';
   if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
-    console.log('[probe] SKIP — set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env');
-    process.exit(requireProbe ? 1 : 0);
+    console.log(`[probe:${label}] SKIP — set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env`);
+    return requireProbe ? 'fail' : 'skip';
   }
   if (providerConfig.provider === 'gemini') {
-    console.log('[probe] SKIP — slide vision needs OpenAI or Claude');
-    process.exit(0);
+    console.log(`[probe:${label}] SKIP — slide vision needs OpenAI or Claude`);
+    return 'skip';
   }
-  const buf = readFileSync(IMAGE_PATH);
+  const buf = readFileSync(imagePath);
   const imageBase64 = buf.toString('base64');
-  const mimeType = 'image/jpeg';
-  console.log(`[probe] provider=${providerConfig.provider} bytes=${buf.length} projects=SD quarter=FY27 Q1`);
+  console.log(`[probe:${label}] provider=${providerConfig.provider} bytes=${buf.length} projects=${projects.join(',')} quarter=${quarter}`);
   const result = await proposeFromSlideImage({
     imageBase64,
     mimeType,
-    projects: ['SD'],
-    quarter: 'FY27 Q1',
+    projects,
+    quarter,
     providerConfig,
-    boardEpics: [
-      { issueKey: 'SD-100', title: 'FY27 Q1 – DMS – NBA – Recharge Growth Trends', summary: 'FY27 Q1 – DMS – NBA – Recharge Growth Trends' },
-    ],
+    boardEpics,
   });
-  console.log('[probe] method:', result.method);
-  console.log('[probe] extracted:', (result.extracted || []).length);
-  console.log('[probe] candidates:', (result.candidates || []).length);
-  console.log('[probe] unmatched:', (result.unmatched || []).length);
-  if (result.parseError) console.log('[probe] parseError:', result.parseError);
+  console.log(`[probe:${label}] method:`, result.method);
+  console.log(`[probe:${label}] inferredSquad:`, result.inferredSquad || '(none)');
+  console.log(`[probe:${label}] inferredQuarter:`, result.inferredQuarter || '(none)');
+  console.log(`[probe:${label}] extracted:`, (result.extracted || []).length);
+  console.log(`[probe:${label}] candidates:`, (result.candidates || []).length);
+  if (result.parseError) console.log(`[probe:${label}] parseError:`, result.parseError);
   if (!(result.extracted || []).length && !(result.candidates || []).length) {
     const inCi = process.env.CI === 'true' || process.env.CI === '1';
     if (inCi && !requireProbe) {
-      console.log('[probe] SKIP — vision returned no extractable rows (CI soft-fail)');
-      process.exit(0);
+      console.log(`[probe:${label}] SKIP — vision returned no extractable rows (CI soft-fail)`);
+      return 'skip';
     }
-    console.error('[probe] FAIL — no slide output');
-    process.exit(1);
+    console.error(`[probe:${label}] FAIL — no slide output`);
+    return 'fail';
   }
-  console.log('[probe] OK');
+  console.log(`[probe:${label}] OK`);
+  return 'ok';
+}
+
+async function main() {
+  const dmsOnly = process.argv.includes('--dms-q2');
+  const cases = dmsOnly
+    ? [{
+      label: 'dms-q2',
+      imagePath: FIXTURES.dmsQ2,
+      mimeType: 'image/png',
+      projects: ['SD'],
+      quarter: 'FY27 Q2',
+      boardEpics: [
+        { issueKey: 'SD-100', title: 'FY27 Q2 – DMS – NBA – CVM', summary: 'FY27 Q2 – DMS – NBA – CVM' },
+      ],
+    }]
+    : [
+      {
+        label: 'whatsapp-q1',
+        imagePath: FIXTURES.whatsapp,
+        mimeType: 'image/jpeg',
+        projects: ['SD'],
+        quarter: 'FY27 Q1',
+        boardEpics: [
+          { issueKey: 'SD-100', title: 'FY27 Q1 – DMS – NBA – Recharge Growth Trends', summary: 'FY27 Q1 – DMS – NBA – Recharge Growth Trends' },
+        ],
+      },
+      {
+        label: 'dms-q2',
+        imagePath: FIXTURES.dmsQ2,
+        mimeType: 'image/png',
+        projects: ['SD'],
+        quarter: 'FY27 Q2',
+        boardEpics: [
+          { issueKey: 'SD-100', title: 'FY27 Q2 – DMS – NBA – CVM', summary: 'FY27 Q2 – DMS – NBA – CVM' },
+        ],
+      },
+    ];
+  let exitCode = 0;
+  for (const probeCase of cases) {
+    const outcome = await runProbe(probeCase);
+    if (outcome === 'fail' || outcome === 'missing') exitCode = 1;
+  }
+  process.exit(exitCode);
 }
 
 main().catch((err) => {

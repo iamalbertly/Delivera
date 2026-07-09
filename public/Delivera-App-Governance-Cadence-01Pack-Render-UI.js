@@ -4,12 +4,62 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { quarterDayLabel } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import { maxStaleHoursFromBrief } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+
+function staleLabelFromBrief(brief = {}) {
+  const h = maxStaleHoursFromBrief(brief);
+  if (h <= 0) return '';
+  if (h < 24) return `${Math.round(h)}h stale`;
+  return `${Math.round(h / 24)}d stale`;
+}
+
+function sprintCadencePart(c, brief = {}) {
+  if (c.status === 'active') {
+    if (c.movementHealth === 'blocked') {
+      const stale = staleLabelFromBrief(brief);
+      const pct = c.sprintCommitted > 0 ? Math.round((c.sprintDone / c.sprintCommitted) * 100) : 0;
+      return stale
+        ? `${COPY.cadenceActiveNoMovement} · ${stale}`
+        : `${COPY.cadenceActiveNoMovement.replace('0%', `${pct}%`)}`;
+    }
+    if (c.movementHealth === 'stalled') {
+      const stale = staleLabelFromBrief(brief);
+      return stale ? `${COPY.cadenceActiveStalled} · ${stale}` : COPY.cadenceActiveStalled;
+    }
+    if (c.sprintCommitted > 0) {
+      return COPY.cadenceActiveProgress
+        .replace('{done}', String(c.sprintDone))
+        .replace('{committed}', String(c.sprintCommitted));
+    }
+    return COPY.cadenceActiveSprint.replace('{name}', c.sprintName || 'Active sprint');
+  }
+  if (c.status === 'ended' && c.daysSinceEnd != null) {
+    return COPY.cadenceSprintEnded
+      .replace('{name}', c.sprintName || 'Last sprint')
+      .replace('{days}', String(c.daysSinceEnd));
+  }
+  return COPY.cadenceNoSprint;
+}
 
 function daysAgo(iso) {
   if (!iso) return null;
   const ms = new Date(iso).getTime();
   if (!Number.isFinite(ms)) return null;
   return Math.max(0, Math.floor((Date.now() - ms) / 86400000));
+}
+
+function deriveMovementHealth(brief = {}) {
+  const selected = (brief?.projects || []).map((p) => String(p).toUpperCase());
+  const squad = (brief?.squadInsights || []).find((s) => selected.includes(String(s.projectKey || '').toUpperCase()))
+    || brief?.squadInsights?.[0]
+    || null;
+  const committed = Number(squad?.sprintPulse?.committed) || 0;
+  const done = Number(squad?.sprintPulse?.done) || 0;
+  const ratio = committed > 0 ? done / committed : null;
+  const verdict = String(brief?.executiveView?.verdictTier || '').toLowerCase();
+  if (verdict === 'blocked' || (ratio != null && ratio < 0.15)) return 'blocked';
+  if (ratio != null && ratio < 0.4) return 'stalled';
+  return 'healthy';
 }
 
 /**
@@ -35,9 +85,16 @@ export function buildCadencePackState(brief = {}) {
   const deliveryPct = Number(brief?.executiveView?.deliveryPct
     ?? brief?.meta?.piConfidence?.confidencePct
     ?? cadenceMeta.deliveryPct) || null;
+  const movementHealth = deriveMovementHealth(brief);
+  const squad = (brief?.squadInsights || []).find((s) => selected.includes(String(s.projectKey || '').toUpperCase()))
+    || brief?.squadInsights?.[0]
+    || null;
   return {
     projectKey: focus?.projectKey || selected[0] || '',
     status,
+    movementHealth,
+    sprintDone: Number(squad?.sprintPulse?.done) || 0,
+    sprintCommitted: Number(squad?.sprintPulse?.committed) || 0,
     sprintName: lastName,
     lastSprintEnd: lastEnd,
     daysSinceEnd: ago,
@@ -54,14 +111,7 @@ export function renderScopeCadenceLine(decision = {}, brief = {}) {
   const tb = quarterDayLabel(decision, brief);
   const periodKey = decision.periodKey || brief?.meta?.quarter || 'Current';
   const c = buildCadencePackState(brief);
-  let sprintPart = COPY.cadenceNoSprint;
-  if (c.status === 'active') {
-    sprintPart = COPY.cadenceActiveSprint.replace('{name}', c.sprintName || 'Active sprint');
-  } else if (c.status === 'ended' && c.daysSinceEnd != null) {
-    sprintPart = COPY.cadenceSprintEnded
-      .replace('{name}', c.sprintName || 'Last sprint')
-      .replace('{days}', String(c.daysSinceEnd));
-  }
+  const sprintPart = sprintCadencePart(c, brief);
   const timePart = tb.isSet
     ? `${periodKey} · Day ${tb.elapsed}/${tb.total}`
     : COPY.piBaselineNotSavedCta;
@@ -70,7 +120,7 @@ export function renderScopeCadenceLine(decision = {}, brief = {}) {
     ? COPY.cadenceQuarterDelivery.replace('{pct}', String(c.deliveryPct))
     : '';
   return `
-    <div class="gov-cadence-pack gov-scope-cadence-line" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" aria-label="${escapeHtml(COPY.cadencePackLabel)}" title="${escapeHtml(line)}">
+    <div class="gov-cadence-pack gov-scope-cadence-line" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" data-movement-health="${escapeHtml(c.movementHealth || 'healthy')}" aria-label="${escapeHtml(COPY.cadencePackLabel)}" title="${escapeHtml(line)}">
       <span class="gov-cadence-chip gov-cadence-chip--scope">${escapeHtml(line)}</span>
       ${deliveryLine ? `<span class="gov-cadence-chip gov-cadence-chip--delivery">${escapeHtml(deliveryLine)}</span>` : ''}
     </div>`;
@@ -78,19 +128,12 @@ export function renderScopeCadenceLine(decision = {}, brief = {}) {
 
 export function renderCadencePack(brief = {}) {
   const c = buildCadencePackState(brief);
-  let sprintLine = COPY.cadenceNoSprint;
-  if (c.status === 'active') {
-    sprintLine = COPY.cadenceActiveSprint.replace('{name}', c.sprintName || 'Active sprint');
-  } else if (c.status === 'ended' && c.daysSinceEnd != null) {
-    sprintLine = COPY.cadenceSprintEnded
-      .replace('{name}', c.sprintName || 'Last sprint')
-      .replace('{days}', String(c.daysSinceEnd));
-  }
+  const sprintLine = sprintCadencePart(c, brief);
   const deliveryLine = c.deliveryPct != null
     ? COPY.cadenceQuarterDelivery.replace('{pct}', String(c.deliveryPct))
     : COPY.cadenceQuarterDeliveryUnknown;
   return `
-    <div class="gov-cadence-pack" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" aria-label="${escapeHtml(COPY.cadencePackLabel)}">
+    <div class="gov-cadence-pack" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" data-movement-health="${escapeHtml(c.movementHealth || 'healthy')}" aria-label="${escapeHtml(COPY.cadencePackLabel)}">
       <span class="gov-cadence-chip gov-cadence-chip--sprint">${escapeHtml(sprintLine)}</span>
       <span class="gov-cadence-chip gov-cadence-chip--delivery">${escapeHtml(deliveryLine)}</span>
       ${c.epicCount ? `<span class="gov-cadence-chip">${c.epicCount} epics</span>` : ''}

@@ -1,13 +1,28 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
-import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 function formatCachedFreshness(cachedAt) {
-  if (!cachedAt) return '';
-  const ms = new Date(cachedAt).getTime();
-  if (!Number.isFinite(ms)) return '';
-  const mins = Math.max(1, Math.round((Date.now() - ms) / 60000));
-  return mins < 60 ? `Updated ${mins}m ago` : `Updated ${Math.round(mins / 60)}h ago`;
+  const age = formatHumanAge(cachedAt);
+  return age ? `Updated ${age}` : '';
+}
+
+export function renderStatusHonestyBar(brief = {}, decision = {}, { cached = false, cachedAt = '' } = {}) {
+  const chips = [];
+  const verdict = String(brief?.executiveView?.verdictTier || '').toLowerCase();
+  if (verdict === 'blocked') chips.push({ key: 'blocked', label: 'Delivery blocked', tone: 'critical' });
+  if (brief?.meta?.piFocus?.synergy === 'low') chips.push({ key: 'pi-mismatch', label: 'PI not aligned', tone: 'warn' });
+  if (cached || cachedAt) chips.push({ key: 'cached', label: formatCachedFreshness(cachedAt) || 'Cached view', tone: 'muted' });
+  const status = decision?.statusSemantics?.primary;
+  if (status === 'watch' && verdict !== 'blocked') chips.push({ key: 'watch', label: 'Watch', tone: 'watch' });
+  const visible = chips.slice(0, 2);
+  const overflow = chips.slice(2);
+  if (!visible.length) return '';
+  return `
+    <div class="portfolio-status-honesty-bar" data-testid="portfolio-status-honesty-bar">
+      ${visible.map((c) => `<span class="portfolio-status-honesty-chip portfolio-status-honesty-chip--${escapeHtml(c.tone)}">${escapeHtml(c.label)}</span>`).join('')}
+      ${overflow.length ? `<span class="portfolio-status-honesty-more" title="${escapeHtml(overflow.map((c) => c.label).join(' · '))}">+${overflow.length}</span>` : ''}
+    </div>`;
 }
 
 export function quarterDayLabel(decision = {}, brief = {}) {
@@ -222,6 +237,7 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
   if (synergyLow) {
     return `
       <section class="portfolio-signal portfolio-signal--hero portfolio-signal--synergy-low" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
+        ${renderStatusHonestyBar(brief, decision, { cached, cachedAt })}
         <div class="portfolio-signal-top">
           <p class="portfolio-signal-kicker">Portfolio decision cockpit${freshness ? ` - <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
           <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
@@ -233,6 +249,7 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
 
   return `
     <section class="portfolio-signal portfolio-signal--hero portfolio-decision-cockpit" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
+      ${renderStatusHonestyBar(brief, decision, { cached, cachedAt })}
       <div class="portfolio-signal-top">
         <p class="portfolio-signal-kicker">Portfolio decision cockpit${freshness ? ` - <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
         <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>

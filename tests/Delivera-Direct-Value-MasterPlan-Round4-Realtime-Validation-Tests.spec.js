@@ -204,9 +204,9 @@ test.describe('Direct-Value Master Plan Round 4 realtime validation', () => {
       await waitForPortfolioReady(page);
     });
 
-    await test.step('02 exactly one Open Alignment Studio primary button in viewport', async () => {
+    await test.step('02 exactly one Upload PI slide primary button in viewport', async () => {
       await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toHaveCount(1);
-      await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toContainText(/Open Alignment Studio/i);
+      await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toContainText(/Upload PI slide/i);
       await expect(page.locator('[data-testid="gov-pi-focus-baseline"]')).toHaveCount(0);
     });
 

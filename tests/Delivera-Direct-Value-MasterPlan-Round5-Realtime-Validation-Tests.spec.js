@@ -276,12 +276,13 @@ test.describe('Direct-Value Master Plan Round 5 realtime validation', () => {
       }
     });
 
-    await test.step('08 actions blocker banner visible when ready=0 and stuckCandidates>0', async () => {
+    await test.step('08 actions inline blocker queue when ready=0 and stuckCandidates>0', async () => {
       await mockEmptyActions(page);
       await mockBlockedSprint(page);
       await page.goto('/actions');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('#actions-blocker-banner')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-testid="actions-blocker-queue"]')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('#actions-blocker-banner')).toHaveCount(0);
     });
 
     await test.step('09 banner hidden when ready cases exist', async () => {
@@ -301,7 +302,7 @@ test.describe('Direct-Value Master Plan Round 5 realtime validation', () => {
       await page.goto('/actions?tab=ready');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await page.waitForSelector('.actions-tab.is-active');
-      await expect(page.locator('#actions-blocker-banner')).toHaveCount(0);
+      await expect(page.locator('[data-testid="actions-blocker-queue"]')).toHaveCount(0);
     });
 
     await test.step('10 grid hides Next move column on desktop when decision rail visible', async () => {
@@ -335,7 +336,7 @@ test.describe('Direct-Value Master Plan Round 5 realtime validation', () => {
       await mockBlockedSprint(page);
       await page.goto('/current-sprint');
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await page.waitForSelector('.sprint-alignment-strip', { timeout: 20000 });
+      await page.waitForSelector('[data-alignment-above-fold="1"] .sprint-alignment-strip, .sprint-alignment-strip', { timeout: 20000 });
       await expect(page.locator('details.sprint-off-pi-fold').first()).not.toHaveAttribute('open', '');
     });
 

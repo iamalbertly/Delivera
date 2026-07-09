@@ -13,6 +13,7 @@ import {
   showSprintActionToast,
 } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
+import { resolvePrimaryBlockerKey } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import {
   buildDeliveredImpactBullets,
@@ -317,13 +318,17 @@ export function renderStories(data) {
   // Risk filter chips live in header role-lens — avoid duplicate chip row here.
   if (hasAnyRisk) {
     const topNudgeKey = blockerKeys.size > 0 ? Array.from(blockerKeys)[0] : (noLogKeys.size > 0 ? Array.from(noLogKeys)[0] : '');
-    const nudgeBtnLabel = topNudgeKey ? ('Nudge ' + topNudgeKey) : 'Send nudge to Jira';
-    const sendAllowed = isSprintCommentSendAllowed(data?.meta, data?.sprint);
-    html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action">';
-    html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="send-top-nudge-to-jira" title="Send guided nudge to top visible risk directly to Jira" data-send-top-nudge'
-      + (sendAllowed ? '' : ' disabled aria-disabled="true"')
-      + '>' + nudgeBtnLabel + '</button>';
-    html += '</div>';
+    const primaryBlocker = String(resolvePrimaryBlockerKey(data) || '').toUpperCase();
+    const suppressStoriesNudge = primaryBlocker && topNudgeKey && primaryBlocker === String(topNudgeKey).toUpperCase();
+    if (!suppressStoriesNudge) {
+      const nudgeBtnLabel = topNudgeKey ? ('Nudge ' + topNudgeKey) : 'Send nudge to Jira';
+      const sendAllowed = isSprintCommentSendAllowed(data?.meta, data?.sprint);
+      html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action">';
+      html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="send-top-nudge-to-jira" title="Send guided nudge to top visible risk directly to Jira" data-send-top-nudge'
+        + (sendAllowed ? '' : ' disabled aria-disabled="true"')
+        + '>' + nudgeBtnLabel + '</button>';
+      html += '</div>';
+    }
   }
   html += renderWorkRisksMerged(data);
 

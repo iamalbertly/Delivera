@@ -6837,3 +6837,54 @@ details.sprint-off-pi-fold > summary {
 body.actions-empty-ready.actions-has-blockers .app-top-search-wrap {
   display: none;
 }
+
+/* Round6: ultrawide proof rail + blocked fold default closed */
+@media (min-width: 1600px) {
+  .current-sprint-grid-layout.sprint-rail-visible {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 1rem;
+    align-items: start;
+  }
+  .sprint-proof-rail {
+    position: sticky;
+    top: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fffbeb;
+  }
+  .sprint-proof-rail-kicker {
+    margin: 0 0 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #92400e;
+  }
+  .sprint-proof-rail-key {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+  }
+  .sprint-proof-rail-summary {
+    margin: 0 0 0.65rem;
+    font-size: 0.82rem;
+    color: #374151;
+  }
+}
+@media (max-width: 1279px) {
+  .sprint-proof-rail {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fffbeb;
+  }
+}
+body.sprint-blocked-fold .decision-cockpit-details:not([open]) .decision-cockpit-details-body {
+  display: none;
+}
+.current-sprint-header-bar .status-stale {
+  background: #fef2f2;
+  color: #991b1b;
+}

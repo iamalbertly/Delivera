@@ -3,6 +3,7 @@ import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js'
 import { COPY, setupGapImpact, setupGapTitle } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { renderCreateWorkButton } from './Delivera-App-Shared-CreateWork-01Button-Render-SSOT.js';
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { filterSetupGapsForPiFocus } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
 const ACTION_LABELS = {
   'set-baseline': COPY.piBaselineCta,
@@ -41,7 +42,7 @@ function renderGapCard(g, hidden = false) {
 }
 
 export function renderSetupDebtStrip(brief, opts = {}) {
-  const gaps = brief?.meta?.setupGaps || [];
+  const gaps = filterSetupGapsForPiFocus(brief);
   if (!gaps.length) return '';
   const topGap = gaps[0];
   const highSeverity = String(topGap?.severity || '').toLowerCase() === 'high';

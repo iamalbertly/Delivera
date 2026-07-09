@@ -5,6 +5,7 @@ import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { aiProviderRequestHeaders } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { postSlidePropose } from './Delivera-App-Shared-PIBaseline-Slide-01Client-Helper.js';
+import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import { bindSlideDropZone } from './Delivera-App-Shared-Slide-Upload-01Resize-Drop-Helper.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { cacheSlideProposeResult } from './Delivera-App-Shared-PIBaseline-02Slide-Outcome-Bridge-SSOT.js';
@@ -139,6 +140,11 @@ export function createPiBaselineWizardActions(ctx) {
     state.lastQuarter = quarterLabel;
 
     el.querySelector('[data-baseline-close]')?.addEventListener('click', ctx.close);
+    el.querySelector('[data-baseline-switch-sd]')?.addEventListener('click', () => {
+      try { localStorage.setItem(PROJECTS_SSOT_KEY, 'SD'); } catch (_) { /* ignore */ }
+      ctx.close();
+      window.location.reload();
+    });
     el.querySelector('#gov-baseline-refresh')?.addEventListener('click', () => {
       ctx.close();
       ctx.onSaved?.();

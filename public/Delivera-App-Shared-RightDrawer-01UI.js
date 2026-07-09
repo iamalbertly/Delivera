@@ -74,10 +74,11 @@ export function openRightDrawer({ title = 'Details', bodyHtml = '', onClose, pan
       <div class="gov-right-drawer-body">${bodyHtml}</div>
     </aside>`;
   el.hidden = false;
-  if (shouldLockScroll) document.body.classList.add('gov-right-drawer-open');
+  document.body.classList.add('gov-right-drawer-open');
+  if (shouldLockScroll) document.body.classList.add('gov-right-drawer-lock-scroll');
   const close = () => {
     el.hidden = true;
-    document.body.classList.remove('gov-right-drawer-open');
+    document.body.classList.remove('gov-right-drawer-open', 'gov-right-drawer-lock-scroll');
     drawerCloseFn = null;
     onClose?.();
   };

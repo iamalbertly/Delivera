@@ -6,6 +6,8 @@ import {
   approveDraft,
   renderActionsCaseCard,
 } from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
+import { fetchSprintBlockerSignal } from './Delivera-CurrentSprint-Action-Bridge.js';
+import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 
 const TABS = [
   { id: 'ready', label: 'Ready' },
@@ -23,33 +25,44 @@ function readQuery() {
   }
 }
 
-async function maybeRenderBlockerBanner(readyCount = 0) {
-  const existing = document.getElementById('actions-blocker-banner');
-  let hasBlockers = false;
-  try {
-    const res = await fetch('/api/current-sprint.json');
-    if (res.ok) {
-      const data = await res.json();
-      hasBlockers = Number((data?.stuckCandidates || []).length || 0) > 0;
-    }
-  } catch (_) { /* ignore */ }
+function formatBlockerAge(hours) {
+  const h = Number(hours) || 0;
+  if (h <= 0) return 'needs review';
+  if (h < 24) return `${Math.round(h)}h stale`;
+  return `${Math.round(h / 24)}d stale`;
+}
 
+function renderBlockerQueueHtml(signal = {}) {
+  const items = signal.items || [];
+  if (!items.length) return '';
+  const cacheNote = signal.source === 'cache'
+    ? '<p class="actions-blocker-queue-note">From cached brief — refresh Squads for live state.</p>'
+    : '';
+  return `
+    <section class="actions-blocker-queue" data-testid="actions-blocker-queue" aria-label="Sprint blockers">
+      <h2 class="actions-blocker-queue-title">Sprint blockers</h2>
+      ${cacheNote}
+      <ul class="actions-blocker-queue-list">
+        ${items.map((row) => `
+          <li class="actions-blocker-queue-item">
+            <div class="actions-blocker-queue-main">
+              <strong>${escapeHtml(row.issueKey)}</strong>
+              <span class="actions-blocker-queue-summary">${escapeHtml(row.summary || 'Blocked work')}</span>
+              <span class="actions-blocker-queue-meta">${escapeHtml(row.assignee || 'Unassigned')} · ${escapeHtml(formatBlockerAge(row.hoursInStatus))}</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-compact" data-actions-nudge="${escapeHtml(row.issueKey)}">Nudge ${escapeHtml(row.issueKey)}</button>
+          </li>`).join('')}
+      </ul>
+    </section>`;
+}
+
+async function applyBlockerUx(readyCount = 0, signal = null) {
+  const resolved = signal || await fetchSprintBlockerSignal();
+  const hasBlockers = Boolean(resolved.hasBlockers);
   document.body.classList.toggle('actions-empty-ready', readyCount === 0);
   document.body.classList.toggle('actions-has-blockers', hasBlockers);
-
-  if (readyCount > 0 || !hasBlockers) {
-    existing?.remove();
-    return hasBlockers;
-  }
-  let banner = existing;
-  if (!banner) {
-    banner = document.createElement('p');
-    banner.id = 'actions-blocker-banner';
-    banner.className = 'actions-blocker-banner';
-    document.getElementById('actions-tabs')?.insertAdjacentElement('afterend', banner);
-  }
-  banner.innerHTML = 'Blockers on Squads → <a href="/current-sprint">Open sprint blockers</a>';
-  return hasBlockers;
+  document.getElementById('actions-blocker-banner')?.remove();
+  return resolved;
 }
 
 function activeTab() {
@@ -120,7 +133,7 @@ async function paint(tab = activeTab()) {
   const proof = document.getElementById('actions-proof');
   const highlightId = readQuery().get('caseId') || '';
   const visible = filterCases(cases, tab);
-  const hasBlockers = await maybeRenderBlockerBanner(counts.ready || 0);
+  const signal = await applyBlockerUx(counts.ready || 0);
   if (tab === 'proof') {
     if (list) list.hidden = true;
     if (proof) {
@@ -132,11 +145,16 @@ async function paint(tab = activeTab()) {
   if (proof) proof.hidden = true;
   if (list) {
     list.hidden = false;
-    list.innerHTML = visible.length
+    const caseHtml = visible.length
       ? visible.map((row) => renderActionsCaseCard(row, { highlight: row.id === highlightId })).join('')
-      : (hasBlockers
-        ? '<p class="actions-empty"><a class="btn btn-primary btn-compact" href="/current-sprint">Open sprint blockers →</a></p>'
-        : '<p class="actions-empty">No action needed now — monitoring continues.</p>');
+      : '';
+    const blockerHtml = (counts.ready === 0 && signal.hasBlockers)
+      ? renderBlockerQueueHtml(signal)
+      : '';
+    list.innerHTML = caseHtml || blockerHtml || '<p class="actions-empty">No action needed now — monitoring continues.</p>';
+    if (caseHtml && blockerHtml) {
+      list.insertAdjacentHTML('afterbegin', blockerHtml);
+    }
     if (highlightId) {
       document.getElementById(`case-${highlightId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
@@ -184,6 +202,14 @@ async function init() {
   const reviewId = readQuery().get('caseId');
   if (readQuery().get('review') === '1' && reviewId) await openCaseReview(reviewId);
   document.getElementById('actions-list')?.addEventListener('click', async (ev) => {
+    const nudgeBtn = ev.target.closest('[data-actions-nudge]');
+    if (nudgeBtn) {
+      const issueKey = nudgeBtn.getAttribute('data-actions-nudge');
+      if (issueKey) {
+        openJiraNudgeReviewSheet({ issueKey, prefillContext: `Unblock ${issueKey} today.` });
+      }
+      return;
+    }
     const approve = ev.target.closest('[data-approve-case]');
     if (approve) {
       const id = approve.getAttribute('data-approve-case');

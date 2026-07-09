@@ -428,6 +428,11 @@ header[data-shared-header="true"] {
   --shared-header-z: 1100;
 }
 
+body.has-top-chrome {
+  --chrome-z: 1300;
+  --overlay-z: 1400;
+}
+
 .app-header-row {
   align-items: flex-start;
   gap: 16px;

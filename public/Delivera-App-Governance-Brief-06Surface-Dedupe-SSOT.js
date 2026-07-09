@@ -185,7 +185,7 @@ export function shouldMergeCommitmentLines(reason = '', move = '') {
   if (!normalizedReason || !normalizedMove) return false;
   if (normalizedReason === normalizedMove) return true;
   if (normalizedReason.includes(normalizedMove) || normalizedMove.includes(normalizedReason)) return true;
-  return commitmentJaccard(reason, move) >= 0.65;
+  return commitmentJaccard(reason, move) >= 0.55;
 }
 
 /** Dedupe affected commitments by issueKey (first wins). */
@@ -207,4 +207,75 @@ export function shouldHidePreparedActionsSection(decision = {}, brief = {}) {
   if (empty) return true;
   if (brief?.meta?.piFocus?.synergy === 'low') return true;
   return false;
+}
+
+export function maxStaleHoursFromBrief(brief = {}) {
+  const rows = brief?.evidencePack?.rows || [];
+  let maxH = 0;
+  for (const row of rows) {
+    const why = String(row?.whyFlagged || '');
+    const m = why.match(/(\d+)\s*h/i) || why.match(/stale\s+(\d+)/i);
+    if (m) maxH = Math.max(maxH, Number(m[1]) || 0);
+  }
+  return maxH;
+}
+
+/** Downgrade confidence when blocked + stale + low done ratio (trust SSOT). */
+export function applyHonestTrustClamp(brief = {}, decision = {}) {
+  const verdict = String(brief?.executiveView?.verdictTier || '').toLowerCase();
+  const selected = (brief?.projects || []).map((p) => String(p).toUpperCase());
+  const squad = (brief?.squadInsights || []).find((s) => selected.includes(String(s.projectKey || '').toUpperCase()))
+    || brief?.squadInsights?.[0];
+  const committed = Number(squad?.sprintPulse?.committed) || 0;
+  const done = Number(squad?.sprintPulse?.done) || 0;
+  const ratio = committed > 0 ? done / committed : 1;
+  const staleH = maxStaleHoursFromBrief(brief);
+  const forceLow = verdict === 'blocked' || ratio < 0.15 || staleH > 72;
+  if (!forceLow) return { brief, decision };
+  const nextBrief = { ...brief };
+  if (nextBrief.leadershipNarrative) {
+    nextBrief.leadershipNarrative = { ...nextBrief.leadershipNarrative, confidence: 'low' };
+  }
+  const nextDecision = decision ? { ...decision } : {};
+  if (nextDecision.trust) {
+    nextDecision.trust = { ...nextDecision.trust, proofLevel: 'Low' };
+  }
+  if (nextDecision.dataTrust) {
+    nextDecision.dataTrust = { ...nextDecision.dataTrust, confidenceLabel: 'Low' };
+  }
+  if (nextDecision.evidenceBreakdown) {
+    nextDecision.evidenceBreakdown = { ...nextDecision.evidenceBreakdown, confidenceLabel: 'Low' };
+  }
+  return { brief: nextBrief, decision: nextDecision };
+}
+
+/** When compare cards share the same root issue, surface deltas instead of duplicate copy. */
+export function enrichComparisonForDiffOnly(comparison = {}) {
+  const cards = Array.isArray(comparison.cards) ? [...comparison.cards] : [];
+  if (cards.length < 2) return comparison;
+  const issues = cards.map((c) => String(c.mainIssue || '').trim()).filter(Boolean);
+  const shared = issues.length >= 2 && issues.every((i) => i === issues[0]);
+  if (!shared) return comparison;
+  const sharedRoot = issues[0];
+  return {
+    ...comparison,
+    sharedRootIssue: sharedRoot,
+    cards: cards.map((c) => {
+      const m = c.metrics || {};
+      const delivered = Number(m.delivered) || 0;
+      const gaps = Number(c.affectedCommitmentCount) || 0;
+      return {
+        ...c,
+        mainIssue: `${c.projectKey}: ${delivered}% done · ${gaps} gaps`,
+        sharedRootIssue: sharedRoot,
+      };
+    }),
+  };
+}
+
+/** Setup gaps when PI focus strip owns baseline CTA. */
+export function filterSetupGapsForPiFocus(brief = {}) {
+  const gaps = brief?.meta?.setupGaps || [];
+  if (brief?.meta?.piFocus?.synergy !== 'low') return gaps;
+  return gaps.filter((g) => g.action !== 'set-baseline');
 }

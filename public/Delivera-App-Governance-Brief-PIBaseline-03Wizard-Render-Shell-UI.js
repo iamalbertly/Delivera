@@ -24,14 +24,23 @@ export function renderStepsFold(open = false) {
     </details>`;
 }
 
-export function renderContextBanner(projectsCsv, quarterLabel) {
-  const projects = projectsCsv.split(',').map((p) => p.trim()).filter(Boolean).join(', ') || '—';
-  const quarter = quarterLabel || 'Not set';
+export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
+  const parts = projectsCsv.split(',').map((p) => p.trim()).filter(Boolean);
+  const projects = parts.join(', ') || '—';
+  const pk = (parts[0] || '').toUpperCase();
+  const squad = opts.inferredSquad || ((pk === 'SD' || /dms/i.test(pk)) ? 'DMS' : pk);
+  const quarter = opts.inferredQuarter || quarterLabel || 'Not set';
+  const slideMismatch = Boolean(opts.slideScopeMismatch);
+  const mismatchHint = slideMismatch
+    ? `<p class="gov-baseline-squad-warn" data-testid="gov-baseline-squad-mismatch">${escapeHtml(COPY.baselineSquadMismatch)} <button type="button" class="btn btn-link btn-compact" data-baseline-switch-sd="1">Use SD (DMS)</button></p>`
+    : '';
   return `
     <div class="gov-baseline-context" data-testid="gov-baseline-context">
       <span><strong>Project:</strong> ${escapeHtml(projects)}</span>
+      <span><strong>Squad:</strong> ${escapeHtml(squad)}</span>
       <span><strong>Quarter:</strong> ${escapeHtml(quarter)}</span>
       <p class="gov-baseline-context-why">${escapeHtml(COPY.piBaselineWhy)}</p>
+      ${mismatchHint}
     </div>`;
 }
 
@@ -76,13 +85,16 @@ export function renderSlideActionsBar(data, projectsCsv) {
   const summary = total
     ? `<p class="gov-inbox-hint" data-testid="gov-baseline-slide-summary">${escapeHtml(COPY.baselineSlideEpicSummary.replace('{matched}', String(matched)).replace('{missing}', String(missingN)))}</p>`
     : '';
+  const aligned = missingN === 0 && matched > 0 && !receipt?.failed
+    ? `<p class="gov-baseline-status gov-baseline-status--ok" data-testid="gov-baseline-aligned">${escapeHtml(COPY.baselineSlideAligned)}</p>`
+    : '';
   const createAll = missingN > 0
     ? `<button type="button" class="btn btn-primary btn-compact" id="gov-baseline-create-all" data-testid="gov-baseline-create-all">${escapeHtml(COPY.baselineSlideCreateAll.replace('{n}', String(missingN)))}</button>`
     : '';
   const reviewBtn = narrative && missingN === 0 && !receipt?.failed
     ? renderCreateWorkButton({ projectsCsv, prefill: narrative, testId: 'gov-baseline-create-work' })
     : '';
-  return `${receiptRow}${summary}<div class="gov-baseline-slide-actions">${createAll}${reviewBtn}</div>`;
+  return `${receiptRow}${aligned}${summary}<div class="gov-baseline-slide-actions">${createAll}${reviewBtn}</div>`;
 }
 
 export function renderBaselineWizardShell({
@@ -100,6 +112,7 @@ export function renderBaselineWizardShell({
   slideCollapsed = true,
   serverAiStatus = null,
   slideActionsHtml = '',
+  contextOpts = {},
 }) {
   const title = mode === 'slide'
     ? `${COPY.alignmentStudioTitle} · ${COPY.alignmentStudioModeSlide}`
@@ -127,7 +140,7 @@ export function renderBaselineWizardShell({
 
   return `
     <div class="gov-baseline-wizard" data-propose-method="${escapeHtml(data.method || 'manual')}">
-      ${renderContextBanner(projectsCsv, quarterLabel)}
+      ${renderContextBanner(projectsCsv, contextOpts.inferredQuarter || quarterLabel, contextOpts)}
       <p class="gov-baseline-wizard-title">${escapeHtml(title)}</p>
       ${renderStepsFold(stepsOpen || mode === 'empty')}
       ${hint ? `<p class="gov-inbox-hint">${escapeHtml(hint)}</p>` : ''}
@@ -181,13 +194,18 @@ export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = nu
     mode: 'slide',
     data,
     projectsCsv,
-    quarterLabel,
+    quarterLabel: data.inferredQuarter || quarterLabel,
     listHtml,
     showConfirm: hasConfirmable,
     showCreate: false,
     slideCollapsed: true,
     serverAiStatus,
     slideActionsHtml: renderSlideActionsBar(data, projectsCsv),
+    contextOpts: {
+      inferredSquad: data.inferredSquad,
+      inferredQuarter: data.inferredQuarter,
+      slideScopeMismatch: data.slideScopeMismatch,
+    },
   });
 }
 
