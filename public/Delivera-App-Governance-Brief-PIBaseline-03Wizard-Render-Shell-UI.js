@@ -27,8 +27,14 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   const parts = projectsCsv.split(',').map((p) => p.trim()).filter(Boolean);
   const projects = parts.join(', ') || '—';
   const pk = (parts[0] || '').toUpperCase();
-  const squad = opts.inferredSquad || ((pk === 'SD' || /dms/i.test(pk)) ? 'DMS' : pk);
-  const quarter = opts.inferredQuarter || quarterLabel || 'Not set';
+  const inferred = Number(opts.commitmentCount) > 0;
+  const scopeSquad = (pk === 'SD' || /dms/i.test(pk)) ? 'DMS' : pk;
+  const squad = inferred
+    ? (opts.inferredSquad || scopeSquad || '—')
+    : 'Not detected';
+  const quarter = inferred
+    ? (opts.inferredQuarter || quarterLabel || 'Not set')
+    : (quarterLabel || 'Not set');
   const slideMismatch = Boolean(opts.slideScopeMismatch);
   const quarterMismatch = Boolean(opts.inferredQuarter && quarterLabel
     && String(opts.inferredQuarter).trim() !== String(quarterLabel).trim());
@@ -41,7 +47,7 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   return `
     <div class="gov-baseline-context" data-testid="gov-baseline-context">
       <span><strong>Project:</strong> ${escapeHtml(projects)}</span>
-      <span><strong>Squad:</strong> ${escapeHtml(squad)}</span>
+      <span><strong>Squad:</strong> ${escapeHtml(squad)}${inferred ? '' : ' <span class="gov-baseline-context-muted">(upload slide)</span>'}</span>
       <span><strong>Quarter:</strong> ${escapeHtml(quarter)}</span>
       <p class="gov-baseline-context-why">${escapeHtml(COPY.piBaselineWhy)}</p>
       ${mismatchHint}
@@ -77,7 +83,7 @@ export function slideUploadInner(aiCapability = null) {
 
 export function slideUploadOptional(collapsed = true, aiCapability = null) {
   return `
-    <details class="gov-baseline-optional"${collapsed ? '' : ' open'}>
+    <details class="gov-baseline-optional"${collapsed ? '' : ' open'} data-testid="gov-baseline-slide-optional">
       <summary>${escapeHtml(COPY.piBaselineOptionalSlide)}</summary>
       ${slideUploadInner(aiCapability)}
     </details>`;
@@ -219,6 +225,7 @@ export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = nu
       inferredSquad: data.inferredSquad,
       inferredQuarter: data.inferredQuarter,
       slideScopeMismatch: data.slideScopeMismatch,
+      commitmentCount: (data.extracted || []).length || data.extractionMeta?.commitmentCount || 0,
     },
   });
 }

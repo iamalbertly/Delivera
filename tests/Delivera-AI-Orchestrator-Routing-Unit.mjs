@@ -106,4 +106,46 @@ describe('AI orchestrator routing and output cleanup', () => {
     assert.equal(userContent[1].type, 'image_url');
     assert.match(userContent[1].image_url.url, /^data:image\/png;base64,abc123$/);
   });
+
+  it('accepts PI slide vision commitments schema', async () => {
+    global.fetch = async () => ({
+      ok: true,
+      async json() {
+        return {
+          model: 'google/gemini-2.5-flash-lite',
+          usage: { prompt_tokens: 12, completion_tokens: 5 },
+          choices: [{
+            message: {
+              content: JSON.stringify({
+                squad: 'DMS',
+                quarter: 'FY27 Q2',
+                commitments: [
+                  { month: 'July', theme: 'Growth', bullet: 'CVM integration', suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – CVM' },
+                ],
+              }),
+            },
+          }],
+        };
+      },
+    });
+
+    const { result, fallbackUsed } = await runVisionAITask(
+      AI_TASK_TYPES.PI_SLIDE_VISION,
+      {
+        imageBase64: 'abc123',
+        mimeType: 'image/png',
+        quarter: 'FY27 Q2',
+        projects: ['SD'],
+        userText: 'Extract commitments',
+      },
+      {
+        runId: `test-slide-vision-${Date.now()}`,
+        providerConfig: { provider: 'openrouter', apiKey: 'test-key' },
+      },
+    );
+
+    assert.equal(fallbackUsed, false);
+    assert.equal(result.squad, 'DMS');
+    assert.equal(result.commitments.length, 1);
+  });
 });

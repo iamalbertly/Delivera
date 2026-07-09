@@ -126,6 +126,12 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/governance,/api/governance/pi-baseline/propose-from-image',
   },
+  'tests/Delivera-Governance-PIBaseline-DMS-Slide-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance',
+    layer: 'cross-surface-ux',
+    page: '/governance,/settings,/api/governance/pi-baseline/propose-from-image,/api/settings/epic-format.json',
+    priority: 1,
+  },
   'tests/Delivera-Governance-PIBaseline-Wizard-Direct-Value-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'page-ux',

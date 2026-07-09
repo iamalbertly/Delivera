@@ -125,7 +125,7 @@ export function createPiBaselineWizardActions(ctx) {
 
   async function handleSlideUpload(file, bodyEl, projects, csv, quarterLabel, priorData) {
     if (!file || !bodyEl) return;
-    bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}<br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.aiSlideReadingSub)}</span></p>`;
+    bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}<br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.baselineSlideMatching)}</span><br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.aiSlideReadingSub)}</span></p>`;
     try {
       const data = await postSlidePropose({ file, projects, projectsCsv: csv });
       cacheSlideProposeResult(data);
@@ -135,7 +135,10 @@ export function createPiBaselineWizardActions(ctx) {
       const confirmable = (data.candidates || []).filter((c) => c.issueKey);
       if (!confirmable.length && !(data.extracted || []).length) {
         const jiraUrl = await resolveJiraBoardUrl(projects);
-        bodyEl.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, true, data.guidance || '', cap());
+        const failHint = data.extractionMeta?.fallbackUsed || !data.extractionMeta?.aiContributed
+          ? COPY.baselineSlideReadFailed
+          : (data.guidance || COPY.baselineSlideReadFailed);
+        bodyEl.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, true, failHint, cap());
         bindPanel(bodyEl, priorData || data, projects, csv, quarterLabel);
         return;
       }

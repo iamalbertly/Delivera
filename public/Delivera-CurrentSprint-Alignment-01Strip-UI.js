@@ -45,7 +45,7 @@ export function renderAlignmentStripHtml(data, baselineKeys = []) {
   const misaligned = Math.max(0, stories.length - alignedTotal);
   const summaryDetail = [alignedTotal ? `${alignedTotal} PI` : '', offPiTotal ? `${offPiTotal} off-PI` : '', adHocTotal ? `${adHocTotal} ad-hoc` : ''].filter(Boolean).join(' · ');
   const studioChip = misaligned > 0
-    ? `<a class="sprint-off-pi-chip verdict-pill" href="/governance?openAlignment=1" data-testid="sprint-open-alignment-studio">${misaligned} off-PI</a>`
+    ? `<a class="sprint-off-pi-chip verdict-pill" href="/governance?openAlignment=slide&amp;scope=SD" data-testid="sprint-open-alignment-studio">${misaligned} off-PI</a>`
     : '';
   return `
     <section class="sprint-alignment-strip" data-alignment-strip="1" data-testid="sprint-commitment-risk" aria-label="Work alignment">

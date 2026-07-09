@@ -71,13 +71,17 @@ async function runProbe({ imagePath, mimeType, projects, quarter, boardEpics, la
   console.log(`[probe:${label}] extracted:`, (result.extracted || []).length);
   console.log(`[probe:${label}] candidates:`, (result.candidates || []).length);
   if (result.parseError) console.log(`[probe:${label}] parseError:`, result.parseError);
-  if (!(result.extracted || []).length && !(result.candidates || []).length) {
+  const extractedCount = (result.extracted || []).length;
+  const candidateCount = (result.candidates || []).length;
+  const count = extractedCount || candidateCount;
+  const minCommitments = label === 'dms-q2' ? 6 : 3;
+  if (count < minCommitments) {
     const inCi = process.env.CI === 'true' || process.env.CI === '1';
     if (inCi && !requireProbe) {
-      console.log(`[probe:${label}] SKIP — vision returned no extractable rows (CI soft-fail)`);
+      console.log(`[probe:${label}] SKIP — vision returned ${count} rows (CI soft-fail, need ${minCommitments})`);
       return 'skip';
     }
-    console.error(`[probe:${label}] FAIL — no slide output`);
+    console.error(`[probe:${label}] FAIL — expected at least ${minCommitments} commitments, got ${count}`);
     return 'fail';
   }
   console.log(`[probe:${label}] OK`);

@@ -343,7 +343,8 @@ Journey membership is implemented in `scripts/Delivera-Tests-Journey-Buckets-Map
 - **Z-index ladder:** `--chrome-z: 1300`, `--overlay-z: 1400` in `public/css/02-layout-container.css`; governance drawers use overlay token (`09-governance.css`).
 - **Actions inline queue:** `fetchSprintBlockerSignal()` in `Delivera-CurrentSprint-Action-Bridge.js` returns `{ items[], source: live|cache|none }`; `Delivera-Actions-Page-Init.js` renders `[data-testid="actions-blocker-queue"]`.
 - **Sprint nudge SSOT:** `nudgeActionLabel()` in `Delivera-CurrentSprint-Risk-Vocabulary-01Terms-SSOT.js`; header owns primary nudge; stories suppress `[data-send-top-nudge]` when keys match.
-- **PI slide inference (public API):** `proposeFromSlideImage` / propose-from-image response adds `inferredSquad`, `inferredQuarter`, `slideScopeMismatch` (`lib/Delivera-Governance-PIBaseline-03Propose-Slide-02SSOT.js`).
+- **PI slide inference (public API):** `proposeFromSlideImage` uses `AI_TASK_TYPES.PI_SLIDE_VISION` (not `PI_BASELINE_CLASSIFY`); response adds `inferredSquad`, `inferredQuarter`, `slideScopeMismatch`, `extractionMeta`, `suggestedScope` (`lib/Delivera-Governance-PIBaseline-03Propose-Slide-02SSOT.js`).
+- **Epic format SSOT:** `lib/Delivera-Governance-Epic-Format-01SSOT.js` + `data/Delivera-Org-Epic-Format.json`; `GET/POST /api/settings/epic-format.json` (org admin); Settings panel `Delivera-Settings-EpicFormat-01Panel-UI.js`.
 - **Fixture:** `data/testing_q2fy27_dms_commitments.png` for DMS FY27 Q2 slide validation.
 - **Unit tests:** `tests/Delivera-CurrentSprint-Blocker-Signal-Unit.mjs`, `tests/Delivera-Governance-Compare-Diff-Unit.mjs`.
 - **Probe:** `scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js` supports WhatsApp JPEG + DMS Q2 PNG (`--dms-q2`).

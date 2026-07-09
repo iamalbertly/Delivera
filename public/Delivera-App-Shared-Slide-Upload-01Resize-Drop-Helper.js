@@ -2,7 +2,7 @@
  * Shared slide upload: resize to base64 + drag/drop zone binding (ChatGPT-style).
  */
 
-export async function resizeImageFileToBase64(file, { maxW = 800, maxBytes = 500000 } = {}) {
+export async function resizeImageFileToBase64(file, { maxW = 1400, maxBytes = 900000 } = {}) {
   if (!file) throw new Error('No file selected');
   const mime = String(file.type || 'image/jpeg').split(';')[0].trim() || 'image/jpeg';
 

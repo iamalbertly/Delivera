@@ -3,6 +3,7 @@
  */
 import { mountMyWorkspacePanel } from './Delivera-Settings-MyWorkspace-01Panel-UI.js';
 import { mountOrganizationPanel } from './Delivera-Settings-Organization-01ReadOnly-Panel-UI.js';
+import { mountEpicFormatPanel } from './Delivera-Settings-EpicFormat-01Panel-UI.js';
 import { mountIntegrationsPanel } from './Delivera-Settings-Integrations-01Health-Panel-UI.js';
 import { initSettingsJiraActivityPanel } from './Delivera-Settings-JiraActivity-01Page-01Controller.js';
 import { ensureProjectCatalogLoaded } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
@@ -95,6 +96,7 @@ export function initSettingsHub() {
   ensureProjectCatalogLoaded();
   mountMyWorkspacePanel(document.getElementById('settings-my-workspace'));
   mountOrganizationPanel(document.getElementById('settings-organization'));
+  mountEpicFormatPanel(document.getElementById('settings-epic-format'));
   mountIntegrationsPanel(document.getElementById('settings-integrations'));
   initSettingsJiraActivityPanel();
 

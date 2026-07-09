@@ -25,7 +25,7 @@ import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resol
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
 import { getUnifiedRiskCounts } from '../public/Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { appEnvConfig, jiraEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
+import { appEnvConfig, jiraEnvConfig, legacySessionEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 import {
     readReportContextFromSession,
     writeReportContextToSession,
@@ -95,6 +95,8 @@ import {
 } from '../lib/Delivera-Data-JiraActivity-01AuditLog-IO.js';
 import { undoJiraComment } from '../lib/Delivera-Data-JiraActivity-02CommentUndo-01Service.js';
 import { registerPiBaselineRoutes } from './Delivera-Governance-PIBaseline-01Routes.js';
+import { loadEpicFormatConfig, saveEpicFormatConfig } from '../lib/Delivera-Governance-Epic-Format-01Store-IO.js';
+import { buildEpicFormatPreview, normalizeEpicFormatConfig } from '../lib/Delivera-Governance-Epic-Format-01SSOT.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -984,6 +986,48 @@ router.get('/api/settings/org-summary.json', requireAuth, async (req, res) => {
     } catch (err) {
         logger.warn('settings org-summary read failed', { error: err?.message });
         return res.status(500).json({ error: 'Org summary read failed' });
+    }
+});
+
+function canEditEpicFormat(req) {
+    const adminUser = String(legacySessionEnvConfig.loginUser || process.env.DELIVERA_ORG_ADMIN_USER || '').trim();
+    const sessionUser = String(req.session?.user || req.authUser?.id || '').trim();
+    if (!adminUser) return true;
+    return sessionUser.toLowerCase() === adminUser.toLowerCase();
+}
+
+router.get('/api/settings/epic-format.json', requireAuth, async (req, res) => {
+    try {
+        const format = await loadEpicFormatConfig();
+        return res.json({
+            format,
+            preview: buildEpicFormatPreview(format),
+            editable: canEditEpicFormat(req),
+        });
+    } catch (err) {
+        logger.warn('epic-format read failed', { error: err?.message });
+        return res.status(500).json({ error: 'Epic format read failed' });
+    }
+});
+
+router.post('/api/settings/epic-format.json', requireAuth, async (req, res) => {
+    try {
+        if (!canEditEpicFormat(req)) {
+            return res.status(403).json({ error: 'Org admin required to edit epic format', code: 'ORG_ADMIN_REQUIRED' });
+        }
+        const body = req.body || {};
+        const next = normalizeEpicFormatConfig({
+            template: body.template,
+            delimiter: body.delimiter,
+            defaultSubsystem: body.defaultSubsystem,
+            squadSystemMap: body.squadSystemMap,
+            squadOverrides: body.squadOverrides,
+        });
+        const saved = await saveEpicFormatConfig(next);
+        return res.json({ success: true, format: saved, preview: buildEpicFormatPreview(saved) });
+    } catch (err) {
+        logger.warn('epic-format save failed', { error: err?.message });
+        return res.status(400).json({ error: String(err?.message || 'Epic format save failed') });
     }
 });
 
