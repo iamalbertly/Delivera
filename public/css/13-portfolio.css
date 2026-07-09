@@ -625,13 +625,6 @@ body.delivera-api-degraded::before {
   max-width: 52ch;
 }
 
-.portfolio-signal-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
 .portfolio-signal-summary {
   display: flex;
   flex-wrap: wrap;
@@ -2180,11 +2173,10 @@ body.delivera-api-degraded::before {
     max-height: calc(100vh - var(--top-chrome-height, 56px) - 1.5rem);
     overflow-y: auto;
   }
-}
-
-.portfolio-commitments-list--scroll {
-  max-height: none;
-  overflow: visible;
+  .portfolio-commitments-list--scroll {
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 @media (max-width: 1024px) {

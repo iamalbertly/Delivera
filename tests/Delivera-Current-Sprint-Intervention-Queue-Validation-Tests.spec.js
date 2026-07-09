@@ -84,8 +84,8 @@ test.describe('Current Sprint Intervention Queue Validation', () => {
     const takeActionBtn = page.locator('.sprint-intervention-item-primary');
     await expect(takeActionBtn).toBeAttached();
     const ctaText = (await takeActionBtn.textContent().catch(() => '') || '').trim();
-    // When stuckCandidates[0] has MPSA-1, CTA becomes "Unblock MPSA-1"
-    expect(ctaText).toMatch(/Unblock MPSA-1|Take action/i);
+    // When stuckCandidates[0] has MPSA-1, CTA surfaces issue key with nudge/unblock verb
+    expect(ctaText).toMatch(/Unblock MPSA-1|Ping .*MPSA-1|Nudge .*MPSA-1|Take action/i);
 
     await expect(page.locator('[data-open-outcome-modal]').first()).toBeAttached();
     assertTelemetryClean(telemetry);

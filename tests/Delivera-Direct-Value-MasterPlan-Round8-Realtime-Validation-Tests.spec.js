@@ -187,6 +187,19 @@ async function mockEmptyActions(page) {
   }));
 }
 
+async function closeGovernanceOverlays(page) {
+  await page.locator('[data-baseline-close], [data-drawer-close]').first().click({ timeout: 2000 }).catch(() => {});
+  await page.locator('.work-draft-drawer [data-wdd-close], .work-draft-drawer button[aria-label="Close"]').first().click({ timeout: 2000 }).catch(() => {});
+}
+
+async function expectDrawerBelowChrome(page) {
+  const panel = page.locator('#delivera-gov-right-drawer:not([hidden]) .gov-right-drawer-panel').first();
+  await expect(panel).toBeVisible({ timeout: 15000 });
+  const panelBox = await panel.boundingBox();
+  expect(panelBox).toBeTruthy();
+  expect(panelBox.y).toBeGreaterThanOrEqual(50);
+}
+
 test.describe('Direct-Value Master Plan Round 8 realtime validation', () => {
   test.describe.configure({ retries: 0 });
 
@@ -361,18 +374,17 @@ test.describe('Direct-Value Master Plan Round 8 realtime validation', () => {
     await test.step('14 mobile 390px drawer and trust dot', async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await expect(page.locator('[data-testid="gov-pi-focus-strip"]')).toBeVisible();
+      await closeGovernanceOverlays(page);
       await page.locator('[data-testid="gov-pi-focus-set-baseline"]').click();
-      const panelBox = await page.locator('.gov-right-drawer-panel').first().boundingBox();
-      expect(panelBox).toBeTruthy();
-      expect(panelBox.y).toBeGreaterThanOrEqual(50);
+      await expectDrawerBelowChrome(page);
       await page.locator('[data-baseline-close]').first().click();
     });
 
     await test.step('15 drawer clears top chrome overlap', async () => {
       await page.setViewportSize({ width: 1400, height: 900 });
+      await closeGovernanceOverlays(page);
       await page.locator('[data-testid="gov-pi-focus-set-baseline"]').click();
-      const panelBox = await page.locator('.gov-right-drawer-panel').first().boundingBox();
-      expect(panelBox.y).toBeGreaterThanOrEqual(50);
+      await expectDrawerBelowChrome(page);
       await page.locator('[data-baseline-close]').first().click();
     });
 
@@ -386,14 +398,19 @@ test.describe('Direct-Value Master Plan Round 8 realtime validation', () => {
 
     await test.step('18 zero match slide shows create work bridge', async () => {
       if (!existsSync(SLIDE_DMS_Q2)) return;
+      await page.unroute('**/api/governance/pi-baseline/propose-from-image').catch(() => {});
       await page.route('**/api/governance/pi-baseline/propose-from-image', (r) => r.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           method: 'slide-vision',
-          extracted: [{ bullet: 'New epic from slide' }],
+          extracted: [{ month: 'July', theme: 'NBA', bullet: 'New epic from slide' }],
           candidates: [],
-          unmatched: [{ suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – New', status: 'missing' }],
+          unmatched: [{
+            suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – New',
+            title: 'FY27 Q2 – DMS – NBA – New',
+            method: 'slide-unmatched',
+          }],
           resolved: [{ status: 'missing', suggestedEpicTitle: 'FY27 Q2 – DMS – NBA – New' }],
           missingCount: 1,
           matchedCount: 0,
@@ -403,19 +420,26 @@ test.describe('Direct-Value Master Plan Round 8 realtime validation', () => {
         }),
       }));
       await page.locator('[data-testid="gov-pi-focus-set-baseline"]').click();
-      await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_DMS_Q2);
+      await expect(page.locator('.gov-right-drawer-panel .gov-baseline-wizard')).toBeVisible({ timeout: 15000 });
+      const uploadDone = page.waitForResponse((r) => r.url().includes('propose-from-image') && r.ok());
+      await page.locator('.gov-right-drawer-panel #gov-baseline-slide-input').setInputFiles(SLIDE_DMS_Q2);
+      await uploadDone;
       await expect(page.locator('[data-testid="gov-baseline-create-all"]')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('[data-testid="gov-baseline-create-work"]')).toBeVisible();
       await page.locator('[data-baseline-close]').first().click();
     });
 
-    await test.step('19 cadence honesty no false active without movement', async () => {
+    await test.step('19 cadence honesty dormant when no active sprint', async () => {
       const cadence = page.locator('[data-testid="gov-cadence-pack"]').first();
       if (await cadence.count()) {
         const health = await cadence.getAttribute('data-movement-health');
+        const status = await cadence.getAttribute('data-cadence-status');
         const text = await cadence.innerText();
         if (health === 'blocked') {
           expect(text).not.toMatch(/^In sprint · Active sprint$/);
+        }
+        if (status === 'none' || status === 'idle') {
+          expect(health).not.toBe('healthy');
         }
       }
     });
@@ -440,7 +464,20 @@ test.describe('Direct-Value Master Plan Round 8 realtime validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('22 final telemetry clean seal', async () => {
+    await test.step('22 sub-chrome API routes return 200', async () => {
+      const receipt = await request.get('/api/governance/worker-receipt.json?projects=SD');
+      if (receipt.status() === 401) {
+        test.skip(true, 'Auth required');
+        return;
+      }
+      expect(receipt.ok()).toBeTruthy();
+      const pi = await request.get('/api/governance/pi-confidence.json?projects=SD');
+      expect(pi.ok()).toBeTruthy();
+      const scope = await request.get('/api/governance/scope-intelligence.json?projects=SD');
+      expect(scope.ok()).toBeTruthy();
+    });
+
+    await test.step('23 final telemetry clean seal', async () => {
       await mockRound8Governance(page);
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;

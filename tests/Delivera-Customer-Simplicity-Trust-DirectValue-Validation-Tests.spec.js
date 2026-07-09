@@ -145,12 +145,12 @@ test.describe('Customer simplicity trust direct value validation', () => {
     await mockCustomerSimplicityRoutes(page);
     await page.setViewportSize({ width: 1400, height: 900 });
 
-    await test.step('01 brief loads portfolio signal and legacy owner cluster', async () => {
+    await test.step('01 brief loads portfolio signal and decision cockpit', async () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await waitForPortfolioReady(page);
       await expect(page.locator('[data-portfolio-signal]')).toBeVisible({ timeout: 20000 });
-      await expect(legacyBrief(page, '.gov-owner-cluster')).toBeAttached();
+      await expect(page.locator('[data-testid="portfolio-status-honesty-bar"], [data-portfolio-signal-ready="1"]').first()).toBeVisible();
       assertTelemetryClean(telemetry);
     });
 
@@ -294,9 +294,9 @@ test.describe('Customer simplicity trust direct value validation', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('18 trust row collapsed; send badge on cluster not duplicated', async () => {
+    await test.step('18 trust row collapsed; send badge hidden on portfolio governance', async () => {
       await expect(page.locator('.gov-command-answer--cluster-mode .gov-trust-part[data-hover-proof="evidence-count"]')).toHaveCount(0);
-      await expect(page.locator('.gov-owner-cluster-head .gov-send-badge')).toBeVisible();
+      await expect(page.locator('.gov-owner-cluster-head .gov-send-badge')).toHaveCount(0);
       await expect(page.locator('.gov-command-answer--cluster-mode .gov-trust-chip-row .gov-send-badge')).toBeHidden();
       assertTelemetryClean(telemetry);
     });

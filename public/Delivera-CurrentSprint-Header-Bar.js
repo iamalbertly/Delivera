@@ -880,16 +880,6 @@ export function wireHeaderBarHandlers() {
         return;
       }
 
-      const remediationSecondary = el.closest('[data-header-action="focus-remediation-secondary"]');
-      if (remediationSecondary && bar.contains(remediationSecondary)) {
-        event.preventDefault();
-        applyHeaderRiskAction(['blocker', 'no-log', 'missing-estimate', 'unassigned'], 'header-remediation-queue');
-        const scrollTarget = document.getElementById('stuck-card') || document.getElementById('stories-card');
-        if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(scrollTarget);
-        else scrollTarget?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-
       const resetFilters = el.closest('[data-header-action="reset-filters"]');
       if (resetFilters && bar.contains(resetFilters)) {
         event.preventDefault();
@@ -910,10 +900,11 @@ export function wireHeaderBarHandlers() {
         return;
       }
 
-      const openReportContext = el.closest('[data-context-action="open-report-context"]');
+      const openReportContext = el.closest('[data-header-action="open-report-context"], [data-context-action="open-report-context"]');
       if (openReportContext && bar.contains(openReportContext)) {
         event.preventDefault();
-        window.location.href = '/report';
+        const href = openReportContext.getAttribute('href');
+        window.location.href = href || '/report';
         return;
       }
 
@@ -1003,16 +994,6 @@ export function wireHeaderBarHandlers() {
         if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(carousel);
         else carousel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    });
-  }
-
-  const alertsBtn = headerBar.querySelector('[data-header-action="open-logging-alerts"]');
-  if (alertsBtn) {
-    alertsBtn.addEventListener('click', () => {
-      const storiesCard = document.getElementById('stories-card');
-      const risksCard = document.getElementById('stuck-card');
-      if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(risksCard || storiesCard);
-      else (risksCard || storiesCard)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     });
   }
 
