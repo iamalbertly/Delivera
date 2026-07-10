@@ -33,4 +33,27 @@ describe('PI focus synergy SSOT', () => {
     const next = applyPiFocusToSetupGaps(gaps, { synergy: 'ok' });
     assert.deepEqual(next, gaps);
   });
+
+  it('semantic title match keeps synergy ok when board aligns with baseline titles', () => {
+    const focus = buildPiFocusState({
+      baselineComparison: {
+        items: [
+          { issueKey: 'SD-100', title: 'FY27 Q1 Recharge Growth Trends Program' },
+          { issueKey: 'SD-101', title: 'FY27 Q1 Customer Onboarding Excellence' },
+        ],
+      },
+      meta: {
+        piBaselineCommittedKeys: ['SD-100'],
+        boardEpicIndex: [
+          { issueKey: 'SD-999', title: 'FY27 Q1 Recharge Growth Trends Delivery' },
+          { issueKey: 'SD-998', title: 'FY27 Q1 Customer Onboarding Excellence Epic' },
+        ],
+        piConfidence: { counts: { offPlan: 0 } },
+        epicHygiene: { score: 80 },
+      },
+    });
+    assert.equal(focus.synergy, 'ok');
+    assert.ok(focus.matchedCount >= 1);
+    assert.ok(focus.summary);
+  });
 });

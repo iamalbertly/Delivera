@@ -44,7 +44,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
-import { installPortfolioSurfaceHook, refreshPortfolioSurface } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
+import { installPortfolioSurfaceHook, refreshPortfolioSurface, paintPortfolioFromCache, paintPortfolioBentoSkeleton } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
 import { mountBriefScopeBarMode } from './Delivera-App-Governance-Brief-ScopeBar-05Brief-Mode-Render-UI.js';
 
 function resolveBaselineGapFlags(brief = {}) {
@@ -281,6 +281,7 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
   renderBriefUi(brief);
 
   if (isPortfolioPage) {
+    if (!paintPortfolioFromCache(brief)) paintPortfolioBentoSkeleton(brief);
     // Skip the first-paint refresh — the async block below seeds cases and refreshes once.
     // This eliminates the duplicate portfolio-decision.json POST that was firing on every page load.
     void (async () => {
@@ -588,7 +589,7 @@ export async function loadBrief(options = {}) {
     const { showPortfolioLoading } = await import('./Delivera-Governance-Brief-Page-02Loading-State.js');
     const preservePortfolio = hasGovernanceBriefContent() || Boolean(cached);
     showPortfolioLoading(
-      switchLabel || (cached ? 'Refreshing AI portfolio signal…' : 'AI agent is learning from your squad data…'),
+      switchLabel || (cached ? 'Refreshing quarter delivery vs commitment…' : 'Loading quarter delivery vs commitment for 4 squads…'),
       { preserveContent: preservePortfolio },
     );
   } else {

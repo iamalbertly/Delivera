@@ -199,14 +199,12 @@ export function dedupeCommitmentsByIssueKey(rows = []) {
   });
 }
 
-/** Hide prepared-actions stream when empty or when PI focus owns the verb. */
+/** Hide prepared-actions stream when empty — count badge links to Actions. */
 export function shouldHidePreparedActionsSection(decision = {}, brief = {}) {
   const items = decision?.preparedActions?.items || [];
   const groups = decision?.preparedActions?.groups || [];
-  const empty = !items.length && !groups.some((g) => Number(g.count) > 0);
-  if (empty) return true;
-  if (brief?.meta?.piFocus?.synergy === 'low') return true;
-  return false;
+  const totalReady = Number(decision?.preparedActions?.totalReady) || 0;
+  return !items.length && !groups.some((g) => Number(g.count) > 0) && totalReady <= 0;
 }
 
 export function maxStaleHoursFromBrief(brief = {}) {

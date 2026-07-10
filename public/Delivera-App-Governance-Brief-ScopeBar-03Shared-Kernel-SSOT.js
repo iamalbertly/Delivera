@@ -16,6 +16,9 @@ import { catalogProjectKeys, unionProjectKeys } from './Delivera-Shared-ProjectS
 export const GOV_PERIOD_WINDOW_KEY = 'gov-period-window';
 export const SCOPE_COLLAPSE_KEY = 'gov-scope-collapsed';
 export const LAST_VERDICT_KEY = 'delivera_lastVerdictTier';
+export const PORTFOLIO_PEER_PRESET_KEY = 'delivera_portfolio_peer_preset_v1';
+export const PORTFOLIO_DEFAULT_ANCHOR = 'SD';
+export const PORTFOLIO_DEFAULT_COMPARE = Object.freeze(['MAS', 'RPA', 'MPSA2']);
 
 export function isPortfolioScopePage(mount) {
   if (mount?.id === 'portfolio-scope-bar-mount') return true;
@@ -26,8 +29,26 @@ export function readScopeProjects() {
   try {
     if (localStorage.getItem(PROJECTS_SSOT_KEY) === '') return [];
   } catch (_) { /* ignore */ }
+  ensurePortfolioDefaultScope();
   const list = readSharedProjectsCsv();
   return list.length ? list : defaultSelectedKeys();
+}
+
+/** First visit to portfolio: DMS anchor + strategic peer compare preset. */
+export function ensurePortfolioDefaultScope() {
+  if (!isPortfolioScopePage()) return;
+  try {
+    const raw = localStorage.getItem(PROJECTS_SSOT_KEY);
+    if (raw !== null && String(raw).trim() !== '') return;
+    writePortfolioProjectsCsv(PORTFOLIO_DEFAULT_ANCHOR, [...PORTFOLIO_DEFAULT_COMPARE]);
+    writePortfolioAnchor(PORTFOLIO_DEFAULT_ANCHOR);
+    localStorage.setItem(PORTFOLIO_PEER_PRESET_KEY, '1');
+  } catch (_) { /* ignore */ }
+}
+
+export function readPortfolioCompareProjects(anchor = readPortfolioAnchor()) {
+  const A = String(anchor || '').trim().toUpperCase();
+  return readScopeProjects().filter((p) => String(p).toUpperCase() !== A);
 }
 
 export function writeScopeProjects(list) {

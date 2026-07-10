@@ -15,9 +15,10 @@ import {
   unionScopeProjectKeys,
   loadQuartersList,
   bindProjectsStorageSync,
+  ensurePortfolioDefaultScope,
 } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
-import { renderSinceLastCheckChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import { renderSinceLastCheckChip, renderTimeboxChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 import { renderScopeCadenceLine } from './Delivera-App-Governance-Cadence-01Pack-Render-UI.js';
 import { simpleStatusLabel, COPY, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
@@ -64,6 +65,8 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   }
 
   let projects = readScopeProjects();
+  ensurePortfolioDefaultScope();
+  projects = readScopeProjects();
   let anchor = readPortfolioAnchor(projects);
   let compare = projects.filter((p) => String(p).toUpperCase() !== String(anchor).toUpperCase());
   let quarters = [];
@@ -99,7 +102,9 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     });
 
     const cadenceHtml = renderScopeCadenceLine(getLastDecision?.() || {}, getBrief?.() || {});
-    const hideTimeframeDup = Boolean(cadenceHtml.trim());
+    const timeboxChip = renderTimeboxChip(getLastDecision?.() || {}, getBrief?.() || {});
+    const hideTimeframeDup = Boolean(cadenceHtml.trim() || timeboxChip.trim());
+    const breadcrumb = `<span class="portfolio-scope-breadcrumb" data-testid="portfolio-scope-breadcrumb">Portfolio / ${escapeHtml(displayName(anchor))} / Compare</span>`;
     const baselineOptions = baselineOptionsForBrief(getBrief?.() || {});
     const hideCompareSelect = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
       && Boolean(document.querySelector('[data-portfolio-carousel]'));
@@ -107,7 +112,9 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     mount.innerHTML = `
       <div class="portfolio-scope-filters${scopeCollapsed ? ' portfolio-scope-filters--collapsed' : ''}" data-portfolio-scope-filters>
         <div class="portfolio-scope-summary-strip" data-portfolio-scope-summary>
+          ${breadcrumb}
           ${cadenceHtml}
+          ${timeboxChip}
           <span class="gov-scope-since-wrap">${renderSinceLastCheckChip(getBrief?.() || {})}</span>
           ${renderStatusPill(statusTier)}
         </div>

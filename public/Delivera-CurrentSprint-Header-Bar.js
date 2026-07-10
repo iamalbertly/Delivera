@@ -1083,12 +1083,11 @@ export function wireHeaderBarHandlers() {
 
   try {
     const payload = getCurrentSprintPayload();
-    const sprintId = payload?.sprint?.id || '';
-    const autoKey = sprintId ? `delivera:sprint-auto-blocker:${sprintId}` : '';
+    const autoKey = 'delivera.sprint.autoBlocker.v1';
     const autoVerdict = deriveSprintVerdict(payload || {});
     const autoBlocked = String(autoVerdict?.verdict || '').toLowerCase().includes('blocked')
       || Number((payload?.stuckCandidates || []).length || 0) > 0;
-    if (autoKey && autoBlocked && sessionStorage.getItem(autoKey) !== '1') {
+    if (autoBlocked && sessionStorage.getItem(autoKey) !== '1') {
       sessionStorage.setItem(autoKey, '1');
       setRiskTagsState(['blocker']);
       window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {

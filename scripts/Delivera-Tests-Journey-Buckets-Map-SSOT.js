@@ -205,6 +205,12 @@ export const specMetadata = {
     page: '/governance,/actions,/api/governance/portfolio-decision.json',
     priority: 1,
   },
+  'tests/Delivera-Portfolio-DirectValue-MasterPlan-Round11-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.portfolio-direct-value-round11',
+    layer: 'page-ux',
+    page: '/governance,/actions,/current-sprint',
+    priority: 1,
+  },
 
   // Outcome intake and outcome-first UX
   'tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js': {
@@ -798,6 +804,13 @@ export const journeyBuckets = {
     label: 'Portfolio command surface and Actions merge',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.portfolio-command-surface',
+    ),
+  },
+  'journey.portfolio-direct-value-round11': {
+    id: 'journey.portfolio-direct-value-round11',
+    label: 'Portfolio direct-value Round 11 master plan',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.portfolio-direct-value-round11',
     ),
   },
 };

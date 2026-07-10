@@ -57,7 +57,50 @@ function renderBentoCard(card = {}) {
         <span>Decision</span>
         <strong>${escapeHtml(decisionLabel)}</strong>
       </div>
+      ${card.viewSquadHref ? `<a class="portfolio-bento-details-link" href="${escapeHtml(card.viewSquadHref)}" data-testid="portfolio-bento-details">View details →</a>` : ''}
     </article>`;
+}
+
+function renderSkeletonBentoCard({ projectKey = '', squadName = '', selected = false } = {}) {
+  return `
+    <article class="portfolio-bento-card portfolio-bento-card--skeleton${selected ? ' is-selected' : ''}"
+      data-squad-key="${escapeHtml(projectKey)}"
+      data-testid="portfolio-bento-card"
+      aria-busy="true">
+      <header class="portfolio-bento-card-head">
+        <strong class="portfolio-bento-squad">${escapeHtml(squadName || projectKey)}</strong>
+        <span class="portfolio-squad-status portfolio-squad-status--watch">Loading</span>
+      </header>
+      <dl class="portfolio-bento-metrics portfolio-bento-metrics--skeleton">
+        <div><dt>Promised impact</dt><dd>—</dd></div>
+        <div><dt>Delivered</dt><dd>—</dd></div>
+        <div><dt>Movement</dt><dd>—</dd></div>
+        <div><dt>Off-plan load</dt><dd>—</dd></div>
+        <div><dt>Proof confidence</dt><dd>—</dd></div>
+      </dl>
+    </article>`;
+}
+
+export function renderPortfolioCarouselSkeleton({ anchor = '', compare = [], resolveName } = {}) {
+  const nameFor = typeof resolveName === 'function'
+    ? resolveName
+    : (key) => key;
+  const keys = [anchor, ...compare.filter((k) => String(k).toUpperCase() !== String(anchor).toUpperCase())].slice(0, 4);
+  if (!keys.length) return '';
+  return `
+    <section class="portfolio-carousel-wrap portfolio-bento-grid" aria-label="Squad comparison" data-portfolio-carousel id="portfolio-compare" data-portfolio-carousel-skeleton="1">
+      <div class="portfolio-carousel-head">
+        <h2>Squad comparison</h2>
+        <p class="portfolio-carousel-strip">Delivery, proof, and investment posture across peers</p>
+      </div>
+      <div class="portfolio-bento-grid-track" data-carousel-track role="list">
+        ${keys.map((key) => renderSkeletonBentoCard({
+          projectKey: key,
+          squadName: nameFor(key),
+          selected: String(key).toUpperCase() === String(anchor).toUpperCase(),
+        })).join('')}
+      </div>
+    </section>`;
 }
 
 export function renderPortfolioCarousel(comparison = {}) {

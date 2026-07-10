@@ -12,10 +12,7 @@ export function renderStatusHonestyBar(brief = {}, decision = {}, { cached = fal
   const chips = [];
   const verdict = String(brief?.executiveView?.verdictTier || '').toLowerCase();
   if (verdict === 'blocked') chips.push({ key: 'blocked', label: 'Delivery blocked', tone: 'critical' });
-  if (brief?.meta?.piFocus?.synergy === 'low') chips.push({ key: 'pi-mismatch', label: 'PI not aligned', tone: 'warn' });
   if (cached || cachedAt) chips.push({ key: 'cached', label: formatCachedFreshness(cachedAt) || 'Cached view', tone: 'muted' });
-  const status = decision?.statusSemantics?.primary;
-  if (status === 'watch' && verdict !== 'blocked') chips.push({ key: 'watch', label: 'Watch', tone: 'watch' });
   const visible = chips.slice(0, 2);
   const overflow = chips.slice(2);
   if (!visible.length) return '';
@@ -36,10 +33,6 @@ export function quarterDayLabel(decision = {}, brief = {}) {
   return { total: safeTotal, elapsed: safeElapsed, pct: Math.round((safeElapsed / safeTotal) * 100), isSet: true };
 }
 
-/**
- * Compact time-box chip for the scope bar — "Q2 2026 · Day 38/90 · 42% time elapsed".
- * Returns empty string when time-box is not set (caller shows "Time-box not set" CTA).
- */
 export function renderTimeboxChip(decision = {}, brief = {}) {
   const tb = quarterDayLabel(decision, brief);
   const periodKey = decision.periodKey || brief?.meta?.quarter || 'Current';
@@ -49,9 +42,6 @@ export function renderTimeboxChip(decision = {}, brief = {}) {
   return `<span class="gov-scope-timebox-chip" data-portfolio-timebox>${escapeHtml(periodKey)} · Day ${tb.elapsed}/${tb.total} · ${tb.pct}% time elapsed</span>`;
 }
 
-/**
- * Compact "Since last check" chip for the scope bar.
- */
 export function renderSinceLastCheckChip(brief = {}) {
   const summary = brief?.meta?.sinceLastRun?.summary || '';
   if (!summary) return '';
@@ -69,38 +59,12 @@ function statusLabel(id = '') {
   return map[id] || 'Decision required';
 }
 
-function renderSourceBadge(label = 'Derived metric') {
-  return `<span class="portfolio-source-badge">${escapeHtml(label)}</span>`;
-}
-
-function renderSummaryMetric(label, value, hint = '', source = 'Derived metric', status = '') {
-  return `
-    <div class="portfolio-summary-metric${status ? ` portfolio-summary-metric--${escapeHtml(status)}` : ''}">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(String(value))}</strong>
-      ${hint ? `<small>${escapeHtml(hint)}</small>` : ''}
-      ${renderSourceBadge(source)}
-    </div>`;
-}
-
 function renderCompactChip(label, value, status = '') {
   return `
     <span class="portfolio-summary-chip${status ? ` portfolio-summary-chip--${escapeHtml(status)}` : ''}" data-portfolio-summary-chip>
       <span class="portfolio-summary-chip-label">${escapeHtml(label)}</span>
       <strong>${escapeHtml(String(value))}</strong>
     </span>`;
-}
-
-function renderCommitmentReconciler(decision = {}) {
-  const epic = decision.epicLineage || {};
-  if (!epic.label) return '';
-  const confidence = epic.hasLineage ? 'Aligned' : 'Needs mapping';
-  return `
-    <div class="portfolio-reconciler-strip" data-portfolio-reconciler>
-      <span><strong>Baseline commitment</strong>${escapeHtml(decision.periodKey || 'Current PI')}</span>
-      <span><strong>Live Jira epic</strong>${escapeHtml(epic.label)}</span>
-      <span class="portfolio-reconciler-status">${escapeHtml(confidence)}</span>
-    </div>`;
 }
 
 function renderDataTrust(dataTrust = {}, freshness = '') {
@@ -120,45 +84,76 @@ export function renderPortfolioDataTrust(decision = {}, freshness = '') {
   return renderDataTrust(decision.dataTrust || {}, freshness);
 }
 
-function renderEvidenceSummary(evidence = {}) {
-  const tiers = [
-    ['Delivery evidence', evidence.delivery],
-    ['Acceptance evidence', evidence.acceptance],
-    ['Outcome evidence', evidence.outcome],
-    ['Contribution evidence', evidence.contribution],
-  ];
+function renderHeroCompactMetrics(summary = {}, evidence = {}, required = {}) {
+  const onTrack = `${Number(summary.commitmentsOnTrack) || 0}/${Number(summary.commitmentsTotal) || 0}`;
+  const atRisk = `${Number(summary.commitmentsAtRisk) || 0}/${Number(summary.commitmentsTotal) || 0}`;
+  const evidenceLabel = `${evidence.confidenceLabel || 'Medium'} · ${Number(evidence.available) || 0}/${Number(evidence.required) || 0}`;
   return `
-    <aside class="portfolio-evidence-summary" data-portfolio-evidence-summary aria-label="Decision evidence">
-      <p class="portfolio-evidence-label">Decision evidence</p>
-      <h3>${escapeHtml(evidence.confidenceLabel || 'Medium')} confidence</h3>
-      <p>${escapeHtml(evidence.interpretation || `${Number(evidence.available) || 0} of ${Number(evidence.required) || 0} evidence points available`)}</p>
-      <dl>
-        ${tiers.map(([label, tier]) => `
-          <div>
-            <dt>${escapeHtml(label)}</dt>
-            <dd>${Number(tier?.available) || 0}/${Number(tier?.required) || 0}</dd>
-          </div>`).join('')}
-      </dl>
-      <div class="portfolio-evidence-actions">
-        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="view-governance-evidence">View evidence</button>
-        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="copy-evidence-summary">Copy evidence summary</button>
-      </div>
-    </aside>`;
+    <div class="portfolio-summary-metrics portfolio-summary-metrics--compact" data-portfolio-summary>
+      ${renderCompactChip('On track', onTrack, 'healthy')}
+      ${renderCompactChip('At risk', atRisk, summary.commitmentsAtRisk ? 'evidence-gap' : 'healthy')}
+      ${renderCompactChip('Evidence', evidenceLabel, evidence.confidenceLabel === 'Low' ? 'evidence-gap' : '')}
+    </div>`;
 }
 
-function renderInterpretationRows(decision = {}) {
-  const narrative = decision.narrative || {};
-  const peer = decision.peerComparison || {};
-  const rows = [
-    ['Fact', decision.decisionRequired?.impact || 'No material commitment exposure detected'],
-    ['Derived metric', decision.evidenceBreakdown?.interpretation || 'Evidence confidence is being calculated'],
-    ['AI draft', peer.sentence || narrative.summary || 'No AI interpretation required for this view'],
-    ['Human confirmation pending', decision.decisionRequired?.recommendedAction || 'Confirm the portfolio decision owner'],
-  ];
+function movementLabel(delivered = 0) {
+  const d = Number(delivered) || 0;
+  if (d >= 60) return 'High';
+  if (d >= 30) return 'Medium';
+  return 'Low';
+}
+
+function investmentHeadline(decision = {}) {
+  return decision.recommendation?.label
+    || decision.narrative?.headline
+    || decision.decisionRequired?.issue
+    || 'Investment review recommended';
+}
+
+function investmentSubtext(decision = {}, brief = {}) {
+  const peer = decision.peerComparison?.sentence;
+  if (peer) return peer;
+  const metrics = decision.metrics || {};
+  const delivery = Number(metrics.delivery?.value) || 0;
+  const offPlan = Number(metrics.offPlanLoad?.value) || 0;
+  const proof = Number(metrics.proofConfidence?.value) || 0;
+  const anchor = decision.anchorProject || 'This squad';
+  if (delivery || offPlan || proof) {
+    return `${anchor} has ${delivery}% delivery against promised impact, ${offPlan}% off-plan load, and ${proof}% proof confidence compared with peer squads.`;
+  }
+  return decision.narrative?.summary
+    || decision.decisionRequired?.impact
+    || brief?.meta?.piFocus?.summary
+    || '';
+}
+
+function renderSynergyChip(brief = {}) {
+  if (brief?.meta?.piFocus?.synergy !== 'low') return '';
+  const summary = brief?.meta?.piFocus?.summary || 'PI alignment needs review';
+  return `<button type="button" class="portfolio-synergy-chip btn btn-link btn-compact" data-portfolio-action="open-alignment-studio" title="${escapeHtml(summary)}">PI alignment · review</button>`;
+}
+
+function renderHeroInlineProof(brief = {}) {
+  const topProof = (brief?.evidencePack?.rows || [])[0];
+  if (!topProof) return '';
+  return `<p class="portfolio-hero-inline-proof" data-testid="portfolio-hero-inline-proof"><strong>${escapeHtml(topProof.issueKey || 'Proof')}</strong> · ${escapeHtml(topProof.whyFlagged || topProof.statusNow || 'Needs review')}</p>`;
+}
+
+function renderHeroPrimaryActions(decision = {}, brief = {}) {
+  const recommended = decision.recommendation?.id || 'track-commitments';
+  const anchor = decision.anchorProject || '';
+  const squadHref = anchor
+    ? `/current-sprint?projects=${encodeURIComponent(anchor)}${decision.periodKey ? `&period=${encodeURIComponent(decision.periodKey)}` : ''}`
+    : '/current-sprint';
+  const primaryLabel = decisionActionLabel(decision, brief);
+  const cachedNote = decision._cachedView ? ' title="Confirm using cached portfolio data"' : '';
   return `
-    <div class="portfolio-interpretation-rows" data-portfolio-interpretation-rows>
-      ${rows.map(([label, value]) => `
-        <p><span>${escapeHtml(label)}</span>${escapeHtml(value)}</p>`).join('')}
+    <div class="portfolio-signal-actions portfolio-signal-actions--hero-cta" data-testid="portfolio-hero-ctas">
+      <button type="button" class="btn btn-primary btn-compact" data-testid="portfolio-primary-cta" data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}"${cachedNote}>${escapeHtml(primaryLabel)}</button>
+      <div class="portfolio-signal-link-row">
+        <button type="button" class="btn btn-link btn-compact" data-portfolio-action="view-governance-evidence">Evidence</button>
+        <a class="btn btn-link btn-compact" href="${escapeHtml(squadHref)}">Squad work</a>
+      </div>
     </div>`;
 }
 
@@ -185,49 +180,7 @@ function renderUnalignedStories(epic = {}) {
     </div>`;
 }
 
-function renderHeroCompactMetrics(summary = {}, evidence = {}, required = {}) {
-  const onTrack = `${Number(summary.commitmentsOnTrack) || 0}/${Number(summary.commitmentsTotal) || 0}`;
-  const atRisk = `${Number(summary.commitmentsAtRisk) || 0}/${Number(summary.commitmentsTotal) || 0}`;
-  const evidenceLabel = `${evidence.confidenceLabel || 'Medium'} · ${Number(evidence.available) || 0}/${Number(evidence.required) || 0}`;
-  return `
-    <div class="portfolio-summary-metrics portfolio-summary-metrics--compact" data-portfolio-summary>
-      ${renderCompactChip('On track', onTrack, 'healthy')}
-      ${renderCompactChip('At risk', atRisk, summary.commitmentsAtRisk ? 'evidence-gap' : 'healthy')}
-      ${renderCompactChip('Evidence', evidenceLabel, evidence.confidenceLabel === 'Low' ? 'evidence-gap' : '')}
-    </div>`;
-}
-
-function movementLabel(delivered = 0) {
-  const d = Number(delivered) || 0;
-  if (d >= 60) return 'High';
-  if (d >= 30) return 'Medium';
-  return 'Low';
-}
-
-function renderHeroPrimaryActions(decision = {}, brief = {}) {
-  const recommended = decision.recommendation?.id || 'track-commitments';
-  const synergyLow = brief?.meta?.piFocus?.synergy === 'low';
-  const anchor = decision.anchorProject || '';
-  const squadHref = anchor
-    ? `/current-sprint?projects=${encodeURIComponent(anchor)}${decision.periodKey ? `&period=${encodeURIComponent(decision.periodKey)}` : ''}`
-    : '/current-sprint';
-  const primaryAttr = synergyLow
-    ? 'data-portfolio-action="open-alignment-studio"'
-    : `data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}"`;
-  const primaryLabel = synergyLow ? COPY.alignmentStudioOpen : decisionActionLabel(decision, brief);
-  const cachedDisabled = decision._cachedView ? ' disabled aria-disabled="true"' : '';
-  return `
-    <div class="portfolio-signal-actions portfolio-signal-actions--hero-cta" data-testid="portfolio-hero-ctas">
-      <button type="button" class="btn btn-primary btn-compact" data-testid="portfolio-primary-cta" ${primaryAttr}${cachedDisabled}>${escapeHtml(primaryLabel)}</button>
-      <div class="portfolio-signal-link-row">
-        <button type="button" class="btn btn-link btn-compact" data-portfolio-action="focus-compare">Compare peers</button>
-        <button type="button" class="btn btn-link btn-compact" data-portfolio-action="view-governance-evidence">Evidence</button>
-        <a class="btn btn-link btn-compact" href="${escapeHtml(squadHref)}">Squad work</a>
-      </div>
-    </div>`;
-}
-
-function renderHeroDetails(decision = {}, brief = {}, { epic = {}, summary = {}, evidence = {}, required = {}, tb = {} } = {}) {
+function renderHeroDetails(decision = {}, brief = {}, { epic = {} } = {}) {
   const unalignedCount = Number(epic.unalignedStoryCount) || 0;
   if (!unalignedCount && !epic.label) return '';
   return `
@@ -238,42 +191,14 @@ function renderHeroDetails(decision = {}, brief = {}, { epic = {}, summary = {},
 }
 
 function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', cached = false } = {}) {
-  const synergyLow = brief?.meta?.piFocus?.synergy === 'low';
   const epic = decision.epicLineage || {};
   const summary = decision.portfolioSummary || {};
   const evidence = decision.evidenceBreakdown || {};
   const required = decision.decisionRequired || {};
   const status = decision.statusSemantics?.primary || 'decision-required';
-  const tb = quarterDayLabel(decision, brief);
   const freshness = cached || cachedAt ? formatCachedFreshness(cachedAt) : '';
-  const headline = decision.recommendation?.label
-    || decision.narrative?.headline
-    || required.issue
-    || 'Confirm portfolio decision';
-  const subtext = decision.peerComparison?.sentence
-    || decision.narrative?.summary
-    || required.impact
-    || '';
-
-  if (synergyLow) {
-    return `
-      <section class="portfolio-signal portfolio-signal--hero portfolio-signal--synergy-low" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
-        ${renderStatusHonestyBar(brief, decision, { cached, cachedAt })}
-        <div class="portfolio-signal-hero-row">
-          <span class="portfolio-signal-verdict-icon" aria-hidden="true">⚖</span>
-          <div class="portfolio-signal-hero-copy">
-            <div class="portfolio-signal-top">
-              <p class="portfolio-signal-kicker">Portfolio decision${freshness ? ` · <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
-              <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
-              <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
-            </div>
-            <h1 class="portfolio-signal-headline portfolio-signal-headline--hero">${escapeHtml(COPY.alignmentStudioOpen)}</h1>
-            <p class="portfolio-signal-verdict">${escapeHtml(brief?.meta?.piFocus?.summary || 'PI baseline is not aligned with live board work.')}</p>
-            ${renderHeroPrimaryActions(decision, brief)}
-          </div>
-        </div>
-      </section>`;
-  }
+  const headline = investmentHeadline(decision);
+  const subtext = investmentSubtext(decision, brief);
 
   return `
     <section class="portfolio-signal portfolio-signal--hero portfolio-decision-cockpit" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
@@ -284,17 +209,18 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
           <div class="portfolio-signal-top">
             <p class="portfolio-signal-kicker">Portfolio decision${freshness ? ` · <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
             <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
+            ${renderSynergyChip(brief)}
             <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
           </div>
           <h1 class="portfolio-signal-headline portfolio-signal-headline--hero">${escapeHtml(headline)}</h1>
           ${subtext ? `<p class="portfolio-signal-verdict">${escapeHtml(subtext)}</p>` : ''}
+          ${renderHeroInlineProof(brief)}
           ${renderHeroCompactMetrics(summary, evidence, required)}
           ${renderHeroPrimaryActions(decision, brief)}
           ${unalignedBadge(epic)}
-          ${renderDataTrust(decision.dataTrust || {}, freshness)}
         </div>
       </div>
-      ${renderHeroDetails(decision, brief, { epic, summary, evidence, required, tb })}
+      ${renderHeroDetails(decision, brief, { epic })}
     </section>`;
 }
 

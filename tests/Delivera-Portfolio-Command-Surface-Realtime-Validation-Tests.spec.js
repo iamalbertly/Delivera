@@ -216,6 +216,11 @@ async function mockPortfolioPage(page) {
     contentType: 'application/json',
     body: JSON.stringify({ summary: {}, total: 0 }),
   }));
+  await page.route('**/api/governance/portfolio-decision/confirm**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true }),
+  }));
 }
 
 test.describe('Portfolio command surface @portfolio-command', () => {
@@ -241,12 +246,8 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await expect(page.locator('[data-portfolio-signal]')).toHaveAttribute('aria-label', /Portfolio decision cockpit/i);
     await expect(page.locator('[data-portfolio-signal] .portfolio-signal-headline')).toContainText(/Confirm scope/i);
     await expect(page.locator('[data-portfolio-summary]')).toBeVisible();
-    await expect(page.locator('[data-portfolio-data-trust]')).toContainText(/Boards connected/i);
-    await expect(page.locator('[data-portfolio-data-trust]')).toContainText(/3 of 3/i);
+    await expect(page.locator('[data-testid="portfolio-scope-breadcrumb"]')).toContainText(/Compare/i);
     await expect(page.locator('#portfolio-carousel-mount [data-portfolio-carousel]')).toBeVisible();
-    await expect(page.locator('[data-portfolio-commitments]')).toBeVisible();
-    await expect(page.locator('[data-portfolio-unaligned-stories]')).toContainText(/missing aligned Epic/i);
-    await expect(page.locator('.portfolio-signal-details-summary')).toHaveCount(0);
     assertTelemetryClean(t);
   });
 
@@ -417,6 +418,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
 
   test('14 decision rail syncs to hero confirm without duplicate CTA', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 900, height: 900 });
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;

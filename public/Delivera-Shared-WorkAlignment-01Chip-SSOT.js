@@ -2,11 +2,20 @@
  * SSOT: PI alignment classification for work items.
  */
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { matchesAnyBaselineTitle } from './Delivera-Governance-TitleSimilarity-01SSOT.js';
 
-export function classifyWorkAlignment({ epicKey = '', piBaselineCommittedKeys = [], adHocEpicKeys = [] } = {}) {
+export function classifyWorkAlignment({
+  epicKey = '',
+  epicTitle = '',
+  piBaselineCommittedKeys = [],
+  baselineItems = [],
+  adHocEpicKeys = [],
+} = {}) {
   const ek = String(epicKey || '').trim().toUpperCase();
   const baseline = new Set((piBaselineCommittedKeys || []).map((k) => String(k).toUpperCase()));
   const adHoc = new Set((adHocEpicKeys || []).map((k) => String(k?.issueKey || k).toUpperCase()));
+  const items = Array.isArray(baselineItems) ? baselineItems : [];
+
   if (!ek) {
     return { tier: 'adHoc', label: COPY.adHocWork, title: 'No epic link — treated as ad-hoc' };
   }
@@ -15,6 +24,9 @@ export function classifyWorkAlignment({ epicKey = '', piBaselineCommittedKeys = 
   }
   if (baseline.size && baseline.has(ek)) {
     return { tier: 'pi', label: COPY.piAligned, title: 'Linked to committed PI epic' };
+  }
+  if (baseline.size && items.length && matchesAnyBaselineTitle(epicTitle, items)) {
+    return { tier: 'pi', label: COPY.piAligned, title: 'Linked by title to PI commitment — confirm epic key' };
   }
   if (baseline.size) {
     return { tier: 'offPi', label: COPY.offPi, title: 'Epic not in saved PI baseline' };

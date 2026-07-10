@@ -66,6 +66,20 @@ function appendRuntimeAlert({ level, message, source }) {
   } catch (_) {}
 }
 
+function diagnosticsEnabled() {
+  try {
+    if (new URLSearchParams(window.location.search).get('debug') === '1') return true;
+    return localStorage.getItem('delivera_diagnostics_v1') === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
+function maybeAppendRuntimeAlert(opts) {
+  if (!diagnosticsEnabled()) return;
+  appendRuntimeAlert(opts);
+}
+
 export function initRuntimeNotificationBridge() {
   if (installed || typeof window === 'undefined') return;
   if (!isLocalDevHost()) return;
@@ -79,9 +93,8 @@ export function initRuntimeNotificationBridge() {
       origError(...args);
     } finally {
       const text = normalizeArgs(args);
-      // Single SSOT for extension noise — replaces the deleted installExtensionTrustHint wrapper.
       if (/runtime\.lastError|message port closed|extension/i.test(text)) return;
-      appendRuntimeAlert({ level: 'error', message: text, source: 'console.error' });
+      maybeAppendRuntimeAlert({ level: 'error', message: text, source: 'console.error' });
     }
   };
 
@@ -91,7 +104,7 @@ export function initRuntimeNotificationBridge() {
     } finally {
       const text = normalizeArgs(args);
       if (/runtime\.lastError|message port closed|extension/i.test(text)) return;
-      appendRuntimeAlert({ level: 'warn', message: text, source: 'console.warn' });
+      maybeAppendRuntimeAlert({ level: 'warn', message: text, source: 'console.warn' });
     }
   };
 
@@ -99,7 +112,7 @@ export function initRuntimeNotificationBridge() {
     'error',
     (ev) => {
       const msg = ev?.message || (ev?.error && ev.error.message) || 'Script error';
-      appendRuntimeAlert({ level: 'error', message: String(msg), source: 'window.error' });
+      maybeAppendRuntimeAlert({ level: 'error', message: String(msg), source: 'window.error' });
     },
     true,
   );
@@ -107,7 +120,7 @@ export function initRuntimeNotificationBridge() {
   window.addEventListener('unhandledrejection', (ev) => {
     const r = ev.reason;
     const msg = r instanceof Error ? r.stack || r.message : String(r);
-    appendRuntimeAlert({ level: 'error', message: msg, source: 'unhandledrejection' });
+    maybeAppendRuntimeAlert({ level: 'error', message: msg, source: 'unhandledrejection' });
   });
 }
 

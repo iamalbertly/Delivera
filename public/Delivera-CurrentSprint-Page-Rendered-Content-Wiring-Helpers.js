@@ -228,12 +228,12 @@ function wireNoClickJourneys() {
       else if (blockers > 0) riskTag = 'blocker';
       else if (unowned > 0) riskTag = 'unassigned';
       if (applyFilter && riskTag) {
-        const autoKey = 'delivera.currentSprint.autoRiskFilter.v1';
+        const autoKey = 'delivera.sprint.autoBlocker.v1';
         const alreadyFiltered = sessionStorage.getItem(autoKey) === '1';
         if (!alreadyFiltered) {
           sessionStorage.setItem(autoKey, '1');
           window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
-            detail: { riskTags: [riskTag], source: 'auto-top-risk' },
+            detail: { riskTags: [riskTag], source: 'auto-blocker' },
           }));
         }
       }

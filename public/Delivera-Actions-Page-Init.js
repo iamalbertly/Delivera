@@ -232,6 +232,9 @@ async function openCaseReview(caseId) {
 
 async function init() {
   document.title = 'Actions | Delivera';
+  if (window.matchMedia('(min-width: 1024px)').matches) {
+    document.body.classList.add('actions-preview-desktop');
+  }
   await paint();
   const reviewId = readQuery().get('caseId');
   if (readQuery().get('review') === '1' && reviewId) await openCaseReview(reviewId);

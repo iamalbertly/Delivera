@@ -2,8 +2,8 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 export function decisionActionLabel(decision = {}, brief = {}) {
-  if (brief?.meta?.piFocus?.synergy === 'low') return COPY.alignmentStudioOpen;
   const action = decision.decisionRequired?.recommendedAction || '';
+  if (/review investment/i.test(action) || decision.recommendation?.id === 'review-investment') return 'Review investment';
   if (/scope/i.test(action)) return 'Confirm PI scope';
   if (/clarification|confirm/i.test(action)) return 'Request clarification';
   if (/escalat/i.test(action)) return 'Escalate decision';
@@ -29,13 +29,12 @@ export function renderWhyThisMatters(drivers = []) {
 function renderNextDecisionRadios(decision = {}, brief = {}) {
   const options = decision.decisionOptions || [];
   const anchor = decision.anchorProject || 'this squad';
-  const synergyLow = brief?.meta?.piFocus?.synergy === 'low';
-  if (synergyLow || !options.length) {
+  if (!options.length) {
     return `
       <section class="portfolio-next-decision" aria-label="Next decision">
         <h2 class="portfolio-next-decision-title">Next decision</h2>
         <p class="portfolio-next-decision-prompt">Investment posture for ${escapeHtml(anchor)}</p>
-        <p class="portfolio-next-decision-hint">Confirm in the hero above when scope is aligned.</p>
+        <p class="portfolio-next-decision-hint">Use the hero button to confirm when ready.</p>
       </section>`;
   }
   const recommended = decision.recommendation?.id || 'review-investment';
@@ -43,7 +42,6 @@ function renderNextDecisionRadios(decision = {}, brief = {}) {
   if (recommended === 'move-capacity') defaultId = 'move-capacity';
   else if (recommended === 'continue-scale' || recommended === 'continue-improve') defaultId = 'keep-funding';
   else if (recommended === 'review-scope' || recommended === 'insufficient-evidence') defaultId = 'keep-funding';
-  const selected = options.find((o) => o.id === defaultId) || options[0];
 
   return `
     <section class="portfolio-next-decision" aria-label="Next decision">
@@ -57,14 +55,14 @@ function renderNextDecisionRadios(decision = {}, brief = {}) {
             <span class="portfolio-decision-radio-hint">${escapeHtml(opt.hint || '')}</span>
           </label>`).join('')}
       </fieldset>
-      <p class="portfolio-next-decision-hint">Selected: <strong>${escapeHtml(selected?.label || '')}</strong> — confirm with the hero button.</p>
     </section>`;
 }
 
 function renderQuickLinks(decision = {}) {
   const anchor = decision.anchorProject || '';
+  const period = decision.periodKey ? `&period=${encodeURIComponent(decision.periodKey)}` : '';
   const squadHref = anchor
-    ? `/current-sprint?projects=${encodeURIComponent(anchor)}`
+    ? `/current-sprint?projects=${encodeURIComponent(anchor)}${period}`
     : '/current-sprint';
   return `
     <nav class="portfolio-quick-links" aria-label="Quick links">
@@ -100,6 +98,9 @@ export function bindPortfolioDecisionPanel(root, onConfirm) {
       el.classList.toggle('is-selected', el.contains(input));
     });
     syncHeroDecisionId(input.value);
+    if (typeof onConfirm === 'function' && window.matchMedia('(min-width: 1024px)').matches) {
+      void onConfirm(input.value);
+    }
   });
   root._portfolioConfirmHandler = onConfirm;
 }
