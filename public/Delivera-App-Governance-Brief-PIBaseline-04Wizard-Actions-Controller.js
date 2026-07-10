@@ -125,9 +125,36 @@ export function createPiBaselineWizardActions(ctx) {
 
   async function handleSlideUpload(file, bodyEl, projects, csv, quarterLabel, priorData) {
     if (!file || !bodyEl) return;
-    bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}<br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.baselineSlideMatching)}</span><br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.aiSlideReadingSub)}</span></p>`;
+    // Progressive feedback with elapsed time + cancel (Edge 2 — no silent 60s wait)
+    const startTime = Date.now();
+    let progressEl = bodyEl.querySelector('[data-testid="gov-baseline-slide-progress"]');
+    if (!progressEl) {
+      bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true" data-testid="gov-baseline-slide-progress">${escapeHtml(COPY.baselineSlideReading)}<br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.baselineSlideProgressRead)} → ${escapeHtml(COPY.baselineSlideProgressExtract)} → ${escapeHtml(COPY.baselineSlideProgressMatch)}</span><br><span class="gov-baseline-loading-sub">${escapeHtml(COPY.aiSlideReadingSub)}</span><br><span class="gov-baseline-slide-elapsed" data-slide-elapsed>0s</span> <button type="button" class="btn btn-link btn-compact" data-slide-cancel>Cancel</button></p>`;
+      progressEl = bodyEl.querySelector('[data-testid="gov-baseline-slide-progress"]');
+    }
+    const elapsedEl = progressEl?.querySelector('[data-slide-elapsed]');
+    const cancelBtn = progressEl?.querySelector('[data-slide-cancel]');
+    const elapsedTimer = elapsedEl ? setInterval(() => {
+      const secs = Math.floor((Date.now() - startTime) / 1000);
+      if (elapsedEl) elapsedEl.textContent = secs + 's';
+      // Progressive messages at 30s and 45s
+      if (secs === 30 && elapsedEl) {
+        elapsedEl.parentElement?.querySelector('.gov-baseline-loading-sub:last-of-type')?.insertAdjacentHTML('afterend', `<br><span class="gov-baseline-loading-sub">Still working — large images take longer</span>`);
+      }
+      if (secs === 45 && elapsedEl) {
+        elapsedEl.parentElement?.querySelector('.gov-baseline-loading-sub:last-of-type')?.insertAdjacentHTML('afterend', `<br><span class="gov-baseline-loading-sub">Almost there — or cancel and retry with a smaller image</span>`);
+      }
+    }, 1000) : null;
+    // Client-side AbortController (Edge 2 — server already has it)
+    const abortController = new AbortController();
+    if (cancelBtn) cancelBtn.addEventListener('click', () => {
+      abortController.abort();
+      if (elapsedTimer) clearInterval(elapsedTimer);
+      restoreAfterUploadError(bodyEl, priorData, projects, csv, quarterLabel, { message: 'Upload cancelled', code: 'CANCELLED' });
+    });
     try {
-      const data = await postSlidePropose({ file, projects, projectsCsv: csv });
+      const data = await postSlidePropose({ file, projects, projectsCsv: csv, signal: abortController.signal });
+      if (elapsedTimer) clearInterval(elapsedTimer);
       cacheSlideProposeResult(data);
       state.lastSlideData = data;
       try { sessionStorage.setItem(SLIDE_UPLOAD_OK_KEY, '1'); } catch (_) { /* ignore */ }
@@ -135,10 +162,25 @@ export function createPiBaselineWizardActions(ctx) {
       const confirmable = (data.candidates || []).filter((c) => c.issueKey);
       if (!confirmable.length && !(data.extracted || []).length) {
         const jiraUrl = await resolveJiraBoardUrl(projects);
-        const failHint = data.extractionMeta?.fallbackUsed || !data.extractionMeta?.aiContributed
-          ? COPY.baselineSlideReadFailed
-          : (data.guidance || COPY.baselineSlideReadFailed);
-        bodyEl.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, true, failHint, cap());
+        // Resolve the SPECIFIC failure reason instead of a generic message.
+        const failHint = resolveSlideFailReason(data, cap());
+        bodyEl.innerHTML = renderEmpty(data, jiraUrl, csv, quarterLabel, true, failHint.text, cap());
+        // Inject actionable CTAs (Add AI key / Retry / Open settings) inline.
+        const ctaMount = bodyEl.querySelector('[data-testid="gov-baseline-slide-fail-cta"]') || bodyEl.querySelector('.gov-baseline-empty-hint');
+        if (ctaMount && failHint.cta) {
+          const cta = document.createElement('div');
+          cta.className = 'gov-baseline-slide-fail-cta';
+          cta.setAttribute('data-testid', 'gov-baseline-slide-fail-cta');
+          cta.innerHTML = failHint.cta;
+          ctaMount.after(cta);
+          cta.querySelector('[data-slide-retry]')?.addEventListener('click', () => {
+            const input = bodyEl.querySelector('#gov-baseline-slide-input');
+            if (input) input.click();
+          });
+          cta.querySelector('[data-slide-open-settings]')?.addEventListener('click', () => {
+            window.location.href = '/settings#ai-provider';
+          });
+        }
         bindPanel(bodyEl, priorData || data, projects, csv, quarterLabel);
         return;
       }
@@ -148,6 +190,51 @@ export function createPiBaselineWizardActions(ctx) {
       void refreshAiTrustPill();
       await restoreAfterUploadError(bodyEl, priorData, projects, csv, quarterLabel, err);
     }
+  }
+
+  /**
+   * Resolve the specific reason a slide upload returned no commitments.
+   * Returns { text, cta } where cta is an HTML string with inline actions.
+   * Edge cases: (a) no AI key, (b) AI timeout, (c) no readable text,
+   * (d) quota exceeded, (e) squad mismatch, (f) generic fallback.
+   */
+  function resolveSlideFailReason(data, capability) {
+    const meta = data?.extractionMeta || {};
+    const guidance = String(data?.guidance || '').toLowerCase();
+    const slideVisionReady = Boolean(capability?.slideVisionReady);
+    // (a) No AI key configured.
+    if (!slideVisionReady || meta.fallbackUsed === true && /check ai key/i.test(guidance)) {
+      return {
+        text: COPY.baselineSlideFailNoKey,
+        cta: `<button type="button" class="btn btn-primary btn-compact" data-slide-open-settings>${escapeHtml(COPY.baselineSlideFailNoKeyCta)}</button> <button type="button" class="btn btn-secondary btn-compact" data-slide-retry>${escapeHtml(COPY.baselineSlideFailCtaRetry)}</button>`,
+      };
+    }
+    // (b) AI timeout.
+    if (/timeout|timed out/i.test(guidance)) {
+      return {
+        text: COPY.baselineSlideFailTimeout,
+        cta: `<button type="button" class="btn btn-primary btn-compact" data-slide-retry>${escapeHtml(COPY.baselineSlideFailCtaRetry)}</button>`,
+      };
+    }
+    // (c) No readable text.
+    if (/no text|no readable|unreadable/i.test(guidance) || (meta.parseError && /json|parse/i.test(meta.parseError))) {
+      return {
+        text: COPY.baselineSlideFailNoText,
+        cta: `<button type="button" class="btn btn-primary btn-compact" data-slide-retry>${escapeHtml(COPY.baselineSlideFailCtaRetry)}</button>`,
+      };
+    }
+    // (d) Quota exceeded.
+    if (/quota|rate limit|429/i.test(guidance)) {
+      return {
+        text: COPY.baselineSlideFailQuota,
+        cta: `<button type="button" class="btn btn-secondary btn-compact" data-slide-open-settings>${escapeHtml(COPY.baselineSlideFailCtaSettings)}</button>`,
+      };
+    }
+    // (f) Generic fallback — still actionable with retry + settings.
+    return {
+      text: COPY.baselineSlideFailGeneric,
+      cta: `<button type="button" class="btn btn-primary btn-compact" data-slide-retry>${escapeHtml(COPY.baselineSlideFailCtaRetry)}</button> <button type="button" class="btn btn-link btn-compact" data-slide-open-settings>${escapeHtml(COPY.baselineSlideFailCtaSettings)}</button>`,
+    };
   }
 
   function patchSlideUpload(el, data, projects, csv, quarterLabel) {

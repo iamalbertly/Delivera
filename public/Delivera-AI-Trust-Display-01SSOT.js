@@ -6,13 +6,27 @@ import { hasAiProviderKey } from './Delivera-Shared-AI-Provider-Pref-01Helper.js
 import { resolveAiReadiness } from './Delivera-AI-Readiness-01SSOT.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
-async function fetchUsage24h() {
+// Client-side cache for AI usage data — prevents 8+ duplicate fetches per page load.
+// TTL: 60 seconds. Multiple components (trust pill, portfolio badge, load controller)
+// all call resolveAiTrustDisplay() simultaneously on page load.
+let _cachedUsage = null;
+let _cachedUsageAt = 0;
+const USAGE_CACHE_TTL_MS = 60000;
+
+async function fetchUsage24h(opts = {}) {
+  const now = Date.now();
+  if (!opts.forceStatus && _cachedUsage && (now - _cachedUsageAt) < USAGE_CACHE_TTL_MS) {
+    return _cachedUsage;
+  }
   try {
     const res = await fetch('/api/settings/ai-usage.json?hours=24', { credentials: 'include' });
-    if (!res.ok) return null;
-    return res.json();
+    if (!res.ok) return _cachedUsage || null;
+    const data = await res.json();
+    _cachedUsage = data;
+    _cachedUsageAt = now;
+    return data;
   } catch (_) {
-    return null;
+    return _cachedUsage || null;
   }
 }
 

@@ -174,7 +174,7 @@ body.governance-page .gov-portfolio-banner-line {
   right: 16px;
   bottom: 16px;
   max-width: 360px;
-  z-index: 1200;
+  z-index: var(--z-chrome);
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;

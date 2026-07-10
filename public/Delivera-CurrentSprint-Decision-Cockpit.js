@@ -319,7 +319,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
     + (viewportLean ? buildSummaryStrip(data, cockpit) : buildSummaryStrip(data, cockpit))
-    + '<details class="decision-cockpit-details">'
+    + '<details class="decision-cockpit-details" open>'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'
     + `<p class="decision-cockpit-subtitle">${escapeHtml(dateLabel)} <span>|</span> ${escapeHtml(remainingDaysLabel)}</p>`

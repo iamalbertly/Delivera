@@ -417,13 +417,18 @@ function init() {
     }
     window.scrollTo(0, 0);
   } catch (_) {}
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlProjects = urlParams.get('projects');
+  if (urlProjects) {
+    persistProjectsSelection(urlProjects);
+    syncProjectsSelect(urlProjects);
+  }
   const preferredId = getPreferredBoardId();
   const preferredSprintId = getPreferredSprintId();
   syncProjectsSelect(getStoredProjects());
   const initialSnapshot = readCurrentSprintSnapshot(getProjectsParam(), preferredId);
   // Only show snapshot if it matches the URL-specified sprint (prevents stale data flash
   // when user navigates to /current-sprint?boardId=X&sprintId=Y with explicit params)
-  const urlParams = new URLSearchParams(window.location.search);
   const urlHasBoardOrSprint = urlParams.has('boardId') || urlParams.has('sprintId');
   const snapshotSprintId = String(initialSnapshot?.data?.sprint?.id || '');
   const snapshotMatchesUrl = !urlHasBoardOrSprint

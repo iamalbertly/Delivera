@@ -20,6 +20,7 @@ import { join } from 'path';
 
 const ROOT = join(process.cwd());
 const DMS_FIXTURE = join(ROOT, 'data', 'testing_q2fy27_dms_commitments.png');
+const DMS_FIXTURE_ALT = join(ROOT, 'data', 'testing_q2fy27_dms_commitments.jpeg');
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
 const steps = [

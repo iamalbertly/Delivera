@@ -2,6 +2,8 @@
  * Client fetch helpers — surface API errors without silent console-only failures.
  */
 
+import { showSurfaceToast } from './Delivera-Shared-Surface-State-01SSOT.js';
+
 export function logClientFetchFailure({ url = '', status = null, message = '', context = '' } = {}) {
   void fetch('/api/client-log', {
     method: 'POST',
@@ -43,6 +45,8 @@ export async function fetchWithRetry(url, options = {}, logContext = '', { retri
       return res;
     } catch (err) {
       lastErr = err;
+      // Don't retry on abort — user cancelled intentionally
+      if (err?.name === 'AbortError') throw err;
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
         continue;
@@ -55,15 +59,6 @@ export async function fetchWithRetry(url, options = {}, logContext = '', { retri
 }
 
 export function showInlineToast(host, message, kind = 'error') {
-  if (!host) return;
-  let el = host.querySelector('.gov-inline-toast');
-  if (!el) {
-    el = document.createElement('p');
-    el.className = `gov-inline-toast gov-inline-toast--${kind}`;
-    el.setAttribute('role', 'alert');
-    host.prepend(el);
-  }
-  el.textContent = message;
-  el.hidden = false;
-  window.setTimeout(() => { el.hidden = true; }, 4000);
+  // Delegate to the unified surface toast SSOT for consistent styling/animation.
+  showSurfaceToast(host, message, kind);
 }

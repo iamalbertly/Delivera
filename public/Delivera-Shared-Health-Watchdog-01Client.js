@@ -4,7 +4,11 @@
 let watchdogTimer = null;
 
 export function startDeliveraHealthWatchdog({ intervalMs = 60000 } = {}) {
-  if (typeof window === 'undefined' || watchdogTimer) return;
+  if (typeof window === 'undefined') return;
+  // Global guard — prevents multiple watchdog instances when the module is loaded
+  // multiple times (which happens with ES module re-imports).
+  if (window.__deliveraHealthWatchdog || watchdogTimer) return;
+  window.__deliveraHealthWatchdog = true;
   const ping = async () => {
     try {
       const res = await fetch('/healthz', { cache: 'no-store', credentials: 'same-origin' });

@@ -1,30 +1,21 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { COPY, formatDecisionDueLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
-function renderDecisionRow(label, value, source = 'Fact', { showSource = false } = {}) {
-  return `
-    <div class="portfolio-decision-required-row" data-decision-meta-source="${escapeHtml(source)}">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(String(value || 'Not set'))}</strong>
-      ${showSource ? `<small>${escapeHtml(source)}</small>` : ''}
-    </div>`;
-}
-
-function decisionActionLabel(decision = {}, brief = {}) {
+export function decisionActionLabel(decision = {}, brief = {}) {
   if (brief?.meta?.piFocus?.synergy === 'low') return COPY.alignmentStudioOpen;
   const action = decision.decisionRequired?.recommendedAction || '';
   if (/scope/i.test(action)) return 'Confirm PI scope';
   if (/clarification|confirm/i.test(action)) return 'Request clarification';
   if (/escalat/i.test(action)) return 'Escalate decision';
-  return 'Confirm commitment status';
+  return decision.recommendation?.label || 'Confirm commitment status';
 }
 
 export function renderWhyThisMatters(drivers = []) {
   const rows = (drivers || []).slice(0, 3);
   if (!rows.length) return '';
   return `
-    <section class="portfolio-why" aria-label="Root-cause rows">
-      <h2 class="portfolio-why-title">Root causes</h2>
+    <section class="portfolio-why" aria-label="Why this matters">
+      <h2 class="portfolio-why-title">Why this matters</h2>
       <dl class="portfolio-keyvalue-list">
         ${rows.map((d) => `
           <div class="portfolio-keyvalue-row" title="${escapeHtml(d.detail || '')}">
@@ -35,55 +26,80 @@ export function renderWhyThisMatters(drivers = []) {
     </section>`;
 }
 
-export function renderPortfolioDecisionPanel(decision = {}, brief = {}) {
-  const required = decision.decisionRequired || {};
-  const recommended = decision.recommendation?.id || 'track-commitments';
+function renderNextDecisionRadios(decision = {}, brief = {}) {
+  const options = decision.decisionOptions || [];
+  const anchor = decision.anchorProject || 'this squad';
   const synergyLow = brief?.meta?.piFocus?.synergy === 'low';
-  const primaryAttr = synergyLow
-    ? 'data-portfolio-action="open-alignment-studio"'
-    : `data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}"`;
-  const dueRaw = required.dueAt || decision.aboveFold?.nextDeadline || '';
-  const dueLabel = formatDecisionDueLabel(dueRaw) || 'Set owner due date';
+  if (synergyLow || !options.length) {
+    return `
+      <section class="portfolio-next-decision" aria-label="Next decision">
+        <h2 class="portfolio-next-decision-title">Next decision</h2>
+        <p class="portfolio-next-decision-prompt">Investment posture for ${escapeHtml(anchor)}</p>
+        <p class="portfolio-next-decision-hint">Confirm in the hero above when scope is aligned.</p>
+      </section>`;
+  }
+  const recommended = decision.recommendation?.id || 'review-investment';
+  let defaultId = 'review-investment';
+  if (recommended === 'move-capacity') defaultId = 'move-capacity';
+  else if (recommended === 'continue-scale' || recommended === 'continue-improve') defaultId = 'keep-funding';
+  else if (recommended === 'review-scope' || recommended === 'insufficient-evidence') defaultId = 'keep-funding';
+  const selected = options.find((o) => o.id === defaultId) || options[0];
+
+  return `
+    <section class="portfolio-next-decision" aria-label="Next decision">
+      <h2 class="portfolio-next-decision-title">Next decision</h2>
+      <p class="portfolio-next-decision-prompt">Recommended for ${escapeHtml(anchor)}</p>
+      <fieldset class="portfolio-decision-radio-group" data-portfolio-decision-radios aria-label="Decision options">
+        ${options.map((opt) => `
+          <label class="portfolio-decision-radio${opt.id === defaultId ? ' is-selected' : ''}">
+            <input type="radio" name="portfolio-decision-option" value="${escapeHtml(opt.id)}"${opt.id === defaultId ? ' checked' : ''} data-sync-hero-decision="1">
+            <span class="portfolio-decision-radio-label">${escapeHtml(opt.label)}</span>
+            <span class="portfolio-decision-radio-hint">${escapeHtml(opt.hint || '')}</span>
+          </label>`).join('')}
+      </fieldset>
+      <p class="portfolio-next-decision-hint">Selected: <strong>${escapeHtml(selected?.label || '')}</strong> — confirm with the hero button.</p>
+    </section>`;
+}
+
+function renderQuickLinks(decision = {}) {
+  const anchor = decision.anchorProject || '';
+  const squadHref = anchor
+    ? `/current-sprint?projects=${encodeURIComponent(anchor)}`
+    : '/current-sprint';
+  return `
+    <nav class="portfolio-quick-links" aria-label="Quick links">
+      <a href="/actions${anchor ? `?project=${encodeURIComponent(anchor)}` : ''}">Interventions</a>
+      <a href="${escapeHtml(squadHref)}">Squad sprint</a>
+    </nav>`;
+}
+
+export function renderPortfolioDecisionPanel(decision = {}, brief = {}) {
   const topProof = (brief?.evidencePack?.rows || [])[0];
   const inlineProof = topProof
     ? `<p class="portfolio-decision-inline-proof" data-testid="portfolio-inline-evidence"><strong>${escapeHtml(topProof.issueKey || 'Proof')}</strong> · ${escapeHtml(topProof.whyFlagged || topProof.statusNow || 'Needs review')}</p>`
     : '';
   return `
-    <section class="portfolio-decision portfolio-decision-required" aria-label="Decision required" id="portfolio-decision">
-      <p class="portfolio-decision-eyebrow">Decision required</p>
-      <h2>${escapeHtml(required.issue || decision.narrative?.mainIssue || 'Confirm portfolio decision')}</h2>
-      <div class="portfolio-decision-required-rows">
-        ${renderDecisionRow('Impact', required.impact || 'Commitment exposure unknown', 'Derived metric')}
-        ${renderDecisionRow('Owner', required.owner || 'Product Owner', 'Fact')}
-        ${renderDecisionRow('Due', dueLabel, 'Fact')}
-        ${renderDecisionRow('Evidence', required.evidenceConfidence || decision.evidenceBreakdown?.confidenceLabel || 'Medium', 'Derived metric')}
-        ${renderDecisionRow('Escalation', required.escalationAfter || '24 hours after due date', 'Human confirmation pending')}
-      </div>
+    <div class="portfolio-rail-stack" id="portfolio-decision">
+      ${renderWhyThisMatters(decision.drivers || [])}
+      ${renderNextDecisionRadios(decision, brief)}
       ${inlineProof}
-      <details class="portfolio-decision-meta">
-        <summary class="btn btn-link btn-compact">Source details</summary>
-        <div class="portfolio-decision-required-rows portfolio-decision-required-rows--meta">
-          ${renderDecisionRow('Impact', required.impact || 'Commitment exposure unknown', 'Derived metric', { showSource: true })}
-          ${renderDecisionRow('Owner', required.owner || 'Product Owner', 'Fact', { showSource: true })}
-          ${renderDecisionRow('Due', dueLabel, 'Fact', { showSource: true })}
-          ${renderDecisionRow('Evidence', required.evidenceConfidence || decision.evidenceBreakdown?.confidenceLabel || 'Medium', 'Derived metric', { showSource: true })}
-          ${renderDecisionRow('Escalation', required.escalationAfter || '24 hours after due date', 'Human confirmation pending', { showSource: true })}
-        </div>
-      </details>
-      <div class="portfolio-decision-actions">
-        <button type="button" class="btn btn-primary portfolio-decision-confirm" data-testid="portfolio-primary-cta" ${primaryAttr}>${escapeHtml(decisionActionLabel(decision, brief))}</button>
-        <button type="button" class="btn btn-secondary btn-compact" data-portfolio-action="view-governance-evidence">${topProof ? 'See all evidence' : 'View evidence'}</button>
-      </div>
-    </section>`;
+      ${renderQuickLinks(decision, brief)}
+    </div>`;
 }
 
 export function bindPortfolioDecisionPanel(root, onConfirm) {
   if (!root) return;
-  root.querySelector('[data-portfolio-action="confirm-decision"]')?.addEventListener('click', async (ev) => {
-    const selected = ev.currentTarget?.getAttribute('data-decision-id') || 'track-commitments';
-    if (onConfirm) await onConfirm(selected);
+  const syncHeroDecisionId = (decisionId) => {
+    const heroBtn = document.querySelector('[data-testid="portfolio-primary-cta"][data-portfolio-action="confirm-decision"]');
+    if (heroBtn && decisionId) heroBtn.setAttribute('data-decision-id', decisionId);
+  };
+  root.addEventListener('change', (ev) => {
+    const input = ev.target.closest?.('.portfolio-decision-radio input');
+    if (!input || !root.contains(input)) return;
+    root.querySelectorAll('.portfolio-decision-radio').forEach((el) => {
+      el.classList.toggle('is-selected', el.contains(input));
+    });
+    syncHeroDecisionId(input.value);
   });
-  root.querySelector('[data-portfolio-action="open-alignment-studio"]')?.addEventListener('click', () => {
-    document.dispatchEvent(new CustomEvent('gov:open-alignment-studio', { bubbles: true }));
-  });
+  root._portfolioConfirmHandler = onConfirm;
 }

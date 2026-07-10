@@ -89,7 +89,7 @@ export function candidateRow(c, i, jiraHost) {
     <label class="gov-baseline-row${canConfirm ? '' : ' gov-baseline-row--muted'}" data-testid="gov-baseline-row" data-epic-title="${escapeHtml(c.suggestedEpicTitle || c.title || '')}">
       <input type="checkbox" ${canConfirm && c.selected !== false ? 'checked' : ''} ${canConfirm ? '' : 'disabled'} data-candidate="${i}" />
       <span class="gov-baseline-row-body">
-        <span class="gov-baseline-row-title">${escapeHtml(title)}</span>
+        <span class="gov-baseline-row-title" contenteditable="${canConfirm ? 'false' : 'true'}" data-epic-rename="${i}" data-original-title="${escapeHtml(title)}" spellcheck="false" title="Click to rename">${escapeHtml(title)}</span>
         ${statusBadge}
         ${epicKeyLine(c.issueKey, jiraHost)}
         ${dupNote}

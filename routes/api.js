@@ -878,32 +878,55 @@ router.post('/api/client-log', requireAuth, (req, res) => {
     return res.json({ ok: true });
 });
 
+let _quartersListCache = null;
+let _quartersListAt = 0;
+const QUARTERS_LIST_TTL_MS = 5 * 60 * 1000;
+
 router.get('/api/quarters-list', requireAuth, async (req, res) => {
-    const count = Math.min(20, Math.max(1, parseInt(req.query.count, 10) || 8));
-    const calendar = getQuartersUpToCurrent(count).map((q) => ({
-        start: q.startISO,
-        end: q.endISO,
-        label: q.label,
-        period: q.period,
-        isCurrent: q.isCurrent,
-    }));
-    const byLabel = new Map(calendar.map((q) => [q.label, q]));
-    if (req.query.includeCached === '1' || req.query.includeCached === 'true') {
-        for (const label of await getCachedGovernanceQuarterLabels()) {
-            if (!label || byLabel.has(label)) continue;
-            byLabel.set(label, { start: '', end: '', label, period: label, isCurrent: false, fromCache: true });
+    try {
+        const now = Date.now();
+        if (_quartersListCache && (now - _quartersListAt) < QUARTERS_LIST_TTL_MS) {
+            return res.json(_quartersListCache);
         }
+        const count = Math.min(20, Math.max(1, parseInt(req.query.count, 10) || 8));
+        const calendar = getQuartersUpToCurrent(count).map((q) => ({
+            start: q.startISO,
+            end: q.endISO,
+            label: q.label,
+            period: q.period,
+            isCurrent: q.isCurrent,
+        }));
+        const byLabel = new Map(calendar.map((q) => [q.label, q]));
+        if (req.query.includeCached === '1' || req.query.includeCached === 'true') {
+            for (const label of await getCachedGovernanceQuarterLabels()) {
+                if (!label || byLabel.has(label)) continue;
+                byLabel.set(label, { start: '', end: '', label, period: label, isCurrent: false, fromCache: true });
+            }
+        }
+        const quarters = Array.from(byLabel.values()).sort((a, b) => String(a.label).localeCompare(String(b.label)));
+        _quartersListCache = { quarters };
+        _quartersListAt = now;
+        res.json({ quarters });
+    } catch (err) {
+        logger.warn('quarters-list failed', { error: err?.message });
+        res.status(500).json({ error: 'quarters-list failed' });
     }
-    const quarters = Array.from(byLabel.values()).sort((a, b) => String(a.label).localeCompare(String(b.label)));
-    res.json({ quarters });
 });
 
 router.get('/api/default-window', requireAuth, (req, res) => {
     res.json({ start: DEFAULT_WINDOW_START, end: DEFAULT_WINDOW_END });
 });
 
+let _projectsCatalogCache = null;
+let _projectsCatalogAt = 0;
+const PROJECTS_CATALOG_TTL_MS = 5 * 60 * 1000;
+
 router.get('/api/projects-catalog.json', requireAuth, async (req, res) => {
     try {
+        const now = Date.now();
+        if (_projectsCatalogCache && (now - _projectsCatalogAt) < PROJECTS_CATALOG_TTL_MS) {
+            return res.json(_projectsCatalogCache);
+        }
         const { projects: catalog, source } = await loadOrgProjectCatalog();
         const accessMap = await getAccessMap();
         const displayMode = getProjectDisplayMode();
@@ -915,12 +938,15 @@ router.get('/api/projects-catalog.json', requireAuth, async (req, res) => {
                 lastChecked: row?.lastChecked ?? null,
             };
         });
-        return res.json({
+        const payload = {
             projects,
             keys: projects.map((p) => p.key),
             displayMode,
             catalogSource: source,
-        });
+        };
+        _projectsCatalogCache = payload;
+        _projectsCatalogAt = now;
+        return res.json(payload);
     } catch (err) {
         logger.warn('projects-catalog read failed', { error: err?.message });
         return res.status(500).json({ error: 'Catalog read failed' });
@@ -1620,9 +1646,19 @@ router.get('/api/governance/impact-pack.json', requireAuth, async (req, res) => 
     }
 });
 
+let _aiProviderStatusCache = null;
+let _aiProviderStatusAt = 0;
+const AI_PROVIDER_STATUS_TTL_MS = 30000;
+
 router.get('/api/ai-provider-status.json', requireAuth, async (req, res) => {
     try {
+        const now = Date.now();
+        if (_aiProviderStatusCache && (now - _aiProviderStatusAt) < AI_PROVIDER_STATUS_TTL_MS) {
+            return res.json(_aiProviderStatusCache);
+        }
         const status = buildAiProviderStatus(req.headers || {});
+        _aiProviderStatusCache = status;
+        _aiProviderStatusAt = now;
         return res.json(status);
     } catch (err) {
         logger.warn('ai-provider-status read failed', { error: err?.message });
@@ -1630,10 +1666,22 @@ router.get('/api/ai-provider-status.json', requireAuth, async (req, res) => {
     }
 });
 
+// Server-side cache for AI usage summary — prevents re-reading the 80K+ line audit log
+// on every request. Multiple components fetch this endpoint simultaneously on page load.
+let _aiUsageCache = null;
+let _aiUsageCacheAt = 0;
+const AI_USAGE_CACHE_TTL_MS = 30000;
+
 router.get('/api/settings/ai-usage.json', requireAuth, async (req, res) => {
     try {
         const hours = Number(req.query?.hours) || 24;
+        const now = Date.now();
+        if (_aiUsageCache && (now - _aiUsageCacheAt) < AI_USAGE_CACHE_TTL_MS) {
+            return res.json(_aiUsageCache);
+        }
         const summary = await buildAiUsageSummary({ hours });
+        _aiUsageCache = summary;
+        _aiUsageCacheAt = now;
         return res.json(summary);
     } catch (err) {
         logger.warn('ai-usage read failed', { error: err?.message });

@@ -26,13 +26,7 @@
 
 
 
-    <div id="gov-loading" class="current-sprint-loading-with-spinner" aria-live="polite">
-
-      <div class="current-sprint-loading-spinner" aria-hidden="true"></div>
-
-      <p class="current-sprint-loading-msg gov-loading-msg">Preparing portfolio signal&hellip;</p>
-
-    </div>
+    <div id="gov-loading" class="gov-loading-mount" aria-live="polite" aria-label="Preparing portfolio signal"></div>
 
 
 
@@ -42,19 +36,15 @@
 
         <div id="portfolio-signal-mount" class="portfolio-signal-mount" aria-label="AI portfolio signal"></div>
 
-        <div id="portfolio-rail-carousel-mount" class="portfolio-rail-carousel-mount portfolio-rail-carousel-mount--desktop" aria-label="Compare squads"></div>
+        <div id="portfolio-carousel-mount" class="portfolio-carousel-mount" aria-label="Compare squads"></div>
 
         <div id="portfolio-commitments-mount" class="portfolio-commitments-mount" aria-label="Affected commitments"></div>
 
         <div id="portfolio-prepared-actions-mount" class="portfolio-prepared-actions-mount" aria-label="Prepared actions"></div>
 
-        <div id="portfolio-carousel-mount" class="portfolio-carousel-mount" aria-label="Compare squads"></div>
-
       </div>
 
       <aside class="portfolio-rail" aria-label="Portfolio decision">
-
-        <div id="portfolio-rail-commitments-mount" class="portfolio-rail-commitments-mount" aria-label="At-risk commitments"></div>
 
         <div id="portfolio-decision-mount" class="portfolio-decision-mount"></div>
 
@@ -94,12 +84,6 @@
 
       <div id="gov-freshness" hidden></div>
 
-      <details id="gov-secondary-chrome" class="gov-secondary-chrome" hidden>
-        <summary class="gov-secondary-chrome-summary">More</summary>
-        <div id="gov-micro-survey-mount"></div>
-        <div id="gov-feedback-lab-mount"></div>
-      </details>
-
       <aside id="gov-right-rail-mount" class="gov-right-rail" hidden>
         <div id="gov-right-rail-proof-mount" class="gov-right-rail-proof"></div>
         <div id="gov-worker-receipt-mount"></div>
@@ -126,6 +110,8 @@
 
 
   <script type="module" src="Delivera-Shared-Health-Watchdog-01Client.js"></script>
+
+  <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
 
   <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
 

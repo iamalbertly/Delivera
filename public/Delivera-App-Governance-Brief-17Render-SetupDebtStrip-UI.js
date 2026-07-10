@@ -69,8 +69,8 @@ export function renderSetupDebtStrip(brief, opts = {}) {
     ? `<button type="button" class="btn btn-link btn-compact" id="gov-setup-gaps-more">+${hidden.length} more setup gap${hidden.length > 1 ? 's' : ''}</button>`
     : '';
   return `
-    <section class="gov-setup-debt" aria-label="Setup gaps">
-      <p class="gov-setup-debt-label" title="${escapeHtml(GOV_TOOLTIPS.piConfidence)}">Fix setup:</p>
+    <section class="gov-setup-debt" aria-label="Quick wins">
+      <p class="gov-setup-debt-label" title="${escapeHtml(GOV_TOOLTIPS.piConfidence)}">Quick wins to unlock more insight:</p>
       <div class="gov-fix-card-row">${cards}</div>
       ${moreBtn}
     </section>`;

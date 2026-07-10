@@ -31,9 +31,9 @@ body.executive-surface-page .container {
 
 .surface-hero-card,
 .surface-card {
-  border: 1px solid var(--glass-border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(252, 246, 246, 0.94));
-  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .surface-hero-card {
@@ -108,6 +108,19 @@ body.executive-surface-page .container {
   gap: 10px;
 }
 
+/* ── Unified card base — all card systems should use this ────────────────── */
+.delivera-card {
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+.delivera-card--hero { border-radius: 20px; padding: 24px; }
+.delivera-card--compact { padding: 12px; gap: 6px; }
+
 .surface-card h2 {
   margin: 0;
   color: var(--text);
@@ -116,6 +129,26 @@ body.executive-surface-page .container {
 
 .surface-card p {
   color: var(--muted);
+}
+
+/* ── Empty state launchpad: 3-action pattern ─────────────────────────────── */
+.empty-state-why,
+.delivera-surface-empty-why {
+  margin-top: 4px;
+  opacity: 0.85;
+  font-style: italic;
+  color: var(--text-muted);
+}
+.empty-state-secondary-actions,
+.delivera-surface-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.delivera-surface-empty-actions .btn + .btn,
+.empty-state-secondary-actions .btn + .btn {
+  margin-left: 0;
 }
 
 .surface-card-accent {

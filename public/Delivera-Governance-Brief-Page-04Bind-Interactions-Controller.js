@@ -403,7 +403,7 @@ export function bindSetupDebtActions() {
     if (!chip) return;
     const action = chip.getAttribute('data-setup-action');
     if (action === 'set-baseline') {
-      openPiBaselineWizard();
+      openPiBaselineWizard({ initialMode: 'slide' });
     } else if (action === 'add-ai-key') window.location.href = '/settings#integrations';
     else if (action === 'create-work') {
       chip.setAttribute('data-outcome-projects', projectsCsv());
@@ -437,7 +437,7 @@ function handlePortfolioHeatClick(event) {
   const baselineBtn = event.target.closest('[data-setup-baseline-ssot]');
   if (baselineBtn) {
     event.preventDefault();
-    openPiBaselineWizard();
+    openPiBaselineWizard({ initialMode: 'slide' });
   }
 }
 

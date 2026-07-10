@@ -25,10 +25,11 @@ import { createPiBaselineWizardActions } from './Delivera-App-Governance-Brief-P
 /**
  * @param {object} opts
  * @param {() => string} opts.getProjectsCsv
+ * @param {() => string} [opts.getAnchorProject] - Returns the primary (anchor) project key only, used for slide reading.
  * @param {() => string} [opts.getQuarterLabel]
  * @param {() => void} [opts.onSaved]
  */
-export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved }) {
+export function mountPIBaselineWizard({ getProjectsCsv, getAnchorProject, getQuarterLabel, onSaved }) {
   let drawerClose = null;
   const state = {
     unbindSlide: null,
@@ -84,7 +85,11 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     close();
     const slideMode = opts?.initialMode === 'slide';
     await loadCapability(forceRefresh);
-    const csv = getProjectsCsv?.() || 'MPSA,MAS';
+    // For slide reading, use only the anchor (primary) project — not comparison squads.
+    // This prevents the AI from trying to match commitments across unrelated squads.
+    const anchorProject = getAnchorProject?.() || '';
+    const fullCsv = getProjectsCsv?.() || 'MPSA,MAS';
+    const csv = slideMode && anchorProject ? anchorProject : fullCsv;
     const projects = csv.split(',').map((p) => p.trim()).filter(Boolean);
     const quarterLabel = getQuarterLabel?.() || readGovernanceQuarter();
     const quarterQs = quarterLabel ? `&quarter=${encodeURIComponent(quarterLabel)}` : '';

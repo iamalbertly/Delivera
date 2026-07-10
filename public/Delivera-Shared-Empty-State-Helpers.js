@@ -14,6 +14,7 @@ export function renderEmptyStateHtml(title, message, hint = '', ctaLabel = '', o
   const hintHtml = (hint && String(hint).trim()) ? `<p><small>${escapeHtml(hint)}</small></p>` : '';
   const href = options && options.href;
   const extraHtml = options && options.extraHtml ? String(options.extraHtml) : '';
+  const whyMatters = options && options.whyMatters ? `<p class="empty-state-why"><small>${escapeHtml(options.whyMatters)}</small></p>` : '';
   const ctaHtml = (ctaLabel && String(ctaLabel).trim())
     ? href
       ? `<p><a href="${escapeHtml(href)}" class="btn btn-primary btn-compact">${escapeHtml(ctaLabel)}</a></p>`
@@ -24,6 +25,7 @@ export function renderEmptyStateHtml(title, message, hint = '', ctaLabel = '', o
     '<p><strong>' + escapeHtml(title) + '</strong></p>' +
     '<p>' + escapeHtml(message) + '</p>' +
     hintHtml +
+    whyMatters +
     ctaHtml +
     extraHtml +
     '</div>'
@@ -39,6 +41,7 @@ export function renderNoActiveSprintEmptyState(projectsCsv = '') {
     + ' data-outcome-context="No active sprint — capture the next piece of work to track."'
     + outcomeProjectsAttr
     + '>Create work</button>'
+    + '<a href="/current-sprint#sprint-carousel" class="btn btn-secondary btn-compact">View last sprint</a>'
     + '<a href="/report" class="btn btn-secondary btn-compact">Open report</a>'
     + '</p>'
   );
@@ -47,7 +50,7 @@ export function renderNoActiveSprintEmptyState(projectsCsv = '') {
     'No active sprint for this board.',
     'Pick a recent sprint or start work in Jira.',
     'Pick a board',
-    { extraHtml },
+    { extraHtml, whyMatters: 'Without an active sprint, delivery progress and burndown can\'t be tracked.' },
   );
 }
 

@@ -8,6 +8,7 @@ import { join } from 'path';
 
 const ROOT = join(process.cwd());
 const DMS_FIXTURE = join(ROOT, 'data', 'testing_q2fy27_dms_commitments.png');
+const DMS_FIXTURE_ALT = join(ROOT, 'data', 'testing_q2fy27_dms_commitments.jpeg');
 const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
 
 const steps = [
@@ -23,7 +24,7 @@ const steps = [
 ];
 
 console.log('=== Round 10 browser-use MCP validation checklist ===');
-console.log(`Fixture present: ${existsSync(DMS_FIXTURE) ? 'yes' : 'NO — add data/testing_q2fy27_dms_commitments.png'}`);
+console.log(`Fixture present: ${(existsSync(DMS_FIXTURE) || existsSync(DMS_FIXTURE_ALT)) ? 'yes' : 'NO — add data/testing_q2fy27_dms_commitments.png'}`);
 console.log(`Base URL: ${baseUrl}`);
 steps.forEach((s, i) => console.log(`${String(i + 1).padStart(2, '0')}. ${s}`));
 console.log('=== Run Playwright first: npm run test:journey:governance-p0 ===');

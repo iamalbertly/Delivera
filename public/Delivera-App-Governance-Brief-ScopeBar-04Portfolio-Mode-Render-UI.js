@@ -227,6 +227,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
 
   const baselineWizard = mountPIBaselineWizard({
     getProjectsCsv: () => [anchor, ...compare].join(','),
+    getAnchorProject: () => anchor,
     getQuarterLabel: () => activeQuarter,
     onSaved: () => onRefresh?.({ force: true }),
   });

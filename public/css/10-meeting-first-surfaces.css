@@ -3,9 +3,10 @@
 body.executive-surface-page,
 body.governance-page,
 body.report-page,
-body.current-sprint-page {
-  background: #f8f9fb;
-  color: #111827;
+body.current-sprint-page,
+body.portfolio-page {
+  background: var(--app-bg);
+  color: var(--text-body);
 }
 
 body.governance-page .governance-shell,
@@ -14,7 +15,7 @@ body.governance-page .governance-risk,
 body.governance-page .gov-meeting-hero,
 body.governance-page .gov-action-card,
 body.governance-page .gov-scope-bar-sticky {
-  color: #111827;
+  color: var(--text);
 }
 
 body.governance-page .governance-title,
@@ -25,67 +26,67 @@ body.governance-page .governance-decisions-table th,
 body.governance-page .governance-decisions-table td,
 body.governance-page .attention-queue-table th,
 body.governance-page .attention-queue-table td {
-  color: #111827;
+  color: var(--text);
 }
 
 body.governance-page .governance-paragraph,
 body.governance-page .governance-empty,
 body.governance-page .gov-chip-sentence,
 body.governance-page .governance-freshness-meta {
-  color: #374151;
+  color: var(--text-body);
 }
 
 body.governance-page .governance-narrative,
 body.governance-page .governance-risk,
 body.governance-page .gov-meeting-hero,
 body.governance-page .gov-action-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
 body.governance-page .governance-risk[data-escalation="escalate"],
 body.governance-page .governance-risk[data-escalation="act-today"] {
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--danger-text);
 }
 
 body.governance-page .governance-risk-summary,
 body.governance-page .governance-risk-action,
 body.governance-page .gov-risk-proof-line {
-  color: #374151;
+  color: var(--text-body);
 }
 
 body.governance-page .gov-meeting-status-line.gov-status-at-risk strong,
 body.governance-page .gov-meeting-status-line.gov-status-at-risk {
-  color: #b91c1c;
+  color: var(--danger-text);
 }
 
 body.governance-page .gov-meeting-status-line.gov-status-watch {
-  color: #b45309;
+  color: var(--warning-text);
 }
 
 body.governance-page .gov-meeting-status-line.gov-status-on-track {
-  color: #047857;
+  color: var(--success-text);
 }
 
 body.governance-page .gov-what-to-say {
   margin: 0;
   padding: 14px 18px;
-  border-left: 4px solid #1e3a5f;
-  background: #f0f4f8;
+  border-left: 4px solid var(--primary-strong);
+  background: var(--surface-tint);
   border-radius: 0 10px 10px 0;
   font-size: 1rem;
   line-height: 1.5;
-  color: #111827;
+  color: var(--text);
 }
 
 body.governance-page .gov-habit-strip {
   padding: 10px 14px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: 10px;
   font-size: 0.88rem;
-  color: #92400e;
+  color: var(--warning-text);
 }
 
 body.governance-page .gov-meeting-hero {
@@ -171,7 +172,7 @@ body.governance-page .governance-freshness-pill.is-stale {
   border: 1px solid #e5e7eb;
   padding: 8px 10px;
   text-align: left;
-  color: #111827;
+  color: var(--text);
 }
 
 .attention-queue-table th {
@@ -182,7 +183,7 @@ body.governance-page .governance-freshness-pill.is-stale {
 
 body.report-page .report-proof-hero {
   padding: 12px 0;
-  color: #111827;
+  color: var(--text);
 }
 
 body.report-page .preview-context-chip-scope,
@@ -208,11 +209,11 @@ body.current-sprint-page .sprint-today-hero {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  color: #111827;
+  color: var(--text);
 }
 
 body.current-sprint-page .sprint-today-hero h2 {
   margin: 0 0 8px;
   font-size: 1rem;
-  color: #111827;
+  color: var(--text);
 }

@@ -90,7 +90,8 @@ export function bindPiFocusStrip(root, { openPiBaselineWizard } = {}) {
     el.addEventListener('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      openPiBaselineWizard?.();
+      // Open in slide mode so the wizard uses the anchor project only (not comparison squads).
+      openPiBaselineWizard?.({ initialMode: 'slide' });
     });
   });
 }

@@ -21,6 +21,6 @@ test('brief body text is dark on light background', async ({ page }) => {
   if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
   await waitForGovernanceReady(page);
   const color = await legacyBrief(page, '.gov-command-answer-detail, .gov-portfolio-banner-line, .gov-answer-block-value').first().evaluate((el) => getComputedStyle(el).color);
-  expect(color).toMatch(/rgb\(17|rgba\(17|rgb\(31|rgb\(55|rgb\(30, 58, 95\)/);
+  expect(color).toMatch(/rgb\(17|rgba\(17|rgb\(24|rgba\(24|rgb\(31|rgb\(36|rgb\(55|rgb\(30, 58, 95\)/);
   await expect(legacyBrief(page, '.gov-command-answer')).toHaveAttribute('aria-label', /delivery answer/i);
 });

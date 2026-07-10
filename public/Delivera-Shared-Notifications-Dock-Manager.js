@@ -48,7 +48,7 @@ export function getTimeTrackingTotal(summary) {
 
 export function getRuntimeAlertCount(summary) {
   if (!summary || !Array.isArray(summary.runtimeAlerts)) return 0;
-  return summary.runtimeAlerts.length;
+  return summary.runtimeAlerts.filter((a) => !a.diagnosticsOnly).length;
 }
 
 /** Combined count for badges: sprint logging alerts + localhost runtime/console alerts. */
@@ -210,15 +210,15 @@ function updateSidebarAlertFooter(summary, pageContext = 'report') {
   const rt = getRuntimeAlertCount(summary);
   const healthy = tt <= 0 && rt <= 0;
   const trustLabel = summary && summary.trustLabel ? String(summary.trustLabel) : '';
-  let label;
+  // Hide the logging alerts chip when healthy — developer telemetry noise for end users.
   if (healthy) {
-    label = `Logging alerts: 0${trustLabel ? ` | ${trustLabel}` : ' | Evidence complete'}`;
-  } else {
-    const parts = [];
-    if (tt > 0) parts.push(`Sprint: ${tt}`);
-    if (rt > 0) parts.push(`Console/runtime: ${rt}`);
-    label = `Alerts — ${parts.join(' · ')}${trustLabel ? ` | ${trustLabel}` : ''}`;
+    el.innerHTML = '';
+    return;
   }
+  const parts = [];
+  if (tt > 0) parts.push(`Sprint: ${tt}`);
+  if (rt > 0) parts.push(`Console/runtime: ${rt}`);
+  const label = `Alerts — ${parts.join(' · ')}${trustLabel ? ` | ${trustLabel}` : ''}`;
   el.innerHTML = `<button type="button" class="sidebar-alert-footer-chip${healthy ? ' is-healthy' : ''}" data-sidebar-alert-jump="true" title="Open notifications">`
     + `${label}</button>`;
   const btn = el.querySelector('[data-sidebar-alert-jump]');

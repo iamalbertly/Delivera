@@ -153,7 +153,7 @@ function hydrateHiddenLegacyBriefSurfaces(brief) {
     govPage.els.piStripMount.innerHTML = piStripHtml;
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
     govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
-      openPiBaselineWizard();
+      openPiBaselineWizard({ initialMode: 'slide' });
     });
   }
   const supportingEvidence = document.getElementById('gov-supporting-evidence');
@@ -281,11 +281,8 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
   renderBriefUi(brief);
 
   if (isPortfolioPage) {
-    try {
-      await refreshPortfolioSurface(brief, govPage.lastPortfolioCases || []);
-    } catch (_) {
-      await refreshPortfolioSurface(brief, []);
-    }
+    // Skip the first-paint refresh — the async block below seeds cases and refreshes once.
+    // This eliminates the duplicate portfolio-decision.json POST that was firing on every page load.
     void (async () => {
       try {
         const trust = await resolveAiTrustDisplay();
@@ -304,8 +301,13 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
           anchorOnly: anchor,
         });
         govPage.lastPortfolioCases = seeded.cases || [];
-        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
       } catch (_) { /* first paint already shown */ }
+      // Single refresh with seeded cases — no duplicate portfolio-decision POST.
+      try {
+        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases || []);
+      } catch (_) {
+        await refreshPortfolioSurface(brief, []);
+      }
     })();
   } else {
     try {
@@ -361,7 +363,7 @@ export function renderBriefUi(brief) {
     govPage.els.piStripMount.toggleAttribute('data-pi-strip-empty', !piStripHtml.trim());
     bindEpicHygieneInteractions(govPage.els.piStripMount, brief);
     govPage.els.piStripMount.querySelector('#gov-pi-fix-baseline')?.addEventListener('click', () => {
-      openPiBaselineWizard();
+      openPiBaselineWizard({ initialMode: 'slide' });
     });
   }
   if (govPage.els.workerReceiptMount) govPage.els.workerReceiptMount.innerHTML = renderWorkerReceiptRail(brief, govPage.lastFeedbackSummary);

@@ -41,7 +41,13 @@
     <main id="main-content" data-current-sprint-state="welcome">
       <div id="current-sprint-ribbon" class="preview-status-strip" style="display: none;" aria-live="polite"></div>
       <div id="current-sprint-loading" class="current-sprint-loading-with-spinner">
-        <div class="current-sprint-loading-spinner" aria-hidden="true"></div>
+        <div class="current-sprint-skeleton" aria-busy="true" aria-label="Loading sprint data">
+          <div class="current-sprint-skeleton-line current-sprint-skeleton-line--head"></div>
+          <div class="current-sprint-skeleton-line"></div>
+          <div class="current-sprint-skeleton-line current-sprint-skeleton-line--short"></div>
+          <div class="current-sprint-skeleton-line"></div>
+          <div class="current-sprint-skeleton-line current-sprint-skeleton-line--short"></div>
+        </div>
         <p class="current-sprint-loading-msg">Connecting to sprint&hellip;</p>
       </div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>

@@ -1,6 +1,7 @@
 /**
  * SSOT: PI baseline governance API routes (extracted from api.js).
  */
+import { createHash } from 'crypto';
 import { logger } from '../lib/Delivera-Server-Logging-Utility.js';
 import { savePIBaseline, getLatestPIBaseline, listPIBaselines } from '../lib/Delivera-Governance-PIBaseline-01Store-IO.js';
 import {
@@ -46,6 +47,11 @@ export function registerPiBaselineRoutes(router, deps) {
     discoverOutcomeProjectCreateMeta,
     resolveOutcomeIssueType,
   } = deps;
+
+  // Server-side cache for slide vision results — prevents re-processing the same image
+  // when users retry or re-upload. Keyed by image hash + projects + quarter. TTL: 10 minutes.
+  const slideVisionCache = new Map();
+  const SLIDE_VISION_CACHE_TTL_MS = 10 * 60 * 1000;
 
   router.post('/api/governance/pi-baseline', requireAuth, async (req, res) => {
     try {
@@ -130,6 +136,13 @@ export function registerPiBaselineRoutes(router, deps) {
           providers: ['openrouter', 'openai', 'claude'],
         });
       }
+      // Check slide vision cache — prevents re-processing the same image on retry/re-upload.
+      const imageHash = createHash('md5').update(imageBase64.slice(0, 1000)).digest('hex').slice(0, 16);
+      const cacheKey = `${imageHash}|${projects.join(',')}|${quarter}`;
+      const cached = slideVisionCache.get(cacheKey);
+      if (cached && (Date.now() - cached._cachedAt) < SLIDE_VISION_CACHE_TTL_MS) {
+        return res.json({ ...cached, cached: true });
+      }
       const board = await proposeFromBoardCache({ projects, cache, quarter });
       const boardEpics = (board.candidates || []).map((c) => ({
         issueKey: c.issueKey,
@@ -155,10 +168,34 @@ export function registerPiBaselineRoutes(router, deps) {
         ...result,
         candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),
       };
+      // Cache successful AI results — don't cache fallbacks (they may succeed on retry).
+      if (result.aiContributed) {
+        result._cachedAt = Date.now();
+        slideVisionCache.set(cacheKey, result);
+        // Evict stale entries to prevent memory growth
+        if (slideVisionCache.size > 20) {
+          const oldest = [...slideVisionCache.entries()].sort((a, b) => a[1]._cachedAt - b[1]._cachedAt)[0];
+          if (oldest) slideVisionCache.delete(oldest[0]);
+        }
+      }
       return res.json({ ...result, cached: false });
     } catch (err) {
-      logger.warn('pi-baseline propose-from-image failed', { error: err?.message });
-      return res.status(500).json({ error: String(err?.message || 'Slide propose failed') });
+      logger.warn('pi-baseline propose-from-image failed', { error: err?.message, code: err?.code });
+      // Return a structured error so the client can show a specific, actionable message
+      // instead of a generic "Slide read timed out" when the real cause is a 401/429/etc.
+      const code = err?.code || (err?.name === 'AbortError' ? 'AI_TIMEOUT' : 'SLIDE_VISION_FAILED');
+      return res.status(500).json({
+        error: String(err?.message || 'Slide propose failed'),
+        code,
+        aiContributed: false,
+        extracted: [],
+        candidates: [],
+        inferredSquad: '',
+        inferredQuarter: '',
+        guidance: code === 'AI_TIMEOUT'
+          ? 'Slide read timed out — try a smaller image or retry.'
+          : String(err?.message || 'Slide vision failed — check AI provider settings.'),
+      });
     }
   });
 

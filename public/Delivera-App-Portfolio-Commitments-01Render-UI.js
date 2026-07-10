@@ -52,7 +52,10 @@ export function renderPortfolioCommitments(decision = {}) {
     return `
       <section class="portfolio-commitments portfolio-commitments--empty" aria-label="Affected commitments" data-portfolio-commitments>
         <h2 class="portfolio-commitments-title">Affected commitments</h2>
-        <p class="portfolio-commitments-empty">No exposed commitments detected for the selected squad.</p>
+        <p class="portfolio-commitments-empty">No commitments mapped yet — upload your PI slide or set a baseline to see exposure.</p>
+        <p class="portfolio-commitments-empty-cta">
+          <button type="button" class="btn btn-primary btn-compact" data-portfolio-action="open-alignment-studio">Set baseline</button>
+        </p>
       </section>`;
   }
   return `

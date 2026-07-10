@@ -1,10 +1,9 @@
 /**
- * Governance brief loading state — reuses Sprint spinner markup + Shared-Status-View-Helpers.
+ * Governance brief loading state — uses Surface-State SSOT.
  */
 import { showLoadingView, clearErrorView } from './Delivera-Shared-Status-View-Helpers.js';
-import { renderSharedLoadingState } from './Delivera-Shared-Loading-State-01Render-UI.js';
-
-const REFRESH_COPY_HTML = '<div class="current-sprint-loading-copy current-sprint-loading-copy-inline gov-loading-msg" aria-live="polite"></div>';
+import { renderSurfaceStateHtml } from './Delivera-Shared-Surface-State-01SSOT.js';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 function getDom() {
   return {
@@ -29,14 +28,10 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
   const preserve = options.preserveContent === true && hasGovernanceBriefContent();
   if (loadingEl) {
     if (preserve) {
-      loadingEl.innerHTML = REFRESH_COPY_HTML;
-      const copyEl = loadingEl.querySelector('.gov-loading-msg');
-      if (copyEl) {
-        copyEl.textContent = msg || 'Refreshing… showing previous answer until live data arrives.';
-      }
+      loadingEl.innerHTML = `<p class="gov-loading-msg delivera-surface-loading-copy" aria-live="polite">${escapeHtml(msg || 'Refreshing… showing previous answer until live data arrives.')}</p>`;
       loadingEl.classList.remove('current-sprint-loading-with-spinner');
     } else {
-      loadingEl.innerHTML = renderSharedLoadingState({ message: msg, variant: 'spinner' });
+      loadingEl.innerHTML = renderSurfaceStateHtml({ variant: 'loading', message: msg || 'Preparing portfolio signal…', compact: false });
       loadingEl.classList.add('current-sprint-loading-with-spinner');
     }
     loadingEl.style.display = 'block';
@@ -119,11 +114,8 @@ export function showPortfolioLoading(msg = 'AI agent is learning from your squad
   const preserve = options.preserveContent === true && hasGovernanceBriefContent();
   if (signalMount && !preserve) {
     signalMount.innerHTML = `
-      <div class="portfolio-signal-skeleton" data-portfolio-signal-skeleton aria-busy="true" aria-label="${msg}">
-        ${renderSharedLoadingState({ message: msg, variant: 'skeleton', compact: true })}
-        <div class="portfolio-signal-skeleton-line portfolio-signal-skeleton-line--head"></div>
-        <div class="portfolio-signal-skeleton-line"></div>
-        <div class="portfolio-signal-skeleton-line portfolio-signal-skeleton-line--short"></div>
+      <div class="portfolio-signal-skeleton" data-portfolio-signal-skeleton aria-busy="true" aria-label="${escapeHtml(msg)}">
+        ${renderSurfaceStateHtml({ variant: 'skeleton', message: msg, compact: true })}
       </div>`;
   } else if (preserve) {
     setScopeStaleOverlay(true, msg || 'Refreshing…');

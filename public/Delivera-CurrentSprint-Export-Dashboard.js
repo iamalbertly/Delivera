@@ -514,6 +514,8 @@ export function renderExportButton(inline = false) {
   let html = '<div class="' + containerClass + '">';
   html += '<span class="export-split-group">';
   html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary" aria-live="polite">Copy</button>';
+  // Quick-export: 1-click standup script (Flaw 25 — reduces clicks for most-used export)
+  html += '<button class="btn btn-secondary btn-compact export-standup-quick" type="button" aria-label="Copy stand-up script" data-action="copy-standup">Standup</button>';
   if (!inline) {
     html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
   } else {
@@ -569,6 +571,7 @@ export function wireExportHandlers(data) {
   if (container.dataset.wiredExportHandlers === '1') return;
   container.dataset.wiredExportHandlers = '1';
   const btn = container.querySelector('.export-dashboard-btn');
+  const standupBtn = container.querySelector('.export-standup-quick');
   const secondaryBtn = container.querySelector('.export-dashboard-secondary');
   const menuToggle = container.querySelector('.export-menu-toggle');
   const menu = container.querySelector('#export-menu');
@@ -581,6 +584,14 @@ export function wireExportHandlers(data) {
       event.preventDefault();
       event.stopPropagation();
       copyDashboardSummary(data, btn);
+    });
+  }
+  // Quick standup button: 1-click stand-up script (Flaw 25)
+  if (standupBtn) {
+    standupBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      copyDashboardAsStandup(data, standupBtn);
     });
   }
   if (secondaryBtn) {

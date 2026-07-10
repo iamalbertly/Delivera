@@ -14,13 +14,22 @@ function staleLabelFromBrief(brief = {}) {
 }
 
 function sprintCadencePart(c, brief = {}) {
+  if (c.status === 'stalled') {
+    // Stalled sprint: never say "Sprint open" — show the stall duration honestly.
+    const stale = staleLabelFromBrief(brief);
+    const days = c.staleDays || (stale ? parseInt(stale, 10) : 0);
+    return stale
+      ? `${COPY.cadenceActiveStalled} · ${stale}`
+      : `${COPY.cadenceActiveStalled} · ${days}d since movement`;
+  }
   if (c.status === 'active') {
     if (c.movementHealth === 'blocked') {
       const stale = staleLabelFromBrief(brief);
       const pct = c.sprintCommitted > 0 ? Math.round((c.sprintDone / c.sprintCommitted) * 100) : 0;
+      // Use explicit template instead of fragile .replace('0%', ...) substitution.
       return stale
         ? `${COPY.cadenceActiveNoMovement} · ${stale}`
-        : `${COPY.cadenceActiveNoMovement.replace('0%', `${pct}%`)}`;
+        : `Sprint open · ${pct}% movement`;
     }
     if (c.movementHealth === 'stalled') {
       const stale = staleLabelFromBrief(brief);
@@ -49,8 +58,8 @@ function daysAgo(iso) {
 }
 
 function deriveMovementHealth(brief = {}, cadenceStatus = 'idle') {
-  if (cadenceStatus === 'none' || cadenceStatus === 'idle' || cadenceStatus === 'ended') {
-    return 'dormant';
+  if (cadenceStatus === 'none' || cadenceStatus === 'idle' || cadenceStatus === 'ended' || cadenceStatus === 'stalled') {
+    return cadenceStatus === 'stalled' ? 'stalled' : 'dormant';
   }
   const selected = (brief?.projects || []).map((p) => String(p).toUpperCase());
   const squad = (brief?.squadInsights || []).find((s) => selected.includes(String(s.projectKey || '').toUpperCase()))
@@ -81,8 +90,15 @@ export function buildCadencePackState(brief = {}) {
   const lastEnd = cadenceMeta.lastSprintEnd || cadenceMeta.latestEnd || null;
   const lastName = cadenceMeta.lastSprintName || cadenceMeta.sprintName || '';
   const ago = daysAgo(lastEnd);
+  // Stale-detection from brief: an "active" sprint with staleHours >= 7d and 0 movement is stalled.
+  const staleHours = Number(cadenceMeta.staleHours || brief?.meta?.sprintStaleHours || 0);
+  const staleDays = Number.isFinite(staleHours) && staleHours > 0 ? staleHours / 24 : 0;
+  const movementPct = Number(cadenceMeta.movementPct ?? brief?.meta?.sprintMovementPct ?? -1);
+  const hasNoMovement = movementPct === 0;
+  const isStalledActive = sprint === 'active' && staleDays >= 7 && hasNoMovement;
   let status = 'idle';
-  if (sprint === 'active') status = 'active';
+  if (isStalledActive) status = 'stalled';
+  else if (sprint === 'active') status = 'active';
   else if (sprint === 'closed' || ago != null) status = 'ended';
   else if (sprint === 'none') status = 'none';
   const deliveryPct = Number(brief?.executiveView?.deliveryPct
@@ -101,10 +117,38 @@ export function buildCadencePackState(brief = {}) {
     sprintName: lastName,
     lastSprintEnd: lastEnd,
     daysSinceEnd: ago,
+    staleDays: Math.round(staleDays),
     deliveryPct,
     epicCount: focus?.epicCount || 0,
     blockerCount: focus?.blockerCount || 0,
+    // Cadence verdict tiers (Flaw 33 — escalate by gap duration, not just "ended")
+    cadenceVerdict: deriveCadenceVerdict(status, ago, staleDays),
   };
+}
+
+/**
+ * Derive a cadence verdict tier based on how long since the last sprint ended.
+ * Replaces the flat "ended" status with escalating urgency.
+ * @param {string} status - none | idle | active | ended | stalled
+ * @param {number|null} daysSinceEnd - days since last sprint ended
+ * @param {number} staleDays - days the current sprint has been stale
+ * @returns {{ tier: string, label: string, severity: string }}
+ */
+function deriveCadenceVerdict(status, daysSinceEnd, staleDays) {
+  if (status === 'active') {
+    if (staleDays >= 7) return { tier: 'stalled', label: 'Sprint open · stalled', severity: 'danger' };
+    return { tier: 'active', label: 'Sprint active', severity: 'positive' };
+  }
+  if (status === 'stalled') return { tier: 'stalled', label: 'Sprint open · stalled', severity: 'danger' };
+  if (status === 'ended' || status === 'idle') {
+    const d = Number(daysSinceEnd);
+    if (d == null || !Number.isFinite(d)) return { tier: 'unknown', label: 'No sprint data', severity: 'muted' };
+    if (d < 7) return { tier: 'recent', label: 'Recently completed', severity: 'positive' };
+    if (d < 14) return { tier: 'gap-warning', label: 'No new sprint — plan next', severity: 'warning' };
+    if (d < 30) return { tier: 'gap-risk', label: 'Sprint gap — delivery risk', severity: 'danger' };
+    return { tier: 'dormant', label: 'Dormant squad — re-engage', severity: 'danger' };
+  }
+  return { tier: 'none', label: 'No active sprint', severity: 'muted' };
 }
 
 /**

@@ -3,6 +3,7 @@
  */
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { renderSurfaceStateHtml } from './Delivera-Shared-Surface-State-01SSOT.js';
 import { renderCreateWorkButton } from './Delivera-App-Shared-CreateWork-01Button-Render-SSOT.js';
 import {
   candidateRow,
@@ -29,12 +30,14 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   const pk = (parts[0] || '').toUpperCase();
   const inferred = Number(opts.commitmentCount) > 0;
   const scopeSquad = (pk === 'SD' || /dms/i.test(pk)) ? 'DMS' : pk;
-  const squad = inferred
-    ? (opts.inferredSquad || scopeSquad || '—')
+  // Use inferredSquad even when extraction yielded 0 commitments — the AI still detected it.
+  const detectedSquad = opts.inferredSquad || (inferred ? scopeSquad : '');
+  const squad = detectedSquad
+    ? detectedSquad
     : 'Not detected';
   const quarter = inferred
     ? (opts.inferredQuarter || quarterLabel || 'Not set')
-    : (quarterLabel || 'Not set');
+    : (opts.inferredQuarter || quarterLabel || 'Not set');
   const slideMismatch = Boolean(opts.slideScopeMismatch);
   const quarterMismatch = Boolean(opts.inferredQuarter && quarterLabel
     && String(opts.inferredQuarter).trim() !== String(quarterLabel).trim());
@@ -47,7 +50,7 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   return `
     <div class="gov-baseline-context" data-testid="gov-baseline-context">
       <span><strong>Project:</strong> ${escapeHtml(projects)}</span>
-      <span><strong>Squad:</strong> ${escapeHtml(squad)}${inferred ? '' : ' <span class="gov-baseline-context-muted">(upload slide)</span>'}</span>
+      <span><strong>Squad:</strong> ${escapeHtml(squad)}${detectedSquad ? '' : ' <span class="gov-baseline-context-muted">(upload slide)</span>'}</span>
       <span><strong>Quarter:</strong> ${escapeHtml(quarter)}</span>
       <p class="gov-baseline-context-why">${escapeHtml(COPY.piBaselineWhy)}</p>
       ${mismatchHint}
@@ -90,7 +93,7 @@ export function slideUploadOptional(collapsed = true, aiCapability = null) {
 }
 
 export function renderLoading() {
-  return `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineLoading)}</p>`;
+  return renderSurfaceStateHtml({ variant: 'loading', message: COPY.baselineLoading, compact: true });
 }
 
 export function renderSlideActionsBar(data, projectsCsv) {
@@ -192,6 +195,12 @@ export function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = 
     stepsOpen: false,
     slideCollapsed: false,
     aiCapability,
+    contextOpts: {
+      inferredSquad: data?.inferredSquad || '',
+      inferredQuarter: data?.inferredQuarter || '',
+      slideScopeMismatch: data?.slideScopeMismatch || false,
+      commitmentCount: (data?.extracted || []).length || data?.extractionMeta?.commitmentCount || 0,
+    },
   });
 }
 

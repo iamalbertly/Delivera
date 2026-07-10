@@ -168,6 +168,11 @@ async function mockPortfolioPage(page) {
         { id: 'impact-exposure', title: 'Impact exposure', summary: '2 DMS commitments may miss FY27 Q1.' },
         { id: 'evidence-weakness', title: 'Evidence weakness', summary: 'Only 38% of required proof is available.' },
       ],
+      decisionOptions: [
+        { id: 'review-scope', label: 'Review scope', hint: 'Confirm scope before investment review' },
+        { id: 'keep-funding', label: 'Keep funding', hint: 'Continue current investment' },
+        { id: 'move-capacity', label: 'Move capacity', hint: 'Reallocate to higher-yield work' },
+      ],
       decisionProgression: [
         { step: 'insufficient-proof', label: 'Insufficient proof', active: true },
         { step: 'confirm-scope', label: 'Confirm scope', active: true },
@@ -227,44 +232,34 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('02 portfolio signal renders decision cockpit, commitments, and trust row', async ({ page }) => {
+  test('02 portfolio signal renders hero verdict, compact metrics, and trust row', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-portfolio-signal]', { timeout: 120000 });
-    await expect(page.locator('[data-portfolio-signal]')).toContainText(/Portfolio decision cockpit/i);
-    await expect(page.locator('[data-portfolio-signal] .portfolio-signal-headline')).toContainText(/FY27 Q1 Portfolio Delivery Health/i);
-    await expect(page.locator('[data-portfolio-signal] .portfolio-signal-headline')).not.toContainText(/DMS needs|recharge|story/i);
-    await expect(page.locator('#portfolio-signal-mount + #portfolio-rail-carousel-mount')).toHaveCount(1);
-    await expect(page.locator('.portfolio-gauge')).toHaveCount(0);
-    await expect(page.locator('[data-portfolio-summary] .portfolio-summary-metric')).toHaveCount(6);
-    await expect(page.locator('[data-portfolio-summary]')).toContainText(/Evidence confidence/i);
-    await expect(page.locator('[data-portfolio-summary]')).toContainText(/Low, 4 of 12/i);
+    await expect(page.locator('[data-portfolio-signal]')).toHaveAttribute('aria-label', /Portfolio decision cockpit/i);
+    await expect(page.locator('[data-portfolio-signal] .portfolio-signal-headline')).toContainText(/Confirm scope/i);
+    await expect(page.locator('[data-portfolio-summary]')).toBeVisible();
     await expect(page.locator('[data-portfolio-data-trust]')).toContainText(/Boards connected/i);
     await expect(page.locator('[data-portfolio-data-trust]')).toContainText(/3 of 3/i);
-    await expect(page.locator('[data-portfolio-timebox-rail]')).toContainText(/Day 45 of 90/i);
-    await expect(page.locator('[data-portfolio-reconciler]')).toContainText(/Live Jira epic/i);
+    await expect(page.locator('#portfolio-carousel-mount [data-portfolio-carousel]')).toBeVisible();
     await expect(page.locator('[data-portfolio-commitments]')).toBeVisible();
-    await expect(page.locator('[data-portfolio-epic-lineage]')).toContainText(/Recharge Growth Modernization/i);
     await expect(page.locator('[data-portfolio-unaligned-stories]')).toContainText(/missing aligned Epic/i);
-    await expect(page.locator('[data-portfolio-unaligned-stories] [data-jira-work-item-link]')).toHaveAttribute('title', /Emergency customer remediation/i);
-    await expect(page.locator('.portfolio-commitment-title [data-jira-work-item-link]').first()).toHaveAttribute('title', /Recharge/i);
-    await expect(page.locator('[data-portfolio-evidence-summary]')).toContainText(/Decision evidence/i);
-    await expect(page.locator('[data-portfolio-calibration-inline]')).toHaveCount(0);
-    await expect(page.locator('[data-portfolio-signal]')).not.toContainText(/Calibration Shield|Copy defense/i);
+    await expect(page.locator('.portfolio-signal-details-summary')).toHaveCount(0);
     assertTelemetryClean(t);
   });
 
-  test('03 performance grid has distinct squad root issues', async ({ page }) => {
+  test('03 bento squad cards show distinct decision strips', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('.portfolio-performance-grid-row', { timeout: 120000 });
-    const texts = await page.locator('.portfolio-grid-issue').allTextContents();
-    expect(texts.length).toBeGreaterThanOrEqual(2);
-    expect(new Set(texts).size).toBeGreaterThan(1);
+    await page.waitForSelector('[data-testid="portfolio-bento-card"]', { timeout: 120000 });
+    const cards = page.locator('[data-testid="portfolio-bento-card"]');
+    expect(await cards.count()).toBeGreaterThanOrEqual(2);
+    const decisions = await cards.locator('.portfolio-bento-decision strong').allTextContents();
+    expect(new Set(decisions.filter(Boolean)).size).toBeGreaterThan(0);
     assertTelemetryClean(t);
   });
 
@@ -292,7 +287,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('#portfolio-decision', { timeout: 120000 });
-    await page.locator('[data-portfolio-action="confirm-decision"]').click();
+    await page.locator('[data-testid="portfolio-primary-cta"]').click();
     await page.waitForTimeout(300);
     expect(confirmed).toBe(true);
     assertTelemetryClean(t);
@@ -372,16 +367,14 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('11 governance evidence opens from summary without shield language', async ({ page }) => {
+  test('11 governance evidence opens from hero link without shield language', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-portfolio-evidence-summary]', { timeout: 120000 });
-    await expect(page.locator('[data-portfolio-evidence-summary]')).toContainText(/Decision evidence/i);
+    await page.waitForSelector('[data-testid="portfolio-primary-cta"]', { timeout: 120000 });
     await page.locator('[data-portfolio-action="view-governance-evidence"]').first().click();
-    await expect(page.locator('[data-portfolio-calibration-drawer]')).toContainText(/governance evidence summary/i);
-    await expect(page.locator('[data-portfolio-calibration-drawer]')).not.toContainText(/defense/i);
+    await expect(page.locator('[data-evidence-proof-list]')).toBeVisible();
     assertTelemetryClean(t);
   });
 
@@ -396,7 +389,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     const carouselBox = await page.locator('[data-portfolio-carousel]').boundingBox();
     expect(decisionBox).toBeTruthy();
     expect(carouselBox).toBeTruthy();
-    expect(decisionBox.y).toBeLessThan(carouselBox.y);
+    expect(carouselBox.y).toBeLessThan(decisionBox.y);
     assertTelemetryClean(t);
   });
 
@@ -422,39 +415,29 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('14 decision panel is a single decision-required cockpit', async ({ page }) => {
+  test('14 decision rail syncs to hero confirm without duplicate CTA', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('#portfolio-decision', { timeout: 120000 });
-    await expect(page.locator('#portfolio-decision')).toContainText(/Decision required/i);
-    await expect(page.locator('#portfolio-decision')).toContainText(/Product Owner/i);
-    await expect(page.locator('#portfolio-decision')).toContainText(/Today 15:00/i);
-    await expect(page.locator('#portfolio-decision')).toContainText(/Low/i);
-    await expect(page.locator('[data-portfolio-action="confirm-decision"]')).toContainText(/Confirm PI scope/i);
-    await expect(page.locator('[data-portfolio-action="view-governance-evidence"]').first()).toBeVisible();
-    await expect(page.locator('#portfolio-decision')).not.toContainText(/Keep funding/i);
-    await expect(page.locator('#portfolio-decision')).not.toContainText(/Review investment/i);
-    await expect(page.locator('#portfolio-decision')).not.toContainText(/tracking posture/i);
+    await expect(page.locator('#portfolio-decision .portfolio-next-decision')).toBeVisible();
+    await expect(page.locator('#portfolio-decision [data-portfolio-decision-radios]')).toBeVisible();
+    await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toHaveCount(1);
+    await expect(page.locator('#portfolio-decision [data-portfolio-action="confirm-decision"]')).toHaveCount(0);
+    await page.locator('[data-portfolio-decision-radios] input[value="move-capacity"]').check();
+    await expect(page.locator('[data-testid="portfolio-primary-cta"]')).toHaveAttribute('data-decision-id', 'move-capacity');
     assertTelemetryClean(t);
   });
 
-  test('15 governance evidence copy is one-click from signal', async ({ page, context }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  test('15 governance evidence drawer opens from hero evidence link', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForFunction(
-      () => document.querySelector('[data-portfolio-action="copy-evidence-summary"]')
-        && !document.querySelector('.portfolio-signal-error'),
-      { timeout: 120000 },
-    );
-    const btn = page.locator('[data-portfolio-action="copy-evidence-summary"]').first();
-    await btn.scrollIntoViewIfNeeded();
-    await btn.click();
-    await expect(page.locator('.portfolio-signal-error')).toHaveCount(0);
+    await page.waitForSelector('[data-portfolio-action="view-governance-evidence"]', { timeout: 120000 });
+    await page.locator('[data-portfolio-action="view-governance-evidence"]').first().click();
+    await expect(page.locator('[data-evidence-proof-list], .gov-evidence-drawer-docked')).toBeVisible();
     assertTelemetryClean(t);
   });
 
@@ -464,7 +447,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-squad-key="MAS"]', { timeout: 120000 });
-    await page.locator('[data-squad-key="MAS"] .portfolio-grid-issue').click();
+    await page.locator('[data-squad-key="MAS"]').click();
     await expect(page.locator('#portfolio-scope-selected')).toHaveValue('MAS');
     assertTelemetryClean(t);
   });

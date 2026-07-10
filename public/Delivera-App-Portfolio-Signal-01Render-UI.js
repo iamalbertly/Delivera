@@ -1,6 +1,7 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
 import { COPY, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { decisionActionLabel } from './Delivera-App-Portfolio-Decision-01Panel-UI.js';
 
 function formatCachedFreshness(cachedAt) {
   const age = formatHumanAge(cachedAt);
@@ -196,30 +197,44 @@ function renderHeroCompactMetrics(summary = {}, evidence = {}, required = {}) {
     </div>`;
 }
 
-function renderHeroDetails(decision = {}, brief = {}, { freshness = '', epic = {}, summary = {}, evidence = {}, required = {}, tb = {} } = {}) {
-  const unalignedCount = Number(epic.unalignedStoryCount) || 0;
-  const reconcilerBadge = epic.label ? 1 : 0;
-  const detailCount = unalignedCount + reconcilerBadge;
-  const summaryText = COPY.portfolioSignalDetailsSummary
-    .replace('{n}', String(detailCount || (Number(summary.commitmentsBlocked) || 0) + (Number(summary.decisionsOverdue) || 0)));
+function movementLabel(delivered = 0) {
+  const d = Number(delivered) || 0;
+  if (d >= 60) return 'High';
+  if (d >= 30) return 'Medium';
+  return 'Low';
+}
+
+function renderHeroPrimaryActions(decision = {}, brief = {}) {
+  const recommended = decision.recommendation?.id || 'track-commitments';
+  const synergyLow = brief?.meta?.piFocus?.synergy === 'low';
+  const anchor = decision.anchorProject || '';
+  const squadHref = anchor
+    ? `/current-sprint?projects=${encodeURIComponent(anchor)}${decision.periodKey ? `&period=${encodeURIComponent(decision.periodKey)}` : ''}`
+    : '/current-sprint';
+  const primaryAttr = synergyLow
+    ? 'data-portfolio-action="open-alignment-studio"'
+    : `data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}"`;
+  const primaryLabel = synergyLow ? COPY.alignmentStudioOpen : decisionActionLabel(decision, brief);
+  const cachedDisabled = decision._cachedView ? ' disabled aria-disabled="true"' : '';
   return `
-    <details class="portfolio-signal-details" data-portfolio-signal-details>
-      <summary class="portfolio-signal-details-summary">${escapeHtml(summaryText)}</summary>
-      ${renderDataTrust(decision.dataTrust || {}, freshness)}
-      <div class="portfolio-signal-details-metrics" data-portfolio-summary-full>
-        ${renderSummaryMetric('On track', `${Number(summary.commitmentsOnTrack) || 0} of ${Number(summary.commitmentsTotal) || 0}`, 'PI commitments', 'Derived metric', 'healthy')}
-        ${renderSummaryMetric('At risk', `${Number(summary.commitmentsAtRisk) || 0} of ${Number(summary.commitmentsTotal) || 0}`, required.impact || 'Commitments needing decision', 'Derived metric', summary.commitmentsAtRisk ? 'evidence-gap' : 'healthy')}
-        ${renderSummaryMetric('Blocked', Number(summary.commitmentsBlocked) || 0, 'Squads with blocked delivery tier', 'Fact', summary.commitmentsBlocked ? 'material-risk' : 'healthy')}
-        ${renderSummaryMetric('Decisions overdue', Number(summary.decisionsOverdue) || 0, 'Owner response required', 'Fact', summary.decisionsOverdue ? 'decision-required' : 'healthy')}
-        ${renderSummaryMetric('Evidence confidence', `${escapeHtml(evidence.confidenceLabel || 'Medium')}, ${Number(evidence.available) || 0} of ${Number(evidence.required) || 0}`, 'Required evidence points', 'Derived metric', evidence.confidenceLabel === 'Low' ? 'evidence-gap' : '')}
-        ${renderSummaryMetric('Latest safe decision', required.dueAt || 'Set owner due date', `Day ${tb.elapsed} of ${tb.total}`, 'Derived metric', 'decision-required')}
+    <div class="portfolio-signal-actions portfolio-signal-actions--hero-cta" data-testid="portfolio-hero-ctas">
+      <button type="button" class="btn btn-primary btn-compact" data-testid="portfolio-primary-cta" ${primaryAttr}${cachedDisabled}>${escapeHtml(primaryLabel)}</button>
+      <div class="portfolio-signal-link-row">
+        <button type="button" class="btn btn-link btn-compact" data-portfolio-action="focus-compare">Compare peers</button>
+        <button type="button" class="btn btn-link btn-compact" data-portfolio-action="view-governance-evidence">Evidence</button>
+        <a class="btn btn-link btn-compact" href="${escapeHtml(squadHref)}">Squad work</a>
       </div>
-      ${renderInterpretationRows(decision)}
-      ${epic.label ? `<p class="portfolio-signal-epic" data-portfolio-epic-lineage><strong>Epic context:</strong> ${escapeHtml(epic.label)}${epic.coveredStoryCount ? ` - ${Number(epic.coveredStoryCount)} user stor${Number(epic.coveredStoryCount) === 1 ? 'y' : 'ies'} tied to this decision` : ''}</p>` : ''}
-      ${renderCommitmentReconciler(decision)}
+    </div>`;
+}
+
+function renderHeroDetails(decision = {}, brief = {}, { epic = {}, summary = {}, evidence = {}, required = {}, tb = {} } = {}) {
+  const unalignedCount = Number(epic.unalignedStoryCount) || 0;
+  if (!unalignedCount && !epic.label) return '';
+  return `
+    <div class="portfolio-signal-details portfolio-signal-details--open" data-portfolio-signal-details>
+      ${epic.label ? `<p class="portfolio-signal-epic" data-portfolio-epic-lineage><strong>Epic context:</strong> ${escapeHtml(epic.label)}</p>` : ''}
       ${renderUnalignedStories(epic)}
-      ${renderEvidenceSummary(evidence)}
-    </details>`;
+    </div>`;
 }
 
 function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', cached = false } = {}) {
@@ -229,41 +244,61 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
   const evidence = decision.evidenceBreakdown || {};
   const required = decision.decisionRequired || {};
   const status = decision.statusSemantics?.primary || 'decision-required';
-  const quarter = decision.periodKey || brief?.meta?.quarter || 'Current quarter';
   const tb = quarterDayLabel(decision, brief);
   const freshness = cached || cachedAt ? formatCachedFreshness(cachedAt) : '';
-  const verdict = required.issue || required.impact || 'Confirm portfolio scope and owner';
+  const headline = decision.recommendation?.label
+    || decision.narrative?.headline
+    || required.issue
+    || 'Confirm portfolio decision';
+  const subtext = decision.peerComparison?.sentence
+    || decision.narrative?.summary
+    || required.impact
+    || '';
 
   if (synergyLow) {
     return `
       <section class="portfolio-signal portfolio-signal--hero portfolio-signal--synergy-low" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
         ${renderStatusHonestyBar(brief, decision, { cached, cachedAt })}
-        <div class="portfolio-signal-top">
-          <p class="portfolio-signal-kicker">Portfolio decision cockpit${freshness ? ` - <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
-          <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
-          <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
+        <div class="portfolio-signal-hero-row">
+          <span class="portfolio-signal-verdict-icon" aria-hidden="true">⚖</span>
+          <div class="portfolio-signal-hero-copy">
+            <div class="portfolio-signal-top">
+              <p class="portfolio-signal-kicker">Portfolio decision${freshness ? ` · <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
+              <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
+              <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
+            </div>
+            <h1 class="portfolio-signal-headline portfolio-signal-headline--hero">${escapeHtml(COPY.alignmentStudioOpen)}</h1>
+            <p class="portfolio-signal-verdict">${escapeHtml(brief?.meta?.piFocus?.summary || 'PI baseline is not aligned with live board work.')}</p>
+            ${renderHeroPrimaryActions(decision, brief)}
+          </div>
         </div>
-        <a class="portfolio-signal-rail-hint" href="#portfolio-decision" data-testid="portfolio-signal-summary">Review decision below</a>
       </section>`;
   }
 
   return `
     <section class="portfolio-signal portfolio-signal--hero portfolio-decision-cockpit" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
       ${renderStatusHonestyBar(brief, decision, { cached, cachedAt })}
-      <div class="portfolio-signal-top">
-        <p class="portfolio-signal-kicker">Portfolio decision cockpit${freshness ? ` - <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
-        <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
-        <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
+      <div class="portfolio-signal-hero-row">
+        <span class="portfolio-signal-verdict-icon" aria-hidden="true">⚖</span>
+        <div class="portfolio-signal-hero-copy">
+          <div class="portfolio-signal-top">
+            <p class="portfolio-signal-kicker">Portfolio decision${freshness ? ` · <span class="portfolio-signal-freshness">${escapeHtml(freshness)}</span>` : ''}</p>
+            <span class="portfolio-status-pill portfolio-status-pill--${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
+            <span id="portfolio-signal-ai-mount" class="portfolio-signal-ai-mount"></span>
+          </div>
+          <h1 class="portfolio-signal-headline portfolio-signal-headline--hero">${escapeHtml(headline)}</h1>
+          ${subtext ? `<p class="portfolio-signal-verdict">${escapeHtml(subtext)}</p>` : ''}
+          ${renderHeroCompactMetrics(summary, evidence, required)}
+          ${renderHeroPrimaryActions(decision, brief)}
+          ${unalignedBadge(epic)}
+          ${renderDataTrust(decision.dataTrust || {}, freshness)}
+        </div>
       </div>
-      <h2 class="portfolio-signal-headline portfolio-signal-headline--hero">${escapeHtml(quarter)}</h2>
-      ${renderHeroCompactMetrics(summary, evidence, required)}
-      <div class="portfolio-signal-actions portfolio-signal-actions--above-fold">
-        <button type="button" class="btn btn-secondary btn-compact portfolio-summary-chip portfolio-summary-chip--action" data-portfolio-action="view-governance-evidence" data-testid="portfolio-signal-evidence-chip">View evidence</button>
-        ${unalignedBadge(epic)}
-      </div>
-      ${renderHeroDetails(decision, brief, { freshness, epic, summary, evidence, required, tb })}
+      ${renderHeroDetails(decision, brief, { epic, summary, evidence, required, tb })}
     </section>`;
 }
+
+export { movementLabel };
 
 function unalignedBadge(epic = {}) {
   const count = Number(epic.unalignedStoryCount) || 0;

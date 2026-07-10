@@ -8,6 +8,7 @@ import { renderCountdownTimer } from './Delivera-CurrentSprint-Countdown-Timer.j
 import { renderDecisionCockpit } from './Delivera-CurrentSprint-Decision-Cockpit.js';
 import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js';
 import { resolvePrimaryBlockerKey } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
+import { cockpitRisksToAttentionItems } from './Delivera-Shared-Attention-Queue.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 function renderNextUpStrip(data) {
@@ -28,33 +29,99 @@ function renderNextUpStrip(data) {
     + '</section>';
 }
 
+function renderMiniBurndownRail(data) {
+  const remaining = Array.isArray(data?.remainingWorkByDay) ? data.remainingWorkByDay : [];
+  if (remaining.length < 2) return '';
+  const series = remaining.map((r) => Number(r.remainingSP) || 0);
+  const width = 120;
+  const height = 34;
+  const padding = 4;
+  const min = Math.min(...series);
+  const max = Math.max(...series);
+  const spread = Math.max(1, max - min);
+  const path = series.map((value, index) => {
+    const x = padding + ((width - padding * 2) * index) / Math.max(1, series.length - 1);
+    const y = height - padding - (((value - min) / spread) * (height - padding * 2));
+    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+  return ''
+    + '<div class="sprint-proof-rail-burndown" data-testid="sprint-rail-burndown">'
+    + '<p class="sprint-proof-rail-kicker">Flow</p>'
+    + `<svg class="decision-sparkline" viewBox="0 0 ${width} ${height}" aria-hidden="true"><path d="${path}"></path></svg>`
+    + '</div>';
+}
+
 function renderSprintProofRail(data) {
   const meta = data?.meta || {};
   const blockerKey = resolvePrimaryBlockerKey(data);
   const nba = data?.decisionCockpit?.nextBestAction || {};
+  const topRisks = cockpitRisksToAttentionItems(data?.decisionCockpit?.topRisks || []).slice(0, 3);
+  const burndownHtml = renderMiniBurndownRail(data);
+  const defaultTab = blockerKey ? 'work' : (topRisks.length ? 'risks' : 'flow');
+
+  const stuckHours = Math.round(Number(data?.stuckCandidates?.find((c) => c.issueKey === blockerKey)?.hoursInStatus || 0));
+  const nudgeDraft = blockerKey
+    ? `${blockerKey}: blocked ${stuckHours}h — can we unblock today?`
+    : '';
+
+  let workBody = '<p class="sprint-proof-rail-empty">No blocker — sprint work is moving.</p>';
   if (blockerKey) {
-    return ''
-      + '<aside class="sprint-proof-rail" id="sprint-proof-rail" data-testid="sprint-proof-rail">'
+    workBody = ''
       + '<p class="sprint-proof-rail-kicker">Unblock today</p>'
       + '<strong class="sprint-proof-rail-key" data-primary-blocker-key="' + escapeHtml(blockerKey) + '">' + escapeHtml(blockerKey) + '</strong>'
       + '<p class="sprint-proof-rail-summary">' + escapeHtml(nba.summary || nba.reason || '') + '</p>'
-      + '</aside>';
-  }
-  if (meta.limbo && meta.nextSprintCandidate?.name) {
-    return ''
-      + '<aside class="sprint-proof-rail sprint-proof-rail--next" id="sprint-proof-rail" data-testid="sprint-proof-rail">'
+      + '<div class="sprint-proof-rail-nudge-inline" data-testid="sprint-rail-nudge-inline">'
+      + '<label class="visually-hidden" for="sprint-rail-nudge-draft">Nudge draft</label>'
+      + '<textarea id="sprint-rail-nudge-draft" class="sprint-proof-rail-nudge-draft" rows="2" placeholder="Quick unblock ask…">' + escapeHtml(nudgeDraft) + '</textarea>'
+      + '<button type="button" class="btn btn-primary btn-compact sprint-proof-rail-nudge" data-blocker-nudge="' + escapeHtml(blockerKey) + '">Review nudge</button>'
+      + '</div>';
+  } else if (meta.limbo && meta.nextSprintCandidate?.name) {
+    workBody = ''
       + '<p class="sprint-proof-rail-kicker">Next sprint</p>'
       + '<strong class="sprint-proof-rail-key">' + escapeHtml(meta.nextSprintCandidate.name) + '</strong>'
-      + '<p class="sprint-proof-rail-summary">' + escapeHtml(meta.explanatoryLine || meta.cadenceLine || '') + '</p>'
-      + '</aside>';
+      + '<p class="sprint-proof-rail-summary">' + escapeHtml(meta.explanatoryLine || meta.cadenceLine || '') + '</p>';
   }
-  return '';
+
+  const riskRows = topRisks.length
+    ? topRisks.map((r) => ''
+      + '<li class="sprint-proof-rail-risk">'
+      + '<strong>' + escapeHtml(r.issue) + '</strong>'
+      + '<span>' + escapeHtml(r.reason) + '</span>'
+      + (r.issue && r.issue !== 'Sprint' ? '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(r.issue) + '">Nudge</button>' : '')
+      + '</li>').join('')
+    : '<li class="sprint-proof-rail-empty">No critical risks flagged.</li>';
+
+  const flowBody = burndownHtml || '<p class="sprint-proof-rail-empty">Flow chart loads when burndown data is available.</p>';
+
+  const tabBtn = (id, label) => {
+    const active = defaultTab === id;
+    return '<button type="button" role="tab" class="sprint-proof-rail-tab' + (active ? ' is-active' : '') + '" data-rail-tab="' + id + '" aria-selected="' + (active ? 'true' : 'false') + '">' + escapeHtml(label) + '</button>';
+  };
+  const panel = (id, body) => {
+    const active = defaultTab === id;
+    return '<div class="sprint-proof-rail-panel' + (active ? ' is-active' : '') + '" data-rail-panel="' + id + '" role="tabpanel"' + (active ? '' : ' hidden') + '>' + body + '</div>';
+  };
+
+  return ''
+    + '<aside class="sprint-proof-rail" id="sprint-proof-rail" data-testid="sprint-proof-rail" data-default-rail-tab="' + escapeHtml(defaultTab) + '">'
+    + '<div class="sprint-proof-rail-tabs" role="tablist" aria-label="Sprint focus">'
+    + tabBtn('work', 'Work')
+    + tabBtn('risks', 'Risks')
+    + tabBtn('flow', 'Flow')
+    + '</div>'
+    + panel('work', workBody)
+    + panel('risks', '<ul class="sprint-proof-rail-risk-list">' + riskRows + '</ul>')
+    + panel('flow', flowBody)
+    + '</aside>';
 }
 
 function renderSprintSwitcher(data) {
   if (!Array.isArray(data.recentSprints) || data.recentSprints.length <= 1) return '';
+  // Auto-expand when there's no active sprint — user shouldn't need a click to see history
+  const noActiveSprint = !data.sprint;
+  const openAttr = noActiveSprint ? ' open' : '';
   return ''
-    + '<details class="sprint-history-fold sprint-switcher-card sprint-switcher-card-inline" aria-label="Switch sprint">'
+    + '<details class="sprint-history-fold sprint-switcher-card sprint-switcher-card-inline" aria-label="Switch sprint"' + openAttr + '>'
     + '<summary class="header-drawer-section-label">Past sprints</summary>'
     + renderSprintCarousel(data, { viewportLean: true })
     + '</details>';
@@ -175,7 +242,10 @@ export function renderCurrentSprintPage(data) {
 
   html += '<div id="sprint-alignment-strip-mount" data-alignment-above-fold="1"></div>';
   const blockerKey = resolvePrimaryBlockerKey(data);
-  const showRail = blockerKey || data?.meta?.limbo;
+  // Show the right rail on desktop whenever there are stories — not just when
+  // there's a blocker. This moves the proof rail + signals beside the main
+  // column instead of stacking 4000px+ of vertical scroll.
+  const showRail = blockerKey || data?.meta?.limbo || hasStories;
   html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean' + (showRail ? ' sprint-rail-visible' : '') + '">';
   html += '<div class="sprint-main-column">';
 
@@ -199,8 +269,12 @@ export function renderCurrentSprintPage(data) {
   if (belowFold.trim()) {
     const healthStatus = String(data?.decisionCockpit?.health?.status || '');
     const isBlockedView = /blocked|needs attention/i.test(healthStatus);
-    const foldOpen = isBlockedView ? '' : ' open';
-    html += '<details class="sprint-full-sprint-fold"' + foldOpen + '>';
+    const daysElapsed = Number(data?.daysMeta?.daysElapsedWorking ?? data?.daysMeta?.daysElapsedCalendar ?? 0);
+    const daysRemaining = Number(data?.daysMeta?.daysRemainingWorking ?? data?.daysMeta?.daysRemainingCalendar ?? 0);
+    const daysTotal = daysElapsed + daysRemaining;
+    const pctElapsed = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : (Number(data?.summary?.percentDone) || 0);
+    const foldOpen = isBlockedView || pctElapsed >= 50 ? ' open' : '';
+    html += '<details class="sprint-full-sprint-fold sprint-full-sprint-fold--desktop-inline"' + foldOpen + '>';
     html += '<summary>Full sprint</summary>';
     html += '<div class="sprint-full-sprint-fold-body">';
     html += belowFold;

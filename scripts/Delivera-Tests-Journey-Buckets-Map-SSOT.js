@@ -491,6 +491,11 @@ export const specMetadata = {
     layer: 'page-ux',
     page: '/report,/current-sprint',
   },
+  'tests/Delivera-Visual-Contrast-System-Validation-Tests.spec.js': {
+    journey: 'journey.ux-core',
+    layer: 'page-ux',
+    page: '/governance,/report,/current-sprint,/leadership',
+  },
   'tests/Delivera-Duplicate-UI-Decision-Strip-Regression-Validation-Tests.spec.js': {
     journey: 'journey.ux-core',
     layer: 'page-ux',

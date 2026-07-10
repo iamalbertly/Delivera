@@ -382,6 +382,7 @@ export function mountBriefScopeBarMode({ mount, quarterLabel = '', onRefresh, on
 
   baselineWizard = mountPIBaselineWizard({
     getProjectsCsv: () => selected.join(','),
+    getAnchorProject: () => selected[0] || '',
     getQuarterLabel: () => activeQuarter,
     onSaved: () => onRefresh?.(),
   });

@@ -47,7 +47,11 @@ function appendRuntimeAlert({ level, message, source }) {
       message: text,
       source: source || 'runtime',
       at: now,
+      diagnosticsOnly: true,
     });
+    try {
+      window.__deliveraDiagnostics = list.slice(-MAX_RUNTIME);
+    } catch (_) {}
     while (list.length > MAX_RUNTIME) list.shift();
     const next = {
       ...prev,

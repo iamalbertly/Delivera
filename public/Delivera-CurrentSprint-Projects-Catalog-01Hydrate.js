@@ -40,4 +40,15 @@ export async function hydrateCurrentSprintProjectsSelect() {
     if (entry.key === selectedKey) opt.selected = true;
     select.appendChild(opt);
   }
+  // Smart-default: if only 1 project, auto-select it and hide the selector (eliminates 1 click)
+  if (catalog.length === 1) {
+    select.value = catalog[0].key;
+    select.hidden = true;
+    select.setAttribute('aria-hidden', 'true');
+    const hint = document.getElementById('current-sprint-single-project-hint');
+    if (hint) {
+      hint.textContent = catalog[0].shortLabel || catalog[0].label || catalog[0].key;
+      hint.hidden = false;
+    }
+  }
 }

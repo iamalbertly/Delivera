@@ -3,6 +3,7 @@
  */
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { fetchJson } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 export function caseVerb(state = '') {
   const s = String(state || '').toLowerCase();
@@ -26,15 +27,30 @@ export function briefRisks(brief = {}) {
   ].slice(0, 12);
 }
 
+// Dedup cache — seedFromBrief is called from both the load controller and the
+// intervention renderer with the same brief. Cache by brief fingerprint for 30s.
+let _seedCache = null;
+let _seedCacheKey = '';
+const SEED_CACHE_TTL_MS = 30000;
+
 export async function seedFromBrief({ brief, projectsCsv, periodKey, anchorOnly = '' } = {}) {
   const risks = briefRisks(brief);
   if (!risks.length) return { cases: [] };
   const projects = anchorOnly || projectsCsv;
-  return fetchJson('/api/governance/interventions/seed-from-brief', {
+  const cacheKey = `${projects}|${periodKey}|${brief?.meta?.briefId || brief?.generatedAt || ''}|${risks.length}`;
+  const now = Date.now();
+  if (_seedCache && cacheKey === _seedCacheKey && (now - _seedCache._cachedAt) < SEED_CACHE_TTL_MS) {
+    return _seedCache;
+  }
+  const result = await fetchJson('/api/governance/interventions/seed-from-brief', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ brief, risks, projects, periodKey }),
   }, 'intervention-seed');
+  result._cachedAt = now;
+  _seedCache = result;
+  _seedCacheKey = cacheKey;
+  return result;
 }
 
 export async function listCases({ project = '', status = 'open' } = {}) {
@@ -64,15 +80,25 @@ export async function approveDraft(caseId, confirmSend = false) {
   }
 }
 
-export function renderGovCaseCard(row = {}) {
+export function renderInterventionCaseCard(row = {}, { surface = 'actions', highlight = false, selected = false } = {}) {
+  const proof = row.proofLevel || 'Medium';
   const action = row.primaryAction || {};
-  const factLine = `${Number(row.factCount || 0)} facts checked - ${Number(row.unknownCount || 0)} gaps`;
-  return `
+  const factLine = `${Number(row.factCount || 0)} facts checked · ${Number(row.unknownCount || 0)} gaps`;
+  const issueCount = (row.issueKeys || []).length;
+  const squadLink = row.project
+    ? `<a class="actions-case-squad-link" href="/current-sprint?projects=${encodeURIComponent(row.project)}">${escapeHtml(row.project)}</a>`
+    : '';
+  const governanceChip = surface === 'actions'
+    ? `<a class="actions-case-portfolio-chip" href="/governance">Portfolio decision</a>`
+    : '';
+
+  if (surface === 'governance') {
+    return `
     <article class="gov-intervention-card" data-case-id="${escapeHtml(row.id)}">
       <div class="gov-intervention-card-main">
         <p class="gov-intervention-kicker">${escapeHtml(caseVerb(row.state))} today</p>
         <h3>${escapeHtml(compactTitle(row))}</h3>
-        <p class="gov-intervention-facts">${escapeHtml(factLine)} - ${escapeHtml(row.triggerType || 'delivery risk')}</p>
+        <p class="gov-intervention-facts">${escapeHtml(factLine)} · ${escapeHtml(row.triggerType || 'delivery risk')}</p>
         <p class="gov-intervention-action">${escapeHtml(action.action || 'Review the intervention case and confirm next step.')}</p>
       </div>
       <div class="gov-intervention-card-actions">
@@ -81,16 +107,29 @@ export function renderGovCaseCard(row = {}) {
       </div>
       <div class="gov-intervention-detail" data-case-detail="${escapeHtml(row.id)}" hidden></div>
     </article>`;
+  }
+
+  return `
+    <article class="actions-case-card${highlight ? ' is-highlighted' : ''}${selected ? ' is-selected' : ''}" data-case-id="${escapeHtml(row.id)}" id="case-${escapeHtml(row.id)}">
+      <div class="actions-case-card-main">
+        ${squadLink ? `<p class="actions-case-squad">${squadLink}</p>` : ''}
+        <h2>${escapeHtml(row.title || compactTitle(row))}</h2>
+        <p>${issueCount} related issues · ${row.needsApproval ? '1+ nudges ready' : 'monitoring'} · Proof: ${escapeHtml(proof)}</p>
+        ${governanceChip}
+      </div>
+      <div class="actions-case-card-actions">
+        ${row.needsApproval ? `<button type="button" class="btn btn-primary btn-compact" data-approve-case="${escapeHtml(row.id)}">${escapeHtml(COPY.actionsApproveInline)}</button>` : ''}
+        <button type="button" class="btn btn-secondary btn-compact" data-open-case="${escapeHtml(row.id)}">Review case</button>
+      </div>
+    </article>`;
 }
 
-export function renderActionsCaseCard(row = {}, { highlight = false } = {}) {
-  const proof = row.proofLevel || 'Medium';
-  return `
-    <article class="actions-case-card${highlight ? ' is-highlighted' : ''}" data-case-id="${escapeHtml(row.id)}" id="case-${escapeHtml(row.id)}">
-      <h2>${escapeHtml(row.title || `${row.project} scope review`)}</h2>
-      <p>${escapeHtml((row.issueKeys || []).length)} related issues · ${row.needsApproval ? '1+ nudges ready' : 'monitoring'} · Proof: ${escapeHtml(proof)}</p>
-      <button type="button" class="btn btn-primary btn-compact" data-open-case="${escapeHtml(row.id)}">Review case</button>
-    </article>`;
+export function renderGovCaseCard(row = {}) {
+  return renderInterventionCaseCard(row, { surface: 'governance' });
+}
+
+export function renderActionsCaseCard(row = {}, { highlight = false, selected = false } = {}) {
+  return renderInterventionCaseCard(row, { surface: 'actions', highlight, selected });
 }
 
 export function renderGovCaseDetail(row = {}, draft = null) {
@@ -130,7 +169,7 @@ export function renderGovInterventionSummary(rows = []) {
         <span class="gov-intervention-count">${hiddenCount ? `${hiddenCount} more in queue` : 'Brief-linked'}</span>
       </div>
       <div class="gov-intervention-grid">
-        ${visible.map(renderGovCaseCard).join('')}
+        ${visible.map((row) => renderGovCaseCard(row)).join('')}
       </div>
     </section>`;
 }

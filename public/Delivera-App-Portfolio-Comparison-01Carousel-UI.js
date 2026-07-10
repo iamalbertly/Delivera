@@ -1,39 +1,63 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
 import { enrichComparisonForDiffOnly } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { movementLabel } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 
 function width(value) {
   return Math.max(0, Math.min(100, Number(value) || 0));
 }
 
-function renderRow(card = {}) {
+function metricTone(value, invert = false) {
+  const v = Number(value) || 0;
+  if (invert) {
+    if (v >= 40) return 'critical';
+    if (v >= 25) return 'watch';
+    return 'healthy';
+  }
+  if (v < 30) return 'critical';
+  if (v < 55) return 'watch';
+  return 'healthy';
+}
+
+function renderBentoCard(card = {}) {
   const m = card.metrics || {};
   const statusClass = card.statusClass || 'watch';
+  const delivered = width(m.delivered);
+  const offPlan = width(m.offPlanLoad);
+  const proof = width(m.proofConfidence);
+  const movement = movementLabel(delivered);
+  const decisionLabel = card.decisionNeeded || card.nextAction || 'Continue monitoring';
   const squadLabel = renderJiraWorkItemLink({
     issueKey: card.primaryEpicKey || card.projectKey,
     title: card.squadName || card.projectKey,
     issueUrl: card.primaryEpicUrl || '',
     kind: card.primaryEpicKey ? 'epic' : 'squad',
-    className: 'portfolio-grid-squad-link',
+    className: 'portfolio-bento-squad-link',
   });
   return `
-    <div class="portfolio-performance-grid-row${card.selected ? ' is-selected' : ''}"
+    <article class="portfolio-bento-card portfolio-bento-card--${escapeHtml(statusClass)}${card.selected ? ' is-selected' : ''}"
       data-squad-key="${escapeHtml(card.projectKey)}"
-      title="${escapeHtml(card.proofDetail || card.explanation || '')}">
-      <span class="portfolio-grid-squad portfolio-grid-squad-select" role="button" tabindex="0" data-squad-select="${escapeHtml(card.projectKey)}">
-        <strong>${squadLabel}</strong>
-        <small class="portfolio-squad-status portfolio-squad-status--${escapeHtml(statusClass)}">${escapeHtml(card.status || 'Watch')}</small>
-      </span>
-      <span class="portfolio-grid-issue">${escapeHtml(card.mainIssue || '')}</span>
-      <span class="portfolio-grid-bar" aria-label="Delivered ${width(m.delivered)}%">
-        <i style="width:${width(m.delivered)}%"></i>
-      </span>
-      <span class="portfolio-grid-bar portfolio-grid-bar--proof" aria-label="Proof ${width(m.proofConfidence)}%">
-        <i style="width:${width(m.proofConfidence)}%"></i>
-      </span>
-      <span class="portfolio-grid-number">${Number(card.affectedCommitmentCount) || 0}</span>
-      <span class="portfolio-grid-action">${escapeHtml(card.nextAction || card.decisionNeeded || '')}</span>
-    </div>`;
+      data-squad-select="${escapeHtml(card.projectKey)}"
+      data-testid="portfolio-bento-card"
+      role="button"
+      tabindex="0"
+      title="${escapeHtml(card.proofDetail || card.explanation || 'Select squad')}">
+      <header class="portfolio-bento-card-head">
+        <strong class="portfolio-bento-squad">${squadLabel}</strong>
+        <span class="portfolio-squad-status portfolio-squad-status--${escapeHtml(statusClass)}">${escapeHtml(card.status || 'Watch')}</span>
+      </header>
+      <dl class="portfolio-bento-metrics">
+        <div><dt>Promised impact</dt><dd>${Number(m.commitments) || 0}</dd></div>
+        <div class="portfolio-bento-metric--${metricTone(delivered)}"><dt>Delivered</dt><dd>${delivered}%</dd></div>
+        <div><dt>Movement</dt><dd>${escapeHtml(movement)}</dd></div>
+        <div class="portfolio-bento-metric--${metricTone(offPlan, true)}"><dt>Off-plan load</dt><dd>${offPlan}%</dd></div>
+        <div class="portfolio-bento-metric--${metricTone(proof)}"><dt>Proof confidence</dt><dd>${proof}%</dd></div>
+      </dl>
+      <div class="portfolio-bento-decision portfolio-bento-decision--${escapeHtml(statusClass)}">
+        <span>Decision</span>
+        <strong>${escapeHtml(decisionLabel)}</strong>
+      </div>
+    </article>`;
 }
 
 export function renderPortfolioCarousel(comparison = {}) {
@@ -44,42 +68,46 @@ export function renderPortfolioCarousel(comparison = {}) {
     ? `<p class="portfolio-compare-shared-root" data-testid="portfolio-compare-shared-root">Shared root issue: ${escapeHtml(enriched.sharedRootIssue)}</p>`
     : '';
   return `
-    <section class="portfolio-carousel-wrap portfolio-performance-grid" aria-label="Squad performance grid" data-portfolio-carousel>
+    <section class="portfolio-carousel-wrap portfolio-bento-grid" aria-label="Squad comparison" data-portfolio-carousel id="portfolio-compare">
       <div class="portfolio-carousel-head">
-        <h2>Squad performance grid</h2>
-        <p class="portfolio-carousel-strip">Delivery / proof / open commitment drift</p>
+        <h2>Squad comparison</h2>
+        <p class="portfolio-carousel-strip">Delivery, proof, and investment posture across peers</p>
       </div>
       ${sharedBanner}
-      <div class="portfolio-performance-grid-table" data-carousel-track tabindex="0" role="list">
-        <div class="portfolio-performance-grid-head" aria-hidden="true">
-          <span>Squad</span><span>Root issue</span><span>Delivery</span><span>Proof</span><span>Gaps</span><span>Next move</span>
-        </div>
-        ${cards.map(renderRow).join('')}
+      <div class="portfolio-bento-grid-track" data-carousel-track role="list">
+        ${cards.map(renderBentoCard).join('')}
       </div>
     </section>`;
 }
 
 export function bindPortfolioCarousel(root, { onSelectSquad } = {}) {
   if (!root) return;
-  const rows = Array.from(root.querySelectorAll('[data-squad-key]'));
+  const cards = Array.from(root.querySelectorAll('[data-squad-key]'));
+  const selectCard = (row) => {
+    if (!row) return;
+    onSelectSquad?.(row.getAttribute('data-squad-key'));
+  };
   root.addEventListener('click', (ev) => {
     if (ev.target.closest('[data-jira-work-item-link]')) return;
-    const row = ev.target.closest('[data-squad-select]')?.closest('[data-squad-key]')
-      || ev.target.closest('[data-squad-key]');
-    if (!row || !ev.target.closest('[data-squad-select]')) return;
-    onSelectSquad?.(row.getAttribute('data-squad-key'));
+    const row = ev.target.closest('[data-squad-key]');
+    if (!row) return;
+    selectCard(row);
   });
   root.querySelector('[data-carousel-track]')?.addEventListener('keydown', (ev) => {
-    const current = ev.target.closest('[data-squad-select]')?.closest('[data-squad-key]')
-      || ev.target.closest('[data-squad-key]');
-    const idx = Math.max(0, rows.indexOf(current));
+    const current = ev.target.closest('[data-squad-key]');
+    const idx = Math.max(0, cards.indexOf(current));
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      selectCard(current);
+      return;
+    }
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowRight') {
       ev.preventDefault();
-      rows[Math.min(rows.length - 1, idx + 1)]?.focus();
+      cards[Math.min(cards.length - 1, idx + 1)]?.focus();
     }
     if (ev.key === 'ArrowUp' || ev.key === 'ArrowLeft') {
       ev.preventDefault();
-      rows[Math.max(0, idx - 1)]?.focus();
+      cards[Math.max(0, idx - 1)]?.focus();
     }
   });
 }

@@ -65,16 +65,10 @@ const MOBILE_LABELS = {
 
 const NAV_ITEMS = [
   {
-    key: PAGE_DASHBOARD,
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 10.2V21h6.7v-6.1h4.6V21H21V10.2z"/></svg>',
-  },
-  {
-    key: PAGE_PI,
-    label: 'PI Goals',
-    href: '/leadership',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 5v5l4 2-.9 1.6-4.6-2.3V7Z"/></svg>',
+    key: PAGE_GOVERNANCE,
+    label: 'Portfolio',
+    href: '/governance',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.6H8zm0 3.2h8v1.6H8zm0-6.4h4v1.6H8z"/></svg>',
   },
   {
     key: PAGE_SPRINTS,
@@ -83,52 +77,10 @@ const NAV_ITEMS = [
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM7 3h2v4H7zm8 0h2v4h-2z"/></svg>',
   },
   {
-    key: PAGE_VALUE,
-    label: 'Value Delivery',
-    href: '/report',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2H7zm-2 4h14v2H5zm0 5h14v2H5zm0 5h10v2H5z"/></svg>',
-  },
-  {
-    key: PAGE_RISKS,
-    label: 'Risks & Blockers',
-    href: '/current-sprint#stuck-card',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4ZM11 9h2v5h-2Zm0 6.5h2v2h-2Z"/></svg>',
-  },
-  {
-    key: PAGE_LEADERSHIP,
-    label: 'Leadership',
-    href: '/leadership',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7 4a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm7-8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
-  },
-  {
-    key: PAGE_GOVERNANCE,
-    label: 'Portfolio',
-    href: '/governance',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.6H8zm0 3.2h8v1.6H8zm0-6.4h4v1.6H8z"/></svg>',
-  },
-  {
     key: PAGE_ACTIONS,
     label: 'Actions',
     href: '/actions',
     icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4zm-1 7h2v8H8zm4 0h2v8h-2z"/></svg>',
-  },
-  {
-    key: PAGE_TEAMS,
-    label: 'Teams',
-    href: '/current-sprint',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11.5a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm9 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3ZM3 20v-1.2A4.8 4.8 0 0 1 7.8 14h-.6A4.8 4.8 0 0 1 12 18.8V20Zm9 0v-1.2A4.8 4.8 0 0 1 16.8 14h-.6A4.8 4.8 0 0 1 21 18.8V20Z"/></svg>',
-  },
-  {
-    key: PAGE_REPORT,
-    label: 'Reports',
-    href: '/report',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4zm0 6h10v3H4zm0 6h16v3H4z"/></svg>',
-  },
-  {
-    key: PAGE_EVIDENCE,
-    label: 'Impact',
-    href: '/impact',
-    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v4H5zm0 6h14v4H5zm0 6h14v4H5zM7 6v1h10V6zm0 6v1h10v-1zm0 6v1h10v-1z"/></svg>',
   },
   {
     key: PAGE_SETTINGS,
@@ -507,9 +459,13 @@ function updateSidebarAlertFooterFromStore() {
     const eff = effectiveNotificationTotal(summary);
     updateBottomNavBadge(PAGE_SPRINTS, eff > 0 ? String(eff) : '', eff > 0 ? (eff + ' alerts (sprint and/or console)') : '');
     const healthy = tt <= 0 && rt <= 0;
-    const label = healthy
-      ? 'Logging alerts: 0 · Healthy'
-      : ('Alerts — ' + (tt > 0 ? 'Sprint: ' + tt : '') + (tt > 0 && rt > 0 ? ' · ' : '') + (rt > 0 ? 'Console/runtime: ' + rt : ''));
+    // Hide the logging alerts chip when healthy — it's developer telemetry that adds
+    // visual noise for end users with no alerts. Only show when there are actual alerts.
+    if (healthy) {
+      el.innerHTML = '';
+      return;
+    }
+    const label = 'Alerts — ' + (tt > 0 ? 'Sprint: ' + tt : '') + (tt > 0 && rt > 0 ? ' · ' : '') + (rt > 0 ? 'Console/runtime: ' + rt : '');
     el.innerHTML = '<button type="button" class="sidebar-alert-footer-chip' + (healthy ? ' is-healthy' : '') + '" data-sidebar-alert-jump="true" title="Open Current Sprint and focus Issues in this sprint">' + label + '</button>';
     const btn = el.querySelector('[data-sidebar-alert-jump]');
     btn?.addEventListener('click', () => {

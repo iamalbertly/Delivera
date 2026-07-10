@@ -196,7 +196,6 @@ function buildTopChromeHTML(current) {
     + '<p><a href="/settings#integrations">Integrations &amp; AI</a></p>'
     + '<p><a href="/settings#jira-activity">Jira activity</a></p>'
     + '<p><strong>Search:</strong> Brief squads · Sprint issue KEY · Proof projects.</p>'
-    + '<p><strong>Tests:</strong> <code>npm run test:journey:ux-core</code> · <code>npm run test:journey:governance</code></p>'
     + '</div>'
     + '<div id="app-top-avatar-menu" class="app-top-avatar-menu" hidden role="menu">'
     + '<a href="/settings" role="menuitem">Settings</a>'

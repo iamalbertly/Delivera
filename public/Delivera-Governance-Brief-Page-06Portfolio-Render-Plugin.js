@@ -4,7 +4,7 @@
 
  */
 
-import { renderPortfolioSignal, renderPortfolioDataTrust } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import { renderPortfolioSignal } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 
 import { renderPortfolioCommitments, renderPortfolioRailCommitments } from './Delivera-App-Portfolio-Commitments-01Render-UI.js';
 import { renderPortfolioPreparedActions } from './Delivera-App-Portfolio-PreparedActions-01Render-UI.js';
@@ -140,7 +140,7 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
 
 
 
-function handlePortfolioDelegatedClick(ev) {
+async function handlePortfolioDelegatedClick(ev) {
 
   const formatBtn = ev.target.closest('[data-calibration-format]');
   if (formatBtn) {
@@ -171,6 +171,38 @@ function handlePortfolioDelegatedClick(ev) {
 
   if (action === 'review-actions' || action === 'view-prepared-items') {
     openPortfolioCalibrationDrawer(decision, cases);
+  } else if (action === 'focus-compare') {
+    ev.preventDefault();
+    const target = document.getElementById('portfolio-compare') || document.querySelector('[data-portfolio-carousel]');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target?.focus?.();
+  } else if (action === 'confirm-decision') {
+    ev.preventDefault();
+    const rail = document.getElementById('portfolio-decision-mount');
+    const decisionId = btn.getAttribute('data-decision-id')
+      || rail?.querySelector('.portfolio-decision-radio input:checked')?.value
+      || decision.recommendation?.id
+      || 'track-commitments';
+    const onConfirm = rail?._portfolioConfirmHandler;
+    if (onConfirm) {
+      await onConfirm(decisionId);
+      return;
+    }
+    try {
+      await fetchJson('/api/governance/portfolio-decision/confirm', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          project: decision.anchorProject,
+          periodKey: decision.periodKey,
+          decisionId,
+        }),
+      }, 'portfolio-decision-confirm');
+      showInlineToast(document.getElementById('main-content'), 'Portfolio decision recorded', 'info');
+      if (govPage.lastBrief) await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases);
+    } catch (err) {
+      showInlineToast(document.getElementById('main-content'), err?.message || 'Could not record decision', 'error');
+    }
   } else if (action === 'view-governance-evidence') {
     const brief = govPage.lastBrief || {};
     const rail = document.getElementById('gov-right-rail-proof-mount');
@@ -222,6 +254,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
   govPage.lastPortfolioDecision = decision;
   govPage.lastDecision = decision;
+  if (meta.cached) decision._cachedView = true;
 
   govPage.lastPortfolioCases = payloadCases;
 
@@ -242,7 +275,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
 
   const railCommitmentsMount = $('portfolio-rail-commitments-mount');
-  const railCarouselMount = $('portfolio-rail-carousel-mount');
+  // railCarouselMount removed — deduplicated to a single main-column carousel.
 
   if (signalMount) {
     signalMount.innerHTML = renderPortfolioSignal(decision, {
@@ -286,8 +319,11 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
 
   const isWideDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1440px)').matches;
 
+  // Single carousel source: the main column mount. The rail carousel mount
+  // was removed to deduplicate — both rendered the same content via the same
+  // module, risking double-mount. Now the main carousel shows on all widths.
   if (carouselMount) {
-    if (isWideDesktop || !carouselHtml) {
+    if (!carouselHtml) {
       carouselMount.innerHTML = '';
       carouselMount.hidden = true;
     } else {
@@ -295,22 +331,11 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
       bindCarousel(carouselMount);
     }
   }
-
-  if (railCarouselMount) {
-    if (!isWideDesktop || !carouselHtml) {
-      railCarouselMount.innerHTML = '';
-      railCarouselMount.hidden = true;
-    } else {
-      railCarouselMount.hidden = false;
-      bindCarousel(railCarouselMount);
-    }
-  }
+  void isWideDesktop; // retained for future responsive gating without rail duplication
 
   if (decisionMount) {
 
     decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, brief);
-    const freshness = meta.cachedAt ? '' : (decision.dataTrust?.lastSync || 'Live');
-    decisionMount.insertAdjacentHTML('beforeend', renderPortfolioDataTrust(decision, freshness));
 
     bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
 
@@ -369,7 +394,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   try {
     document.body.classList.toggle(
       'portfolio-rail-visible',
-      Boolean(decisionMount?.querySelector('.portfolio-decision, #portfolio-decision')),
+      Boolean(decisionMount?.querySelector('.portfolio-rail-stack, .portfolio-decision, #portfolio-decision')),
     );
   } catch (_) { /* ignore */ }
 
@@ -405,6 +430,16 @@ export function installPortfolioSurfaceHook() {
 
   document.addEventListener('gov:open-alignment-studio', () => {
     openPiBaselineWizard({ initialMode: 'slide' });
+  });
+
+  // Document-level delegation so any [data-portfolio-action="open-alignment-studio"] button
+  // (e.g. the empty-state CTA in the commitments section) opens the Alignment Studio without
+  // needing per-element binding.
+  document.addEventListener('click', (ev) => {
+    const trigger = ev.target?.closest?.('[data-portfolio-action="open-alignment-studio"]');
+    if (!trigger) return;
+    ev.preventDefault();
+    document.dispatchEvent(new CustomEvent('gov:open-alignment-studio', { bubbles: true }));
   });
 
   window.addEventListener('portfolio:decision-revalidated', async (ev) => {

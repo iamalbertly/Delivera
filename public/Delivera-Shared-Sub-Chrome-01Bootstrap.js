@@ -25,6 +25,7 @@ export async function bootstrapSubChrome() {
   if (document.body?.classList?.contains('login-page')) return;
   if (document.body?.classList?.contains('governance-page')) return;
   if (document.body?.classList?.contains('settings-page')) return;
+  if (document.body?.classList?.contains('actions-page')) return;
   mountGlobalAgentBar();
   if (bootstrapStarted) return;
   const defer = () => runBootstrapFetch();

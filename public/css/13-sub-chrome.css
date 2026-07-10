@@ -5,8 +5,9 @@
   top: var(--top-chrome-height, 56px);
   left: var(--sidebar-width, 240px);
   right: 0;
-  z-index: 1200;
-  background: #0f172a;
+  z-index: var(--z-chrome);
+  background: var(--surface-elevated, #fff);
+  border-bottom: 1px solid var(--border, #d9bebe);
 }
 
 body.has-top-chrome.sidebar-collapsed #app-sub-chrome-slot,
@@ -27,8 +28,8 @@ body.sidebar-open #app-sub-chrome-slot {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding: 6px 12px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--surface-muted, #fbf5f5);
+  color: var(--muted, #3f2d2d);
   font-size: 0.72rem;
   margin: 0;
 }

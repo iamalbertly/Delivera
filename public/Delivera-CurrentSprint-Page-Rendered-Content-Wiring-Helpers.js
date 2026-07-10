@@ -22,6 +22,29 @@ import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
 import { markPerf } from './Delivera-Shared-Perf-Marks.js';
 import { getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
 
+function wireSprintProofRailHandlers() {
+  const rail = document.getElementById('sprint-proof-rail');
+  if (!rail || rail.dataset.railTabsBound === '1') return;
+  rail.dataset.railTabsBound = '1';
+  const activate = (tabId) => {
+    rail.querySelectorAll('[data-rail-tab]').forEach((btn) => {
+      const on = btn.getAttribute('data-rail-tab') === tabId;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    rail.querySelectorAll('[data-rail-panel]').forEach((panel) => {
+      const on = panel.getAttribute('data-rail-panel') === tabId;
+      panel.classList.toggle('is-active', on);
+      panel.hidden = !on;
+    });
+  };
+  rail.querySelectorAll('[data-rail-tab]').forEach((btn) => {
+    btn.addEventListener('click', () => activate(btn.getAttribute('data-rail-tab')));
+  });
+  const defaultTab = rail.getAttribute('data-default-rail-tab') || 'work';
+  activate(defaultTab);
+}
+
 function collapseMobileDetailsSections() {
   try {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -327,21 +350,26 @@ function wireRenderedContent(data, onSelectSprintById) {
   wireSectionLinks();
   collapseMobileDetailsSections();
   applyInitialHashFocus();
+  wireSprintProofRailHandlers();
   void mountAlignmentStrip(document.getElementById('sprint-alignment-strip-mount'), data);
-  document.querySelector('.sprint-blockers-panel')?.addEventListener('click', (ev) => {
+  const handleBlockerNudge = (ev) => {
     const btn = ev.target.closest('[data-blocker-nudge]');
     if (!btn) return;
     const issueKey = btn.getAttribute('data-blocker-nudge') || '';
     if (!issueKey) return;
+    const draftEl = document.querySelector('.sprint-proof-rail-nudge-draft');
+    const inlineDraft = draftEl?.value?.trim() || '';
     const roster = data?.meta?.teamRoster || [];
     openJiraNudgeReviewSheet({
       issueKey,
       useCase: 'blocker',
       meta: { teamRoster: roster, governanceSend: false },
       sprint: data?.sprint,
-      initialDraft: `${issueKey}: blocked ${Math.round(Number(data?.stuckCandidates?.find((c) => c.issueKey === issueKey)?.hoursInStatus || 0))}h — can we unblock today?`,
+      initialDraft: inlineDraft || `${issueKey}: blocked ${Math.round(Number(data?.stuckCandidates?.find((c) => c.issueKey === issueKey)?.hoursInStatus || 0))}h — can we unblock today?`,
     });
-  });
+  };
+  document.getElementById('sprint-proof-rail')?.addEventListener('click', handleBlockerNudge);
+  document.querySelector('.sprint-blockers-panel')?.addEventListener('click', handleBlockerNudge);
 }
 
 export function showCurrentSprintRenderedContent(data, onSelectSprintById, options = {}) {
