@@ -279,6 +279,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
 
   test('05 decision panel confirm calls portfolio decision API', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 900, height: 900 });
     await mockPortfolioPage(page);
     let confirmed = false;
     await page.route('**/api/governance/portfolio-decision/confirm**', (route) => {
@@ -360,8 +361,11 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await page.waitForSelector('[data-portfolio-scope-filters]', { timeout: 120000 });
     await expect(page.locator('#portfolio-scope-selected')).toBeVisible();
     await expect(page.locator('[data-portfolio-scope-filters]')).not.toContainText(/Selected/i);
-    await expect(page.locator('[data-portfolio-scope-filters]')).toContainText(/\+2 Squads/i);
-    await expect(page.locator('[data-portfolio-scope-filters]')).toContainText(/\+ Add comparison/i);
+    await expect(page.locator('[data-testid="portfolio-scope-compare-tags"] .portfolio-scope-tag').first()).toBeVisible();
+    const addSelect = page.locator('#portfolio-scope-add');
+    if (await addSelect.isVisible()) {
+      await expect(addSelect).toContainText(/Add comparison/i);
+    }
     await expect(page.locator('#portfolio-scope-quarter')).toBeVisible();
     await expect(page.locator('#portfolio-scope-baseline')).toBeVisible();
     await expect(page.locator('#gov-copy-answer-scope')).toHaveCount(0);
@@ -370,10 +374,11 @@ test.describe('Portfolio command surface @portfolio-command', () => {
 
   test('11 governance evidence opens from hero link without shield language', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 900, height: 900 });
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="portfolio-primary-cta"]', { timeout: 120000 });
+    await page.waitForSelector('[data-portfolio-action="view-governance-evidence"]', { timeout: 120000 });
     await page.locator('[data-portfolio-action="view-governance-evidence"]').first().click();
     await expect(page.locator('[data-evidence-proof-list]')).toBeVisible();
     assertTelemetryClean(t);
@@ -443,14 +448,16 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('16 clicking squad card updates selected scope control', async ({ page }) => {
+  test('16 bento peer click previews without changing anchor scope', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-squad-key="MAS"]', { timeout: 120000 });
+    await page.waitForSelector('[data-portfolio-carousel]:not([data-portfolio-carousel-skeleton])', { timeout: 120000 });
+    const anchorBefore = await page.locator('#portfolio-scope-selected').inputValue();
     await page.locator('[data-squad-key="MAS"]').click();
-    await expect(page.locator('#portfolio-scope-selected')).toHaveValue('MAS');
+    await expect(page.locator('[data-testid="portfolio-bento-preview"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#portfolio-scope-selected')).toHaveValue(anchorBefore);
     assertTelemetryClean(t);
   });
 

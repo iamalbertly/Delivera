@@ -53,11 +53,23 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { ensureLegacyBriefSurfacesHydrated } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import { mountPiFocusStrip } from './Delivera-App-Governance-PIFocus-01Strip-Render-UI.js';
 import { openPiBaselineWizard } from './Delivera-Governance-Brief-Page-01Context.js';
+import { recordPortfolioDecisionOutcome, highlightPortfolioBentoCard, renderBentoPreviewBanner } from './Delivera-App-Portfolio-Decision-02Outcome-SSOT.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
-
+let portfolioRefreshGen = 0;
 
 function readCompareProjects(anchor = '') {
   return readPortfolioCompareProjects(anchor);
+}
+
+function previewBentoSquad(carouselMount, decisionMount, projectKey, comparison = {}) {
+  if (!projectKey) return;
+  highlightPortfolioBentoCard(carouselMount, projectKey);
+  const card = (comparison.cards || []).find((c) => String(c.projectKey).toUpperCase() === String(projectKey).toUpperCase());
+  if (!card || !decisionMount) return;
+  const existing = decisionMount.querySelector('[data-testid="portfolio-bento-preview"]');
+  if (existing) existing.remove();
+  decisionMount.insertAdjacentHTML('afterbegin', renderBentoPreviewBanner(card));
 }
 
 
@@ -103,7 +115,7 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
           drivers: [],
           affectedCommitments: [],
           preparedActions: { groups: [], items: [] },
-          decisionOptions: [{ id: 'keep-funding', label: 'Keep funding', useWhen: 'Scope is confirmed', effect: 'No change', impactPreview: 'Confirm scope first.' }],
+          decisionOptions: [{ id: 'keep-funding', label: 'Continue as planned', useWhen: 'Scope is confirmed', effect: 'No change', impactPreview: 'Confirm scope first.' }],
           anchorProject: anchor,
           periodKey,
           monitoring: { squadCount: compare.length + 1, commitmentCount: 0, exposedCommitmentCount: 0 },
@@ -155,6 +167,18 @@ async function handlePortfolioDelegatedClick(ev) {
     }
   }
 
+  const focusBtn = ev.target.closest('[data-portfolio-bento-focus]');
+  if (focusBtn) {
+    ev.preventDefault();
+    const projectKey = focusBtn.getAttribute('data-portfolio-bento-focus');
+    if (projectKey && govPage.lastBrief) {
+      govPage.scopeBarApi?.setAnchor?.(projectKey);
+      govPage._portfolioBriefToken = null;
+      await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases);
+    }
+    return;
+  }
+
   const btn = ev.target.closest('[data-portfolio-action]');
 
   if (!btn || btn.tagName === 'A') return;
@@ -185,20 +209,9 @@ async function handlePortfolioDelegatedClick(ev) {
       return;
     }
     try {
-      await fetchJson('/api/governance/portfolio-decision/confirm', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          project: decision.anchorProject,
-          periodKey: decision.periodKey,
-          decisionId,
-        }),
-      }, 'portfolio-decision-confirm');
-      showInlineToast(document.getElementById('main-content'), 'Portfolio decision recorded', 'info');
+      await recordPortfolioDecisionOutcome({ decision, decisionId, host: document.getElementById('main-content') });
       if (govPage.lastBrief) await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases);
-    } catch (err) {
-      showInlineToast(document.getElementById('main-content'), err?.message || 'Could not record decision', 'error');
-    }
+    } catch (_) { /* toast shown */ }
   } else if (action === 'view-governance-evidence') {
     const brief = govPage.lastBrief || {};
     const rail = document.getElementById('gov-right-rail-proof-mount');
@@ -255,6 +268,7 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
   govPage.lastDecision = decision;
   if (meta.cached || payload._clientCache) decision._cachedView = true;
   govPage.lastPortfolioCases = payloadCases;
+  govPage.lastPortfolioComparison = comparison;
 
   const signalMount = $('portfolio-signal-mount');
   const commitmentsMount = $('portfolio-commitments-mount');
@@ -304,11 +318,16 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
     mount.innerHTML = carouselHtml;
     if ((comparison.cards || []).length) {
       bindPortfolioCarousel(mount, {
-        onSelectSquad: async (projectKey) => {
+        onSelectSquad: (projectKey) => {
           if (!projectKey) return;
-          govPage.scopeBarApi?.setAnchor?.(projectKey);
-          govPage._portfolioBriefToken = null;
-          await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
+          const dm = document.getElementById('portfolio-decision-mount');
+          const anchorKey = String(decision.anchorProject || '').toUpperCase();
+          if (String(projectKey).toUpperCase() === anchorKey) {
+            highlightPortfolioBentoCard(mount, projectKey);
+            dm?.querySelector('[data-testid="portfolio-bento-preview"]')?.remove();
+            return;
+          }
+          previewBentoSquad(mount, dm, projectKey, comparison);
         },
       });
     }
@@ -323,25 +342,18 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
     decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, brief);
     bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
       try {
-        await fetchJson('/api/governance/portfolio-decision/confirm', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            project: decision.anchorProject,
-            periodKey: decision.periodKey,
-            decisionId,
-          }),
-        }, 'portfolio-decision-confirm');
-        showInlineToast(document.getElementById('main-content'), 'Portfolio decision recorded', 'info');
+        await recordPortfolioDecisionOutcome({
+          decision,
+          decisionId,
+          host: document.getElementById('main-content'),
+        });
         await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
-      } catch (err) {
-        showInlineToast(document.getElementById('main-content'), err?.message || 'Could not record decision', 'error');
-      }
+      } catch (_) { /* toast shown */ }
     });
   }
 
   if (footerMount) {
-    footerMount.innerHTML = '<p class="portfolio-monitor-legend">Delivery% = committed impact delivered this PI. Off-plan load = time on work not tied to committed outcomes.</p>';
+    footerMount.innerHTML = `<p class="portfolio-monitor-legend" data-testid="portfolio-monitor-legend">${escapeHtml(COPY.portfolioLegend)}</p>`;
     footerMount.hidden = false;
   }
 
@@ -391,13 +403,17 @@ export function paintPortfolioBentoSkeleton(brief) {
 
 export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfolioCases || []) {
   if (!brief) return;
+  const gen = ++portfolioRefreshGen;
   try {
-  govPage.scopeBarApi?.setCacheUxState?.({ fresh: false, updating: true });
-  const payload = await fetchPortfolioPayload(brief, cases);
-  await applyPortfolioPayloadToDom(brief, payload, cases);
+    govPage.scopeBarApi?.setCacheUxState?.({ fresh: false, updating: true });
+    const payload = await fetchPortfolioPayload(brief, cases);
+    if (gen !== portfolioRefreshGen) return;
+    await applyPortfolioPayloadToDom(brief, payload, cases);
   } finally {
-    hideGovernanceLoading();
-    document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
+    if (gen === portfolioRefreshGen) {
+      hideGovernanceLoading();
+      document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
+    }
   }
 }
 

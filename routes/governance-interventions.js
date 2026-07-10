@@ -176,7 +176,7 @@ router.post('/api/governance/portfolio-decision/confirm', requireAuth, async (re
     }
     const action = {
       actionId: `portfolio-decision-${Date.now()}`,
-      action: `Portfolio decision: ${decisionId}`,
+      action: `Delivery decision: ${decisionId.replace(/-/g, ' ')}`,
       owner: 'Leadership',
       dueAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
       status: 'open',

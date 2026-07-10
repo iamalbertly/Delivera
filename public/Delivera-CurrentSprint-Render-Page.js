@@ -72,8 +72,8 @@ function renderSprintProofRail(data) {
       + '<p class="sprint-proof-rail-summary">' + escapeHtml(nba.summary || nba.reason || '') + '</p>'
       + '<div class="sprint-proof-rail-nudge-inline" data-testid="sprint-rail-nudge-inline">'
       + '<label class="visually-hidden" for="sprint-rail-nudge-draft">Nudge draft</label>'
-      + '<textarea id="sprint-rail-nudge-draft" class="sprint-proof-rail-nudge-draft" rows="2" placeholder="Quick unblock ask…">' + escapeHtml(nudgeDraft) + '</textarea>'
-      + '<button type="button" class="btn btn-primary btn-compact sprint-proof-rail-nudge" data-blocker-nudge="' + escapeHtml(blockerKey) + '">Review nudge</button>'
+      + '<textarea id="sprint-rail-nudge-draft" class="sprint-proof-rail-nudge-draft" rows="2" placeholder="Quick unblock ask — press Enter to review…">' + escapeHtml(nudgeDraft) + '</textarea>'
+      + '<p class="sprint-proof-rail-nudge-hint">Press Enter to open nudge review</p>'
       + '</div>';
   } else if (meta.limbo && meta.nextSprintCandidate?.name) {
     workBody = ''

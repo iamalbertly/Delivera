@@ -4,6 +4,7 @@
 import { showLoadingView, clearErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { renderSurfaceStateHtml } from './Delivera-Shared-Surface-State-01SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 function getDom() {
   return {
@@ -109,7 +110,7 @@ export function clearScopeStaleOverlay() {
   document.querySelectorAll('.gov-scope-stale-overlay').forEach((el) => el.remove());
 }
 
-export function showPortfolioLoading(msg = 'AI agent is learning from your squad data…', options = {}) {
+export function showPortfolioLoading(msg = COPY.portfolioLoading, options = {}) {
   const signalMount = document.getElementById('portfolio-signal-mount');
   const preserve = options.preserveContent === true && hasGovernanceBriefContent();
   if (signalMount && !preserve) {

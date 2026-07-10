@@ -211,6 +211,12 @@ export const specMetadata = {
     page: '/governance,/actions,/current-sprint',
     priority: 1,
   },
+  'tests/Delivera-Portfolio-Growth-UX-Round12-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.portfolio-growth-ux-round12',
+    layer: 'page-ux',
+    page: '/governance,/actions',
+    priority: 1,
+  },
 
   // Outcome intake and outcome-first UX
   'tests/Delivera-Outcome-Intake-And-Readiness-Validation-Tests.spec.js': {
@@ -811,6 +817,13 @@ export const journeyBuckets = {
     label: 'Portfolio direct-value Round 11 master plan',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.portfolio-direct-value-round11',
+    ),
+  },
+  'journey.portfolio-growth-ux-round12': {
+    id: 'journey.portfolio-growth-ux-round12',
+    label: 'Portfolio growth UX Round 12 delivery vocabulary and rail-first',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.portfolio-growth-ux-round12',
     ),
   },
 };

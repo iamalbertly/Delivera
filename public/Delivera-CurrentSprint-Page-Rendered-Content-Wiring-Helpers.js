@@ -369,6 +369,22 @@ function wireRenderedContent(data, onSelectSprintById) {
     });
   };
   document.getElementById('sprint-proof-rail')?.addEventListener('click', handleBlockerNudge);
+  document.getElementById('sprint-proof-rail')?.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' || ev.shiftKey) return;
+    const ta = ev.target.closest('#sprint-rail-nudge-draft');
+    if (!ta) return;
+    ev.preventDefault();
+    const issueKey = document.querySelector('[data-primary-blocker-key]')?.getAttribute('data-primary-blocker-key') || '';
+    if (!issueKey) return;
+    const inlineDraft = ta.value?.trim() || '';
+    openJiraNudgeReviewSheet({
+      issueKey,
+      useCase: 'blocker',
+      meta: { teamRoster: data?.meta?.teamRoster || [], governanceSend: false },
+      sprint: data?.sprint,
+      initialDraft: inlineDraft,
+    });
+  });
   document.querySelector('.sprint-blockers-panel')?.addEventListener('click', handleBlockerNudge);
 }
 

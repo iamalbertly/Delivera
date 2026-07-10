@@ -94,7 +94,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     catalogKeys = unionScopeProjectKeys([anchor, ...compare]);
     const allOptions = catalogKeys.length ? catalogKeys : projects;
     const compareSummary = compare.length
-      ? `<span class="portfolio-scope-tag portfolio-scope-tag--summary" title="${escapeHtml(compare.map(displayName).join(', '))}">+${compare.length} Squad${compare.length === 1 ? '' : 's'}</span>`
+      ? `<span class="portfolio-scope-compare-tags" data-testid="portfolio-scope-compare-tags">${compare.map((pk) => `<span class="portfolio-scope-tag" title="${escapeHtml(displayName(pk))}">${escapeHtml(displayName(pk))}</span>`).join('')}</span>`
       : '<span class="portfolio-scope-tag portfolio-scope-tag--empty">No comparison</span>';
     const availableToAdd = allOptions.filter((k) => {
       const U = String(k).toUpperCase();

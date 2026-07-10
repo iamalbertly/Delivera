@@ -19,7 +19,7 @@ function metricTone(value, invert = false) {
   return 'healthy';
 }
 
-function renderBentoCard(card = {}) {
+function renderBentoCard(card = {}, { peerMedianDelivered = 0 } = {}) {
   const m = card.metrics || {};
   const statusClass = card.statusClass || 'watch';
   const delivered = width(m.delivered);
@@ -27,6 +27,12 @@ function renderBentoCard(card = {}) {
   const proof = width(m.proofConfidence);
   const movement = movementLabel(delivered);
   const decisionLabel = card.decisionNeeded || card.nextAction || 'Continue monitoring';
+  const peerDelta = card.selected && peerMedianDelivered
+    ? delivered - peerMedianDelivered
+    : 0;
+  const deltaHtml = peerDelta
+    ? `<span class="portfolio-bento-peer-delta portfolio-bento-peer-delta--${peerDelta < 0 ? 'critical' : 'healthy'}" title="Vs peer median delivered">${peerDelta > 0 ? '+' : ''}${peerDelta}% vs peers</span>`
+    : '';
   const squadLabel = renderJiraWorkItemLink({
     issueKey: card.primaryEpicKey || card.projectKey,
     title: card.squadName || card.projectKey,
@@ -48,7 +54,7 @@ function renderBentoCard(card = {}) {
       </header>
       <dl class="portfolio-bento-metrics">
         <div><dt>Promised impact</dt><dd>${Number(m.commitments) || 0}</dd></div>
-        <div class="portfolio-bento-metric--${metricTone(delivered)}"><dt>Delivered</dt><dd>${delivered}%</dd></div>
+        <div class="portfolio-bento-metric--${metricTone(delivered)}"><dt>Delivered</dt><dd>${delivered}%${deltaHtml}</dd></div>
         <div><dt>Movement</dt><dd>${escapeHtml(movement)}</dd></div>
         <div class="portfolio-bento-metric--${metricTone(offPlan, true)}"><dt>Off-plan load</dt><dd>${offPlan}%</dd></div>
         <div class="portfolio-bento-metric--${metricTone(proof)}"><dt>Proof confidence</dt><dd>${proof}%</dd></div>
@@ -107,6 +113,14 @@ export function renderPortfolioCarousel(comparison = {}) {
   const enriched = enrichComparisonForDiffOnly(comparison);
   const cards = enriched.cards || [];
   if (!cards.length) return '';
+  const peerDelivered = cards
+    .filter((c) => !c.selected)
+    .map((c) => Number(c.metrics?.delivered) || 0)
+    .filter((v) => v > 0)
+    .sort((a, b) => a - b);
+  const peerMedianDelivered = peerDelivered.length
+    ? peerDelivered[Math.floor(peerDelivered.length / 2)]
+    : 0;
   const sharedBanner = enriched.sharedRootIssue
     ? `<p class="portfolio-compare-shared-root" data-testid="portfolio-compare-shared-root">Shared root issue: ${escapeHtml(enriched.sharedRootIssue)}</p>`
     : '';
@@ -118,7 +132,7 @@ export function renderPortfolioCarousel(comparison = {}) {
       </div>
       ${sharedBanner}
       <div class="portfolio-bento-grid-track" data-carousel-track role="list">
-        ${cards.map(renderBentoCard).join('')}
+        ${cards.map((c) => renderBentoCard(c, { peerMedianDelivered })).join('')}
       </div>
     </section>`;
 }
@@ -131,7 +145,7 @@ export function bindPortfolioCarousel(root, { onSelectSquad } = {}) {
     onSelectSquad?.(row.getAttribute('data-squad-key'));
   };
   root.addEventListener('click', (ev) => {
-    if (ev.target.closest('[data-jira-work-item-link]')) return;
+    if (ev.target.closest('[data-jira-work-item-link], .portfolio-bento-details-link')) return;
     const row = ev.target.closest('[data-squad-key]');
     if (!row) return;
     selectCard(row);

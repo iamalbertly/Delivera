@@ -39,9 +39,18 @@ function renderCommitmentRow(c, decision, { compact = false } = {}) {
     </li>`;
 }
 
-export function renderPortfolioRailCommitments(_decision = {}) {
-  // Decision rail owns focus — at-risk list lives once in main commitments (no duplicate).
-  return '';
+export function renderPortfolioRailCommitments(decision = {}) {
+  const rows = dedupeCommitmentsByIssueKey(decision.affectedCommitments || [])
+    .filter((c) => /risk|at/i.test(String(c.status || '')))
+    .slice(0, 3);
+  if (!rows.length) return '';
+  return `
+    <section class="portfolio-rail-commitments" aria-label="At-risk commitments" data-testid="portfolio-rail-commitments">
+      <h2 class="portfolio-rail-commitments-title">At risk now</h2>
+      <ul class="portfolio-rail-commitments-list">
+        ${rows.map((c) => renderCommitmentRow(c, decision, { compact: true })).join('')}
+      </ul>
+    </section>`;
 }
 
 export function renderPortfolioCommitments(decision = {}) {

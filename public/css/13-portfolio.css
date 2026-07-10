@@ -1741,7 +1741,10 @@ body.delivera-api-degraded::before {
 }
 
 .portfolio-monitor-footer {
-  display: none;
+  display: block;
+  padding: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted, #6b7280);
 }
 
 @media (max-width: 768px) {
@@ -2714,4 +2717,69 @@ body.delivera-api-degraded::before {
   flex-wrap: wrap;
   gap: 0.35rem;
   margin-bottom: 0.65rem;
+}
+
+/* Round 12 — rail-first desktop, delivery vocabulary UX */
+@media (min-width: 1025px) {
+  body.portfolio-rail-visible .portfolio-signal-actions--hero-cta [data-portfolio-action="confirm-decision"] {
+    display: none;
+  }
+  body.portfolio-rail-visible .portfolio-commitments-mount {
+    display: none;
+  }
+  .portfolio-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    align-items: start;
+  }
+  .portfolio-rail {
+    position: sticky;
+    top: calc(var(--top-chrome-height, 56px) + 0.5rem);
+    max-height: calc(100vh - var(--top-chrome-height, 56px) - 1rem);
+    overflow-y: auto;
+  }
+}
+
+.portfolio-scope-compare-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.portfolio-bento-preview-banner {
+  font-size: 0.82rem;
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: var(--surface-muted, #f8fafc);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.portfolio-bento-peer-delta {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.portfolio-bento-card:not(.portfolio-bento-card--skeleton) .portfolio-bento-metrics dd {
+  transition: opacity 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-bento-card:not(.portfolio-bento-card--skeleton) .portfolio-bento-metrics dd {
+    transition: none;
+  }
+}
+
+.actions-project-chip,
+.actions-preview-portfolio-verdict {
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.sprint-proof-rail-nudge-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0.25rem 0 0;
 }

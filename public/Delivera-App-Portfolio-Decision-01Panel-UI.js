@@ -1,13 +1,17 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, portfolioDecisionLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 
 export function decisionActionLabel(decision = {}, brief = {}) {
   const action = decision.decisionRequired?.recommendedAction || '';
-  if (/review investment/i.test(action) || decision.recommendation?.id === 'review-investment') return 'Review investment';
-  if (/scope/i.test(action)) return 'Confirm PI scope';
+  const recId = decision.recommendation?.id || '';
+  if (/review investment/i.test(action) || recId === 'review-investment') return COPY.portfolioDecisionReview;
+  if (recId === 'move-capacity') return COPY.portfolioDecisionShift;
+  if (recId === 'continue-scale' || recId === 'continue-improve' || recId === 'keep-funding') return COPY.portfolioDecisionContinue;
+  if (/scope/i.test(action) || recId === 'review-scope') return 'Confirm PI scope';
   if (/clarification|confirm/i.test(action)) return 'Request clarification';
   if (/escalat/i.test(action)) return 'Escalate decision';
-  return decision.recommendation?.label || 'Confirm commitment status';
+  return portfolioDecisionLabel(recId) || decision.recommendation?.label || 'Confirm commitment status';
 }
 
 export function renderWhyThisMatters(drivers = []) {
@@ -29,12 +33,13 @@ export function renderWhyThisMatters(drivers = []) {
 function renderNextDecisionRadios(decision = {}, brief = {}) {
   const options = decision.decisionOptions || [];
   const anchor = decision.anchorProject || 'this squad';
+  const squadName = resolveProjectDisplay(anchor).primary || anchor;
   if (!options.length) {
     return `
       <section class="portfolio-next-decision" aria-label="Next decision">
         <h2 class="portfolio-next-decision-title">Next decision</h2>
-        <p class="portfolio-next-decision-prompt">Investment posture for ${escapeHtml(anchor)}</p>
-        <p class="portfolio-next-decision-hint">Use the hero button to confirm when ready.</p>
+        <p class="portfolio-next-decision-prompt">${escapeHtml(COPY.portfolioDecisionPrompt.replace('{squad}', squadName))}</p>
+        <p class="portfolio-next-decision-hint">Choose an option below when ready.</p>
       </section>`;
   }
   const recommended = decision.recommendation?.id || 'review-investment';
@@ -46,7 +51,7 @@ function renderNextDecisionRadios(decision = {}, brief = {}) {
   return `
     <section class="portfolio-next-decision" aria-label="Next decision">
       <h2 class="portfolio-next-decision-title">Next decision</h2>
-      <p class="portfolio-next-decision-prompt">Recommended for ${escapeHtml(anchor)}</p>
+      <p class="portfolio-next-decision-prompt">${escapeHtml(COPY.portfolioDecisionPrompt.replace('{squad}', squadName))}</p>
       <fieldset class="portfolio-decision-radio-group" data-portfolio-decision-radios aria-label="Decision options">
         ${options.map((opt) => `
           <label class="portfolio-decision-radio${opt.id === defaultId ? ' is-selected' : ''}">
@@ -66,7 +71,8 @@ function renderQuickLinks(decision = {}) {
     : '/current-sprint';
   return `
     <nav class="portfolio-quick-links" aria-label="Quick links">
-      <a href="/actions${anchor ? `?project=${encodeURIComponent(anchor)}` : ''}">Interventions</a>
+      <button type="button" class="btn btn-link btn-compact" data-portfolio-action="view-governance-evidence">View in Evidence</button>
+      <a href="/actions${anchor ? `?project=${encodeURIComponent(anchor)}&tab=ready` : '?tab=ready'}">Create intervention</a>
       <a href="${escapeHtml(squadHref)}">Squad sprint</a>
     </nav>`;
 }

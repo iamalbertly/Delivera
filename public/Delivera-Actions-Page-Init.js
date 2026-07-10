@@ -57,6 +57,49 @@ async function applyBlockerUx(readyCount = 0, signal = null) {
   return resolved;
 }
 
+function caseUrgencyScore(row = {}) {
+  let score = 0;
+  if (row.needsApproval) score += 50;
+  if (String(row.state || '').includes('escalation')) score += 40;
+  if (String(row.state || '').includes('clarification')) score += 30;
+  if (String(row.state || '').includes('decision')) score += 25;
+  return score;
+}
+
+function sortCasesByUrgency(cases = []) {
+  return [...cases].sort((a, b) => caseUrgencyScore(b) - caseUrgencyScore(a));
+}
+
+function readPortfolioVerdictLine() {
+  try {
+    const raw = sessionStorage.getItem('delivera:portfolio-decision:cache:v1');
+    if (!raw) return '';
+    const map = JSON.parse(raw);
+    const first = Object.values(map || {}).find((e) => e?.payload?.decision?.narrative?.headline);
+    return first?.payload?.decision?.narrative?.headline
+      || first?.payload?.decision?.recommendation?.label
+      || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function renderActionsSubtitle(readyCount = 0) {
+  const mount = document.querySelector('.actions-subtitle');
+  if (!mount) return;
+  const verdict = readPortfolioVerdictLine();
+  if (readyCount > 0) {
+    mount.textContent = `${readyCount} decision${readyCount === 1 ? '' : 's'} waiting on you${verdict ? ` · Portfolio: ${verdict}` : ''}`;
+  } else {
+    mount.textContent = 'All clear — nudges and decisions appear here when needed.';
+  }
+}
+
+function renderProjectChip(project = '') {
+  if (!project) return '';
+  return `<p class="actions-project-chip" data-testid="actions-project-chip">Scope: <strong>${escapeHtml(project)}</strong></p>`;
+}
+
 function activeTab() {
   return readQuery().get('tab') || 'ready';
 }
@@ -109,7 +152,7 @@ function renderBatchBar(cases = [], tab = 'ready') {
     return;
   }
   const safe = cases.filter((c) => c.needsApproval && c.state !== 'closed');
-  if (safe.length < 2) {
+  if (safe.length < 3) {
     bar.hidden = true;
     return;
   }
@@ -124,9 +167,14 @@ function renderBatchBar(cases = [], tab = 'ready') {
 function renderCasePreview(row = {}) {
   const issues = (row.issueKeys || []).join(', ');
   const canApprove = Boolean(row.needsApproval);
+  const verdict = readPortfolioVerdictLine();
+  const verdictLine = verdict
+    ? `<p class="actions-preview-portfolio-verdict" data-testid="actions-preview-portfolio-verdict">Portfolio: ${escapeHtml(verdict)}</p>`
+    : '';
   return `
     <div class="actions-preview-panel">
       <p class="actions-preview-eyebrow">Case preview</p>
+      ${verdictLine}
       <h2>${escapeHtml(row.title || `${row.project} scope review`)}</h2>
       <p class="actions-case-kind"><strong>${escapeHtml(COPY.actionsCaseNudgeLabel)}</strong></p>
       <p><strong>State:</strong> ${escapeHtml(row.state || 'open')}</p>
@@ -182,9 +230,10 @@ async function paint(tab = activeTab()) {
   }
   const counts = tabCounts(cases);
   renderTabs(tab, counts);
+  renderActionsSubtitle(counts.ready || 0);
   const list = document.getElementById('actions-list');
   const highlightId = readQuery().get('caseId') || '';
-  const visible = filterCases(cases, tab);
+  const visible = sortCasesByUrgency(filterCases(cases, tab));
   const signal = await applyBlockerUx(counts.ready || 0);
   if (list) {
     list.hidden = false;
@@ -197,7 +246,8 @@ async function paint(tab = activeTab()) {
       : '';
     const blockerHtml = signal.hasBlockers ? renderBlockerQueueHtml(signal) : '';
     const inner = `${blockerHtml}${caseHtml}` || '';
-    list.innerHTML = `<section class="actions-do-now-stream" data-testid="actions-do-now-stream">${inner}</section>`;
+    const project = readQuery().get('project') || '';
+    list.innerHTML = `${project ? renderProjectChip(project) : ''}<section class="actions-do-now-stream" data-testid="actions-do-now-stream">${inner}</section>`;
     if (!inner) {
       showSurfaceEmpty(list.querySelector('.actions-do-now-stream'), {
         title: 'No action needed now',

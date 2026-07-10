@@ -111,6 +111,16 @@ export const COPY = {
   actionsDeclineInline: 'Decline',
   actionsJiraNudgeLabel: 'Jira comment nudge',
   actionsCaseNudgeLabel: 'Intervention approval',
+  portfolioLoading: 'Loading quarter delivery vs commitment for 4 squads…',
+  portfolioDecisionContinue: 'Continue as planned',
+  portfolioDecisionReview: 'Fix delivery issues',
+  portfolioDecisionShift: 'Shift capacity',
+  portfolioDecisionPrompt: 'What should we do with delivery for {squad}?',
+  portfolioDecisionRecorded: 'Decision saved — intervention opened',
+  portfolioDecisionUndo: 'Undo',
+  portfolioBentoFocusSquad: 'Focus this squad',
+  portfolioBentoPreviewing: 'Previewing {squad}',
+  portfolioLegend: 'Delivery% = committed impact delivered this PI. Off-plan load = time on work not tied to committed outcomes.',
   aiKeyRequiredSlide: 'Connect AI in Settings or configure server AI in .env to read PI plan slides.',
   aiSlideServerReady: 'Slide reading uses your server-configured AI ({label}).',
   aiSlideBrowserReady: 'Slide reading uses your browser AI ({label}).',
@@ -388,6 +398,15 @@ export function freshnessShortLabel(freshness = {}) {
   if (limit === 'stale') return age > 0 ? `Stale ${age}m` : 'Stale';
   if (limit === 'partial') return 'Partial';
   return limit;
+}
+
+/** Plain delivery vocabulary for portfolio decision ids (not finance jargon). */
+export function portfolioDecisionLabel(decisionId = '') {
+  const id = String(decisionId || '').toLowerCase();
+  if (id === 'keep-funding' || id === 'continue-scale' || id === 'continue-improve') return COPY.portfolioDecisionContinue;
+  if (id === 'move-capacity') return COPY.portfolioDecisionShift;
+  if (id === 'review-investment' || id === 'review-scope') return COPY.portfolioDecisionReview;
+  return COPY.portfolioDecisionReview;
 }
 
 /** Human-relative age from ISO timestamp (worker receipt, portfolio freshness). */
