@@ -40,36 +40,33 @@ function renderCommitmentRow(c, decision, { compact = false } = {}) {
 }
 
 export function renderPortfolioRailCommitments(decision = {}) {
-  const rows = dedupeCommitmentsByIssueKey(decision.affectedCommitments || [])
-    .filter((c) => /risk|at/i.test(String(c.status || '')))
-    .slice(0, 3);
-  if (!rows.length) return '';
-  return `
-    <section class="portfolio-rail-commitments" aria-label="At-risk commitments" data-testid="portfolio-rail-commitments">
-      <h2 class="portfolio-rail-commitments-title">At risk now</h2>
-      <ul class="portfolio-rail-commitments-list">
-        ${rows.map((c) => renderCommitmentRow(c, decision, { compact: true })).join('')}
-      </ul>
-    </section>`;
+  // Rail commitments section removed — at-risk commitments are now pinned to the top
+  // of the main commitments list via renderPortfolioCommitments(). This eliminates
+  // duplicate data appearing in two places on the same viewport.
+  return '';
 }
 
 export function renderPortfolioCommitments(decision = {}) {
-  const rows = dedupeCommitmentsByIssueKey(decision.affectedCommitments || []);
-  const visible = rows.slice(0, MAX_INLINE);
-  const overflow = rows.slice(MAX_INLINE);
-  if (!rows.length) {
+  const allRows = dedupeCommitmentsByIssueKey(decision.affectedCommitments || []);
+  // Pin at-risk commitments to the top — replaces the duplicate rail "At risk now" section.
+  const atRisk = allRows.filter((c) => /risk|at/i.test(String(c.status || '')));
+  const healthy = allRows.filter((c) => !/risk|at/i.test(String(c.status || '')));
+  const sorted = [...atRisk, ...healthy];
+  const visible = sorted.slice(0, MAX_INLINE);
+  const overflow = sorted.slice(MAX_INLINE);
+  if (!allRows.length) {
     return `
       <section class="portfolio-commitments portfolio-commitments--empty" aria-label="Affected commitments" data-portfolio-commitments>
         <h2 class="portfolio-commitments-title">Affected commitments</h2>
-        <p class="portfolio-commitments-empty">No commitments mapped yet — upload your PI slide or set a baseline to see exposure.</p>
+        <p class="portfolio-commitments-empty">No commitments mapped yet — connect a Jira board to see exposure.</p>
         <p class="portfolio-commitments-empty-cta">
-          <button type="button" class="btn btn-primary btn-compact" data-portfolio-action="open-alignment-studio">Set baseline</button>
+          <a href="/settings#integrations" class="btn btn-link btn-compact">Connect Jira board →</a>
         </p>
       </section>`;
   }
   return `
     <section class="portfolio-commitments" aria-label="Affected commitments" data-portfolio-commitments>
-      <h2 class="portfolio-commitments-title">Affected commitments</h2>
+      <h2 class="portfolio-commitments-title">Affected commitments${atRisk.length ? ` <span class="portfolio-commitments-at-risk-count">${atRisk.length} at risk</span>` : ''}</h2>
       <ul class="portfolio-commitments-list portfolio-commitments-list--scroll">
         ${visible.map((c) => renderCommitmentRow(c, decision)).join('')}
       </ul>

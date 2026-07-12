@@ -8,8 +8,11 @@ import {
   runProposePipeline,
   proposeFromSlideImage,
   proposeFromBoardCache,
+  proposeFromJiraFallback,
   reconcileSlideEpics,
 } from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
+import { invalidateGovernanceBriefCache } from '../lib/Delivera-Governance-Brief-01Service.js';
+import { invalidatePortfolioDecisionForScope } from '../lib/Delivera-Governance-PortfolioDecision-01Service.js';
 import { createEpicsFromSlideResolved } from '../lib/Delivera-Governance-PIBaseline-06Slide-Epic-Create-SSOT.js';
 import {
   loadEpicActivityFromBriefCache,
@@ -61,6 +64,11 @@ export function registerPiBaselineRoutes(router, deps) {
         : ['MPSA', 'MAS'];
       const piName = String(body.piName || `${projects.join('+')}`).trim();
       const row = await savePIBaseline({ ...body, piName, projects });
+      await invalidateGovernanceBriefCache(projects);
+      await invalidatePortfolioDecisionForScope({
+        anchor: projects[0] || '',
+        periodKey: String(body.quarter || body.periodKey || '').trim(),
+      });
       return res.json({ success: true, baseline: { id: row.id, piName: row.piName, committed: row.committedItems.length } });
     } catch (err) {
       logger.warn('pi-baseline save failed', { error: err?.message });
@@ -138,19 +146,29 @@ export function registerPiBaselineRoutes(router, deps) {
       }
       // Check slide vision cache — prevents re-processing the same image on retry/re-upload.
       const imageHash = createHash('md5').update(imageBase64.slice(0, 1000)).digest('hex').slice(0, 16);
-      const cacheKey = `${imageHash}|${projects.join(',')}|${quarter}`;
+      const cacheKey = `v2|${imageHash}|${projects.join(',')}|${quarter}`;
       const cached = slideVisionCache.get(cacheKey);
       if (cached && (Date.now() - cached._cachedAt) < SLIDE_VISION_CACHE_TTL_MS) {
         return res.json({ ...cached, cached: true });
       }
       const board = await proposeFromBoardCache({ projects, cache, quarter });
-      const boardEpics = (board.candidates || []).map((c) => ({
+      let boardEpics = (board.candidates || []).map((c) => ({
         issueKey: c.issueKey,
         title: c.title,
         summary: c.title,
       }));
       let version3Client = null;
       try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
+      if (version3Client && boardEpics.length < 8) {
+        const fb = await proposeFromJiraFallback({ projects, version3Client, quarter });
+        const seen = new Set(boardEpics.map((e) => String(e.issueKey).toUpperCase()));
+        for (const c of fb.candidates || []) {
+          const key = String(c.issueKey || '').toUpperCase();
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          boardEpics.push({ issueKey: key, title: c.title, summary: c.title });
+        }
+      }
       let result = await proposeFromSlideImage({
         imageBase64,
         mimeType,

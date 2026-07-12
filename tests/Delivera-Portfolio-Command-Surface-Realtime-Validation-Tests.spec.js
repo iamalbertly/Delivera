@@ -157,7 +157,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     await page.waitForSelector('[data-testid="governance-priority-brief"]', { timeout: 120000 });
     await expect(page.locator('[data-testid="governance-priority-headline"]')).toBeVisible();
     await expect(page.locator('[data-testid="governance-primary-action"]')).toHaveCount(1);
-    await expect(page.locator('[data-testid="portfolio-scope-breadcrumb"]')).toContainText(/Compare/i);
+    await expect(page.locator('[data-testid="gov-cadence-pack"], [data-testid="portfolio-scope-breadcrumb"]')).toHaveCount(1);
     assertTelemetryClean(t);
   });
 

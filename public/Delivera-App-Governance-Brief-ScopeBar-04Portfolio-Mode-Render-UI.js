@@ -76,7 +76,9 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   let cacheCachedAt = '';
   let cacheFresh = false;
   let cacheUpdating = false;
-  let scopeCollapsed = readScopeSeen();
+  const priorityBriefPage = typeof document !== 'undefined'
+    && document.body?.classList?.contains('governance-priority-brief-page');
+  let scopeCollapsed = readScopeSeen() || priorityBriefPage;
   let catalogKeys = unionScopeProjectKeys([anchor, ...compare]);
 
   function commitScope({ reload = true } = {}) {
@@ -104,7 +106,9 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     const cadenceHtml = renderScopeCadenceLine(getLastDecision?.() || {}, getBrief?.() || {});
     const timeboxChip = renderTimeboxChip(getLastDecision?.() || {}, getBrief?.() || {});
     const hideTimeframeDup = Boolean(cadenceHtml.trim() || timeboxChip.trim());
-    const breadcrumb = `<span class="portfolio-scope-breadcrumb" data-testid="portfolio-scope-breadcrumb">Portfolio / ${escapeHtml(displayName(anchor))} / Compare</span>`;
+    const breadcrumb = hideTimeframeDup
+      ? ''
+      : `<span class="portfolio-scope-breadcrumb" data-testid="portfolio-scope-breadcrumb">Portfolio / ${escapeHtml(displayName(anchor))} / Compare</span>`;
     const baselineOptions = baselineOptionsForBrief(getBrief?.() || {});
     const hideCompareSelect = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
       && Boolean(document.querySelector('[data-portfolio-carousel]'));

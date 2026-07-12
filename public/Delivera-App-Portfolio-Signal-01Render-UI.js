@@ -36,7 +36,12 @@ export function quarterDayLabel(decision = {}, brief = {}) {
 export function renderTimeboxChip(decision = {}, brief = {}) {
   const tb = quarterDayLabel(decision, brief);
   const periodKey = decision.periodKey || brief?.meta?.quarter || 'Current';
+  const baselineMissing = !(brief?.baselineComparison?.summary)
+    && (brief?.meta?.setupGaps || []).some((g) => g.action === 'set-baseline');
   if (!tb.isSet) {
+    if (periodKey && periodKey !== 'Current' && baselineMissing) {
+      return `<span class="gov-scope-timebox-chip gov-scope-timebox-chip--unset" data-portfolio-timebox title="Upload PI baseline to enable time-box">${escapeHtml(periodKey)} · Baseline needed</span>`;
+    }
     return `<span class="gov-scope-timebox-chip gov-scope-timebox-chip--unset" data-portfolio-timebox title="Set PI baseline to enable time-box">Time-box not set</span>`;
   }
   return `<span class="gov-scope-timebox-chip" data-portfolio-timebox>${escapeHtml(periodKey)} · Day ${tb.elapsed}/${tb.total} · ${tb.pct}% time elapsed</span>`;
@@ -140,7 +145,6 @@ function renderHeroInlineProof(brief = {}) {
 }
 
 function renderHeroPrimaryActions(decision = {}, brief = {}) {
-  const recommended = decision.recommendation?.id || 'track-commitments';
   const anchor = decision.anchorProject || '';
   const squadHref = anchor
     ? `/current-sprint?projects=${encodeURIComponent(anchor)}${decision.periodKey ? `&period=${encodeURIComponent(decision.periodKey)}` : ''}`
@@ -149,7 +153,7 @@ function renderHeroPrimaryActions(decision = {}, brief = {}) {
   const cachedNote = decision._cachedView ? ' title="Confirm using cached portfolio data"' : '';
   return `
     <div class="portfolio-signal-actions portfolio-signal-actions--hero-cta" data-testid="portfolio-hero-ctas">
-      <button type="button" class="btn btn-primary btn-compact" data-testid="portfolio-primary-cta" data-portfolio-action="confirm-decision" data-decision-id="${escapeHtml(recommended)}"${cachedNote}>${escapeHtml(primaryLabel)}</button>
+      <button type="button" class="btn btn-primary btn-compact" data-testid="portfolio-primary-cta" data-portfolio-action="view-prepared-items"${cachedNote}>${escapeHtml(primaryLabel)}</button>
       <div class="portfolio-signal-link-row">
         <button type="button" class="btn btn-link btn-compact" data-portfolio-action="view-governance-evidence">Evidence</button>
         <a class="btn btn-link btn-compact" href="${escapeHtml(squadHref)}">Squad work</a>

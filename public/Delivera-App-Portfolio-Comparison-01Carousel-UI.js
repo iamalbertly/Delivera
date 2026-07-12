@@ -26,7 +26,7 @@ function renderBentoCard(card = {}, { peerMedianDelivered = 0 } = {}) {
   const offPlan = width(m.offPlanLoad);
   const proof = width(m.proofConfidence);
   const movement = movementLabel(delivered);
-  const decisionLabel = card.decisionNeeded || card.nextAction || 'Continue monitoring';
+  const decisionLabel = card.decisionNeeded || card.nextAction || (statusClass === 'at-risk' ? 'Needs attention' : 'On track ✓');
   const peerDelta = card.selected && peerMedianDelivered
     ? delivered - peerMedianDelivered
     : 0;
@@ -75,7 +75,7 @@ function renderSkeletonBentoCard({ projectKey = '', squadName = '', selected = f
       aria-busy="true">
       <header class="portfolio-bento-card-head">
         <strong class="portfolio-bento-squad">${escapeHtml(squadName || projectKey)}</strong>
-        <span class="portfolio-squad-status portfolio-squad-status--watch">Loading</span>
+        <span class="portfolio-squad-status portfolio-squad-status--skeleton">—</span>
       </header>
       <dl class="portfolio-bento-metrics portfolio-bento-metrics--skeleton">
         <div><dt>Promised impact</dt><dd>—</dd></div>

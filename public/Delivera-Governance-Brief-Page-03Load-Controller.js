@@ -44,7 +44,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
-import { installPortfolioSurfaceHook, refreshPortfolioSurface, paintPortfolioFromCache, paintPortfolioBentoSkeleton } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
+import { installPortfolioSurfaceHook, refreshPortfolioSurface } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
 import { mountBriefScopeBarMode } from './Delivera-App-Governance-Brief-ScopeBar-05Brief-Mode-Render-UI.js';
 
 function resolveBaselineGapFlags(brief = {}) {
@@ -113,6 +113,10 @@ export function resetLegacyBriefHydration() {
 
 function hydrateHiddenLegacyBriefSurfaces(brief) {
   if (!document.getElementById('portfolio-signal-mount')) return;
+  // Legacy mounts were removed from governance.html — this function now safely no-ops
+  // on the portfolio page. All rendering is handled by refreshPortfolioSurface().
+  // Legacy hydration only fires when sessionStorage['delivera:legacy-brief-needed'] === '1',
+  // which is set by drawer/evidence open actions that create their mounts dynamically.
   prepareLegacyBriefContext(brief);
   const scopeKeys = selectedProjects(brief);
   const squadCount = scopeKeys.length;
@@ -176,8 +180,7 @@ function hydrateHiddenLegacyBriefSurfaces(brief) {
     const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys, { hideBaselineCta: hasBaselineGap || piFocusOwnsBaseline }) : '';
     compareMount.innerHTML = compareHtml;
     compareMount.toggleAttribute('hidden', !compareHtml);
-  }
-  if (govPage.els.answerMount) {
+  }  if (govPage.els.answerMount) {
     const tier = verdictTierFromBrief(brief);
     const suppressAdvisor = Boolean(
       brief?.meta?._aiProviderFallback
@@ -218,9 +221,9 @@ function hydrateHiddenLegacyBriefSurfaces(brief) {
   const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
   const proofPreviewMount = document.getElementById('gov-right-rail-proof-mount');
   const issueKeys = (brief?.evidencePack?.rows || []).map((r) => r.issueKey).filter(Boolean);
-  if (issueKeys.length) {
+  if (issueKeys.length && proofPreviewMount) {
     renderProofRisks(govPage.lastSurfaces.proofRows, { hideWhenPreview: Boolean(proofPreviewMount) });
-    if (proofPreviewMount && isDesktop) {
+    if (isDesktop) {
       renderEvidencePreview(brief, hasOwnerClusters ? 2 : 3, proofPreviewMount);
       proofPreviewMount.hidden = false;
     }
@@ -245,9 +248,16 @@ export function setLoadBriefForce(force = true) {
   loadBriefForce = Boolean(force);
 }
 
+import { shouldSkipFreshnessRender } from './Delivera-App-Governance-Freshness-01SSOT.js';
+
+export { shouldSkipFreshnessRender } from './Delivera-App-Governance-Freshness-01SSOT.js';
+
 export function renderFreshness(brief, confirmCount = 0) {
-  if (document.querySelector('#gov-scope-bar-mount .gov-scope-status-chip')) {
-    govPage.els.freshness.innerHTML = '';
+  const scopeHasStatusChip = Boolean(document.querySelector(
+    '#portfolio-scope-bar-mount .gov-scope-status-chip, #gov-scope-bar-mount .gov-scope-status-chip',
+  ));
+  if (shouldSkipFreshnessRender({ freshnessEl: govPage.els.freshness, scopeHasStatusChip })) {
+    if (govPage.els.freshness) govPage.els.freshness.innerHTML = '';
     return;
   }
   const f = brief?.freshness || {};
@@ -281,9 +291,8 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
   renderBriefUi(brief);
 
   if (isPortfolioPage) {
-    if (!paintPortfolioFromCache(brief)) paintPortfolioBentoSkeleton(brief);
-    // Skip the first-paint refresh — the async block below seeds cases and refreshes once.
-    // This eliminates the duplicate portfolio-decision.json POST that was firing on every page load.
+    // Legacy paint functions removed — portfolio surface is rendered entirely
+    // by refreshPortfolioSurface() in the async block below. No double-paint needed.
     void (async () => {
       try {
         const trust = await resolveAiTrustDisplay();

@@ -529,6 +529,11 @@ body.delivera-api-degraded::before {
   }
 }
 
+body.governance-priority-brief-page .portfolio-page .portfolio-scope-bar,
+body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar {
+  --portfolio-scope-z: 20;
+}
+
 .portfolio-page .portfolio-scope-bar {
   position: sticky;
   top: var(--sticky-offset, 64px);
@@ -2782,4 +2787,311 @@ body.delivera-api-degraded::before {
   font-size: 0.75rem;
   color: var(--text-muted, #6b7280);
   margin: 0.25rem 0 0;
+}
+
+/* === Top Actions Panel (replaces "Continue as planned" radios) === */
+.portfolio-top-actions {
+  padding: 0.5rem 0;
+}
+.portfolio-top-actions-deadline {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0.5rem;
+}
+.portfolio-top-actions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.portfolio-top-action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: var(--surface-elevated, #fff);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.portfolio-top-action-item.is-primary {
+  border-color: var(--brand-primary, #c41e3a);
+  border-width: 2px;
+  box-shadow: 0 2px 8px rgba(196, 30, 58, 0.08);
+}
+.portfolio-top-action-rank {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--border-subtle, #e8e8ec);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.portfolio-top-action-item.is-primary .portfolio-top-action-rank {
+  background: var(--brand-primary, #c41e3a);
+  color: #fff;
+}
+.portfolio-top-action-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.portfolio-top-action-label {
+  font-size: 0.85rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portfolio-top-action-owner {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.portfolio-top-action-cta {
+  flex-shrink: 0;
+}
+.portfolio-top-actions-more {
+  margin-top: 0.5rem;
+}
+
+/* === Driver icons in "Why this matters" === */
+.portfolio-driver-icon {
+  margin-right: 0.3rem;
+  font-size: 0.9rem;
+}
+
+/* === What Changed timeline (right rail) === */
+.portfolio-changelog {
+  padding: 0.5rem 0;
+}
+.portfolio-changelog--empty {
+  text-align: center;
+}
+.portfolio-changelog-title {
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.portfolio-changelog-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--brand-primary, #c41e3a);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.portfolio-changelog-summary {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+  line-height: 1.4;
+}
+.portfolio-changelog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.portfolio-changelog-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-left: 2px solid var(--border-subtle, #e8e8ec);
+  padding-left: 0.6rem;
+}
+.portfolio-changelog-item.is-latest {
+  border-left-color: var(--brand-primary, #c41e3a);
+}
+.portfolio-changelog-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.portfolio-changelog-body {
+  flex: 1;
+  min-width: 0;
+}
+.portfolio-changelog-label {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+.portfolio-changelog-detail {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+.portfolio-changelog-when {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+.portfolio-changelog-more {
+  margin-top: 0.4rem;
+}
+
+/* === At-risk commitment pin === */
+.portfolio-commitments-at-risk-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: var(--brand-danger, #c41e3a);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 0.3rem;
+}
+.portfolio-commitments-list .portfolio-commitment-row[data-commitment-issue] {
+  border-left: 3px solid transparent;
+  padding-left: 0.5rem;
+}
+.portfolio-commitments-list .portfolio-commitment-row[data-commitment-issue]:has(.portfolio-commitment-status--at-risk),
+.portfolio-commitments-list .portfolio-commitment-row[data-commitment-issue]:has(.portfolio-commitment-status--risk) {
+  border-left-color: var(--brand-danger, #c41e3a);
+}
+
+/* === Top Blocker Card (Current Sprint) === */
+.top-blocker-card {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  margin: 0 0 0.5rem;
+  background: #fff5f5;
+  border: 1px solid #f5c6cb;
+  border-left: 4px solid var(--brand-danger, #c41e3a);
+  border-radius: 10px;
+  position: sticky;
+  top: calc(var(--sticky-global-nav-top, 56px) + var(--sub-chrome-height, 0px) + 0.25rem);
+  z-index: 10;
+}
+.top-blocker-card-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+.top-blocker-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.top-blocker-card-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-danger, #c41e3a);
+  font-weight: 700;
+  margin: 0;
+}
+.top-blocker-card-title {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.top-blocker-card-reason {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+.top-blocker-card-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.top-blocker-card-cta {
+  flex-shrink: 0;
+}
+
+/* === Edge case: empty state onboarding === */
+.portfolio-empty-onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+.portfolio-empty-onboarding-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+.portfolio-empty-onboarding-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* === Edge case: systemic risk banner === */
+.portfolio-systemic-risk-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  margin: 0 0 0.5rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+/* === Edge case: stale data banner === */
+.portfolio-stale-data-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 0.5rem;
+  background: #fee2e2;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+/* === Edge case: single squad deep-dive === */
+.portfolio-single-squad-deep-dive {
+  padding: 0.5rem 0;
+}
+
+/* === Mobile: horizontal swipe carousel === */
+@media (max-width: 768px) {
+  .portfolio-bento-grid-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .portfolio-bento-grid-track > .portfolio-bento-card {
+    flex: 0 0 85vw;
+    scroll-snap-align: start;
+  }
+  .top-blocker-card {
+    position: static;
+    order: -1;
+  }
 }

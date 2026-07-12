@@ -21,6 +21,7 @@ import {
   renderGovernancePrioritySurface,
   renderGovernancePrioritySkeleton,
   bindGovernancePrioritySurface,
+  renderGovernancePriorityRail,
 } from './Delivera-App-Governance-PrioritySurface-01Render-UI.js';
 
 import { openPortfolioCalibrationDrawer, buildCalibrationDefenseText } from './Delivera-App-Portfolio-Actions-01Bridge.js';
@@ -35,13 +36,10 @@ import { mountPortfolioAiAgentBadge } from './Delivera-App-Portfolio-AI-Agent-01
 import { govPage, $ } from './Delivera-Governance-Brief-Page-01Context.js';
 
 import {
-
   readPortfolioAnchor,
-
   readPortfolioBaselineMode,
-
   readPortfolioCompareProjects,
-
+  readStoredQuarter,
 } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
@@ -92,13 +90,25 @@ function previewBentoSquad(carouselMount, decisionMount, projectKey, comparison 
 
 
 
+function resolveBaselineMissing(brief, baselineMode) {
+  const hasBaseline = Boolean(
+    brief?.baselineComparison
+    && (
+      brief.baselineComparison.summary
+      || (Array.isArray(brief.baselineComparison.items) && brief.baselineComparison.items.length)
+    ),
+  );
+  if (hasBaseline) return false;
+  const gaps = brief?.meta?.setupGaps || [];
+  return gaps.some((g) => g.action === 'set-baseline') || baselineMode === 'none';
+}
+
 async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) {
   const anchor = readPortfolioAnchor(brief?.projects || readSharedProjectsCsv());
   const compare = readCompareProjects(anchor);
-  const periodKey = govPage.scopeBarApi?.getQuarterLabel?.() || brief?.meta?.quarter || '';
+  const periodKey = govPage.scopeBarApi?.getQuarterLabel?.() || brief?.meta?.quarter || readStoredQuarter() || '';
   const baselineMode = govPage.scopeBarApi?.getBaselineMode?.() || readPortfolioBaselineMode();
-  const gaps = brief?.meta?.setupGaps || [];
-  const baselineMissing = gaps.some((g) => g.action === 'set-baseline') || baselineMode === 'none';
+  const baselineMissing = resolveBaselineMissing(brief, baselineMode);
   const partialSquads = (brief?.squadInsights || []).filter((s) => !s.boardResolved).length;
   const briefId = String(brief?.meta?.briefId || brief?.generatedAt || '').slice(0, 64);
 
@@ -192,6 +202,16 @@ async function handlePortfolioDelegatedClick(ev) {
       openPortfolioCalibrationDrawer(decision, cases);
       return;
     }
+    if (action === 'upload-baseline-slide') {
+      ev.preventDefault();
+      openPiBaselineWizard({ initialMode: 'slide' });
+      return;
+    }
+    if (action === 'align-board') {
+      ev.preventDefault();
+      openPiBaselineWizard({ initialMode: 'board' });
+      return;
+    }
     if (action === 'inspect-evidence' || action === 'inspect-unsupported' || action === 'commitment-decision') {
       ev.preventDefault();
       const issueKey = governanceAction.getAttribute('data-commitment-issue')
@@ -243,7 +263,14 @@ async function handlePortfolioDelegatedClick(ev) {
   if (squadSelect) {
     ev.preventDefault();
     const key = squadSelect.getAttribute('data-governance-squad-select');
-    if (key) await selectGovernanceSquad(key);
+    if (!key) return;
+    const brief = govPage.lastBrief || {};
+    if (squadSelect.classList.contains('gov-priority-at-risk-row')) {
+      await selectGovernanceSquad(key);
+      openEvidenceDrawer(brief, brief?.evidencePack?.rows || [], { skipLegacyFlag: true, docked: true });
+      return;
+    }
+    await selectGovernanceSquad(key);
     return;
   }
 
@@ -376,12 +403,31 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
   const railCommitmentsMount = $('portfolio-rail-commitments-mount');
   const priorityMount = $('governance-priority-surface-mount');
 
+  const railMount = $('portfolio-decision-mount');
+  const portfolioRail = document.querySelector('.portfolio-rail');
+
   if (priorityMount) {
     priorityMount.innerHTML = renderGovernancePrioritySurface(decision, brief);
     bindGovernancePrioritySurface(priorityMount, { onSelectSquad: selectGovernanceSquad });
     if (payload.error) {
       priorityMount.insertAdjacentHTML('afterbegin', `<p class="gov-priority-error" role="alert">${escapeHtml(String(payload.error))}</p>`);
     }
+    const pb = decision.priorityBrief || {};
+    if (pb.baselineMissing && pb.primaryActionTarget === 'alignment-studio-slide') {
+      const quarter = decision.periodKey || brief?.meta?.quarter || readStoredQuarter() || '';
+      const flagKey = `delivera:baseline-prompt-${quarter}`;
+      try {
+        if (quarter && !sessionStorage.getItem(flagKey)) {
+          sessionStorage.setItem(flagKey, '1');
+          queueMicrotask(() => openPiBaselineWizard({ initialMode: 'slide' }));
+        }
+      } catch (_) { /* ignore */ }
+    }
+  }
+
+  if (railMount && priorityMount) {
+    railMount.innerHTML = renderGovernancePriorityRail(decision, { cases: payloadCases });
+    portfolioRail?.removeAttribute('hidden');
   }
 
   if (signalMount) {
@@ -391,7 +437,11 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
       brief,
     });
     signalMount.setAttribute('data-portfolio-signal-ready', '1');
-    mountPiFocusStrip(brief, signalMount, { openPiBaselineWizard });
+    const skipPiFocus = Boolean(
+      document.getElementById('governance-priority-surface-mount')?.querySelector('[data-testid="governance-priority-brief"]')
+      && decision.priorityBrief?.primaryActionTarget === 'alignment-studio-slide',
+    );
+    if (!skipPiFocus) mountPiFocusStrip(brief, signalMount, { openPiBaselineWizard });
     if (payload.error) {
       signalMount.insertAdjacentHTML('afterbegin', `<p class="portfolio-signal-error" role="alert">${escapeHtml(String(payload.error))}</p>`);
     }
@@ -444,7 +494,7 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
     bindCarousel(carouselMount);
   }
 
-  if (decisionMount) {
+  if (decisionMount && !priorityMount) {
     decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, brief);
     bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
       try {

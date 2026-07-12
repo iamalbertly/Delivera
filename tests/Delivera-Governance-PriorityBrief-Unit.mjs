@@ -90,17 +90,35 @@ test('buildPriorityBrief headline names squad and unsupported promises', () => {
   assert.ok(pb.evidenceAction);
 });
 
-test('missing baseline yields cannot verify not off-plan', () => {
+test('missing baseline yields upload slide CTA not board alignment error', () => {
   const decision = buildPortfolioDecision({
-    brief: { ...baseBrief, baselineComparison: null },
+    brief: { ...baseBrief, baselineComparison: null, meta: { ...baseBrief.meta, setupGaps: [{ id: 'pi-baseline', action: 'set-baseline' }] } },
     anchorProject: 'SD',
     compareProjects: ['MAS'],
     baselineMissing: true,
   });
-  assert.ok(
-    decision.priorityBrief.baselineProvenance.line.toLowerCase().includes('cannot')
-    || decision.priorityBrief.headline.toLowerCase().includes('cannot'),
-  );
+  const pb = decision.priorityBrief;
+  assert.ok(pb.headline.toLowerCase().includes('upload'));
+  assert.ok(pb.headline.includes('FY27 Q2') || pb.headline.toLowerCase().includes('quarter'));
+  assert.equal(pb.primaryActionTarget, 'alignment-studio-slide');
+  assert.ok(pb.baselineProvenance.line.toLowerCase().includes('upload') || pb.baselineProvenance.line.toLowerCase().includes('baseline'));
+});
+
+test('board unresolved routes to alignment studio board mode', () => {
+  const brief = {
+    ...baseBrief,
+    squadInsights: baseBrief.squadInsights.map((s) => (
+      s.projectKey === 'SD' ? { ...s, boardResolved: false, verdictTier: 'not-assessed' } : s
+    )),
+  };
+  const decision = buildPortfolioDecision({
+    brief,
+    anchorProject: 'SD',
+    compareProjects: ['MAS'],
+    baselineMissing: false,
+  });
+  assert.equal(decision.priorityBrief.primaryActionTarget, 'alignment-studio-board');
+  assert.match(decision.priorityBrief.headline, /board/i);
 });
 
 test('zero risk portfolio calm headline', () => {

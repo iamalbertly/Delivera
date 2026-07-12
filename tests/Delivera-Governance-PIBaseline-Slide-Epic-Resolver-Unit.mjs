@@ -89,6 +89,20 @@ describe('PI baseline slide epic resolver', () => {
     assert.equal(risk.suggestedAction, SLIDE_SUGGESTED_ACTION.REVIEW);
   });
 
+  it('promotes 55%+ duplicate-risk to matched when epic exists in Jira', () => {
+    const resolved = resolveSlideCommitments({
+      extracted: [{ month: 'July', theme: 'Growth', bullet: 'EHOD Regional Profile realtime performance' }],
+      quarter: 'FY27 Q2',
+      projects: ['SD'],
+      jiraEpics: [{
+        issueKey: 'SD-4671',
+        title: 'DMS > NBA > Leaders Version E-HOD Regional Profile',
+      }],
+    });
+    assert.equal(resolved[0].status, SLIDE_EPIC_STATUS.MATCHED);
+    assert.equal(resolved[0].issueKey, 'SD-4671');
+  });
+
   it('resolveSlideCommitments marks matched when exact epic exists', () => {
     const resolved = resolveSlideCommitments({
       extracted: [{ month: 'July', theme: 'Growth', bullet: 'EVOD Upgrade' }],

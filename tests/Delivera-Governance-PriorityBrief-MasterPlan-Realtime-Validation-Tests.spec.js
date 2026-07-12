@@ -127,6 +127,7 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-primary-action"]', { timeout: 120000 });
+    await expect(page.locator('.gov-priority-hero-grid .btn-primary')).toHaveCount(1);
     await expect(page.locator('[data-testid="governance-primary-action"]')).toHaveCount(1);
     await expect(page.locator('[data-testid="governance-evidence-action"]')).toContainText(/Inspect/i);
     assertTelemetryClean(t);
@@ -152,15 +153,20 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     assertTelemetryClean(t);
   });
 
-  test('07 missing baseline cannot verify not off-plan', async ({ page }) => {
+  test('07 missing baseline routes to PI slide upload not off-plan', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPriorityBriefPage(page, { baselineMissing: true });
+    await page.addInitScript(() => {
+      try { sessionStorage.setItem('delivera:baseline-prompt-FY27 Q2', '1'); } catch (_) { /* ignore */ }
+    });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-baseline-provenance"]', { timeout: 120000 });
     const text = await page.locator('[data-testid="governance-baseline-provenance"]').innerText();
-    expect(text.toLowerCase()).toMatch(/cannot|verify|unavailable/);
+    expect(text.toLowerCase()).toMatch(/upload|baseline|slide/);
     expect(text.toLowerCase()).not.toMatch(/off plan/);
+    await expect(page.locator('[data-testid="governance-headline-upload-cta"]')).toHaveCount(1);
+    await expect(page.locator('.gov-priority-hero-grid .btn-primary')).toHaveCount(1);
     assertTelemetryClean(t);
   });
 
@@ -194,7 +200,9 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     await mockPriorityBriefPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-commitment-detail"]', { timeout: 120000 });
+    await page.waitForSelector('[data-testid="governance-commitment-detail-fold"]', { timeout: 120000 });
+    await page.locator('[data-testid="governance-commitment-detail-fold"] summary').click();
+    await page.waitForSelector('[data-testid="governance-commitment-detail"]', { state: 'visible', timeout: 15000 });
     const detail = await page.locator('[data-testid="governance-commitment-detail"]').innerText();
     expect(detail).not.toMatch(/Resolve gap|Review match/i);
     assertTelemetryClean(t);

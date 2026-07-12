@@ -67,7 +67,8 @@ export function rowActionButtons(c, indexAttr) {
 export function candidateRow(c, i, jiraHost) {
   const isLinked = c.method === 'slide-linked' || c.method === 'slide-reconciled';
   const isDup = c.method === 'slide-duplicate-risk';
-  const canConfirm = Boolean(c.issueKey) && !isDup;
+  const isAutoMatched = ['slide-linked', 'slide-reconciled', 'slide-semantic-link', 'slide-playbook', 'MATCHED'].includes(c.method);
+  const canConfirm = Boolean(c.issueKey) && !isDup && (isAutoMatched || c.method !== 'slide-unmatched');
   const title = businessTitleFromSummary(c.suggestedEpicTitle || c.title || c.summary || '', 200);
   let statusBadge = '';
   if (isDup) {

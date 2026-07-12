@@ -89,7 +89,7 @@ export function renderInterventionCaseCard(row = {}, { surface = 'actions', high
     ? `<a class="actions-case-squad-link" href="/current-sprint?projects=${encodeURIComponent(row.project)}">${escapeHtml(row.project)}</a>`
     : '';
   const governanceChip = surface === 'actions'
-    ? `<a class="actions-case-portfolio-chip" href="/governance">Portfolio decision</a>`
+    ? `<a class="actions-case-portfolio-chip" href="/governance${row.project ? `?project=${encodeURIComponent(row.project)}` : ''}" data-testid="actions-view-portfolio">View in Portfolio</a>`
     : '';
 
   if (surface === 'governance') {

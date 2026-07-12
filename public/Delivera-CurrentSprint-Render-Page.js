@@ -8,6 +8,7 @@ import { renderCountdownTimer } from './Delivera-CurrentSprint-Countdown-Timer.j
 import { renderDecisionCockpit } from './Delivera-CurrentSprint-Decision-Cockpit.js';
 import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js';
 import { resolvePrimaryBlockerKey } from './Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
+import { renderTopBlockerCard } from './Delivera-CurrentSprint-TopBlocker-01Card-UI.js';
 import { cockpitRisksToAttentionItems } from './Delivera-Shared-Attention-Queue.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
@@ -87,7 +88,6 @@ function renderSprintProofRail(data) {
       + '<li class="sprint-proof-rail-risk">'
       + '<strong>' + escapeHtml(r.issue) + '</strong>'
       + '<span>' + escapeHtml(r.reason) + '</span>'
-      + (r.issue && r.issue !== 'Sprint' ? '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(r.issue) + '">Nudge</button>' : '')
       + '</li>').join('')
     : '<li class="sprint-proof-rail-empty">No critical risks flagged.</li>';
 
@@ -177,6 +177,7 @@ export function renderCurrentSprintPage(data) {
 
   const headerOpts = { sectionLinksHtml: '', viewportLean: true, sectionLinksInDrawer: true };
   html += renderHeaderBar(data, headerOpts);
+  html += renderTopBlockerCard(data);
   html += renderNextUpStrip(data);
   html += renderSprintSwitcher(data);
   if (data?.meta?.noActiveSprintFallback || data?.meta?.limbo) {

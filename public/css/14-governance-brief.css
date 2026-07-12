@@ -2,6 +2,65 @@
  * Governance Priority Brief — elevation, bands, exception rail, below-fold.
  */
 
+/* Scope bar must not paint over or clip the priority surface (desktop + mobile). */
+body.governance-priority-brief-page.portfolio-page .portfolio-scope-bar,
+body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  --portfolio-scope-z: 20;
+  flex-shrink: 0;
+  max-height: min(3.25rem, 14vh);
+  overflow: clip;
+  margin-bottom: 0.35rem;
+  box-shadow: 0 1px 0 var(--border-subtle, #e8e8ec);
+  contain: layout paint;
+}
+
+body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar:has(.portfolio-scope-filters-body:not([hidden])) {
+  max-height: min(36vh, 240px);
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior: contain;
+}
+
+body.governance-priority-brief-page .portfolio-scope-filters-body {
+  max-width: 100%;
+}
+
+body.governance-priority-brief-page #portfolio-layout.portfolio-layout--priority-brief {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: 1fr;
+  margin-top: 0;
+  min-height: 0;
+  overflow: visible;
+  isolation: isolate;
+}
+
+body.governance-priority-brief-page .portfolio-shell {
+  gap: 0.35rem;
+  overflow: visible;
+}
+
+body.governance-priority-brief-page .governance-priority-surface-mount {
+  scroll-margin-top: calc(var(--sticky-offset, 64px) + 3.5rem);
+}
+
+body.governance-priority-brief-page .portfolio-main-column--priority-brief {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  body.governance-priority-brief-page .portfolio-main-column--priority-brief {
+    display: flex;
+  }
+}
+
 .gov-priority-surface {
   display: flex;
   flex-direction: column;
@@ -32,12 +91,37 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.gov-priority-headline {
+.gov-priority-headline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.gov-priority-headline-row .gov-priority-headline {
+  margin: 0;
+  flex: 1 1 12rem;
   font-size: clamp(1.35rem, 2.5vw, 1.75rem);
   font-weight: 700;
   line-height: 1.25;
-  margin: 0 0 0.75rem;
   color: var(--text-primary, #111827);
+}
+
+.gov-priority-headline-cta {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.gov-baseline-provenance--missing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+}
+
+.gov-baseline-provenance--missing strong {
+  flex: 1 1 12rem;
 }
 
 .gov-priority-exposure {
@@ -293,9 +377,48 @@
 .portfolio-layout--priority-brief .portfolio-carousel-mount,
 .portfolio-layout--priority-brief .portfolio-signal-mount,
 .portfolio-layout--priority-brief .portfolio-commitments-mount,
-.portfolio-layout--priority-brief .portfolio-prepared-actions-mount,
-.portfolio-layout--priority-brief .portfolio-rail {
+.portfolio-layout--priority-brief .portfolio-prepared-actions-mount {
   display: none !important;
+}
+
+@media (max-width: 1023px) {
+  body.governance-priority-brief-page .portfolio-layout--priority-brief .portfolio-rail {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  body.governance-priority-brief-page .portfolio-layout--priority-brief {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+    gap: 0.75rem;
+    align-items: start;
+  }
+
+  body.governance-priority-brief-page .portfolio-layout--priority-brief .portfolio-rail {
+    display: flex !important;
+    flex-direction: column;
+    position: sticky;
+    top: calc(var(--sticky-offset, 64px) + 3.5rem);
+    max-height: calc(100vh - var(--sticky-offset, 64px) - 4rem);
+    overflow-y: auto;
+    gap: 0.5rem;
+  }
+
+  .gov-priority-rail-card {
+    border: 1px solid var(--border-subtle, #e8e8ec);
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+    background: var(--surface-card, #fff);
+  }
+
+  .gov-priority-rail-card h3 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin: 0 0 0.35rem;
+    color: var(--text-muted, #6b7280);
+  }
 }
 
 .gov-priority-surface--skeleton .gov-priority-headline {

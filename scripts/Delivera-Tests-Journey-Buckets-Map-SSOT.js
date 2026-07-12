@@ -205,6 +205,12 @@ export const specMetadata = {
     page: '/governance,/api/governance/portfolio-decision.json',
     priority: 1,
   },
+  'tests/Delivera-Governance-Churn-Trust-Repair-MasterPlan-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.churn-trust-repair',
+    layer: 'page-ux',
+    page: '/governance,/actions,/current-sprint',
+    priority: 1,
+  },
   'tests/Delivera-Portfolio-Command-Surface-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.portfolio-command-surface',
     layer: 'page-ux',
@@ -413,26 +419,36 @@ export const specMetadata = {
     journey: 'journey.governance',
     layer: 'page-ux',
     page: '/governance',
+    deprecated: true,
+    supersededBy: 'journey.governance-priority-brief',
   },
   'tests/Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/actions',
+    deprecated: true,
+    supersededBy: 'journey.governance-priority-brief',
   },
   'tests/Delivera-Direct-Value-MasterPlan-Round6-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/actions,/api/governance/inbox.json',
+    deprecated: true,
+    supersededBy: 'journey.governance-priority-brief',
   },
   'tests/Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/actions,/api/governance/inbox.json',
+    deprecated: true,
+    supersededBy: 'journey.governance-priority-brief',
   },
   'tests/Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance',
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/actions,/settings,/api/ai-provider-status.json',
+    deprecated: true,
+    supersededBy: 'journey.governance-priority-brief',
   },
   'tests/Delivera-Direct-Value-MasterPlan-Round9-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance',
@@ -831,6 +847,15 @@ export const journeyBuckets = {
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.portfolio-growth-ux-round12',
     ),
+  },
+  'journey.churn-trust-repair': {
+    id: 'journey.churn-trust-repair',
+    label: 'Churn Trust Repair — P0 console, baseline, alignment, dedupe',
+    specs: [
+      'tests/Delivera-Governance-Churn-Trust-Repair-MasterPlan-Realtime-Validation-Tests.spec.js',
+      'tests/Delivera-Governance-PriorityBrief-MasterPlan-Realtime-Validation-Tests.spec.js',
+      'tests/Delivera-Portfolio-Command-Surface-Realtime-Validation-Tests.spec.js',
+    ],
   },
 };
 

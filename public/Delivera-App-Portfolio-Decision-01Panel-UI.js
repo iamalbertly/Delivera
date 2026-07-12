@@ -3,15 +3,38 @@ import { COPY, portfolioDecisionLabel } from './Delivera-App-Shared-Delivery-Cop
 import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 
 export function decisionActionLabel(decision = {}, brief = {}) {
-  const action = decision.decisionRequired?.recommendedAction || '';
-  const recId = decision.recommendation?.id || '';
-  if (/review investment/i.test(action) || recId === 'review-investment') return COPY.portfolioDecisionReview;
-  if (recId === 'move-capacity') return COPY.portfolioDecisionShift;
-  if (recId === 'continue-scale' || recId === 'continue-improve' || recId === 'keep-funding') return COPY.portfolioDecisionContinue;
-  if (/scope/i.test(action) || recId === 'review-scope') return 'Confirm PI scope';
-  if (/clarification|confirm/i.test(action)) return 'Request clarification';
-  if (/escalat/i.test(action)) return 'Escalate decision';
-  return portfolioDecisionLabel(recId) || decision.recommendation?.label || 'Confirm commitment status';
+  // Single constant label — the action triggered is contextual but the label is constant.
+  // Users learn the pattern once: "Resolve top gap →" always opens the prepared action queue.
+  const prepared = decision?.preparedActions || {};
+  const totalReady = Number(prepared.totalReady) || (prepared.items || []).length || 0;
+  if (totalReady > 1) return `Resolve top ${Math.min(3, totalReady)} gaps`;
+  return 'Resolve top gap';
+}
+
+const DRIVER_ICONS = {
+  delivery: '📊',
+  proof: '🔍',
+  evidence: '🔍',
+  investment: '💰',
+  risk: '⚠️',
+  scope: '🎯',
+  capacity: '👥',
+  commitment: '📌',
+  default: '•',
+};
+
+function driverIcon(driver = {}) {
+  const type = String(driver.type || driver.category || '').toLowerCase();
+  for (const [key, glyph] of Object.entries(DRIVER_ICONS)) {
+    if (key === 'default') continue;
+    if (type.includes(key)) return glyph;
+  }
+  const title = String(driver.title || '').toLowerCase();
+  for (const [key, glyph] of Object.entries(DRIVER_ICONS)) {
+    if (key === 'default') continue;
+    if (title.includes(key)) return glyph;
+  }
+  return DRIVER_ICONS.default;
 }
 
 export function renderWhyThisMatters(drivers = []) {
@@ -23,43 +46,52 @@ export function renderWhyThisMatters(drivers = []) {
       <dl class="portfolio-keyvalue-list">
         ${rows.map((d) => `
           <div class="portfolio-keyvalue-row" title="${escapeHtml(d.detail || '')}">
-            <dt>${escapeHtml(d.title || 'Signal')}</dt>
+            <dt><span class="portfolio-driver-icon" aria-hidden="true">${driverIcon(d)}</span>${escapeHtml(d.title || 'Signal')}</dt>
             <dd>${escapeHtml(d.summary || '')}</dd>
           </div>`).join('')}
       </dl>
     </section>`;
 }
 
-function renderNextDecisionRadios(decision = {}, brief = {}) {
-  const options = decision.decisionOptions || [];
+function renderTopActionsPanel(decision = {}, brief = {}) {
+  const prepared = decision.preparedActions || {};
+  const items = (prepared.items || []).filter((i) => i && (i.label || i.title || i.action));
+  const totalReady = Number(prepared.totalReady) || items.length;
   const anchor = decision.anchorProject || 'this squad';
   const squadName = resolveProjectDisplay(anchor).primary || anchor;
-  if (!options.length) {
+  const deadline = prepared.nextDeadline || decision.decisionRequired?.dueAt || '';
+
+  if (!items.length) {
     return `
-      <section class="portfolio-next-decision" aria-label="Next decision">
-        <h2 class="portfolio-next-decision-title">Next decision</h2>
-        <p class="portfolio-next-decision-prompt">${escapeHtml(COPY.portfolioDecisionPrompt.replace('{squad}', squadName))}</p>
-        <p class="portfolio-next-decision-hint">Choose an option below when ready.</p>
+      <section class="portfolio-next-decision portfolio-top-actions" aria-label="Top actions" data-testid="portfolio-top-actions">
+        <h2 class="portfolio-next-decision-title">Top actions for ${escapeHtml(squadName)}</h2>
+        <p class="portfolio-next-decision-hint">No prepared actions yet — connect a Jira board to see exposure and next steps.</p>
+        <nav class="portfolio-quick-links" aria-label="Quick links">
+          <a href="/current-sprint?projects=${encodeURIComponent(anchor)}">Squad sprint</a>
+        </nav>
       </section>`;
   }
-  const recommended = decision.recommendation?.id || 'review-investment';
-  let defaultId = 'review-investment';
-  if (recommended === 'move-capacity') defaultId = 'move-capacity';
-  else if (recommended === 'continue-scale' || recommended === 'continue-improve') defaultId = 'keep-funding';
-  else if (recommended === 'review-scope' || recommended === 'insufficient-evidence') defaultId = 'keep-funding';
+
+  const top3 = items.slice(0, 3);
+  const overflow = items.length - top3.length;
 
   return `
-    <section class="portfolio-next-decision" aria-label="Next decision">
-      <h2 class="portfolio-next-decision-title">Next decision</h2>
-      <p class="portfolio-next-decision-prompt">${escapeHtml(COPY.portfolioDecisionPrompt.replace('{squad}', squadName))}</p>
-      <fieldset class="portfolio-decision-radio-group" data-portfolio-decision-radios aria-label="Decision options">
-        ${options.map((opt) => `
-          <label class="portfolio-decision-radio${opt.id === defaultId ? ' is-selected' : ''}">
-            <input type="radio" name="portfolio-decision-option" value="${escapeHtml(opt.id)}"${opt.id === defaultId ? ' checked' : ''} data-sync-hero-decision="1">
-            <span class="portfolio-decision-radio-label">${escapeHtml(opt.label)}</span>
-            <span class="portfolio-decision-radio-hint">${escapeHtml(opt.hint || '')}</span>
-          </label>`).join('')}
-      </fieldset>
+    <section class="portfolio-next-decision portfolio-top-actions" aria-label="Top actions" data-testid="portfolio-top-actions">
+      <h2 class="portfolio-next-decision-title">Top actions for ${escapeHtml(squadName)}</h2>
+      ${deadline ? `<p class="portfolio-top-actions-deadline" data-testid="portfolio-top-actions-deadline">Next response due: <strong>${escapeHtml(deadline)}</strong></p>` : ''}
+      <ul class="portfolio-top-actions-list" data-testid="portfolio-top-actions-list">
+        ${top3.map((it, idx) => `
+          <li class="portfolio-top-action-item${idx === 0 ? ' is-primary' : ''}" data-testid="portfolio-top-action-item">
+            <span class="portfolio-top-action-rank">${idx + 1}</span>
+            <div class="portfolio-top-action-body">
+              <strong class="portfolio-top-action-label">${escapeHtml(it.label || it.title || it.action || 'Confirm next step')}</strong>
+              <span class="portfolio-top-action-owner">${escapeHtml(it.owner || it.role || it.decisionNeededFrom || 'Owner')}</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-compact portfolio-top-action-cta" data-portfolio-action="view-prepared-items" data-testid="portfolio-top-action-cta">Resolve →</button>
+          </li>`).join('')}
+      </ul>
+      ${overflow > 0 ? `<button type="button" class="btn btn-link btn-compact portfolio-top-actions-more" data-portfolio-action="view-prepared-items">+${overflow} more</button>` : ''}
+      ${prepared.escalationReady ? '<p class="portfolio-prepared-escalation">Escalation ready if no response</p>' : ''}
     </section>`;
 }
 
@@ -72,7 +104,6 @@ function renderQuickLinks(decision = {}) {
   return `
     <nav class="portfolio-quick-links" aria-label="Quick links">
       <button type="button" class="btn btn-link btn-compact" data-portfolio-action="view-governance-evidence">View in Evidence</button>
-      <a href="/actions${anchor ? `?project=${encodeURIComponent(anchor)}&tab=ready` : '?tab=ready'}">Create intervention</a>
       <a href="${escapeHtml(squadHref)}">Squad sprint</a>
     </nav>`;
 }
@@ -85,7 +116,7 @@ export function renderPortfolioDecisionPanel(decision = {}, brief = {}) {
   return `
     <div class="portfolio-rail-stack" id="portfolio-decision">
       ${renderWhyThisMatters(decision.drivers || [])}
-      ${renderNextDecisionRadios(decision, brief)}
+      ${renderTopActionsPanel(decision, brief)}
       ${inlineProof}
       ${renderQuickLinks(decision, brief)}
     </div>`;
@@ -93,20 +124,8 @@ export function renderPortfolioDecisionPanel(decision = {}, brief = {}) {
 
 export function bindPortfolioDecisionPanel(root, onConfirm) {
   if (!root) return;
-  const syncHeroDecisionId = (decisionId) => {
-    const heroBtn = document.querySelector('[data-testid="portfolio-primary-cta"][data-portfolio-action="confirm-decision"]');
-    if (heroBtn && decisionId) heroBtn.setAttribute('data-decision-id', decisionId);
-  };
-  root.addEventListener('change', (ev) => {
-    const input = ev.target.closest?.('.portfolio-decision-radio input');
-    if (!input || !root.contains(input)) return;
-    root.querySelectorAll('.portfolio-decision-radio').forEach((el) => {
-      el.classList.toggle('is-selected', el.contains(input));
-    });
-    syncHeroDecisionId(input.value);
-    if (typeof onConfirm === 'function' && window.matchMedia('(min-width: 1024px)').matches) {
-      void onConfirm(input.value);
-    }
-  });
+  // Top actions panel uses delegated click handler (data-portfolio-action="view-prepared-items")
+  // which is already bound by handlePortfolioDelegatedClick on #main-content.
+  // No radio change handler needed — the dead-end "Continue as planned" radios are removed.
   root._portfolioConfirmHandler = onConfirm;
 }

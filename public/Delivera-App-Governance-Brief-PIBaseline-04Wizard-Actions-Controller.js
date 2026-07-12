@@ -22,6 +22,14 @@ import {
 } from './Delivera-App-Governance-Brief-PIBaseline-03Wizard-Render-Shell-UI.js';
 
 const SLIDE_UPLOAD_OK_KEY = 'delivera_baseline_slide_ok_v1';
+const AUTO_MATCH_METHODS = new Set(['slide-linked', 'slide-reconciled', 'slide-semantic-link', 'slide-playbook', 'MATCHED']);
+
+function markAutoSelectedCandidates(data = {}) {
+  for (const c of data.candidates || []) {
+    if (c.issueKey && AUTO_MATCH_METHODS.has(c.method)) c.selected = true;
+  }
+  return data;
+}
 
 /**
  * @param {object} ctx
@@ -153,7 +161,7 @@ export function createPiBaselineWizardActions(ctx) {
       restoreAfterUploadError(bodyEl, priorData, projects, csv, quarterLabel, { message: 'Upload cancelled', code: 'CANCELLED' });
     });
     try {
-      const data = await postSlidePropose({ file, projects, projectsCsv: csv, signal: abortController.signal });
+      const data = markAutoSelectedCandidates(await postSlidePropose({ file, projects, projectsCsv: csv, signal: abortController.signal }));
       if (elapsedTimer) clearInterval(elapsedTimer);
       cacheSlideProposeResult(data);
       state.lastSlideData = data;
@@ -182,6 +190,10 @@ export function createPiBaselineWizardActions(ctx) {
           });
         }
         bindPanel(bodyEl, priorData || data, projects, csv, quarterLabel);
+        return;
+      }
+      if (Array.isArray(data.resolved) && data.resolved.length) {
+        await reconcileFromResolved(bodyEl, projects, csv, quarterLabel, data);
         return;
       }
       bodyEl.innerHTML = renderSlideReview(data, csv, quarterLabel, state.jiraHost, cap());
@@ -368,7 +380,9 @@ export function createPiBaselineWizardActions(ctx) {
         first?.focus?.();
         return;
       }
-      const piName = projects.join('+') || 'MPSA+MAS';
+      const piName = quarterLabel
+        ? `${projects.join('+')}:${quarterLabel.replace(/\s+/g, ' ').trim()}`
+        : (projects.join('+') || 'MPSA+MAS');
       try {
         await fetchJson('/api/governance/pi-baseline', {
           method: 'POST',

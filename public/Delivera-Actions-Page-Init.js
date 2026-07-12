@@ -183,7 +183,7 @@ function renderCasePreview(row = {}) {
       <div class="actions-case-inline-actions">
         ${canApprove ? `<button type="button" class="btn btn-primary btn-compact" data-approve-case="${escapeHtml(row.id)}">${escapeHtml(COPY.actionsApproveInline)}</button>` : ''}
         <button type="button" class="btn btn-secondary btn-compact" data-decline-case="${escapeHtml(row.id)}">${escapeHtml(COPY.actionsDeclineInline)}</button>
-        <a class="btn btn-link btn-compact" href="/governance">Portfolio context</a>
+        <a class="btn btn-link btn-compact" href="/governance${row.project ? `?project=${encodeURIComponent(row.project)}` : ''}" data-testid="actions-view-portfolio">View in Portfolio</a>
       </div>
       <p class="actions-case-status" data-case-status hidden></p>
     </div>`;
@@ -232,7 +232,7 @@ async function paint(tab = activeTab()) {
   renderTabs(tab, counts);
   renderActionsSubtitle(counts.ready || 0);
   const list = document.getElementById('actions-list');
-  const highlightId = readQuery().get('caseId') || '';
+  const highlightId = readQuery().get('case') || readQuery().get('caseId') || '';
   const visible = sortCasesByUrgency(filterCases(cases, tab));
   const signal = await applyBlockerUx(counts.ready || 0);
   if (list) {
@@ -286,7 +286,7 @@ async function init() {
     document.body.classList.add('actions-preview-desktop');
   }
   await paint();
-  const reviewId = readQuery().get('caseId');
+  const reviewId = readQuery().get('case') || readQuery().get('caseId');
   if (readQuery().get('review') === '1' && reviewId) await openCaseReview(reviewId);
   document.getElementById('actions-list')?.addEventListener('click', async (ev) => {
     const nudgeBtn = ev.target.closest('[data-actions-nudge]');

@@ -26,6 +26,7 @@ import {
   invalidatePortfolioDecisionForCase,
   compactCasesForScope,
 } from '../lib/Delivera-Governance-PortfolioDecision-01Service.js';
+import { resolveBaselineMissingFromBrief } from '../lib/Delivera-Governance-PortfolioDecision-01SSOT.js';
 
 const router = express.Router();
 
@@ -108,7 +109,8 @@ router.post('/api/governance/portfolio-decision.json', requireAuth, async (req, 
     const periodKey = String(body.periodKey || body.quarter || body.brief?.meta?.quarter || '').trim();
     const baselineMode = String(body.baseline || body.baselineMode || 'pi-baseline').trim();
     const brief = body.brief || { projects: [anchor, ...compareRaw].filter(Boolean), meta: { quarter: periodKey } };
-    const baselineMissing = body.baselineMissing === true || baselineMode === 'none';
+    if (periodKey && brief.meta) brief.meta.quarter = periodKey;
+    const baselineMissing = resolveBaselineMissingFromBrief(brief, baselineMode);
     const partialSquads = Number(body.partialSquads) || 0;
     const forceRefresh = String(body.refresh || req.query?.refresh || '').trim() === '1';
     const payload = await getOrBuildPortfolioDecision({
@@ -141,7 +143,7 @@ router.get('/api/governance/portfolio-decision.json', requireAuth, async (req, r
       meta: { quarter: periodKey },
       generatedAt: new Date().toISOString(),
     };
-    const baselineMissing = req.query.baselineMissing === 'true' || baselineMode === 'none';
+    const baselineMissing = resolveBaselineMissingFromBrief(payloadBrief, baselineMode);
     const forceRefresh = String(req.query.refresh || '').trim() === '1';
     const payload = await getOrBuildPortfolioDecision({
       anchor,
