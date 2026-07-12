@@ -36,7 +36,7 @@ export const DEFAULT_PORTFOLIO_DECISION = {
 };
 
 export async function waitForPortfolioReady(page, timeout = 25000) {
-  await page.waitForSelector('[data-portfolio-signal]', { timeout });
+  await page.waitForSelector('[data-testid="governance-priority-surface"], [data-portfolio-signal]', { timeout });
 }
 
 /** Portfolio signal plus on-demand legacy brief hydration (hidden #gov-brief-content). */

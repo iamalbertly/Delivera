@@ -199,6 +199,12 @@ export const specMetadata = {
     page: '/governance,/api/governance/interventions.json,/api/governance/intervention-shortlist.json',
     priority: 1,
   },
+  'tests/Delivera-Governance-PriorityBrief-MasterPlan-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-priority-brief',
+    layer: 'page-ux',
+    page: '/governance,/api/governance/portfolio-decision.json',
+    priority: 1,
+  },
   'tests/Delivera-Portfolio-Command-Surface-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.portfolio-command-surface',
     layer: 'page-ux',

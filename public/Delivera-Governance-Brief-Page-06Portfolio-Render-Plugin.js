@@ -13,12 +13,15 @@ import { shouldHidePreparedActionsSection, applyHonestTrustClamp, enrichComparis
 import { renderPortfolioCarousel, bindPortfolioCarousel, renderPortfolioCarouselSkeleton } from './Delivera-App-Portfolio-Comparison-01Carousel-UI.js';
 
 import {
-
   renderPortfolioDecisionPanel,
-
   bindPortfolioDecisionPanel,
-
 } from './Delivera-App-Portfolio-Decision-01Panel-UI.js';
+
+import {
+  renderGovernancePrioritySurface,
+  renderGovernancePrioritySkeleton,
+  bindGovernancePrioritySurface,
+} from './Delivera-App-Governance-PrioritySurface-01Render-UI.js';
 
 import { openPortfolioCalibrationDrawer, buildCalibrationDefenseText } from './Delivera-App-Portfolio-Actions-01Bridge.js';
 import { writeTextToClipboardWithFallback } from './Delivera-Shared-Clipboard-01Bridge.js';
@@ -57,6 +60,21 @@ import { recordPortfolioDecisionOutcome, highlightPortfolioBentoCard, renderBent
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 let portfolioRefreshGen = 0;
+
+async function selectGovernanceSquad(projectKey) {
+  if (!projectKey || !govPage.lastBrief) return;
+  govPage.scopeBarApi?.setAnchor?.(projectKey);
+  govPage._portfolioBriefToken = null;
+  const surface = document.getElementById('governance-priority-surface-mount');
+  surface?.setAttribute('aria-busy', 'true');
+  await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases);
+  surface?.removeAttribute('aria-busy');
+  const headline = surface?.querySelector('[data-testid="governance-priority-headline"]');
+  if (headline) {
+    headline.setAttribute('tabindex', '-1');
+    headline.focus({ preventScroll: true });
+  }
+}
 
 function readCompareProjects(anchor = '') {
   return readPortfolioCompareProjects(anchor);
@@ -122,6 +140,19 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
           recommendation: { label: 'Confirm scope and proof before investment review' },
           narrative: { headline: 'Confirm scope and proof', mainIssue: 'Data loading' },
           aboveFold: { exposedCommitments: 0, actionsReady: 0, poResponsesRequired: 0 },
+          priorityBrief: {
+            headline: anchor ? `${anchor} needs scope and proof confirmation` : 'Governance status loading',
+            zeroRisk: false,
+            exposureLine: '',
+            deliveraCompleted: 'Delivera is loading evidence.',
+            primaryAction: 'Review and record governance decision',
+            evidenceAction: 'Inspect promise-to-Jira trace',
+            atRiskSquads: [],
+            detailRows: [],
+            baselineProvenance: { available: false, line: 'Loading baseline evidence' },
+          },
+          portfolioJudgment: { squads: [], atRisk: [], safe: [] },
+          commitmentRows: [],
         },
         comparison: { cards: [], actionsStrip: {} },
         cases,
@@ -149,6 +180,72 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
 
 
 async function handlePortfolioDelegatedClick(ev) {
+
+  const governanceAction = ev.target.closest('[data-governance-action]');
+  if (governanceAction) {
+    const action = governanceAction.getAttribute('data-governance-action');
+    const decision = govPage.lastPortfolioDecision || {};
+    const brief = govPage.lastBrief || {};
+    const cases = govPage.lastPortfolioCases || [];
+    if (action === 'record-decision' || action === 'review-prepared') {
+      ev.preventDefault();
+      openPortfolioCalibrationDrawer(decision, cases);
+      return;
+    }
+    if (action === 'inspect-evidence' || action === 'inspect-unsupported' || action === 'commitment-decision') {
+      ev.preventDefault();
+      const issueKey = governanceAction.getAttribute('data-commitment-issue')
+        || decision.priorityBrief?.detailRows?.[0]?.issueKey;
+      const rows = issueKey ? [{ issueKey }] : (brief?.evidencePack?.rows || []);
+      openEvidenceDrawer(brief, rows, { skipLegacyFlag: true, docked: true });
+      return;
+    }
+    if (action === 'open-scope-history' || action === 'open-decision-audit' || action === 'review-recovery') {
+      ev.preventDefault();
+      openEvidenceDrawer(brief, brief?.evidencePack?.rows || [], { skipLegacyFlag: true, docked: true });
+      return;
+    }
+    if (action === 'open-baseline-image') {
+      ev.preventDefault();
+      openPiBaselineWizard({ initialMode: 'slide' });
+      return;
+    }
+    if (action === 'share-sponsor-brief') {
+      ev.preventDefault();
+      const md = decision.sponsorBriefMarkdown || '';
+      if (!md) return;
+      writeTextToClipboardWithFallback(md).then(() => {
+        showInlineToast(document.getElementById('main-content'), 'Sponsor brief copied', 'info');
+      }).catch(() => {
+        const preview = document.querySelector('[data-testid="governance-sponsor-brief-preview"]');
+        if (preview) preview.hidden = false;
+      });
+      return;
+    }
+    if (action === 'inspect-squad') {
+      ev.preventDefault();
+      const key = governanceAction.getAttribute('data-squad-key');
+      if (key) await selectGovernanceSquad(key);
+      return;
+    }
+    if (action === 'expand-commitment-detail') {
+      ev.preventDefault();
+      const overflow = governanceAction.closest('.gov-commitment-detail')?.querySelector('.gov-commitment-detail-overflow');
+      if (overflow) {
+        overflow.hidden = false;
+        governanceAction.hidden = true;
+      }
+      return;
+    }
+  }
+
+  const squadSelect = ev.target.closest('[data-governance-squad-select]');
+  if (squadSelect) {
+    ev.preventDefault();
+    const key = squadSelect.getAttribute('data-governance-squad-select');
+    if (key) await selectGovernanceSquad(key);
+    return;
+  }
 
   const formatBtn = ev.target.closest('[data-calibration-format]');
   if (formatBtn) {
@@ -277,6 +374,15 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
   const decisionMount = $('portfolio-decision-mount');
   const footerMount = $('portfolio-monitor-footer');
   const railCommitmentsMount = $('portfolio-rail-commitments-mount');
+  const priorityMount = $('governance-priority-surface-mount');
+
+  if (priorityMount) {
+    priorityMount.innerHTML = renderGovernancePrioritySurface(decision, brief);
+    bindGovernancePrioritySurface(priorityMount, { onSelectSquad: selectGovernanceSquad });
+    if (payload.error) {
+      priorityMount.insertAdjacentHTML('afterbegin', `<p class="gov-priority-error" role="alert">${escapeHtml(String(payload.error))}</p>`);
+    }
+  }
 
   if (signalMount) {
     signalMount.innerHTML = renderPortfolioSignal(decision, {
@@ -372,7 +478,7 @@ async function applyPortfolioPayloadToDom(brief, payload, cases = []) {
       Boolean(decisionMount?.querySelector('.portfolio-rail-stack, .portfolio-decision, #portfolio-decision')),
     );
   } catch (_) { /* ignore */ }
-  document.title = 'Portfolio | Delivera';
+  document.title = 'Governance | Delivera';
 }
 
 export function paintPortfolioFromCache(brief) {
@@ -391,6 +497,11 @@ export function paintPortfolioFromCache(brief) {
 
 export function paintPortfolioBentoSkeleton(brief) {
   if (!brief) return;
+  const priorityMount = $('governance-priority-surface-mount');
+  if (priorityMount) {
+    priorityMount.innerHTML = renderGovernancePrioritySkeleton();
+    return;
+  }
   const keys = portfolioCacheKeys(brief);
   const carouselMount = $('portfolio-carousel-mount');
   if (!carouselMount) return;
@@ -425,7 +536,7 @@ let portfolioHooked = false;
 
 export function installPortfolioSurfaceHook() {
 
-  if (portfolioHooked || !document.getElementById('portfolio-signal-mount')) return;
+  if (portfolioHooked || !document.getElementById('governance-priority-surface-mount')) return;
 
   portfolioHooked = true;
 

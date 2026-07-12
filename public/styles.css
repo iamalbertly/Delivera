@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    GENERATED FILE — DO NOT EDIT
-   Built from public/css/ (15 partials — see public/css/README.md)
+   Built from public/css/ (16 partials — see public/css/README.md)
    To change styles: edit a partial, then run: npm run build:css
    ═══════════════════════════════════════════════════════════════ */
 :root {
@@ -22055,6 +22055,641 @@ body.delivera-api-degraded::before {
   font-size: 0.75rem;
   color: var(--text-muted, #6b7280);
   margin: 0.25rem 0 0;
+}
+
+/* === Top Actions Panel (replaces "Continue as planned" radios) === */
+.portfolio-top-actions {
+  padding: 0.5rem 0;
+}
+.portfolio-top-actions-deadline {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0.5rem;
+}
+.portfolio-top-actions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.portfolio-top-action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: var(--surface-elevated, #fff);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.portfolio-top-action-item.is-primary {
+  border-color: var(--brand-primary, #c41e3a);
+  border-width: 2px;
+  box-shadow: 0 2px 8px rgba(196, 30, 58, 0.08);
+}
+.portfolio-top-action-rank {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--border-subtle, #e8e8ec);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.portfolio-top-action-item.is-primary .portfolio-top-action-rank {
+  background: var(--brand-primary, #c41e3a);
+  color: #fff;
+}
+.portfolio-top-action-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.portfolio-top-action-label {
+  font-size: 0.85rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portfolio-top-action-owner {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.portfolio-top-action-cta {
+  flex-shrink: 0;
+}
+.portfolio-top-actions-more {
+  margin-top: 0.5rem;
+}
+
+/* === Driver icons in "Why this matters" === */
+.portfolio-driver-icon {
+  margin-right: 0.3rem;
+  font-size: 0.9rem;
+}
+
+/* === What Changed timeline (right rail) === */
+.portfolio-changelog {
+  padding: 0.5rem 0;
+}
+.portfolio-changelog--empty {
+  text-align: center;
+}
+.portfolio-changelog-title {
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.portfolio-changelog-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--brand-primary, #c41e3a);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.portfolio-changelog-summary {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+  line-height: 1.4;
+}
+.portfolio-changelog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.portfolio-changelog-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-left: 2px solid var(--border-subtle, #e8e8ec);
+  padding-left: 0.6rem;
+}
+.portfolio-changelog-item.is-latest {
+  border-left-color: var(--brand-primary, #c41e3a);
+}
+.portfolio-changelog-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.portfolio-changelog-body {
+  flex: 1;
+  min-width: 0;
+}
+.portfolio-changelog-label {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+.portfolio-changelog-detail {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+.portfolio-changelog-when {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+.portfolio-changelog-more {
+  margin-top: 0.4rem;
+}
+
+/* === At-risk commitment pin === */
+.portfolio-commitments-at-risk-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: var(--brand-danger, #c41e3a);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 0.3rem;
+}
+.portfolio-commitments-list .portfolio-commitment-row[data-commitment-issue] {
+  border-left: 3px solid transparent;
+  padding-left: 0.5rem;
+}
+.portfolio-commitments-list .portfolio-commitment-row[data-commitment-issue]:has(.portfolio-commitment-status--at-risk),
+.portfolio-commitments-list .portfolio-commitment-row[data-commitment-issue]:has(.portfolio-commitment-status--risk) {
+  border-left-color: var(--brand-danger, #c41e3a);
+}
+
+/* === Top Blocker Card (Current Sprint) === */
+.top-blocker-card {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  margin: 0 0 0.5rem;
+  background: #fff5f5;
+  border: 1px solid #f5c6cb;
+  border-left: 4px solid var(--brand-danger, #c41e3a);
+  border-radius: 10px;
+  position: sticky;
+  top: calc(var(--sticky-global-nav-top, 56px) + var(--sub-chrome-height, 0px) + 0.25rem);
+  z-index: 10;
+}
+.top-blocker-card-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+.top-blocker-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.top-blocker-card-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-danger, #c41e3a);
+  font-weight: 700;
+  margin: 0;
+}
+.top-blocker-card-title {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.top-blocker-card-reason {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+.top-blocker-card-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.top-blocker-card-cta {
+  flex-shrink: 0;
+}
+
+/* === Edge case: empty state onboarding === */
+.portfolio-empty-onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+.portfolio-empty-onboarding-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+.portfolio-empty-onboarding-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* === Edge case: systemic risk banner === */
+.portfolio-systemic-risk-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  margin: 0 0 0.5rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+/* === Edge case: stale data banner === */
+.portfolio-stale-data-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 0.5rem;
+  background: #fee2e2;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+/* === Edge case: single squad deep-dive === */
+.portfolio-single-squad-deep-dive {
+  padding: 0.5rem 0;
+}
+
+/* === Mobile: horizontal swipe carousel === */
+@media (max-width: 768px) {
+  .portfolio-bento-grid-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .portfolio-bento-grid-track > .portfolio-bento-card {
+    flex: 0 0 85vw;
+    scroll-snap-align: start;
+  }
+  .top-blocker-card {
+    position: static;
+  }
+}
+/**
+ * Governance Priority Brief — elevation, bands, exception rail, below-fold.
+ */
+
+.gov-priority-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.gov-priority-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 340px);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .gov-priority-hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gov-priority-brief-hero {
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.gov-priority-headline {
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 0.75rem;
+  color: var(--text-primary, #111827);
+}
+
+.gov-priority-exposure {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--status-critical-text, #b91c1c);
+  margin: 0 0 0.75rem;
+}
+
+.gov-priority-cause-list {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  color: var(--text-secondary, #374151);
+}
+
+.gov-priority-at-risk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+}
+
+.gov-priority-at-risk-table th,
+.gov-priority-at-risk-table td {
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.gov-priority-at-risk-row--critical {
+  background: var(--status-critical-bg, #fef2f2);
+}
+
+.gov-priority-at-risk-row--watch {
+  background: var(--status-watch-bg, #fffbeb);
+}
+
+.gov-status-rail {
+  display: inline-block;
+  width: 4px;
+  min-height: 1em;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.gov-status-rail--critical { background: #dc2626; }
+.gov-status-rail--watch { background: #d97706; }
+.gov-status-rail--healthy { background: #16a34a; }
+.gov-status-rail--muted { background: #9ca3af; }
+
+.gov-baseline-provenance {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #4b5563);
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-subtle, #e5e7eb);
+}
+
+.gov-baseline-provenance--missing {
+  background: var(--surface-muted, #f9fafb);
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.gov-agentic-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gov-agentic-band {
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.gov-agentic-band--completed {
+  background: var(--surface-muted, #f9fafb);
+  color: var(--text-secondary, #4b5563);
+}
+
+.gov-agentic-band--prepared {
+  background: var(--status-info-bg, #eff6ff);
+  border-color: #93c5fd;
+}
+
+.gov-agentic-band--decision {
+  background: var(--status-critical-bg, #fef2f2);
+  border-color: #fca5a5;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+}
+
+.gov-agentic-band-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem;
+}
+
+.gov-agentic-completed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+}
+
+.gov-agentic-completed-item {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+.gov-agentic-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.gov-primary-cta {
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.gov-primary-cta:focus-visible,
+.gov-exception-rail-row:focus-visible,
+.gov-priority-at-risk-row:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.gov-exception-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gov-exception-rail-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.gov-exception-rail-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  background: #fff;
+  cursor: pointer;
+  min-height: 44px;
+  text-align: left;
+}
+
+.gov-exception-rail-row--critical {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.gov-exception-rail-row--watch {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.gov-exception-rail-row.is-selected {
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+.gov-exception-rail-collapsed {
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+.gov-adaptive-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.gov-evidence-block {
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  background: #fff;
+}
+
+.gov-evidence-block-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.gov-alignment-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+.gov-alignment-card--wide { grid-column: span 2; }
+.gov-alignment-card--critical { border-left: 4px solid #dc2626; }
+.gov-alignment-card--watch { border-left: 4px solid #d97706; }
+.gov-alignment-card--healthy { border-left: 4px solid #16a34a; opacity: 0.85; }
+
+.gov-alignment-card {
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+}
+
+.gov-below-fold-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.gov-above-fold-marker {
+  border-top: 2px dashed #fca5a5;
+  margin: 1.5rem 0 1rem;
+  padding-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.gov-commitment-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.gov-commitment-detail-table th,
+.gov-commitment-detail-table td {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+  text-align: left;
+}
+
+.gov-growth-signals {
+  font-size: 0.75rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+.portfolio-layout--priority-brief .portfolio-carousel-mount,
+.portfolio-layout--priority-brief .portfolio-signal-mount,
+.portfolio-layout--priority-brief .portfolio-commitments-mount,
+.portfolio-layout--priority-brief .portfolio-prepared-actions-mount,
+.portfolio-layout--priority-brief .portfolio-rail {
+  display: none !important;
+}
+
+.gov-priority-surface--skeleton .gov-priority-headline {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gov-priority-surface * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .gov-priority-brief-hero,
+  .gov-agentic-band,
+  .gov-evidence-block {
+    border-width: 2px;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 .evidence-os-page {
   background: linear-gradient(180deg, #fffdfd 0%, #fff8f8 100%);

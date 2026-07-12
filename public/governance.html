@@ -14,7 +14,7 @@
 
 </head>
 
-<body class="executive-surface-page governance-page portfolio-page">
+<body class="executive-surface-page governance-page portfolio-page governance-priority-brief-page">
 
   <a class="skip-to-content" href="#main-content">Skip to main content</a>
 
@@ -26,25 +26,27 @@
 
 
 
-    <div id="gov-loading" class="gov-loading-mount" aria-live="polite" aria-label="Preparing portfolio signal"></div>
+    <div id="gov-loading" class="gov-loading-mount" aria-live="polite" aria-label="Preparing governance brief"></div>
 
 
 
-    <div class="portfolio-layout" id="portfolio-layout">
+    <div class="portfolio-layout portfolio-layout--priority-brief" id="portfolio-layout">
 
-      <div class="portfolio-main-column">
+      <div class="portfolio-main-column portfolio-main-column--priority-brief">
 
-        <div id="portfolio-signal-mount" class="portfolio-signal-mount" aria-label="AI portfolio signal"></div>
+        <div id="governance-priority-surface-mount" class="governance-priority-surface-mount" aria-label="Governance priority brief"></div>
 
-        <div id="portfolio-carousel-mount" class="portfolio-carousel-mount" aria-label="Compare squads"></div>
+        <div id="portfolio-carousel-mount" class="portfolio-carousel-mount" aria-label="Compare squads" hidden></div>
 
-        <div id="portfolio-commitments-mount" class="portfolio-commitments-mount" aria-label="Affected commitments"></div>
+        <div id="portfolio-signal-mount" class="portfolio-signal-mount" aria-label="AI portfolio signal" hidden></div>
 
-        <div id="portfolio-prepared-actions-mount" class="portfolio-prepared-actions-mount" aria-label="Prepared actions"></div>
+        <div id="portfolio-commitments-mount" class="portfolio-commitments-mount" aria-label="Affected commitments" hidden></div>
+
+        <div id="portfolio-prepared-actions-mount" class="portfolio-prepared-actions-mount" aria-label="Prepared actions" hidden></div>
 
       </div>
 
-      <aside class="portfolio-rail" aria-label="Portfolio decision">
+      <aside class="portfolio-rail" aria-label="Portfolio decision" hidden>
 
         <div id="portfolio-decision-mount" class="portfolio-decision-mount"></div>
 
@@ -61,51 +63,6 @@
 
 
     <div id="gov-error" class="alert-banner" hidden role="alert"></div>
-
-
-
-    <!-- Legacy brief surfaces kept for data loaders / drawers (hidden from main path) -->
-
-    <div id="gov-brief-content" class="gov-brief-layout" hidden>
-
-      <div id="gov-scope-bar-mount" hidden></div>
-
-      <div id="gov-verdict-mount" hidden></div>
-
-      <div id="gov-intervention-case-mount" hidden></div>
-
-      <div id="gov-answer-mount" hidden></div>
-
-      <div id="gov-action-clusters-mount" hidden></div>
-
-      <div id="gov-setup-debt-mount" hidden></div>
-
-      <div id="gov-pi-strip-mount" hidden></div>
-
-      <div id="gov-compare-rail-mount" hidden></div>
-
-      <div id="gov-freshness" hidden></div>
-
-      <aside id="gov-right-rail-mount" class="gov-right-rail" hidden>
-        <div id="gov-right-rail-proof-mount" class="gov-right-rail-proof"></div>
-        <div id="gov-worker-receipt-mount"></div>
-        <div id="gov-queue-mount"></div>
-      </aside>
-
-      <details id="gov-supporting-evidence" class="governance-evidence-wrap" hidden>
-        <summary class="governance-section-title governance-evidence-summary">Supporting evidence</summary>
-        <div id="gov-measurement-mount"></div>
-        <div id="gov-meeting-script-mount"></div>
-        <section id="gov-proof-risks" class="governance-risks" aria-label="Proof detail"></section>
-        <section id="gov-evidence" class="governance-evidence" aria-label="Evidence table"></section>
-        <section id="gov-technical-details" class="governance-technical" aria-label="Technical details"></section>
-        <section id="gov-readiness" class="governance-readiness" aria-label="Readiness"></section>
-        <section id="gov-baseline" class="governance-baseline" aria-label="Plan vs now"></section>
-        <h3 class="governance-subsection-title">Pilot metrics</h3>
-        <section id="gov-scorecard" class="governance-scorecard" aria-label="Pilot scorecard"></section>
-      </details>
-
-    </div>
 
   </main>
 
