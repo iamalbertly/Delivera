@@ -770,7 +770,7 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     if (await topChrome.isVisible().catch(() => false)) {
       const surfaces = topChrome.locator('[data-top-surface]');
       await expect(surfaces).toHaveCount(4);
-      await expect(surfaces.filter({ hasText: /Portfolio/i })).toHaveCount(1);
+      await expect(surfaces.filter({ hasText: /Governance|Portfolio/i })).toHaveCount(1);
       await expect(surfaces.filter({ hasText: /Squads/i })).toHaveCount(1);
       await expect(surfaces.filter({ hasText: /Actions/i })).toHaveCount(1);
       await expect(surfaces.filter({ hasText: /Settings/i })).toHaveCount(1);

@@ -1,6 +1,27 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { COPY, portfolioDecisionLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { COPY, portfolioDecisionLabel, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
+
+/** P1 FIX: Format raw ISO timestamps as human-readable dates instead of
+ *  showing "2026-07-14T19:03:48.815Z" to a PMO manager. */
+function formatDeadline(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso; // fallback to raw if unparseable
+    const now = new Date();
+    const diffMs = d.getTime() - now.getTime();
+    const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
+    if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
+    // Format as "Jul 14, 6:03 PM"
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } catch (_) { return iso; }
+}
 
 export function decisionActionLabel(decision = {}, brief = {}) {
   // Single constant label — the action triggered is contextual but the label is constant.
@@ -75,10 +96,15 @@ function renderTopActionsPanel(decision = {}, brief = {}) {
   const top3 = items.slice(0, 3);
   const overflow = items.length - top3.length;
 
+  // Audit fix (click tax): previously every top-action row had its own
+  // "Resolve →" primary button, all opening the same drawer. Now only the
+  // first (primary) row carries the primary CTA; the rest are tappable rows
+  // that open the same drawer, reducing visual noise from N primary buttons
+  // to 1.
   return `
     <section class="portfolio-next-decision portfolio-top-actions" aria-label="Top actions" data-testid="portfolio-top-actions">
       <h2 class="portfolio-next-decision-title">Top actions for ${escapeHtml(squadName)}</h2>
-      ${deadline ? `<p class="portfolio-top-actions-deadline" data-testid="portfolio-top-actions-deadline">Next response due: <strong>${escapeHtml(deadline)}</strong></p>` : ''}
+      ${deadline ? `<p class="portfolio-top-actions-deadline" data-testid="portfolio-top-actions-deadline">Next response due: <strong>${escapeHtml(formatDeadline(deadline))}</strong></p>` : ''}
       <ul class="portfolio-top-actions-list" data-testid="portfolio-top-actions-list">
         ${top3.map((it, idx) => `
           <li class="portfolio-top-action-item${idx === 0 ? ' is-primary' : ''}" data-testid="portfolio-top-action-item">
@@ -87,7 +113,9 @@ function renderTopActionsPanel(decision = {}, brief = {}) {
               <strong class="portfolio-top-action-label">${escapeHtml(it.label || it.title || it.action || 'Confirm next step')}</strong>
               <span class="portfolio-top-action-owner">${escapeHtml(it.owner || it.role || it.decisionNeededFrom || 'Owner')}</span>
             </div>
-            <button type="button" class="btn btn-primary btn-compact portfolio-top-action-cta" data-portfolio-action="view-prepared-items" data-testid="portfolio-top-action-cta">Resolve →</button>
+            ${idx === 0
+              ? `<button type="button" class="btn btn-primary btn-compact portfolio-top-action-cta" data-portfolio-action="view-prepared-items" data-testid="portfolio-top-action-cta">Resolve →</button>`
+              : `<button type="button" class="btn btn-link btn-compact portfolio-top-action-cta--secondary" data-portfolio-action="view-prepared-items">Review</button>`}
           </li>`).join('')}
       </ul>
       ${overflow > 0 ? `<button type="button" class="btn btn-link btn-compact portfolio-top-actions-more" data-portfolio-action="view-prepared-items">+${overflow} more</button>` : ''}

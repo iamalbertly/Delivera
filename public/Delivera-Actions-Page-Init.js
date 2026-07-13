@@ -1,5 +1,6 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { addTitleForTruncatedCells } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { COPY, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { showSurfaceError, showSurfaceEmpty } from './Delivera-Shared-Surface-State-01SSOT.js';
 import {
   listCases,
@@ -9,6 +10,14 @@ import {
 } from './Delivera-App-Governance-InterventionCase-02Client-SSOT.js';
 import { fetchSprintBlockerSignal } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
+import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
+import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
+import { paintInstantShell, clearInstantShell, rememberSurfaceHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
+import {
+  filterCasesByTab,
+  resolveActionsProjectFromQuery,
+} from './Delivera-App-Actions-Case-01Scope-Filter-SSOT.js';
 
 const TABS = [
   { id: 'ready', label: 'Action needed' },
@@ -26,24 +35,44 @@ function readQuery() {
   }
 }
 
+function formatBlockerAge(hours = 0) {
+  const h = Number(hours) || 0;
+  if (h <= 0) return '';
+  if (h < 24) return `${Math.round(h)}h`;
+  return `${Math.max(1, Math.round(h / 24))}d`;
+}
+
 function renderBlockerQueueHtml(signal = {}) {
-  const items = signal.items || [];
+  const items = [...(signal.items || [])].sort((a, b) => (Number(b.hoursInStatus) || 0) - (Number(a.hoursInStatus) || 0));
   if (!items.length) return '';
   const count = items.length;
-  const top = items.slice(0, 3).map((item) => `
-    <li class="actions-blocker-inline-row">
-      <strong>${escapeHtml(item.issueKey || item.key || 'Blocker')}</strong>
-      <span>${escapeHtml(item.summary || item.reason || 'Needs review')}</span>
-      ${item.issueKey ? `<button type="button" class="btn btn-link btn-compact" data-actions-nudge="${escapeHtml(item.issueKey)}">Nudge</button>` : ''}
-    </li>`).join('');
+  const rows = items.map((item) => {
+    const summary = item.summary || item.reason || 'Needs review';
+    const age = formatBlockerAge(item.hoursInStatus);
+    return `
+    <li class="actions-blocker-inline-row" data-blocker-key="${escapeHtml(item.issueKey || '')}">
+      <div class="actions-blocker-row-main">
+        <strong>${escapeHtml(item.issueKey || item.key || 'Blocker')}</strong>
+        ${age ? `<span class="actions-blocker-age">${escapeHtml(age)} stale</span>` : ''}
+        <span class="actions-blocker-summary" title="${escapeHtml(summary)}">${escapeHtml(summary)}</span>
+      </div>
+      ${item.issueKey ? `<button type="button" class="btn btn-primary btn-compact actions-blocker-nudge" data-actions-nudge="${escapeHtml(item.issueKey)}">Nudge</button>` : '<span class="actions-blocker-age">No key</span>'}
+    </li>`;
+  }).join('');
   const cacheNote = signal.source === 'cache'
     ? '<p class="actions-blocker-queue-note">From cached brief — refresh Squads for live state.</p>'
     : '';
+  const nudgeAll = count > 1
+    ? `<button type="button" class="btn btn-secondary btn-compact actions-nudge-all" data-actions-nudge-all="1">Nudge all ${count}</button>`
+    : '';
   return `
     <section class="actions-blocker-queue" data-testid="actions-blocker-queue" aria-label="Sprint blockers">
-      <h2 class="actions-blocker-queue-title">Sprint blockers (${count})</h2>
+      <div class="actions-blocker-queue-head">
+        <h2 class="actions-blocker-queue-title">Sprint blockers (${count})</h2>
+        ${nudgeAll}
+      </div>
       ${cacheNote}
-      <ul class="actions-blocker-inline-list">${top}</ul>
+      <ul class="actions-blocker-inline-list">${rows}</ul>
       <a href="/current-sprint#stuck-card" class="btn btn-secondary btn-compact">Open in Squads</a>
     </section>`;
 }
@@ -84,11 +113,27 @@ function readPortfolioVerdictLine() {
   }
 }
 
-function renderActionsSubtitle(readyCount = 0) {
+function renderActionsH1(readyCount = 0, blockerCount = 0) {
+  const h1 = document.querySelector('.actions-header h1');
+  if (!h1) return;
+  if (blockerCount > 0 && readyCount > 0) {
+    h1.textContent = `${blockerCount} blocker${blockerCount === 1 ? '' : 's'} · ${readyCount} decision${readyCount === 1 ? '' : 's'}`;
+  } else if (blockerCount > 0) {
+    h1.textContent = `${blockerCount} sprint blocker${blockerCount === 1 ? '' : 's'} need nudge`;
+  } else if (readyCount > 0) {
+    h1.textContent = `${readyCount} action${readyCount === 1 ? '' : 's'} need you`;
+  } else {
+    h1.textContent = 'Actions';
+  }
+}
+
+function renderActionsSubtitle(readyCount = 0, blockerCount = 0) {
   const mount = document.querySelector('.actions-subtitle');
   if (!mount) return;
   const verdict = readPortfolioVerdictLine();
-  if (readyCount > 0) {
+  if (blockerCount > 0) {
+    mount.textContent = `${blockerCount} blocker${blockerCount === 1 ? '' : 's'} in sprint · ${readyCount} governance decision${readyCount === 1 ? '' : 's'}${verdict ? ` · ${verdict}` : ''}`;
+  } else if (readyCount > 0) {
     mount.textContent = `${readyCount} decision${readyCount === 1 ? '' : 's'} waiting on you${verdict ? ` · Portfolio: ${verdict}` : ''}`;
   } else {
     mount.textContent = 'All clear — nudges and decisions appear here when needed.';
@@ -97,23 +142,25 @@ function renderActionsSubtitle(readyCount = 0) {
 
 function renderProjectChip(project = '') {
   if (!project) return '';
-  return `<p class="actions-project-chip" data-testid="actions-project-chip">Scope: <strong>${escapeHtml(project)}</strong></p>`;
+  const label = resolveProjectDisplay(project, { displayMode: 'both' }).full || project;
+  return `<p class="actions-project-chip" data-testid="actions-project-chip">Scope: <strong>${escapeHtml(label)}</strong></p>`;
+}
+
+function resolveActionsProject() {
+  return resolveActionsProjectFromQuery(readQuery(), readSharedProjectsCsv());
 }
 
 function activeTab() {
   return readQuery().get('tab') || 'ready';
 }
 
-function filterCases(cases = [], tab = 'ready') {
-  if (tab === 'closed') return cases.filter((c) => c.state === 'closed' || c.state !== 'closed');
-  if (tab === 'escalations') return cases.filter((c) => String(c.state || '').includes('escalation'));
-  if (tab === 'ready') return cases.filter((c) => c.state !== 'closed' && (c.needsApproval || String(c.state || '').includes('clarification') || String(c.state || '').includes('decision')));
-  return cases.filter((c) => c.state !== 'closed');
+function filterCases(cases = [], tab = 'ready', project = '') {
+  return filterCasesByTab(cases, tab, project);
 }
 
-function tabCounts(cases = []) {
+function tabCounts(cases = [], project = '') {
   return TABS.reduce((acc, tab) => {
-    acc[tab.id] = filterCases(cases, tab.id).length;
+    acc[tab.id] = filterCases(cases, tab.id, project).length;
     return acc;
   }, {});
 }
@@ -121,7 +168,9 @@ function tabCounts(cases = []) {
 function renderTabs(tab, counts = {}) {
   const mount = document.getElementById('actions-tabs');
   if (!mount) return;
-  mount.innerHTML = TABS.map((t) => {
+  const visibleTabs = TABS.filter((t) => (counts[t.id] || 0) > 0 || t.id === tab);
+  const tabs = visibleTabs.length ? visibleTabs : TABS.filter((t) => t.id === 'ready');
+  mount.innerHTML = tabs.map((t) => {
     const n = counts[t.id] || 0;
     const badge = n > 0 ? ` <span class="actions-tab-count">${n}</span>` : '';
     return `<button type="button" class="actions-tab${t.id === tab ? ' is-active' : ''}" data-tab="${t.id}">${escapeHtml(t.label)}${badge}</button>`;
@@ -175,7 +224,7 @@ function renderCasePreview(row = {}) {
     <div class="actions-preview-panel">
       <p class="actions-preview-eyebrow">Case preview</p>
       ${verdictLine}
-      <h2>${escapeHtml(row.title || `${row.project} scope review`)}</h2>
+      <h2 title="${escapeHtml(row.title || `${row.project} scope review`)}">${escapeHtml(row.title || `${row.project} scope review`)}</h2>
       <p class="actions-case-kind"><strong>${escapeHtml(COPY.actionsCaseNudgeLabel)}</strong></p>
       <p><strong>State:</strong> ${escapeHtml(row.state || 'open')}</p>
       <p><strong>Issues:</strong> ${escapeHtml(issues || '—')}</p>
@@ -210,7 +259,14 @@ async function showCasePreview(caseId, cases = []) {
 }
 
 async function paint(tab = activeTab()) {
-  const project = readQuery().get('project') || '';
+  const project = resolveActionsProject();
+  if (project && !readQuery().get('project')) {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('project', project);
+      window.history.replaceState({}, '', url);
+    } catch (_) { /* ignore */ }
+  }
   let cases = [];
   try {
     cases = await listCases({ project, status: 'open' });
@@ -228,13 +284,15 @@ async function paint(tab = activeTab()) {
     renderTabs(tab, {});
     return;
   }
-  const counts = tabCounts(cases);
+  const counts = tabCounts(cases, project);
+  const signal = await applyBlockerUx(counts.ready || 0);
+  const blockerCount = (signal.items || []).length;
+  renderActionsH1(counts.ready || 0, blockerCount);
+  renderActionsSubtitle(counts.ready || 0, blockerCount);
   renderTabs(tab, counts);
-  renderActionsSubtitle(counts.ready || 0);
   const list = document.getElementById('actions-list');
   const highlightId = readQuery().get('case') || readQuery().get('caseId') || '';
-  const visible = sortCasesByUrgency(filterCases(cases, tab));
-  const signal = await applyBlockerUx(counts.ready || 0);
+  const visible = sortCasesByUrgency(filterCases(cases, tab, project));
   if (list) {
     list.hidden = false;
     const defaultId = highlightId || selectedCaseId || visible[0]?.id || '';
@@ -246,7 +304,6 @@ async function paint(tab = activeTab()) {
       : '';
     const blockerHtml = signal.hasBlockers ? renderBlockerQueueHtml(signal) : '';
     const inner = `${blockerHtml}${caseHtml}` || '';
-    const project = readQuery().get('project') || '';
     list.innerHTML = `${project ? renderProjectChip(project) : ''}<section class="actions-do-now-stream" data-testid="actions-do-now-stream">${inner}</section>`;
     if (!inner) {
       showSurfaceEmpty(list.querySelector('.actions-do-now-stream'), {
@@ -264,9 +321,18 @@ async function paint(tab = activeTab()) {
       await showCasePreview(defaultId, cases);
     }
     renderBatchBar(visible, tab);
+    if (highlightId && !visible.some((c) => c.id === highlightId) && signal.hasBlockers) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('case');
+        url.searchParams.delete('caseId');
+        window.history.replaceState({}, '', url);
+      } catch (_) { /* ignore */ }
+    }
     if (highlightId) {
       document.getElementById(`case-${highlightId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
+    addTitleForTruncatedCells('.actions-blocker-summary, .actions-case-card h2, .actions-preview-panel h2');
   }
 }
 
@@ -282,18 +348,37 @@ async function openCaseReview(caseId) {
 
 async function init() {
   document.title = 'Actions | Delivera';
+  // P0 FIX: Paint instant skeleton shell — no blank white page.
+  paintInstantShell('actions', { scopeLabel: resolveActionsProject() });
   if (window.matchMedia('(min-width: 1024px)').matches) {
     document.body.classList.add('actions-preview-desktop');
   }
   await paint();
+  clearInstantShell();
+  const list = document.getElementById('actions-list');
+  if (list) rememberSurfaceHtml('actions', list.innerHTML, { scopeLabel: resolveActionsProject() });
+  const shell = document.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]');
+  if (shell) shell.remove();
   const reviewId = readQuery().get('case') || readQuery().get('caseId');
   if (readQuery().get('review') === '1' && reviewId) await openCaseReview(reviewId);
   document.getElementById('actions-list')?.addEventListener('click', async (ev) => {
+    const nudgeAllBtn = ev.target.closest('[data-actions-nudge-all]');
+    if (nudgeAllBtn) {
+      const keys = [...document.querySelectorAll('[data-actions-nudge]')]
+        .map((el) => el.getAttribute('data-actions-nudge'))
+        .filter(Boolean);
+      if (keys[0]) {
+        openJiraNudgeReviewSheet({ issueKey: keys[0], prefillContext: `Unblock ${keys.length} sprint blockers today.` });
+        showInlineToast(document.querySelector('.actions-blocker-queue') || document.body, `Opening nudge for ${keys[0]} (${keys.length} blockers queued)`, 'info');
+      }
+      return;
+    }
     const nudgeBtn = ev.target.closest('[data-actions-nudge]');
     if (nudgeBtn) {
       const issueKey = nudgeBtn.getAttribute('data-actions-nudge');
       if (issueKey) {
         openJiraNudgeReviewSheet({ issueKey, prefillContext: `Unblock ${issueKey} today.` });
+        showInlineToast(nudgeBtn.closest('.actions-blocker-queue') || document.body, `Nudge ready · ${issueKey}`, 'success');
       }
       return;
     }
@@ -309,9 +394,14 @@ async function init() {
       try {
         await approveDraft(id, true);
         if (status) { status.hidden = false; status.textContent = 'Approved'; }
+        showInlineToast(document.body, 'Nudge approved', 'success');
         await paint(activeTab());
       } catch (err) {
-        if (status) { status.hidden = false; status.textContent = err?.message || 'Approve failed'; }
+        const msg = err?.status === 422 || /422|unprocessable/i.test(String(err?.message || ''))
+          ? 'Approve blocked — case needs clarification before send. Open Review case.'
+          : (err?.message || 'Approve failed');
+        if (status) { status.hidden = false; status.textContent = msg; }
+        showInlineToast(document.body, msg, 'error');
       }
       return;
     }
@@ -334,9 +424,14 @@ async function init() {
     try {
       await approveDraft(id, true);
       if (status) { status.hidden = false; status.textContent = 'Approved'; }
+      showInlineToast(document.body, 'Nudge approved', 'success');
       await paint(activeTab());
     } catch (err) {
-      if (status) { status.hidden = false; status.textContent = err?.message || 'Approve failed'; }
+      const msg = err?.status === 422 || /422|unprocessable/i.test(String(err?.message || ''))
+        ? 'Approve blocked — case needs clarification before send.'
+        : (err?.message || 'Approve failed');
+      if (status) { status.hidden = false; status.textContent = msg; }
+      showInlineToast(document.body, msg, 'error');
     }
   });
 }

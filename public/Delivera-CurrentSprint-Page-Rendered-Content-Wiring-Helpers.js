@@ -4,6 +4,7 @@ import { showContent } from './Delivera-CurrentSprint-Page-Status.js';
 import { renderCurrentSprintPage, renderCurrentSprintPageParts } from './Delivera-CurrentSprint-Render-Page.js';
 import { mountAlignmentStrip } from './Delivera-CurrentSprint-Alignment-01Strip-UI.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
+import { rememberSurfaceHtml, clearInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
 import { renderSidebarContextCard } from './Delivera-Shared-Context-From-Storage.js';
 import { getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
 import { wireHeaderBarHandlers, relocateSprintScopeIntoHeaderBar } from './Delivera-CurrentSprint-Header-Bar.js';
@@ -87,12 +88,22 @@ function applyInitialHashFocus() {
   try {
     let hash = window.location && window.location.hash ? window.location.hash : '';
     if (hash === '#work-risks') hash = '#stuck-card';
-    if (!hash || !hash.startsWith('#')) return;
-    const target = document.querySelector(hash);
-    if (!target) return;
-    window.setTimeout(() => {
-      scrollToCurrentSprintTarget(target);
-    }, 60);
+    if (hash && hash.startsWith('#')) {
+      const target = document.querySelector(hash);
+      if (target) {
+        window.setTimeout(() => {
+          scrollToCurrentSprintTarget(target);
+        }, 60);
+      }
+      return;
+    }
+    const blockerCard = document.getElementById('stuck-card');
+    const blockerCount = Number(document.querySelector('[data-blocker-count]')?.getAttribute('data-blocker-count') || 0);
+    if (blockerCard && blockerCount > 0) {
+      window.setTimeout(() => {
+        scrollToCurrentSprintTarget(blockerCard);
+      }, 120);
+    }
   } catch (_) {}
 }
 
@@ -390,8 +401,12 @@ function wireRenderedContent(data, onSelectSprintById) {
 
 export function showCurrentSprintRenderedContent(data, onSelectSprintById, options = {}) {
   const useProgressive = options.progressive === true;
+  const scopeLabel = Array.isArray(data?.board?.projectKeys) ? data.board.projectKeys[0] : '';
   if (!useProgressive) {
     showContent(renderCurrentSprintPage(data));
+    clearInstantShell();
+    const content = document.getElementById('current-sprint-content') || document.getElementById('main-content');
+    if (content) rememberSurfaceHtml('current-sprint', content.innerHTML, { scopeLabel });
     wireRenderedContent(data, onSelectSprintById);
     markPerf('current-sprint', 'firstValueRendered', { firstValueSource: options.source || 'live' });
     markPerf('current-sprint', 'fullRenderComplete');
@@ -400,6 +415,9 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById, optio
 
   const parts = renderCurrentSprintPageParts(data);
   showContent(parts.initialHtml);
+  clearInstantShell();
+  const content = document.getElementById('current-sprint-content') || document.getElementById('main-content');
+  if (content) rememberSurfaceHtml('current-sprint', content.innerHTML, { scopeLabel });
   requestAnimationFrame(() => {
     relocateSprintScopeIntoHeaderBar();
     wireHeaderBarHandlers();

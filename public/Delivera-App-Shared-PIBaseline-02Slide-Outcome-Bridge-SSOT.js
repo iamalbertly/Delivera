@@ -1,7 +1,7 @@
 /**
  * SSOT: Client cache for slide propose results + Work Draft / PI focus bridge.
  */
-const CACHE_KEY = 'delivera_pi_slide_propose_v1';
+const CACHE_KEY = 'delivera_pi_slide_propose_v2';
 
 export function cacheSlideProposeResult(data = {}) {
   if (!data || typeof data !== 'object') return;

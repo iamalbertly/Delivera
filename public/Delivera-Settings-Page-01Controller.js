@@ -10,10 +10,12 @@ import { ensureProjectCatalogLoaded } from './Delivera-Shared-Project-Display-01
 import { getSurfaceQuickLinks, PAGE_REPORT } from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { paintInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 const SECTIONS = [
   { id: 'my-workspace', label: 'My workspace' },
   { id: 'organization', label: 'Organization' },
+  { id: 'settings-epic-format', label: 'Epic format' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'jira-activity', label: 'Activity' },
 ];
@@ -66,6 +68,8 @@ function renderReturnBanner() {
 }
 
 export function initSettingsHub() {
+  // P0 FIX: Paint instant skeleton shell — no blank white page.
+  paintInstantShell('settings');
   const navEl = document.getElementById('settings-nav-rail');
   const hash = (window.location.hash || '').replace('#', '') || 'my-workspace';
   const activeId = SECTIONS.some((s) => s.id === hash) ? hash : 'my-workspace';
@@ -99,6 +103,13 @@ export function initSettingsHub() {
   mountEpicFormatPanel(document.getElementById('settings-epic-format'));
   mountIntegrationsPanel(document.getElementById('settings-integrations'));
   initSettingsJiraActivityPanel();
+
+  document.querySelectorAll('.settings-hub-panels [data-testid="instant-shell"], .settings-hub-panels [data-testid="instant-shell-stale"]').forEach((el) => el.remove());
+  document.querySelector('.settings-hub-panels')?.removeAttribute('aria-busy');
+  const jiraActivity = document.getElementById('jira-activity');
+  if (jiraActivity) jiraActivity.hidden = false;
+  document.body?.classList?.remove('delivera-instant-shell-active');
+  document.getElementById('main-content')?.removeAttribute('data-instant-shell');
 
   if (hash && hash !== 'my-workspace') {
     requestAnimationFrame(() => scrollToSection(hash));

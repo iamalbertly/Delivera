@@ -1,15 +1,16 @@
 /**
  * Enrich mocked portfolio-decision payloads with deterministic priorityBrief (Node/test only).
  */
-import { buildPortfolioDecision } from '../lib/Delivera-Governance-PortfolioDecision-01SSOT.js';
+import { buildPortfolioDecision, resolveBaselineMissingFromBrief } from '../lib/Delivera-Governance-PortfolioDecision-01SSOT.js';
 
 export function enrichDecisionPayload(brief = {}, partial = {}, cases = []) {
+  const baselineMissing = partial.baselineMissing ?? resolveBaselineMissingFromBrief(brief, partial.baselineMode || 'pi-baseline');
   const built = buildPortfolioDecision({
     brief,
     anchorProject: partial.anchorProject || brief.projects?.[0] || 'SD',
     compareProjects: partial.compareProjects || (brief.projects || []).slice(1),
     cases: partial.cases || cases,
-    baselineMissing: partial.baselineMissing ?? Boolean(brief.meta?.setupGaps?.some((g) => g.action === 'set-baseline')),
+    baselineMissing,
     partialSquads: partial.partialSquads ?? 0,
   });
   return {

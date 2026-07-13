@@ -10,6 +10,8 @@ import {
   readSharedProjectsCsv,
 } from './Delivera-Shared-Storage-Keys.js';
 import { ensureProjectCatalogLoaded, seedProjectCatalogCache } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
+import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
+import { notifyScopeChanged } from './Delivera-Shared-Scope-Notify-01Bridge.js';
 
 function readSimpleMode() {
   try { return localStorage.getItem(SIMPLE_MODE_KEY) === '1'; } catch (_) { return false; }
@@ -88,6 +90,7 @@ export function mountMyWorkspacePanel(mount) {
         </label>
 
         <h3 class="gov-ai-helper-sub">Default project scope</h3>
+        <p class="gov-ai-helper-note"><a href="/governance?openAlignment=slide">Set PI baseline →</a> to verify quarter commitments.</p>
         <input type="search" id="settings-scope-search" class="input-compact settings-scope-search" placeholder="Search squads…" aria-label="Search project scope" />
         <div id="settings-recent-squads" class="settings-recent-squads" hidden></div>
         <div class="settings-workspace-projects" role="group" aria-label="Default projects">${checks || '<p class="gov-ai-helper-note">Could not load project catalog.</p>'}</div>
@@ -113,8 +116,12 @@ export function mountMyWorkspacePanel(mount) {
         return;
       }
       writeProjects(keys);
+      notifyScopeChanged();
       const status = mount.querySelector('#settings-workspace-status');
-      if (status) status.textContent = 'Defaults saved.';
+      if (status) {
+        status.textContent = 'Defaults saved ✓';
+        status.classList.add('settings-workspace-status--ok');
+      }
     });
 
     mount.querySelector('#settings-reset-workspace')?.addEventListener('click', () => {
@@ -136,7 +143,10 @@ export function mountMyWorkspacePanel(mount) {
     const recentMount = mount.querySelector('#settings-recent-squads');
     if (recentMount && recentKeys.length) {
       recentMount.hidden = false;
-      recentMount.innerHTML = `<p class="gov-ai-helper-note">Recent squads</p><div class="settings-recent-squad-chips">${recentKeys.map((key) => `<button type="button" class="btn btn-secondary btn-compact settings-recent-squad-chip" data-recent-squad="${escapeHtml(key)}">${escapeHtml(key)}</button>`).join('')}</div>`;
+      recentMount.innerHTML = `<p class="gov-ai-helper-note">Recent squads</p><div class="settings-recent-squad-chips">${recentKeys.map((key) => {
+        const label = resolveProjectDisplay(key, { displayMode: 'both' }).full || key;
+        return `<button type="button" class="btn btn-secondary btn-compact settings-recent-squad-chip" data-recent-squad="${escapeHtml(key)}">${escapeHtml(label)}</button>`;
+      }).join('')}</div>`;
       recentMount.querySelectorAll('[data-recent-squad]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const key = btn.getAttribute('data-recent-squad');

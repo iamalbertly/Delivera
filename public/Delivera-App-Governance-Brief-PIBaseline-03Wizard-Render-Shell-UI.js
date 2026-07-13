@@ -30,14 +30,9 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   const pk = (parts[0] || '').toUpperCase();
   const inferred = Number(opts.commitmentCount) > 0;
   const scopeSquad = (pk === 'SD' || /dms/i.test(pk)) ? 'DMS' : pk;
-  // Use inferredSquad even when extraction yielded 0 commitments — the AI still detected it.
-  const detectedSquad = opts.inferredSquad || (inferred ? scopeSquad : '');
-  const squad = detectedSquad
-    ? detectedSquad
-    : 'Not detected';
-  const quarter = inferred
-    ? (opts.inferredQuarter || quarterLabel || 'Not set')
-    : (opts.inferredQuarter || quarterLabel || 'Not set');
+  const detectedSquad = opts.inferredSquad || opts.cachedSquad || scopeSquad || '';
+  const squad = detectedSquad || 'Not detected';
+  const quarter = quarterLabel || opts.inferredQuarter || 'Not set';
   const slideMismatch = Boolean(opts.slideScopeMismatch);
   const quarterMismatch = Boolean(opts.inferredQuarter && quarterLabel
     && String(opts.inferredQuarter).trim() !== String(quarterLabel).trim());
@@ -50,7 +45,7 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   return `
     <div class="gov-baseline-context" data-testid="gov-baseline-context">
       <span><strong>Project:</strong> ${escapeHtml(projects)}</span>
-      <span><strong>Squad:</strong> ${escapeHtml(squad)}${detectedSquad ? '' : ' <span class="gov-baseline-context-muted">(upload slide)</span>'}</span>
+      <span><strong>Squad:</strong> ${escapeHtml(squad)}${detectedSquad ? (opts.cachedUploadDate ? ` · saved ${escapeHtml(opts.cachedUploadDate)}` : '') : ' <span class="gov-baseline-context-muted">(upload slide)</span>'}</span>
       <span><strong>Quarter:</strong> ${escapeHtml(quarter)}</span>
       <p class="gov-baseline-context-why">${escapeHtml(COPY.piBaselineWhy)}</p>
       ${mismatchHint}
@@ -92,8 +87,14 @@ export function slideUploadOptional(collapsed = true, aiCapability = null) {
     </details>`;
 }
 
-export function renderLoading() {
-  return renderSurfaceStateHtml({ variant: 'loading', message: COPY.baselineLoading, compact: true });
+export function renderLoading(message = COPY.baselineLoading, cachedRows = []) {
+  const preview = cachedRows.length
+    ? `<div class="gov-baseline-cached-preview" data-testid="gov-baseline-cached-preview">
+        <p class="gov-inbox-hint">${cachedRows.length} commitment${cachedRows.length === 1 ? '' : 's'} from last brief — refreshing match…</p>
+        <ul class="gov-baseline-cached-list">${cachedRows.slice(0, 5).map((r) => `<li>${escapeHtml(r.title || r.baselinePromise || r.issueKey || 'Commitment')}</li>`).join('')}</ul>
+      </div>`
+    : '';
+  return renderSurfaceStateHtml({ variant: 'loading', message, compact: true }) + preview;
 }
 
 export function renderSlideActionsBar(data, projectsCsv) {
@@ -156,29 +157,37 @@ export function renderBaselineWizardShell({
     : '';
   // Empty board: slide-first in Studio — no fork to Work Draft for epic create
   const createBtn = '';
-  const slideBlock = mode === 'empty' ? slideUploadOptional(false, aiCapability) : slideUploadOptional(slideCollapsed, aiCapability);
+  const slideBlock = mode === 'empty'
+    ? `<div class="gov-baseline-slide-hero">${slideUploadInner(aiCapability)}</div>`
+    : slideUploadOptional(slideCollapsed, aiCapability);
   const refreshListBtn = mode === 'candidates' || mode === 'slide'
     ? `<button type="button" class="btn btn-link btn-compact" id="gov-baseline-refresh-list">${escapeHtml(COPY.refreshBrief)} list</button>`
     : '';
 
+  const stickySave = showConfirm
+    ? `<div class="gov-baseline-sticky-save" data-testid="gov-baseline-sticky-save">${confirmBtn}</div>`
+    : '';
+
   return `
     <div class="gov-baseline-wizard" data-propose-method="${escapeHtml(data.method || 'manual')}">
-      ${renderContextBanner(projectsCsv, contextOpts.inferredQuarter || quarterLabel, contextOpts)}
+      ${renderContextBanner(projectsCsv, quarterLabel, contextOpts)}
       <p class="gov-baseline-wizard-title">${escapeHtml(title)}</p>
+      ${mode === 'empty' ? slideBlock : ''}
       ${renderStepsFold(stepsOpen || mode === 'empty')}
       ${hint ? `<p class="gov-inbox-hint">${escapeHtml(hint)}</p>` : ''}
       ${mode === 'candidates' || mode === 'slide' ? fewItemsBanner(data) : ''}
       ${listHtml}
       ${slideActionsHtml}
-      ${slideBlock}
+      ${mode !== 'empty' ? slideBlock : ''}
       <div class="gov-baseline-actions">
         ${createBtn}
-        ${confirmBtn}
+        ${mode === 'empty' || mode === 'slide' ? '' : confirmBtn}
         ${refreshBtn}
         ${refreshListBtn}
         ${jiraBtn}
-        <button type="button" class="btn btn-link btn-compact" data-baseline-close>${escapeHtml(COPY.close)}</button>
+        <button type="button" class="btn btn-link btn-compact gov-baseline-close-btn" data-baseline-close>${escapeHtml(COPY.close)}</button>
       </div>
+      ${stickySave}
     </div>`;
 }
 
@@ -207,16 +216,26 @@ export function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = 
 export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = null, aiCapability = null) {
   const extracted = (data.extracted || []).slice(0, 12).map((r) => `
     <li>${escapeHtml([r.month, r.theme, r.bullet].filter(Boolean).join(' · '))}</li>`).join('');
-  // Prefer candidates that are confirmable; unmatched holds missing / dup-risk for actions
-  const unmatched = (data.unmatched || []).map((c, i) => candidateRow(c, `u-${i}`, jiraHost)).join('');
+  const dupOnly = (data.duplicateRisk || []).filter((c) => c.method === 'slide-duplicate-risk' && c.issueKey);
+  const unmatchedRaw = (data.unmatched || []).filter((c) => c.method !== 'slide-duplicate-risk' || !c.issueKey);
+  const unmatched = unmatchedRaw.map((c, i) => candidateRow(c, `u-${i}`, jiraHost)).join('');
+  const dupReview = dupOnly.map((c, i) => candidateRow(c, `d-${i}`, jiraHost)).join('');
   const confirmable = (data.candidates || []).filter((c) => c.issueKey && c.method !== 'slide-duplicate-risk');
   const rows = confirmable.map((c, i) => candidateRow(c, i, jiraHost)).join('');
-  // Keep full candidates list for save (index into confirmable clone stored on data)
   data._confirmable = confirmable;
   const hasConfirmable = confirmable.length > 0 && !data.createReceipt?.failed;
+  const cachedBanner = data.cached
+    ? `<p class="gov-baseline-cached-hint" role="status" data-testid="gov-baseline-slide-cached">${escapeHtml(COPY.baselineSlideCachedHint)} <button type="button" class="btn btn-link btn-compact" data-slide-refresh-match>${escapeHtml(COPY.baselineSlideCachedRefresh)}</button></p>`
+    : '';
+  const poolHint = Number(data.matcherPoolSize) > 0
+    ? `<p class="gov-baseline-pool-hint gov-inbox-hint" data-testid="gov-baseline-matcher-pool">${escapeHtml(String(data.matcherPoolSize))} Jira epics searched for match</p>`
+    : `<p class="gov-baseline-pool-warn gov-inbox-hint" role="alert" data-testid="gov-baseline-matcher-pool-empty">${escapeHtml(COPY.baselineSlidePoolEmpty)}</p>`;
   const listHtml = `
+    ${cachedBanner}
+    ${poolHint}
     ${data.parseError ? `<p class="gov-inbox-hint">${escapeHtml(data.parseError)}</p>` : ''}
     <ul class="gov-baseline-extracted">${extracted}</ul>
+    ${dupReview ? `<p class="gov-inbox-hint">${escapeHtml(COPY.baselineSlideDupReview)}</p><div class="gov-baseline-list" data-testid="gov-baseline-dup-review">${dupReview}</div>` : ''}
     ${unmatched ? `<p class="gov-inbox-hint">From slide — not in Jira yet:</p><div class="gov-baseline-list" data-testid="gov-baseline-unmatched">${unmatched}</div>` : ''}
     ${rows ? `<p class="gov-inbox-hint">Ready to confirm:</p><div class="gov-baseline-list" data-testid="gov-baseline-matched">${rows}</div>` : ''}`;
   return renderBaselineWizardShell({
@@ -231,10 +250,12 @@ export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = nu
     aiCapability,
     slideActionsHtml: renderSlideActionsBar(data, projectsCsv),
     contextOpts: {
-      inferredSquad: data.inferredSquad,
+      inferredSquad: data.inferredSquad || (String(projectsCsv).toUpperCase().includes('SD') ? 'DMS' : ''),
       inferredQuarter: data.inferredQuarter,
       slideScopeMismatch: data.slideScopeMismatch,
       commitmentCount: (data.extracted || []).length || data.extractionMeta?.commitmentCount || 0,
+      cachedSquad: data.cached ? (data.inferredSquad || (String(projectsCsv).toUpperCase().includes('SD') ? 'DMS' : '')) : '',
+      cachedUploadDate: data.cached && data._cachedAt ? formatHumanAge(new Date(data._cachedAt).toISOString()) : '',
     },
   });
 }

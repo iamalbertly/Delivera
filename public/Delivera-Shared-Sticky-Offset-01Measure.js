@@ -40,6 +40,25 @@ function publishStickyOffsets() {
   root.style.setProperty('--sticky-global-nav-top', `${stickyNavTop}px`);
   root.style.setProperty('--sticky-summary-top', `${stickyNavTop + 8}px`);
 
+  // Audit fix: measure the governance portfolio scope bar so right drawers
+  // and sticky elements can offset below it instead of being clipped by it.
+  // The scope bar is position: sticky; top: 0 on the governance page and
+  // sits directly under the top-chrome, adding ~52px of sticky height that
+  // the drawer panel's margin-top did not account for.
+  const govScopeBar = document.querySelector('#portfolio-scope-bar-mount.portfolio-scope-bar, .portfolio-scope-bar');
+  const govScopeBarH = govScopeBar && !govScopeBar.hidden
+    ? Math.ceil(govScopeBar.getBoundingClientRect().height || 0)
+    : 0;
+  root.style.setProperty('--gov-scope-bar-height', `${govScopeBarH}px`);
+  root.style.setProperty('--sticky-offset', `${stickyNavTop + govScopeBarH}px`);
+  // Audit fix: body.has-top-chrome sets --sticky-offset in CSS, which would
+  // override the :root value we just set (body is more specific than :root
+  // for the body subtree). Set it on body too so the drawer (a child of
+  // body) inherits the combined top-chrome + scope-bar height instead of
+  // just the top-chrome height — preventing the sticky scope bar from
+  // clipping the drawer header.
+  document.body?.style.setProperty('--sticky-offset', `${stickyNavTop + govScopeBarH}px`);
+
   const hudBelow = measureHudBelowNav();
   if (hudBelow > 0) {
     root.style.setProperty('--current-sprint-hud-below-nav', `${hudBelow}px`);
@@ -59,6 +78,7 @@ function observeTargets() {
     document.getElementById(SUB_CHROME_SLOT_ID),
     document.querySelector('.current-sprint-header-bar'),
     document.querySelector('body.current-sprint-page header'),
+    document.querySelector('#portfolio-scope-bar-mount.portfolio-scope-bar, .portfolio-scope-bar'),
   ].filter(Boolean).forEach((node) => observer.observe(node));
   publishStickyOffsets();
 }

@@ -16,6 +16,10 @@ import {
   loadQuartersList,
   bindProjectsStorageSync,
   ensurePortfolioDefaultScope,
+  resolveDefaultCompare,
+  readGovViewMode,
+  writeGovViewMode,
+  clearGovViewMode,
 } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { renderSinceLastCheckChip, renderTimeboxChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
@@ -56,7 +60,7 @@ function renderStatusPill(tier) {
 }
 
 function displayName(key) {
-  return resolveProjectDisplay(key).primary || key;
+  return resolveProjectDisplay(key, { displayMode: 'both', context: 'summary' }).full || key;
 }
 
 export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, getBrief, getLastDecision } = {}) {
@@ -80,6 +84,8 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     && document.body?.classList?.contains('governance-priority-brief-page');
   let scopeCollapsed = readScopeSeen() || priorityBriefPage;
   let catalogKeys = unionScopeProjectKeys([anchor, ...compare]);
+  // Audit fix: track pre-drill scope so "Back to comparison" can restore it.
+  let preDrillScope = null;
 
   function commitScope({ reload = true } = {}) {
     writeScopeSeen();
@@ -98,6 +104,11 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     const compareSummary = compare.length
       ? `<span class="portfolio-scope-compare-tags" data-testid="portfolio-scope-compare-tags">${compare.map((pk) => `<span class="portfolio-scope-tag" title="${escapeHtml(displayName(pk))}">${escapeHtml(displayName(pk))}</span>`).join('')}</span>`
       : '<span class="portfolio-scope-tag portfolio-scope-tag--empty">No comparison</span>';
+    // "Compare all" button: one click adds all squads as peers. Reuses
+    // resolveDefaultCompare to get all catalog keys minus the anchor.
+    // (Audit finding: user requested "a way for the user to click and add
+    // comparison all of them by default".)
+    const compareAllBtn = `<button type="button" class="btn btn-link btn-compact portfolio-scope-compare-all" data-portfolio-compare-all title="Compare all squads at once">Compare all</button>`;
     const availableToAdd = allOptions.filter((k) => {
       const U = String(k).toUpperCase();
       return U !== String(anchor).toUpperCase() && !compare.some((c) => String(c).toUpperCase() === U);
@@ -105,6 +116,11 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
 
     const cadenceHtml = renderScopeCadenceLine(getLastDecision?.() || {}, getBrief?.() || {});
     const timeboxChip = renderTimeboxChip(getLastDecision?.() || {}, getBrief?.() || {});
+    // P1 FIX: When the cadence line is present, it already includes the timebox
+    // info (e.g. "FY27 Q2 · Day 45/90 · Sprint stalled…"). Showing the timebox
+    // chip next to it creates contradictory signals ("Sprint stalled" vs "50%
+    // time elapsed"). Suppress the timebox chip when the cadence line is present.
+    const showTimeboxChip = !cadenceHtml.trim() && timeboxChip.trim();
     const hideTimeframeDup = Boolean(cadenceHtml.trim() || timeboxChip.trim());
     const breadcrumb = hideTimeframeDup
       ? ''
@@ -118,7 +134,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
         <div class="portfolio-scope-summary-strip" data-portfolio-scope-summary>
           ${breadcrumb}
           ${cadenceHtml}
-          ${timeboxChip}
+          ${showTimeboxChip ? timeboxChip : ''}
           <span class="gov-scope-since-wrap">${renderSinceLastCheckChip(getBrief?.() || {})}</span>
           ${renderStatusPill(statusTier)}
         </div>
@@ -137,6 +153,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
             <span class="portfolio-scope-field-label">Compare</span>
             <div class="portfolio-scope-compare-row">
               ${compareSummary}
+              ${compareAllBtn}
               <select id="portfolio-scope-add" class="portfolio-scope-add" aria-label="Add squad to compare"${hideCompareSelect ? ' hidden' : ''}>
                 <option value="">+ Add comparison</option>
                 ${availableToAdd.map((pk) => `<option value="${escapeHtml(pk)}">${escapeHtml(displayName(pk))}</option>`).join('')}
@@ -194,6 +211,14 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       render();
     });
 
+    // "Compare all" button: one click adds all squads as peers.
+    mount.querySelector('[data-portfolio-compare-all]')?.addEventListener('click', () => {
+      compare = resolveDefaultCompare(anchor);
+      clearGovViewMode();
+      commitScope();
+      render();
+    });
+
     mount.querySelector('#portfolio-scope-quarter')?.addEventListener('change', (ev) => {
       activeQuarter = ev.target.value;
       writeStoredQuarter(activeQuarter);
@@ -210,7 +235,10 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       render();
     });
     mount.querySelector('[data-scope-status-action]')?.addEventListener('click', () => {
-      document.getElementById('portfolio-decision')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.querySelector('[data-testid="governance-primary-action"]')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        || document.querySelector('[data-testid="governance-priority-brief"]')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     mount.querySelector('.gov-scope-cadence-line')?.addEventListener('click', () => {
       if (scopeCollapsed) {
@@ -240,6 +268,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     getProjectsCsv: () => [anchor, ...compare].join(','),
     getAnchorProject: () => anchor,
     getQuarterLabel: () => activeQuarter,
+    getCachedDetailRows: () => getLastDecision?.()?.priorityBrief?.detailRows || [],
     onSaved: () => onRefresh?.({ force: true }),
   });
 
@@ -259,11 +288,22 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
         const show = cacheUpdating || !cacheFresh;
         updatingChip.hidden = !show;
         const age = formatHumanAge(cacheCachedAt);
+        // P2 FIX: Make the cached chip show age AND be clickable to refresh.
+        const ageLabel = age ? `Cached · ${age}` : 'Cached view';
         updatingChip.textContent = cacheUpdating && !cacheFresh
           ? (age ? `Cached · ${age} · refreshing…` : 'Showing cached · refreshing…')
           : cacheUpdating
             ? 'Updating…'
-            : (age ? `Cached · ${age}` : 'Cached view');
+            : ageLabel;
+        // Add refresh action if not already bound.
+        if (!updatingChip.dataset.refreshBound) {
+          updatingChip.dataset.refreshBound = '1';
+          updatingChip.style.cursor = 'pointer';
+          updatingChip.title = 'Click to refresh';
+          updatingChip.addEventListener('click', () => {
+            onRefresh?.({ force: true });
+          });
+        }
       }
     },
     setAdvancedWarnCount: () => {},
@@ -284,6 +324,49 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       anchor = nextAnchor;
       commitScope({ reload: false });
       render();
+    },
+    /**
+     * Drill into a single squad — collapses scope to just that squad so the
+     * user gets a true deep-dive view instead of a multi-squad comparison
+     * with the anchor swapped. Stores the pre-drill scope so it can be
+     * restored. Closes audit finding: "DMS drill-down still shows multi-squad
+     * compare and mixed cases (e.g. MPSA under SD scope)".
+     */
+    drillIntoSquad(squadKey) {
+      if (!squadKey) return;
+      const target = String(squadKey).toUpperCase();
+      // Remember the pre-drill scope (only if not already drilling).
+      if (!preDrillScope) {
+        preDrillScope = { anchor, compare: [...compare] };
+      }
+      anchor = squadKey;
+      compare = [];
+      writeGovViewMode('drill');
+      commitScope({ reload: true });
+      render();
+    },
+    /**
+     * Restore the pre-drill multi-squad comparison scope.
+     * Falls back to all-squads compare if preDrillScope is null (e.g. after
+     * a page reload that restored a drilled scope from cache). Never leaves
+     * the user stranded in single-squad view with no escape.
+     * (Audit finding: "Back to comparison" did nothing — preDrillScope was null.)
+     */
+    restoreComparison() {
+      if (preDrillScope) {
+        anchor = preDrillScope.anchor;
+        compare = [...preDrillScope.compare];
+        preDrillScope = null;
+      } else {
+        // Fallback: restore to default compare (all squads minus anchor).
+        compare = resolveDefaultCompare(anchor);
+      }
+      clearGovViewMode();
+      commitScope({ reload: true });
+      render();
+    },
+    isDrilledDown() {
+      return Boolean(preDrillScope) && compare.length === 0;
     },
   };
 }

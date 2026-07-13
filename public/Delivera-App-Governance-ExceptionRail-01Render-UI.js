@@ -24,15 +24,16 @@ export function renderExceptionRail(portfolioJudgment = {}, { selectedKey = '' }
     const tone = railTone(s.attentionState);
     const selected = String(s.projectKey).toUpperCase() === String(selectedKey).toUpperCase();
     return `
-      <button type="button"
+      <div
         class="gov-exception-rail-row gov-exception-rail-row--${escapeHtml(tone)}${selected ? ' is-selected' : ''}"
         data-testid="governance-squad-row"
-        data-governance-squad-select="${escapeHtml(s.projectKey)}"
-        aria-pressed="${selected ? 'true' : 'false'}">
+        data-squad-key="${escapeHtml(s.projectKey)}"
+        role="listitem"
+        aria-current="${selected ? 'true' : 'false'}">
         <span class="gov-exception-rail-name">${escapeHtml(s.squadName || s.projectKey)}</span>
         <span class="gov-exception-rail-state">${escapeHtml(s.attentionLabel || '')}</span>
         <span class="gov-exception-rail-meaning">${escapeHtml(s.meaning || '')}</span>
-      </button>`;
+      </div>`;
   }).join('');
 
   const collapsed = safeLine ? `
@@ -45,23 +46,7 @@ export function renderExceptionRail(portfolioJudgment = {}, { selectedKey = '' }
     </nav>`;
 }
 
-export function bindExceptionRail(root, { onSelectSquad } = {}) {
+export function bindExceptionRail(root) {
   if (!root) return;
-  const select = (el) => {
-    const key = el?.getAttribute?.('data-governance-squad-select');
-    if (key) onSelectSquad?.(key);
-  };
-  root.addEventListener('click', (ev) => {
-    const row = ev.target.closest('[data-governance-squad-select]');
-    if (!row) return;
-    ev.preventDefault();
-    select(row);
-  });
-  root.addEventListener('keydown', (ev) => {
-    if (ev.key !== 'Enter' && ev.key !== ' ') return;
-    const row = ev.target.closest('[data-governance-squad-select]');
-    if (!row) return;
-    ev.preventDefault();
-    select(row);
-  });
+  // Read-only status strip — squad switching lives in scope bar only.
 }

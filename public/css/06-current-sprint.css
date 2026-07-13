@@ -700,6 +700,16 @@ body.has-top-chrome:has(.current-sprint-header-bar[data-context-bar="true"]) #cu
   background: var(--card);
 }
 
+.header-squad-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+  margin-bottom: 2px;
+}
+
 .header-sprint-name {
   font-size: var(--header-sprint-name-size);
   font-weight: 600;
@@ -980,11 +990,21 @@ body.has-top-chrome.current-sprint-page .current-sprint-header #issue-jump-input
   }
   body.current-sprint-page.sidebar-open .current-sprint-grid-layout.current-sprint-viewport-lean,
   body.current-sprint-page.sidebar-collapsed .current-sprint-grid-layout.current-sprint-viewport-lean {
-    grid-template-columns: minmax(0, 1fr);
+    /* P1 FIX: Keep the 2-column layout even when sidebar is collapsed so
+       the proof rail stays on the right instead of stacking 8452px vertically. */
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: 1rem;
+    align-items: start;
   }
   body.current-sprint-page.sidebar-open .current-sprint-grid-layout.current-sprint-viewport-lean .sprint-cockpit-column,
   body.current-sprint-page.sidebar-collapsed .current-sprint-grid-layout.current-sprint-viewport-lean .sprint-cockpit-column {
-    position: static;
+    position: sticky;
+    top: calc(var(--sticky-global-nav-top, 56px) + 8px);
+    align-self: start;
+    grid-column: 2;
+  }
+  body.current-sprint-page.sidebar-open .current-sprint-grid-layout.current-sprint-viewport-lean .sprint-cards-column,
+  body.current-sprint-page.sidebar-collapsed .current-sprint-grid-layout.current-sprint-viewport-lean .sprint-cards-column {
     grid-column: 1;
   }
 }
@@ -3095,6 +3115,20 @@ body.current-sprint-page .header-compact-strip .sprint-intervention-item-primary
 }
 body.current-sprint-page .header-compact-strip .sprint-intervention-item-primary:hover {
   filter: brightness(1.04);
+}
+
+body.current-sprint-page .header-compact-strip .sprint-intervention-item-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(30, 64, 175, 0.35);
+  background: rgba(239, 246, 255, 0.9);
+}
+
+body.current-sprint-page .header-compact-strip .sprint-intervention-item-link:hover {
+  background: rgba(219, 234, 254, 1);
 }
 
 .header-intelligence-strip {
@@ -5992,6 +6026,27 @@ body.current-sprint-page .burndown-metric-inline {
 
 .sprint-story-signal-bar.is-success span {
   background: linear-gradient(90deg, #1c7c54, #4caf7a);
+}
+
+/* Spillover / risk tones — high value is BAD, so never green. */
+.sprint-story-signal-bar.is-warning {
+  background: rgba(201, 120, 22, 0.14);
+}
+
+.sprint-story-signal-bar.is-warning span {
+  background: linear-gradient(90deg, #c97816, #e8a040);
+}
+
+.sprint-story-signal-bar.is-critical {
+  background: rgba(178, 0, 0, 0.16);
+}
+
+.sprint-story-signal-bar.is-critical span {
+  background: linear-gradient(90deg, var(--primary-strong, #b20000), #e60000);
+}
+
+.sprint-story-signal-card.is-critical {
+  border-color: rgba(178, 0, 0, 0.28);
 }
 
 .preview-context-bar--verdict-only .preview-context-chip-title {

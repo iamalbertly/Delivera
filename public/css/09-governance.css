@@ -468,6 +468,7 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
 .gov-baseline-status--ok { background: #dcfce7; color: #166534; }
 .gov-baseline-status--warn { background: #fef3c7; color: #92400e; }
 .gov-baseline-status--missing { background: #fee2e2; color: #991b1b; }
+.gov-baseline-status--soft { background: #e0e7ff; color: #3730a3; }
 .gov-baseline-status--info { background: #e0f2fe; color: #075985; }
 .gov-pi-focus {
   display: grid;
@@ -919,6 +920,12 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
 
 .gov-right-drawer-host { position: fixed; inset: 0; z-index: var(--z-overlay); display: flex; }
 .gov-right-drawer-host[hidden] { display: none; }
+.gov-right-drawer-host--center {
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px 16px;
+}
+.gov-right-drawer-host--center .gov-right-drawer-backdrop { position: absolute; inset: 0; flex: none; }
 .gov-right-drawer-backdrop { flex: 1; background: rgba(0,0,0,0.35); border: 0; cursor: pointer; }
 .gov-right-drawer-panel {
   width: min(400px, 94vw); background: var(--surface, #fff);
@@ -926,8 +933,70 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
   max-height: calc(100vh - var(--top-chrome-height, 56px));
   margin-top: var(--top-chrome-height, 56px);
 }
+/* Audit fix: on governance pages the sticky portfolio scope bar sits below
+   the top-chrome and was clipping the drawer header. Offset the drawer below
+   the combined sticky height so the drawer title is always visible. */
+body.governance-page .gov-right-drawer-panel,
+body.portfolio-page .gov-right-drawer-panel {
+  margin-top: var(--sticky-offset, var(--top-chrome-height, 56px));
+  max-height: calc(100vh - var(--sticky-offset, var(--top-chrome-height, 56px)));
+}
+.gov-right-drawer-panel--alignment-studio {
+  width: min(720px, 96vw);
+  max-height: min(88vh, 900px);
+  margin-top: 0;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+  position: relative;
+  z-index: 1;
+}
+.gov-right-drawer-host--center {
+  z-index: 2100;
+}
+body.gov-right-drawer-open .app-top-chrome,
+body.gov-right-drawer-open .gov-sub-chrome,
+body.gov-right-drawer-open .portfolio-scope-bar,
+body.gov-right-drawer-open .app-sidebar {
+  z-index: 1000;
+}
 body.gov-right-drawer-open .app-top-chrome {
-  z-index: var(--z-chrome);
+  opacity: 0.92;
+}
+body.gov-right-drawer-open--center .app-top-chrome,
+body.gov-right-drawer-open--center .gov-sub-chrome,
+body.gov-right-drawer-open--center .portfolio-scope-bar,
+body.gov-right-drawer-open--center .app-sidebar {
+  z-index: 1000;
+}
+.gov-right-drawer-host--center .gov-right-drawer-head {
+  background: var(--surface, #fff);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.gov-baseline-close-btn {
+  color: #1e293b;
+  font-weight: 600;
+}
+.gov-baseline-sticky-save {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 4px;
+  margin-top: 12px;
+  background: linear-gradient(transparent, #fff 24%);
+  border-top: 1px solid var(--border, #e5e7eb);
+  z-index: 2;
+}
+.gov-baseline-sticky-save .btn-primary {
+  width: 100%;
+  min-height: 44px;
+}
+.gov-baseline-slide-hero .gov-baseline-slide-drop {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .gov-right-drawer-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -1687,18 +1756,40 @@ body.governance-page .governance-shell--hero-squad:has([data-hero-squad="1"]) .g
 .gov-investment-table th, .gov-investment-table td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
 
 /* Churn retention — scope stale overlay, compare rail, merged period, right-rail proof */
+/* Compact refresh chip — never a full-width empty yellow void */
 .gov-scope-stale-overlay {
   position: sticky;
-  top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 44px));
-  z-index: 40;
-  margin: 0 0 8px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  font-size: 0.86rem;
+  top: calc(var(--sticky-global-nav-top, 0) + var(--gov-scope-bar-height, 44px) + 4px);
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  max-width: min(100%, 28rem);
+  margin: 0 0 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.95);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #92400e;
+  letter-spacing: 0.01em;
+  color: #f8fafc;
+  pointer-events: none;
+}
+.gov-scope-stale-overlay::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28);
+  animation: gov-stale-pulse 1.1s ease-in-out infinite;
+}
+@keyframes gov-stale-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.85); }
 }
 .gov-scope-period--merged .gov-scope-period-merged-row {
   display: flex;
@@ -2090,6 +2181,42 @@ body.governance-page .gov-compare-add-tray { position: relative; z-index: 2; }
 .portfolio-status-honesty-chip--muted {
   background: #f3f4f6;
   color: #4b5563;
+}
+
+/* Bonus edge case: stale-while-revalidate trust banner on portfolio signal. */
+.portfolio-signal-stale-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #92400e;
+}
+.portfolio-signal-stale-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d97706;
+  flex-shrink: 0;
+}
+.portfolio-signal-stale-refresh {
+  appearance: none;
+  background: none;
+  border: none;
+  color: #92400e;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.portfolio-signal-stale-refresh:hover {
+  color: #78350f;
 }
 .portfolio-status-honesty-chip--watch {
   background: #eff6ff;

@@ -12,6 +12,7 @@ import { invalidatePortfolioDecisionCacheEntry } from './Delivera-Shared-Portfol
 import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import { bindGovernancePageInteractions, openInboxNudgeReview, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import { installPortfolioSurfaceHook } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
+import { paintInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 function init() {
   govPage.els.freshness = $('gov-freshness');
@@ -84,6 +85,15 @@ function init() {
   ensurePortfolioHeatDelegation();
   installPortfolioSurfaceHook();
   initGlobalOutcomeModal();
+  // Never leave Create drawer open across governance loads (audit: close off-screen / wrong job).
+  try {
+    document.getElementById('work-draft-drawer')?.classList.remove('is-open');
+    document.getElementById('work-draft-backdrop')?.classList.remove('is-visible');
+    document.body.classList.remove('wdd-panel-open');
+  } catch (_) { /* ignore */ }
+  paintInstantShell('governance', {
+    scopeLabel: govPage.scopeBarApi?.getAnchor?.() || projectsCsv().split(',')[0] || '',
+  });
   loadBrief();
 }
 

@@ -529,22 +529,37 @@ body.delivera-api-degraded::before {
   }
 }
 
+/* Scope bar MUST sit above main content so Compare / selects receive clicks.
+   Audit: z-index 20 caused #main-content + top search to intercept pointer events. */
 body.governance-priority-brief-page .portfolio-page .portfolio-scope-bar,
-body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar {
-  --portfolio-scope-z: 20;
+body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar,
+body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
+  --portfolio-scope-z: var(--z-scope-sticky, 1290);
 }
 
-.portfolio-page .portfolio-scope-bar {
+.portfolio-page .portfolio-scope-bar,
+#portfolio-scope-bar-mount.portfolio-scope-bar {
   position: sticky;
   top: var(--sticky-offset, 64px);
-  z-index: var(--portfolio-scope-z, 1290);
+  z-index: var(--portfolio-scope-z, var(--z-scope-sticky, 1290));
   background: var(--surface-page, #f8f9fb);
   padding: 0.18rem 0 0.22rem;
   border-bottom: 1px solid var(--border-subtle, #e8e8ec);
   min-height: 2.55rem;
-  max-height: min(3.1rem, 12vh);
+  max-height: none;
   overflow: visible;
   scroll-margin-top: calc(var(--sticky-offset, 64px) + 3rem);
+  pointer-events: auto;
+  isolation: isolate;
+}
+.portfolio-scope-bar select,
+.portfolio-scope-bar button,
+.portfolio-scope-bar input,
+.portfolio-scope-bar .portfolio-scope-compare-all,
+.portfolio-scope-bar .portfolio-scope-select-wrap {
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .portfolio-scope-filters {
@@ -789,7 +804,8 @@ body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-b
   padding: 0.15rem 0.45rem;
 }
 
-.portfolio-squad-status--at-risk {
+.portfolio-squad-status--at-risk,
+.portfolio-squad-status--critical {
   color: var(--brand-danger, #c41e3a);
   background: #fff1f2;
 }
@@ -799,9 +815,50 @@ body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-b
   background: #fffbeb;
 }
 
-.portfolio-squad-status--improving {
+.portfolio-squad-status--improving,
+.portfolio-squad-status--on-track {
   color: #15803d;
   background: #f0fdf4;
+}
+
+.portfolio-squad-status--blocked {
+  color: #fff;
+  background: var(--primary-strong, #b20000);
+}
+
+/* P1 FIX: Gradated bento card border colors. */
+.portfolio-bento-card--critical {
+  border-color: rgba(178, 0, 0, 0.3);
+  border-left: 3px solid var(--primary-strong, #b20000);
+}
+.portfolio-bento-card--on-track {
+  border-color: rgba(21, 128, 61, 0.2);
+  border-left: 3px solid #15803d;
+}
+.portfolio-bento-card--blocked {
+  border-color: rgba(178, 0, 0, 0.4);
+  border-left: 3px solid var(--primary-strong, #b20000);
+  background: rgba(178, 0, 0, 0.02);
+}
+/* P0 FIX: State color grammar — blue for data faults, grey for unassessable */
+.portfolio-bento-card--data-check {
+  border-color: rgba(59, 130, 246, 0.25);
+  border-left: 3px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.02);
+}
+.portfolio-bento-card--unassessable {
+  border-color: rgba(107, 114, 128, 0.2);
+  border-left: 3px solid #6b7280;
+  background: rgba(107, 114, 128, 0.02);
+  opacity: 0.85;
+}
+.portfolio-squad-status--data-check {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+.portfolio-squad-status--unassessable {
+  color: #4b5563;
+  background: #f3f4f6;
 }
 
 .portfolio-squad-card-head {
@@ -1195,9 +1252,70 @@ body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-b
 }
 
 .actions-blocker-inline-row {
-  display: grid;
-  gap: 0.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 8px;
+  background: var(--surface-card, #fff);
   font-size: 0.82rem;
+}
+
+.actions-blocker-row-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.actions-blocker-age {
+  font-size: 0.72rem;
+  color: #b45309;
+  margin-left: 0.35rem;
+  font-weight: 600;
+}
+
+.actions-blocker-nudge {
+  flex-shrink: 0;
+  min-width: 4.5rem;
+}
+
+@media (max-width: 767px) {
+  body.actions-has-blockers.actions-empty-ready .actions-preview-rail {
+    display: none !important;
+  }
+
+  .actions-blocker-queue .btn-secondary {
+    width: 100%;
+  }
+}
+
+.actions-blocker-summary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary, #4b5563);
+}
+
+.gov-priority-commitment-above-fold {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.gov-priority-below-fold-body {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .gov-priority-below-fold-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    align-items: start;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -2522,6 +2640,150 @@ body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-b
 }
 .delivera-surface-toast--visible { opacity: 1; transform: translateY(0); }
 .delivera-surface-toast--fade { opacity: 0; transform: translateY(-4px); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Instant Shell — standardized loading skeleton painted immediately
+   on every page so the user NEVER sees a blank white page.
+   Mirrors the real page layout with shimmer placeholders.
+   ═══════════════════════════════════════════════════════════════ */
+/* Never leave main as an empty white void during module boot / refresh. */
+body.gov-brief-loading #main-content,
+body.delivera-instant-shell-active #main-content,
+body.gov-scope-refreshing #main-content,
+#main-content[data-gov-brief-state="loading"],
+#main-content[data-current-sprint-state="welcome"],
+.actions-shell:has([data-testid="instant-shell"]) {
+  background: var(--surface-page, #f5f6f8);
+  min-height: 68vh;
+}
+#gov-loading:empty,
+#gov-loading[hidden] {
+  display: none !important;
+}
+body.gov-scope-refreshing [data-testid="governance-priority-brief"],
+body.gov-scope-refreshing [data-portfolio-signal],
+body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
+  opacity: 0.72;
+  transition: opacity 160ms ease;
+  filter: saturate(0.92);
+}
+
+.instant-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  width: 100%;
+  max-width: min(1480px, 98vw);
+  margin: 0 auto;
+  min-height: 52vh;
+  box-sizing: border-box;
+  background: var(--surface-page, #f5f6f8);
+}
+.instant-shimmer {
+  height: 0.85rem;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8f8fa 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  animation: portfolio-skeleton-pulse 1.2s ease-in-out infinite;
+  margin-bottom: 0.5rem;
+}
+.instant-shell-label {
+  font-size: 0.82rem;
+  color: var(--text-muted, #6b7280);
+  text-align: center;
+  margin: 0.5rem 0 0;
+  animation: portfolio-skeleton-pulse 1.5s ease-in-out infinite;
+}
+.instant-shell-value-line {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.35;
+}
+.instant-shell-stale-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 0.82rem;
+}
+.instant-shell-stale-body {
+  opacity: 0.92;
+  pointer-events: none;
+  filter: saturate(0.92);
+}
+.gov-displacement-line {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+.gov-shared-signal-cta {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.gov-shared-signal {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+.portfolio-bento-decision { display: none !important; }
+.instant-shell-scope-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+.instant-shell-scope {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+.instant-shell-cockpit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+}
+.instant-shell-main { display: flex; flex-direction: column; gap: 1rem; }
+.instant-shell-hero { padding: 1.25rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 12px; background: var(--surface, #fff); }
+.instant-shell-metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; }
+.instant-shell-metric-card { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 8px; }
+.instant-shell-evidence { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; }
+.instant-shell-rail { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-rail-card { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-header-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-sprint-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-signal-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.instant-shell-signal-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-blockers { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-stories { display: flex; flex-direction: column; gap: 0.5rem; }
+.instant-shell-story-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 8px; background: var(--surface, #fff); }
+.instant-shell-tabs { display: flex; gap: 0.5rem; }
+.instant-shell-cases { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-case-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-settings-grid { display: grid; grid-template-columns: 200px 1fr; gap: 1.25rem; align-items: start; }
+.instant-shell-settings-nav { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-settings-content { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-settings-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+
+@media (max-width: 1024px) {
+  .instant-shell-cockpit-grid { grid-template-columns: 1fr; }
+  .instant-shell-settings-grid { grid-template-columns: 1fr; }
+  .instant-shell-signal-row { grid-template-columns: 1fr; }
+  .instant-shell-metrics-row { grid-template-columns: 1fr; }
+}
 .delivera-surface-toast--error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 .delivera-surface-toast--success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 .delivera-surface-toast--info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
@@ -2751,6 +3013,19 @@ body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-b
   align-items: center;
 }
 
+/* "Compare all" button — one click adds all squads as peers. */
+.portfolio-scope-compare-all {
+  font-size: 0.78rem;
+  padding: 0.15rem 0.4rem;
+  white-space: nowrap;
+  color: var(--primary, #e60000);
+  text-decoration: underline;
+}
+.portfolio-scope-compare-all:hover {
+  text-decoration: none;
+  opacity: 0.85;
+}
+
 .portfolio-bento-preview-banner {
   font-size: 0.82rem;
   margin: 0 0 0.65rem;
@@ -2858,8 +3133,17 @@ body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-b
 .portfolio-top-action-cta {
   flex-shrink: 0;
 }
+.portfolio-top-action-cta--secondary {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.4rem;
+}
 .portfolio-top-actions-more {
   margin-top: 0.5rem;
+}
+.portfolio-prepared-more {
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
 }
 
 /* === Driver icons in "Why this matters" === */
@@ -3074,6 +3358,78 @@ body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-b
 /* === Edge case: single squad deep-dive === */
 .portfolio-single-squad-deep-dive {
   padding: 0.5rem 0;
+}
+
+.portfolio-single-squad-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+}
+
+.portfolio-single-squad-banner .portfolio-changelog-summary {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #374151);
+}
+
+.portfolio-single-squad-banner .portfolio-changelog-summary strong {
+  color: var(--text-primary, #111827);
+}
+
+/* Drill-in button on bento cards — distinct from card-select (audit fix). */
+.portfolio-bento-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.portfolio-bento-drill-btn {
+  appearance: none;
+  border: 1px solid var(--border, #e5e7eb);
+  background: var(--surface, #fff);
+  color: var(--text-primary, #111827);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.portfolio-bento-drill-btn:hover,
+.portfolio-bento-drill-btn:focus-visible {
+  background: var(--primary, #e60000);
+  color: #fff;
+  border-color: var(--primary, #e60000);
+  outline: none;
+}
+
+/* Cache placeholder + skeletons (audit fix: instant cached shell). */
+.portfolio-carousel-cache-placeholder {
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+  background: rgba(244, 244, 247, 0.6);
+  border: 1px dashed var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+}
+
+.portfolio-carousel-skeleton,
+.portfolio-decision-skeleton {
+  padding: 1rem;
+}
+
+.portfolio-carousel-skeleton-card {
+  height: 6rem;
 }
 
 /* === Mobile: horizontal swipe carousel === */

@@ -2,8 +2,9 @@
  * Agentic panel — completed / prepared / human decision bands (wireframe right column).
  */
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { formatDecisionDueLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
-export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDisabled = false } = {}) {
+export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDisabled = false, cases = [] } = {}) {
   const pb = priorityBrief || {};
   const prepared = decision.preparedActions || {};
   const preparedCount = Number(prepared.totalReady) || 0;
@@ -31,12 +32,16 @@ export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDi
 
   const completedTitle = baselineMissing ? 'What happens when you upload' : 'What the system already did';
 
-  const completedBand = `
-    <div class="gov-agentic-band gov-agentic-band--completed${baselineMissing ? ' gov-agentic-band--baseline-setup' : ''}" data-testid="governance-delivera-completed">
-      <h2 class="gov-agentic-band-title">${escapeHtml(completedTitle)}</h2>
+  const completedBand = baselineMissing ? `
+    <details class="gov-agentic-band gov-agentic-band--completed gov-agentic-band--baseline-setup" data-testid="governance-delivera-completed">
+      <summary class="gov-agentic-band-title">${escapeHtml(completedTitle)}</summary>
       <ul class="gov-agentic-completed-list">${completedItems}</ul>
-      ${pb.deliveraCompleted && !baselineMissing ? `<p class="gov-agentic-completed-summary">${escapeHtml(pb.deliveraCompleted)}</p>` : ''}
-    </div>`;
+    </details>` : `
+    <details class="gov-agentic-band gov-agentic-band--completed gov-agentic-band--compact" data-testid="governance-delivera-completed" open>
+      <summary class="gov-agentic-band-title">✓ ${completedChecks.length} automations</summary>
+      <ul class="gov-agentic-completed-list">${completedItems}</ul>
+      ${pb.deliveraCompleted ? `<p class="gov-agentic-completed-summary">${escapeHtml(pb.deliveraCompleted)}</p>` : ''}
+    </details>`;
 
   const preparedBand = preparedCount > 0 ? `
     <div class="gov-agentic-band gov-agentic-band--prepared" data-testid="governance-delivera-prepared">
@@ -50,24 +55,33 @@ export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDi
       <h2 class="gov-agentic-band-title">Next human decision</h2>
       <p class="gov-human-decision-text">${escapeHtml(pb.humanDecision.text)}</p>
       ${pb.humanDecision.owner ? `<p class="gov-human-decision-owner">Owner: <strong>${escapeHtml(pb.humanDecision.owner)}</strong></p>` : ''}
-      ${pb.humanDecision.dueAt ? `<p class="gov-human-decision-due">Due: <strong>${escapeHtml(pb.humanDecision.dueAt)}</strong></p>` : ''}
+      ${pb.humanDecision.dueAt ? `<p class="gov-human-decision-due">Due: <strong>${escapeHtml(formatDecisionDueLabel(pb.humanDecision.dueAt) || pb.humanDecision.dueAt)}</strong></p>` : ''}
     </div>` : '';
 
   const primaryLabel = pb.primaryAction || 'Review and record governance decision';
   const evidenceLabel = pb.evidenceAction || 'Inspect promise-to-Jira trace';
 
+  const detailCount = (pb.detailRows || []).filter((r) => r.governanceState !== 'linked').length;
   const ctas = uploadBaseline ? `
     <div class="gov-agentic-ctas" data-testid="governance-agentic-ctas">
       <button type="button" class="btn btn-link btn-compact" data-testid="governance-agentic-upload-link" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide">${escapeHtml(primaryLabel)}</button>
     </div>` : `
     <div class="gov-agentic-ctas" data-testid="governance-agentic-ctas">
       <button type="button" class="btn btn-primary gov-primary-cta" data-testid="governance-primary-action" data-governance-action="${boardAlign ? 'align-board' : 'record-decision'}"${boardAlign ? ' data-portfolio-action="open-alignment-studio"' : ''}${writesDisabled && !boardAlign ? ' disabled' : ''}>${escapeHtml(primaryLabel)}</button>
-      <button type="button" class="btn btn-link btn-compact" data-testid="governance-evidence-action" data-governance-action="inspect-evidence">${escapeHtml(evidenceLabel)}</button>
-      ${baselineReady ? '<button type="button" class="btn btn-link btn-compact" data-governance-action="share-sponsor-brief">Share sponsor brief</button>' : ''}
+      ${detailCount > 0 ? `<button type="button" class="btn btn-link btn-compact" data-testid="governance-evidence-action" data-governance-action="inspect-evidence">${escapeHtml(evidenceLabel)}</button>` : ''}
+      ${baselineReady && detailCount > 0 ? '<button type="button" class="btn btn-link btn-compact" data-governance-action="share-sponsor-brief">Share sponsor brief</button>' : ''}
     </div>`;
 
   const growth = (pb.growthSignals || []).length ? `
     <p class="gov-growth-signals" data-testid="governance-growth-signals">${pb.growthSignals.map((s) => escapeHtml(s)).join(' · ')}</p>` : '';
+
+  const anchorKey = decision.anchorProject || '';
+  const firstCase = cases[0] || prepared.items?.[0] || {};
+  const caseId = firstCase.id || firstCase.caseId || '';
+  const actionsHref = caseId
+    ? `/actions?case=${encodeURIComponent(caseId)}`
+    : `/actions${anchorKey ? `?project=${encodeURIComponent(anchorKey)}` : ''}`;
+  const actionsLink = `<a class="btn btn-link btn-compact gov-priority-actions-link" href="${escapeHtml(actionsHref)}" data-testid="governance-rail-actions-link">Open actions →</a>`;
 
   const calm = zeroRisk ? `
     <div class="gov-agentic-band gov-agentic-band--calm" data-testid="governance-zero-risk">
@@ -80,6 +94,7 @@ export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDi
       ${preparedBand}
       ${humanBand}
       ${ctas}
+      ${actionsLink}
       ${growth}
       ${pb.interventionSummary ? `<p class="gov-intervention-summary">${escapeHtml(pb.interventionSummary)}</p>` : ''}
     </aside>`;

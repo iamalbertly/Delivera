@@ -2,19 +2,22 @@
  * Governance Priority Brief — elevation, bands, exception rail, below-fold.
  */
 
-/* Scope bar must not paint over or clip the priority surface (desktop + mobile). */
+/* Scope bar must stay clickable above priority content (Compare all / selects).
+   Do NOT clamp z-index to 20 or overflow:clip — those trapped pointer events
+   under #main-content and hid Compare behind clipped sticky chrome. */
 body.governance-priority-brief-page.portfolio-page .portfolio-scope-bar,
 body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   position: sticky;
-  top: 0;
-  z-index: 20;
-  --portfolio-scope-z: 20;
+  top: var(--sticky-offset, 64px);
+  z-index: var(--z-scope-sticky, 1290);
+  --portfolio-scope-z: var(--z-scope-sticky, 1290);
   flex-shrink: 0;
-  max-height: min(3.25rem, 14vh);
-  overflow: clip;
+  max-height: none;
+  overflow: visible;
   margin-bottom: 0.35rem;
   box-shadow: 0 1px 0 var(--border-subtle, #e8e8ec);
-  contain: layout paint;
+  pointer-events: auto;
+  isolation: isolate;
 }
 
 body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar:has(.portfolio-scope-filters-body:not([hidden])) {
@@ -33,6 +36,7 @@ body.governance-priority-brief-page #portfolio-layout.portfolio-layout--priority
   z-index: 2;
   display: flex;
   flex-direction: column;
+  align-items: stretch; /* P0 FIX: was inheriting align-items:start which prevented the main column from filling the viewport width — leaving 67% empty. */
   grid-template-columns: 1fr;
   margin-top: 0;
   min-height: 0;
@@ -53,6 +57,8 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%; /* P0 FIX: fill the layout width instead of shrinking to content. */
+  align-self: stretch;
 }
 
 @media (max-width: 1024px) {
@@ -65,16 +71,436 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 1200px;
+  max-width: min(1480px, 98vw);
+  width: 100%; /* P0 FIX: fill the mount width instead of shrinking to grid content. */
   margin: 0 auto;
   padding: 0 1rem 2rem;
 }
 
+/* P0 FIX: Carousel slot inside the priority surface — visible on governance page. */
+.gov-priority-carousel-slot {
+  margin-top: 0.5rem;
+}
+
+/* Audit fix: use the full width on wide desktops so the 3-column layout
+   has room to breathe instead of leaving ~40% of the viewport unused. */
+@media (min-width: 1440px) {
+  body.governance-priority-brief-page .gov-priority-surface {
+    max-width: min(1680px, 96vw);
+  }
+}
+
 .gov-priority-hero-grid {
   display: grid;
-  grid-template-columns: 1fr minmax(260px, 340px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 1.25rem;
   align-items: start;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5-BAND GOVERNANCE STRUCTURE
+   1. Context rail (scope bar — already exists)
+   2. Executive verdict band
+   3. Shared-pattern signal (inside verdict band)
+   4. Interactive squad comparison arena (carousel slot)
+   5. Compact decision dock
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Band 2: Executive verdict band */
+.gov-verdict-band {
+  padding: 1.25rem 1.5rem;
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1rem;
+}
+.gov-verdict-headline {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary, #111827);
+}
+.gov-verdict-cells {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.gov-verdict-cell {
+  padding: 0.6rem 0.75rem;
+  background: rgba(248, 250, 252, 0.6);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 8px;
+  position: relative;
+  cursor: default;
+}
+.gov-verdict-cell:focus-visible {
+  outline: 2px solid var(--primary, #e60000);
+  outline-offset: 2px;
+}
+.gov-verdict-cell-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #6b7280);
+  margin-bottom: 0.2rem;
+}
+.gov-verdict-cell-value {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+.gov-verdict-confidence--low { color: var(--primary-strong, #b20000); }
+.gov-verdict-confidence--medium { color: #b45309; }
+.gov-verdict-confidence--high { color: #15803d; }
+.gov-verdict-cell-hover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-size: 0.8rem;
+  color: var(--text-secondary, #374151);
+}
+.gov-verdict-cell-hover p { margin: 0.2rem 0; }
+.gov-verdict-act-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(90deg, rgba(230, 0, 0, 0.04), rgba(230, 0, 0, 0.01));
+  border: 1px solid rgba(230, 0, 0, 0.15);
+  border-left: 3px solid var(--primary, #e60000);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-primary, #111827);
+}
+.gov-verdict-act-now strong { color: var(--primary-strong, #b20000); }
+.gov-verdict-act-owner, .gov-verdict-act-due {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6b7280);
+}
+.gov-verdict-act-btn { margin-left: auto; flex-shrink: 0; }
+
+/* Band 3: Shared-pattern signal */
+.gov-shared-signal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #374151);
+  position: relative;
+}
+.gov-shared-signal-icon { font-size: 1rem; }
+.gov-shared-signal-text { flex: 1 1 20rem; }
+.gov-shared-signal-hover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-size: 0.8rem;
+}
+.gov-shared-signal-hover p { margin: 0.2rem 0; }
+
+/* Band 4: Squad comparison arena — bento card compact layout */
+.portfolio-bento-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0;
+}
+.portfolio-bento-delivered {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+.portfolio-bento-commitments-summary,
+.portfolio-bento-trend,
+.portfolio-bento-diagnosis {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #374151);
+}
+.portfolio-bento-next {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-primary, #111827);
+}
+.portfolio-bento-next strong { color: var(--primary-strong, #b20000); }
+
+/* Bento card hover: "Why Delivera says this" panel */
+.portfolio-bento-why {
+  padding: 0.5rem 0.6rem;
+  margin-top: 0.4rem;
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 6px;
+  animation: portfolio-bento-why-fade 0.15s ease-out;
+}
+@keyframes portfolio-bento-why-fade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.portfolio-bento-why-label {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6366f1;
+}
+.portfolio-bento-why-text {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #374151);
+  line-height: 1.4;
+}
+
+/* Bento card hover: raise card, increase shadow, don't resize */
+.portfolio-bento-card.is-hovered {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-bento-card.is-hovered { transform: none; }
+  .portfolio-bento-why { animation: none; }
+}
+
+/* Metric hover: highlight same metric on all cards */
+.portfolio-bento-compact [data-bento-metric].is-metric-highlighted {
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  margin: -0.1rem -0.3rem;
+}
+
+/* P1 FIX: "Since last check" return-value strip */
+.gov-since-last-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.75rem;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(34, 197, 94, 0.04);
+  border: 1px solid rgba(34, 197, 94, 0.15);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #374151);
+}
+.gov-since-label {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #15803d;
+}
+.gov-since-blocked { color: var(--primary-strong, #b20000); font-weight: 600; }
+.gov-since-recovered { color: #15803d; font-weight: 600; }
+.gov-since-unchanged { color: var(--text-muted, #6b7280); }
+
+/* Band 5: Compact decision dock */
+.gov-decision-dock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 1rem;
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.gov-decision-dock-section {
+  flex: 1 1 20rem;
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border-subtle, #e8e8ec);
+}
+.gov-decision-dock-section:last-child {
+  border-right: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.gov-decision-dock-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #6b7280);
+  margin-bottom: 0.2rem;
+}
+.gov-decision-dock-value {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-primary, #111827);
+}
+.gov-decision-dock-owner, .gov-decision-dock-due {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6b7280);
+  margin-left: 0.5rem;
+}
+.gov-decision-dock-escalate {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: var(--primary-strong, #b20000);
+}
+
+@media (max-width: 768px) {
+  .gov-verdict-cells { grid-template-columns: 1fr; }
+  .gov-decision-dock-section { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--border-subtle, #e8e8ec); }
+}
+
+.gov-priority-cockpit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%; /* P0 FIX: fill the surface width. */
+}
+
+/* P0 FIX: 3-column desktop layout to kill the 67% empty space.
+   On wide desktops (≥1440px) the exception rail becomes its own middle column. */
+@media (min-width: 1440px) {
+  body.governance-priority-brief-page .gov-priority-cockpit-grid:has(.gov-priority-exception-column) {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) minmax(280px, 340px);
+  }
+  /* When no exception rail, give the main column more room. */
+  body.governance-priority-brief-page .gov-priority-cockpit-grid:not(:has(.gov-priority-exception-column)) {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  }
+}
+
+.gov-priority-exception-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+@media (max-width: 1439px) {
+  /* Below wide desktop, the exception column folds back into the main column
+     to avoid cramping. */
+  .gov-priority-exception-column {
+    grid-column: 1 / -1;
+  }
+}
+
+.gov-priority-cockpit-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.gov-priority-cockpit-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: calc(var(--sticky-offset, 64px) + 3.5rem);
+  max-height: calc(100vh - var(--sticky-offset, 64px) - 4rem);
+  overflow-y: auto;
+}
+
+.gov-priority-freshness {
+  font-size: 0.75rem;
+  margin: 0 0 0.5rem;
+}
+
+.gov-priority-freshness--live {
+  color: #047857;
+}
+
+.gov-priority-freshness--stale {
+  color: #92400e;
+}
+
+@keyframes gov-skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.gov-skeleton-headline,
+.gov-skeleton-metrics,
+.gov-skeleton-row {
+  background: linear-gradient(90deg, #f0f0f3 25%, #e8e8ec 50%, #f0f0f3 75%);
+  background-size: 200% 100%;
+  animation: gov-skeleton-shimmer 1.2s ease-in-out infinite;
+  border-radius: 6px;
+  min-height: 1.25rem;
+}
+
+.gov-skeleton-headline {
+  height: 2rem;
+  width: 70%;
+  margin-bottom: 0.75rem;
+}
+
+.gov-skeleton-metrics {
+  height: 1rem;
+  width: 45%;
+  margin-bottom: 1rem;
+}
+
+.gov-skeleton-rows {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gov-skeleton-row--short {
+  width: 60%;
+}
+
+.gov-priority-brief-hero--skeleton .gov-skeleton-label {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6b7280);
+  margin-top: 0.5rem;
+}
+
+.gov-priority-at-risk-row[data-governance-action] {
+  cursor: pointer;
+}
+
+.gov-priority-at-risk-row[data-governance-action]:hover {
+  filter: brightness(0.98);
+}
+
+@media (max-width: 1100px) {
+  .gov-priority-cockpit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gov-priority-cockpit-rail {
+    position: static;
+    max-height: none;
+  }
 }
 
 @media (max-width: 900px) {
@@ -128,9 +554,168 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--status-critical-text, #b91c1c);
+  margin: 0.35rem 0 0.75rem;
+}
+
+/* P1 FIX: "Do next" sentence — the single most important action, in the hero. */
+.gov-priority-do-next {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
   margin: 0 0 0.75rem;
+  background: linear-gradient(90deg, rgba(230, 0, 0, 0.04), rgba(230, 0, 0, 0.01));
+  border: 1px solid rgba(230, 0, 0, 0.15);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--text-primary, #111827);
+}
+.gov-priority-do-next strong {
+  color: var(--primary-strong, #b20000);
+  white-space: nowrap;
+}
+.gov-priority-do-next-icon {
+  color: var(--primary, #e60000);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* P1 FIX: "What changed" thin contrast strip — under the hero. */
+.gov-what-changed-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  padding: 0.5rem 0.85rem;
+  margin: 0 0 0.75rem;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.06), rgba(99, 102, 241, 0.02));
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-left: 3px solid #6366f1;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.gov-what-changed-label {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6366f1;
+  white-space: nowrap;
+}
+.gov-what-changed-chip {
+  color: var(--text-secondary, #374151);
+}
+.gov-what-changed-chip strong {
+  color: var(--text-primary, #111827);
+}
+.gov-what-changed-chip--empty {
+  color: var(--text-muted, #6b7280);
+  font-style: italic;
+}
+
+/* P1 FIX: "Need action" CTA — specific who/what/why. */
+.gov-need-action-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  margin: 0 0 0.75rem;
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-left: 3px solid var(--primary, #e60000);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.gov-need-action-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.75rem;
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+.gov-need-action-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary, #e60000);
+}
+.gov-need-action-text {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  flex: 1 1 100%;
+}
+.gov-need-action-owner,
+.gov-need-action-due {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6b7280);
+}
+.gov-need-action-btn {
+  flex-shrink: 0;
+}
+
+/* P1 FIX: Bento card mouse-over commitment expand. */
+.portfolio-bento-commitments {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 8px;
+  animation: portfolio-bento-commitments-fade 0.15s ease-out;
+}
+@keyframes portfolio-bento-commitments-fade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.portfolio-bento-commitments-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6366f1;
+}
+.portfolio-bento-commitments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.portfolio-bento-commitment-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+}
+.portfolio-bento-commitment-item:last-child {
+  border-bottom: none;
+}
+.portfolio-bento-commitment-item strong {
+  color: var(--text-primary, #111827);
+}
+.portfolio-bento-commitment-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary-strong, #b20000);
+}
+.portfolio-bento-commitment-owner {
+  font-size: 0.72rem;
+  color: var(--text-muted, #6b7280);
 }
 
 .gov-priority-cause-list {
@@ -366,6 +951,22 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   padding: 0.5rem 0.65rem;
   border-bottom: 1px solid var(--border-subtle, #e5e7eb);
   text-align: left;
+  max-width: 220px; /* P2 FIX: prevent long story titles from stretching the table. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gov-commitment-detail-table td:hover {
+  white-space: normal; /* expand on hover to show full text */
+  word-break: break-word;
+}
+.gov-commitment-title {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .gov-growth-signals {
@@ -377,52 +978,49 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
 .portfolio-layout--priority-brief .portfolio-carousel-mount,
 .portfolio-layout--priority-brief .portfolio-signal-mount,
 .portfolio-layout--priority-brief .portfolio-commitments-mount,
-.portfolio-layout--priority-brief .portfolio-prepared-actions-mount {
+.portfolio-layout--priority-brief .portfolio-prepared-actions-mount,
+.portfolio-layout--priority-brief .portfolio-monitor-footer {
   display: none !important;
 }
 
-@media (max-width: 1023px) {
-  body.governance-priority-brief-page .portfolio-layout--priority-brief .portfolio-rail {
-    display: none !important;
-  }
+body.governance-priority-brief-page .portfolio-layout--priority-brief .portfolio-rail {
+  display: none !important;
 }
 
-@media (min-width: 1024px) {
-  body.governance-priority-brief-page .portfolio-layout--priority-brief {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
-    gap: 0.75rem;
-    align-items: start;
-  }
+.gov-adaptive-evidence-more {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+}
 
-  body.governance-priority-brief-page .portfolio-layout--priority-brief .portfolio-rail {
-    display: flex !important;
-    flex-direction: column;
-    position: sticky;
-    top: calc(var(--sticky-offset, 64px) + 3.5rem);
-    max-height: calc(100vh - var(--sticky-offset, 64px) - 4rem);
-    overflow-y: auto;
-    gap: 0.5rem;
-  }
+.gov-adaptive-evidence-more summary {
+  cursor: pointer;
+  color: var(--text-secondary, #4b5563);
+  font-weight: 600;
+}
 
-  .gov-priority-rail-card {
-    border: 1px solid var(--border-subtle, #e8e8ec);
-    border-radius: 8px;
-    padding: 0.65rem 0.75rem;
-    background: var(--surface-card, #fff);
-  }
+.gov-agentic-band--baseline-setup summary.gov-agentic-band-title {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  list-style: none;
+}
 
-  .gov-priority-rail-card h3 {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    margin: 0 0 0.35rem;
-    color: var(--text-muted, #6b7280);
-  }
+.gov-priority-actions-link {
+  margin-top: 0.35rem;
+  display: inline-block;
 }
 
 .gov-priority-surface--skeleton .gov-priority-headline {
   opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gov-skeleton-headline,
+  .gov-skeleton-metrics,
+  .gov-skeleton-row {
+    animation: none;
+    background: #ececf0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -449,4 +1047,60 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+.gov-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.gov-status-pill--critical { background: #fee2e2; color: #b91c1c; }
+.gov-status-pill--watch { background: #fef3c7; color: #b45309; }
+
+.gov-commitment-unlinked {
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.gov-cadence-chip--trust.gov-cadence-chip--danger {
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.gov-agentic-band--compact > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.gov-baseline-cached-preview {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.gov-baseline-cached-list {
+  margin: 8px 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.actions-blocker-queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.settings-workspace-status--ok {
+  color: #15803d;
+  font-weight: 600;
 }

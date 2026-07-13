@@ -8,7 +8,7 @@ import {
   runProposePipeline,
   proposeFromSlideImage,
   proposeFromBoardCache,
-  proposeFromJiraFallback,
+  buildSlideMatcherEpicPool,
   reconcileSlideEpics,
 } from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
 import { invalidateGovernanceBriefCache } from '../lib/Delivera-Governance-Brief-01Service.js';
@@ -145,30 +145,21 @@ export function registerPiBaselineRoutes(router, deps) {
         });
       }
       // Check slide vision cache — prevents re-processing the same image on retry/re-upload.
+      const skipCache = req.body?.refresh === true;
       const imageHash = createHash('md5').update(imageBase64.slice(0, 1000)).digest('hex').slice(0, 16);
-      const cacheKey = `v2|${imageHash}|${projects.join(',')}|${quarter}`;
-      const cached = slideVisionCache.get(cacheKey);
+      const cacheKey = `v4|${imageHash}|${projects.join(',')}|${quarter}`;
+      const cached = !skipCache ? slideVisionCache.get(cacheKey) : null;
       if (cached && (Date.now() - cached._cachedAt) < SLIDE_VISION_CACHE_TTL_MS) {
         return res.json({ ...cached, cached: true });
       }
-      const board = await proposeFromBoardCache({ projects, cache, quarter });
-      let boardEpics = (board.candidates || []).map((c) => ({
-        issueKey: c.issueKey,
-        title: c.title,
-        summary: c.title,
-      }));
       let version3Client = null;
       try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
-      if (version3Client && boardEpics.length < 8) {
-        const fb = await proposeFromJiraFallback({ projects, version3Client, quarter });
-        const seen = new Set(boardEpics.map((e) => String(e.issueKey).toUpperCase()));
-        for (const c of fb.candidates || []) {
-          const key = String(c.issueKey || '').toUpperCase();
-          if (!key || seen.has(key)) continue;
-          seen.add(key);
-          boardEpics.push({ issueKey: key, title: c.title, summary: c.title });
-        }
-      }
+      const boardEpics = await buildSlideMatcherEpicPool({
+        projects,
+        cache,
+        version3Client,
+        quarter,
+      });
       let result = await proposeFromSlideImage({
         imageBase64,
         mimeType,
@@ -180,14 +171,20 @@ export function registerPiBaselineRoutes(router, deps) {
       });
       let activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
       if (version3Client) {
-        activity = await enrichActivityFromJiraExistence(result.candidates || [], activity, version3Client, 10);
+        const allRows = [...(result.candidates || []), ...(result.unmatched || [])];
+        activity = await enrichActivityFromJiraExistence(allRows, activity, version3Client, 10);
       }
       result = {
         ...result,
         candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),
+        unmatched: enrichCandidatesWithEpicActivity(result.unmatched || [], activity),
+        matcherPoolSize: boardEpics.length,
       };
-      // Cache successful AI results — don't cache fallbacks (they may succeed on retry).
-      if (result.aiContributed) {
+      // Don't cache all-missing results when matcher pool had epics (stale bad match).
+      const poolHadEpics = boardEpics.length >= 5;
+      const allMissing = (result.missingCount || 0) > 0 && (result.matchedCount || 0) === 0;
+      const shouldCache = result.aiContributed && !(poolHadEpics && allMissing);
+      if (shouldCache) {
         result._cachedAt = Date.now();
         slideVisionCache.set(cacheKey, result);
         // Evict stale entries to prevent memory growth
@@ -225,14 +222,14 @@ export function registerPiBaselineRoutes(router, deps) {
       if (!resolved.length) {
         return res.status(400).json({ error: 'resolved[] is required', code: 'MISSING_RESOLVED' });
       }
-      const board = await proposeFromBoardCache({ projects, cache, quarter });
-      const boardEpics = (board.candidates || []).map((c) => ({
-        issueKey: c.issueKey,
-        title: c.title,
-        summary: c.title,
-      }));
       let version3Client = null;
       try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
+      const boardEpics = await buildSlideMatcherEpicPool({
+        projects,
+        cache,
+        version3Client,
+        quarter,
+      });
       let result = await reconcileSlideEpics({
         version3Client,
         resolved,
@@ -242,11 +239,14 @@ export function registerPiBaselineRoutes(router, deps) {
       });
       let activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
       if (version3Client) {
-        activity = await enrichActivityFromJiraExistence(result.candidates || [], activity, version3Client, 10);
+        const allRows = [...(result.candidates || []), ...(result.unmatched || [])];
+        activity = await enrichActivityFromJiraExistence(allRows, activity, version3Client, 10);
       }
       result = {
         ...result,
         candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),
+        unmatched: enrichCandidatesWithEpicActivity(result.unmatched || [], activity),
+        matcherPoolSize: boardEpics.length,
       };
       return res.json(result);
     } catch (err) {

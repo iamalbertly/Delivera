@@ -4,7 +4,7 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { quarterDayLabel } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
-import { maxStaleHoursFromBrief, resolveBaselineEntryPoint } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { maxStaleHoursFromBrief, resolveBaselineEntryPoint, deriveTrustChipLabel } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 
 function staleLabelFromBrief(brief = {}) {
   const h = maxStaleHoursFromBrief(brief);
@@ -43,6 +43,13 @@ function sprintCadencePart(c, brief = {}) {
     return COPY.cadenceActiveSprint.replace('{name}', c.sprintName || 'Active sprint');
   }
   if (c.status === 'ended' && c.daysSinceEnd != null) {
+    // BONUS EDGE CASE: If the last sprint ended >30 days ago, suppress any
+    // cadence language and show a clear "no active sprint" warning. Users
+    // were seeing "okay delivery cadence" for squads that haven't sprinted
+    // in a month — a trust-destroying contradiction.
+    if (c.daysSinceEnd > 30) {
+      return `⚠ No active sprint — last sprint ${c.daysSinceEnd}d ago`;
+    }
     return COPY.cadenceSprintEnded
       .replace('{name}', c.sprintName || 'Last sprint')
       .replace('{days}', String(c.daysSinceEnd));
@@ -164,13 +171,15 @@ export function renderScopeCadenceLine(decision = {}, brief = {}) {
     ? `${periodKey} · Day ${tb.elapsed}/${tb.total}`
     : (baselineEntry.showScopeCadenceBaselineCta ? COPY.piBaselineNotSavedCta : `${periodKey} · ${COPY.piBaselineNotSaved}`);
   const line = `${timePart} · ${sprintPart}`;
-  const deliveryLine = c.deliveryPct != null
+  const trustChip = deriveTrustChipLabel(brief, decision);
+  const deliveryLine = !trustChip && c.deliveryPct != null
     ? COPY.cadenceQuarterDelivery.replace('{pct}', String(c.deliveryPct))
     : '';
   const dormantAttr = c.movementHealth === 'dormant' ? ' data-testid="gov-cadence-dormant"' : '';
   return `
     <div class="gov-cadence-pack gov-scope-cadence-line" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" data-movement-health="${escapeHtml(c.movementHealth || 'healthy')}"${dormantAttr} aria-label="${escapeHtml(COPY.cadencePackLabel)}" title="${escapeHtml(line)}">
       <span class="gov-cadence-chip gov-cadence-chip--scope">${escapeHtml(line)}</span>
+      ${trustChip ? `<span class="gov-cadence-chip gov-cadence-chip--trust gov-cadence-chip--danger">${escapeHtml(trustChip)}</span>` : ''}
       ${deliveryLine ? `<span class="gov-cadence-chip gov-cadence-chip--delivery">${escapeHtml(deliveryLine)}</span>` : ''}
     </div>`;
 }

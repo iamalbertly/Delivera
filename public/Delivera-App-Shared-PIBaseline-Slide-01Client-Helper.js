@@ -19,7 +19,7 @@ export function readGovernanceQuarter() {
 /**
  * @param {{ file: File, projects: string[], projectsCsv?: string, signal?: AbortSignal }} opts
  */
-export async function postSlidePropose({ file, projects, projectsCsv = '', signal }) {
+export async function postSlidePropose({ file, projects, projectsCsv = '', signal, refresh = false }) {
   if (!file) throw new Error('Image file is required');
   const capability = await resolveEffectiveAiCapability();
   if (!capability.slideVisionReady) {
@@ -44,6 +44,7 @@ export async function postSlidePropose({ file, projects, projectsCsv = '', signa
         projects,
         projectsCsv: csv,
         quarter,
+        refresh: refresh === true,
       }),
       ...(signal ? { signal } : {}),
     }, 'pi-baseline-slide');

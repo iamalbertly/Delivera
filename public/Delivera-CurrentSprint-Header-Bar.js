@@ -316,6 +316,7 @@ export function renderHeaderBar(data, options = {}) {
     : (meta.projects || '');
   const sprintDatesLabel = (formatDate(planned.start || sprint.startDate) + ' - ' + formatDate(planned.end || sprint.endDate))
     .replace(/^-\s-\s-$/, SPRINT_COPY.noActiveSprintWindow);
+  const squadLabel = formatProjectsCsvForDisplay(selectedProject) || selectedProject || '';
   const sprintNameLabel = sprint.name || (sprint.id ? SPRINT_COPY.sprintNamed(sprint.id) : SPRINT_COPY.noActiveSprintName);
   const sprintNameCompact = sprintNameLabel.length > 40 ? `${sprintNameLabel.slice(0, 40).trimEnd()}...` : sprintNameLabel;
   const sprintIdentityLine = [
@@ -475,29 +476,17 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-scope-mount" id="current-sprint-scope-mount" aria-label="Sprint scope"></div>';
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
+  if (squadLabel) {
+    html += `<span class="header-squad-label" data-testid="sprint-squad-label">${escapeHtml(squadLabel)}</span>`;
+  }
   html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-sprint-dates" title="${escapeHtml(sprintDateLine)}">${escapeHtml(sprintDateLine)}</span>`;
   html += '<span class="status-badge ' + escapeHtml(statusClass) + '" title="' + escapeHtml(statusSummary) + '">' + escapeHtml(statusBadge) + '</span>';
   html += identityMetricsHtml;
-  if (!viewportLean) {
-    html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
-    html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
-    html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictDisplayLine) + '</span>';
-    if (!suppressDuplicateRiskChrome) {
-      if (verdictRiskChips.length) {
-        const primaryVerdictChip = verdictRiskChips[0];
-        html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(primaryVerdictChip.tags.join(' '))}" aria-label="${escapeHtml(primaryVerdictChip.aria)}">${escapeHtml(primaryVerdictChip.label)}</button>`;
-      } else if (showNoRisksPill) {
-        html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
-      }
-    }
-    html += '</div>';
-  } else if (edgeStateAttr !== 'none') {
-    html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite">';
-    html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
-    html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictDisplayLine) + '</span>';
-    html += '</div>';
-  } else if (!suppressDuplicateRiskChrome) {
+  html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
+  html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
+  html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictDisplayLine) + '</span>';
+  if (!suppressDuplicateRiskChrome) {
     if (verdictRiskChips.length) {
       const primaryVerdictChip = verdictRiskChips[0];
       html += `<button type="button" class="verdict-pill" data-risk-tags="${escapeHtml(primaryVerdictChip.tags.join(' '))}" aria-label="${escapeHtml(primaryVerdictChip.aria)}">${escapeHtml(primaryVerdictChip.label)}</button>`;
@@ -505,6 +494,7 @@ export function renderHeaderBar(data, options = {}) {
       html += `<span class="verdict-pill verdict-pill-muted">${escapeHtml(SPRINT_COPY.noRisks)}</span>`;
     }
   }
+  html += '</div>';
   html += '</div>';
   html += '<span class="header-active-filter-chip" data-header-active-filter-chip data-testid="sprint-active-filter-chip" hidden aria-live="polite"></span>';
   html += '</div>';
@@ -589,13 +579,18 @@ export function renderHeaderBar(data, options = {}) {
     const primaryTags = Array.isArray(primaryIntervention.riskTags) ? primaryIntervention.riskTags.join(' ') : '';
     const topBlockerKey = resolvePrimaryBlockerKey(data);
     const stuckRow = (data.stuckCandidates || []).find((c) => String(c.issueKey || '').toUpperCase() === String(topBlockerKey || '').toUpperCase());
+    const suppressHeaderNudge = stuckCount > 0 && Boolean(topBlockerKey);
     const takeActionLabel = nudgeActionLabel(topBlockerKey, stuckRow?.assignee) || SPRINT_COPY.takeAction;
     html += `<span class="sprint-intervention-blocker-key" data-primary-blocker-key="${escapeHtml(topBlockerKey)}" hidden aria-hidden="true"></span>`;
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
-    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
-      + (sendAllowed ? '' : ' disabled aria-disabled="true"')
-      + ' title="' + escapeHtml(takeActionTitle) + '">' + escapeHtml(takeActionLabel) + '</button>';
+    if (!suppressHeaderNudge) {
+      html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
+        + (sendAllowed ? '' : ' disabled aria-disabled="true"')
+        + ' title="' + escapeHtml(takeActionTitle) + '">' + escapeHtml(takeActionLabel) + '</button>';
+    } else {
+      html += `<a class="sprint-intervention-item sprint-intervention-item-link" href="#stuck-card">${stuckCount} blocker${stuckCount === 1 ? '' : 's'} below</a>`;
+    }
     if (primaryTags && !suppressDuplicateRiskChrome) {
       html += '<button type="button" class="sprint-intervention-item" data-risk-tags="' + escapeHtml(primaryTags) + '">' + escapeHtml(SPRINT_COPY.focusRisk(primaryIntervention.label || SPRINT_COPY.focusRiskFallback)) + '</button>';
     }
@@ -607,7 +602,7 @@ export function renderHeaderBar(data, options = {}) {
     html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';
   }
   html += '</div>';
-  const showIntelligenceStrip = issuesCount > 0 && !viewportLean && (edgeStateAttr !== 'none' || stuckCount > 0);
+  const showIntelligenceStrip = issuesCount > 0 && !viewportLean && stuckCount === 0 && (edgeStateAttr !== 'none');
   if (showIntelligenceStrip) {
     html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
     html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(capacityTone) + '" data-header-insight="capacity">';

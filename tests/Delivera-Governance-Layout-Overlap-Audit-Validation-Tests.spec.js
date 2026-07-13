@@ -143,11 +143,11 @@ test.describe('Governance layout overlap audit', () => {
       await page.goto('/governance');
       if (await skipIfRedirectedToLogin(page, test)) return;
 
-      await page.waitForSelector('[data-portfolio-signal]', { state: 'visible', timeout: 20000 });
-      await expect(page.locator('[data-portfolio-signal]').first()).toBeVisible();
+      await page.waitForSelector('[data-testid="governance-priority-brief"], [data-portfolio-signal]', { state: 'visible', timeout: 20000 });
+      await expect(page.locator('[data-testid="governance-priority-brief"], [data-portfolio-signal]').first()).toBeVisible();
 
       const clipping = await getViewportClippingReport(page, {
-        selectors: ['.governance-shell', '#portfolio-scope-bar-mount, #gov-scope-bar-mount', '#portfolio-signal-mount, #gov-answer-mount', '#app-top-chrome'],
+        selectors: ['.governance-shell', '#portfolio-scope-bar-mount, #gov-scope-bar-mount', '#governance-priority-surface-mount, #portfolio-signal-mount, #gov-answer-mount', '#app-top-chrome'],
         maxLeftGapPx: vp.width >= 1200 ? 40 : 16,
         checkScrollSelectors: ['body'],
       });
@@ -243,26 +243,26 @@ test.describe('Governance layout overlap audit', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('[data-portfolio-signal-skeleton], #main-content[data-gov-brief-state="loading"]').first()).toBeVisible({ timeout: 2000 });
-    await expect(page.locator('[data-portfolio-signal]').first()).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-portfolio-signal-skeleton]')).toHaveCount(0);
+    await expect(page.locator('.gov-priority-surface--skeleton, [data-portfolio-signal-skeleton], #main-content[data-gov-brief-state="loading"]').first()).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('[data-testid="governance-priority-brief"], [data-portfolio-signal]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.gov-priority-surface--skeleton, [data-portfolio-signal-skeleton]')).toHaveCount(0);
     assertTelemetryClean(telemetry);
   });
 
-  test('governance right rail proof mount visible above fold on desktop', async ({ page }) => {
+  test('governance priority cockpit visible above fold on desktop', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 1280, height: 1024 });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('[data-portfolio-signal]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="governance-priority-brief"], [data-portfolio-signal]').first()).toBeVisible({ timeout: 15000 });
     await waitForLayoutGovernanceReady(page);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.keyboard.press('Escape');
-    const proofMount = page.locator('#gov-right-rail-proof-mount .gov-evidence-preview');
-    await expect(proofMount).toBeAttached();
+    const aboveFold = page.locator('[data-testid="governance-agentic-panel"], #gov-right-rail-proof-mount .gov-evidence-preview');
+    await expect(aboveFold.first()).toBeAttached();
     const box = await page.evaluate(() => {
-      const el = document.querySelector('#gov-right-rail-proof-mount .gov-evidence-preview');
+      const el = document.querySelector('[data-testid="governance-agentic-panel"], #gov-right-rail-proof-mount .gov-evidence-preview');
       return el ? el.getBoundingClientRect() : null;
     });
     expect(box).toBeTruthy();
@@ -270,17 +270,16 @@ test.describe('Governance layout overlap audit', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('governance collapsed secondary chrome stays closed; queue opens when inbox pending', async ({ page }) => {
+  test('governance portfolio path keeps legacy secondary chrome hidden', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
-    await expect(page.locator('#gov-brief-content #gov-right-rail-mount[data-right-rail-has-queue="true"]')).toBeAttached();
+    await expect(page.locator('[data-testid="governance-priority-surface"]')).toBeVisible();
     await expect(page.locator('#portfolio-layout #gov-secondary-chrome')).toHaveCount(0);
-    await expect(page.locator('#gov-brief-content #gov-secondary-chrome')).toHaveAttribute('hidden', '');
-    await expect(page.locator('#gov-brief-content #gov-supporting-evidence')).toHaveJSProperty('open', false);
+    await expect(page.locator('#gov-brief-content')).toBeHidden();
 
     assertTelemetryClean(telemetry);
   });
@@ -351,13 +350,13 @@ test.describe('Governance layout overlap audit', () => {
       const top = el.getBoundingClientRect().top;
       return top < window.innerHeight * 0.95;
     });
-    expect(aboveFold || await page.locator('[data-portfolio-signal]').count() > 0).toBeTruthy();
+    expect(aboveFold || await page.locator('[data-testid="governance-priority-brief"], [data-portfolio-signal]').count() > 0).toBeTruthy();
 
     await expect(page.locator('#portfolio-layout .gov-command-answer')).toHaveCount(0);
     if (await page.locator('[data-grouped-nudge]').count()) {
       await expect(page.locator('[data-grouped-nudge]').first()).toBeAttached();
     } else {
-      await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+      await expect(page.locator('[data-testid="governance-priority-brief"], [data-portfolio-signal]')).toBeVisible();
     }
     await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
     await expect(page.locator('#gov-review-actions')).toHaveCount(0);
@@ -385,7 +384,7 @@ test.describe('Governance layout overlap audit', () => {
     if (await page.locator('#gov-brief-content [data-grouped-nudge], #gov-brief-content [data-grouped-send]').count()) {
       await expect(page.locator('#gov-brief-content [data-grouped-nudge], #gov-brief-content [data-grouped-send]').first()).toBeAttached();
     } else {
-      await expect(page.locator('[data-portfolio-signal]')).toBeVisible();
+      await expect(page.locator('[data-testid="governance-priority-brief"], [data-portfolio-signal]')).toBeVisible();
     }
     await expect(page.locator('#gov-scroll-first-nudge')).toHaveCount(0);
 

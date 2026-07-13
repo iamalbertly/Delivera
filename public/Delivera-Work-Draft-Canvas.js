@@ -1619,6 +1619,14 @@ function wireEvents() {
   document.getElementById('wdd-close-btn')?.addEventListener('click', closeWorkDraftDrawer);
   document.getElementById('work-draft-backdrop')?.addEventListener('click', closeWorkDraftDrawer);
 
+  // Close drawer on page navigation (full-page route changes via
+  // window.location.href). Prevents the drawer from persisting its is-open
+  // state across page loads. (Audit finding: "Create drawer auto-opens on
+  // navigation".)
+  window.addEventListener('pagehide', () => {
+    if (d.classList.contains('is-open')) closeWorkDraftDrawer(true);
+  });
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && d.classList.contains('is-open')) {
       if (_settingsOpen) { toggleSettings(); } else { closeWorkDraftDrawer(); }

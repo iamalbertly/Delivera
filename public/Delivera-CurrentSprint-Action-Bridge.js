@@ -465,7 +465,9 @@ export async function fetchSprintBlockerSignal() {
   const projects = readSharedProjectsCsv();
   const csv = projects.join(',') || 'MPSA';
   const primary = (projects[0] || csv.split(',')[0] || 'MPSA').trim().toUpperCase();
-  const mapItems = (stuck = [], source = 'live') => stuck.slice(0, 3).map((row) => ({
+  const mapItems = (stuck = [], source = 'live') => [...stuck]
+    .sort((a, b) => (Number(b.hoursInStatus) || 0) - (Number(a.hoursInStatus) || 0))
+    .slice(0, 3).map((row) => ({
     issueKey: row.issueKey || row.key || '',
     summary: row.summary || row.displayTitle || '',
     assignee: row.assignee || row.assigneeName || '',

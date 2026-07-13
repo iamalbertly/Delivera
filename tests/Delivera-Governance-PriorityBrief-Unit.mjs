@@ -36,9 +36,10 @@ const baseBrief = {
   topRisks: [{ issueKey: 'SD-100', riskType: 'late-scope', summary: 'Access Review moved after planning', projectKey: 'SD' }],
 };
 
-test('formatPromiseCount uses counts not percentages', () => {
+test('formatPromiseCount uses linked metrics strip', () => {
+  assert.equal(formatPromiseCount({ linked: 4, total: 6, needAttention: 2 }), '4 of 6 linked · 2 need attention');
+  assert.equal(formatPromiseCount({ linked: 6, total: 6, needAttention: 0 }), '6 of 6 linked · all verified');
   assert.equal(formatPromiseCount({ supported: 4, total: 6 }), '2 of 6 promises lack delivery proof');
-  assert.equal(formatPromiseCount({ supported: 6, total: 6 }), 'All 6 promises verified');
 });
 
 test('scopeDecisionCopy never says Confirm scope for post-planning', () => {

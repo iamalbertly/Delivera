@@ -21,7 +21,7 @@ export const LEADERSHIP_HASH = '#trends';
 export const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_ACTIONS, PAGE_SETTINGS];
 
 export const SURFACE_SWITCHER = [
-  { key: PAGE_GOVERNANCE, label: 'Portfolio', href: '/governance' },
+  { key: PAGE_GOVERNANCE, label: 'Governance', href: '/governance' },
   { key: PAGE_SPRINTS, label: 'Squads', href: '/current-sprint' },
   { key: PAGE_ACTIONS, label: 'Actions', href: '/actions' },
   { key: PAGE_SETTINGS, label: 'Settings', href: '/settings' },

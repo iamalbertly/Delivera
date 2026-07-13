@@ -133,12 +133,12 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     assertTelemetryClean(t);
   });
 
-  test('05 exception rail shows collapsed safe squads line', async ({ page }) => {
+  test('05 safe squads line visible when exception rail deduped to at-risk table', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPriorityBriefPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-exception-rail"]', { timeout: 120000 });
+    await page.waitForSelector('[data-testid="governance-priority-brief"]', { timeout: 120000 });
     await expect(page.locator('[data-testid="governance-squad-collapsed"]')).toBeVisible();
     assertTelemetryClean(t);
   });
@@ -170,14 +170,14 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     assertTelemetryClean(t);
   });
 
-  test('08 squad switch updates brief in place without navigation', async ({ page }) => {
+  test('08 squad switch via scope bar updates brief in place without navigation', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPriorityBriefPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-squad-row"]', { timeout: 120000 });
+    await page.waitForSelector('#portfolio-scope-selected', { timeout: 120000 });
     const before = page.url();
-    await page.locator('[data-testid="governance-squad-row"]').first().click();
+    await page.locator('#portfolio-scope-selected').selectOption('MAS');
     await page.waitForTimeout(500);
     expect(page.url()).toBe(before);
     await expect(page.locator('[data-testid="governance-priority-headline"]')).toBeVisible();
@@ -200,10 +200,14 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     await mockPriorityBriefPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-commitment-detail-fold"]', { timeout: 120000 });
-    await page.locator('[data-testid="governance-commitment-detail-fold"] summary').click();
+    await page.waitForSelector('[data-testid="governance-commitment-detail"], [data-testid="governance-commitment-detail-fold"], [data-testid="governance-commitment-above-fold"]', { timeout: 120000 });
+    const fold = page.locator('[data-testid="governance-commitment-detail-fold"]');
+    if (await fold.count()) {
+      const summary = fold.locator('summary');
+      if (await summary.count()) await summary.click();
+    }
     await page.waitForSelector('[data-testid="governance-commitment-detail"]', { state: 'visible', timeout: 15000 });
-    const detail = await page.locator('[data-testid="governance-commitment-detail"]').innerText();
+    const detail = await page.locator('section.gov-commitment-detail[data-testid="governance-commitment-detail"]').innerText();
     expect(detail).not.toMatch(/Resolve gap|Review match/i);
     assertTelemetryClean(t);
   });

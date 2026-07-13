@@ -44,7 +44,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
-import { installPortfolioSurfaceHook, refreshPortfolioSurface } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
+import { installPortfolioSurfaceHook, refreshPortfolioSurface, paintPortfolioFromCache, paintPortfolioBentoSkeleton } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
 import { mountBriefScopeBarMode } from './Delivera-App-Governance-Brief-ScopeBar-05Brief-Mode-Render-UI.js';
 
 function resolveBaselineGapFlags(brief = {}) {
@@ -243,6 +243,14 @@ const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
 let loadBriefSeq = 0;
 let loadBriefForce = false;
+// Track the last-loaded scope+period signature so that onScopeChange only
+// forces a network refresh when the scope ACTUALLY changed. This prevents
+// redundant recalculation on page reloads where the scope bar's
+// ensurePortfolioDefaultScope() writes the default scope (all squads) and
+// triggers notifyScopeChanged() → onScopeChange → loadBrief({force:true}).
+// (Audit finding: "it makes no sense that we are having to make all these
+// calculations again while we already did it a few loads ago".)
+let lastLoadedSignature = '';
 
 export function setLoadBriefForce(force = true) {
   loadBriefForce = Boolean(force);
@@ -253,6 +261,7 @@ import { shouldSkipFreshnessRender } from './Delivera-App-Governance-Freshness-0
 export { shouldSkipFreshnessRender } from './Delivera-App-Governance-Freshness-01SSOT.js';
 
 export function renderFreshness(brief, confirmCount = 0) {
+  if (!govPage.els.freshness) return;
   const scopeHasStatusChip = Boolean(document.querySelector(
     '#portfolio-scope-bar-mount .gov-scope-status-chip, #gov-scope-bar-mount .gov-scope-status-chip',
   ));
@@ -539,13 +548,20 @@ function maybeAutoOpenPiBaseline(_brief) {
 function renderNeedsScopePicker() {
   hideGovernanceLoading();
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'needs-scope');
-  if (govPage.els.answerMount) {
-    govPage.els.answerMount.innerHTML = `
-      <section class="gov-needs-scope" aria-label="Choose squad scope">
+  // Bonus edge case: on the portfolio page there is no #gov-answer-mount, so
+  // the empty-scope picker previously rendered nowhere and the user saw a
+  // blank loading void. Target the priority surface mount (or fall back to
+  // the loading mount) so the onboarding picker always has a home.
+  const targetMount = document.getElementById('governance-priority-surface-mount')
+    || govPage.els.answerMount
+    || document.getElementById('gov-loading');
+  if (targetMount) {
+    targetMount.innerHTML = `
+      <section class="gov-needs-scope" aria-label="Choose squad scope" data-testid="governance-needs-scope">
         <p class="governance-empty">Pick at least one squad to load your delivery answer.</p>
         <button type="button" class="btn btn-primary btn-compact" id="gov-needs-scope-open">Choose scope</button>
       </section>`;
-    govPage.els.answerMount.querySelector('#gov-needs-scope-open')?.addEventListener('click', () => {
+    targetMount.querySelector('#gov-needs-scope-open')?.addEventListener('click', () => {
       govPage.scopeBarApi?.focusScopeBar?.();
     });
   }
@@ -562,7 +578,18 @@ function resolveBriefPeriodWindow() {
 }
 
 export async function loadBrief(options = {}) {
-  const force = options.force === true || loadBriefForce;
+  const requested = projectsCsv();
+  const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
+  const periodWindow = resolveBriefPeriodWindow();
+  // Compute a signature for this load request. If the scope+period hasn't
+  // changed since the last successful load AND force wasn't explicitly
+  // requested, skip the network refresh and serve from cache. This prevents
+  // redundant recalculation on reloads where the scope bar writes the
+  // default scope and triggers a spurious onScopeChange.
+  const signature = `${requested}|${quarter}|${periodWindow}`;
+  const scopeChanged = signature !== lastLoadedSignature;
+  const explicitForce = options.force === true || loadBriefForce;
+  const force = explicitForce && scopeChanged;
   loadBriefForce = false;
   if (force) resetLegacyBriefHydration();
   if (govPage.els.error) govPage.els.error.hidden = true;
@@ -575,9 +602,6 @@ export async function loadBrief(options = {}) {
     } catch (_) { /* ignore */ }
   }
   const seq = ++loadBriefSeq;
-  const requested = projectsCsv();
-  const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
-  const periodWindow = resolveBriefPeriodWindow();
   const pk = requested.split(',')[0] || 'MPSA';
   const preserve = hasGovernanceBriefContent();
   const switchingScope = preserve && govPage.lastBrief && !briefMatchesProjects(govPage.lastBrief, requested);
@@ -596,9 +620,21 @@ export async function loadBrief(options = {}) {
   }
   if (isPortfolioPage) {
     const { showPortfolioLoading } = await import('./Delivera-Governance-Brief-Page-02Loading-State.js');
-    const preservePortfolio = hasGovernanceBriefContent() || Boolean(cached);
+    // Stale-while-revalidate: keep last painted answer visible while scope switches.
+    // Only wipe to skeleton when there is truly nothing to show.
+    const hasPainted = hasGovernanceBriefContent() || Boolean(cached);
+    const preservePortfolio = hasPainted && !force;
+    try {
+      if (!preservePortfolio) {
+        paintPortfolioBentoSkeleton(cached || { projects: requested.split(',').filter(Boolean) });
+      } else if (cached && briefMatchesProjects(cached, requested) && !switchingScope) {
+        paintPortfolioFromCache(cached);
+      }
+    } catch (skeletonErr) {
+      console.warn('[governance] skeleton paint failed; continuing to load', skeletonErr);
+    }
     showPortfolioLoading(
-      switchLabel || (cached ? 'Refreshing quarter delivery vs commitment…' : 'Loading quarter delivery vs commitment for 4 squads…'),
+      switchLabel || (cached ? 'Refreshing live signal…' : 'Loading portfolio signal…'),
       { preserveContent: preservePortfolio },
     );
   } else {
@@ -638,6 +674,7 @@ export async function loadBrief(options = {}) {
       return;
     }
     govPage.lastBrief = brief;
+    lastLoadedSignature = signature;
     govPage.lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
     if (seq !== loadBriefSeq) return;
     clearScopeStaleOverlay();
@@ -654,7 +691,16 @@ export async function loadBrief(options = {}) {
     clearScopeStaleOverlay();
     if (!govPage.lastBrief) showError(`Could not load the brief: ${err.message}`);
     else if (isPortfolioPage) {
+      // Bonus edge case: network-failure graceful degradation. Keep showing
+      // the last good decision instead of replacing it with an error, and
+      // surface a non-blocking toast so the user knows the data is stale
+      // rather than wondering silently. This maximizes trust: the user keeps
+      // a usable surface and is told exactly what happened.
       await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases || []);
+      try {
+        const { showInlineToast } = await import('./Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js');
+        showInlineToast(document.getElementById('main-content'), 'Showing last good data — refresh failed. Retrying on next focus.', 'warning');
+      } catch (_) { /* toast is best-effort */ }
     } else {
       hideGovernanceLoading();
     }

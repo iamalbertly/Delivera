@@ -345,9 +345,11 @@ button.attention-queue-item,
 #work-draft-drawer {
   position: fixed;
   right: 0;
-  top: 0;
+  top: var(--sticky-offset, var(--top-chrome-height, 56px));
   bottom: 0;
-  width: min(560px, calc(100vw - var(--sidebar-width, 240px) - 8px));
+  /* Always fit viewport — never push Close off-screen (audit: close at x>viewport). */
+  width: min(420px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
   transform: translateX(100%);
   transition: transform 0.25s ease;
   z-index: var(--z-modal);
@@ -356,9 +358,27 @@ button.attention-queue-item,
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
+}
+body.has-top-chrome #work-draft-drawer,
+body.governance-page #work-draft-drawer,
+body.portfolio-page #work-draft-drawer {
+  top: var(--sticky-offset, var(--top-chrome-height, 56px));
 }
 #work-draft-drawer.is-open {
   transform: translateX(0);
+}
+/* Drop chrome under open Create drawer so Close stays visible and clickable. */
+body.wdd-panel-open #app-top-chrome,
+body.wdd-panel-open .app-top-chrome {
+  z-index: 1000;
+}
+body.wdd-panel-open #work-draft-drawer {
+  z-index: var(--z-modal);
+  width: min(420px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  right: 0;
+  left: auto;
 }
 
 /* Header */
@@ -429,8 +449,9 @@ button.attention-queue-item,
   color: var(--primary);
 }
 .wdd-close-btn {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   border-radius: 6px;
   border: 0;
   background: none;
@@ -441,6 +462,9 @@ button.attention-queue-item,
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: relative;
+  z-index: 3;
+  margin-left: auto;
 }
 .wdd-close-btn:hover {
   background: var(--card-muted);
@@ -1456,6 +1480,33 @@ kbd {
   font-size: 0.82rem;
   color: #7a4f00;
   margin-bottom: 10px;
+}
+
+/* BONUS EDGE CASE: Sprint ended banner — prompts user to switch to next sprint. */
+.cs-sprint-ended-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.9rem;
+  background: linear-gradient(90deg, rgba(230, 0, 0, 0.06), rgba(230, 0, 0, 0.02));
+  border: 1px solid rgba(230, 0, 0, 0.2);
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: var(--text-primary, #111827);
+  margin-bottom: 10px;
+}
+.cs-sprint-ended-banner strong {
+  color: var(--primary-strong, #b20000);
+}
+.cs-next-sprint-link {
+  color: var(--primary, #e60000);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cs-next-sprint-link:hover {
+  color: var(--primary-strong, #b20000);
 }
 
 

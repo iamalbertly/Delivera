@@ -1,6 +1,7 @@
 import { currentSprintDom, currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
 import { showLoading, showError, clearError } from './Delivera-CurrentSprint-Page-Status.js';
 import { loadBoards, loadCurrentSprint } from './Delivera-CurrentSprint-Page-Data-Loaders.js';
+import { paintInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
 import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Delivera-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
 import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Delivera-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
@@ -409,6 +410,9 @@ function safeInitBoot() {
 
 function init() {
   const { boardSelect, contentEl, projectsSelect, errorEl } = currentSprintDom;
+  // P0 FIX: Paint instant skeleton shell — no blank white page.
+  const scopeHint = (new URLSearchParams(window.location.search).get('projects') || '').split(',')[0] || '';
+  paintInstantShell('current-sprint', { scopeLabel: scopeHint });
   hydrateCurrentSprintProjectsSelect();
   resetPerfMarks('current-sprint');
   try {

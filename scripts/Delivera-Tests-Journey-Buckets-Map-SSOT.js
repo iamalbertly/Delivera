@@ -829,7 +829,7 @@ export const journeyBuckets = {
   },
   'journey.portfolio-command-surface': {
     id: 'journey.portfolio-command-surface',
-    label: 'Portfolio command surface and Actions merge',
+    label: 'Portfolio command surface (deprecated — use journey.churn-trust-repair)',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.portfolio-command-surface',
     ),

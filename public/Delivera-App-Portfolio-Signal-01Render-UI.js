@@ -109,6 +109,29 @@ function movementLabel(delivered = 0) {
 }
 
 function investmentHeadline(decision = {}) {
+  // P1 FIX: Context-aware headline. When a single squad is drilled into,
+  // show a squad-specific headline with delivered% and proof — not the
+  // generic portfolio-level hedge. This helps the user understand the
+  // state within 1 second of skimming.
+  const anchor = decision.anchorProject || '';
+  const metrics = decision.metrics || {};
+  const delivery = Number(metrics.delivery?.value) || 0;
+  const proof = Number(metrics.proofConfidence?.value) || 0;
+  const monitoring = decision.monitoring || {};
+  const squadCount = Number(monitoring.squadCount) || 0;
+  const isSingleSquad = squadCount <= 1 || (decision.comparison?.cards?.length || 0) <= 1;
+  if (isSingleSquad && anchor) {
+    if (delivery === 0) {
+      return `${anchor}: 0% delivered — sprint stalled or board not connected`;
+    }
+    if (delivery < 50) {
+      return `${anchor}: ${delivery}% delivered — behind on commitments`;
+    }
+    if (proof < 40) {
+      return `${anchor}: ${delivery}% delivered but ${proof}% proof — evidence gap`;
+    }
+    return `${anchor}: ${delivery}% delivered, ${proof}% proof confidence`;
+  }
   return decision.recommendation?.label
     || decision.narrative?.headline
     || decision.decisionRequired?.issue
@@ -204,8 +227,24 @@ function renderPortfolioSignalHero(decision = {}, brief = {}, { cachedAt = '', c
   const headline = investmentHeadline(decision);
   const subtext = investmentSubtext(decision, brief);
 
+  // Bonus edge case: prominent stale-while-revalidate trust banner. When the
+  // decision is being shown from cache while a refresh is in flight (or the
+  // cache is older than 1h), surface a clear, non-blocking banner so the user
+  // understands the state in <1s of skimming — instead of a subtle muted chip
+  // that's easy to miss. This maximizes trust: never let the user wonder if
+  // they're looking at live or cached data.
+  const cacheAgeMs = cachedAt ? Date.now() - new Date(cachedAt).getTime() : 0;
+  const showStaleBanner = Boolean(cached) && cacheAgeMs > 60 * 60 * 1000;
+  const staleBanner = showStaleBanner
+    ? `<div class="portfolio-signal-stale-banner" role="status" data-testid="portfolio-signal-stale-banner">
+        <span class="portfolio-signal-stale-dot" aria-hidden="true"></span>
+        Showing cached data · last updated ${escapeHtml(freshness || 'earlier')}. <button type="button" class="portfolio-signal-stale-refresh" data-portfolio-action="review-actions">Refresh now</button>
+      </div>`
+    : '';
+
   return `
     <section class="portfolio-signal portfolio-signal--hero portfolio-decision-cockpit" aria-label="Portfolio decision cockpit" data-portfolio-signal data-status="${escapeHtml(status)}">
+      ${staleBanner}
       ${renderStatusHonestyBar(brief, decision, { cached, cachedAt })}
       <div class="portfolio-signal-hero-row">
         <span class="portfolio-signal-verdict-icon" aria-hidden="true">⚖</span>

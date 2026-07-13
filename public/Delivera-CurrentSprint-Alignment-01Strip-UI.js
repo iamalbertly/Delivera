@@ -39,8 +39,10 @@ export function renderAlignmentStripHtml(data, baselineKeys = []) {
   const rows = stories.slice(0, 3).map((s) => {
     const alignment = classifyWorkAlignment({ epicKey: s.epicKey, piBaselineCommittedKeys: baselineKeys });
     const key = s.issueKey || s.key || '';
-    const title = String(s.summary || '').trim().slice(0, 72);
-    return `<li><a href="#story-row-${escapeHtml(key)}">${escapeHtml(key)}</a> <span class="sprint-alignment-title">${escapeHtml(title)}</span> ${renderAlignmentChip(alignment)}</li>`;
+    const fullTitle = String(s.summary || '').trim();
+    const title = fullTitle.slice(0, 72);
+    const titleAttr = fullTitle.length > title.length ? ` title="${escapeHtml(fullTitle)}"` : '';
+    return `<li><a href="#story-row-${escapeHtml(key)}">${escapeHtml(key)}</a> <span class="sprint-alignment-title"${titleAttr}>${escapeHtml(title)}</span> ${renderAlignmentChip(alignment)}</li>`;
   }).join('');
   const misaligned = Math.max(0, stories.length - alignedTotal);
   const summaryDetail = [alignedTotal ? `${alignedTotal} PI` : '', offPiTotal ? `${offPiTotal} off-PI` : '', adHocTotal ? `${adHocTotal} ad-hoc` : ''].filter(Boolean).join(' · ');

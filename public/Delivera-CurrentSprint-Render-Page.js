@@ -73,8 +73,8 @@ function renderSprintProofRail(data) {
       + '<p class="sprint-proof-rail-summary">' + escapeHtml(nba.summary || nba.reason || '') + '</p>'
       + '<div class="sprint-proof-rail-nudge-inline" data-testid="sprint-rail-nudge-inline">'
       + '<label class="visually-hidden" for="sprint-rail-nudge-draft">Nudge draft</label>'
-      + '<textarea id="sprint-rail-nudge-draft" class="sprint-proof-rail-nudge-draft" rows="2" placeholder="Quick unblock ask — press Enter to review…">' + escapeHtml(nudgeDraft) + '</textarea>'
-      + '<p class="sprint-proof-rail-nudge-hint">Press Enter to open nudge review</p>'
+      + '<textarea id="sprint-rail-nudge-draft" class="sprint-proof-rail-nudge-draft" rows="2" placeholder="Quick unblock ask — press Enter to send…">' + escapeHtml(nudgeDraft) + '</textarea>'
+      + '<p class="sprint-proof-rail-nudge-hint">Enter sends nudge review · Shift+Enter for new line</p>'
       + '</div>';
   } else if (meta.limbo && meta.nextSprintCandidate?.name) {
     workBody = ''
@@ -206,6 +206,17 @@ export function renderCurrentSprintPage(data) {
     const ageH = ageMs > 0 ? Math.round(ageMs / 3600000) : null;
     const ageText = ageH != null ? ' from ' + ageH + 'h ago' : '';
     html = '<div class="cs-stale-banner">Showing cached sprint data' + ageText + ' — Jira was unreachable. Nudge send is disabled.</div>' + html;
+  }
+
+  // BONUS EDGE CASE: Sprint ended banner — when the sprint has ended, show a
+  // prominent banner prompting the user to switch to the next sprint instead
+  // of leaving them looking at stale data with no guidance.
+  const sprintState = String(data?.sprint?.state || '').toLowerCase();
+  const sprintEndDate = data?.sprint?.endDate || data?.daysMeta?.sprintEndDate || '';
+  if (sprintState === 'closed' || sprintState === 'ended' || (sprintState !== 'active' && sprintEndDate)) {
+    const nextSprintName = data?.meta?.nextSprintCandidate?.name || '';
+    const nextSprintHref = nextSprintName ? ' — <a href="#" class="cs-next-sprint-link" data-action="load-next-sprint">Switch to ' + escapeHtml(nextSprintName) + ' →</a>' : ' — <a href="/current-sprint" class="cs-next-sprint-link">View current sprint →</a>';
+    html = '<div class="cs-sprint-ended-banner" role="status" data-testid="sprint-ended-banner">📅 <strong>Sprint ended</strong>' + (sprintEndDate ? ' ' + escapeHtml(sprintEndDate) : '') + nextSprintHref + '</div>' + html;
   }
 
   const allSectionsHidden = !hasStories && !hasDailyCompletions && !hasBurndownData;

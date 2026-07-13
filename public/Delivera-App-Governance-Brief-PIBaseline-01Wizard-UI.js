@@ -27,9 +27,10 @@ import { createPiBaselineWizardActions } from './Delivera-App-Governance-Brief-P
  * @param {() => string} opts.getProjectsCsv
  * @param {() => string} [opts.getAnchorProject] - Returns the primary (anchor) project key only, used for slide reading.
  * @param {() => string} [opts.getQuarterLabel]
+ * @param {() => object[]} [opts.getCachedDetailRows]
  * @param {() => void} [opts.onSaved]
  */
-export function mountPIBaselineWizard({ getProjectsCsv, getAnchorProject, getQuarterLabel, onSaved }) {
+export function mountPIBaselineWizard({ getProjectsCsv, getAnchorProject, getQuarterLabel, getCachedDetailRows, onSaved }) {
   let drawerClose = null;
   const state = {
     unbindSlide: null,
@@ -100,9 +101,13 @@ export function mountPIBaselineWizard({ getProjectsCsv, getAnchorProject, getQua
     window.addEventListener('app:aiCapabilityChanged', onCapability);
     state.unbindCapability = () => window.removeEventListener('app:aiCapabilityChanged', onCapability);
 
+    const cachedRows = getCachedDetailRows?.() || [];
     const { close: closeFn, el } = openRightDrawer({
       title: drawerTitle(csv, quarterLabel),
-      bodyHtml: renderLoading(),
+      bodyHtml: renderLoading(COPY.baselineLoading, cachedRows),
+      variant: 'center',
+      panelClass: 'alignment-studio',
+      lockScroll: true,
     });
     drawerClose = closeFn;
     const body = el.querySelector('.gov-right-drawer-body');

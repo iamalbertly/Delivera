@@ -46,13 +46,19 @@ export function getSteps(projectRoot) {
 
   const tier1Recent = [
     {
+      name: 'Churn Trust Repair Journey (P0 governance + portfolio)',
+      command: 'npm',
+      args: ['run', 'test:journey:churn-trust-repair'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Server Lifecycle Unit Tests (uptime guards)',
       command: 'node',
       args: ['--test', 'tests/Delivera-Server-Lifecycle-Unit.mjs'],
       cwd: projectRoot,
     },
     {
-      name: 'Governance Intervention Unit Tests (most recent code)',
+      name: 'Governance Intervention Unit Tests',
       command: 'node',
       args: ['--test', 'tests/Delivera-Governance-Intervention-Case-Unit.mjs'],
       cwd: projectRoot,
@@ -67,24 +73,6 @@ export function getSteps(projectRoot) {
       name: 'Cache Age-Tier TTL Unit Tests',
       command: 'node',
       args: ['--test', 'tests/Delivera-Cache-AgeTier-TTL-Unit.mjs'],
-      cwd: projectRoot,
-    },
-    {
-      name: 'Governance PI Intelligence Validation (touched files)',
-      command: 'npm',
-      args: ['run', 'test:journey:pi-intelligence'],
-      cwd: projectRoot,
-    },
-    {
-      name: 'Governance Intervention Loop Journey (most recent code)',
-      command: 'npm',
-      args: ['run', 'test:journey:governance-intervention-loop'],
-      cwd: projectRoot,
-    },
-    {
-      name: 'Portfolio Command Surface Journey (most recent code)',
-      command: 'npm',
-      args: ['run', 'test:journey:portfolio'],
       cwd: projectRoot,
     },
   ];
@@ -243,22 +231,16 @@ const PRIORITY_STEP_NAMES = new Set([
   'Install Dependencies',
   'Build CSS From Partials',
   'Verify Generated CSS Is In Sync',
+  'Churn Trust Repair Journey (P0 governance + portfolio)',
   'Server Lifecycle Unit Tests (uptime guards)',
-  'Governance Intervention Unit Tests (most recent code)',
+  'Governance Intervention Unit Tests',
   'Portfolio Decision Intelligence Unit Tests',
   'Cache Age-Tier TTL Unit Tests',
-  'Governance PI Intelligence Validation (touched files)',
-  'Governance Intervention Loop Journey (most recent code)',
-  'Portfolio Command Surface Journey (most recent code)',
   'Run Cross-Page Persistence (last failed)',
   'Run API Integration Contracts',
-  'Run Value Retention Master Plan Journey',
-  'Run Direct Value Master Plan Journey',
-  'Run Focused Playwright Contracts',
   'Run Layout Overlap Journey',
   'Run Current Sprint Dedupe Fold Journey',
   'Run Brief SSOT Loading And Scope Journey',
-  'Run Governance Decision Cockpit Journey',
 ]);
 
 export function getPrioritySteps(projectRoot) {

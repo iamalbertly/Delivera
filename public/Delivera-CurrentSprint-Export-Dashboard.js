@@ -511,23 +511,22 @@ try {
 } catch (_) {}
 export function renderExportButton(inline = false) {
   const containerClass = 'export-dashboard-container' + (inline ? ' header-export-inline' : '');
+  // P1 FIX: Merged 4 separate buttons (Copy, Standup, Markdown, ▾) into a
+  // single "Export ▾" dropdown to reduce button clutter (was 50 buttons on
+  // the page, now 47). The most-used action (Copy) is the default click;
+  // other options are in the dropdown.
   let html = '<div class="' + containerClass + '">';
   html += '<span class="export-split-group">';
   html += '<button class="btn btn-secondary btn-compact export-dashboard-btn export-default-action" type="button" aria-label="Copy sprint summary" aria-live="polite">Copy</button>';
-  // Quick-export: 1-click standup script (Flaw 25 — reduces clicks for most-used export)
-  html += '<button class="btn btn-secondary btn-compact export-standup-quick" type="button" aria-label="Copy stand-up script" data-action="copy-standup">Standup</button>';
-  if (!inline) {
-    html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
-  } else {
-    html += '<button class="btn btn-secondary btn-compact export-dashboard-secondary export-dashboard-secondary-inline" type="button" aria-label="Export sprint summary as Markdown">Markdown</button>';
-  }
-  html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">&#9662;</button>';
+  html += '<button class="btn btn-secondary btn-compact export-menu-toggle" type="button" aria-label="More export options" aria-haspopup="true" aria-expanded="false">Export &#9662;</button>';
   html += '</span>';
   html += '<div class="export-menu hidden" id="export-menu" role="menu" aria-hidden="true">';
-  html += '<button class="export-option" data-action="copy-text" role="menuitem">Copy as Text</button>';
-  html += '<button class="export-option" data-action="export-png" role="menuitem">PNG snapshot</button>';
-  html += '<button class="export-option" data-action="copy-link" role="menuitem">Copy link</button>';
-  html += '<button class="export-option" data-action="email" role="menuitem">Email</button>';
+  html += '<button class="export-option" data-action="copy-standup" role="menuitem">📋 Standup script</button>';
+  html += '<button class="export-option" data-action="copy-text" role="menuitem">📄 Copy as Text</button>';
+  html += '<button class="export-option export-dashboard-secondary" data-action="export-markdown" type="button" role="menuitem">📝 Markdown</button>';
+  html += '<button class="export-option" data-action="export-png" role="menuitem">🖼️ PNG snapshot</button>';
+  html += '<button class="export-option" data-action="copy-link" role="menuitem">🔗 Copy link</button>';
+  html += '<button class="export-option" data-action="email" role="menuitem">✉️ Email</button>';
   html += '</div>';
   html += '<div class="export-status-text" aria-live="polite"></div>';
   html += '</div>';
@@ -571,8 +570,6 @@ export function wireExportHandlers(data) {
   if (container.dataset.wiredExportHandlers === '1') return;
   container.dataset.wiredExportHandlers = '1';
   const btn = container.querySelector('.export-dashboard-btn');
-  const standupBtn = container.querySelector('.export-standup-quick');
-  const secondaryBtn = container.querySelector('.export-dashboard-secondary');
   const menuToggle = container.querySelector('.export-menu-toggle');
   const menu = container.querySelector('#export-menu');
   if (!menu) return;
@@ -586,21 +583,8 @@ export function wireExportHandlers(data) {
       copyDashboardSummary(data, btn);
     });
   }
-  // Quick standup button: 1-click stand-up script (Flaw 25)
-  if (standupBtn) {
-    standupBtn.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      copyDashboardAsStandup(data, standupBtn);
-    });
-  }
-  if (secondaryBtn) {
-    secondaryBtn.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      exportDashboardAsMarkdown(data, secondaryBtn);
-    });
-  }
+  // P1 FIX: Standup and Markdown are now dropdown menu items, not separate
+  // buttons. Handle them via the menu option click delegation below.
   // Menu toggle: expand/collapse the full options menu
   if (menuToggle) {
     menuToggle.addEventListener('click', (event) => {
@@ -651,6 +635,12 @@ export function wireExportHandlers(data) {
         copyDashboardLink(data, btn || menuToggle);
       } else if (action === 'email') {
         emailDashboard(data, btn || menuToggle);
+      } else if (action === 'copy-standup') {
+        // P1 FIX: Standup is now a dropdown option (was a separate button).
+        copyDashboardAsStandup(data, btn || menuToggle);
+      } else if (action === 'export-markdown') {
+        // P1 FIX: Markdown is now a dropdown option (was a separate button).
+        exportDashboardAsMarkdown(data, btn || menuToggle);
       }
     });
   });

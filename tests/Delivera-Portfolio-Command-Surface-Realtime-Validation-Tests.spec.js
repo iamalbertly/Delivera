@@ -143,7 +143,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-priority-brief"]', { timeout: 120000 });
     const navText = await page.locator('.app-top-switcher, .app-sidebar-nav').first().innerText();
-    expect(navText).toMatch(/Portfolio/i);
+    expect(navText).toMatch(/Governance|Portfolio/i);
     expect(navText).toMatch(/Squads|Sprint/i);
     expect(navText).toMatch(/Actions/i);
     assertTelemetryClean(t);
@@ -161,26 +161,27 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('03 exception rail shows squad rows', async ({ page }) => {
+  test('03 at-risk table shows squad status when exception rail deduped', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-squad-row"]', { timeout: 120000 });
-    const rows = page.locator('[data-testid="governance-squad-row"]');
-    expect(await rows.count()).toBeGreaterThanOrEqual(1);
+    await page.waitForSelector('[data-testid="governance-at-risk-table"], [data-testid="governance-exception-rail"]', { timeout: 120000 });
+    const atRisk = page.locator('.gov-priority-at-risk-row');
+    const railRows = page.locator('[data-testid="governance-squad-row"]');
+    expect((await atRisk.count()) + (await railRows.count())).toBeGreaterThanOrEqual(1);
     assertTelemetryClean(t);
   });
 
-  test('04 exception rail supports keyboard selection', async ({ page }) => {
+  test('04 at-risk rows are read-only — scope bar owns squad switch', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-exception-rail"]', { timeout: 120000 });
-    const row = page.locator('[data-testid="governance-squad-row"]').first();
-    await row.focus();
-    await page.keyboard.press('Enter');
+    await page.waitForSelector('[data-testid="governance-priority-brief"]', { timeout: 120000 });
+    await expect(page.locator('[data-governance-squad-select]')).toHaveCount(0);
+    const row = page.locator('.gov-priority-at-risk-row, [data-testid="governance-squad-row"]').first();
+    await row.click({ force: true });
     await expect(page.locator('[data-testid="governance-priority-headline"]')).toBeVisible();
     assertTelemetryClean(t);
   });
@@ -348,14 +349,14 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('16 exception rail squad click keeps page on governance', async ({ page }) => {
+  test('16 at-risk row click keeps page on governance', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-squad-row"]', { timeout: 120000 });
+    await page.waitForSelector('.gov-priority-at-risk-row, [data-testid="governance-squad-row"]', { timeout: 120000 });
     const urlBefore = page.url();
-    await page.locator('[data-testid="governance-squad-row"]').first().click();
+    await page.locator('.gov-priority-at-risk-row, [data-testid="governance-squad-row"]').first().click();
     await expect(page).toHaveURL(urlBefore);
     await expect(page.locator('[data-testid="governance-priority-headline"]')).toBeVisible();
     assertTelemetryClean(t);

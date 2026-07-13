@@ -122,3 +122,23 @@ export function deriveDeliveryProgressTone(percent) {
   if (n < 40) return ' is-warning';
   return '';
 }
+
+/**
+ * Spillover bar tone — the INVERSE of delivery progress.
+ * Spillover measures how much work is STILL open, so high = bad.
+ * 0% spillover → success (green, everything delivered).
+ * >0% spillover → warning/critical (never green).
+ *
+ * This closes the audit trust gap "100% spillover with green bar":
+ * deriveDeliveryProgressTone() was being reused for spillover, so a 100%
+ * spillover value (>=80) returned is-success (green) — a contradictory
+ * visual that told the user everything was fine when nothing was delivered.
+ */
+export function deriveSpilloverTone(percent) {
+  const n = Number(percent);
+  if (Number.isNaN(n)) return '';
+  if (n <= 0) return ' is-success';      // nothing spilled — genuinely good
+  if (n >= 50) return ' is-critical';     // majority of sprint still open
+  if (n > 0) return ' is-warning';        // some spillover — needs attention
+  return '';
+}

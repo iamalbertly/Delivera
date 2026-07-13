@@ -57,16 +57,25 @@ export function closeAllGovernanceOverlays() {
   closeWddModalIfOpen();
 }
 
-export function openRightDrawer({ title = 'Details', bodyHtml = '', onClose, panelClass = '', lockScroll } = {}) {
+export function openRightDrawer({
+  title = 'Details',
+  bodyHtml = '',
+  onClose,
+  panelClass = '',
+  lockScroll,
+  variant = 'right',
+} = {}) {
   closeAllGovernanceOverlays();
   bindEscapeOnce();
+  const isCenter = variant === 'center';
   const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
-  const shouldLockScroll = lockScroll ?? isMobile;
+  const shouldLockScroll = lockScroll ?? (isCenter || isMobile);
   const el = ensureHost();
+  el.className = isCenter ? 'gov-right-drawer-host gov-right-drawer-host--center' : 'gov-right-drawer-host';
   const panelCls = panelClass ? ` gov-right-drawer-panel--${panelClass}` : '';
   el.innerHTML = `
     <div class="gov-right-drawer-backdrop" data-drawer-close tabindex="-1"></div>
-    <aside class="gov-right-drawer-panel${panelCls}" role="dialog" aria-labelledby="gov-right-drawer-title">
+    <aside class="gov-right-drawer-panel${panelCls}" role="dialog" aria-labelledby="gov-right-drawer-title" aria-modal="true">
       <header class="gov-right-drawer-head">
         <h2 id="gov-right-drawer-title" class="gov-right-drawer-title">${escapeHtml(title)}</h2>
         <button type="button" class="btn btn-link btn-compact" data-drawer-close aria-label="Close">Close</button>
@@ -75,10 +84,11 @@ export function openRightDrawer({ title = 'Details', bodyHtml = '', onClose, pan
     </aside>`;
   el.hidden = false;
   document.body.classList.add('gov-right-drawer-open');
+  if (isCenter) document.body.classList.add('gov-right-drawer-open--center');
   if (shouldLockScroll) document.body.classList.add('gov-right-drawer-lock-scroll');
   const close = () => {
     el.hidden = true;
-    document.body.classList.remove('gov-right-drawer-open', 'gov-right-drawer-lock-scroll');
+    document.body.classList.remove('gov-right-drawer-open', 'gov-right-drawer-open--center', 'gov-right-drawer-lock-scroll');
     drawerCloseFn = null;
     onClose?.();
   };
@@ -94,5 +104,5 @@ export function closeRightDrawer() {
   }
   if (!host) return;
   host.hidden = true;
-  document.body.classList.remove('gov-right-drawer-open');
+  document.body.classList.remove('gov-right-drawer-open', 'gov-right-drawer-open--center', 'gov-right-drawer-lock-scroll');
 }

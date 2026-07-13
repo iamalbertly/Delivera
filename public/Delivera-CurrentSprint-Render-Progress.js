@@ -3,7 +3,7 @@ import { formatDate, formatDayLabel, formatNumber } from './Delivera-Shared-Form
 import { renderEmptyStateHtml } from './Delivera-Shared-Empty-State-Helpers.js';
 import { resolveResponsiveRowLimit } from './Delivera-Shared-Responsive-Helpers.js';
 import { buildDistinctSprintFilterViews, buildMergedWorkRiskRows, getUnifiedRiskCounts } from './Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { hasOutcomeLabel, isOutcomeStoryLike, deriveDeliveryProgressTone } from './Delivera-Shared-Outcome-Risk-Semantics.js';
+import { hasOutcomeLabel, isOutcomeStoryLike, deriveDeliveryProgressTone, deriveSpilloverTone } from './Delivera-Shared-Outcome-Risk-Semantics.js';
 import { renderWorkRisksMerged } from './Delivera-CurrentSprint-Render-Subtasks.js';
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 import {
@@ -294,9 +294,19 @@ export function renderStories(data) {
   const valueDoneCount = groupedStories.value.filter((story) => String(story?.status || '').toLowerCase().includes('done')).length;
   const spilloverCount = Math.max(0, stories.length - Number(data?.summary?.doneStories || 0));
   const spilloverPct = stories.length > 0 ? Math.round((spilloverCount / stories.length) * 100) : 0;
-  const blockerPanelRows = mergedRiskRows
-    .filter((row) => Array.isArray(row?.riskTags) && row.riskTags.some((tag) => ['blocker', 'unassigned', 'missing-estimate', 'no-log'].includes(tag)))
-    .slice(0, 6);
+  // Audit fix: the Blockers Panel was counting rows with ANY risk tag
+  // (unassigned / missing-estimate / no-log) as "blockers", so a sprint with
+  // 3 unestimated stories and zero actual blockers showed "3 visible" under
+  // an "Active blockers" heading — a trust gap. Split real blockers from
+  // ownership/estimate/log gaps so the count and label are honest.
+  const isRealBlocker = (row) => Array.isArray(row?.riskTags) && row.riskTags.includes('blocker');
+  const isOwnershipOrFlowGap = (row) => Array.isArray(row?.riskTags)
+    && row.riskTags.some((tag) => ['unassigned', 'missing-estimate', 'no-log'].includes(tag));
+  const realBlockerRows = mergedRiskRows.filter(isRealBlocker);
+  const flowGapRows = mergedRiskRows.filter((row) => isOwnershipOrFlowGap(row) && !isRealBlocker(row));
+  const blockerPanelRows = [...realBlockerRows, ...flowGapRows].slice(0, 6);
+  const realBlockerCount = realBlockerRows.length;
+  const flowGapCount = flowGapRows.length;
 
   let html = '<div class="transparency-card" id="stories-card">';
   html += '<div class="stories-dom-guardrail" data-story-count="' + stories.length + '" aria-hidden="true"></div>';
@@ -319,7 +329,7 @@ export function renderStories(data) {
   if (hasAnyRisk) {
     const topNudgeKey = blockerKeys.size > 0 ? Array.from(blockerKeys)[0] : (noLogKeys.size > 0 ? Array.from(noLogKeys)[0] : '');
     const primaryBlocker = String(resolvePrimaryBlockerKey(data) || '').toUpperCase();
-    const suppressStoriesNudge = primaryBlocker && topNudgeKey && primaryBlocker === String(topNudgeKey).toUpperCase();
+    const suppressStoriesNudge = Boolean(primaryBlocker);
     if (!suppressStoriesNudge) {
       const nudgeBtnLabel = topNudgeKey ? ('Nudge ' + topNudgeKey) : 'Send nudge to Jira';
       const sendAllowed = isSprintCommentSendAllowed(data?.meta, data?.sprint);
@@ -380,8 +390,15 @@ export function renderStories(data) {
     if (!blockerPanelRows.length) {
       return '<article class="sprint-blockers-panel"><div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>No active blockers</h3></div></div><p class="sprint-group-copy">No active blockers right now. Ownership and estimate gaps appear here the moment they become a delivery risk.</p></article>';
     }
+    // Honest heading + count: real blockers vs ownership/estimate/log gaps.
+    // Audit fix: previously showed "N visible" under "Active blockers" even
+    // when N was entirely unestimated/unlogged stories — misleading.
+    const panelTitle = realBlockerCount > 0 ? 'Active blockers' : 'Delivery risks';
+    const countLabel = realBlockerCount > 0
+      ? `${realBlockerCount} blocker${realBlockerCount === 1 ? '' : 's'}${flowGapCount > 0 ? ` · ${flowGapCount} risk${flowGapCount === 1 ? '' : 's'}` : ''}`
+      : `${flowGapCount} risk${flowGapCount === 1 ? '' : 's'}`;
     let panelHtml = '<article class="sprint-blockers-panel">';
-    panelHtml += '<div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>Active blockers</h3></div><span class="sprint-group-count" data-blocker-count>' + blockerPanelRows.length + ' visible</span></div>';
+    panelHtml += '<div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>' + panelTitle + '</h3></div><span class="sprint-group-count" data-blocker-count data-blocker-real="' + realBlockerCount + '" data-blocker-gap="' + flowGapCount + '">' + countLabel + '</span></div>';
     panelHtml += '<div class="sprint-blockers-list">';
     blockerPanelRows.forEach((row) => {
       const ownerRaw = row.owner || row.assignee || row.reporter || '';
@@ -426,9 +443,11 @@ export function renderStories(data) {
     const remainingDaysBrief = data?.daysMeta?.daysRemainingWorking ?? data?.daysMeta?.daysRemainingCalendar;
     const total = stories.length;
     const daysStr = remainingDaysBrief != null ? remainingDaysBrief + 'd remaining' : '';
-    const confidence = (activeBlockers > 0 && remainingDaysBrief != null && remainingDaysBrief <= 2)
-      ? 'Low'
-      : (activeBlockers > 0 ? 'Medium' : 'Healthy');
+    const confidence = (activeBlockers > 0 && doneCount === 0)
+      ? 'Blocked'
+      : (activeBlockers > 0 && remainingDaysBrief != null && remainingDaysBrief <= 3)
+        ? 'Low'
+        : (activeBlockers > 0 ? 'Low' : 'Healthy');
     const parts = [];
     if (inProgressCount > 0) parts.push(inProgressCount + ' of ' + total + ' items in active development');
     if (activeBlockers > 0) parts.push(activeBlockers + ' blocker' + (activeBlockers > 1 ? 's' : '') + ' unresolved');
@@ -504,7 +523,7 @@ export function renderStories(data) {
     html += renderStorySignalCard('Delivery Progress', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', 'Focus on delivered value, not raw activity.', Number(data?.summary?.percentDone || 0));
   }
   html += renderStorySignalCard('Value Delivered', valueDoneCount + '/' + groupedStories.value.length + ' value stories', 'User-facing change completed this sprint.', groupedStories.value.length > 0 ? (valueDoneCount / groupedStories.value.length) * 100 : 0);
-  html += renderStorySignalCard('Spillover Tracker', spilloverCount + ' stories', spilloverPct + '% of sprint scope is still open.', spilloverPct, spilloverPct > 35 ? ' is-warning' : '');
+  html += renderStorySignalCard('Spillover Tracker', spilloverCount + ' stories', spilloverPct + '% of sprint scope is still open.', spilloverPct, deriveSpilloverTone(spilloverPct));
   html += '</section>';
   html += '<section class="sprint-visibility-grid">';
   html += renderDeliveredSection();

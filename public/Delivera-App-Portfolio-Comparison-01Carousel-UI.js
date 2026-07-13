@@ -1,69 +1,82 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
 import { enrichComparisonForDiffOnly } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
-import { movementLabel } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
+import {
+  clampDeliveryPct,
+  gradateCardStatus,
+  buildCommitmentSummary,
+  buildBentoDecisionLabel,
+  buildTrendLabel,
+  buildDiagnosisLabel,
+  buildWhyText,
+} from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
 
-function width(value) {
-  return Math.max(0, Math.min(100, Number(value) || 0));
-}
-
-function metricTone(value, invert = false) {
-  const v = Number(value) || 0;
-  if (invert) {
-    if (v >= 40) return 'critical';
-    if (v >= 25) return 'watch';
-    return 'healthy';
-  }
-  if (v < 30) return 'critical';
-  if (v < 55) return 'watch';
-  return 'healthy';
-}
-
-function renderBentoCard(card = {}, { peerMedianDelivered = 0 } = {}) {
+function renderBentoCard(card = {}, { commitmentRows = [] } = {}) {
   const m = card.metrics || {};
-  const statusClass = card.statusClass || 'watch';
-  const delivered = width(m.delivered);
-  const offPlan = width(m.offPlanLoad);
-  const proof = width(m.proofConfidence);
-  const movement = movementLabel(delivered);
-  const decisionLabel = card.decisionNeeded || card.nextAction || (statusClass === 'at-risk' ? 'Needs attention' : 'On track ✓');
-  const peerDelta = card.selected && peerMedianDelivered
-    ? delivered - peerMedianDelivered
-    : 0;
-  const deltaHtml = peerDelta
-    ? `<span class="portfolio-bento-peer-delta portfolio-bento-peer-delta--${peerDelta < 0 ? 'critical' : 'healthy'}" title="Vs peer median delivered">${peerDelta > 0 ? '+' : ''}${peerDelta}% vs peers</span>`
-    : '';
+  const delivered = clampDeliveryPct(m.delivered);
+  const proof = clampDeliveryPct(m.proofConfidence);
+  // P1 FIX: Gradate the bento card status instead of binary "At risk".
+  // Critical (red): <50% delivered or stalled. Watch (amber): 50-79%.
+  // On Track (green): ≥80% delivered with ≥40% proof.
+  const gradated = gradateCardStatus(card, delivered, proof);
+  const statusClass = gradated.statusClass;
+  const statusLabel = gradated.statusLabel;
+  const displayName = String(card.squadName || card.projectKey || '').replace(/\s+board$/i, '').trim() || card.projectKey;
   const squadLabel = renderJiraWorkItemLink({
     issueKey: card.primaryEpicKey || card.projectKey,
-    title: card.squadName || card.projectKey,
+    title: displayName,
     issueUrl: card.primaryEpicUrl || '',
     kind: card.primaryEpicKey ? 'epic' : 'squad',
     className: 'portfolio-bento-squad-link',
   });
+  const squadCommitments = commitmentRows.filter((row) =>
+    String(row.projectKey || '').toUpperCase() === String(card.projectKey || '').toUpperCase()
+  );
+  const nextLabel = buildBentoDecisionLabel(card, delivered, proof);
+  const commitmentExpandHtml = squadCommitments.length
+    ? `<div class="portfolio-bento-commitments" data-bento-commitments hidden>
+        <p class="portfolio-bento-commitments-kicker">${squadCommitments.length} missing/unproven PI commitment${squadCommitments.length === 1 ? '' : 's'}</p>
+        <ul class="portfolio-bento-commitments-list">
+          ${squadCommitments.slice(0, 5).map((row) => `
+            <li class="portfolio-bento-commitment-item" data-commitment-issue="${escapeHtml(row.issueKey || '')}" data-issue-key="${escapeHtml(row.issueKey || '')}">
+              <strong>${escapeHtml(row.issueKey || row.title?.slice(0, 30) || 'Commitment')}</strong>
+              <span class="portfolio-bento-commitment-status">${escapeHtml(row.reality || row.governanceState || '')}</span>
+              ${row.owner ? `<span class="portfolio-bento-commitment-owner">👤 ${escapeHtml(row.owner)}</span>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      </div>`
+    : '';
+  const sprintHref = card.viewSquadHref || `/current-sprint?projects=${encodeURIComponent(card.projectKey || '')}`;
   return `
     <article class="portfolio-bento-card portfolio-bento-card--${escapeHtml(statusClass)}${card.selected ? ' is-selected' : ''}"
       data-squad-key="${escapeHtml(card.projectKey)}"
       data-squad-select="${escapeHtml(card.projectKey)}"
+      data-squad-drill="${escapeHtml(card.projectKey)}"
+      data-hover-proof="status"
       data-testid="portfolio-bento-card"
       role="button"
       tabindex="0"
-      title="${escapeHtml(card.proofDetail || card.explanation || 'Select squad')}">
+      title="${escapeHtml(card.proofDetail || card.explanation || 'Open squad deep dive')}">
       <header class="portfolio-bento-card-head">
         <strong class="portfolio-bento-squad">${squadLabel}</strong>
-        <span class="portfolio-squad-status portfolio-squad-status--${escapeHtml(statusClass)}">${escapeHtml(card.status || 'Watch')}</span>
+        <span class="portfolio-squad-status portfolio-squad-status--${escapeHtml(statusClass)}" data-hover-proof="status">${escapeHtml(statusLabel)}</span>
       </header>
-      <dl class="portfolio-bento-metrics">
-        <div><dt>Promised impact</dt><dd>${Number(m.commitments) || 0}</dd></div>
-        <div class="portfolio-bento-metric--${metricTone(delivered)}"><dt>Delivered</dt><dd>${delivered}%${deltaHtml}</dd></div>
-        <div><dt>Movement</dt><dd>${escapeHtml(movement)}</dd></div>
-        <div class="portfolio-bento-metric--${metricTone(offPlan, true)}"><dt>Off-plan load</dt><dd>${offPlan}%</dd></div>
-        <div class="portfolio-bento-metric--${metricTone(proof)}"><dt>Proof confidence</dt><dd>${proof}%</dd></div>
-      </dl>
-      <div class="portfolio-bento-decision portfolio-bento-decision--${escapeHtml(statusClass)}">
-        <span>Decision</span>
-        <strong>${escapeHtml(decisionLabel)}</strong>
+      <div class="portfolio-bento-compact">
+        <p class="portfolio-bento-delivered" data-bento-metric="delivered" data-hover-proof="evidence-count">${delivered}% delivered</p>
+        <p class="portfolio-bento-commitments-summary" data-bento-metric="commitments" data-hover-proof="owner-lane">${escapeHtml(buildCommitmentSummary(card, squadCommitments, statusClass))}</p>
+        <p class="portfolio-bento-trend" data-bento-metric="trend">Trend: ${escapeHtml(buildTrendLabel(card))}</p>
+        <p class="portfolio-bento-diagnosis" data-bento-metric="diagnosis">${escapeHtml(buildDiagnosisLabel(card, delivered, proof))}</p>
+        <p class="portfolio-bento-next" data-hover-proof="owner-lane"><strong>Do next:</strong> ${escapeHtml(nextLabel)}</p>
       </div>
-      ${card.viewSquadHref ? `<a class="portfolio-bento-details-link" href="${escapeHtml(card.viewSquadHref)}" data-testid="portfolio-bento-details">View details →</a>` : ''}
+      <div class="portfolio-bento-why" data-bento-why hidden>
+        <p class="portfolio-bento-why-label">Why Delivera says this</p>
+        <p class="portfolio-bento-why-text">${escapeHtml(buildWhyText(card, delivered, proof))}</p>
+      </div>
+      <div class="portfolio-bento-card-actions">
+        <a class="portfolio-bento-details-link" href="${escapeHtml(sprintHref)}" data-testid="portfolio-bento-details">Open sprint →</a>
+      </div>
+      ${commitmentExpandHtml}
     </article>`;
 }
 
@@ -109,7 +122,7 @@ export function renderPortfolioCarouselSkeleton({ anchor = '', compare = [], res
     </section>`;
 }
 
-export function renderPortfolioCarousel(comparison = {}) {
+export function renderPortfolioCarousel(comparison = {}, { commitmentRows = [] } = {}) {
   const enriched = enrichComparisonForDiffOnly(comparison);
   const cards = enriched.cards || [];
   if (!cards.length) return '';
@@ -132,20 +145,60 @@ export function renderPortfolioCarousel(comparison = {}) {
       </div>
       ${sharedBanner}
       <div class="portfolio-bento-grid-track" data-carousel-track role="list">
-        ${cards.map((c) => renderBentoCard(c, { peerMedianDelivered })).join('')}
+        ${cards.map((c) => renderBentoCard(c, { peerMedianDelivered, commitmentRows })).join('')}
       </div>
     </section>`;
 }
 
-export function bindPortfolioCarousel(root, { onSelectSquad } = {}) {
+export function bindPortfolioCarousel(root, { onSelectSquad, onDrillIntoSquad } = {}) {
   if (!root) return;
   const cards = Array.from(root.querySelectorAll('[data-squad-key]'));
   const selectCard = (row) => {
     if (!row) return;
     onSelectSquad?.(row.getAttribute('data-squad-key'));
   };
+  // P1 FIX: Whole-card hover reveals "Why Delivera says this" panel.
+  // Also: raise the hovered card by 2-3px with increased shadow.
+  // Respect reduced-motion settings.
+  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  cards.forEach((card) => {
+    const whyPanel = card.querySelector('[data-bento-why]');
+    const commitments = card.querySelector('[data-bento-commitments]');
+    if (whyPanel) {
+      const show = () => { whyPanel.hidden = false; card.classList.add('is-hovered'); };
+      const hide = () => { whyPanel.hidden = true; card.classList.remove('is-hovered'); };
+      card.addEventListener('mouseenter', show);
+      card.addEventListener('mouseleave', hide);
+      card.addEventListener('focusin', show);
+      card.addEventListener('focusout', hide);
+    }
+    if (commitments) {
+      card.addEventListener('mouseenter', () => { commitments.hidden = false; });
+      card.addEventListener('mouseleave', () => { commitments.hidden = true; });
+      card.addEventListener('focusin', () => { commitments.hidden = false; });
+      card.addEventListener('focusout', () => { commitments.hidden = true; });
+    }
+    // P1 FIX: Metric hover highlights same metric on all cards.
+    card.querySelectorAll('[data-bento-metric]').forEach((metric) => {
+      const metricType = metric.getAttribute('data-bento-metric');
+      metric.addEventListener('mouseenter', () => {
+        root.querySelectorAll(`[data-bento-metric="${metricType}"]`).forEach((m) => m.classList.add('is-metric-highlighted'));
+      });
+      metric.addEventListener('mouseleave', () => {
+        root.querySelectorAll(`[data-bento-metric="${metricType}"]`).forEach((m) => m.classList.remove('is-metric-highlighted'));
+      });
+    });
+  });
   root.addEventListener('click', (ev) => {
-    if (ev.target.closest('[data-jira-work-item-link], .portfolio-bento-details-link')) return;
+    if (ev.target.closest('[data-jira-work-item-link], .portfolio-bento-details-link, a')) return;
+    // Whole card = deep dive (direct-to-value). Peer select kept via scope bar.
+    const drillEl = ev.target.closest('[data-squad-drill]');
+    if (drillEl) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      onDrillIntoSquad?.(drillEl.getAttribute('data-squad-drill'));
+      return;
+    }
     const row = ev.target.closest('[data-squad-key]');
     if (!row) return;
     selectCard(row);

@@ -30,6 +30,8 @@ export function epicKeyLine(issueKey, jiraHost) {
 }
 
 export function activitySubline(c) {
+  const isUnmatched = c.method === 'slide-unmatched' && !c.issueKey;
+  if (isUnmatched) return '';
   const label = humanEpicActivityLabel(c?.epicActivity || {});
   return label ? `<span class="gov-baseline-activity">${escapeHtml(label)}</span>` : '';
 }
@@ -67,17 +69,25 @@ export function rowActionButtons(c, indexAttr) {
 export function candidateRow(c, i, jiraHost) {
   const isLinked = c.method === 'slide-linked' || c.method === 'slide-reconciled';
   const isDup = c.method === 'slide-duplicate-risk';
-  const isAutoMatched = ['slide-linked', 'slide-reconciled', 'slide-semantic-link', 'slide-playbook', 'MATCHED'].includes(c.method);
+  const isAutoMatched = ['slide-linked', 'slide-reconciled', 'slide-semantic-link', 'slide-board-link', 'slide-playbook', 'MATCHED'].includes(c.method);
   const canConfirm = Boolean(c.issueKey) && !isDup && (isAutoMatched || c.method !== 'slide-unmatched');
+  const matchScore = c.matchScore || c.confidence || 0;
+  const isSoftMatch = Boolean(c.issueKey) && (
+    c.method === 'slide-board-link'
+    || (isDup && c.issueKey)
+    || (c.method === 'slide-semantic-link' && matchScore < 0.65)
+  );
   const title = businessTitleFromSummary(c.suggestedEpicTitle || c.title || c.summary || '', 200);
   let statusBadge = '';
-  if (isDup) {
+  if (isDup && !c.issueKey) {
     statusBadge = `<span class="gov-baseline-status gov-baseline-status--warn">${escapeHtml(COPY.baselineSlideDuplicateRisk)}</span>`;
+  } else if (isSoftMatch && canConfirm) {
+    statusBadge = `<span class="gov-baseline-status gov-baseline-status--soft">${escapeHtml(COPY.baselineSlideSoftMatch)}</span>`;
   } else if (isLinked && canConfirm) {
     statusBadge = `<span class="gov-baseline-status gov-baseline-status--ok">${escapeHtml(COPY.baselineSlideLinkedPrior)}</span>`;
   } else if (canConfirm) {
     statusBadge = `<span class="gov-baseline-status gov-baseline-status--ok">${escapeHtml(COPY.baselineSlideMatched)}</span>`;
-  } else if (c.method === 'slide-unmatched' || isDup) {
+  } else if (c.method === 'slide-unmatched' || (isDup && !c.issueKey)) {
     statusBadge = `<span class="gov-baseline-status gov-baseline-status--missing">${escapeHtml(COPY.baselineSlideMissing)}</span>`;
   }
   const dupNote = c.duplicateRisk?.reason

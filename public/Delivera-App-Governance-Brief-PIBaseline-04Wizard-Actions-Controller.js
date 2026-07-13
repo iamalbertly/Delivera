@@ -22,7 +22,7 @@ import {
 } from './Delivera-App-Governance-Brief-PIBaseline-03Wizard-Render-Shell-UI.js';
 
 const SLIDE_UPLOAD_OK_KEY = 'delivera_baseline_slide_ok_v1';
-const AUTO_MATCH_METHODS = new Set(['slide-linked', 'slide-reconciled', 'slide-semantic-link', 'slide-playbook', 'MATCHED']);
+const AUTO_MATCH_METHODS = new Set(['slide-linked', 'slide-reconciled', 'slide-semantic-link', 'slide-board-link', 'slide-playbook', 'MATCHED']);
 
 function markAutoSelectedCandidates(data = {}) {
   for (const c of data.candidates || []) {
@@ -131,8 +131,9 @@ export function createPiBaselineWizardActions(ctx) {
     showInlineToast(bodyEl, msg, 'error');
   }
 
-  async function handleSlideUpload(file, bodyEl, projects, csv, quarterLabel, priorData) {
+  async function handleSlideUpload(file, bodyEl, projects, csv, quarterLabel, priorData, { refresh = false } = {}) {
     if (!file || !bodyEl) return;
+    state.lastSlideFile = file;
     // Progressive feedback with elapsed time + cancel (Edge 2 — no silent 60s wait)
     const startTime = Date.now();
     let progressEl = bodyEl.querySelector('[data-testid="gov-baseline-slide-progress"]');
@@ -161,7 +162,7 @@ export function createPiBaselineWizardActions(ctx) {
       restoreAfterUploadError(bodyEl, priorData, projects, csv, quarterLabel, { message: 'Upload cancelled', code: 'CANCELLED' });
     });
     try {
-      const data = markAutoSelectedCandidates(await postSlidePropose({ file, projects, projectsCsv: csv, signal: abortController.signal }));
+      const data = markAutoSelectedCandidates(await postSlidePropose({ file, projects, projectsCsv: csv, signal: abortController.signal, refresh }));
       if (elapsedTimer) clearInterval(elapsedTimer);
       cacheSlideProposeResult(data);
       state.lastSlideData = data;
@@ -279,7 +280,14 @@ export function createPiBaselineWizardActions(ctx) {
     state.lastCsv = csv;
     state.lastQuarter = quarterLabel;
 
-    el.querySelector('[data-baseline-close]')?.addEventListener('click', ctx.close);
+    el.querySelector('[data-baseline-close]')?.addEventListener('click', () => {
+      const matched = (data.candidates || []).filter((c) => c.issueKey).length;
+      if (matched > 0 && !data._baselineSaved) {
+        const save = window.confirm(`You have ${matched} matched epic${matched === 1 ? '' : 's'} ready to save. Close without saving?`);
+        if (!save) return;
+      }
+      ctx.close();
+    });
     el.querySelector('[data-baseline-switch-sd]')?.addEventListener('click', () => {
       try { localStorage.setItem(PROJECTS_SSOT_KEY, 'SD'); } catch (_) { /* ignore */ }
       ctx.close();
@@ -300,6 +308,16 @@ export function createPiBaselineWizardActions(ctx) {
     el.querySelector('#gov-baseline-refresh-list')?.addEventListener('click', () => {
       ctx.close();
       ctx.open(true);
+    });
+    el.querySelector('[data-slide-refresh-match]')?.addEventListener('click', async () => {
+      if (state.lastSlideFile) {
+        void handleSlideUpload(state.lastSlideFile, el, projects, csv, quarterLabel, data, { refresh: true });
+        return;
+      }
+      if (Array.isArray(data?.resolved) && data.resolved.length) {
+        el.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideMatching)}</p>`;
+        await reconcileFromResolved(el, projects, csv, quarterLabel, data);
+      }
     });
     const dropZone = el.querySelector('#gov-baseline-slide-drop');
     if (dropZone && cap()?.slideVisionReady) {
@@ -395,8 +413,10 @@ export function createPiBaselineWizardActions(ctx) {
             approvedBy: 'governance-wizard',
           }),
         }, 'pi-baseline-save');
+        data._baselineSaved = true;
         ctx.close();
         ctx.onSaved?.();
+        document.querySelector('[data-testid="governance-commitment-above-fold"], .gov-priority-commitment-rail')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       } catch (err) {
         showInlineToast(el, err?.message || COPY.baselineSaveFailed, 'error');
       }

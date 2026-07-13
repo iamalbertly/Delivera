@@ -14,19 +14,8 @@ export function buildAdaptiveEvidenceBlocks(priorityBrief = {}, decision = {}, b
   const prov = pb.baselineProvenance || {};
   const blocks = [];
 
-  if (prov.extracted > 0 || prov.unsupported > 0) {
-    blocks.push({
-      id: 'promise-trace',
-      title: 'Promise trace',
-      summary: `${prov.extracted || 0} promised · ${prov.linked || 0} linked · ${prov.unsupported || 0} unsupported`,
-      action: 'Inspect promise-to-Jira trace',
-      actionId: 'inspect-evidence',
-      relevant: prov.unsupported > 0 || prov.extracted > 0,
-    });
-  }
-
   const scopeRow = (pb.commitmentRows || []).find((r) => r.scopeAfterPlanning);
-  if (scopeRow) {
+  if (scopeRow && !priorityBrief.humanDecision?.text) {
     blocks.push({
       id: 'scope-decision',
       title: 'Scope decision',
@@ -49,7 +38,7 @@ export function buildAdaptiveEvidenceBlocks(priorityBrief = {}, decision = {}, b
     });
   }
 
-  if (pb.recoveryLine && pb.recovery?.outlook !== 'recoverable') {
+  if (pb.recoveryLine && pb.recovery?.outlook !== 'recoverable' && pb.recovery?.confidence !== 'low') {
     blocks.push({
       id: 'recovery-outlook',
       title: 'Recovery outlook',
@@ -77,19 +66,26 @@ export function buildAdaptiveEvidenceBlocks(priorityBrief = {}, decision = {}, b
 
 export function renderAdaptiveEvidenceBlocks(blocks = [], brief = {}, decision = {}) {
   const visible = blocks.filter((b) => b.relevant);
-  const whatChanged = renderWhatChangedTimeline(brief, decision);
-  if (!visible.length && !whatChanged) return '';
+  // P1 FIX: "What changed" is now rendered as a separate strip in the priority
+  // surface — don't duplicate it here.
+  if (!visible.length) return '';
 
-  const cards = visible.map((b) => `
+  const primary = visible.slice(0, 2);
+  const overflow = visible.slice(2);
+  const renderCard = (b) => `
     <article class="gov-evidence-block gov-evidence-block--${escapeHtml(b.id)}" data-testid="governance-evidence-block" data-block-id="${escapeHtml(b.id)}">
       <h3 class="gov-evidence-block-title">${escapeHtml(b.title)}</h3>
       <p class="gov-evidence-block-summary">${escapeHtml(b.summary)}</p>
       <button type="button" class="btn btn-link btn-compact" data-governance-action="${escapeHtml(b.actionId)}">${escapeHtml(b.action)}</button>
-    </article>`).join('');
+    </article>`;
+  const cards = primary.map(renderCard).join('');
+  const overflowHtml = overflow.length
+    ? `<details class="gov-adaptive-evidence-more"><summary>${overflow.length} more check${overflow.length === 1 ? '' : 's'}</summary><div class="gov-adaptive-evidence-grid">${overflow.map(renderCard).join('')}</div></details>`
+    : '';
 
   return `
     <section class="gov-adaptive-evidence" data-testid="governance-adaptive-evidence" aria-label="Supporting evidence">
       <div class="gov-adaptive-evidence-grid">${cards}</div>
-      ${whatChanged}
+      ${overflowHtml}
     </section>`;
 }

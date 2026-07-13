@@ -16,6 +16,21 @@ test('deriveSquadRealityVerdict floors Healthy when squad idle after closed spri
   assert.equal(v.limbo, true);
 });
 
+test('deriveSquadRealityVerdict floors Critical when blocker stale 7d+ with near-zero progress', () => {
+  const payload = {
+    sprint: { id: 1, state: 'active', startDate: '2026-06-20', endDate: '2026-07-18' },
+    summary: { totalStories: 12, doneStories: 0 },
+    stories: [{ issueKey: 'SD-1' }],
+    stuckCandidates: [{ issueKey: 'SD-5255', hoursInStatus: 991 }],
+    recentSprints: [{ id: 1, state: 'active' }],
+    meta: { activeSprintCount: 1 },
+  };
+  const v = deriveSquadRealityVerdict(payload);
+  assert.equal(v.verdict, 'Critical');
+  assert.match(v.verdictLine, /Blocker stale/i);
+  assert.match(v.trustLabel, /blocker unchanged/i);
+});
+
 test('deriveSquadRealityVerdict escalates when next sprint start overdue', () => {
   const end = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
   const payload = {

@@ -120,15 +120,15 @@ test.describe('Churn Trust Repair Master Plan @churn-trust-repair', () => {
     assertTelemetryClean(t);
   });
 
-  test('05 at-risk row opens evidence without Open evidence button', async ({ page }) => {
+  test('05 at-risk row scrolls to commitment without squad switcher', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockGovernance(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-at-risk-table"]', { timeout: 120000 });
-    await expect(page.locator('[data-governance-action="inspect-squad"]')).toHaveCount(0);
+    await expect(page.locator('[data-governance-squad-select]')).toHaveCount(0);
     await page.locator('.gov-priority-at-risk-row').first().click();
-    await page.waitForSelector('.gov-evidence-drawer-framing', { timeout: 15000 });
+    await expect(page.getByTestId('governance-commitment-detail')).toBeVisible();
     assertTelemetryClean(t);
   });
 

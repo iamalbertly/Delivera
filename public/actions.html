@@ -16,7 +16,18 @@
     <div id="actions-batch-bar" class="actions-batch-bar" hidden></div>
     <nav class="actions-tabs" aria-label="Actions tabs" id="actions-tabs"></nav>
     <div class="actions-layout">
-      <section id="actions-list" class="actions-list" aria-live="polite"></section>
+      <section id="actions-list" class="actions-list" aria-live="polite" aria-busy="true">
+        <div class="instant-shell instant-shell--actions" data-testid="instant-shell" role="status">
+          <div class="instant-shell-header-bar"><div class="instant-shimmer" style="width:30%"></div></div>
+          <div class="instant-shell-tabs"><div class="instant-shimmer" style="width:20%"></div><div class="instant-shimmer" style="width:20%"></div></div>
+          <div class="instant-shell-cases">
+            <div class="instant-shell-case-card"><div class="instant-shimmer" style="width:70%"></div><div class="instant-shimmer" style="width:90%"></div></div>
+            <div class="instant-shell-case-card"><div class="instant-shimmer" style="width:60%"></div><div class="instant-shimmer" style="width:85%"></div></div>
+            <div class="instant-shell-case-card"><div class="instant-shimmer" style="width:65%"></div><div class="instant-shimmer" style="width:80%"></div></div>
+          </div>
+          <p class="instant-shell-label">Loading actions for your scope…</p>
+        </div>
+      </section>
       <aside id="actions-preview-rail" class="actions-preview-rail" aria-label="Case preview" hidden></aside>
     </div>
   </main>

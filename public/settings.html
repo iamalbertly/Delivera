@@ -17,12 +17,27 @@
         <p id="surface-summary-line" class="surface-summary-line"></p>
       </section>
       <nav id="settings-nav-rail" class="settings-nav-rail surface-card" aria-label="Settings sections"></nav>
-      <div class="settings-hub-panels">
+      <div class="settings-hub-panels" aria-busy="true">
+        <div class="instant-shell instant-shell--settings" data-testid="instant-shell" role="status">
+          <div class="instant-shell-settings-grid">
+            <div class="instant-shell-settings-nav">
+              <div class="instant-shimmer" style="width:80%"></div>
+              <div class="instant-shimmer" style="width:70%"></div>
+              <div class="instant-shimmer" style="width:75%"></div>
+              <div class="instant-shimmer" style="width:65%"></div>
+            </div>
+            <div class="instant-shell-settings-content">
+              <div class="instant-shell-settings-card"><div class="instant-shimmer" style="width:50%"></div><div class="instant-shimmer" style="width:90%"></div></div>
+              <div class="instant-shell-settings-card"><div class="instant-shimmer" style="width:40%"></div><div class="instant-shimmer" style="width:80%"></div></div>
+            </div>
+          </div>
+          <p class="instant-shell-label">Loading workspace settings…</p>
+        </div>
         <div id="settings-my-workspace"></div>
         <div id="settings-organization"></div>
         <div id="settings-epic-format"></div>
         <div id="settings-integrations"></div>
-        <section id="jira-activity" class="surface-card jira-activity-section settings-section-card">
+        <section id="jira-activity" class="surface-card jira-activity-section settings-section-card" hidden>
           <h2>Jira activity</h2>
           <p>Comments sent from Current Sprint. Review what was posted and undo when Jira allows.</p>
           <div id="jira-activity-panel" class="jira-activity-panel"></div>

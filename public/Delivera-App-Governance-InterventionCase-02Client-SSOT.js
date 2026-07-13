@@ -16,7 +16,8 @@ export function caseVerb(state = '') {
 
 export function compactTitle(row = {}) {
   const keys = (row.issueKeys || []).slice(0, 2).join(', ');
-  return keys ? `${row.project} needs a decision on ${keys}` : row.title || `${row.project} needs a decision`;
+  const raw = keys ? `${row.project} needs a decision on ${keys}` : row.title || `${row.project} needs a decision`;
+  return String(raw).replace(/\b(\w+)\s+board\s+board\b/gi, '$1 board');
 }
 
 export function briefRisks(brief = {}) {
@@ -113,7 +114,7 @@ export function renderInterventionCaseCard(row = {}, { surface = 'actions', high
     <article class="actions-case-card${highlight ? ' is-highlighted' : ''}${selected ? ' is-selected' : ''}" data-case-id="${escapeHtml(row.id)}" id="case-${escapeHtml(row.id)}">
       <div class="actions-case-card-main">
         ${squadLink ? `<p class="actions-case-squad">${squadLink}</p>` : ''}
-        <h2>${escapeHtml(row.title || compactTitle(row))}</h2>
+        <h2>${escapeHtml(String(row.title || compactTitle(row)).replace(/\b(\w+)\s+board\s+board\b/gi, '$1 board'))}</h2>
         <p>${issueCount} related issues · ${row.needsApproval ? '1+ nudges ready' : 'monitoring'} · Proof: ${escapeHtml(proof)}</p>
         ${governanceChip}
       </div>

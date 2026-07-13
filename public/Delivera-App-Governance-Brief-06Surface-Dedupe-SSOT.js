@@ -1,6 +1,8 @@
 /**
  * SSOT: partition brief risks into non-overlapping UI surfaces.
  */
+import { buildCadencePackState } from './Delivera-App-Governance-Cadence-01Pack-Render-UI.js';
+
 const ESC_ORDER = { escalate: 0, 'act-today': 1, watch: 2 };
 
 function riskKey(r) {
@@ -218,6 +220,22 @@ export function maxStaleHoursFromBrief(brief = {}) {
   return maxH;
 }
 
+/** Trust chip label when sprint cadence is stale or blocked (1-second skim SSOT). */
+export function deriveTrustChipLabel(brief = {}, decision = {}) {
+  const cadence = buildCadencePackState(brief);
+  const verdict = String(brief?.executiveView?.verdictTier || '').toLowerCase();
+  if (verdict === 'blocked' || cadence.status === 'stalled' || cadence.movementHealth === 'blocked') {
+    const stale = cadence.staleDays >= 1 ? `${Math.round(cadence.staleDays)}d stale` : '';
+    return stale ? `DELIVERY BLOCKED · ${stale}` : 'DELIVERY BLOCKED';
+  }
+  if (cadence.status === 'ended' && cadence.daysSinceEnd != null && cadence.daysSinceEnd >= 14) {
+    return `No sprint · ${cadence.daysSinceEnd}d gap`;
+  }
+  const proof = decision?.trust?.proofLevel || decision?.dataTrust?.confidenceLabel || '';
+  if (proof && String(proof).toLowerCase() !== 'medium') return String(proof);
+  return '';
+}
+
 /** Downgrade confidence when blocked + stale + low done ratio (trust SSOT). */
 export function applyHonestTrustClamp(brief = {}, decision = {}) {
   const verdict = String(brief?.executiveView?.verdictTier || '').toLowerCase();
@@ -228,7 +246,11 @@ export function applyHonestTrustClamp(brief = {}, decision = {}) {
   const done = Number(squad?.sprintPulse?.done) || 0;
   const ratio = committed > 0 ? done / committed : 1;
   const staleH = maxStaleHoursFromBrief(brief);
-  const forceLow = verdict === 'blocked' || ratio < 0.15 || staleH > 72;
+  const cadence = buildCadencePackState(brief);
+  const stalledSprint = cadence.status === 'stalled'
+    || cadence.movementHealth === 'blocked'
+    || (cadence.staleDays >= 7 && ratio < 0.15);
+  const forceLow = verdict === 'blocked' || ratio < 0.15 || staleH > 72 || stalledSprint;
   if (!forceLow) return { brief, decision };
   const nextBrief = { ...brief };
   if (nextBrief.leadershipNarrative) {
@@ -243,6 +265,15 @@ export function applyHonestTrustClamp(brief = {}, decision = {}) {
   }
   if (nextDecision.evidenceBreakdown) {
     nextDecision.evidenceBreakdown = { ...nextDecision.evidenceBreakdown, confidenceLabel: 'Low' };
+  }
+  if (nextDecision.priorityBrief?.recovery) {
+    nextDecision.priorityBrief = {
+      ...nextDecision.priorityBrief,
+      recovery: { ...nextDecision.priorityBrief.recovery, confidence: 'low', outlook: 'unlikely' },
+      recoveryLine: nextDecision.priorityBrief.recoveryLine
+        ? String(nextDecision.priorityBrief.recoveryLine).replace(/Medium confidence/i, 'Low confidence')
+        : nextDecision.priorityBrief.recoveryLine,
+    };
   }
   return { brief: nextBrief, decision: nextDecision };
 }

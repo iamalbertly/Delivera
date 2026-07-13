@@ -14,6 +14,7 @@ import { CACHE_NS } from '../lib/Delivera-Cache-AgeTier-01TTL-SSOT.js';
 
 const GOVERNANCE_NS = CACHE_NS.GOVERNANCE_BRIEF;
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
+import { searchIssuesJql } from '../lib/Delivera-Jira-Search-01SSOT.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
 import { attachSquadRealityToPayload } from '../lib/Delivera-CurrentSprint-SquadReality-01Verdict-SSOT.js';
@@ -1852,23 +1853,23 @@ router.post('/api/outcome-from-narrative', requireAuth, async (req, res) => {
 
         const candidates = [];
         try {
-            const byHash = await version3Client.issueSearch.searchForIssuesUsingJqlPost({
+            const { issues: byHashIssues } = await searchIssuesJql(version3Client, {
                 jql: buildOutcomeDuplicateHashJql(projectKey, hashLabel),
                 maxResults: 5,
                 fields: ['summary', 'labels', 'description'],
             });
-            if (Array.isArray(byHash?.issues)) candidates.push(...byHash.issues);
+            if (Array.isArray(byHashIssues)) candidates.push(...byHashIssues);
         } catch (error) {
             logger.warn('Outcome intake dedupe hash lookup failed', { projectKey, error: error?.message });
         }
         if (!candidates.length) {
             try {
-                const byOutcomeStory = await version3Client.issueSearch.searchForIssuesUsingJqlPost({
+                const { issues: byOutcomeIssues } = await searchIssuesJql(version3Client, {
                     jql: buildOutcomeDuplicateLabelJql(projectKey),
                     maxResults: 30,
                     fields: ['summary', 'labels', 'description'],
                 });
-                if (Array.isArray(byOutcomeStory?.issues)) candidates.push(...byOutcomeStory.issues);
+                if (Array.isArray(byOutcomeIssues)) candidates.push(...byOutcomeIssues);
             } catch (error) {
                 logger.warn('Outcome intake dedupe label lookup failed', { projectKey, error: error?.message });
             }

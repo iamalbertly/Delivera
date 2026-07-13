@@ -46,6 +46,10 @@ export function renderInvestmentBodyHtml(brief) {
   const squads = Array.isArray(brief?.squadInsights) ? brief.squadInsights : [];
   const fromBoards = hoursFromBoardSummaries(brief?.meta);
   const { piHours, offPlan, planned, trend: boardTrend } = fromBoards || { ...sumSquadHours(squads), trend: '' };
+  const totalHours = Math.round(piHours + offPlan + planned);
+  if (totalHours <= 0) {
+    return '<p class="gov-investment-note" data-testid="gov-investment-pending">Hours sync pending — proof counts update when Jira logs arrive.</p>';
+  }
   const period = brief?.meta?.periodWindow || '28d';
   const partial = partialSuffix(brief);
   const rows = [

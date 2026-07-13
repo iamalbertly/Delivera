@@ -17,6 +17,19 @@ function nextDecisionLabel(row = {}) {
   return COPY.governanceRecordDecision;
 }
 
+function isPiScopedCommitmentRow(row = {}) {
+  const title = String(row.title || row.baselinePromise || '');
+  if (/FY\d{2}\s*Q\d/i.test(title)) return true;
+  if (row.piReference || row.baselinePromise) return true;
+  if (/^As (an |a )/i.test(title) && !/FY\d{2}/i.test(title)) return false;
+  return true;
+}
+
+function boardWorkLabel(row = {}) {
+  if (row.hasJiraMatch) return escapeHtml(row.statusNow || 'Linked');
+  return '<span class="gov-commitment-unlinked" title="No Jira work matched this PI commitment">Unlinked</span>';
+}
+
 function renderDetailRow(row = {}) {
   const issueKey = row.issueKey || '';
   const title = issueKey
@@ -31,26 +44,32 @@ function renderDetailRow(row = {}) {
       tabindex="0" role="button">
       <td>${escapeHtml(row.projectKey || '')}</td>
       <td><span class="gov-status-rail gov-status-rail--${escapeHtml(tone)}">${escapeHtml(row.reality || '')}</span></td>
-      <td>${title}</td>
+      <td><span class="gov-commitment-title" title="${escapeHtml(row.title || row.baselinePromise || '')}">${title}</span></td>
       <td>${escapeHtml(row.baselinePromise || '')}</td>
-      <td>${row.hasJiraMatch ? escapeHtml(row.statusNow || 'Linked') : '0 matching items'}</td>
+      <td>${boardWorkLabel(row)}</td>
       <td>${escapeHtml(row.owner || '—')}</td>
       <td><button type="button" class="btn btn-link btn-compact" data-governance-action="commitment-decision" data-commitment-issue="${escapeHtml(issueKey)}">${escapeHtml(actionLabel)}</button></td>
     </tr>`;
 }
 
 export function renderCommitmentDetail(priorityBrief = {}) {
-  const rows = priorityBrief?.detailRows || [];
-  if (!rows.length) return '';
+  const rows = (priorityBrief?.detailRows || []).filter(isPiScopedCommitmentRow);
+  if (!rows.length) {
+    if (!(priorityBrief?.atRiskSquads || []).length && !priorityBrief?.baselineMissing) return '';
+    return `
+    <section class="gov-commitment-detail gov-priority-commitment-rail" data-testid="governance-commitment-detail" aria-label="PI commitments">
+      <h2 class="gov-below-fold-title">PI commitments</h2>
+      <p class="gov-commitment-empty" data-testid="governance-commitment-above-fold">No unsupported PI commitment rows in this brief yet.</p>
+    </section>`;
+  }
 
   const visible = rows.slice(0, MAX_INLINE);
   const overflow = rows.slice(MAX_INLINE);
 
   return `
-    <section class="gov-commitment-detail" data-testid="governance-commitment-detail" aria-label="Missing or unproven PI commitments">
+    <section class="gov-commitment-detail gov-priority-commitment-rail" data-testid="governance-commitment-detail" aria-label="Missing or unproven PI commitments">
       <h2 class="gov-below-fold-title">Missing or unproven PI commitments</h2>
-      <div class="gov-above-fold-marker" aria-hidden="true"><span>Below the fold</span></div>
-      <table class="gov-commitment-detail-table">
+      <table class="gov-commitment-detail-table" data-testid="governance-commitment-above-fold">
         <thead>
           <tr>
             <th scope="col">Squad</th>

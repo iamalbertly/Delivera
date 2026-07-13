@@ -47,9 +47,9 @@ export function openGovernanceIssuePreview(brief, issueKey) {
 
 export function wireGovernanceIssuePreview(brief, root = document) {
   root.addEventListener('click', (e) => {
-    const link = e.target.closest('.gov-issue-key-link[data-issue-key], .gov-evidence-preview a[data-issue-key], #gov-right-rail-proof-mount a[data-issue-key]');
+    const link = e.target.closest('.gov-issue-key-link[data-issue-key], .gov-evidence-preview a[data-issue-key], #gov-right-rail-proof-mount a[data-issue-key], .jira-work-item-link[data-jira-issue-key], .gov-commitment-detail-link[data-jira-issue-key]');
     if (!link || e.metaKey || e.ctrlKey) return;
-    const key = link.getAttribute('data-issue-key');
+    const key = link.getAttribute('data-issue-key') || link.getAttribute('data-jira-issue-key');
     if (!key) return;
     e.preventDefault();
     openGovernanceIssuePreview(brief, key);

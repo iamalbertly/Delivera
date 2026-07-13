@@ -185,8 +185,11 @@ export function bindHoverProofCards(root, brief) {
     });
   });
 
-  root.querySelectorAll('[data-issue-key], [data-proof-key], .gov-cluster-issue-key').forEach((el) => {
-    const key = el.getAttribute('data-issue-key') || el.textContent?.trim().match(/^[A-Z]+-\d+/)?.[0];
+  root.querySelectorAll('[data-issue-key], [data-jira-issue-key], [data-commitment-issue], [data-proof-key], .gov-cluster-issue-key, .gov-commitment-detail-link').forEach((el) => {
+    const key = el.getAttribute('data-issue-key')
+      || el.getAttribute('data-jira-issue-key')
+      || el.getAttribute('data-commitment-issue')
+      || el.textContent?.trim().match(/^[A-Z]+-\d+/)?.[0];
     if (!key) return;
     const risk = [...(brief.topRisks || []), ...(brief.risks || []), ...(brief.portfolioRisks || [])]
       .find((r) => String(r.issueKey).toUpperCase() === String(key).toUpperCase());

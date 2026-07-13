@@ -17,8 +17,16 @@ export const GOV_PERIOD_WINDOW_KEY = 'gov-period-window';
 export const SCOPE_COLLAPSE_KEY = 'gov-scope-collapsed';
 export const LAST_VERDICT_KEY = 'delivera_lastVerdictTier';
 export const PORTFOLIO_PEER_PRESET_KEY = 'delivera_portfolio_peer_preset_v1';
+export const GOV_VIEW_MODE_KEY = 'delivera:gov:viewMode';
 export const PORTFOLIO_DEFAULT_ANCHOR = 'SD';
-export const PORTFOLIO_DEFAULT_COMPARE = Object.freeze(['MAS', 'RPA', 'MPSA2']);
+/**
+ * Default compare set: ALL squads except the anchor.
+ * The governance page is a bird's-eye view — users should see every squad
+ * by default, not a hardcoded 3-squad subset. Individual peers can be
+ * removed via chip ✕. (Audit finding: "first primary view is to view
+ * all the squads at the same time".)
+ */
+export const PORTFOLIO_DEFAULT_COMPARE = Object.freeze(['*']); // sentinel: resolve to all squads at call-time
 
 export function isPortfolioScopePage(mount) {
   if (mount?.id === 'portfolio-scope-bar-mount') return true;
@@ -34,13 +42,43 @@ export function readScopeProjects() {
   return list.length ? list : defaultSelectedKeys();
 }
 
-/** First visit to portfolio: DMS anchor + strategic peer compare preset. */
+/**
+ * Resolve the default compare list. If PORTFOLIO_DEFAULT_COMPARE is ['*'],
+ * expand to all catalog keys minus the anchor. This gives users the full
+ * bird's-eye view on first visit without hardcoding a 3-squad subset.
+ */
+export function resolveDefaultCompare(anchor = PORTFOLIO_DEFAULT_ANCHOR) {
+  if (PORTFOLIO_DEFAULT_COMPARE[0] !== '*') return [...PORTFOLIO_DEFAULT_COMPARE];
+  const A = String(anchor || '').trim().toUpperCase();
+  return catalogProjectKeys().filter((k) => String(k).toUpperCase() !== A);
+}
+
+/**
+ * Read/write the governance view-mode separately from the data cache.
+ * View-mode tracks whether the user is in "compare" or "drill" mode so
+ * that a page reload restores the user's last view, not the cached data
+ * scope. (Audit finding: cache restored drilled scope, trapping users.)
+ */
+export function readGovViewMode() {
+  try { return String(sessionStorage.getItem(GOV_VIEW_MODE_KEY) || 'compare').toLowerCase(); }
+  catch (_) { return 'compare'; }
+}
+export function writeGovViewMode(mode) {
+  try { sessionStorage.setItem(GOV_VIEW_MODE_KEY, String(mode || 'compare').toLowerCase()); }
+  catch (_) { /* ignore */ }
+}
+export function clearGovViewMode() {
+  try { sessionStorage.removeItem(GOV_VIEW_MODE_KEY); }
+  catch (_) { /* ignore */ }
+}
+
+/** First visit to portfolio: DMS anchor + ALL squads as compare preset. */
 export function ensurePortfolioDefaultScope() {
   if (!isPortfolioScopePage()) return;
   try {
     const raw = localStorage.getItem(PROJECTS_SSOT_KEY);
     if (raw !== null && String(raw).trim() !== '') return;
-    writePortfolioProjectsCsv(PORTFOLIO_DEFAULT_ANCHOR, [...PORTFOLIO_DEFAULT_COMPARE]);
+    writePortfolioProjectsCsv(PORTFOLIO_DEFAULT_ANCHOR, resolveDefaultCompare());
     writePortfolioAnchor(PORTFOLIO_DEFAULT_ANCHOR);
     localStorage.setItem(PORTFOLIO_PEER_PRESET_KEY, '1');
   } catch (_) { /* ignore */ }

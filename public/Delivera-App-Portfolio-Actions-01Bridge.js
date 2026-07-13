@@ -62,7 +62,10 @@ export function openPortfolioCalibrationDrawer(decision = {}, cases = []) {
       </div>
     </div>`;
   const { el } = openRightDrawer({
-    title: 'Governance evidence',
+    // P2 FIX: Drawer title should match the CTA that opened it. The CTA says
+    // "Resolve top N gaps" but the drawer said "Governance evidence" —
+    // different mental model. Now the title matches the action.
+    title: 'Resolve commitment gaps',
     bodyHtml,
     panelClass: 'calibration',
   });
