@@ -13,11 +13,35 @@ export function clampDeliveryPct(value) {
   return Math.max(0, Math.min(100, Number(value) || 0));
 }
 
+/** Map backend PortfolioComparison labels onto CardStatus grammar (one boundary). */
+export function normalizeBackendStatusClass(statusClass = '') {
+  const s = String(statusClass || '').toLowerCase();
+  if (s === 'at-risk') return 'critical';
+  if (s === 'improving') return 'on-track';
+  return s;
+}
+
+/** Exception-rail / priority-brief attention → CSS tone (SSOT). */
+export function attentionTone(attentionState = '') {
+  const state = String(attentionState || '').toLowerCase();
+  if (state === 'off-plan' || state === 'decision-required') return 'critical';
+  if (state === 'proof-required') return 'watch';
+  if (state === 'cannot-verify') return 'muted';
+  if (state === 'no-action' || state === 'complete') return 'healthy';
+  return 'healthy';
+}
+
+/** True when gradated status should count toward systemic / at-risk banners. */
+export function isAttentionStatus(statusClass = '') {
+  const s = normalizeBackendStatusClass(statusClass);
+  return s === 'critical' || s === 'blocked' || s === 'data-check';
+}
+
 /** Gradate bento / verdict status — not binary "At risk". */
 export function gradateCardStatus(card = {}, delivered, proof) {
   const deliveredPct = clampDeliveryPct(delivered);
   const proofPct = clampDeliveryPct(proof);
-  const backendStatus = String(card.statusClass || '').toLowerCase();
+  const backendStatus = normalizeBackendStatusClass(card.statusClass);
   if (backendStatus === 'blocked') {
     return { statusClass: 'blocked', statusLabel: '⛔ Blocked' };
   }

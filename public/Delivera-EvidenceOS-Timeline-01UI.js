@@ -1,5 +1,10 @@
 import { createModalBehavior } from './Delivera-Core-UI-02Primitives-Modal.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import {
+  paintInstantShell,
+  clearInstantShell,
+  setDeliveraSurfaceState,
+} from './Delivera-Shared-Instant-Shell-01UI.js';
 
 const state = {
   cockpit: null,
@@ -21,7 +26,15 @@ async function api(path, options = {}) {
 
 function setLoading(isLoading) {
   const loading = document.getElementById('eos-loading');
-  if (loading) loading.hidden = !isLoading;
+  if (isLoading) {
+    if (loading) loading.hidden = false;
+    paintInstantShell('evidence');
+    setDeliveraSurfaceState('evidence', 'loading');
+  } else {
+    clearInstantShell();
+    if (loading) loading.hidden = true;
+    setDeliveraSurfaceState('evidence', 'live');
+  }
 }
 
 function renderAttention() {
@@ -234,6 +247,7 @@ async function handleIntent(event) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  paintInstantShell('evidence');
   drawerController = createModalBehavior('#eos-capture-drawer', { mode: 'drawer' });
   document.addEventListener('click', (event) => {
     if (event.target?.closest?.('[data-eos-action="capture"]')) drawerController.open({ triggerEl: event.target });

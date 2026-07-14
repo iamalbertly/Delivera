@@ -147,7 +147,8 @@ body {
   font-family: 'Aptos', 'Segoe UI Variable Text', 'Candara', 'Segoe UI', sans-serif;
   line-height: 1.6;
   color: var(--text-body);
-  background: var(--app-bg);
+  /* Anti white-flash: never leave body as pure white before surface CSS loads */
+  background: var(--surface-page, var(--app-bg, #f5f6f8));
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;

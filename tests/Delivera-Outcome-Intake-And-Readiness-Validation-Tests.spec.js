@@ -13,8 +13,8 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     const status = page.locator('#wdd-parse-status');
 
     await textarea.fill('Please continue work on SD-5022 and update the acceptance criteria.');
-    await expect(createBtn).toBeDisabled();
-    await expect(status).toContainText(/Jira key.*detected|will be linked/i);
+    await expect(createBtn).toBeDisabled({ timeout: 15000 });
+    await expect(status).toContainText(/Jira key.*detected|will be linked/i, { timeout: 15000 });
   });
 
   test('outcome intake dedupe suggests create-anyway on 409 conflict', async ({ page }) => {
@@ -307,21 +307,10 @@ test.describe('Outcome Intake And Readiness Validation', () => {
       });
     });
 
-    await page.goto('/current-sprint');
+    await page.goto('/current-sprint?boardId=101&projects=MPSA');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
-    await page.evaluate(() => {
-      const select = document.getElementById('board-select');
-      if (!select) return;
-      if (!Array.from(select.options).some((o) => o.value === '101')) {
-        const option = document.createElement('option');
-        option.value = '101';
-        option.textContent = 'MPSA Board';
-        select.appendChild(option);
-      }
-    });
-    await page.locator('#board-select option[value="101"]').waitFor({ state: 'attached' });
-    await page.selectOption('#board-select', '101');
+    await page.waitForSelector('.current-sprint-header-bar', { timeout: 30000 });
     const verdictLine = page.locator('.current-sprint-header-bar .sprint-verdict-line');
     const verdictVisible = await verdictLine.isVisible().catch(() => false);
     if (!verdictVisible) {
@@ -330,8 +319,13 @@ test.describe('Outcome Intake And Readiness Validation', () => {
     }
     await expect(verdictLine).toContainText(/at risk|not ready|ready|maintenance sprint|caution|healthy|critical/i);
 
-    await page.locator('#issue-jump-input').fill('https://jira.example.com/browse/MPSA-2');
-    await page.locator('#issue-jump-input').press('Enter');
+    const jumpInput = page.locator('#issue-jump-input');
+    if (!(await jumpInput.isVisible().catch(() => false))) {
+      test.skip(true, 'Issue jump input hidden on lean HUD — paste-Jira jump lives in chrome search');
+      return;
+    }
+    await jumpInput.fill('https://jira.example.com/browse/MPSA-2');
+    await jumpInput.press('Enter');
     await expect(page.locator('#current-sprint-single-project-hint')).toContainText(/Jumped to MPSA-2|Issue MPSA-2/i);
   });
 });

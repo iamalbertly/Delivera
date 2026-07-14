@@ -602,4 +602,53 @@ test.describe('Governance layout overlap audit', () => {
 
     assertTelemetryClean(telemetry);
   });
+
+  test('governance scope bar sticks flush under top chrome (no sticky-offset double-count gap)', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockLayoutGovernancePage(page);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await waitForLayoutGovernanceReady(page);
+    const gap = await page.evaluate(() => {
+      const chrome = document.getElementById('app-top-chrome');
+      const sub = document.getElementById('app-sub-chrome-slot');
+      const scope = document.querySelector('#portfolio-scope-bar-mount.portfolio-scope-bar, .portfolio-scope-bar');
+      if (!chrome || !scope) return 9999;
+      const navBottom = (sub && !sub.hidden && sub.getBoundingClientRect().height > 0)
+        ? sub.getBoundingClientRect().bottom
+        : chrome.getBoundingClientRect().bottom;
+      return Math.round(scope.getBoundingClientRect().top - navBottom);
+    });
+    expect(gap).toBeLessThanOrEqual(8);
+    assertTelemetryClean(telemetry);
+  });
+
+  test('instant-shell first paint on governance and current-sprint (no cold-load spinner)', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.addInitScript(() => {
+      sessionStorage.clear();
+      localStorage.setItem('delivera_selectedProjects', 'SD');
+    });
+    await routeProjectsCatalog(page);
+    await page.route('**/api/governance-brief.json**', async (route) => {
+      await new Promise((r) => setTimeout(r, 600));
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LAYOUT_BRIEF) });
+    });
+    await page.route('**/api/**', (r) => {
+      const u = r.request().url();
+      if (u.includes('governance-brief')) return r.fallback();
+      return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    }).catch(() => {});
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]').first()).toBeVisible({ timeout: 4000 });
+
+    await page.goto('/current-sprint');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('#current-sprint-loading [data-testid="instant-shell"], [data-testid="instant-shell-stale"]').first()).toBeVisible({ timeout: 4000 });
+    await expect(page.locator('#current-sprint-loading.current-sprint-loading-with-spinner')).toHaveCount(0);
+    assertTelemetryClean(telemetry);
+  });
 });

@@ -7,6 +7,7 @@
 import { currentSprintDom } from './Delivera-CurrentSprint-Page-Context.js';
 import { setActionErrorOnEl, clearEl } from './Delivera-Shared-Status-Helpers.js';
 import { stopRotatingMessages } from './Delivera-Shared-Loading-Theater.js';
+import { updateInstantShellLabel, setDeliveraSurfaceState } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 export const PAGE_STATE = Object.freeze({
   WELCOME: 'welcome',
@@ -29,6 +30,11 @@ function getMainEl() {
 function setStateAttr(state) {
   const main = getMainEl();
   if (main) main.setAttribute('data-current-sprint-state', state);
+  const dataState = state === PAGE_STATE.CONTENT ? 'live'
+    : state === PAGE_STATE.ERROR ? 'error'
+    : state === PAGE_STATE.WELCOME ? 'empty'
+    : 'loading';
+  setDeliveraSurfaceState('current-sprint', dataState);
 }
 
 export function getCurrentState() {
@@ -48,6 +54,10 @@ function hideAll() {
   if (contentEl && contentEl.getAttribute('data-preserve-content') !== 'true') contentEl.style.display = 'none';
 }
 
+function hasInstantShell(loadingEl) {
+  return Boolean(loadingEl?.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]'));
+}
+
 export function setPageState(state, options = {}) {
   stopRotatingMessages();
   const { loadingEl, errorEl, contentEl } = currentSprintDom;
@@ -63,9 +73,13 @@ export function setPageState(state, options = {}) {
     case PAGE_STATE.WELCOME:
       if (loadingEl) {
         const message = options.message != null ? options.message : WELCOME_MESSAGE;
-        loadingEl.innerHTML = '<div class="current-sprint-loading-copy"></div>';
-        const copyEl = loadingEl.querySelector('.current-sprint-loading-copy');
-        if (copyEl) copyEl.textContent = message;
+        if (hasInstantShell(loadingEl)) {
+          updateInstantShellLabel(message);
+        } else {
+          loadingEl.innerHTML = '<div class="current-sprint-loading-copy"></div>';
+          const copyEl = loadingEl.querySelector('.current-sprint-loading-copy');
+          if (copyEl) copyEl.textContent = message;
+        }
         loadingEl.style.display = 'block';
         loadingEl.removeAttribute('role');
         loadingEl.setAttribute('aria-live', 'polite');
@@ -79,6 +93,11 @@ export function setPageState(state, options = {}) {
           loadingEl.innerHTML = '<div class="current-sprint-loading-copy current-sprint-loading-copy-inline"></div>';
           const copyEl = loadingEl.querySelector('.current-sprint-loading-copy');
           if (copyEl) copyEl.textContent = 'Refreshing data… showing previous snapshot until new results arrive.';
+          loadingEl.classList.remove('current-sprint-loading-with-spinner');
+        } else if (hasInstantShell(loadingEl)) {
+          // Instant shell owns first paint — only update the label (never swap to spinner).
+          const contextText = options.context != null ? String(options.context) : '';
+          updateInstantShellLabel(contextText ? `${msg} | ${contextText}` : msg);
           loadingEl.classList.remove('current-sprint-loading-with-spinner');
         } else {
           loadingEl.innerHTML = LOADING_SPINNER_HTML;

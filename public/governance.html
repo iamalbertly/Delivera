@@ -1,104 +1,41 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Portfolio | Delivera</title>
-
+  <style>
+    body{background:#f5f6f8;margin:0}
+    [data-instant-shell-mount][aria-busy="true"]:empty{min-height:52vh;background:#f5f6f8;display:block}
+    .instant-shimmer{height:.85rem;border-radius:6px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite}
+    @keyframes dlvr-shim{0%,100%{opacity:.7}50%{opacity:1}}
+  </style>
   <link rel="stylesheet" href="styles.css">
-
 </head>
-
-<body class="executive-surface-page governance-page portfolio-page governance-priority-brief-page">
-
+<body class="executive-surface-page governance-page portfolio-page governance-priority-brief-page" data-delivera-surface="governance" data-delivera-data-state="loading">
   <a class="skip-to-content" href="#main-content">Skip to main content</a>
-
-
-
-  <main class="portfolio-shell governance-shell" id="main-content" role="main" data-gov-brief-state="loading">
-
+  <main class="portfolio-shell governance-shell" id="main-content" role="main" data-gov-brief-state="loading" data-delivera-surface="governance" data-delivera-data-state="loading">
     <div id="portfolio-scope-bar-mount" class="gov-scope-bar-sticky portfolio-scope-bar" aria-label="Portfolio scope"></div>
-
-
-
     <div id="gov-loading" class="gov-loading-mount" aria-live="polite" aria-label="Preparing governance brief"></div>
-
-
-
     <div class="portfolio-layout portfolio-layout--priority-brief" id="portfolio-layout">
-
       <div class="portfolio-main-column portfolio-main-column--priority-brief">
-
-        <div id="governance-priority-surface-mount" class="governance-priority-surface-mount" aria-label="Governance priority brief" aria-busy="true">
-          <div class="instant-shell instant-shell--governance" data-testid="instant-shell" role="status">
-            <p class="instant-shell-value-line">Charts show history · Delivera closes the decision — owner, evidence, next sentence.</p>
-            <div class="instant-shell-scope-bar"><span class="instant-shimmer" style="width:40%"></span></div>
-            <div class="instant-shell-cockpit-grid">
-              <div class="instant-shell-main">
-                <div class="instant-shell-hero">
-                  <div class="instant-shimmer" style="width:70%"></div>
-                  <div class="instant-shimmer" style="width:55%"></div>
-                  <div class="instant-shell-metrics-row">
-                    <div class="instant-shell-metric-card"><div class="instant-shimmer" style="width:50%"></div><div class="instant-shimmer" style="width:80%"></div></div>
-                    <div class="instant-shell-metric-card"><div class="instant-shimmer" style="width:50%"></div><div class="instant-shimmer" style="width:80%"></div></div>
-                    <div class="instant-shell-metric-card"><div class="instant-shimmer" style="width:50%"></div><div class="instant-shimmer" style="width:80%"></div></div>
-                  </div>
-                </div>
-                <div class="instant-shell-evidence"><div class="instant-shimmer" style="width:90%"></div><div class="instant-shimmer" style="width:70%"></div></div>
-              </div>
-              <aside class="instant-shell-rail" aria-hidden="true">
-                <div class="instant-shell-rail-card"><div class="instant-shimmer" style="width:60%"></div><div class="instant-shimmer" style="width:90%"></div></div>
-              </aside>
-            </div>
-            <p class="instant-shell-label">Loading portfolio signal…</p>
-          </div>
-        </div>
-
+        <div id="governance-priority-surface-mount" class="governance-priority-surface-mount" data-instant-shell-mount="governance" aria-label="Governance priority brief" aria-busy="true"></div>
         <div id="portfolio-carousel-mount" class="portfolio-carousel-mount" aria-label="Compare squads" hidden></div>
-
         <div id="portfolio-signal-mount" class="portfolio-signal-mount" aria-label="AI portfolio signal" hidden></div>
-
         <div id="portfolio-commitments-mount" class="portfolio-commitments-mount" aria-label="Affected commitments" hidden></div>
-
         <div id="portfolio-prepared-actions-mount" class="portfolio-prepared-actions-mount" aria-label="Prepared actions" hidden></div>
-
       </div>
-
       <aside class="portfolio-rail" aria-label="Portfolio decision">
-
         <div id="portfolio-decision-mount" class="portfolio-decision-mount"></div>
-
         <div id="portfolio-rail-commitments-mount" class="portfolio-rail-commitments-mount" aria-label="At-risk commitments"></div>
-
       </aside>
-
     </div>
-
-
-
     <div id="portfolio-monitor-footer" class="portfolio-monitor-footer"></div>
-
-
-
     <div id="gov-error" class="alert-banner" hidden role="alert"></div>
-
   </main>
-
-
-
   <script type="module" src="Delivera-Shared-Health-Watchdog-01Client.js"></script>
-
   <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>
-
   <script type="module" src="Delivera-Shared-Global-Nav.js"></script>
-
   <script type="module" src="Delivera-Governance-Brief-Page-Controller.js"></script>
-
 </body>
-
 </html>

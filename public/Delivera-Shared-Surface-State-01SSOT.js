@@ -84,6 +84,24 @@ export function showSurfaceLoading(host, message = 'Loading…', opts = {}) {
 }
 
 /**
+ * @deprecated Prefer showSurfaceLoading / renderSurfaceStateHtml — kept for API compat.
+ */
+export function renderSharedLoadingState(opts = {}) {
+  return renderSurfaceStateHtml({
+    variant: opts.variant === 'skeleton' ? 'skeleton' : 'loading',
+    message: opts.message || 'Loading...',
+    compact: opts.compact,
+  });
+}
+
+/**
+ * @deprecated Prefer showSurfaceLoading.
+ */
+export function setSharedLoadingState(host, opts = {}) {
+  showSurfaceLoading(host, opts.message || 'Loading...', opts);
+}
+
+/**
  * Show an error state on a host element with optional retry.
  */
 export function showSurfaceError(host, message, opts = {}) {

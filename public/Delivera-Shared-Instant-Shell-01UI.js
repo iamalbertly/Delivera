@@ -3,11 +3,23 @@
  *
  * Principle: users never see a blank white page. Prefer last-known HTML from
  * sessionStorage; fall back to a layout-mirroring shimmer that states what is loading.
+ * Markup SSOT: this module. HTML pages use thin empty mounts + paintInstantShell().
  */
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { GOVERNANCE_DISPLACEMENT_LINE_SHORT } from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
 
 const CACHE_PREFIX = 'delivera:last-shell:v1:';
+
+const SURFACE_LABELS = Object.freeze({
+  governance: 'Portfolio Brief',
+  portfolio: 'Portfolio Brief',
+  'current-sprint': 'Today',
+  actions: 'Actions',
+  settings: 'Settings',
+  report: 'Proof',
+  leadership: 'Leadership',
+  evidence: 'Evidence',
+});
 
 function cacheKey(pageType, scopeLabel = '') {
   return `${CACHE_PREFIX}${pageType}:${String(scopeLabel || '').toUpperCase()}`;
@@ -42,35 +54,99 @@ export function readRememberedSurface(pageType, opts = {}) {
 }
 
 /**
- * @param {'governance'|'current-sprint'|'actions'|'settings'|'report'|'leadership'} pageType
- * @param {object} [opts] — { scopeLabel?: string }
+ * Publish skim-ready surface / data-state attrs on body + main.
+ * @param {string} surface
+ * @param {'loading'|'live'|'stale'|'error'|'empty'} dataState
+ * @param {object} [opts]
+ */
+export function setDeliveraSurfaceState(surface, dataState, opts = {}) {
+  const main = document.getElementById('main-content') || document.querySelector('main');
+  if (document.body) {
+    if (surface) document.body.setAttribute('data-delivera-surface', surface);
+    if (dataState) document.body.setAttribute('data-delivera-data-state', dataState);
+    if (opts.scopeLabel != null) {
+      document.body.setAttribute('data-delivera-scope-label', String(opts.scopeLabel));
+    }
+  }
+  if (main) {
+    if (surface) main.setAttribute('data-delivera-surface', surface);
+    if (dataState) main.setAttribute('data-delivera-data-state', dataState);
+    if (opts.scopeLabel != null) {
+      main.setAttribute('data-delivera-scope-label', String(opts.scopeLabel));
+    }
+  }
+}
+
+function resolveMount(pageType) {
+  const byAttr = document.querySelector(`[data-instant-shell-mount="${pageType}"]`);
+  if (byAttr) return byAttr;
+  const map = {
+    governance: () => document.getElementById('governance-priority-surface-mount'),
+    portfolio: () => document.getElementById('governance-priority-surface-mount'),
+    'current-sprint': () => document.getElementById('current-sprint-loading')
+      || document.getElementById('current-sprint-content'),
+    actions: () => document.getElementById('actions-list'),
+    settings: () => document.getElementById('settings-instant-shell-mount')
+      || document.querySelector('[data-instant-shell-mount="settings"]')
+      || document.querySelector('.settings-hub-panels'),
+    report: () => document.getElementById('report-instant-shell-mount')
+      || document.getElementById('preview-content'),
+    leadership: () => document.getElementById('hud-grid'),
+    evidence: () => document.getElementById('eos-loading')
+      || document.getElementById('evidence-os-root'),
+  };
+  const finder = map[pageType];
+  return (finder && finder())
+    || document.getElementById('main-content')
+    || document.querySelector('main');
+}
+
+function renderStateStrip(pageType, scopeLabel, subState) {
+  const surface = SURFACE_LABELS[pageType] || 'Delivera';
+  const scope = scopeLabel || 'Loading scope…';
+  const sub = subState || 'Reading live data…';
+  return `
+    <div class="instant-shell-state-strip" data-testid="instant-shell-state-strip">
+      <span class="instant-shell-state-surface">${escapeHtml(surface)}</span>
+      <span class="instant-shell-state-scope">${escapeHtml(scope)}</span>
+      <span class="instant-shell-state-sub">${escapeHtml(sub)}</span>
+    </div>`;
+}
+
+/**
+ * @param {'governance'|'current-sprint'|'actions'|'settings'|'report'|'leadership'|'evidence'|'portfolio'} pageType
+ * @param {object} [opts] — { scopeLabel?: string, message?: string }
  */
 export function paintInstantShell(pageType, opts = {}) {
   const main = document.getElementById('main-content') || document.querySelector('main');
-  if (!main) return;
+  if (!main && !document.querySelector(`[data-instant-shell-mount="${pageType}"]`)) return;
 
-  if (main.querySelector('[data-gov-priority-rendered], [data-current-sprint-content], [data-actions-content], .settings-section-card:not(.instant-shell *)')) {
+  if (main?.querySelector('[data-gov-priority-rendered], [data-current-sprint-content], [data-actions-content]')) {
     return;
   }
-  if (main.getAttribute('data-instant-shell') === pageType
-    && main.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]')) {
+  const settingsReady = main?.querySelector('.settings-section-card:not(.instant-shell *):not([hidden])');
+  if (settingsReady && settingsReady.children.length > 0 && settingsReady.id !== 'jira-activity') {
     return;
   }
-  main.setAttribute('data-instant-shell', pageType);
+  if (main?.getAttribute('data-instant-shell') === pageType
+    && document.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]')) {
+    return;
+  }
+  if (main) main.setAttribute('data-instant-shell', pageType);
 
   const scopeLabel = opts.scopeLabel || '';
+  setDeliveraSurfaceState(pageType === 'portfolio' ? 'governance' : pageType, 'loading', { scopeLabel });
+
   const remembered = readRememberedSurface(pageType, { scopeLabel });
-  const targetMount =
-    document.getElementById('governance-priority-surface-mount') ||
-    document.getElementById('current-sprint-content') ||
-    document.getElementById('actions-list') ||
-    document.querySelector('.settings-hub-panels') ||
-    main;
+  const targetMount = resolveMount(pageType);
+  if (!targetMount) return;
 
   if (remembered?.html) {
     const ageMin = Math.max(1, Math.round((Date.now() - remembered.savedAt) / 60000));
+    setDeliveraSurfaceState(pageType === 'portfolio' ? 'governance' : pageType, 'stale', { scopeLabel });
     targetMount.innerHTML = `
       <div class="instant-shell instant-shell--stale" data-testid="instant-shell-stale" aria-busy="true" role="status">
+        ${renderStateStrip(pageType, scopeLabel || remembered.scopeLabel, `Showing last view · refreshing`)}
         <p class="instant-shell-stale-banner" data-testid="instant-shell-refresh-chip">
           Showing last view · ${ageMin}m ago · <strong>Refreshing…</strong>
         </p>
@@ -80,26 +156,42 @@ export function paintInstantShell(pageType, opts = {}) {
     return;
   }
 
-  targetMount.innerHTML = renderShell(pageType, scopeLabel);
+  targetMount.innerHTML = renderShell(pageType, scopeLabel, opts.message);
   document.body?.classList?.add('delivera-instant-shell-active');
 }
 
-function renderShell(pageType, scopeLabel) {
+/**
+ * Update the visible shell label without replacing the skeleton (cold-load progress).
+ */
+export function updateInstantShellLabel(message) {
+  const label = document.querySelector('[data-testid="instant-shell"] .instant-shell-label');
+  if (label && message) label.textContent = message;
+  const sub = document.querySelector('[data-testid="instant-shell"] .instant-shell-state-sub');
+  if (sub && message) sub.textContent = message;
+}
+
+function renderShell(pageType, scopeLabel, message) {
   const scopeChip = scopeLabel
     ? `<span class="instant-shell-scope">${escapeHtml(scopeLabel)}</span>`
     : '';
   switch (pageType) {
     case 'governance':
     case 'portfolio':
-      return renderGovernanceShell(scopeChip);
+      return renderGovernanceShell(scopeChip, scopeLabel, message);
     case 'current-sprint':
-      return renderCurrentSprintShell(scopeChip);
+      return renderCurrentSprintShell(scopeChip, scopeLabel, message);
     case 'actions':
-      return renderActionsShell(scopeChip);
+      return renderActionsShell(scopeChip, scopeLabel, message);
     case 'settings':
-      return renderSettingsShell();
+      return renderSettingsShell(scopeLabel, message);
+    case 'report':
+      return renderReportShell(scopeChip, scopeLabel, message);
+    case 'leadership':
+      return renderLeadershipShell(scopeChip, scopeLabel, message);
+    case 'evidence':
+      return renderEvidenceShell(scopeChip, scopeLabel, message);
     default:
-      return renderGenericShell();
+      return renderGenericShell(scopeLabel, message);
   }
 }
 
@@ -113,9 +205,11 @@ function shimmerRows(count = 3, widths = ['100%', '80%', '60%']) {
   ).join('');
 }
 
-function renderGovernanceShell(scopeChip) {
+function renderGovernanceShell(scopeChip, scopeLabel, message) {
+  const label = message || 'Loading portfolio signal…';
   return `
     <div class="instant-shell instant-shell--governance" data-testid="instant-shell" aria-busy="true" role="status">
+      ${renderStateStrip('governance', scopeLabel, label)}
       <p class="instant-shell-value-line">${escapeHtml(GOVERNANCE_DISPLACEMENT_LINE_SHORT)}</p>
       <div class="instant-shell-scope-bar">${scopeChip}${shimmerRow('40%')}</div>
       <div class="instant-shell-cockpit-grid">
@@ -139,13 +233,15 @@ function renderGovernanceShell(scopeChip) {
           <div class="instant-shell-rail-card">${shimmerRows(2, ['50%', '70%'])}</div>
         </aside>
       </div>
-      <p class="instant-shell-label">Loading portfolio signal…</p>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
     </div>`;
 }
 
-function renderCurrentSprintShell(scopeChip) {
+function renderCurrentSprintShell(scopeChip, scopeLabel, message) {
+  const label = message || 'Loading sprint health…';
   return `
     <div class="instant-shell instant-shell--current-sprint" data-testid="instant-shell" aria-busy="true" role="status">
+      ${renderStateStrip('current-sprint', scopeLabel, label)}
       <div class="instant-shell-header-bar">
         ${scopeChip}
         ${shimmerRow('30%')}
@@ -162,35 +258,87 @@ function renderCurrentSprintShell(scopeChip) {
           ${Array.from({ length: 4 }, () => `<div class="instant-shell-story-row">${shimmerRow('15%')}${shimmerRow('60%')}${shimmerRow('10%')}</div>`).join('')}
         </div>
       </div>
-      <p class="instant-shell-label">Loading sprint health…</p>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
     </div>`;
 }
 
-function renderActionsShell(scopeChip) {
+function renderActionsShell(scopeChip, scopeLabel, message) {
+  const label = message || 'Loading action queue…';
   return `
     <div class="instant-shell instant-shell--actions" data-testid="instant-shell" aria-busy="true" role="status">
+      ${renderStateStrip('actions', scopeLabel, label)}
       <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('30%')}</div>
       <div class="instant-shell-tabs">${shimmerRow('20%')}${shimmerRow('20%')}</div>
       <div class="instant-shell-cases">
         ${Array.from({ length: 3 }, () => `<div class="instant-shell-case-card">${shimmerRow('40%')}${shimmerRow('80%')}${shimmerRow('50%')}</div>`).join('')}
       </div>
-      <p class="instant-shell-label">Loading action queue…</p>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
     </div>`;
 }
 
-function renderSettingsShell() {
+function renderSettingsShell(scopeLabel, message) {
+  const label = message || 'Loading workspace settings…';
   return `
     <div class="instant-shell instant-shell--settings" data-testid="instant-shell" aria-busy="true" role="status">
-      ${Array.from({ length: 3 }, () => `<div class="instant-shell-settings-card">${shimmerRow('30%')}${shimmerRows(3, ['90%', '70%', '50%'])}</div>`).join('')}
-      <p class="instant-shell-label">Loading settings…</p>
+      ${renderStateStrip('settings', scopeLabel, label)}
+      <div class="instant-shell-settings-grid">
+        <div class="instant-shell-settings-nav">${shimmerRows(4, ['90%', '80%', '85%', '70%'])}</div>
+        <div class="instant-shell-settings-content">
+          ${Array.from({ length: 3 }, () => `<div class="instant-shell-settings-card">${shimmerRow('30%')}${shimmerRows(3, ['90%', '70%', '50%'])}</div>`).join('')}
+        </div>
+      </div>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
     </div>`;
 }
 
-function renderGenericShell() {
+function renderReportShell(scopeChip, scopeLabel, message) {
+  const label = message || 'Loading proof preview…';
+  return `
+    <div class="instant-shell instant-shell--report" data-testid="instant-shell" aria-busy="true" role="status">
+      ${renderStateStrip('report', scopeLabel, label)}
+      <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('40%')}</div>
+      <div class="instant-shell-preview-grid">
+        ${shimmerRows(6, ['100%', '95%', '100%', '80%', '100%', '70%'])}
+      </div>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
+    </div>`;
+}
+
+function renderLeadershipShell(scopeChip, scopeLabel, message) {
+  const label = message || 'Loading portfolio story…';
+  return `
+    <div class="instant-shell instant-shell--leadership" data-testid="instant-shell" aria-busy="true" role="status">
+      ${renderStateStrip('leadership', scopeLabel, label)}
+      <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('35%')}</div>
+      <div class="instant-shell-hud-grid">
+        <div class="instant-shell-hud-card">${shimmerRows(3, ['50%', '90%', '60%'])}</div>
+        <div class="instant-shell-hud-card">${shimmerRows(3, ['50%', '90%', '60%'])}</div>
+        <div class="instant-shell-hud-card">${shimmerRows(3, ['50%', '90%', '60%'])}</div>
+      </div>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
+    </div>`;
+}
+
+function renderEvidenceShell(scopeChip, scopeLabel, message) {
+  const label = message || 'Loading evidence timeline…';
+  return `
+    <div class="instant-shell instant-shell--evidence" data-testid="instant-shell" aria-busy="true" role="status">
+      ${renderStateStrip('evidence', scopeLabel, label)}
+      <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('30%')}</div>
+      <div class="instant-shell-timeline">
+        ${Array.from({ length: 5 }, () => `<div class="instant-shell-story-row">${shimmerRow('20%')}${shimmerRow('70%')}</div>`).join('')}
+      </div>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
+    </div>`;
+}
+
+function renderGenericShell(scopeLabel, message) {
+  const label = message || 'Loading…';
   return `
     <div class="instant-shell instant-shell--generic" data-testid="instant-shell" aria-busy="true" role="status">
+      ${renderStateStrip('governance', scopeLabel, label)}
       ${shimmerRows(5, ['60%', '90%', '70%', '50%', '80%'])}
-      <p class="instant-shell-label">Loading…</p>
+      <p class="instant-shell-label">${escapeHtml(label)}</p>
     </div>`;
 }
 
@@ -206,9 +354,8 @@ export function clearInstantShell() {
       el.remove();
       return;
     }
-    // Drop shell once real surface content is present beside or under it.
     const hasReal = parent.querySelector(
-      '[data-testid="governance-priority-brief"], [data-portfolio-signal], [data-portfolio-bento-card], [data-testid="portfolio-bento-card"], .actions-case-card, [data-current-sprint-content], .settings-section-card:not(.instant-shell *), .current-sprint-signal-strip, .gov-priority-surface'
+      '[data-testid="governance-priority-brief"], [data-portfolio-signal], [data-portfolio-bento-card], [data-testid="portfolio-bento-card"], .actions-case-card, [data-current-sprint-content], .settings-section-card:not(.instant-shell *), .current-sprint-signal-strip, .gov-priority-surface, .hud-card, .evidence-os-row, .preview-ready'
     );
     if (hasReal || parent.children.length > 1) {
       el.remove();

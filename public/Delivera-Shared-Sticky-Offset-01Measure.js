@@ -1,5 +1,12 @@
 /**
  * Measures sticky chrome heights and publishes CSS custom properties for scroll offsets.
+ *
+ * Contract (consumers must not double-count):
+ *   --sticky-global-nav-top = top chrome + sub-chrome (first sticky layer: scope bar / sprint HUD)
+ *   --sticky-offset = nav + --gov-scope-bar-height (drawers / rails BELOW the scope bar)
+ *   --gov-scope-bar-height = scope bar alone
+ *   --current-sprint-hud-below-nav = sprint HUD (+ page header) height below nav
+ * Never use --sticky-offset as `top` on the scope bar itself — that includes its own height.
  */
 import { TOP_CHROME_ID, SUB_CHROME_SLOT_ID } from './Delivera-Shared-Top-Chrome-01Render-UI.js';
 

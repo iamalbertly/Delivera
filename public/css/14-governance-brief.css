@@ -8,7 +8,8 @@
 body.governance-priority-brief-page.portfolio-page .portfolio-scope-bar,
 body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   position: sticky;
-  top: var(--sticky-offset, 64px);
+  /* Nav-only: --sticky-offset includes this bar's own height (double-count gap). */
+  top: var(--sticky-global-nav-top, 56px);
   z-index: var(--z-scope-sticky, 1290);
   --portfolio-scope-z: var(--z-scope-sticky, 1290);
   flex-shrink: 0;

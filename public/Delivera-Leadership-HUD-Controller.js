@@ -13,6 +13,12 @@ import { renderKPICard, KPI_TREND_VISIBILITY_HINT } from './Delivera-Shared-KPI-
 import { buildTrustBadge, formatCostPerSPDisplay, buildUtilizationDisplay } from './Delivera-Shared-Cost-Capacity-Calc.js';
 import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
+import {
+  paintInstantShell,
+  clearInstantShell,
+  rememberSurfaceHtml,
+  setDeliveraSurfaceState,
+} from './Delivera-Shared-Instant-Shell-01UI.js';
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
 const STALE_THRESHOLD_MS = FRESHNESS_STALE_THRESHOLD_MS;
@@ -241,6 +247,8 @@ function renderSquadAlertChip(squads) {
 function renderHud(data) {
   const grid = document.getElementById('hud-grid');
   if (!grid) return;
+  clearInstantShell();
+  setDeliveraSurfaceState('leadership', 'live');
 
   const { velocity = {}, risk = {}, quality = {}, predictability = {}, kpis = {} } = data || {};
   const noMetricData = [velocity?.avg, risk?.score, quality?.reworkPct, predictability?.avg]
@@ -254,6 +262,7 @@ function renderHud(data) {
         <div class="metric-trend"><a href="/report" style="color:#0f4c81;text-decoration:underline;">Open Reports</a></div>
       </div>
     `;
+    setDeliveraSurfaceState('leadership', 'empty');
     return;
   }
 
@@ -388,6 +397,7 @@ function renderHud(data) {
       </div>
     </div>
   `;
+  rememberSurfaceHtml('leadership', grid.innerHTML);
 }
 
 function updateTimeAgo() {
@@ -399,6 +409,7 @@ function updateTimeAgo() {
 }
 
 function init() {
+  paintInstantShell('leadership');
   initLeadershipHeaderActions();
   fetchHudData();
   setInterval(fetchHudData, REFRESH_INTERVAL_MS);

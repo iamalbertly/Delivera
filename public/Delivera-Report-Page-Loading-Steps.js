@@ -208,9 +208,11 @@ export function setLoadingVisible(visible = true) {
   const chip = document.getElementById('loading-status-chip');
   const previewArea = document.querySelector('.preview-area');
   const loadLatestWrap = document.getElementById('report-load-latest-wrap');
+  const shellMount = document.getElementById('report-instant-shell-mount');
   if (visible) {
     loadingEl.style.display = 'block';
     loadingEl.setAttribute('aria-hidden', 'false');
+    if (shellMount) shellMount.hidden = true;
     if (previewArea) previewArea.setAttribute('aria-busy', 'true');
     if (typeof window.__reportSyncHeaderLoadLatestVisibility === 'function') window.__reportSyncHeaderLoadLatestVisibility(false);
     else if (loadLatestWrap) loadLatestWrap.style.display = 'none';
@@ -228,6 +230,10 @@ export function setLoadingVisible(visible = true) {
     clearLoadingChipShowTimer();
     loadingEl.style.display = 'none';
     loadingEl.setAttribute('aria-hidden', 'true');
+    if (shellMount) {
+      shellMount.hidden = true;
+      shellMount.innerHTML = '';
+    }
     if (previewArea) previewArea.setAttribute('aria-busy', 'false');
     if (chip) {
       chip.style.display = 'none';

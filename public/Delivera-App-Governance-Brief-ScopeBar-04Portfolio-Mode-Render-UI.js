@@ -52,8 +52,11 @@ function baselineOptionsForBrief(brief = {}) {
 }
 
 /** Labeled status pill — color + glyph + word (accessible, not color-only). */
-const STATUS_GLYPH = { blocked: '✕', watch: '●', onTrack: '✓', setup: '○' };
+const STATUS_GLYPH = { blocked: '✕', watch: '●', onTrack: '✓', setup: '○', loading: '…' };
 function renderStatusPill(tier) {
+  if (tier === 'loading') {
+    return `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--setup" data-scope-status-loading="1" disabled aria-busy="true" title="Loading portfolio status">… Loading</button>`;
+  }
   const label = simpleStatusLabel(tier, false);
   const glyph = STATUS_GLYPH[tier] || '●';
   return `<button type="button" class="gov-scope-status-chip gov-scope-status-chip--${escapeHtml(tier)}" data-scope-status-action="1" title="Jump to decision">${glyph} ${escapeHtml(label)}</button>`;
@@ -76,7 +79,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   let quarters = [];
   let activeQuarter = readStoredQuarter();
   let baselineMode = readPortfolioBaselineMode();
-  let statusTier = 'watch';
+  let statusTier = 'loading';
   let cacheCachedAt = '';
   let cacheFresh = false;
   let cacheUpdating = false;

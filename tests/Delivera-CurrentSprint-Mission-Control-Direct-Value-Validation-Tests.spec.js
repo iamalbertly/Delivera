@@ -758,6 +758,11 @@ test.describe('CurrentSprint Mission Control - Direct-to-value flows', () => {
     await page.waitForFunction(() => {
       return document.querySelector('#sidebar-context-card .context-card-segments--sprint-live');
     }, { timeout: 15000 });
+    // Top chrome may start with sidebar-collapsed — expand so the context card is assertable.
+    await page.evaluate(() => {
+      document.body.classList.remove('sidebar-collapsed');
+      document.querySelector('.app-sidebar')?.classList.add('open');
+    });
     const card = page.locator('#sidebar-context-card .context-card-segments--sprint-live');
     await expect(card).toBeVisible();
     await expect(page.locator('#sidebar-context-card')).not.toContainText(/No report run yet/i);

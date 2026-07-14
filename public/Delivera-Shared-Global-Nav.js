@@ -354,6 +354,28 @@ function initSidebarController() {
     navigateTo(key, href);
   });
 
+  // Perceived-speed: warm next surface APIs on hover (deduped; respects browser HTTP cache).
+  const warmPrefetch = new Set();
+  sidebar.addEventListener('mouseenter', (event) => {
+    const link = event.target.closest?.('a.sidebar-link, a.sidebar-more-link');
+    if (!link) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || warmPrefetch.has(href)) return;
+    warmPrefetch.add(href);
+    let url = null;
+    if (href.includes('governance') || href === '/' || href === '/portfolio') {
+      url = '/api/governance-brief.json';
+    } else if (href.includes('current-sprint')) {
+      url = '/api/current-sprint.json';
+    } else if (href.includes('leadership')) {
+      url = '/api/leadership-hud.json';
+    }
+    if (!url) return;
+    try {
+      fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).catch(() => {});
+    } catch (_) { /* ignore */ }
+  }, true);
+
   window.addEventListener('resize', () => {
     syncSidebarCollapsedFromStorage();
     if (!isMobileViewport()) closeSidebar(sidebar, getSidebarToggles()[0], backdrop);

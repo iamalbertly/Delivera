@@ -16,6 +16,10 @@ import { renderGovernancePrioritySurface, bindGovernancePrioritySurface } from '
 import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js';
 import { rememberSurfaceHtml, clearInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
 import {
+  gradateCardStatus,
+  isAttentionStatus,
+} from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
+import {
   renderPortfolioDecisionPanel,
   bindPortfolioDecisionPanel,
 } from './Delivera-App-Portfolio-Decision-01Panel-UI.js';
@@ -42,16 +46,12 @@ import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
 import { fetchJson, showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 
-import { setBriefNavBadge } from './Delivera-Shared-Global-Nav.js';
-
 import { hideGovernanceLoading } from './Delivera-Governance-Brief-Page-02Loading-State.js';
 import { fetchPortfolioDecisionCached } from './Delivera-Shared-Portfolio-Decision-Client-Cache-01Bridge.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { ensureLegacyBriefSurfacesHydrated } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import { mountPiFocusStrip } from './Delivera-App-Governance-PIFocus-01Strip-Render-UI.js';
 import { openPiBaselineWizard } from './Delivera-Governance-Brief-Page-01Context.js';
-
-
 
 function readCompareProjects(anchor = '') {
 
@@ -62,8 +62,6 @@ function readCompareProjects(anchor = '') {
   return projects.filter((p) => String(p).toUpperCase() !== A);
 
 }
-
-
 
 async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) {
   const anchor = readPortfolioAnchor(brief?.projects || readSharedProjectsCsv());
@@ -136,8 +134,6 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
   });
   return payload;
 }
-
-
 
 async function handlePortfolioDelegatedClick(ev) {
 
@@ -215,7 +211,196 @@ async function handlePortfolioDelegatedClick(ev) {
 
 }
 
+/**
+ * Shared live+cache mount paint — priority surface, optional legacy mounts,
+ * carousel slot (full HTML or cache placeholder).
+ */
+function paintPortfolioMounts(decision, brief, meta = {}, opts = {}) {
+  const {
+    comparison = {},
+    cases = [],
+    mode = 'live',
+    payloadError = null,
+    bindDecisionConfirm = false,
+  } = opts;
+  const priorityBriefOnly = document.body?.classList?.contains('governance-priority-brief-page');
+  const prioritySurfaceMount = document.getElementById('governance-priority-surface-mount');
+  const signalMount = $('portfolio-signal-mount');
+  const commitmentsMount = $('portfolio-commitments-mount');
+  const preparedMount = $('portfolio-prepared-actions-mount');
+  const carouselMount = $('portfolio-carousel-mount');
+  const decisionMount = $('portfolio-decision-mount');
+  const footerMount = $('portfolio-monitor-footer');
+  const railCommitmentsMount = $('portfolio-rail-commitments-mount');
 
+  if (prioritySurfaceMount) {
+    const decisionWithComparison = { ...decision, comparison };
+    prioritySurfaceMount.innerHTML = renderGovernancePrioritySurface(decisionWithComparison, brief, { cases });
+    prioritySurfaceMount.setAttribute('data-gov-priority-rendered', '1');
+    if (mode === 'cache') prioritySurfaceMount.setAttribute('data-gov-priority-cached', '1');
+    else prioritySurfaceMount.removeAttribute('data-gov-priority-cached');
+    const bindOpts = mode === 'live'
+      ? {
+          brief,
+          onInspectEvidence: (b) => {
+            openEvidenceDrawer(b || brief || govPage.lastBrief || {}, (b || brief || govPage.lastBrief)?.evidencePack?.rows || [], {
+              skipLegacyFlag: true,
+              docked: true,
+            });
+          },
+        }
+      : undefined;
+    bindGovernancePrioritySurface(prioritySurfaceMount, bindOpts);
+    clearInstantShell();
+    rememberSurfaceHtml('governance', prioritySurfaceMount.innerHTML, {
+      scopeLabel: decision.anchorProject || brief?.projects?.[0] || '',
+    });
+  }
+
+  if (!priorityBriefOnly && signalMount) {
+    signalMount.innerHTML = renderPortfolioSignal(decision, {
+      cachedAt: meta.cachedAt,
+      cached: mode === 'cache' ? true : meta.cached,
+      brief,
+    });
+    signalMount.setAttribute('data-portfolio-signal-ready', '1');
+    if (mode === 'cache') signalMount.setAttribute('data-portfolio-signal-cached', '1');
+    if (mode === 'live') {
+      mountPiFocusStrip(brief, signalMount, { openPiBaselineWizard });
+      if (payloadError) {
+        signalMount.insertAdjacentHTML('afterbegin', `<p class="portfolio-signal-error" role="alert">${escapeHtml(String(payloadError))}</p>`);
+      }
+    }
+  } else if (mode === 'live' && priorityBriefOnly && prioritySurfaceMount) {
+    mountPiFocusStrip(brief, prioritySurfaceMount, { openPiBaselineWizard });
+  }
+
+  if (!priorityBriefOnly && commitmentsMount) {
+    commitmentsMount.innerHTML = renderPortfolioCommitments(decision);
+  }
+  if (railCommitmentsMount) railCommitmentsMount.innerHTML = renderWhatChangedTimeline(brief, decision);
+  if (!priorityBriefOnly && preparedMount) {
+    const hidePrepared = shouldHidePreparedActionsSection(decision, brief);
+    preparedMount.innerHTML = hidePrepared ? '' : renderPortfolioPreparedActions(decision);
+    preparedMount.hidden = hidePrepared;
+  }
+
+  if (mode === 'live') {
+    const commitmentRows = decision.priorityBrief?.detailRows || [];
+    const daysRemaining = Number(decision.timebox?.remainingDays) || 0;
+    const enrichedComparison = {
+      ...comparison,
+      cards: (comparison.cards || []).map((card) => {
+        const cardCommitments = commitmentRows.filter((row) =>
+          String(row.projectKey || '').toUpperCase() === String(card.projectKey || '').toUpperCase()
+        );
+        const linkedCount = cardCommitments.filter((r) => r.issueKey && r.reality !== 'Unlinked').length;
+        return {
+          ...card,
+          linkedCount,
+          totalCommitments: cardCommitments.length || Number(card.metrics?.commitments) || 0,
+          daysRemaining,
+        };
+      }),
+    };
+    const carouselHtml = (enrichedComparison.cards || []).length
+      ? renderPortfolioCarousel(enrichedComparison, { commitmentRows })
+      : '';
+
+    const atRiskCount = (comparison.cards || []).filter((c) => {
+      const g = gradateCardStatus(c, c.metrics?.delivered, c.metrics?.proofConfidence);
+      return isAttentionStatus(g.statusClass);
+    }).length;
+    const zeroDeliveredCount = (comparison.cards || []).filter((c) => (Number(c.metrics?.delivered) || 0) === 0).length;
+    const systemicBanner = (atRiskCount >= 3 || zeroDeliveredCount >= 2)
+      ? `<div class="portfolio-systemic-risk-banner" role="alert" data-testid="portfolio-systemic-risk-banner">⚠️ <strong>${zeroDeliveredCount >= 2 ? `${zeroDeliveredCount} squads at 0% delivered` : `${atRiskCount} squads at risk`}</strong> — possible shared root cause. Consider escalating to leadership instead of fixing each squad individually.</div>`
+      : '';
+    const staleBanner = (meta.cachedAt && Date.now() - new Date(meta.cachedAt).getTime() > 24 * 60 * 60 * 1000)
+      ? `<div class="portfolio-stale-data-banner" role="alert" data-testid="portfolio-stale-data-banner">📊 <strong>Data stale</strong> — last sync was over 24h ago. Decisions may be based on outdated information.</div>`
+      : '';
+    const singleSquadBanner = (comparison.cards || []).length === 1
+      ? `<div class="portfolio-single-squad-deep-dive" data-testid="portfolio-single-squad-mode">
+          <div class="portfolio-single-squad-banner">
+            <p class="portfolio-changelog-summary">Single squad deep dive — <strong>${escapeHtml(comparison.cards[0]?.squadName || comparison.cards[0]?.projectKey || 'squad')}</strong> only.</p>
+            <button type="button" class="btn btn-secondary btn-compact" data-portfolio-restore-comparison data-testid="portfolio-restore-comparison">← Back to comparison</button>
+          </div>
+        </div>`
+      : '';
+    const emptyOnboarding = !(comparison.cards || []).length && !carouselHtml
+      ? `<div class="portfolio-empty-onboarding" data-testid="portfolio-empty-onboarding"><p class="portfolio-empty-onboarding-title">Welcome — select your first squad</p><p class="portfolio-empty-onboarding-hint">Pick a squad to see delivery health, proof confidence, and investment posture.</p></div>`
+      : '';
+
+    const bindCarousel = (mount) => {
+      if (!mount || !carouselHtml) return;
+      bindPortfolioCarousel(mount, {
+        onSelectSquad: async (projectKey) => {
+          if (!projectKey) return;
+          govPage.scopeBarApi?.setAnchor?.(projectKey);
+          govPage._portfolioBriefToken = null;
+          await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
+        },
+        onDrillIntoSquad: async (projectKey) => {
+          if (!projectKey) return;
+          govPage.scopeBarApi?.drillIntoSquad?.(projectKey);
+          govPage._portfolioBriefToken = null;
+          await refreshPortfolioSurface(govPage.lastBrief || brief, govPage.lastPortfolioCases);
+        },
+      });
+      bindHoverProofCards(mount, govPage.lastBrief || brief || {});
+    };
+
+    const banners = systemicBanner + staleBanner + singleSquadBanner;
+    const priorityCarouselSlot = prioritySurfaceMount?.querySelector('[data-priority-carousel-slot]');
+    if (priorityCarouselSlot && carouselHtml) {
+      priorityCarouselSlot.innerHTML = banners + carouselHtml;
+      bindCarousel(priorityCarouselSlot);
+    } else if (carouselMount) {
+      carouselMount.hidden = false;
+      carouselMount.innerHTML = carouselHtml ? banners + carouselHtml : emptyOnboarding;
+      if (carouselHtml) bindCarousel(carouselMount);
+    }
+  } else if (!priorityBriefOnly && carouselMount && !carouselMount.querySelector('[data-portfolio-carousel-ready]')) {
+    carouselMount.hidden = false;
+    carouselMount.innerHTML = '<div class="portfolio-carousel-cache-placeholder" data-testid="portfolio-carousel-cache-placeholder" aria-label="Comparison refreshing">Refreshing squad comparison…</div>';
+  }
+
+  if (decisionMount && !priorityBriefOnly) {
+    const freshness = mode === 'cache'
+      ? (decision.dataTrust?.lastSync || 'Cached')
+      : (meta.cachedAt ? '' : (decision.dataTrust?.lastSync || 'Live'));
+    decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, brief)
+      + (mode === 'cache' ? renderPortfolioDataTrust(decision, freshness) : '');
+    if (mode === 'live') {
+      decisionMount.insertAdjacentHTML('beforeend', renderPortfolioDataTrust(decision, freshness));
+    }
+    if (bindDecisionConfirm) {
+      bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
+        try {
+          await fetchJson('/api/governance/portfolio-decision/confirm', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              project: decision.anchorProject,
+              periodKey: decision.periodKey,
+              decisionId,
+            }),
+          }, 'portfolio-decision-confirm');
+          showInlineToast(document.getElementById('main-content'), 'Portfolio decision recorded', 'info');
+          await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
+        } catch (err) {
+          showInlineToast(document.getElementById('main-content'), err?.message || 'Could not record decision', 'error');
+        }
+      });
+    }
+  }
+
+  if (footerMount) {
+    footerMount.innerHTML = '';
+    footerMount.hidden = true;
+  }
+
+  return { decisionMount };
+}
 
 export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfolioCases || []) {
   if (!brief) return;
@@ -230,219 +415,18 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
     govPage.lastBrief.leadershipNarrative.confidence = honest.brief.leadershipNarrative.confidence;
   }
   govPage.lastPortfolioMeta = meta;
-
   govPage.lastPortfolioDecision = decision;
   govPage.lastDecision = decision;
   govPage.lastPortfolioComparison = comparison;
-
   govPage.lastPortfolioCases = payloadCases;
 
-  const priorityBriefOnly = document.body?.classList?.contains('governance-priority-brief-page');
-  const prioritySurfaceMount = document.getElementById('governance-priority-surface-mount');
-  if (prioritySurfaceMount) {
-    const decisionWithComparison = { ...decision, comparison };
-    prioritySurfaceMount.innerHTML = renderGovernancePrioritySurface(decisionWithComparison, brief, { cases: payloadCases });
-    prioritySurfaceMount.setAttribute('data-gov-priority-rendered', '1');
-    bindGovernancePrioritySurface(prioritySurfaceMount, {
-      brief,
-      onInspectEvidence: (b) => {
-        openEvidenceDrawer(b || brief || govPage.lastBrief || {}, (b || brief || govPage.lastBrief)?.evidencePack?.rows || [], {
-          skipLegacyFlag: true,
-          docked: true,
-        });
-      },
-    });
-    clearInstantShell();
-    rememberSurfaceHtml('governance', prioritySurfaceMount.innerHTML, {
-      scopeLabel: decision.anchorProject || brief?.projects?.[0] || '',
-    });
-  }
-
-  const signalMount = $('portfolio-signal-mount');
-  const commitmentsMount = $('portfolio-commitments-mount');
-  const preparedMount = $('portfolio-prepared-actions-mount');
-  const carouselMount = $('portfolio-carousel-mount');
-  const decisionMount = $('portfolio-decision-mount');
-  const footerMount = $('portfolio-monitor-footer');
-  const railCommitmentsMount = $('portfolio-rail-commitments-mount');
-
-  // Priority-brief page already paints signal/commitments/prepared into the
-  // visible surface. Skip hidden mounts so they cannot layer/cover live UI.
-  if (!priorityBriefOnly && signalMount) {
-    signalMount.innerHTML = renderPortfolioSignal(decision, {
-      cachedAt: meta.cachedAt,
-      cached: meta.cached,
-      brief,
-    });
-    signalMount.setAttribute('data-portfolio-signal-ready', '1');
-    mountPiFocusStrip(brief, signalMount, { openPiBaselineWizard });
-    if (payload.error) {
-      signalMount.insertAdjacentHTML('afterbegin', `<p class="portfolio-signal-error" role="alert">${escapeHtml(String(payload.error))}</p>`);
-    }
-  } else if (priorityBriefOnly && prioritySurfaceMount) {
-    mountPiFocusStrip(brief, prioritySurfaceMount, { openPiBaselineWizard });
-  }
-
-  if (!priorityBriefOnly && commitmentsMount) {
-    commitmentsMount.innerHTML = renderPortfolioCommitments(decision);
-  }
-
-  if (railCommitmentsMount) railCommitmentsMount.innerHTML = renderWhatChangedTimeline(brief, decision);
-
-  if (!priorityBriefOnly && preparedMount) {
-    const hidePrepared = shouldHidePreparedActionsSection(decision, brief);
-    preparedMount.innerHTML = hidePrepared ? '' : renderPortfolioPreparedActions(decision);
-    preparedMount.hidden = hidePrepared;
-  }
-
-  // P1 FIX: Pass commitment rows to the carousel so each bento card can show
-  // its own PI commitments on mouse-over expand. Also enrich cards with
-  // linkedCount, totalCommitments, and daysRemaining for the new bento metrics.
-  const commitmentRows = decision.priorityBrief?.detailRows || [];
-  const timebox = decision.timebox || {};
-  const daysRemaining = Number(timebox.remainingDays) || 0;
-  const enrichedComparison = {
-    ...comparison,
-    cards: (comparison.cards || []).map((card) => {
-      const cardCommitments = commitmentRows.filter((row) =>
-        String(row.projectKey || '').toUpperCase() === String(card.projectKey || '').toUpperCase()
-      );
-      const linkedCount = cardCommitments.filter((r) => r.issueKey && r.reality !== 'Unlinked').length;
-      return {
-        ...card,
-        linkedCount,
-        totalCommitments: cardCommitments.length || Number(card.metrics?.commitments) || 0,
-        daysRemaining,
-      };
-    }),
-  };
-  const carouselHtml = (enrichedComparison.cards || []).length
-    ? renderPortfolioCarousel(enrichedComparison, { commitmentRows })
-    : '';
-
-  // Edge case: systemic risk banner (3+ squads at risk)
-  const atRiskCount = (comparison.cards || []).filter((c) => c.statusClass === 'at-risk').length;
-  // BONUS EDGE CASE: Also trigger for 2+ squads at 0% delivered — possible
-  // shared root cause (e.g. shared dependency, org change, Jira outage).
-  const zeroDeliveredCount = (comparison.cards || []).filter((c) => {
-    const d = Number(c.metrics?.delivered) || 0;
-    return d === 0;
-  }).length;
-  const systemicBanner = (atRiskCount >= 3 || zeroDeliveredCount >= 2)
-    ? `<div class="portfolio-systemic-risk-banner" role="alert" data-testid="portfolio-systemic-risk-banner">⚠️ <strong>${zeroDeliveredCount >= 2 ? `${zeroDeliveredCount} squads at 0% delivered` : `${atRiskCount} squads at risk`}</strong> — possible shared root cause. Consider escalating to leadership instead of fixing each squad individually.</div>`
-    : '';
-
-  // Edge case: stale data banner (>24h since last sync)
-  const lastSync = decision.dataTrust?.lastSync || '';
-  const staleBanner = (meta.cachedAt && Date.now() - new Date(meta.cachedAt).getTime() > 24 * 60 * 60 * 1000)
-    ? `<div class="portfolio-stale-data-banner" role="alert" data-testid="portfolio-stale-data-banner">📊 <strong>Data stale</strong> — last sync was over 24h ago. Decisions may be based on outdated information.</div>`
-    : '';
-
-  // Edge case: single squad selected (no peers to compare)
-  const singleSquadBanner = (comparison.cards || []).length === 1
-    ? `<div class="portfolio-single-squad-deep-dive" data-testid="portfolio-single-squad-mode">
-        <div class="portfolio-single-squad-banner">
-          <p class="portfolio-changelog-summary">Single squad deep dive — <strong>${escapeHtml(comparison.cards[0]?.squadName || comparison.cards[0]?.projectKey || 'squad')}</strong> only.</p>
-          <button type="button" class="btn btn-secondary btn-compact" data-portfolio-restore-comparison data-testid="portfolio-restore-comparison">← Back to comparison</button>
-        </div>
-      </div>`
-    : '';
-
-  // Edge case: zero squads selected (empty onboarding)
-  const emptyOnboarding = !(comparison.cards || []).length && !carouselHtml
-    ? `<div class="portfolio-empty-onboarding" data-testid="portfolio-empty-onboarding"><p class="portfolio-empty-onboarding-title">Welcome — select your first squad</p><p class="portfolio-empty-onboarding-hint">Pick a squad to see delivery health, proof confidence, and investment posture.</p></div>`
-    : '';
-
-  const bindCarousel = (mount) => {
-    if (!mount || !carouselHtml) return;
-    bindPortfolioCarousel(mount, {
-      onSelectSquad: async (projectKey) => {
-        if (!projectKey) return;
-        govPage.scopeBarApi?.setAnchor?.(projectKey);
-        govPage._portfolioBriefToken = null;
-        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
-      },
-      onDrillIntoSquad: async (projectKey) => {
-        if (!projectKey) return;
-        govPage.scopeBarApi?.drillIntoSquad?.(projectKey);
-        govPage._portfolioBriefToken = null;
-        await refreshPortfolioSurface(govPage.lastBrief || brief, govPage.lastPortfolioCases);
-      },
-    });
-    bindHoverProofCards(mount, govPage.lastBrief || brief || {});
-  };
-
-  const isWideDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1440px)').matches;
-
-  // P0 FIX: Stop duplicate carousel render. Previously the carousel was
-  // rendered into BOTH the hidden portfolio-carousel-mount AND the visible
-  // priority surface slot — causing duplicate DOM, double-binding, and
-  // wasted cycles. Now render ONLY into the visible slot when it exists;
-  // fall back to the legacy mount only when there's no priority surface.
-  const priorityCarouselSlot = prioritySurfaceMount?.querySelector('[data-priority-carousel-slot]');
-  if (priorityCarouselSlot && carouselHtml) {
-    priorityCarouselSlot.innerHTML = systemicBanner + staleBanner + singleSquadBanner + carouselHtml;
-    bindCarousel(priorityCarouselSlot);
-  } else if (carouselMount) {
-    if (!carouselHtml) {
-      carouselMount.innerHTML = emptyOnboarding;
-      carouselMount.hidden = false;
-    } else {
-      carouselMount.hidden = false;
-      carouselMount.innerHTML = systemicBanner + staleBanner + singleSquadBanner + carouselHtml;
-      bindCarousel(carouselMount);
-    }
-  }
-  void isWideDesktop; // retained for future responsive gating without rail duplication
-
-  if (decisionMount && !priorityBriefOnly) {
-
-    decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, brief);
-    const freshness = meta.cachedAt ? '' : (decision.dataTrust?.lastSync || 'Live');
-    decisionMount.insertAdjacentHTML('beforeend', renderPortfolioDataTrust(decision, freshness));
-
-    bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
-
-      try {
-
-        await fetchJson('/api/governance/portfolio-decision/confirm', {
-
-          method: 'POST',
-
-          headers: { 'content-type': 'application/json' },
-
-          body: JSON.stringify({
-
-            project: decision.anchorProject,
-
-            periodKey: decision.periodKey,
-
-            decisionId,
-
-          }),
-
-        }, 'portfolio-decision-confirm');
-
-        showInlineToast(document.getElementById('main-content'), 'Portfolio decision recorded', 'info');
-
-        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
-
-      } catch (err) {
-
-        showInlineToast(document.getElementById('main-content'), err?.message || 'Could not record decision', 'error');
-
-      }
-
-    });
-
-  }
-
-  if (footerMount) {
-    footerMount.innerHTML = '';
-    footerMount.hidden = true;
-  }
-
-
+  const { decisionMount } = paintPortfolioMounts(decision, brief, meta, {
+    comparison,
+    cases: payloadCases,
+    mode: 'live',
+    payloadError: payload.error || null,
+    bindDecisionConfirm: true,
+  });
 
   await mountPortfolioAiAgentBadge(document.getElementById('portfolio-signal-ai-mount'), decision, { compact: true });
 
@@ -451,7 +435,6 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
     updating: false,
     cachedAt: meta.cachedAt,
   });
-  // Refresh time-box + since-last-check + status pill in the scope bar with the new decision data.
   govPage.scopeBarApi?.refreshCapsule?.();
 
   document.getElementById('main-content')?.classList.add('portfolio-shell--active');
@@ -470,11 +453,7 @@ export async function refreshPortfolioSurface(brief, cases = govPage.lastPortfol
   }
 }
 
-
-
 let portfolioHooked = false;
-
-
 
 export function installPortfolioSurfaceHook() {
 
@@ -522,8 +501,6 @@ export function installPortfolioSurfaceHook() {
 
 }
 
-
-
 /** @deprecated Use refreshPortfolioSurface */
 
 export const refreshPortfolio = refreshPortfolioSurface;
@@ -539,14 +516,6 @@ export const refreshPortfolio = refreshPortfolioSurface;
  * a TypeError and aborted loadBrief() before the cached brief could render.
  */
 export function paintPortfolioFromCache(cachedBrief = {}) {
-  const priorityBriefOnly = document.body?.classList?.contains('governance-priority-brief-page');
-  const signalMount = $('portfolio-signal-mount');
-  const commitmentsMount = $('portfolio-commitments-mount');
-  const preparedMount = $('portfolio-prepared-actions-mount');
-  const carouselMount = $('portfolio-carousel-mount');
-  const decisionMount = $('portfolio-decision-mount');
-  const railCommitmentsMount = $('portfolio-rail-commitments-mount');
-
   const decision = govPage.lastPortfolioDecision;
   const matchesScope = decision && cachedBrief?.projects
     && briefMatchesRequestedScope(cachedBrief, decision.anchorProject);
@@ -555,123 +524,51 @@ export function paintPortfolioFromCache(cachedBrief = {}) {
     return;
   }
 
-  const prioritySurfaceMount = document.getElementById('governance-priority-surface-mount');
-  if (prioritySurfaceMount) {
-    const decisionWithComparison = { ...decision, comparison: govPage.lastPortfolioComparison || {} };
-    prioritySurfaceMount.innerHTML = renderGovernancePrioritySurface(decisionWithComparison, cachedBrief, { cases: govPage.lastPortfolioCases || [] });
-    prioritySurfaceMount.setAttribute('data-gov-priority-rendered', '1');
-    prioritySurfaceMount.setAttribute('data-gov-priority-cached', '1');
-    bindGovernancePrioritySurface(prioritySurfaceMount);
-    clearInstantShell();
-    rememberSurfaceHtml('governance', prioritySurfaceMount.innerHTML, {
-      scopeLabel: decision.anchorProject || cachedBrief?.projects?.[0] || '',
-    });
-  }
-
-  if (!priorityBriefOnly && signalMount) {
-    signalMount.innerHTML = renderPortfolioSignal(decision, {
-      cachedAt: govPage.lastPortfolioMeta?.cachedAt || '',
-      cached: true,
-      brief: cachedBrief,
-    });
-    signalMount.setAttribute('data-portfolio-signal-ready', '1');
-    signalMount.setAttribute('data-portfolio-signal-cached', '1');
-  }
-  if (!priorityBriefOnly && commitmentsMount) {
-    commitmentsMount.innerHTML = renderPortfolioCommitments(decision);
-  }
-  if (railCommitmentsMount) railCommitmentsMount.innerHTML = renderWhatChangedTimeline(cachedBrief, decision);
-  if (!priorityBriefOnly && preparedMount) {
-    const hidePrepared = shouldHidePreparedActionsSection(decision, cachedBrief);
-    preparedMount.innerHTML = hidePrepared ? '' : renderPortfolioPreparedActions(decision);
-    preparedMount.hidden = hidePrepared;
-  }
-  if (!priorityBriefOnly && decisionMount) {
-    decisionMount.innerHTML = renderPortfolioDecisionPanel(decision, cachedBrief)
-      + renderPortfolioDataTrust(decision, decision.dataTrust?.lastSync || 'Cached');
-  }
-  if (!priorityBriefOnly && carouselMount && !carouselMount.querySelector('[data-portfolio-carousel-ready]')) {
-    carouselMount.hidden = false;
-    carouselMount.innerHTML = '<div class="portfolio-carousel-cache-placeholder" data-testid="portfolio-carousel-cache-placeholder" aria-label="Comparison refreshing">Refreshing squad comparison…</div>';
-  }
+  paintPortfolioMounts(decision, cachedBrief, {
+    cachedAt: govPage.lastPortfolioMeta?.cachedAt || '',
+    cached: true,
+  }, {
+    comparison: govPage.lastPortfolioComparison || {},
+    cases: govPage.lastPortfolioCases || [],
+    mode: 'cache',
+    bindDecisionConfirm: false,
+  });
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
 }
 
 /**
- * Bento skeleton — instant structural placeholder so the page never shows an
- * empty/loading void while the first payload is fetched. Mirrors the real
- * surface layout (signal + commitments + decision + rail) with shimmer rows.
+ * Bento skeleton — only fill EMPTY legacy mounts. Never touch priority mount
+ * (Instant Shell / static HTML / live PrioritySurface own that).
  */
 export function paintPortfolioBentoSkeleton(seed = {}) {
+  const priorityBriefOnly = document.body?.classList?.contains('governance-priority-brief-page');
   const projects = Array.isArray(seed?.projects) ? seed.projects : [];
-  const anchor = (projects[0] || readPortfolioAnchor() || 'Squad').toString().toUpperCase();
   const peerCount = Math.max(0, projects.length - 1);
 
-  const skeleton = `
-    <div class="gov-priority-surface gov-priority-surface--skeleton" data-testid="governance-priority-surface" data-governance-surface="priority-brief" aria-busy="true">
-      <div class="gov-priority-cockpit-grid gov-priority-hero-grid">
-        <div class="gov-priority-cockpit-main">
-          <div class="gov-priority-brief-hero gov-priority-brief-hero--skeleton">
-            <div class="gov-skeleton-headline"></div>
-            <div class="gov-skeleton-metrics"></div>
-            <div class="gov-skeleton-rows">
-              <div class="gov-skeleton-row"></div>
-              <div class="gov-skeleton-row gov-skeleton-row--short"></div>
-            </div>
-            <p class="gov-skeleton-label">Loading ${escapeHtml(anchor)} delivery answer…</p>
-          </div>
-        </div>
-        <aside class="gov-priority-cockpit-rail">
-          <div class="gov-priority-rail-card" aria-hidden="true">
-            <div class="gov-skeleton-headline"></div>
-            <div class="gov-skeleton-rows">
-              <div class="gov-skeleton-row"></div>
-              <div class="gov-skeleton-row gov-skeleton-row--short"></div>
-            </div>
-          </div>
-        </aside>
-      </div>
-    </div>`;
-
-  const surfaceMount = document.getElementById('governance-priority-surface-mount');
-  if (surfaceMount) surfaceMount.innerHTML = skeleton;
-
-  const signalMount = $('portfolio-signal-mount');
-  if (signalMount) {
-    signalMount.hidden = false;
-    signalMount.removeAttribute('data-portfolio-signal-ready');
-    signalMount.innerHTML = `<div class="portfolio-signal-skeleton" data-testid="portfolio-signal-skeleton" aria-label="Portfolio signal loading">
-      <div class="gov-skeleton-headline"></div>
-      <div class="gov-skeleton-metrics"></div>
-      <div class="gov-skeleton-rows">
-        <div class="gov-skeleton-row"></div>
-        <div class="gov-skeleton-row"></div>
-        <div class="gov-skeleton-row gov-skeleton-row--short"></div>
-      </div>
-    </div>`;
-  }
-  const carouselMount = $('portfolio-carousel-mount');
-  if (carouselMount) {
-    carouselMount.hidden = false;
-    const peerLabel = peerCount > 0 ? `${peerCount + 1} squads` : 'squad';
-    carouselMount.innerHTML = `<div class="portfolio-carousel-skeleton" data-testid="portfolio-carousel-skeleton" aria-label="Squad comparison loading">
-      <div class="gov-skeleton-rows">
-        ${Array.from({ length: Math.max(1, Math.min(4, projects.length || 1)) })
-          .map(() => '<div class="gov-skeleton-row portfolio-carousel-skeleton-card"></div>')
-          .join('')}
-      </div>
-      <p class="gov-skeleton-label">Loading ${escapeHtml(peerLabel)}…</p>
-    </div>`;
-  }
-  const decisionMount = $('portfolio-decision-mount');
-  if (decisionMount) {
-    decisionMount.innerHTML = `<div class="portfolio-decision-skeleton" data-testid="portfolio-decision-skeleton" aria-label="Decision panel loading">
-      <div class="gov-skeleton-headline"></div>
-      <div class="gov-skeleton-rows">
-        <div class="gov-skeleton-row"></div>
-        <div class="gov-skeleton-row gov-skeleton-row--short"></div>
-      </div>
-    </div>`;
+  if (!priorityBriefOnly) {
+    const signalMount = $('portfolio-signal-mount');
+    if (signalMount && !signalMount.querySelector('[data-portfolio-signal], [data-testid="portfolio-signal-skeleton"]')) {
+      signalMount.hidden = false;
+      signalMount.removeAttribute('data-portfolio-signal-ready');
+      signalMount.innerHTML = `<div class="portfolio-signal-skeleton" data-testid="portfolio-signal-skeleton" aria-label="Portfolio signal loading">
+        <div class="gov-skeleton-headline"></div>
+        <div class="gov-skeleton-metrics"></div>
+      </div>`;
+    }
+    const carouselMount = $('portfolio-carousel-mount');
+    if (carouselMount && !carouselMount.querySelector('[data-portfolio-carousel-ready], [data-testid="portfolio-carousel-skeleton"]')) {
+      carouselMount.hidden = false;
+      const peerLabel = peerCount > 0 ? `${peerCount + 1} squads` : 'squad';
+      carouselMount.innerHTML = `<div class="portfolio-carousel-skeleton" data-testid="portfolio-carousel-skeleton" aria-label="Squad comparison loading">
+        <p class="gov-skeleton-label">Loading ${escapeHtml(peerLabel)}…</p>
+      </div>`;
+    }
+    const decisionMount = $('portfolio-decision-mount');
+    if (decisionMount && !decisionMount.querySelector('.portfolio-decision, [data-testid="portfolio-decision-skeleton"]')) {
+      decisionMount.innerHTML = `<div class="portfolio-decision-skeleton" data-testid="portfolio-decision-skeleton" aria-label="Decision panel loading">
+        <div class="gov-skeleton-headline"></div>
+      </div>`;
+    }
   }
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'loading');
 }
@@ -681,5 +578,4 @@ function briefMatchesRequestedScope(brief, anchor) {
   const projects = readSharedProjectsCsv();
   return projects.some((p) => String(p).toUpperCase() === String(anchor).toUpperCase());
 }
-
 

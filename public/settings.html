@@ -4,11 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings - Delivera</title>
+  <style>
+    body{background:#f5f6f8;margin:0}
+    [data-instant-shell-mount][aria-busy="true"]:empty{min-height:40vh;background:#f5f6f8;display:block}
+    .instant-shimmer{height:.85rem;border-radius:6px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite}
+    @keyframes dlvr-shim{0%,100%{opacity:.7}50%{opacity:1}}
+  </style>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="executive-surface-page settings-page" data-surface-name="Settings">
+<body class="executive-surface-page settings-page" data-surface-name="Settings" data-delivera-surface="settings" data-delivera-data-state="loading">
   <div class="container">
-    <main id="main-content" class="executive-surface-shell settings-hub-layout">
+    <main id="main-content" class="executive-surface-shell settings-hub-layout" data-delivera-surface="settings" data-delivera-data-state="loading">
       <section class="surface-hero-card settings-hero-compact">
         <p class="surface-eyebrow">Settings</p>
         <h1>Your workspace &amp; trust</h1>
@@ -18,21 +24,7 @@
       </section>
       <nav id="settings-nav-rail" class="settings-nav-rail surface-card" aria-label="Settings sections"></nav>
       <div class="settings-hub-panels" aria-busy="true">
-        <div class="instant-shell instant-shell--settings" data-testid="instant-shell" role="status">
-          <div class="instant-shell-settings-grid">
-            <div class="instant-shell-settings-nav">
-              <div class="instant-shimmer" style="width:80%"></div>
-              <div class="instant-shimmer" style="width:70%"></div>
-              <div class="instant-shimmer" style="width:75%"></div>
-              <div class="instant-shimmer" style="width:65%"></div>
-            </div>
-            <div class="instant-shell-settings-content">
-              <div class="instant-shell-settings-card"><div class="instant-shimmer" style="width:50%"></div><div class="instant-shimmer" style="width:90%"></div></div>
-              <div class="instant-shell-settings-card"><div class="instant-shimmer" style="width:40%"></div><div class="instant-shimmer" style="width:80%"></div></div>
-            </div>
-          </div>
-          <p class="instant-shell-label">Loading workspace settings…</p>
-        </div>
+        <div id="settings-instant-shell-mount" data-instant-shell-mount="settings" aria-busy="true"></div>
         <div id="settings-my-workspace"></div>
         <div id="settings-organization"></div>
         <div id="settings-epic-format"></div>

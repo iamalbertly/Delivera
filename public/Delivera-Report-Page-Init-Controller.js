@@ -32,11 +32,14 @@ import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-D
 import { renderReportNamedViewsBar, wireReportNamedViews } from './Delivera-Report-Page-Named-Views.js';
 import { initOverlayManager } from './Delivera-Shared-Overlay-Manager.js';
 import { wireLeadershipContentInteractions } from './Delivera-Leadership-Shared-Actions.js';
+import { paintInstantShell, setDeliveraSurfaceState } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 const LEADERSHIP_HASH = '#trends';
 
 function initReportPage() {
   try { document.body.classList.add('report-page'); } catch (_) {}
+  paintInstantShell('report');
+  setDeliveraSurfaceState('report', 'loading');
   try {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     if (!window.location.hash) {

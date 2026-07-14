@@ -20,6 +20,7 @@ import {
   REPORT_LAST_PREVIEW_MAX_JSON_CHARS,
 } from './Delivera-Shared-Storage-Keys.js';
 import { updateLoadingMessage, clearLoadingSteps, readResponseJson, hideLoadingIfVisible, setLoadingVisible, setLoadingStage, startTheaterGathering, stopTheaterGathering, resetLoadingBarToZero } from './Delivera-Report-Page-Loading-Steps.js';
+import { clearInstantShell, setDeliveraSurfaceState, rememberSurfaceHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
 import { emitTelemetry } from './Delivera-Shared-Telemetry.js';
 import { renderPreview, syncReportPreviewActiveFromDom } from './Delivera-Report-Page-Render-Preview.js';
 import { updateExportFilteredState, updateExportHint } from './Delivera-Report-Page-Export-Menu.js';
@@ -633,7 +634,17 @@ export function initPreviewFlow() {
         loadingEl.style.display = 'none';
         loadingEl.setAttribute('aria-hidden', 'true');
       }
-      if (previewContent) previewContent.style.display = 'block';
+      const shellMount = document.getElementById('report-instant-shell-mount');
+      if (shellMount) {
+        shellMount.hidden = true;
+        shellMount.innerHTML = '';
+      }
+      clearInstantShell();
+      setDeliveraSurfaceState('report', 'live');
+      if (previewContent) {
+        previewContent.style.display = 'block';
+        rememberSurfaceHtml('report', previewContent.innerHTML);
+      }
       try {
         window.dispatchEvent(new CustomEvent('report-preview-shown', { detail: { hasRows: reportState.previewHasRows } }));
         updateRangeHint();

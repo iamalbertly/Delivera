@@ -4,9 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Today - Delivera</title>
+  <style>
+    body{background:#f5f6f8;margin:0}
+    [data-instant-shell-mount][aria-busy="true"]:empty,#current-sprint-loading:empty{min-height:52vh;background:#f5f6f8;display:block}
+    .instant-shimmer{height:.85rem;border-radius:6px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite}
+    @keyframes dlvr-shim{0%,100%{opacity:.7}50%{opacity:1}}
+  </style>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="executive-surface-page current-sprint-page">
+<body class="executive-surface-page current-sprint-page" data-delivera-surface="current-sprint" data-delivera-data-state="loading">
   <div class="container">
     <header>
       <div class="current-sprint-header">
@@ -38,27 +44,9 @@
       </div>
     </header>
 
-    <main id="main-content" data-current-sprint-state="welcome">
+    <main id="main-content" data-current-sprint-state="loading" data-delivera-surface="current-sprint" data-delivera-data-state="loading">
       <div id="current-sprint-ribbon" class="preview-status-strip" style="display: none;" aria-live="polite"></div>
-      <div id="current-sprint-loading" class="current-sprint-loading-with-spinner" aria-busy="true">
-        <div class="instant-shell instant-shell--current-sprint" data-testid="instant-shell" role="status">
-          <div class="instant-shell-header-bar"><div class="instant-shimmer" style="width:35%"></div><div class="instant-shimmer" style="width:25%"></div></div>
-          <div class="instant-shell-sprint-grid">
-            <div class="instant-shell-signal-row">
-              <div class="instant-shell-signal-card"><div class="instant-shimmer" style="width:40%"></div><div class="instant-shimmer" style="width:70%"></div></div>
-              <div class="instant-shell-signal-card"><div class="instant-shimmer" style="width:40%"></div><div class="instant-shimmer" style="width:70%"></div></div>
-              <div class="instant-shell-signal-card"><div class="instant-shimmer" style="width:40%"></div><div class="instant-shimmer" style="width:70%"></div></div>
-            </div>
-            <div class="instant-shell-blockers"><div class="instant-shimmer" style="width:80%"></div><div class="instant-shimmer" style="width:60%"></div></div>
-            <div class="instant-shell-stories">
-              <div class="instant-shell-story-row"><div class="instant-shimmer" style="width:15%"></div><div class="instant-shimmer" style="width:60%"></div></div>
-              <div class="instant-shell-story-row"><div class="instant-shimmer" style="width:15%"></div><div class="instant-shimmer" style="width:55%"></div></div>
-              <div class="instant-shell-story-row"><div class="instant-shimmer" style="width:15%"></div><div class="instant-shimmer" style="width:65%"></div></div>
-            </div>
-          </div>
-          <p class="instant-shell-label">Loading sprint health…</p>
-        </div>
-      </div>
+      <div id="current-sprint-loading" data-instant-shell-mount="current-sprint" aria-busy="true"></div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>
       <div id="current-sprint-content"></div>
     </main>

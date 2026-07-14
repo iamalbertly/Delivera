@@ -1,8 +1,8 @@
 /**
- * Governance brief loading state — uses Surface-State SSOT.
+ * Governance brief loading state — Instant Shell owns first paint; Surface-State attrs for skim.
  */
-import { showLoadingView, clearErrorView } from './Delivera-Shared-Status-View-Helpers.js';
-import { renderSurfaceStateHtml } from './Delivera-Shared-Surface-State-01SSOT.js';
+import { clearErrorView } from './Delivera-Shared-Status-View-Helpers.js';
+import { setDeliveraSurfaceState } from './Delivera-Shared-Instant-Shell-01UI.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
@@ -30,7 +30,6 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
   const { loadingEl, errorEl, contentEl } = getDom();
   if (errorEl) errorEl.hidden = true;
   const preserve = options.preserveContent !== false && hasGovernanceBriefContent();
-  const priorityMount = document.getElementById('governance-priority-surface-mount');
   if (loadingEl) {
     if (preserve) {
       loadingEl.innerHTML = `<p class="gov-loading-msg delivera-surface-loading-copy" aria-live="polite">${escapeHtml(msg || 'Refreshing… showing previous answer until live data arrives.')}</p>`;
@@ -38,16 +37,9 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
       loadingEl.style.display = 'block';
       loadingEl.removeAttribute('hidden');
     } else {
-      // Prefer visible instant shell / stale content over blank white #gov-loading.
+      // Instant Shell / static HTML own first paint — never rewrite priority mount here.
       loadingEl.style.display = 'none';
       loadingEl.setAttribute('hidden', '');
-      if (priorityMount && !priorityMount.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"], [data-testid="governance-priority-brief"]')) {
-        priorityMount.innerHTML = renderSurfaceStateHtml({
-          variant: 'skeleton',
-          message: msg || 'Preparing portfolio signal…',
-          compact: false,
-        });
-      }
     }
   }
   if (contentEl) {
@@ -56,12 +48,12 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
       contentEl.style.display = 'block';
     } else {
       clearScopeStaleOverlay();
-      // Keep content container in layout so the shell is not a white void.
       contentEl.style.display = 'block';
       contentEl.removeAttribute('hidden');
     }
   }
   document.body?.classList?.add('gov-brief-loading');
+  setDeliveraSurfaceState('governance', preserve ? 'stale' : 'loading');
 }
 
 export function hideGovernanceLoading() {
@@ -91,6 +83,7 @@ export function hideGovernanceLoading() {
   }
   document.body?.classList?.remove('gov-brief-loading');
   clearErrorView(getDom());
+  setDeliveraSurfaceState('governance', 'live');
 }
 
 function compactRefreshLabel(message = '') {
@@ -120,6 +113,7 @@ export function setScopeStaleOverlay(active, message = '') {
   if (active) {
     briefContent?.setAttribute('data-scope-stale', 'true');
     document.body?.classList?.add('gov-scope-refreshing');
+    setDeliveraSurfaceState('governance', 'stale');
     let overlay = overlayHost.querySelector(':scope > .gov-scope-stale-overlay')
       || overlayHost.querySelector('.gov-scope-stale-overlay');
     if (!overlay) {
@@ -144,22 +138,12 @@ export function clearScopeStaleOverlay() {
 }
 
 export function showPortfolioLoading(msg = COPY.portfolioLoading, options = {}) {
-  const signalMount = document.getElementById('portfolio-signal-mount');
-  const priorityMount = document.getElementById('governance-priority-surface-mount');
   const preserve = options.preserveContent !== false && hasGovernanceBriefContent();
   if (preserve) {
     setScopeStaleOverlay(true, msg || 'Refreshing…');
-  } else if (priorityMount && !priorityMount.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"], [data-testid="governance-priority-brief"]')) {
-    priorityMount.innerHTML = `
-      <div class="portfolio-signal-skeleton" data-portfolio-signal-skeleton aria-busy="true" aria-label="${escapeHtml(msg)}">
-        ${renderSurfaceStateHtml({ variant: 'skeleton', message: msg, compact: false })}
-      </div>`;
-  } else if (signalMount && !preserve) {
-    signalMount.innerHTML = `
-      <div class="portfolio-signal-skeleton" data-portfolio-signal-skeleton aria-busy="true" aria-label="${escapeHtml(msg)}">
-        ${renderSurfaceStateHtml({ variant: 'skeleton', message: msg, compact: true })}
-      </div>`;
   }
+  // Priority mount first paint is owned by Instant Shell / static HTML only.
+  // Do not inject a third skeleton into #governance-priority-surface-mount.
   const contentEl = document.getElementById('gov-brief-content');
   if (contentEl && !preserve) {
     contentEl.style.display = 'block';
@@ -173,6 +157,7 @@ export function showPortfolioLoading(msg = COPY.portfolioLoading, options = {}) 
   document.getElementById('portfolio-layout')?.removeAttribute('hidden');
   document.body?.classList?.add('gov-brief-loading');
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'loading');
+  setDeliveraSurfaceState('governance', preserve ? 'stale' : 'loading');
 }
 
 export function hidePortfolioLoading() {

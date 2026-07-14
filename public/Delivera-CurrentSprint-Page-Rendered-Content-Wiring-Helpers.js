@@ -14,14 +14,19 @@ import { wireRisksAndInsightsHandlers } from './Delivera-CurrentSprint-Risks-Ins
 import { wireSprintCarouselHandlers } from './Delivera-CurrentSprint-Navigation-Carousel.js';
 import { wireCountdownTimerHandlers } from './Delivera-CurrentSprint-Countdown-Timer.js';
 import { wireSubtasksShowMoreHandlers } from './Delivera-CurrentSprint-Render-Subtasks.js';
-import { wireProgressShowMoreHandlers, wireDailyCompletionTimelineHandlers, wireStoryRowNudgeHandlers } from './Delivera-CurrentSprint-Render-Progress.js';
 import { wireExportHandlers } from './Delivera-CurrentSprint-Export-Dashboard.js';
 import { wireIssuePreviewHandlers } from './Delivera-CurrentSprint-Issue-Preview.js';
 import { initJiraNudgeReviewSheetGlobal } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import { wireDecisionCockpitHandlers } from './Delivera-CurrentSprint-Decision-Cockpit.js';
 import { scheduleRender } from './Delivera-Report-Page-Loading-Steps.js';
 import { markPerf } from './Delivera-Shared-Perf-Marks.js';
-import { getCurrentSprintSummaryContext } from './Delivera-CurrentSprint-Action-Bridge.js';
+import {
+  deriveUseCaseFromRiskTags,
+  getCurrentSprintPayload,
+  getCurrentSprintSummaryContext,
+  isSprintCommentSendAllowed,
+  showSprintActionToast,
+} from './Delivera-CurrentSprint-Action-Bridge.js';
 
 function wireSprintProofRailHandlers() {
   const rail = document.getElementById('sprint-proof-rail');
@@ -318,6 +323,324 @@ function wireNoClickJourneys() {
   window.setTimeout(highlightTopBlockerRow, 260);
   wireMissionBriefingClicks();
   wireKeyboardShortcuts();
+}
+
+export function wireStoryRowNudgeHandlers() {
+  const table = document.getElementById('stories-table');
+  if (!table || table.dataset.nudgeWired === '1') return;
+  table.dataset.nudgeWired = '1';
+  table.addEventListener('click', (ev) => {
+    if (ev.target.closest('a, button, .story-row-toggle')) return;
+    const row = ev.target.closest('tr[data-story-nudge]');
+    if (!row) return;
+    const issueKey = row.getAttribute('data-story-nudge');
+    if (!issueKey) return;
+    openJiraNudgeReviewSheet({ issueKey, prefillContext: `Unblock ${issueKey} today.` });
+  });
+}
+
+export function wireProgressShowMoreHandlers() {
+  const storiesBtn = document.querySelector('.stories-show-more');
+  if (storiesBtn && storiesBtn.dataset.wiredShowMore !== '1') {
+    storiesBtn.dataset.wiredShowMore = '1';
+    storiesBtn.addEventListener('click', () => {
+      const tableTemplate = document.getElementById('stories-more-template');
+      const mobileTemplate = document.getElementById('stories-mobile-more-template');
+      const tbody = document.querySelector('#stories-table tbody');
+      const mobileList = document.getElementById('stories-mobile-card-list');
+      if (tableTemplate && tbody) {
+        const frag = tableTemplate.content.cloneNode(true);
+        tbody.appendChild(frag);
+      }
+      if (mobileTemplate && mobileList) {
+        const frag = mobileTemplate.content.cloneNode(true);
+        mobileList.appendChild(frag);
+      }
+      storiesBtn.remove();
+    });
+  }
+}
+
+export function wireDailyCompletionTimelineHandlers() {
+  try {
+    const card = document.getElementById('stories-card');
+    if (!card) return;
+    const timeline = card.querySelector('.daily-completion-timeline');
+    const chips = timeline ? Array.from(timeline.querySelectorAll('.daily-timeline-chip')) : [];
+    const tableBody = card.querySelector('#stories-table tbody');
+    const mobileCardsList = card.querySelector('#stories-mobile-card-list');
+    if (!tableBody && !mobileCardsList) return;
+    function getRows() {
+      return tableBody ? Array.from(tableBody.querySelectorAll('tr')) : [];
+    }
+    function getMobileCards() {
+      return mobileCardsList ? Array.from(mobileCardsList.querySelectorAll('.story-mobile-card')) : [];
+    }
+    const expandedStateKey = 'current_sprint_expanded_story_rows';
+    const dayFilterStateKey = 'current_sprint_stories_day_filter';
+    const storyFilterState = { activeRiskTags: [] };
+    let expandedParents = new Set();
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(expandedStateKey) || '[]');
+      if (Array.isArray(parsed)) expandedParents = new Set(parsed.map((v) => String(v || '').toUpperCase()).filter(Boolean));
+    } catch (_) {}
+
+    function persistExpandedState() {
+      try {
+        window.localStorage.setItem(expandedStateKey, JSON.stringify(Array.from(expandedParents)));
+      } catch (_) {}
+    }
+
+    function getStoryRows() {
+      return Array.from(tableBody.querySelectorAll('tr.story-parent-row'));
+    }
+
+    function syncParentChildren(parentRow) {
+      if (!parentRow) return;
+      const parentKey = String(parentRow.getAttribute('data-parent-key') || '').toUpperCase();
+      if (!parentKey) return;
+      const expanded = parentRow.getAttribute('aria-expanded') === 'true';
+      const toggle = parentRow.querySelector('.story-row-toggle');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        toggle.textContent = expanded ? 'v' : '>';
+        toggle.setAttribute('aria-label', expanded ? 'Collapse subtasks' : 'Expand subtasks');
+        toggle.title = expanded ? 'Hide subtasks' : 'Show subtasks';
+      }
+      if (tableBody) {
+        const childRows = tableBody.querySelectorAll('tr.subtask-child-row[data-parent-key="' + parentKey + '"]');
+        childRows.forEach((row) => {
+          if (expanded) row.removeAttribute('hidden');
+          else row.setAttribute('hidden', 'hidden');
+        });
+      }
+      parentRow.classList.toggle('story-parent-row-expanded', expanded);
+    }
+
+    function initializeStoryHierarchy() {
+      getStoryRows().forEach((parentRow) => {
+        const parentKey = String(parentRow.getAttribute('data-parent-key') || '').toUpperCase();
+        if (!parentRow.hasAttribute('data-has-children')) return;
+        const shouldExpand = expandedParents.has(parentKey);
+        parentRow.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
+        syncParentChildren(parentRow);
+      });
+    }
+
+    function initializeMobileCards() {
+      getMobileCards().forEach((cardEl) => {
+        const parentKey = String(cardEl.getAttribute('data-parent-key') || '').toUpperCase();
+        const mainBtn = cardEl.querySelector('.story-mobile-main');
+        const expandEl = cardEl.querySelector('.story-mobile-expand');
+        const shouldExpand = expandedParents.has(parentKey);
+        if (mainBtn) mainBtn.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
+        if (expandEl) expandEl.hidden = !shouldExpand;
+        cardEl.classList.toggle('story-mobile-card-expanded', shouldExpand);
+      });
+    }
+
+    function applyDayFilter(dayKey) {
+      const keyNorm = (dayKey || '').trim();
+      chips.forEach((chip) => {
+        const chipKey = (chip.getAttribute('data-day-key') || '').trim();
+        chip.classList.toggle('daily-timeline-chip-active', chipKey === keyNorm);
+      });
+      getRows().forEach((row) => {
+        const rowKey = (row.getAttribute('data-completed-day') || '').trim();
+        const show = !keyNorm || (rowKey && rowKey === keyNorm);
+        row.style.display = show ? '' : 'none';
+      });
+      getMobileCards().forEach((cardEl) => {
+        const rowKey = (cardEl.getAttribute('data-completed-day') || '').trim();
+        const show = !keyNorm || (rowKey && rowKey === keyNorm);
+        cardEl.style.display = show ? '' : 'none';
+      });
+      initializeStoryHierarchy();
+      initializeMobileCards();
+      try {
+        window.localStorage.setItem(dayFilterStateKey, keyNorm);
+      } catch (_) {}
+      try {
+        window.dispatchEvent(new CustomEvent('currentSprint:storiesDayFilterChanged', { detail: { dayKey: keyNorm } }));
+      } catch (_) {}
+    }
+
+    if (timeline && chips.length) {
+      timeline.addEventListener('click', (event) => {
+        const chip = event.target.closest('.daily-timeline-chip');
+        if (!chip || !timeline.contains(chip)) return;
+        const dayKey = chip.getAttribute('data-day-key') || '';
+        applyDayFilter(dayKey);
+        try {
+          if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(card);
+          else card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (_) {}
+      });
+    }
+
+    card.addEventListener('click', (event) => {
+      const riskChip = event.target.closest('.stories-risk-chip, .subtask-chip[data-risk-tags]');
+      if (riskChip && card.contains(riskChip)) {
+        event.preventDefault();
+        const tagsAttr = (riskChip.getAttribute('data-risk-tags') || '').trim();
+        const riskTags = tagsAttr ? tagsAttr.split(/\s+/).filter(Boolean) : [];
+        try {
+          window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags, source: 'stories-risk-bar' } }));
+        } catch (_) {}
+      }
+    });
+
+    card.addEventListener('click', (event) => {
+      const quickNudge = event.target.closest('[data-action="send-top-nudge-to-jira"]');
+      if (!quickNudge || !card.contains(quickNudge)) return;
+      event.preventDefault();
+      const candidateRows = getRows().filter((row) => {
+        const style = window.getComputedStyle(row);
+        return style.display !== 'none' && !row.hasAttribute('hidden') && row.classList.contains('story-parent-row');
+      });
+      const topRow = candidateRows.find((row) => {
+        const tags = String(row.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+        return tags.length > 0;
+      }) || candidateRows[0];
+      if (!topRow) return;
+      const key = (topRow.querySelector('a[href*="/browse/"]')?.textContent || '').trim();
+      const summary = (topRow.querySelector('.story-summary-cell')?.textContent || '').trim();
+      const status = (topRow.querySelector('.story-status-cell')?.textContent || '').trim();
+      const url = topRow.querySelector('a[href*="/browse/"]')?.href || '';
+      if (!key) return;
+      const payload = getCurrentSprintPayload();
+      const readOnly = quickNudge.disabled || !isSprintCommentSendAllowed(payload?.meta, payload?.sprint);
+      if (readOnly) {
+        showSprintActionToast('Snapshot mode — switch to Live to comment in Jira.', 'error');
+      }
+      const staleHours = Number(topRow.getAttribute('data-hours-in-status') || 0) || null;
+      const riskTags = String(topRow.getAttribute('data-risk-tags') || '').split(/\s+/).filter(Boolean);
+      openJiraNudgeReviewSheet({
+        issueKey: key,
+        issueSummary: summary,
+        issueStatus: status,
+        issueUrl: url,
+        useCase: deriveUseCaseFromRiskTags(riskTags),
+        staleHours,
+        readOnly,
+        meta: payload?.meta,
+        sprint: payload?.sprint,
+      });
+    });
+
+    card.addEventListener('click', (event) => {
+      const toggle = event.target.closest('.story-row-toggle');
+      if (!toggle || !card.contains(toggle) || toggle.classList.contains('story-row-toggle-placeholder')) return;
+      const parentRow = toggle.closest('tr.story-parent-row');
+      if (!parentRow) return;
+      const parentKey = String(parentRow.getAttribute('data-parent-key') || '').toUpperCase();
+      const next = parentRow.getAttribute('aria-expanded') !== 'true';
+      parentRow.setAttribute('aria-expanded', next ? 'true' : 'false');
+      if (next) expandedParents.add(parentKey);
+      else expandedParents.delete(parentKey);
+      persistExpandedState();
+      syncParentChildren(parentRow);
+      initializeMobileCards();
+    });
+
+    card.addEventListener('click', (event) => {
+      const mobileBtn = event.target.closest('.story-mobile-main');
+      if (!mobileBtn || !card.contains(mobileBtn)) return;
+      const cardEl = mobileBtn.closest('.story-mobile-card');
+      if (!cardEl) return;
+      const parentKey = String(cardEl.getAttribute('data-parent-key') || '').toUpperCase();
+      const next = mobileBtn.getAttribute('aria-expanded') !== 'true';
+      mobileBtn.setAttribute('aria-expanded', next ? 'true' : 'false');
+      const expandEl = cardEl.querySelector('.story-mobile-expand');
+      if (expandEl) expandEl.hidden = !next;
+      cardEl.classList.toggle('story-mobile-card-expanded', next);
+      if (next) expandedParents.add(parentKey);
+      else expandedParents.delete(parentKey);
+      persistExpandedState();
+      const parentRow = tableBody ? tableBody.querySelector('tr.story-parent-row[data-parent-key="' + parentKey + '"]') : null;
+      if (parentRow) {
+        parentRow.setAttribute('aria-expanded', next ? 'true' : 'false');
+        syncParentChildren(parentRow);
+      }
+    });
+
+    card.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const toggle = event.target.closest('.story-row-toggle');
+      if (!toggle || !card.contains(toggle)) return;
+      event.preventDefault();
+      toggle.click();
+    });
+
+    try {
+      window.addEventListener('currentSprint:focusStoriesEvidence', () => {
+        card.classList.add('row-attention-pulse');
+        window.setTimeout(() => card.classList.remove('row-attention-pulse'), 1200);
+      });
+    } catch (_) {}
+
+    if (!window.__currentSprintStoriesRiskFilterBound) {
+      window.__currentSprintStoriesRiskFilterBound = true;
+      window.addEventListener('currentSprint:applyWorkRiskFilter', (event) => {
+        const detail = event && event.detail ? event.detail : {};
+        const activeTags = Array.isArray(detail.riskTags)
+          ? detail.riskTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
+          : [];
+        storyFilterState.activeRiskTags = activeTags;
+        getRows().forEach((row) => {
+          if (!activeTags.length) {
+            row.removeAttribute('data-role-filter-hidden');
+            row.style.opacity = '';
+            return;
+          }
+          const tags = (row.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
+          const matches = activeTags.some((tag) => tags.includes(tag));
+          row.toggleAttribute('data-role-filter-hidden', !matches);
+          row.style.opacity = matches ? '' : '0.35';
+        });
+        getMobileCards().forEach((cardEl) => {
+          if (!activeTags.length) {
+            cardEl.removeAttribute('data-role-filter-hidden');
+            cardEl.style.opacity = '';
+            return;
+          }
+          const tags = (cardEl.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
+          const matches = activeTags.some((tag) => tags.includes(tag));
+          cardEl.toggleAttribute('data-role-filter-hidden', !matches);
+          cardEl.style.opacity = matches ? '' : '0.35';
+        });
+        initializeStoryHierarchy();
+        initializeMobileCards();
+      });
+    }
+    const storiesShowMore = card.querySelector('.stories-show-more');
+    if (storiesShowMore) {
+      storiesShowMore.addEventListener('click', () => {
+        window.setTimeout(() => {
+          initializeStoryHierarchy();
+          try {
+            window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: storyFilterState.activeRiskTags, source: 'stories-show-more' } }));
+          } catch (_) {}
+          const activeChip = chips.find((chip) => chip.classList.contains('daily-timeline-chip-active'));
+          if (activeChip) applyDayFilter(activeChip.getAttribute('data-day-key') || '');
+          else {
+            try {
+              const storedDay = window.localStorage.getItem(dayFilterStateKey) || '';
+              if (storedDay) applyDayFilter(storedDay);
+            } catch (_) {}
+          }
+        }, 0);
+      });
+    }
+    try {
+      const storedDay = window.localStorage.getItem(dayFilterStateKey) || '';
+      if (storedDay && chips.some((chip) => (chip.getAttribute('data-day-key') || '') === storedDay)) {
+        applyDayFilter(storedDay);
+      }
+    } catch (_) {}
+    initializeStoryHierarchy();
+    initializeMobileCards();
+  } catch (_) {}
 }
 
 export function appendCurrentSprintLoginLink(errorEl) {

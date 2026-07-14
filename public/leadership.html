@@ -4,9 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Performance - Leadership trends | Delivera</title>
+  <style>
+    body{background:#f5f6f8;margin:0}
+    [data-instant-shell-mount][aria-busy="true"]:empty{min-height:52vh;background:#f5f6f8;display:grid}
+  </style>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="hud-mode">
+<body class="hud-mode" data-delivera-surface="leadership" data-delivera-data-state="loading">
   <div class="hud-shell">
     <header class="hud-header-mission-control">
       <div class="hud-header-top">
@@ -30,11 +34,7 @@
       <p id="leadership-summary" class="hud-summary-line">Loading the portfolio story for leaders...</p>
     </header>
 
-    <main class="hud-grid" id="hud-grid" role="main">
-      <div class="hud-metric-card hud-skeleton-card" aria-hidden="true"></div>
-      <div class="hud-metric-card hud-skeleton-card" aria-hidden="true"></div>
-      <div class="hud-metric-card hud-skeleton-card" aria-hidden="true"></div>
-    </main>
+    <main class="hud-grid" id="hud-grid" role="main" data-instant-shell-mount="leadership" aria-busy="true"></main>
   </div>
 
   <script type="module" src="Delivera-Shared-Runtime-Notification-Bridge.js"></script>

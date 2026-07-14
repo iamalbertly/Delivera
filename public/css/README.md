@@ -25,6 +25,10 @@
 | `11-executive-pulse.css` | Executive verdict zone, portfolio heat tiles, pulse bars |
 | `12-top-chrome.css` | Global top chrome, Improve Delivera modal |
 | `13-sub-chrome.css` | Sub-chrome and secondary header strips |
+| `13-portfolio.css` | Portfolio scope bar, bento cards, command surface |
+| `14-governance-brief.css` | Priority brief bands, exception rail, cockpit |
+| `14-evidence-os.css` | Evidence OS timeline and skeleton |
+| `15-instant-shell.css` | Instant Shell loading skeletons (all surfaces) |
 
 ## CI guard
 

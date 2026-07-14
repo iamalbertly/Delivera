@@ -4565,14 +4565,22 @@ body.current-sprint-page #current-sprint-loading {
 }
 
 body.current-sprint-page .current-sprint-header-bar {
-  gap: 4px;
-  padding: 6px 10px;
+  gap: 2px;
+  padding: 4px 8px;
+  /* Lean default band ~48px before expansion */
+  max-height: none;
   top: var(--sticky-global-nav-top, 56px);
   background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(246,250,255,0.84));
   border-color: var(--glass-border);
   box-shadow: var(--shadow-soft);
   -webkit-backdrop-filter: saturate(1.18) blur(12px);
   backdrop-filter: saturate(1.18) blur(12px);
+}
+
+/* Default to lean skim density on first paint when attribute is present */
+body.current-sprint-page .current-sprint-header-bar[data-viewport-lean="true"] {
+  padding: 4px 8px;
+  gap: 2px;
 }
 
 body.current-sprint-page.has-top-chrome .current-sprint-header-bar {

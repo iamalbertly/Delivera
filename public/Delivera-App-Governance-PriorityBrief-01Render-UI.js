@@ -4,6 +4,7 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { formatDecisionDueLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
+import { attentionTone } from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
 
 /** Resolve a project key to its display name (e.g. SD → DMS board). */
 function squadName(key) {
@@ -21,7 +22,7 @@ function renderAtRiskRows(atRiskSquads = [], anchorKey = '') {
       </thead>
       <tbody>
         ${rows.map((s) => {
-          const tone = s.attentionState === 'off-plan' || s.attentionState === 'decision-required' ? 'critical' : 'watch';
+          const tone = attentionTone(s.attentionState);
           const isAnchor = String(s.projectKey).toUpperCase() === String(anchorKey).toUpperCase();
           return `
           <tr class="gov-priority-at-risk-row gov-priority-at-risk-row--${escapeHtml(tone)}${isAnchor ? ' is-anchor' : ' is-compare'}" data-squad-key="${escapeHtml(s.projectKey)}" data-governance-action="scroll-commitments" role="button" tabindex="0" title="Scroll to PI commitments">

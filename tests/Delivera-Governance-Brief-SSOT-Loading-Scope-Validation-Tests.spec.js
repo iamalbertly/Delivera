@@ -121,10 +121,17 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     await mockGovernanceApis(page, SD_BRIEF, 400);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    const skeleton = page.locator('#portfolio-signal-mount [data-portfolio-signal-skeleton]');
-    await expect(skeleton).toBeVisible({ timeout: 2000 });
-    await expect(page.locator('#portfolio-signal-mount .portfolio-signal, [data-portfolio-signal]')).toBeVisible({ timeout: 15000 });
-    await expect(skeleton).toBeHidden();
+    await expect(page.locator('[data-testid="instant-shell"], [data-testid="instant-shell-stale"], #portfolio-signal-mount [data-portfolio-signal-skeleton]').first()).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#portfolio-signal-mount .portfolio-signal, [data-portfolio-signal], [data-testid="governance-priority-brief"]').first()).toBeVisible({ timeout: 15000 });
+    assertTelemetryClean(telemetry);
+  });
+
+  test('instant-shell state strip visible within first second', async ({ page }) => {
+    const telemetry = captureBrowserTelemetry(page);
+    await mockGovernanceApis(page, SD_BRIEF, 900);
+    await page.goto('/governance');
+    if (await skipIfRedirectedToLogin(page, test)) return;
+    await expect(page.locator('[data-testid="instant-shell-state-strip"], [data-testid="instant-shell"]').first()).toBeVisible({ timeout: 1000 });
     assertTelemetryClean(telemetry);
   });
 

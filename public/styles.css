@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    GENERATED FILE — DO NOT EDIT
-   Built from public/css/ (16 partials — see public/css/README.md)
+   Built from public/css/ (17 partials — see public/css/README.md)
    To change styles: edit a partial, then run: npm run build:css
    ═══════════════════════════════════════════════════════════════ */
 :root {
@@ -152,7 +152,8 @@ body {
   font-family: 'Aptos', 'Segoe UI Variable Text', 'Candara', 'Segoe UI', sans-serif;
   line-height: 1.6;
   color: var(--text-body);
-  background: var(--app-bg);
+  /* Anti white-flash: never leave body as pure white before surface CSS loads */
+  background: var(--surface-page, var(--app-bg, #f5f6f8));
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;
@@ -1852,6 +1853,16 @@ body.governance-page .app-top-brand-context {
   box-shadow: 0 2px 12px rgba(72, 22, 22, 0.22);
 }
 
+/*
+  Sticky offset contract (Delivera-Shared-Sticky-Offset-01Measure.js publishes live values):
+  --sticky-global-nav-top  → global nav stack only (top chrome + sub-chrome). Use for the
+    FIRST sticky layer below nav: portfolio/gov scope bar, sprint HUD, leadership HUD header.
+  --sticky-offset          → nav + --gov-scope-bar-height. Use for overlays BELOW the full
+    sticky stack: drawers, side rails, scroll targets past the scope bar.
+  --gov-scope-bar-height   → scope bar height alone; add to nav for elements below the bar.
+  --current-sprint-hud-below-nav → sprint HUD height; for sticky content below the HUD.
+  Never add --sub-chrome-height on top of --sticky-global-nav-top (already folded in).
+*/
 body.has-top-chrome {
   --sticky-global-nav-top: var(--top-chrome-height, 56px);
   --sticky-offset: var(--top-chrome-height, 56px);
@@ -11413,14 +11424,22 @@ body.current-sprint-page #current-sprint-loading {
 }
 
 body.current-sprint-page .current-sprint-header-bar {
-  gap: 4px;
-  padding: 6px 10px;
+  gap: 2px;
+  padding: 4px 8px;
+  /* Lean default band ~48px before expansion */
+  max-height: none;
   top: var(--sticky-global-nav-top, 56px);
   background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(246,250,255,0.84));
   border-color: var(--glass-border);
   box-shadow: var(--shadow-soft);
   -webkit-backdrop-filter: saturate(1.18) blur(12px);
   backdrop-filter: saturate(1.18) blur(12px);
+}
+
+/* Default to lean skim density on first paint when attribute is present */
+body.current-sprint-page .current-sprint-header-bar[data-viewport-lean="true"] {
+  padding: 4px 8px;
+  gap: 2px;
 }
 
 body.current-sprint-page.has-top-chrome .current-sprint-header-bar {
@@ -16876,6 +16895,7 @@ body.governance-page.sidebar-open .governance-shell {
   }
 }
 
+/* portfolio-scope-bar on governance inherits the same nav-only top (see 13-portfolio.css). */
 .gov-scope-bar-sticky {
   position: sticky;
   top: var(--sticky-global-nav-top, 0);
@@ -19656,10 +19676,8 @@ body.governance-page .gov-partial-warn { font-size: 0.78rem; color: #b45309; }
   outline-offset: 2px;
 }
 
-.portfolio-rail {
-  position: sticky;
-  top: calc(var(--sticky-global-nav-top, 56px) + var(--sub-chrome-height, 0px) + 0.5rem);
-}
+/* Sticky rail offset lives on the fuller rule below (~portfolio-rail with display:flex).
+   Do not add --sub-chrome-height here — it is already folded into --sticky-global-nav-top. */
 
 .portfolio-trust-bar {
   display: flex;
@@ -20043,10 +20061,12 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   --portfolio-scope-z: var(--z-scope-sticky, 1290);
 }
 
+/* Scope bar is the first sticky layer below nav — use nav-only top.
+   --sticky-offset includes this bar's height and must NOT be used here. */
 .portfolio-page .portfolio-scope-bar,
 #portfolio-scope-bar-mount.portfolio-scope-bar {
   position: sticky;
-  top: var(--sticky-offset, 64px);
+  top: var(--sticky-global-nav-top, 56px);
   z-index: var(--portfolio-scope-z, var(--z-scope-sticky, 1290));
   background: var(--surface-page, #f8f9fb);
   padding: 0.18rem 0 0.22rem;
@@ -20054,7 +20074,7 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   min-height: 2.55rem;
   max-height: none;
   overflow: visible;
-  scroll-margin-top: calc(var(--sticky-offset, 64px) + 3rem);
+  scroll-margin-top: calc(var(--sticky-global-nav-top, 56px) + 3rem);
   pointer-events: auto;
   isolation: isolate;
 }
@@ -22147,149 +22167,6 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
 .delivera-surface-toast--visible { opacity: 1; transform: translateY(0); }
 .delivera-surface-toast--fade { opacity: 0; transform: translateY(-4px); }
 
-/* ═══════════════════════════════════════════════════════════════
-   Instant Shell — standardized loading skeleton painted immediately
-   on every page so the user NEVER sees a blank white page.
-   Mirrors the real page layout with shimmer placeholders.
-   ═══════════════════════════════════════════════════════════════ */
-/* Never leave main as an empty white void during module boot / refresh. */
-body.gov-brief-loading #main-content,
-body.delivera-instant-shell-active #main-content,
-body.gov-scope-refreshing #main-content,
-#main-content[data-gov-brief-state="loading"],
-#main-content[data-current-sprint-state="welcome"],
-.actions-shell:has([data-testid="instant-shell"]) {
-  background: var(--surface-page, #f5f6f8);
-  min-height: 68vh;
-}
-#gov-loading:empty,
-#gov-loading[hidden] {
-  display: none !important;
-}
-body.gov-scope-refreshing [data-testid="governance-priority-brief"],
-body.gov-scope-refreshing [data-portfolio-signal],
-body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
-  opacity: 0.72;
-  transition: opacity 160ms ease;
-  filter: saturate(0.92);
-}
-
-.instant-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  width: 100%;
-  max-width: min(1480px, 98vw);
-  margin: 0 auto;
-  min-height: 52vh;
-  box-sizing: border-box;
-  background: var(--surface-page, #f5f6f8);
-}
-.instant-shimmer {
-  height: 0.85rem;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #eef2f7 0%, #f8f8fa 50%, #eef2f7 100%);
-  background-size: 200% 100%;
-  animation: portfolio-skeleton-pulse 1.2s ease-in-out infinite;
-  margin-bottom: 0.5rem;
-}
-.instant-shell-label {
-  font-size: 0.82rem;
-  color: var(--text-muted, #6b7280);
-  text-align: center;
-  margin: 0.5rem 0 0;
-  animation: portfolio-skeleton-pulse 1.5s ease-in-out infinite;
-}
-.instant-shell-value-line {
-  margin: 0 0 0.75rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #334155;
-  line-height: 1.35;
-}
-.instant-shell-stale-banner {
-  margin: 0 0 0.75rem;
-  padding: 0.45rem 0.75rem;
-  border-radius: 8px;
-  background: #fff7ed;
-  border: 1px solid #fdba74;
-  color: #9a3412;
-  font-size: 0.82rem;
-}
-.instant-shell-stale-body {
-  opacity: 0.92;
-  pointer-events: none;
-  filter: saturate(0.92);
-}
-.gov-displacement-line {
-  margin: 0 0 0.55rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #475569;
-  letter-spacing: 0.01em;
-}
-.gov-shared-signal-cta {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-.gov-shared-signal {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-.portfolio-bento-decision { display: none !important; }
-.instant-shell-scope-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-subtle, #e8e8ec);
-  border-radius: 10px;
-  background: var(--surface, #fff);
-}
-.instant-shell-scope {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-muted, #6b7280);
-  white-space: nowrap;
-}
-.instant-shell-cockpit-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-  gap: 1.25rem;
-  align-items: start;
-  width: 100%;
-}
-.instant-shell-main { display: flex; flex-direction: column; gap: 1rem; }
-.instant-shell-hero { padding: 1.25rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 12px; background: var(--surface, #fff); }
-.instant-shell-metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; }
-.instant-shell-metric-card { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 8px; }
-.instant-shell-evidence { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; }
-.instant-shell-rail { display: flex; flex-direction: column; gap: 0.75rem; }
-.instant-shell-rail-card { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
-.instant-shell-header-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
-.instant-shell-sprint-grid { display: flex; flex-direction: column; gap: 0.75rem; }
-.instant-shell-signal-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
-.instant-shell-signal-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
-.instant-shell-blockers { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
-.instant-shell-stories { display: flex; flex-direction: column; gap: 0.5rem; }
-.instant-shell-story-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 8px; background: var(--surface, #fff); }
-.instant-shell-tabs { display: flex; gap: 0.5rem; }
-.instant-shell-cases { display: flex; flex-direction: column; gap: 0.75rem; }
-.instant-shell-case-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
-.instant-shell-settings-grid { display: grid; grid-template-columns: 200px 1fr; gap: 1.25rem; align-items: start; }
-.instant-shell-settings-nav { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
-.instant-shell-settings-content { display: flex; flex-direction: column; gap: 0.75rem; }
-.instant-shell-settings-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
-
-@media (max-width: 1024px) {
-  .instant-shell-cockpit-grid { grid-template-columns: 1fr; }
-  .instant-shell-settings-grid { grid-template-columns: 1fr; }
-  .instant-shell-signal-row { grid-template-columns: 1fr; }
-  .instant-shell-metrics-row { grid-template-columns: 1fr; }
-}
 .delivera-surface-toast--error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 .delivera-surface-toast--success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 .delivera-surface-toast--info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
@@ -22297,7 +22174,7 @@ body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
 
 @media (max-width: 768px) {
   .portfolio-page .portfolio-scope-bar {
-    top: var(--sticky-offset, 56px);
+    top: var(--sticky-global-nav-top, 56px);
     min-height: 2.45rem;
     max-height: 2.95rem;
     padding: 0.14rem 0 0.18rem;
@@ -22771,7 +22648,7 @@ body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
   border-left: 4px solid var(--brand-danger, #c41e3a);
   border-radius: 10px;
   position: sticky;
-  top: calc(var(--sticky-global-nav-top, 56px) + var(--sub-chrome-height, 0px) + 0.25rem);
+  top: calc(var(--sticky-global-nav-top, 56px) + 0.25rem);
   z-index: 10;
 }
 .top-blocker-card-icon {
@@ -22967,7 +22844,8 @@ body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
 body.governance-priority-brief-page.portfolio-page .portfolio-scope-bar,
 body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   position: sticky;
-  top: var(--sticky-offset, 64px);
+  /* Nav-only: --sticky-offset includes this bar's own height (double-count gap). */
+  top: var(--sticky-global-nav-top, 56px);
   z-index: var(--z-scope-sticky, 1290);
   --portfolio-scope-z: var(--z-scope-sticky, 1290);
   flex-shrink: 0;
@@ -24459,4 +24337,209 @@ body.governance-priority-brief-page .portfolio-layout--priority-brief .portfolio
   .evidence-os-actions .btn {
     width: 100%;
   }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Instant Shell — standardized loading skeleton painted immediately
+   on every page so the user NEVER sees a blank white page.
+   Mirrors the real page layout with shimmer placeholders.
+   SSOT: Delivera-Shared-Instant-Shell-01UI.js
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Never leave main as an empty white void during module boot / refresh. */
+body.gov-brief-loading #main-content,
+body.delivera-instant-shell-active #main-content,
+body.gov-scope-refreshing #main-content,
+#main-content[data-gov-brief-state="loading"],
+#main-content[data-current-sprint-state="welcome"],
+#main-content[data-delivera-data-state="loading"],
+.actions-shell:has([data-testid="instant-shell"]) {
+  background: var(--surface-page, #f5f6f8);
+  min-height: 68vh;
+}
+#gov-loading:empty,
+#gov-loading[hidden] {
+  display: none !important;
+}
+body.gov-scope-refreshing [data-testid="governance-priority-brief"],
+body.gov-scope-refreshing [data-portfolio-signal],
+body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
+  opacity: 0.72;
+  transition: opacity 160ms ease;
+  filter: saturate(0.92);
+}
+
+/* Instant shell → content crossfade when data state becomes live */
+#main-content[data-delivera-data-state="live"] {
+  animation: delivera-surface-crossfade 160ms ease;
+}
+@keyframes delivera-surface-crossfade {
+  from { opacity: 0.88; }
+  to { opacity: 1; }
+}
+
+.instant-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  width: 100%;
+  max-width: min(1480px, 98vw);
+  margin: 0 auto;
+  min-height: 52vh;
+  box-sizing: border-box;
+  background: var(--surface-page, #f5f6f8);
+}
+.instant-shimmer {
+  height: 0.85rem;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8f8fa 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  animation: portfolio-skeleton-pulse 1.2s ease-in-out infinite;
+  margin-bottom: 0.5rem;
+}
+.instant-shell-label {
+  font-size: 0.82rem;
+  color: var(--text-muted, #6b7280);
+  text-align: center;
+  margin: 0.5rem 0 0;
+  animation: portfolio-skeleton-pulse 1.5s ease-in-out infinite;
+}
+.instant-shell-value-line {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.35;
+}
+.instant-shell-state-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.45rem 0.75rem;
+  margin: 0 0 0.5rem;
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  font-size: 0.8rem;
+  color: var(--text-muted, #6b7280);
+}
+.instant-shell-state-surface {
+  font-weight: 700;
+  color: #24324a;
+}
+.instant-shell-state-scope {
+  font-weight: 600;
+}
+.instant-shell-state-sub {
+  color: var(--text-muted, #6b7280);
+}
+.instant-shell-stale-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 0.82rem;
+}
+.instant-shell-stale-body {
+  opacity: 0.92;
+  pointer-events: none;
+  filter: saturate(0.92);
+}
+.gov-displacement-line {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+.gov-shared-signal-cta {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.gov-shared-signal {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+.portfolio-bento-decision { display: none !important; }
+.instant-shell-scope-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+.instant-shell-scope {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+.instant-shell-cockpit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+}
+.instant-shell-main { display: flex; flex-direction: column; gap: 1rem; }
+.instant-shell-hero { padding: 1.25rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 12px; background: var(--surface, #fff); }
+.instant-shell-metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; }
+.instant-shell-metric-card { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 8px; }
+.instant-shell-evidence { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; }
+.instant-shell-rail { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-rail-card { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-header-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-sprint-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-signal-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.instant-shell-signal-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-blockers { padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-stories { display: flex; flex-direction: column; gap: 0.5rem; }
+.instant-shell-story-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 8px; background: var(--surface, #fff); }
+.instant-shell-tabs { display: flex; gap: 0.5rem; }
+.instant-shell-cases { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-case-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-settings-grid { display: grid; grid-template-columns: 200px 1fr; gap: 1.25rem; align-items: start; }
+.instant-shell-settings-nav { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-settings-content { display: flex; flex-direction: column; gap: 0.75rem; }
+.instant-shell-settings-card { padding: 1rem; border: 1px solid var(--border-subtle, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); }
+.instant-shell-hud-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.instant-shell-hud-card {
+  padding: 1rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  min-height: 7rem;
+}
+.instant-shell-preview-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+.instant-shell-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (max-width: 1024px) {
+  .instant-shell-cockpit-grid { grid-template-columns: 1fr; }
+  .instant-shell-settings-grid { grid-template-columns: 1fr; }
+  .instant-shell-signal-row { grid-template-columns: 1fr; }
+  .instant-shell-metrics-row { grid-template-columns: 1fr; }
+  .instant-shell-hud-grid { grid-template-columns: 1fr; }
 }

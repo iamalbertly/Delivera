@@ -31,12 +31,14 @@ const PARTIALS = [
   '10-meeting-first-surfaces.css',
   '11-executive-pulse.css',
   '13-portfolio.css',
+  '14-governance-brief.css',
   '14-evidence-os.css',
+  '15-instant-shell.css',
 ];
 
 const BUILD_COMMENT = `/* ═══════════════════════════════════════════════════════════════
    GENERATED FILE — DO NOT EDIT
-   Built from public/css/ (15 partials — see public/css/README.md)
+   Built from public/css/ (17 partials — see public/css/README.md)
    To change styles: edit a partial, then run: npm run build:css
    ═══════════════════════════════════════════════════════════════ */\n`;
 

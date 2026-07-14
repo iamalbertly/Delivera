@@ -2,13 +2,7 @@
  * Exception squad rail — compressed peer status below Priority Brief.
  */
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-
-function railTone(attentionState = '') {
-  if (attentionState === 'off-plan' || attentionState === 'decision-required') return 'critical';
-  if (attentionState === 'proof-required') return 'watch';
-  if (attentionState === 'cannot-verify') return 'muted';
-  return 'healthy';
-}
+import { attentionTone } from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
 
 export function renderExceptionRail(portfolioJudgment = {}, { selectedKey = '' } = {}) {
   const judgment = portfolioJudgment || {};
@@ -21,7 +15,7 @@ export function renderExceptionRail(portfolioJudgment = {}, { selectedKey = '' }
     : '';
 
   const rows = atRisk.map((s) => {
-    const tone = railTone(s.attentionState);
+    const tone = attentionTone(s.attentionState);
     const selected = String(s.projectKey).toUpperCase() === String(selectedKey).toUpperCase();
     return `
       <div

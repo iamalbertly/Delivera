@@ -4,18 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Impact | Delivera</title>
+  <style>
+    body{background:#f5f6f8;margin:0}
+    [data-instant-shell-mount][aria-busy="true"]:empty{min-height:40vh;background:#f5f6f8;display:block}
+  </style>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="evidence-os-page">
+<body class="evidence-os-page" data-delivera-surface="evidence" data-delivera-data-state="loading">
   <a class="skip-to-content" href="#main-content">Skip to main content</a>
 
-  <main id="main-content" class="evidence-os-shell" role="main">
-    <section class="evidence-os-loading" id="eos-loading" aria-live="polite">
-      <div class="evidence-os-skeleton evidence-os-skeleton--wide"></div>
-      <div class="evidence-os-skeleton-grid">
-        <span></span><span></span><span></span><span></span>
-      </div>
-    </section>
+  <main id="main-content" class="evidence-os-shell" role="main" data-delivera-surface="evidence" data-delivera-data-state="loading">
+    <section class="evidence-os-loading" id="eos-loading" data-instant-shell-mount="evidence" aria-live="polite" aria-busy="true"></section>
 
     <section class="evidence-os-header" aria-labelledby="evidence-title">
       <div>

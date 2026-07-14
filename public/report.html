@@ -6,10 +6,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Proof - Delivera</title>
+  <style>
+    body{background:#f5f6f8;margin:0}
+    [data-instant-shell-mount][aria-busy="true"]:empty{min-height:52vh;background:#f5f6f8;display:block}
+  </style>
   <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
+<body data-delivera-surface="report" data-delivera-data-state="loading">
   <div class="container">
     <header class="report-shell-top">
       <div class="header-row report-shell-top-row">
@@ -126,7 +130,8 @@
       </aside>
 
       <!-- Preview Area -->
-      <main id="main-content" class="preview-area">
+      <main id="main-content" class="preview-area" data-delivera-surface="report" data-delivera-data-state="loading">
+      <div id="report-instant-shell-mount" data-instant-shell-mount="report" aria-busy="true"></div>
       <div id="loading" class="loading loading-skeleton" style="display: none;" aria-live="polite" aria-busy="true">
         <!-- M3: Filter context bar — confirms which filters are loading -->
         <div id="loading-context-bar" class="loading-context-bar" aria-live="polite"></div>

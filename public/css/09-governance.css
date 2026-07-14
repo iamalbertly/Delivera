@@ -48,6 +48,7 @@ body.governance-page.sidebar-open .governance-shell {
   }
 }
 
+/* portfolio-scope-bar on governance inherits the same nav-only top (see 13-portfolio.css). */
 .gov-scope-bar-sticky {
   position: sticky;
   top: var(--sticky-global-nav-top, 0);
