@@ -1,19 +1,25 @@
 {
   "version": 2,
-  "installCommand": "npm install",
-  "buildCommand": "npm run build:css",
-  "functions": {
-    "index.js": {
-      "includeFiles": "{public,data}/**"
-    },
-    "api/index.js": {
-      "includeFiles": "{public,data}/**"
+  "services": {
+    "delivera": {
+      "root": ".",
+      "entrypoint": "index.js",
+      "installCommand": "npm install",
+      "buildCommand": "npm run build:css",
+      "functions": {
+        "index.js": {
+          "includeFiles": "{public,data}/**"
+        },
+        "api/index.js": {
+          "includeFiles": "{public,data}/**"
+        }
+      }
     }
   },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index"
+      "destination": { "service": "delivera" }
     }
   ]
 }
