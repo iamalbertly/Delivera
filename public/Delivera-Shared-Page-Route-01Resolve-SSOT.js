@@ -18,11 +18,13 @@ export const PAGE_LOGIN = 'login';
 export const LEADERSHIP_HASH = '#trends';
 
 /** Portfolio command surface primaries (top chrome switcher). */
-export const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_ACTIONS];
+export const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_ACTIONS, PAGE_SETTINGS];
 
 export const SURFACE_SWITCHER = [
   { key: PAGE_GOVERNANCE, label: 'Governance', href: '/governance' },
+  { key: PAGE_SPRINTS, label: 'Current sprint', href: '/current-sprint' },
   { key: PAGE_ACTIONS, label: 'Actions', href: '/actions' },
+  { key: PAGE_SETTINGS, label: 'Settings', href: '/settings' },
 ];
 
 /**
@@ -31,7 +33,7 @@ export const SURFACE_SWITCHER = [
  * Settings pages are not production-ready; Notifications and Help icons
  * are non-functional.)
  */
-export const HIDDEN_SURFACES = [PAGE_SPRINTS, PAGE_SETTINGS];
+export const HIDDEN_SURFACES = [];
 
 /** Short descriptions for settings quick-nav cards (keyed by page). */
 export const SURFACE_QUICK_DESC = {

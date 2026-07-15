@@ -16,10 +16,19 @@ import { enrichDecisionPayload } from './Delivera-Governance-PriorityBrief-Mock-
 function stubPriorityBrief() {
   return {
     briefId: 'PB-SD',
-    projects: ['SD', 'MAS', 'RPA', 'MPSA2'],
+    // Detail payload stays anchored to DMS. Comparison squads are carried by
+    // the portfolio decision payload and must not contaminate DMS work rows.
+    projects: ['SD'],
     generatedAt: new Date().toISOString(),
     freshness: { confidenceLimit: 'live' },
-    meta: { quarter: 'FY27 Q2', setupGaps: [], timebox: { totalDays: 90, elapsedDays: 45 } },
+    meta: {
+      quarter: 'FY27 Q2',
+      setupGaps: [],
+      timebox: { totalDays: 90, elapsedDays: 45 },
+      baselineReadinessByProject: {
+        SD: { hasBaseline: true, committedCount: 6, piName: 'DMS FY27 Q2 PI baseline', baselineDate: '2026-03-28' },
+      },
+    },
     deliveryTruthKeys: { lateAdded: ['SD-5237'] },
     baselineComparison: {
       piName: 'DMS FY27 Q2 PI baseline',
@@ -30,6 +39,7 @@ function stubPriorityBrief() {
         { issueKey: 'SD-5240', title: 'Service Governance Automation', squad: 'SD', verdict: 'not-traceable', statusNow: 'not found' },
       ],
     },
+    baselineComparisonByProject: {},
     squadInsights: [
       { projectKey: 'SD', boardName: 'DMS Squad', boardResolved: true, verdictTier: 'blocked', sprintPulse: { committed: 10, done: 2 }, offPlanHours: 42, piCommitted: 6, cardRisks: [{ issueKey: 'SD-5237' }] },
       { projectKey: 'MAS', boardName: 'AMS', boardResolved: true, verdictTier: 'onTrack', sprintPulse: { committed: 8, done: 7 }, offPlanHours: 2, piCommitted: 5, piDone: 5 },
@@ -43,8 +53,11 @@ function stubPriorityBrief() {
 
 async function mockPriorityBriefPage(page, { baselineMissing = false, stale = false, cases = [] } = {}) {
   const brief = stubPriorityBrief();
+  brief.baselineComparisonByProject.SD = brief.baselineComparison;
   if (baselineMissing) {
     brief.baselineComparison = null;
+    brief.baselineComparisonByProject.SD = null;
+    brief.meta.baselineReadinessByProject.SD = { hasBaseline: false, committedCount: 0 };
     brief.meta.setupGaps = [{ action: 'set-baseline', label: 'Set PI baseline' }];
   }
   if (stale) brief.freshness.confidenceLimit = 'stale';
@@ -127,19 +140,20 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-primary-action"]', { timeout: 120000 });
-    await expect(page.locator('.gov-priority-hero-grid .btn-primary')).toHaveCount(1);
     await expect(page.locator('[data-testid="governance-primary-action"]')).toHaveCount(1);
     await expect(page.locator('[data-testid="governance-evidence-action"]')).toContainText(/Inspect/i);
     assertTelemetryClean(t);
   });
 
-  test('05 safe squads line visible when exception rail deduped to at-risk table', async ({ page }) => {
+  test('05 squad comparison owns portfolio context without duplicate exception surfaces', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPriorityBriefPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-priority-brief"]', { timeout: 120000 });
-    await expect(page.locator('[data-testid="governance-squad-collapsed"]')).toBeVisible();
+    await expect(page.locator('[data-testid="governance-squad-comparison"]')).toBeVisible();
+    await expect(page.locator('[data-testid="governance-exception-rail"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="governance-at-risk-table"]')).toHaveCount(0);
     assertTelemetryClean(t);
   });
 
@@ -166,7 +180,6 @@ test.describe('Governance Priority Brief Master Plan @governance-priority-brief'
     expect(text.toLowerCase()).toMatch(/upload|baseline|slide/);
     expect(text.toLowerCase()).not.toMatch(/off plan/);
     await expect(page.locator('[data-testid="governance-headline-upload-cta"]')).toHaveCount(1);
-    await expect(page.locator('.gov-priority-hero-grid .btn-primary')).toHaveCount(1);
     assertTelemetryClean(t);
   });
 

@@ -15,11 +15,32 @@ import { enrichDecisionPayload } from './Delivera-Governance-PriorityBrief-Mock-
 function stubPortfolioBrief() {
   return {
     briefId: 'PORTFOLIO-SD',
-    projects: ['SD', 'MAS', 'RPA'],
+    // Anchor detail remains DMS-only; portfolio comparisons are supplied by
+    // the decision payload below.
+    projects: ['SD'],
     portfolio: 'SD+MAS+RPA',
     generatedAt: new Date().toISOString(),
     freshness: { confidenceLimit: 'live', generatedAt: new Date().toISOString() },
-    meta: { quarter: 'FY27 Q1', setupGaps: [], workerReceipt: { inboxTotal: 0 } },
+    meta: {
+      quarter: 'FY27 Q1',
+      setupGaps: [],
+      workerReceipt: { inboxTotal: 0 },
+      baselineReadinessByProject: {
+        SD: { hasBaseline: true, committedCount: 3, piName: 'DMS FY27 Q1', baselineDate: '2026-04-01' },
+      },
+    },
+    baselineComparison: {
+      piName: 'DMS FY27 Q1',
+      baselineDate: '2026-04-01',
+      summary: { totalCommitted: 3, delivered: 1, onTrack: 1, notTraceable: 1 },
+      items: [{
+        issueKey: 'SD-5237',
+        title: 'Scope outside PI baseline',
+        squad: 'SD',
+        verdict: 'not-planned',
+        epicActivity: { lifecycle: 'jira-only', storyCount: 0 },
+      }],
+    },
     topRisks: [{
       issueKey: 'SD-5237',
       riskType: 'late-scope',
@@ -46,6 +67,7 @@ function stubPortfolioBrief() {
 
 async function mockPortfolioPage(page) {
   const brief = stubPortfolioBrief();
+  brief.baselineComparisonByProject = { SD: brief.baselineComparison };
   await page.addInitScript(({ projectsKey, anchorKey }) => {
     try {
       localStorage.setItem(projectsKey, 'SD,MAS,RPA');
@@ -156,20 +178,19 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-priority-brief"]', { timeout: 120000 });
     await expect(page.locator('[data-testid="governance-priority-headline"]')).toBeVisible();
-    await expect(page.locator('[data-testid="governance-primary-action"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid="governance-primary-action"], [data-testid="governance-headline-upload-cta"]')).toHaveCount(1);
     await expect(page.locator('[data-testid="gov-cadence-pack"], [data-testid="portfolio-scope-breadcrumb"]')).toHaveCount(1);
     assertTelemetryClean(t);
   });
 
-  test('03 at-risk table shows squad status when exception rail deduped', async ({ page }) => {
+  test('03 comparison cards show squad status without duplicate exception surfaces', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-at-risk-table"], [data-testid="governance-exception-rail"]', { timeout: 120000 });
-    const atRisk = page.locator('.gov-priority-at-risk-row');
-    const railRows = page.locator('[data-testid="governance-squad-row"]');
-    expect((await atRisk.count()) + (await railRows.count())).toBeGreaterThanOrEqual(1);
+    await page.waitForSelector('[data-testid="governance-squad-comparison"] [data-portfolio-carousel]', { timeout: 120000 });
+    await expect(page.locator('[data-testid="governance-squad-comparison"] [data-squad-key]')).not.toHaveCount(0);
+    await expect(page.locator('[data-testid="governance-at-risk-table"], [data-testid="governance-exception-rail"]')).toHaveCount(0);
     assertTelemetryClean(t);
   });
 
@@ -180,8 +201,7 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('[data-testid="governance-priority-brief"]', { timeout: 120000 });
     await expect(page.locator('[data-governance-squad-select]')).toHaveCount(0);
-    const row = page.locator('.gov-priority-at-risk-row, [data-testid="governance-squad-row"]').first();
-    await row.click({ force: true });
+    await expect(page.locator('[data-testid="governance-squad-comparison"] [data-squad-key]')).not.toHaveCount(0);
     await expect(page.locator('[data-testid="governance-priority-headline"]')).toBeVisible();
     assertTelemetryClean(t);
   });
@@ -349,14 +369,14 @@ test.describe('Portfolio command surface @portfolio-command', () => {
     assertTelemetryClean(t);
   });
 
-  test('16 at-risk row click keeps page on governance', async ({ page }) => {
+  test('16 comparison card drill-down keeps page on governance', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockPortfolioPage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('.gov-priority-at-risk-row, [data-testid="governance-squad-row"]', { timeout: 120000 });
+    await page.waitForSelector('[data-testid="governance-squad-comparison"] [data-squad-key]', { timeout: 120000 });
     const urlBefore = page.url();
-    await page.locator('.gov-priority-at-risk-row, [data-testid="governance-squad-row"]').first().click();
+    await page.locator('[data-testid="governance-squad-comparison"] [data-squad-key]').first().click();
     await expect(page).toHaveURL(urlBefore);
     await expect(page.locator('[data-testid="governance-priority-headline"]')).toBeVisible();
     assertTelemetryClean(t);
