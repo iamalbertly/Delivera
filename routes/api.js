@@ -1,6 +1,7 @@
 // SIZE-EXEMPT: Central API surface keeps route handlers co-located for auth, caching, and
 // error-contract consistency across report/current-sprint/outcome flows.
 import express from 'express';
+import versionData from '../version.json' with { type: 'json' };
 import { requireAuth } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
@@ -134,24 +135,14 @@ router.get('/healthz', async (req, res) => {
 });
 
 // Version endpoint — returns app version + environment info (audit 2026-07-15)
-router.get('/version', async (req, res) => {
-  try {
-    const { readFileSync } = await import('fs');
-    const { join, dirname } = await import('path');
-    const { fileURLToPath } = await import('url');
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    const versionFile = join(__dirname, '..', 'version.json');
-    const versionData = JSON.parse(readFileSync(versionFile, 'utf-8'));
-    res.status(200).json({
-      ...versionData,
-      environment: process.env.NODE_ENV || 'development',
-      branch: process.env.VERCEL_GIT_COMMIT_REF || process.env.RENDER_GIT_BRANCH || '',
-      commit: String(process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || '').slice(0, 7),
-      deploymentId: process.env.VERCEL_DEPLOYMENT_ID || process.env.RENDER_INSTANCE_ID || '',
-    });
-  } catch (err) {
-    res.status(200).json({ version: '0.0.0.0', error: 'version.json not found' });
-  }
+router.get('/version', (req, res) => {
+  res.status(200).json({
+    ...versionData,
+    environment: process.env.NODE_ENV || 'development',
+    branch: process.env.VERCEL_GIT_COMMIT_REF || process.env.RENDER_GIT_BRANCH || '',
+    commit: String(process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || '').slice(0, 7),
+    deploymentId: process.env.VERCEL_DEPLOYMENT_ID || process.env.RENDER_INSTANCE_ID || '',
+  });
 });
 
 function getErrorStatusCode(error) {
