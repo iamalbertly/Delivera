@@ -149,7 +149,7 @@ export function renderPriorityBriefHero(priorityBrief = {}, decision = {}) {
   const uploadBaseline = pb.primaryActionTarget === 'alignment-studio-slide';
   const boardAlign = pb.primaryActionTarget === 'alignment-studio-board';
   const headlineCta = uploadBaseline
-    ? `<button type="button" class="btn btn-primary btn-compact gov-priority-headline-cta" data-testid="governance-headline-upload-cta" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide" data-squad-key="${escapeHtml(effectiveSquad)}" data-wizard-mode="slide">${escapeHtml(pb.primaryAction || 'Upload PI baseline slide')}</button>`
+    ? `<button type="button" class="btn btn-primary btn-compact gov-priority-headline-cta" data-testid="governance-headline-upload-cta" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide" data-setup-action="set-baseline" data-setup-baseline-ssot="1" data-squad-key="${escapeHtml(effectiveSquad)}" data-wizard-mode="slide">${escapeHtml(pb.primaryAction || 'Upload PI baseline slide')}</button>`
     : boardAlign
       ? `<button type="button" class="btn btn-primary btn-compact gov-priority-headline-cta" data-testid="governance-headline-board-cta" data-portfolio-action="open-alignment-studio" data-governance-action="align-board" data-squad-key="${escapeHtml(effectiveSquad)}" data-wizard-mode="board">${escapeHtml(pb.primaryAction || 'Align board in Alignment Studio')}</button>`
       : '';
@@ -167,7 +167,7 @@ export function renderPriorityBriefHero(priorityBrief = {}, decision = {}) {
   const deliveryHeadline = buildDeliveryHeadline(pb, decision);
 
   return `
-    <section class="gov-priority-brief-hero" data-testid="governance-priority-brief" aria-label="Priority governance brief">
+    <section class="gov-priority-brief-hero" data-testid="governance-priority-brief" data-portfolio-banner="1" aria-label="Priority governance brief">
       <div class="gov-priority-brief-left">
         ${renderConflictBanner(pb.conflictBanner)}
         <div class="gov-priority-headline-row">
@@ -175,7 +175,7 @@ export function renderPriorityBriefHero(priorityBrief = {}, decision = {}) {
           ${headlineCta}
         </div>
         ${freshness}
-        <p class="gov-priority-legend" data-testid="governance-plan-legend">Plan-backed = this squad’s PI slide is on file. Board-gap = PI epic in Jira with zero stories on selected boards.</p>
+        <p class="gov-priority-legend" data-testid="governance-plan-legend">Plan-backed = this squad’s PI slide is on file. Board-gap = PI commitment missing Jira story evidence.</p>
         ${exposure}
         ${renderAttentionEvidence(pb, decision)}
         ${!pb.attentionEvidence?.total && causes ? `<ul class="gov-priority-cause-list" data-testid="governance-priority-cause">${causes}</ul>` : ''}

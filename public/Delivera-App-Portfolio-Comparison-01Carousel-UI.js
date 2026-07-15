@@ -85,6 +85,7 @@ function renderBentoCard(card = {}, { commitmentRows = [] } = {}) {
         <p class="portfolio-bento-diagnosis" data-bento-metric="diagnosis">${escapeHtml(buildDiagnosisLabel(card, delivered, proof))}</p>
         <p class="portfolio-bento-next" data-hover-proof="owner-lane"><strong>Do next:</strong> ${escapeHtml(nextLabel)}</p>
       </div>`;
+  const rankReason = card.rankReason || card.explanation || '';
   return `
     <article class="portfolio-bento-card portfolio-bento-card--${escapeHtml(statusClass)}${card.selected ? ' is-selected' : ''}${gated ? ' is-gated' : ''}"
       data-squad-key="${escapeHtml(card.projectKey)}"
@@ -100,6 +101,7 @@ function renderBentoCard(card = {}, { commitmentRows = [] } = {}) {
         <strong class="portfolio-bento-squad">${squadLabel}</strong>
         <span class="portfolio-squad-status portfolio-squad-status--${escapeHtml(statusClass)}" data-hover-proof="status">${escapeHtml(statusLabel)}</span>
       </header>
+      ${rankReason ? `<p class="portfolio-bento-rank-reason" data-testid="portfolio-bento-rank-reason">${escapeHtml(rankReason)}</p>` : ''}
       ${metricsBlock}
       ${gated ? '' : `<div class="portfolio-bento-why" data-bento-why hidden>
         <p class="portfolio-bento-why-label">Why Delivera says this</p>
@@ -181,6 +183,25 @@ export function renderPortfolioCarousel(comparison = {}, { commitmentRows = [], 
   const readinessStrip = readinessLine
     ? `<p class="portfolio-readiness-strip" data-testid="portfolio-readiness-strip">${escapeHtml(readinessLine)}</p>`
     : '';
+  const modeStrip = Array.isArray(enriched.compareModes) && enriched.compareModes.length
+    ? `<div class="portfolio-compare-modes" aria-label="Compare by leading indicator">
+        ${enriched.compareModes.map((mode, index) => `
+          <button type="button" class="portfolio-compare-mode${index === 0 ? ' is-active' : ''}" data-compare-mode="${escapeHtml(mode.id)}" title="${escapeHtml(mode.meaning || mode.label)}">${escapeHtml(mode.label)}</button>
+        `).join('')}
+      </div>`
+    : '';
+  const remainingCards = (enriched.remainingCards || []).filter((c) => {
+    const pk = String(c.projectKey || '').toUpperCase();
+    return pk && pk !== '__ALL__';
+  });
+  const lazyCardsHtml = remainingCards.length
+    ? remainingCards.map((c) => renderBentoCard(c, { peerMedianDelivered, commitmentRows })
+      .replace('portfolio-bento-card ', 'portfolio-bento-card is-lazy-hidden ')
+      .replace('<article ', '<article hidden data-lazy-card="1" ')).join('')
+    : '';
+  const lazyStatus = enriched.lazyLoad?.enabled
+    ? `<p class="portfolio-carousel-lazy-status" data-lazy-status>${escapeHtml(String(enriched.lazyLoad.remaining || remainingCards.length))} more squads ready on scroll</p>`
+    : '';
   const headingText = isDrill ? 'Squad deep dive' : 'Squad comparison';
   const subtitleText = isDrill
     ? 'Focus on this squad — compare peers below'
@@ -191,17 +212,20 @@ export function renderPortfolioCarousel(comparison = {}, { commitmentRows = [], 
         <h2>${escapeHtml(headingText)}</h2>
         <p class="portfolio-carousel-strip">${escapeHtml(subtitleText)}</p>
         ${readinessStrip}
+        ${modeStrip}
       </div>
       ${sharedBanner}
       <div class="portfolio-bento-grid-track" data-carousel-track role="list">
         ${cards.map((c) => renderBentoCard(c, { peerMedianDelivered, commitmentRows })).join('')}
+        ${lazyCardsHtml}
       </div>
+      ${lazyStatus}
     </section>`;
 }
 
 export function bindPortfolioCarousel(root, { onSelectSquad, onDrillIntoSquad } = {}) {
   if (!root) return;
-  const cards = Array.from(root.querySelectorAll('[data-squad-key]'));
+  let cards = Array.from(root.querySelectorAll('[data-squad-key]'));
   const selectCard = (row) => {
     if (!row) return;
     onSelectSquad?.(row.getAttribute('data-squad-key'));
@@ -210,7 +234,7 @@ export function bindPortfolioCarousel(root, { onSelectSquad, onDrillIntoSquad } 
   // Also: raise the hovered card by 2-3px with increased shadow.
   // Respect reduced-motion settings.
   const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  cards.forEach((card) => {
+  const wireCard = (card) => {
     const whyPanel = card.querySelector('[data-bento-why]');
     const commitments = card.querySelector('[data-bento-commitments]');
     if (whyPanel) {
@@ -236,6 +260,32 @@ export function bindPortfolioCarousel(root, { onSelectSquad, onDrillIntoSquad } 
       metric.addEventListener('mouseleave', () => {
         root.querySelectorAll(`[data-bento-metric="${metricType}"]`).forEach((m) => m.classList.remove('is-metric-highlighted'));
       });
+    });
+  };
+  cards.forEach(wireCard);
+  const track = root.querySelector('[data-carousel-track]');
+  const revealLazyCards = () => {
+    const hidden = Array.from(root.querySelectorAll('[data-lazy-card][hidden]')).slice(0, 3);
+    if (!hidden.length) return;
+    hidden.forEach((card) => {
+      card.hidden = false;
+      card.classList.remove('is-lazy-hidden');
+      wireCard(card);
+    });
+    cards = Array.from(root.querySelectorAll('[data-squad-key]:not([hidden])'));
+    const remaining = root.querySelectorAll('[data-lazy-card][hidden]').length;
+    const status = root.querySelector('[data-lazy-status]');
+    if (status) status.textContent = remaining ? `${remaining} more squads ready on scroll` : 'All squads loaded';
+  };
+  track?.addEventListener('scroll', () => {
+    if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 24) revealLazyCards();
+  }, { passive: true });
+  root.querySelectorAll('[data-compare-mode]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      root.querySelectorAll('[data-compare-mode]').forEach((node) => node.classList.toggle('is-active', node === btn));
+      const meaning = btn.getAttribute('title') || btn.textContent || '';
+      const status = root.querySelector('[data-lazy-status]');
+      if (status) status.textContent = meaning;
     });
   });
   root.addEventListener('click', (ev) => {

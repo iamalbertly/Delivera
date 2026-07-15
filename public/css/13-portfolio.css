@@ -1015,6 +1015,42 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   margin-bottom: 0.75rem;
 }
 
+.portfolio-bento-rank-reason {
+  margin: 0;
+  color: var(--text, #111827);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.portfolio-compare-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.portfolio-compare-mode {
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--text, #111827);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.portfolio-compare-mode.is-active {
+  border-color: var(--brand-primary, #8b1538);
+  color: var(--brand-primary, #8b1538);
+  background: rgba(139, 21, 56, 0.06);
+}
+
+.portfolio-carousel-lazy-status {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted, #667085);
+  font-size: 0.78rem;
+}
+
 .portfolio-carousel-controls {
   display: grid;
   grid-template-columns: auto 1fr auto;

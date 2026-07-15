@@ -164,6 +164,7 @@ export function writePeriodWindow(windowId) {
 export function readPortfolioAnchor(projects = readScopeProjects()) {
   try {
     const stored = String(localStorage.getItem(PORTFOLIO_ANCHOR_KEY) || '').trim().toUpperCase();
+    if (stored === PORTFOLIO_ALL && projects.length <= 1) return projects[0] || PORTFOLIO_ALL;
     if (stored === PORTFOLIO_ALL) return PORTFOLIO_ALL;
     if (stored && projects.some((p) => String(p).toUpperCase() === stored)) return stored;
     // Explicit All-Projects preset with no stored anchor (first visit already wrote __ALL__).

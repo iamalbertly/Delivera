@@ -228,7 +228,7 @@ test.describe('Portfolio growth UX Round12 @portfolio-round12', () => {
   test('10 actions preview shows portfolio verdict when cached', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await page.addInitScript(() => {
-      sessionStorage.setItem('delivera:portfolio-decision:cache:v1', JSON.stringify({
+      sessionStorage.setItem('delivera:portfolio-decision:cache:v2', JSON.stringify({
         'SD|MAS,MPSA2,RPA|FY27 Q1|ROUND12': {
           payload: { decision: { narrative: { headline: 'Cached verdict line' } } },
           at: Date.now(),

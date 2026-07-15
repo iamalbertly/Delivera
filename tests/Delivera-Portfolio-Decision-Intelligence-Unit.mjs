@@ -145,6 +145,40 @@ test('comparison cards include squad-specific intelligence fields', async () => 
   assert.notEqual(comparison.cards[0].explanation, comparison.cards[1].explanation);
 });
 
+test('comparison cards expose rank reason and lazy-load overflow contract', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const { buildPortfolioComparisonCards } = await import('../lib/Delivera-Governance-PortfolioComparison-01SSOT.js');
+  const keys = ['SD', 'FIN', 'MAS', 'RPA', 'MVA', 'TRS'];
+  const brief = {
+    projects: keys,
+    meta: {
+      quarter: 'FY26 Q2',
+      baselineReadinessByProject: Object.fromEntries(keys.map((key) => [key, { hasBaseline: true, committedCount: key === 'FIN' ? 6 : 3 }])),
+    },
+    baselineComparisonByProject: Object.fromEntries(keys.map((key) => [key, {
+      summary: { totalCommitted: key === 'FIN' ? 6 : 3 },
+      items: [{ issueKey: `${key}-1`, title: `${key} commitment`, squad: key, verdict: key === 'FIN' ? 'not-planned' : 'on-track' }],
+    }])),
+    squadInsights: keys.map((key, index) => ({
+      projectKey: key,
+      boardName: key,
+      boardResolved: true,
+      piCommitted: key === 'FIN' ? 6 : 3,
+      sprintPulse: { committed: 3, done: index },
+      verdictTier: key === 'FIN' ? 'blocked' : 'watch',
+      cardRisks: [],
+    })),
+    freshness: { confidenceLimit: 'live' },
+  };
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', compareProjects: keys, cases: [] });
+  const comparison = buildPortfolioComparisonCards({ decision, brief, insights: brief.squadInsights, cases: [] });
+  assert.equal(comparison.cards.length, 5);
+  assert.equal(comparison.remainingCards.length, 1);
+  assert.equal(comparison.lazyLoad.enabled, true);
+  assert.ok(comparison.cards.every((card) => card.rankReason));
+  assert.ok(comparison.compareModes.some((mode) => mode.id === 'backlog-readiness'));
+});
+
 test('portfolio decision contract exposes cockpit IA fields', async () => {
   const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
   const brief = {
@@ -179,4 +213,28 @@ test('portfolio decision contract exposes cockpit IA fields', async () => {
   assert.equal(decision.dataTrust.boardsConnected.total, 2);
   assert.ok(decision.dataTrust.dataGaps >= 2);
   assert.ok(['material-risk', 'evidence-gap', 'decision-required', 'not-assessed', 'healthy'].includes(decision.statusSemantics.primary));
+  assert.equal(decision.squadScope.scoreableSquadCount, 11);
+  assert.deepEqual(decision.squadScope.excludedEntityKeys, ['ASG']);
+  assert.equal(decision.baselineCoverage.totalSquads, 11);
+  assert.match(decision.baselineCoverage.currentQuarterLine, /delivery squads do not have uploaded PI commitments/);
+  assert.equal(decision.baselineCoverage.nextQuarterRequest.active, false);
+  assert.ok(Number.isFinite(decision.attentionBreakdown.missingBaseline));
+  assert.ok(Array.isArray(decision.comparisonReason));
+});
+
+test('next-quarter PI upload prompt activates inside the 80 percent quarter window', async () => {
+  const { buildPortfolioDecision } = await import('../lib/Delivera-Governance-PortfolioDecision-01SSOT.js');
+  const brief = {
+    projects: ['SD'],
+    meta: {
+      quarter: 'FY26 Q2',
+      timebox: { elapsedDays: 82, totalDays: 90 },
+      baselineReadinessByProject: { SD: { hasBaseline: true, committedCount: 5 } },
+    },
+    squadInsights: [{ projectKey: 'SD', boardName: 'DMS', boardResolved: true, piCommitted: 5, sprintPulse: { committed: 5, done: 3 }, verdictTier: 'watch', cardRisks: [] }],
+    freshness: { confidenceLimit: 'live' },
+  };
+  const decision = buildPortfolioDecision({ brief, anchorProject: 'SD', cases: [] });
+  assert.equal(decision.baselineCoverage.nextQuarterRequest.active, true);
+  assert.match(decision.baselineCoverage.nextQuarterRequest.reason, /next-PI preparation/i);
 });

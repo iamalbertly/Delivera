@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "test": "npm run build:css && node scripts/Delivera-Test-Smart-Dev-Runner.js",
-    "build:css": "node scripts/build-css.js",
+    "validate:utf8": "node scripts/Delivera-Build-Source-UTF8-01Validate.js",
+    "build:css": "npm run validate:utf8 && node scripts/build-css.js",
     "dom-map:governance": "node scripts/Delivera-Dev-Port-Guard-01Check.js && npm run build:css && node scripts/map-governance-dom-headed.mjs",
     "audit:clicks:governance": "node scripts/Delivera-Dev-Port-Guard-01Check.js && node scripts/audit-governance-clicks-fast.mjs",
     "autohacker:metrics": "node scripts/Delivera-Dev-Port-Guard-01Check.js && node .autohacker/collectors/synthesize-ux-metrics.mjs",

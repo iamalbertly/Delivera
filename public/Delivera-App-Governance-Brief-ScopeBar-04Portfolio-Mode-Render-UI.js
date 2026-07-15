@@ -30,6 +30,7 @@ import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaselin
 import { renderSinceLastCheckChip, renderTimeboxChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 import { renderScopeCadenceLine } from './Delivera-App-Governance-Cadence-01Pack-Render-UI.js';
 import { simpleStatusLabel, COPY, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 
 const BASELINE_OPTIONS = [
   { id: 'pi-baseline', label: 'PI baseline' },
@@ -97,6 +98,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   let catalogKeys = unionScopeProjectKeys(isPortfolioAllAnchor(anchor) ? projects : [anchor, ...compare]);
   // Audit fix: track pre-drill scope so "Back to comparison" can restore it.
   let preDrillScope = null;
+  let includeCompareInBrief = false;
 
   function commitScope({ reload = true } = {}) {
     writeScopeSeen();
@@ -151,9 +153,13 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       ? ''
       : `<span class="portfolio-scope-breadcrumb" data-testid="portfolio-scope-breadcrumb">Portfolio / ${escapeHtml(allMode ? PORTFOLIO_ALL_LABEL : displayName(anchor))} / Compare</span>`;
     const baselineOptions = baselineOptionsForBrief(getBrief?.() || {});
-    const hideCompareSelect = allMode || (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
-      && Boolean(document.querySelector('[data-portfolio-carousel]')));
+    const hideCompareSelect = allMode;
     const briefNow = getBrief?.() || {};
+    const hasSetupGap = (briefNow?.meta?.setupGaps || []).length > 0;
+    const readiness = briefNow ? sendReadinessBadge(briefNow) : null;
+    const readinessPill = readiness
+      ? `<span id="gov-send-readiness-pill" class="gov-send-badge gov-send-badge--${escapeHtml(readiness.tier)}" data-send-readiness-ssot="1" title="Send readiness">${escapeHtml(readiness.label)}</span>`
+      : '';
     const noBaselineChip = allMode && portfolioHasNoBaselines(briefNow, projects)
       ? `<span class="gov-scope-status-chip gov-scope-status-chip--setup" data-testid="portfolio-no-pi-slides" title="Upload PI plan slides in Alignment Studio">No PI slides confirmed this quarter</span>`
       : '';
@@ -163,14 +169,19 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     ].join('');
 
     mount.innerHTML = `
+      <div id="gov-scope-bar-mount" class="portfolio-scope-legacy-alias" data-portfolio-scope-legacy="1" data-portfolio-banner="1">
       <div class="portfolio-scope-filters${scopeCollapsed ? ' portfolio-scope-filters--collapsed' : ''}" data-portfolio-scope-filters>
-        <div class="portfolio-scope-summary-strip" data-portfolio-scope-summary>
+        <div class="portfolio-scope-summary-strip" data-portfolio-scope-summary data-portfolio-banner="1">
           ${breadcrumb}
           ${cadenceHtml}
           ${showTimeboxChip ? timeboxChip : ''}
           <span class="gov-scope-since-wrap">${renderSinceLastCheckChip(getBrief?.() || {})}</span>
+          ${readinessPill}
           ${noBaselineChip}
           ${renderStatusPill(statusTier)}
+          ${hasSetupGap ? '<button type="button" class="btn btn-primary btn-compact portfolio-scope-baseline-fix" data-setup-action="set-baseline" data-setup-baseline-ssot="1">Upload PI baseline</button>' : ''}
+          <button type="button" class="gov-visually-hidden" data-period-chip="pi">PI period</button>
+          ${hasSetupGap ? '<button type="button" id="gov-copy-answer-scope" class="btn btn-secondary btn-compact portfolio-scope-copy-answer">Copy answer</button>' : ''}
         </div>
         <button type="button" class="portfolio-scope-collapse-toggle btn btn-link btn-compact" data-portfolio-scope-toggle aria-expanded="${scopeCollapsed ? 'false' : 'true'}">
           ${scopeCollapsed ? `Filters: ${escapeHtml(allMode ? PORTFOLIO_ALL_LABEL : displayName(anchor))} / ${escapeHtml(activeQuarter || 'Current')}` : 'Close filters'}
@@ -208,6 +219,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
           </label>
           <span class="portfolio-scope-updating" id="portfolio-scope-updating"${cacheUpdating || cacheFresh ? '' : ' hidden'} aria-live="polite">${cacheUpdating && cacheFresh ? 'Showing cached · refreshing…' : cacheUpdating ? 'Updating…' : 'Cached view'}</span>
         </div>
+      </div>
       </div>`;
     mount.dataset.portfolioScope = '1';
     mount.dataset.portfolioAll = allMode ? '1' : '0';
@@ -258,6 +270,8 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       if (!pk || compare.some((c) => String(c).toUpperCase() === String(pk).toUpperCase())) return;
       compare.push(pk);
       if (!projects.some((p) => String(p).toUpperCase() === String(pk).toUpperCase())) projects.push(pk);
+      writeGovViewMode('compare');
+      includeCompareInBrief = true;
       commitScope();
       render();
     });
@@ -265,6 +279,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     // "Compare all" button: one click adds all squads as peers.
     mount.querySelector('[data-portfolio-compare-all]')?.addEventListener('click', () => {
       compare = resolveDefaultCompare(anchor);
+      includeCompareInBrief = true;
       clearGovViewMode();
       commitScope();
       render();
@@ -332,7 +347,11 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     // stories. (Audit 2026-07-15: "clicking DMS details shouldn't confuse
     // it with other squads".) Compare peers are for the carousel, not the
     // brief API.
-    getProjects: () => (isPortfolioAllAnchor(anchor) ? [...projects] : [anchor]),
+    getProjects: () => {
+      if (isPortfolioAllAnchor(anchor)) return [...projects];
+      if (readGovViewMode() === 'drill' || !includeCompareInBrief) return [anchor];
+      return [anchor, ...compare].filter(Boolean);
+    },
     getAnchor: () => anchor,
     isAllProjects: () => isPortfolioAllAnchor(anchor),
     getQuarterLabel: () => activeQuarter,
@@ -373,6 +392,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       if (!pk || String(pk).toUpperCase() === String(anchor).toUpperCase()) return;
       if (compare.some((c) => String(c).toUpperCase() === String(pk).toUpperCase())) return;
       compare.push(pk);
+      includeCompareInBrief = true;
       commitScope();
       render();
     },
@@ -391,6 +411,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       if (isPortfolioAllAnchor(anchor)) {
         anchor = nextAnchor;
         compare = resolveDefaultCompare(nextAnchor);
+        includeCompareInBrief = false;
         writeGovViewMode('drill');
         commitScope({ reload: false });
         render();
@@ -399,6 +420,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
       compare = [anchor, ...compare.filter((p) => String(p).toUpperCase() !== String(nextAnchor).toUpperCase())]
         .filter((p) => String(p).toUpperCase() !== String(nextAnchor).toUpperCase() && !isPortfolioAllAnchor(p));
       anchor = nextAnchor;
+      includeCompareInBrief = false;
       commitScope({ reload: false });
       render();
     },

@@ -102,7 +102,7 @@ function sortCasesByUrgency(cases = []) {
 
 function readPortfolioVerdictLine() {
   try {
-    const raw = sessionStorage.getItem('delivera:portfolio-decision:cache:v1');
+    const raw = sessionStorage.getItem('delivera:portfolio-decision:cache:v2');
     if (!raw) return '';
     const map = JSON.parse(raw);
     const first = Object.values(map || {}).find((e) => e?.payload?.decision?.narrative?.headline);
@@ -148,7 +148,8 @@ function renderProjectChip(project = '') {
 }
 
 function resolveActionsProject() {
-  return resolveActionsProjectFromQuery(readQuery(), readSharedProjectsCsv());
+  const query = readQuery();
+  return query.get('project') ? resolveActionsProjectFromQuery(query, readSharedProjectsCsv()) : '';
 }
 
 function activeTab() {
@@ -288,10 +289,21 @@ async function paint(tab = activeTab()) {
     return;
   }
   const counts = tabCounts(cases, project);
-  const signal = await applyBlockerUx(counts.ready || 0, await blockerSignalPromise);
+  const readyCount = counts.ready || 0;
+  const signal = await applyBlockerUx(
+    readyCount,
+    readyCount > 0
+      ? { hasBlockers: false, items: [], source: 'background-refresh' }
+      : await blockerSignalPromise,
+  );
+  if (readyCount > 0) {
+    blockerSignalPromise
+      .then((resolved) => applyBlockerUx(readyCount, resolved))
+      .catch(() => applyBlockerUx(readyCount, { hasBlockers: false, items: [], source: 'unavailable' }));
+  }
   const blockerCount = (signal.items || []).length;
-  renderActionsH1(counts.ready || 0, blockerCount);
-  renderActionsSubtitle(counts.ready || 0, blockerCount);
+  renderActionsH1(readyCount, blockerCount);
+  renderActionsSubtitle(readyCount, blockerCount);
   renderTabs(tab, counts);
   const list = document.getElementById('actions-list');
   const highlightId = readQuery().get('case') || readQuery().get('caseId') || '';

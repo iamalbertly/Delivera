@@ -361,6 +361,9 @@ button.attention-queue-item,
   overflow: hidden;
   box-sizing: border-box;
 }
+#work-draft-drawer[hidden] {
+  display: none !important;
+}
 body.has-top-chrome #work-draft-drawer,
 body.governance-page #work-draft-drawer,
 body.portfolio-page #work-draft-drawer {

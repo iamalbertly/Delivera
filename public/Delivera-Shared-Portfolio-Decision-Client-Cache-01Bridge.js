@@ -1,7 +1,7 @@
 /**
  * SSOT: client-side portfolio decision cache (sessionStorage) — peek + background revalidate.
  */
-const SESSION_KEY = 'delivera:portfolio-decision:cache:v1';
+const SESSION_KEY = 'delivera:portfolio-decision:cache:v2';
 const DEFAULT_TTL_MS = 3 * 60 * 1000;
 
 function cacheKey(anchor, compare, periodKey, briefId = '') {

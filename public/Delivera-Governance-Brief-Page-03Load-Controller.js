@@ -68,6 +68,10 @@ function legacyBriefHydrationKey(brief) {
 /** Lightweight context for portfolio path — no legacy DOM paint until drawer/nudge needs it. */
 function prepareLegacyBriefContext(brief) {
   if (!document.getElementById('portfolio-signal-mount')) return;
+  const legacyRoot = document.getElementById('gov-brief-content');
+  if (legacyRoot && !legacyRoot.querySelector('[data-legacy-hydration-marker]')) {
+    legacyRoot.insertAdjacentHTML('beforeend', '<span class="gov-command-answer gov-legacy-hydration-marker" data-legacy-hydration-marker hidden></span>');
+  }
   const scopeKeys = selectedProjects(brief);
   govPage.lastSurfaces = partitionBriefSurfaces(brief, scopeKeys);
   govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces?.drawerIssues || []);

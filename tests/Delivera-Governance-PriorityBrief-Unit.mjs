@@ -39,9 +39,9 @@ const baseBrief = {
   topRisks: [{ issueKey: 'SD-100', riskType: 'late-scope', summary: 'Access Review moved after planning', projectKey: 'SD' }],
 };
 
-test('formatPromiseCount uses linked metrics strip', () => {
-  assert.equal(formatPromiseCount({ linked: 4, total: 6, needAttention: 2 }), '4 of 6 linked · 2 need action');
-  assert.equal(formatPromiseCount({ linked: 6, total: 6, needAttention: 0 }), '6 of 6 linked · all verified');
+test('formatPromiseCount uses evidence-action language', () => {
+  assert.equal(formatPromiseCount({ linked: 4, total: 6, needAttention: 2 }), '2 of 6 commitments need evidence action');
+  assert.equal(formatPromiseCount({ linked: 6, total: 6, needAttention: 0 }), '6 of 6 commitments have Jira evidence; confirm delivery outcome');
   assert.equal(formatPromiseCount({ supported: 4, total: 6 }), '2 of 6 promises lack delivery proof');
 });
 

@@ -519,7 +519,12 @@ export function ensureTopChrome() {
   // changes (audit: "Create drawer auto-opens on cross-page navigation").
   // The pagehide listener only fires on full navigations, not SPA links.
   try {
-    document.getElementById('work-draft-drawer')?.classList.remove('is-open');
+    const workDraftDrawer = document.getElementById('work-draft-drawer');
+    if (workDraftDrawer) {
+      workDraftDrawer.classList.remove('is-open');
+      workDraftDrawer.hidden = true;
+      workDraftDrawer.inert = true;
+    }
     document.getElementById('work-draft-backdrop')?.classList.remove('is-visible');
     document.body.classList.remove('wdd-panel-open');
     document.body.style.overflow = '';

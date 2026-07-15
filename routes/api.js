@@ -1,6 +1,7 @@
 // SIZE-EXEMPT: Central API surface keeps route handlers co-located for auth, caching, and
 // error-contract consistency across report/current-sprint/outcome flows.
 import express from 'express';
+import { execFileSync } from 'node:child_process';
 import versionData from '../version.json' with { type: 'json' };
 import { requireAuth } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
@@ -12,8 +13,6 @@ import {
     invalidateGovernanceBriefCache,
 } from '../lib/Delivera-Governance-Brief-01Service.js';
 import { CACHE_NS } from '../lib/Delivera-Cache-AgeTier-01TTL-SSOT.js';
-
-const GOVERNANCE_NS = CACHE_NS.GOVERNANCE_BRIEF;
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { searchIssuesJql } from '../lib/Delivera-Jira-Search-01SSOT.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
@@ -114,6 +113,18 @@ const LEGACY_OUTCOME_INTAKE_LOG_FILE = join(FEEDBACK_DIR, 'JiraReporting-Outcome
 const OUTCOME_CREATE_META_TTL = 20 * 60 * 1000;
 
 const router = express.Router();
+const GOVERNANCE_NS = CACHE_NS.GOVERNANCE_BRIEF;
+
+function readGitIdentity(args) {
+  try {
+    return execFileSync('git', args, { cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+const localGitBranch = readGitIdentity(['branch', '--show-current']);
+const localGitCommit = readGitIdentity(['rev-parse', '--short=7', 'HEAD']);
 const serverStartTime = Date.now();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
 
@@ -139,8 +150,8 @@ router.get('/version', (req, res) => {
   res.status(200).json({
     ...versionData,
     environment: process.env.NODE_ENV || 'development',
-    branch: process.env.VERCEL_GIT_COMMIT_REF || process.env.RENDER_GIT_BRANCH || '',
-    commit: String(process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || '').slice(0, 7),
+    branch: process.env.VERCEL_GIT_COMMIT_REF || process.env.RENDER_GIT_BRANCH || localGitBranch,
+    commit: String(process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || localGitCommit).slice(0, 7),
     deploymentId: process.env.VERCEL_DEPLOYMENT_ID || process.env.RENDER_INSTANCE_ID || '',
   });
 });

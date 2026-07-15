@@ -10,7 +10,7 @@ import {
 import { PROJECTS_SSOT_KEY, PORTFOLIO_ANCHOR_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 
-const CACHE_KEY = 'delivera:portfolio-decision:cache:v1';
+const CACHE_KEY = 'delivera:portfolio-decision:cache:v2';
 
 async function mockRound11Portfolio(page, { emptyStorage = false, synergyLow = false } = {}) {
   const brief = {

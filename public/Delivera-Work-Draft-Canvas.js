@@ -190,6 +190,8 @@ function ensureDrawer() {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-label', 'Create work draft');
+  el.hidden = true;
+  el.inert = true;
   el.innerHTML = `
 <div class="wdd-header">
   <div style="position:relative">
@@ -266,7 +268,11 @@ export function openWorkDraftDrawer(prefill = {}) {
   updateSendBar();
 
   const d = drawer();
-  if (d) d.classList.add('is-open');
+  if (d) {
+    d.hidden = false;
+    d.inert = false;
+    d.classList.add('is-open');
+  }
   const bd = document.getElementById('work-draft-backdrop');
   if (bd) bd.classList.add('is-visible');
   document.body.classList.add('wdd-panel-open');
@@ -310,6 +316,8 @@ export function closeWorkDraftDrawer(force = false) {
   const d = drawer();
   if (d) {
     d.classList.remove('is-open');
+    d.inert = true;
+    d.hidden = true;
     d.querySelector('.wdd-settings-panel')?.remove();
   }
   const bd = document.getElementById('work-draft-backdrop');

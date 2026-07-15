@@ -6,15 +6,47 @@ import { openScopeIntelligenceDrawer, scopeCapsuleCounts } from './Delivera-App-
 import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-UI.js';
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
-import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js';
+import { govPage, $, projectsCsv, openPiBaselineWizard } from './Delivera-Governance-Brief-Page-01Context.js';
 import { invalidateBriefCacheEntry } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import { invalidatePortfolioDecisionCacheEntry } from './Delivera-Shared-Portfolio-Decision-Client-Cache-01Bridge.js';
 import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import { bindGovernancePageInteractions, openInboxNudgeReview, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import { installPortfolioSurfaceHook } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
 import { paintInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { openRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
+
+function ensureLegacyGovernanceMounts() {
+  if (document.getElementById('gov-brief-content')) return;
+  const host = document.getElementById('main-content') || document.body;
+  host?.insertAdjacentHTML('beforeend', `
+    <section id="gov-brief-content" hidden aria-label="Legacy governance compatibility">
+      <div id="gov-verdict-mount"></div>
+      <div id="gov-compare-rail-mount"></div>
+      <div id="gov-answer-mount"></div>
+      <div id="gov-action-clusters-mount"></div>
+      <div id="gov-right-rail-mount">
+        <div id="gov-queue-mount"></div>
+        <div id="gov-worker-receipt-mount"></div>
+        <div id="gov-right-rail-proof-mount"></div>
+      </div>
+      <div id="gov-pi-strip-mount"></div>
+      <div id="gov-feedback-lab-mount"></div>
+      <div id="gov-setup-debt-mount"></div>
+      <div id="gov-meeting-script-mount"></div>
+      <div id="gov-measurement-mount"></div>
+      <div id="gov-micro-survey-mount"></div>
+      <div id="gov-proof-risks"></div>
+      <details id="gov-supporting-evidence" hidden></details>
+      <div id="gov-evidence"></div>
+      <div id="gov-technical-details"></div>
+      <div id="gov-readiness"></div>
+      <div id="gov-baseline"></div>
+      <div id="gov-scorecard"></div>
+    </section>`);
+}
 
 function init() {
+  ensureLegacyGovernanceMounts();
   govPage.els.freshness = $('gov-freshness');
   govPage.els.piStripMount = $('gov-pi-strip-mount');
   govPage.els.feedbackLabMount = $('gov-feedback-lab-mount');
@@ -70,6 +102,20 @@ function init() {
     briefLoading: () => !govPage.lastBrief,
   });
   document.addEventListener('click', (ev) => {
+    const baselineSetup = ev.target.closest('[data-setup-baseline-ssot], [data-setup-action="set-baseline"]');
+    if (baselineSetup) {
+      ev.preventDefault();
+      openPiBaselineWizard({ initialMode: 'slide' });
+      setTimeout(() => {
+        if (document.querySelector('.gov-right-drawer-panel')) return;
+        openRightDrawer({
+          title: 'Alignment Studio',
+          panelClass: 'alignment-studio',
+          bodyHtml: '<p class="governance-empty">Upload or confirm the PI baseline slide for this squad.</p>',
+        });
+      }, 0);
+      return;
+    }
     const receipt = ev.target.closest('[data-worker-receipt-open]');
     if (!receipt || !govPage.inboxApi?.getInboxTotal?.()) return;
     if (ev.target.closest('a')) return;
@@ -87,7 +133,12 @@ function init() {
   initGlobalOutcomeModal();
   // Never leave Create drawer open across governance loads (audit: close off-screen / wrong job).
   try {
-    document.getElementById('work-draft-drawer')?.classList.remove('is-open');
+    const workDraftDrawer = document.getElementById('work-draft-drawer');
+    if (workDraftDrawer) {
+      workDraftDrawer.classList.remove('is-open');
+      workDraftDrawer.hidden = true;
+      workDraftDrawer.inert = true;
+    }
     document.getElementById('work-draft-backdrop')?.classList.remove('is-visible');
     document.body.classList.remove('wdd-panel-open');
   } catch (_) { /* ignore */ }
