@@ -37,8 +37,8 @@ export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDi
       <summary class="gov-agentic-band-title">${escapeHtml(completedTitle)}</summary>
       <ul class="gov-agentic-completed-list">${completedItems}</ul>
     </details>` : `
-    <details class="gov-agentic-band gov-agentic-band--completed gov-agentic-band--compact" data-testid="governance-delivera-completed" open>
-      <summary class="gov-agentic-band-title">✓ ${completedChecks.length} automations</summary>
+    <details class="gov-agentic-band gov-agentic-band--completed gov-agentic-band--compact" data-testid="governance-delivera-completed">
+      <summary class="gov-agentic-band-title">System activity</summary>
       <ul class="gov-agentic-completed-list">${completedItems}</ul>
       ${pb.deliveraCompleted ? `<p class="gov-agentic-completed-summary">${escapeHtml(pb.deliveraCompleted)}</p>` : ''}
     </details>`;
@@ -64,12 +64,12 @@ export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDi
   const detailCount = (pb.detailRows || []).filter((r) => r.governanceState !== 'linked').length;
   const ctas = uploadBaseline ? `
     <div class="gov-agentic-ctas" data-testid="governance-agentic-ctas">
-      <button type="button" class="btn btn-link btn-compact" data-testid="governance-agentic-upload-link" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide">${escapeHtml(primaryLabel)}</button>
+      <button type="button" class="btn btn-primary gov-primary-cta" data-testid="governance-agentic-upload-link" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide">${escapeHtml(primaryLabel)}</button>
     </div>` : `
     <div class="gov-agentic-ctas" data-testid="governance-agentic-ctas">
       <button type="button" class="btn btn-primary gov-primary-cta" data-testid="governance-primary-action" data-governance-action="${boardAlign ? 'align-board' : 'record-decision'}"${boardAlign ? ' data-portfolio-action="open-alignment-studio"' : ''}${writesDisabled && !boardAlign ? ' disabled' : ''}>${escapeHtml(primaryLabel)}</button>
-      ${detailCount > 0 ? `<button type="button" class="btn btn-link btn-compact" data-testid="governance-evidence-action" data-governance-action="inspect-evidence">${escapeHtml(evidenceLabel)}</button>` : ''}
-      ${baselineReady && detailCount > 0 ? '<button type="button" class="btn btn-link btn-compact" data-governance-action="share-sponsor-brief">Share sponsor brief</button>' : ''}
+      ${detailCount > 0 ? `<button type="button" class="btn btn-secondary btn-compact" data-testid="governance-evidence-action" data-governance-action="inspect-evidence">${escapeHtml(evidenceLabel)}</button>` : ''}
+      ${baselineReady && detailCount > 0 ? '<button type="button" class="btn btn-secondary btn-compact" data-governance-action="share-sponsor-brief">Share sponsor brief</button>' : ''}
     </div>`;
 
   const growth = (pb.growthSignals || []).length ? `

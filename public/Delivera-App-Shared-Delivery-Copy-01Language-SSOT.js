@@ -131,6 +131,7 @@ export const COPY = {
   governanceReviewAcceptance: 'Review missing acceptance evidence',
   governanceRecordRemoval: 'Record removal approval',
   governanceRecordDecision: 'Record governance decision',
+  governanceNudgePlanStories: 'Nudge squad to plan stories',
   aiKeyRequiredSlide: 'Connect AI in Settings or configure server AI in .env to read PI plan slides.',
   aiSlideServerReady: 'Slide reading uses your server-configured AI ({label}).',
   aiSlideBrowserReady: 'Slide reading uses your browser AI ({label}).',
@@ -328,7 +329,9 @@ export function humanEpicActivityLabel(act = {}) {
   const storyCount = Number(act.storyCount) || 0;
   const doneCount = Number(act.doneCount) || 0;
   const lifecycle = String(act.lifecycle || '').toLowerCase();
+  if (lifecycle === 'jira-only') return 'In Jira · no stories on selected boards';
   if (!storyCount && lifecycle === 'missing') return 'Not on board — create in Jira first';
+  if (lifecycle === 'unknown' && !storyCount) return 'In Jira — refresh brief for sprint detail';
   if (!storyCount || lifecycle === 'not-started') return 'Not in sprint yet';
   if (lifecycle === 'complete' || (doneCount > 0 && doneCount >= storyCount)) return `All ${storyCount} stories done`;
   if (doneCount > 0) {

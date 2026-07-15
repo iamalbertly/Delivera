@@ -1,0 +1,94 @@
+- generic [active] [ref=f4e1]:
+  - link "Skip to main content" [ref=f4e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f4e8]:
+    - generic [ref=f4e9]:
+      - button "Expand or collapse sidebar" [ref=f4e11] [cursor=pointer]
+      - navigation "Surfaces" [ref=f4e15]:
+        - link "Governance" [ref=f4e16] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f4e17] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f4e18] [cursor=pointer]: Actions
+        - link "Settings" [ref=f4e19] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f4e21] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f4e22]: De
+      - searchbox "Context search" [ref=f4e27]
+      - group "Global actions" [ref=f4e28]:
+        - button "Create" [ref=f4e29] [cursor=pointer]:
+          - generic [ref=f4e30]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f4e32]: AI · Slides ready
+        - button "Notifications" [ref=f4e33] [cursor=pointer]
+        - button "Help" [ref=f4e36] [cursor=pointer]
+        - button "Improve Delivera" [ref=f4e39] [cursor=pointer]
+        - link "Settings" [ref=f4e42] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f4e45] [cursor=pointer]: LY
+  - main [ref=f4e3]:
+    - generic "Portfolio scope" [ref=f4e4]:
+      - generic [ref=f4e148]:
+        - generic [ref=f4e149]:
+          - generic "Squad cadence" [ref=f4e150]:
+            - generic [ref=f4e151]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 7d stale
+            - generic [ref=f4e152]: DELIVERY BLOCKED
+          - generic [ref=f4e153]: FY27 Q2 · Day 45/90 · 50% time elapsed
+          - button "✕ Blocked" [ref=f4e154] [cursor=pointer]
+        - generic [ref=f4e155]:
+          - combobox "Selected squad" [ref=f4e158]:
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)" [selected]
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f4e159]:
+            - generic [ref=f4e160]: Compare
+            - generic [ref=f4e161]: No comparison
+          - generic [ref=f4e163]:
+            - generic [ref=f4e164]: Timeframe
+            - combobox "Timeframe" [ref=f4e165]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f4e166]:
+            - generic [ref=f4e167]: Baseline
+            - combobox "Baseline" [ref=f4e168]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+          - generic [ref=f4e169]: Cached view
+    - generic "Governance priority brief" [ref=f4e71]:
+      - generic [ref=f4e133]:
+        - paragraph [ref=f4e141]: Loading SD delivery answer…
+        - complementary [ref=f4e142]
+  - dialog "Create work draft" [ref=f4e88]:
+    - generic [ref=f4e89]:
+      - button "Project ▾" [ref=f4e91] [cursor=pointer]:
+        - generic [ref=f4e92]: Project
+        - text: ▾
+      - generic [ref=f4e93]: Create work
+      - button "AI provider settings" [ref=f4e94] [cursor=pointer]: ⚙
+      - button "Close" [ref=f4e95] [cursor=pointer]: ✕
+    - generic [ref=f4e97]:
+      - textbox "Narrative source text" [ref=f4e99]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f4e101]: ✓
+      - list "Work items" [ref=f4e102]
+    - generic [ref=f4e103]:
+      - generic "Set estimate for all items" [ref=f4e104]:
+        - generic [ref=f4e105]: "All:"
+        - slider "Set estimate for all items" [ref=f4e106] [cursor=pointer]: "0"
+        - generic [ref=f4e107]: —
+      - button "Create 0 issues" [disabled] [ref=f4e109]

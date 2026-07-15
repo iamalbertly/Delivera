@@ -179,8 +179,9 @@ test.describe('Viewport compression and layering', () => {
     if (await drawerSummary.isVisible().catch(() => false)) {
       await drawerSummary.click();
     }
-    await expect(page.locator('.header-drawer-jump-section .sprint-section-links-compact, .current-sprint-scope-stack .current-sprint-jump-inline').first()).toBeAttached();
-    await expect(page.locator('.current-sprint-scope-stack .current-sprint-jump-inline')).toHaveCount(1);
+    await expect(page.locator('.header-drawer-jump-section .sprint-section-links-compact').first()).toBeAttached();
+    // Lean HUD SSOT: jump links live in the drawer only — not a duplicate scope-stack inline.
+    await expect(page.locator('.current-sprint-scope-stack .current-sprint-jump-inline')).toHaveCount(0);
 
     assertTelemetryClean(telemetry);
   });

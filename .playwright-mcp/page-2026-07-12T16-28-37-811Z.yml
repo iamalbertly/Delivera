@@ -1,0 +1,350 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e17]: De
+        - generic [ref=e19]: Delivera
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22]
+      - group "Global actions" [ref=e23]:
+        - button "Create" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+          - generic [ref=e26]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e27]: AI · Slides ready
+        - button "Notifications" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+        - button "Help" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - button "Improve Delivera" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+        - link "Settings" [ref=e37] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e38]
+        - button "Account menu" [ref=e40] [cursor=pointer]: LY
+  - main [ref=e41]:
+    - status [ref=e42]: Refreshing quarter delivery vs commitment…
+    - generic "Portfolio scope" [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic "Squad cadence" [ref=e46]:
+            - generic [ref=e47]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 45d stale
+          - generic [ref=e48]: FY27 Q2 · Day 45/90 · 50% time elapsed
+          - button "✕ Blocked" [ref=e49] [cursor=pointer]
+        - generic [ref=e50]:
+          - combobox "Selected squad" [ref=e53]:
+            - option "AMS Squad (Tachyons)"
+            - option "Agile and Security Guild"
+            - option "Bio metric KYC & KYA"
+            - option "Finance Squad"
+            - option "Mini - Apps Squad"
+            - option "M-SQUAD"
+            - option "TRANSFORMERS"
+            - option "Digital Squad"
+            - option "Robotics Process Automation (RPA)"
+            - option "DMS Squad" [selected]
+            - option "T-Squad"
+            - option "Vodacom Business"
+          - generic [ref=e54]:
+            - generic [ref=e55]: Compare
+            - generic [ref=e57]:
+              - generic "M-SQUAD" [ref=e58]
+              - generic "Mini - Apps Squad" [ref=e59]
+          - generic [ref=e60]:
+            - generic [ref=e61]: Timeframe
+            - combobox "Timeframe" [ref=e62]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e63]:
+            - generic [ref=e64]: Baseline
+            - combobox "Baseline" [ref=e65]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+    - generic [ref=e66]:
+      - generic "Governance priority brief" [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - region "Priority governance brief" [ref=e71]:
+              - generic [ref=e72]:
+                - heading "DMS board needs one decision. 8 FY27 Q2 commitments need attention." [level=1] [ref=e74]
+                - paragraph [ref=e75]: 6 of 14 linked · 8 need attention
+                - list [ref=e77]:
+                  - listitem [ref=e78]: FY27 Q2 – DMS – NBA – E-HOD Regional Profile has no linked delivery evidence
+                  - listitem [ref=e79]: FY27 Q2 – DMS – DMS Capability Merging has no linked delivery evidence
+                - paragraph [ref=e80]:
+                  - text: "📅 Next review:"
+                  - strong [ref=e81]: Due in 2 days
+                - table [ref=e82]:
+                  - rowgroup [ref=e83]:
+                    - row "Squad State Meaning" [ref=e84]:
+                      - columnheader "Squad" [ref=e85]
+                      - columnheader "State" [ref=e86]
+                      - columnheader "Meaning" [ref=e87]
+                  - rowgroup [ref=e88]:
+                    - button "Open evidence for MAS board" [ref=e89]:
+                      - cell "MAS board" [ref=e90]:
+                        - strong [ref=e91]: MAS board
+                      - cell "Off-plan" [ref=e92]:
+                        - generic [ref=e93]: Off-plan
+                      - cell "6 linked · 14 need attention" [ref=e94]
+                    - button "Open evidence for MPSA board" [ref=e95]:
+                      - cell "MPSA board" [ref=e96]:
+                        - strong [ref=e97]: MPSA board
+                      - cell "Off-plan" [ref=e98]:
+                        - generic [ref=e99]: Off-plan
+                      - cell "6 linked · 13 need attention" [ref=e100]
+                    - button "Open evidence for DMS board" [ref=e101]:
+                      - cell "DMS board" [ref=e102]:
+                        - strong [ref=e103]: DMS board
+                      - cell "Off-plan" [ref=e104]:
+                        - generic [ref=e105]: Off-plan
+                      - cell "6 linked · 8 need attention" [ref=e106]
+                - generic [ref=e107]:
+                  - paragraph [ref=e108]:
+                    - strong [ref=e109]: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+                  - paragraph [ref=e110]: "Promised: 6 · Linked: 4 · Need attention: 28"
+                  - button "Review 28 need attention" [ref=e112] [cursor=pointer]
+            - complementary "Delivera actions and decisions" [ref=e113]:
+              - generic [ref=e114]:
+                - heading "What the system already did" [level=2] [ref=e115]
+                - list [ref=e116]:
+                  - listitem [ref=e117]:
+                    - generic [ref=e118]: ✓
+                    - text: Pulled Jira proof for selected squads
+                  - listitem [ref=e119]:
+                    - generic [ref=e120]: ✓
+                    - text: Matched board work to PI baseline
+                  - listitem [ref=e121]:
+                    - generic [ref=e122]: ✓
+                    - text: Drafted owner evidence requests where needed
+                - paragraph [ref=e123]: Delivera linked 4 of 6 promises, prepared 3 evidence requests.
+              - generic [ref=e124]:
+                - heading "Prepared by Delivera" [level=2] [ref=e125]
+                - paragraph [ref=e126]: 3 evidence requests drafted and ready for review
+                - button "Review and send 3 evidence requests" [disabled] [ref=e127]
+              - generic [ref=e128]:
+                - heading "Next human decision" [level=2] [ref=e129]
+                - paragraph [ref=e130]: Accept the As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list scope move, or require recovery evidence by 2026-07-14T16:27:09.420Z.
+                - paragraph [ref=e131]:
+                  - text: "Owner:"
+                  - strong [ref=e132]: Product Owner
+                - paragraph [ref=e133]:
+                  - text: "Due:"
+                  - strong [ref=e134]: Due in 2 days
+              - generic [ref=e135]:
+                - button "Review and record governance decision" [disabled] [ref=e136]
+                - button "Inspect 8 unsupported promises" [ref=e137] [cursor=pointer]
+                - button "Share sponsor brief" [ref=e138] [cursor=pointer]
+              - paragraph [ref=e139]: 4 promises linked automatically · 2 duplicate evidence requests prevented
+              - paragraph [ref=e140]: "Governance loop: Prepared → next meaningful step"
+          - navigation "Squad governance status" [ref=e141]:
+            - list [ref=e142]:
+              - button "MAS board Off-plan 6 linked · 14 need attention" [ref=e143] [cursor=pointer]:
+                - generic [ref=e144]: MAS board
+                - generic [ref=e145]: Off-plan
+                - generic [ref=e146]: 6 linked · 14 need attention
+              - button "MPSA board Off-plan 6 linked · 13 need attention" [ref=e147] [cursor=pointer]:
+                - generic [ref=e148]: MPSA board
+                - generic [ref=e149]: Off-plan
+                - generic [ref=e150]: 6 linked · 13 need attention
+              - button "DMS board Off-plan 6 linked · 8 need attention" [pressed] [ref=e151] [cursor=pointer]:
+                - generic [ref=e152]: DMS board
+                - generic [ref=e153]: Off-plan
+                - generic [ref=e154]: 6 linked · 8 need attention
+          - region "Supporting evidence" [ref=e155]:
+            - generic [ref=e156]:
+              - article [ref=e157]:
+                - heading "Promise trace" [level=3] [ref=e158]
+                - paragraph [ref=e159]: 6 promised · 4 linked · 28 unsupported
+                - button "Inspect promise-to-Jira trace" [ref=e160] [cursor=pointer]
+              - article [ref=e161]:
+                - heading "Scope decision" [level=3] [ref=e162]
+                - paragraph [ref=e163]: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list moved after planning · Approval not recorded
+                - button "Open scope-change history" [ref=e164] [cursor=pointer]
+              - article [ref=e165]:
+                - heading "Recovery outlook" [level=3] [ref=e166]
+                - paragraph [ref=e167]: 12 hours remain · recovery unlikely for all gaps · Medium confidence
+                - button "Review recovery basis" [ref=e168] [cursor=pointer]
+            - region "What changed" [ref=e169]:
+              - heading "What changed" [level=2] [ref=e170]
+              - list [ref=e171]:
+                - listitem [ref=e172]:
+                  - generic [ref=e173]: 🔄
+                  - generic [ref=e174]:
+                    - strong [ref=e175]: Impact exposure
+                    - paragraph [ref=e176]: 5 DMS board commitments may miss FY27 Q2.
+                - listitem [ref=e177]:
+                  - generic [ref=e178]: 🔄
+                  - generic [ref=e179]:
+                    - strong [ref=e180]: Decision delay
+                    - paragraph [ref=e181]: 1 PO confirmation still missing.
+                - listitem [ref=e182]:
+                  - generic [ref=e183]: 🔄
+                  - generic [ref=e184]:
+                    - strong [ref=e185]: Evidence weakness
+                    - paragraph [ref=e186]: Only 10% of required proof is available.
+          - generic [ref=e187]:
+            - heading "PI commitment detail" [level=2] [ref=e188]
+            - generic [ref=e189]:
+              - region "Portfolio alignment summary" [ref=e190]:
+                - heading "Portfolio alignment" [level=2] [ref=e191]
+                - generic [ref=e192]:
+                  - article [ref=e193]:
+                    - heading "MAS board" [level=3] [ref=e194]
+                    - paragraph [ref=e195]: Off-plan
+                    - paragraph [ref=e196]: 6 linked · 14 need attention
+                  - article [ref=e197]:
+                    - heading "MPSA board" [level=3] [ref=e198]
+                    - paragraph [ref=e199]: Off-plan
+                    - paragraph [ref=e200]: 6 linked · 13 need attention
+                  - article [ref=e201]:
+                    - heading "DMS board" [level=3] [ref=e202]
+                    - paragraph [ref=e203]: Off-plan
+                    - paragraph [ref=e204]: 6 linked · 8 need attention
+              - region "Missing or unproven PI commitments" [ref=e205]:
+                - heading "Missing or unproven PI commitments" [level=2] [ref=e206]
+                - generic [ref=e207]: Below the fold
+                - table [ref=e208]:
+                  - rowgroup [ref=e209]:
+                    - row "Squad Status PI reference PI commitment Board work found Owner Next decision" [ref=e210]:
+                      - columnheader "Squad" [ref=e211]
+                      - columnheader "Status" [ref=e212]
+                      - columnheader "PI reference" [ref=e213]
+                      - columnheader "PI commitment" [ref=e214]
+                      - columnheader "Board work found" [ref=e215]
+                      - columnheader "Owner" [ref=e216]
+                      - columnheader "Next decision" [ref=e217]
+                  - rowgroup [ref=e218]:
+                    - button "SD Linked · needs owner SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile FY27 Q2 – DMS – NBA – E-HOD Regional Profile 0 matching items — Link promise to Jira work" [ref=e219]:
+                      - cell "SD" [ref=e220]
+                      - cell "Linked · needs owner" [ref=e221]:
+                        - generic [ref=e222]: Linked · needs owner
+                      - cell "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=e223]:
+                        - generic "FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=e224]:
+                          - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=e225] [cursor=pointer]:
+                            - /url: "#work-item-SD-5316"
+                            - generic [ref=e226]: SD-5316
+                            - generic [ref=e227]: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                      - cell "FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=e228]
+                      - cell "0 matching items" [ref=e229]
+                      - cell "—" [ref=e230]
+                      - cell "Link promise to Jira work" [ref=e231]:
+                        - button "Link promise to Jira work" [ref=e232] [cursor=pointer]
+                    - button "SD Linked · needs owner SD-5317 FY27 Q2 – DMS – DMS Capability Merging FY27 Q2 – DMS – DMS Capability Merging 0 matching items — Link promise to Jira work" [ref=e233]:
+                      - cell "SD" [ref=e234]
+                      - cell "Linked · needs owner" [ref=e235]:
+                        - generic [ref=e236]: Linked · needs owner
+                      - cell "SD-5317 FY27 Q2 – DMS – DMS Capability Merging" [ref=e237]:
+                        - generic "FY27 Q2 – DMS – DMS Capability Merging" [ref=e238]:
+                          - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging" [ref=e239] [cursor=pointer]:
+                            - /url: "#work-item-SD-5317"
+                            - generic [ref=e240]: SD-5317
+                            - generic [ref=e241]: FY27 Q2 – DMS – DMS Capability Merging
+                      - cell "FY27 Q2 – DMS – DMS Capability Merging" [ref=e242]
+                      - cell "0 matching items" [ref=e243]
+                      - cell "—" [ref=e244]
+                      - cell "Link promise to Jira work" [ref=e245]:
+                        - button "Link promise to Jira work" [ref=e246] [cursor=pointer]
+                    - button "SD Linked · needs owner SD-5255 As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe To Do — Assign commitment owner" [ref=e247]:
+                      - cell "SD" [ref=e248]
+                      - cell "Linked · needs owner" [ref=e249]:
+                        - generic [ref=e250]: Linked · needs owner
+                      - cell "SD-5255 As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe" [ref=e251]:
+                        - generic "As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe" [ref=e252]:
+                          - link "SD-5255 As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe" [ref=e253] [cursor=pointer]:
+                            - /url: "#work-item-SD-5255"
+                            - generic [ref=e254]: SD-5255
+                            - generic [ref=e255]: As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe
+                      - cell "As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe" [ref=e256]
+                      - cell "To Do" [ref=e257]
+                      - cell "—" [ref=e258]
+                      - cell "Assign commitment owner" [ref=e259]:
+                        - button "Assign commitment owner" [ref=e260] [cursor=pointer]
+                    - button "SD Linked · needs owner SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on In Progress — Assign commitment owner" [ref=e261]:
+                      - cell "SD" [ref=e262]
+                      - cell "Linked · needs owner" [ref=e263]:
+                        - generic [ref=e264]: Linked · needs owner
+                      - cell "SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on" [ref=e265]:
+                        - generic "As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on" [ref=e266]:
+                          - link "SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on" [ref=e267] [cursor=pointer]:
+                            - /url: "#work-item-SD-5304"
+                            - generic [ref=e268]: SD-5304
+                            - generic [ref=e269]: As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on
+                      - cell "As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on" [ref=e270]
+                      - cell "In Progress" [ref=e271]
+                      - cell "—" [ref=e272]
+                      - cell "Assign commitment owner" [ref=e273]:
+                        - button "Assign commitment owner" [ref=e274] [cursor=pointer]
+                    - button "SD Linked · needs owner SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list To Do — Record scope decision" [ref=e275]:
+                      - cell "SD" [ref=e276]
+                      - cell "Linked · needs owner" [ref=e277]:
+                        - generic [ref=e278]: Linked · needs owner
+                      - cell "SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list" [ref=e279]:
+                        - generic "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list" [ref=e280]:
+                          - link "SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list" [ref=e281] [cursor=pointer]:
+                            - /url: "#work-item-SD-5307"
+                            - generic [ref=e282]: SD-5307
+                            - generic [ref=e283]: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list
+                      - cell "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list" [ref=e284]
+                      - cell "To Do" [ref=e285]
+                      - cell "—" [ref=e286]
+                      - cell "Record scope decision" [ref=e287]:
+                        - button "Record scope decision" [ref=e288] [cursor=pointer]
+                - button "+3 more commitments" [ref=e289] [cursor=pointer]
+      - complementary "Portfolio decision" [ref=e290]:
+        - generic [ref=e292]:
+          - region "Prepared actions" [ref=e293]:
+            - heading "Prepared actions" [level=3] [ref=e294]
+            - paragraph [ref=e295]: 3 nudges ready
+            - link "Open actions →" [ref=e296] [cursor=pointer]:
+              - /url: /actions?case=SD-FY27Q2-20260709-01
+          - region "Baseline status" [ref=e297]:
+            - heading "Baseline" [level=3] [ref=e298]
+            - text: Baseline on file
+            - paragraph [ref=e299]: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+        - generic "At-risk commitments"
+    - paragraph [ref=e301]: Governance brief compares PI baseline promises with Jira evidence and prepared actions.
+  - dialog "Create work draft" [ref=e302]:
+    - generic [ref=e303]:
+      - button "Project ▾" [ref=e305] [cursor=pointer]:
+        - generic [ref=e306]: Project
+        - text: ▾
+      - generic [ref=e307]: Create work
+      - button "AI provider settings" [ref=e308] [cursor=pointer]: ⚙
+      - button "Close" [ref=e309] [cursor=pointer]: ✕
+    - generic [ref=e311]:
+      - textbox "Narrative source text" [ref=e313]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e315]: ✓
+      - list "Work items" [ref=e316]
+    - generic [ref=e317]:
+      - generic "Set estimate for all items" [ref=e318]:
+        - generic [ref=e319]: "All:"
+        - slider "Set estimate for all items" [ref=e320] [cursor=pointer]: "0"
+        - generic [ref=e321]: —
+      - button "Create 0 issues" [disabled] [ref=e323]
+  - dialog "Alignment Studio · SD · FY27 Q2" [ref=e327]:
+    - banner [ref=e328]:
+      - heading "Alignment Studio · SD · FY27 Q2" [level=2] [ref=e329]
+      - button "Close" [ref=e330] [cursor=pointer]
+    - status [ref=e332]:
+      - paragraph [ref=e334]: Loading promised work…

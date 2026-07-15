@@ -1,0 +1,791 @@
+- generic [active] [ref=f15e1]:
+  - status [ref=f15e3]
+  - link "Skip to main content" [ref=f15e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f15e5]:
+    - generic [ref=f15e6]:
+      - button "Expand or collapse sidebar" [ref=f15e8] [cursor=pointer]
+      - navigation "Surfaces" [ref=f15e12]:
+        - link "Governance" [ref=f15e13] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=f15e14] [cursor=pointer]: Squads
+        - link "Actions" [ref=f15e15] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f15e16] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f15e18] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f15e19]: De
+        - generic [ref=f15e20]:
+          - generic [ref=f15e21]: Delivera
+          - generic "No report run yet" [ref=f15e22]
+      - searchbox "Context search" [ref=f15e25]
+      - group "Global actions" [ref=f15e26]:
+        - button "Create" [ref=f15e27] [cursor=pointer]:
+          - generic [ref=f15e28]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f15e305]: AI · Slides ready
+        - button "Actions" [ref=f15e31] [cursor=pointer]
+        - button "Notifications" [ref=f15e32] [cursor=pointer]
+        - button "Help" [ref=f15e35] [cursor=pointer]
+        - button "Improve Delivera" [ref=f15e38] [cursor=pointer]
+        - link "Settings" [ref=f15e41] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f15e44] [cursor=pointer]: LY
+  - generic [ref=f15e45]:
+    - banner [ref=f15e46]:
+      - heading "Current Sprint - FY27 Q1MAS 55" [level=1] [ref=f15e47]
+    - main [ref=f15e48]:
+      - generic [ref=f15e49]:
+        - generic [ref=f15e306]:
+          - generic "Sprint scope" [ref=f15e307]
+          - generic [ref=f15e309]:
+            - generic [ref=f15e310]: Mini - Apps Squad
+            - generic "FY27 Q1MAS 55 | Jun 24, 2026 - Jul 8, 2026" [ref=f15e311] [cursor=pointer]: FY27 Q1MAS 55
+            - generic "Jun 24, 2026 - Jul 8, 2026" [ref=f15e312]
+            - generic "Live · Snapshot - updated just now · Export ready": Stale work
+            - paragraph [ref=f15e313]: At Risk · 76% done · 9 items · Ended
+          - generic [ref=f15e314]:
+            - generic [ref=f15e316]:
+              - button "Copy sprint summary" [ref=f15e317] [cursor=pointer]: Copy
+              - button "Copy stand-up script" [ref=f15e318] [cursor=pointer]: Standup
+              - button "More export options" [ref=f15e319] [cursor=pointer]: ▾
+            - group [ref=f15e320]:
+              - generic "Context All work" [ref=f15e321] [cursor=pointer]:
+                - generic [ref=f15e323]: Context
+                - generic [ref=f15e324]: All work
+          - generic "Top sprint summary" [ref=f15e325]:
+            - link "Open report" [ref=f15e326] [cursor=pointer]:
+              - /url: /report?boardId=15&sprintId=8561&projects=MAS
+            - link "2 blockers below" [ref=f15e327] [cursor=pointer]:
+              - /url: "#stuck-card"
+            - generic "Live · Snapshot - updated just now · Export ready" [ref=f15e328]:
+              - generic [ref=f15e329]: Export ready
+              - generic [ref=f15e330]: "|"
+              - generic [ref=f15e331]: Live sprint — blocker unchanged for 16+ days
+          - group [ref=f15e332]
+        - button "Top blocker" [ref=f15e333]:
+          - generic [ref=f15e334]: 🚫
+          - generic [ref=f15e335]:
+            - paragraph [ref=f15e336]: Top blocker · tap to nudge
+            - strong [ref=f15e337]:
+              - link "MAS-2502" [ref=f15e338] [cursor=pointer]:
+                - /url: https://vodacomtz.atlassian.net/browse/MAS-2502
+              - text: · Fix N-card translations
+            - paragraph [ref=f15e339]: The item has been stale for 395h and is likely blocking sprint flow.
+        - group "Switch sprint" [ref=f15e340]:
+          - generic "Past sprints" [ref=f15e341] [cursor=pointer]
+        - region "Work alignment" [ref=f15e343]:
+          - generic [ref=f15e344]:
+            - strong [ref=f15e345]: 0 of 5
+            - text: items PI-aligned · 3 off-PI · 2 ad-hoc
+            - link "5 off-PI" [ref=f15e346] [cursor=pointer]:
+              - /url: /governance?openAlignment=slide&scope=SD
+          - list [ref=f15e347]:
+            - listitem [ref=f15e348]:
+              - link "MAS-2510" [ref=f15e349] [cursor=pointer]:
+                - /url: "#story-row-MAS-2510"
+              - text: Operational support
+              - generic "No epic link — treated as ad-hoc" [ref=f15e350]: Ad-hoc
+            - listitem [ref=f15e351]:
+              - link "MAS-2505" [ref=f15e352] [cursor=pointer]:
+                - /url: "#story-row-MAS-2505"
+              - text: Bundle Audit on USSD/ Buy bundle miniapp
+              - generic "PI baseline not set — epic unverified" [ref=f15e353]: Off PI
+            - listitem [ref=f15e354]:
+              - link "MAS-2504" [ref=f15e355] [cursor=pointer]:
+                - /url: "#story-row-MAS-2504"
+              - text: Follow up on the firewall change from Mbezi/Kwale Paypal
+              - generic "PI baseline not set — epic unverified" [ref=f15e356]: Off PI
+        - generic [ref=f15e357]:
+          - generic [ref=f15e358]:
+            - generic [ref=f15e361]:
+              - generic [ref=f15e362]:
+                - generic [ref=f15e363]:
+                  - heading "Sprint work · 9 issues" [level=2] [ref=f15e365]
+                  - generic [ref=f15e366]: 2 blockers
+                - generic [ref=f15e369]:
+                  - generic [ref=f15e370]: Work risks Remediation queue
+                  - generic [ref=f15e371]: "Top focus: no urgent remediation"
+                  - generic [ref=f15e372]: +1 scope (3.0 SP)
+                  - generic "Jump to stories filtered by risk" [ref=f15e373]:
+                    - button "All" [ref=f15e374] [cursor=pointer]
+                    - button "Blockers" [ref=f15e375] [cursor=pointer]
+                    - button "Stuck in flow" [ref=f15e376] [cursor=pointer]
+                    - button "Scope added" [ref=f15e377] [cursor=pointer]
+                - region "Value-first sprint signals" [ref=f15e378]:
+                  - article [ref=f15e379]:
+                    - paragraph [ref=f15e380]: Value Delivered
+                    - strong [ref=f15e381]: 6/6 value stories
+                    - paragraph [ref=f15e382]: User-facing change completed this sprint.
+                  - article [ref=f15e385]:
+                    - paragraph [ref=f15e386]: Spillover Tracker
+                    - strong [ref=f15e387]: 2 stories
+                    - paragraph [ref=f15e388]: 22% of sprint scope is still open.
+                - generic [ref=f15e391]:
+                  - article [ref=f15e392]:
+                    - generic [ref=f15e394]:
+                      - paragraph [ref=f15e395]: What Was Delivered This Sprint
+                      - heading "Leadership-ready outcome summary" [level=3] [ref=f15e396]
+                    - list [ref=f15e397]:
+                      - listitem [ref=f15e398]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                      - listitem [ref=f15e399]: As a user, I want to be able to buy JIMXIE bundle from buy bundle miniapp(fromt end implementation) completed this sprint.
+                      - listitem [ref=f15e400]: Improves the quality and speed of the customer-facing experience this sprint.
+                  - article [ref=f15e401]:
+                    - generic [ref=f15e402]:
+                      - generic [ref=f15e403]:
+                        - paragraph [ref=f15e404]: Blockers Panel
+                        - heading "Active blockers" [level=3] [ref=f15e405]
+                      - generic [ref=f15e406]: 2 blockers
+                    - generic [ref=f15e407]:
+                      - 'button "MAS-2394 As a user, I want to be able to change to swahili language while using Global pa Status unchanged 120h — likely blocking sprint flow Likely owner: Nganyaga, Evance, Vodacom Tanzania 5d blocked" [ref=f15e408]':
+                        - strong [ref=f15e410]:
+                          - link "MAS-2394" [ref=f15e411] [cursor=pointer]:
+                            - /url: https://vodacomtz.atlassian.net/browse/MAS-2394
+                          - text: As a user, I want to be able to change to swahili language while using Global pa
+                        - paragraph [ref=f15e412]: Status unchanged 120h — likely blocking sprint flow
+                        - generic [ref=f15e413]:
+                          - generic [ref=f15e414]: "Likely owner: Nganyaga, Evance, Vodacom Tanzania"
+                          - generic [ref=f15e415]: 5d blocked
+                      - 'button "MAS-2502 Fix N-card translations Status unchanged 395h — likely blocking sprint flow Likely owner: Nganyaga, Evance, Vodacom Tanzania 16d blocked" [ref=f15e416]':
+                        - strong [ref=f15e418]:
+                          - link "MAS-2502" [ref=f15e419] [cursor=pointer]:
+                            - /url: https://vodacomtz.atlassian.net/browse/MAS-2502
+                          - text: Fix N-card translations
+                        - paragraph [ref=f15e420]: Status unchanged 395h — likely blocking sprint flow
+                        - generic [ref=f15e421]:
+                          - generic [ref=f15e422]: "Likely owner: Nganyaga, Evance, Vodacom Tanzania"
+                          - generic [ref=f15e423]: 16d blocked
+                - region "Grouped sprint stories" [ref=f15e424]:
+                  - generic [ref=f15e425]:
+                    - generic [ref=f15e427]:
+                      - paragraph [ref=f15e428]: Value Delivery
+                      - heading "6 stories" [level=3] [ref=f15e429]
+                    - paragraph [ref=f15e430]: User-facing work and KPI movement that the business can recognise immediately.
+                    - generic [ref=f15e431]:
+                      - article [ref=f15e432]:
+                        - generic [ref=f15e433]:
+                          - generic [ref=f15e434]:
+                            - paragraph [ref=f15e435]:
+                              - link "MAS-2475" [ref=f15e436] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2475
+                            - heading "Mgodi Miniapp regression and functional testing." [level=4] [ref=f15e437]
+                          - generic [ref=f15e438]: Growth
+                        - paragraph [ref=f15e439]: Story in Done to move "Mgodi Miniapp regression and functional testing." forward this sprint.
+                        - generic [ref=f15e440]:
+                          - generic [ref=f15e441]:
+                            - term [ref=f15e442]: Business outcome
+                            - definition [ref=f15e443]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=f15e444]:
+                            - term [ref=f15e445]: Linked KPI
+                            - definition [ref=f15e446]: Supports growth KPI visibility
+                          - generic [ref=f15e447]:
+                            - term [ref=f15e448]: Owner
+                            - definition [ref=f15e449]: Tonny Mtae
+                          - generic [ref=f15e450]:
+                            - term [ref=f15e451]: Status
+                            - definition [ref=f15e452]: Done
+                          - generic [ref=f15e453]:
+                            - term [ref=f15e454]: Blockers
+                            - definition [ref=f15e455]: No active blocker
+                      - article [ref=f15e456]:
+                        - generic [ref=f15e457]:
+                          - generic [ref=f15e458]:
+                            - paragraph [ref=f15e459]:
+                              - link "MAS-2494" [ref=f15e460] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2494
+                            - heading "As a user, I want to be able to buy JIMXIE bundle from buy bundle miniapp(fromt end implementation)" [level=4] [ref=f15e461]
+                          - generic [ref=f15e462]: Growth
+                        - paragraph [ref=f15e463]: Story in Done to move "As a user, I want to be able to buy JIMXIE bundle from buy bundle miniapp(fromt end implementation)" forward this sprint.
+                        - generic [ref=f15e464]:
+                          - generic [ref=f15e465]:
+                            - term [ref=f15e466]: Business outcome
+                            - definition [ref=f15e467]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=f15e468]:
+                            - term [ref=f15e469]: Linked KPI
+                            - definition [ref=f15e470]: Supports growth KPI visibility
+                          - generic [ref=f15e471]:
+                            - term [ref=f15e472]: Owner
+                            - definition [ref=f15e473]: Baraka Urio
+                          - generic [ref=f15e474]:
+                            - term [ref=f15e475]: Status
+                            - definition [ref=f15e476]: Done
+                          - generic [ref=f15e477]:
+                            - term [ref=f15e478]: Blockers
+                            - definition [ref=f15e479]: No active blocker
+                      - article [ref=f15e480]:
+                        - generic [ref=f15e481]:
+                          - generic [ref=f15e482]:
+                            - paragraph [ref=f15e483]:
+                              - link "MAS-2499" [ref=f15e484] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2499
+                            - heading "As a user, I want to set my investment goal as I invest" [level=4] [ref=f15e485]
+                          - generic [ref=f15e486]: CX
+                        - paragraph [ref=f15e487]: Story in Done to move "As a user, I want to set my investment goal as I invest" forward this sprint.
+                        - generic [ref=f15e488]:
+                          - generic [ref=f15e489]:
+                            - term [ref=f15e490]: Business outcome
+                            - definition [ref=f15e491]: Improves the quality and speed of the customer-facing experience this sprint.
+                          - generic [ref=f15e492]:
+                            - term [ref=f15e493]: Linked KPI
+                            - definition [ref=f15e494]: Supports customer response confidence
+                          - generic [ref=f15e495]:
+                            - term [ref=f15e496]: Owner
+                            - definition [ref=f15e497]: Daud Gambasida
+                          - generic [ref=f15e498]:
+                            - term [ref=f15e499]: Status
+                            - definition [ref=f15e500]: Done
+                          - generic [ref=f15e501]:
+                            - term [ref=f15e502]: Blockers
+                            - definition [ref=f15e503]: No active blocker
+                      - article [ref=f15e504]:
+                        - generic [ref=f15e505]:
+                          - generic [ref=f15e506]:
+                            - paragraph [ref=f15e507]:
+                              - link "MAS-2500" [ref=f15e508] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2500
+                            - heading "Third party support" [level=4] [ref=f15e509]
+                          - generic [ref=f15e510]: CX
+                        - paragraph [ref=f15e511]: Story in Done to move "Third party support" forward this sprint.
+                        - generic [ref=f15e512]:
+                          - generic [ref=f15e513]:
+                            - term [ref=f15e514]: Business outcome
+                            - definition [ref=f15e515]: Improves the quality and speed of the customer-facing experience this sprint.
+                          - generic [ref=f15e516]:
+                            - term [ref=f15e517]: Linked KPI
+                            - definition [ref=f15e518]: Supports customer response confidence
+                          - generic [ref=f15e519]:
+                            - term [ref=f15e520]: Owner
+                            - definition [ref=f15e521]: Gloria Mtagwaba
+                          - generic [ref=f15e522]:
+                            - term [ref=f15e523]: Status
+                            - definition [ref=f15e524]: Done
+                          - generic [ref=f15e525]:
+                            - term [ref=f15e526]: Blockers
+                            - definition [ref=f15e527]: No active blocker
+                      - article [ref=f15e528]:
+                        - generic [ref=f15e529]:
+                          - generic [ref=f15e530]:
+                            - paragraph [ref=f15e531]:
+                              - link "MAS-2504" [ref=f15e532] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2504
+                            - heading "Follow up on the firewall change from Mbezi/Kwale Paypal" [level=4] [ref=f15e533]
+                          - generic [ref=f15e534]: Growth
+                        - paragraph [ref=f15e535]: Story in Done to move "Follow up on the firewall change from Mbezi/Kwale Paypal" forward this sprint.
+                        - generic [ref=f15e536]:
+                          - generic [ref=f15e537]:
+                            - term [ref=f15e538]: Business outcome
+                            - definition [ref=f15e539]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=f15e540]:
+                            - term [ref=f15e541]: Linked KPI
+                            - definition [ref=f15e542]: Supports growth KPI visibility
+                          - generic [ref=f15e543]:
+                            - term [ref=f15e544]: Owner
+                            - definition [ref=f15e545]: Pius Shungu
+                          - generic [ref=f15e546]:
+                            - term [ref=f15e547]: Status
+                            - definition [ref=f15e548]: Done
+                          - generic [ref=f15e549]:
+                            - term [ref=f15e550]: Blockers
+                            - definition [ref=f15e551]: No active blocker
+                      - article [ref=f15e552]:
+                        - generic [ref=f15e553]:
+                          - generic [ref=f15e554]:
+                            - paragraph [ref=f15e555]:
+                              - link "MAS-2505" [ref=f15e556] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2505
+                            - heading "Bundle Audit on USSD/ Buy bundle miniapp" [level=4] [ref=f15e557]
+                          - generic [ref=f15e558]: Growth
+                        - paragraph [ref=f15e559]: Story in Done to move "Bundle Audit on USSD/ Buy bundle miniapp" forward this sprint.
+                        - generic [ref=f15e560]:
+                          - generic [ref=f15e561]:
+                            - term [ref=f15e562]: Business outcome
+                            - definition [ref=f15e563]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=f15e564]:
+                            - term [ref=f15e565]: Linked KPI
+                            - definition [ref=f15e566]: Supports growth KPI visibility
+                          - generic [ref=f15e567]:
+                            - term [ref=f15e568]: Owner
+                            - definition [ref=f15e569]: Baraka Urio
+                          - generic [ref=f15e570]:
+                            - term [ref=f15e571]: Status
+                            - definition [ref=f15e572]: Done
+                          - generic [ref=f15e573]:
+                            - term [ref=f15e574]: Blockers
+                            - definition [ref=f15e575]: No active blocker
+                  - generic [ref=f15e576]:
+                    - generic [ref=f15e578]:
+                      - paragraph [ref=f15e579]: Enablers
+                      - heading "0 stories" [level=3] [ref=f15e580]
+                    - paragraph [ref=f15e581]: Technical work that protects speed, trust, and the ability to keep delivering value.
+                    - generic [ref=f15e582]: No stories are currently grouped here.
+                  - generic [ref=f15e583]:
+                    - generic [ref=f15e585]:
+                      - paragraph [ref=f15e586]: Blocked / At Risk
+                      - heading "3 stories" [level=3] [ref=f15e587]
+                    - paragraph [ref=f15e588]: Stories that need intervention because ownership, flow, estimate, or blocker signals are present.
+                    - generic [ref=f15e589]:
+                      - button "MAS-2394 As a user, I want to be able to change to swahili language while using Global payment mini app Growth Story in In Progress to move \"As a user, I want to be able to change to swahili language while using Global payment mini app\" forward this sprint. Business outcome Moves a measurable sprint outcome forward in a way the business can explain clearly. Linked KPI Supports growth KPI visibility Owner Nganyaga, Evance, Vodacom Tanzania Status In Progress Blockers Blocked | parent-flow" [ref=f15e590] [cursor=pointer]:
+                        - generic [ref=f15e591]:
+                          - generic [ref=f15e592]:
+                            - paragraph [ref=f15e593]:
+                              - link "MAS-2394" [ref=f15e594]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2394
+                            - heading "As a user, I want to be able to change to swahili language while using Global payment mini app" [level=4] [ref=f15e595]
+                          - generic [ref=f15e596]: Growth
+                        - paragraph [ref=f15e597]: Story in In Progress to move "As a user, I want to be able to change to swahili language while using Global payment mini app" forward this sprint.
+                        - generic [ref=f15e598]:
+                          - generic [ref=f15e599]:
+                            - term [ref=f15e600]: Business outcome
+                            - definition [ref=f15e601]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=f15e602]:
+                            - term [ref=f15e603]: Linked KPI
+                            - definition [ref=f15e604]: Supports growth KPI visibility
+                          - generic [ref=f15e605]:
+                            - term [ref=f15e606]: Owner
+                            - definition [ref=f15e607]: Nganyaga, Evance, Vodacom Tanzania
+                          - generic [ref=f15e608]:
+                            - term [ref=f15e609]: Status
+                            - definition [ref=f15e610]: In Progress
+                          - generic [ref=f15e611]:
+                            - term [ref=f15e612]: Blockers
+                            - definition [ref=f15e613]: Blocked | parent-flow
+                      - button "MAS-2502 Fix N-card translations Efficiency Story in In Progress to move \"Fix N-card translations\" forward this sprint. Business outcome Moves a measurable sprint outcome forward in a way the business can explain clearly. Linked KPI Supports flow efficiency and delivery trust Owner Nganyaga, Evance, Vodacom Tanzania Status In Progress Blockers Blocked | parent-flow" [ref=f15e614] [cursor=pointer]:
+                        - generic [ref=f15e615]:
+                          - generic [ref=f15e616]:
+                            - paragraph [ref=f15e617]:
+                              - link "MAS-2502" [ref=f15e618]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2502
+                            - heading "Fix N-card translations" [level=4] [ref=f15e619]
+                          - generic [ref=f15e620]: Efficiency
+                        - paragraph [ref=f15e621]: Story in In Progress to move "Fix N-card translations" forward this sprint.
+                        - generic [ref=f15e622]:
+                          - generic [ref=f15e623]:
+                            - term [ref=f15e624]: Business outcome
+                            - definition [ref=f15e625]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=f15e626]:
+                            - term [ref=f15e627]: Linked KPI
+                            - definition [ref=f15e628]: Supports flow efficiency and delivery trust
+                          - generic [ref=f15e629]:
+                            - term [ref=f15e630]: Owner
+                            - definition [ref=f15e631]: Nganyaga, Evance, Vodacom Tanzania
+                          - generic [ref=f15e632]:
+                            - term [ref=f15e633]: Status
+                            - definition [ref=f15e634]: In Progress
+                          - generic [ref=f15e635]:
+                            - term [ref=f15e636]: Blockers
+                            - definition [ref=f15e637]: Blocked | parent-flow
+                      - article [ref=f15e638]:
+                        - generic [ref=f15e639]:
+                          - generic [ref=f15e640]:
+                            - paragraph [ref=f15e641]:
+                              - link "MAS-2510" [ref=f15e642] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/MAS-2510
+                            - heading "Operational support" [level=4] [ref=f15e643]
+                          - generic [ref=f15e644]: CX
+                        - paragraph [ref=f15e645]: Story in Done to move "Operational support" forward this sprint.
+                        - generic [ref=f15e646]:
+                          - generic [ref=f15e647]:
+                            - term [ref=f15e648]: Business outcome
+                            - definition [ref=f15e649]: Improves the quality and speed of the customer-facing experience this sprint.
+                          - generic [ref=f15e650]:
+                            - term [ref=f15e651]: Linked KPI
+                            - definition [ref=f15e652]: Supports customer response confidence
+                          - generic [ref=f15e653]:
+                            - term [ref=f15e654]: Owner
+                            - definition [ref=f15e655]: Gloria Mtagwaba
+                          - generic [ref=f15e656]:
+                            - term [ref=f15e657]: Status
+                            - definition [ref=f15e658]: Done
+                          - generic [ref=f15e659]:
+                            - term [ref=f15e660]: Blockers
+                            - definition [ref=f15e661]: Scope change
+                - generic "Filter issues by completion day" [ref=f15e662]:
+                  - button "Flow" [ref=f15e663] [cursor=pointer]
+                  - button "2 Jul (Thu)" [ref=f15e664] [cursor=pointer]
+                  - button "3 Jul (Fri)" [ref=f15e666] [cursor=pointer]
+                  - button "8 Jul (Wed)" [ref=f15e668] [cursor=pointer]
+                  - button "9 Jul (Thu)" [ref=f15e670] [cursor=pointer]
+              - group [ref=f15e672]:
+                - generic "Open Jira evidence and work table" [ref=f15e673] [cursor=pointer]
+                - table [ref=f15e675]:
+                  - rowgroup [ref=f15e676]:
+                    - row [ref=f15e677]:
+                      - columnheader "Issue" [ref=f15e678]
+                      - columnheader "Summary" [ref=f15e679]
+                      - columnheader "Status" [ref=f15e680]
+                      - columnheader "Assignee" [ref=f15e681]
+                      - columnheader "SP" [ref=f15e682]
+                      - columnheader "Est Hrs" [ref=f15e683]
+                      - columnheader "Logged Hrs" [ref=f15e684]
+                      - columnheader "Risks" [ref=f15e685]
+                  - rowgroup [ref=f15e686]:
+                    - row [ref=f15e687]:
+                      - cell [ref=f15e688]:
+                        - link "MAS-2394" [ref=f15e690] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2394
+                      - cell "As a user, I want to be able to change to swahili language while using Global payment mini app Outcome-linked work" [ref=f15e691]:
+                        - text: As a user, I want to be able to change to swahili language while using Global payment mini app
+                        - generic "Outcome-linked work" [ref=f15e692]: O
+                      - cell "In Progress" [ref=f15e693]
+                      - cell "Nganyaga, Evance, Vodacom Tanzania" [ref=f15e694]
+                      - cell "5.0" [ref=f15e695]
+                      - cell "0.0" [ref=f15e696]
+                      - cell "0.0" [ref=f15e697]
+                      - cell "2 risks" [ref=f15e698]:
+                        - generic "Blocker, parent-flow" [ref=f15e699]: 2 risks
+                    - row [ref=f15e700]:
+                      - cell [ref=f15e701]:
+                        - link "MAS-2475" [ref=f15e703] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2475
+                      - cell "Mgodi Miniapp regression and functional testing. Outcome-linked work" [ref=f15e704]:
+                        - text: Mgodi Miniapp regression and functional testing.
+                        - generic "Outcome-linked work" [ref=f15e705]: O
+                      - cell "Done" [ref=f15e706]
+                      - cell "Tonny Mtae" [ref=f15e707]
+                      - cell "5.0" [ref=f15e708]
+                      - cell "0.0" [ref=f15e709]
+                      - cell "0.0" [ref=f15e710]
+                      - cell "No risk flags" [ref=f15e711]
+                    - row [ref=f15e712]:
+                      - cell [ref=f15e713]:
+                        - link "MAS-2494" [ref=f15e715] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2494
+                      - cell "As a user, I want to be able to buy JIMXIE bundle from buy bundle miniapp(fromt end implementation) Outcome-linked work" [ref=f15e716]:
+                        - text: As a user, I want to be able to buy JIMXIE bundle from buy bundle miniapp(fromt end implementation)
+                        - generic "Outcome-linked work" [ref=f15e717]: O
+                      - cell "Done" [ref=f15e718]
+                      - cell "Baraka Urio" [ref=f15e719]
+                      - cell "5.0" [ref=f15e720]
+                      - cell "0.0" [ref=f15e721]
+                      - cell "0.0" [ref=f15e722]
+                      - cell "No risk flags" [ref=f15e723]
+                    - row [ref=f15e724]:
+                      - cell [ref=f15e725]:
+                        - link "MAS-2499" [ref=f15e727] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2499
+                      - cell "As a user, I want to set my investment goal as I invest Outcome-linked work" [ref=f15e728]:
+                        - text: As a user, I want to set my investment goal as I invest
+                        - generic "Outcome-linked work" [ref=f15e729]: O
+                      - cell "Done" [ref=f15e730]
+                      - cell "Daud Gambasida" [ref=f15e731]
+                      - cell "8.0" [ref=f15e732]
+                      - cell "0.0" [ref=f15e733]
+                      - cell "0.0" [ref=f15e734]
+                      - cell "No risk flags" [ref=f15e735]
+                    - row [ref=f15e736]:
+                      - cell [ref=f15e737]:
+                        - link "MAS-2500" [ref=f15e739] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2500
+                      - cell "Third party support Outcome-linked work" [ref=f15e740]:
+                        - text: Third party support
+                        - generic "Outcome-linked work" [ref=f15e741]: O
+                      - cell "Done" [ref=f15e742]
+                      - cell "Gloria Mtagwaba" [ref=f15e743]
+                      - cell "3.0" [ref=f15e744]
+                      - cell "0.0" [ref=f15e745]
+                      - cell "0.0" [ref=f15e746]
+                      - cell "No risk flags" [ref=f15e747]
+                    - row [ref=f15e748]:
+                      - cell [ref=f15e749]:
+                        - link "MAS-2502" [ref=f15e751] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2502
+                      - cell "Fix N-card translations" [ref=f15e752]
+                      - cell "In Progress" [ref=f15e753]
+                      - cell "Nganyaga, Evance, Vodacom Tanzania" [ref=f15e754]
+                      - cell "5.0" [ref=f15e755]
+                      - cell "0.0" [ref=f15e756]
+                      - cell "0.0" [ref=f15e757]
+                      - cell "2 risks" [ref=f15e758]:
+                        - generic "Blocker, parent-flow" [ref=f15e759]: 2 risks
+                    - row [ref=f15e760]:
+                      - cell [ref=f15e761]:
+                        - link "MAS-2504" [ref=f15e763] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2504
+                      - cell "Follow up on the firewall change from Mbezi/Kwale Paypal Outcome-linked work" [ref=f15e764]:
+                        - text: Follow up on the firewall change from Mbezi/Kwale Paypal
+                        - generic "Outcome-linked work" [ref=f15e765]: O
+                      - cell "Done" [ref=f15e766]
+                      - cell "Pius Shungu" [ref=f15e767]
+                      - cell "5.0" [ref=f15e768]
+                      - cell "0.0" [ref=f15e769]
+                      - cell "0.0" [ref=f15e770]
+                      - cell "No risk flags" [ref=f15e771]
+                    - row [ref=f15e772]:
+                      - cell [ref=f15e773]:
+                        - link "MAS-2505" [ref=f15e775] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2505
+                      - cell "Bundle Audit on USSD/ Buy bundle miniapp Outcome-linked work" [ref=f15e776]:
+                        - text: Bundle Audit on USSD/ Buy bundle miniapp
+                        - generic "Outcome-linked work" [ref=f15e777]: O
+                      - cell "Done" [ref=f15e778]
+                      - cell "Baraka Urio" [ref=f15e779]
+                      - cell "3.0" [ref=f15e780]
+                      - cell "0.0" [ref=f15e781]
+                      - cell "0.0" [ref=f15e782]
+                      - cell "No risk flags" [ref=f15e783]
+                    - row [ref=f15e784]:
+                      - cell [ref=f15e785]:
+                        - link "MAS-2510" [ref=f15e787] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/MAS-2510
+                      - cell "Operational support" [ref=f15e788]
+                      - cell "Done" [ref=f15e789]
+                      - cell "-" [ref=f15e790]
+                      - cell "3.0" [ref=f15e791]
+                      - cell "0.0" [ref=f15e792]
+                      - cell "0.0" [ref=f15e793]
+                      - cell "Scope" [ref=f15e794]
+            - generic [ref=f15e796]:
+              - region "Sprint today" [ref=f15e797]:
+                - heading "Sprint today" [level=2] [ref=f15e798]
+                - paragraph [ref=f15e799]:
+                  - strong [ref=f15e800]: DELIVERY BLOCKED
+                - paragraph [ref=f15e801]: Sprint outcomes are at risk unless the top issue is resolved quickly. 3.0 SP was added after sprint start.
+                - paragraph [ref=f15e802]:
+                  - strong [ref=f15e803]: "Main blocker:"
+                  - text: MAS-2502
+                - paragraph [ref=f15e804]:
+                  - strong [ref=f15e805]: "Next move:"
+                  - text: Unblock
+                - paragraph [ref=f15e806]: Showing blockers below
+              - generic [ref=f15e807]:
+                - region "Sprint value summary" [ref=f15e808]:
+                  - generic [ref=f15e809]:
+                    - generic [ref=f15e810]: Value answer
+                    - strong [ref=f15e811]: FY27 Q1MAS 55
+                    - paragraph [ref=f15e812]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                  - generic [ref=f15e813]:
+                    - generic [ref=f15e814]: Done
+                    - strong [ref=f15e815]: 78% complete
+                    - paragraph [ref=f15e816]: 22% may spill over
+                  - generic [ref=f15e817]:
+                    - generic [ref=f15e818]: Customer impact
+                    - generic [ref=f15e819]:
+                      - generic [ref=f15e820]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                      - generic [ref=f15e821]: As a user, I want to be able to buy JIMXIE bundle from buy bundle miniapp(fromt end implementation) completed this sprint.
+                      - generic [ref=f15e822]: Improves the quality and speed of the customer-facing experience this sprint.
+                  - generic [ref=f15e823]:
+                    - generic [ref=f15e824]: Risk
+                    - strong [ref=f15e825]: Needs Attention
+                    - paragraph [ref=f15e826]: Are we delivering value this sprint?
+                - group [ref=f15e827]:
+                  - generic "Needs Attention — Sprint outcomes are at risk unless the top issue is resolved quickly. 3.0 SP was added after sprint start." [ref=f15e828] [cursor=pointer]
+                  - generic [ref=f15e829]:
+                    - paragraph [ref=f15e830]:
+                      - text: 24 Jun (Wed) - 8 Jul (Wed)
+                      - generic [ref=f15e831]: "|"
+                      - text: 0 days left
+                    - generic [ref=f15e832]:
+                      - article [ref=f15e833]:
+                        - generic [ref=f15e834]: ~
+                        - generic [ref=f15e835]:
+                          - paragraph [ref=f15e836]: Sprint answer
+                          - heading "Needs Attention" [level=2] [ref=f15e837]
+                          - paragraph [ref=f15e838]: Sprint outcomes are at risk unless the top issue is resolved quickly. 3.0 SP was added after sprint start.
+                          - paragraph [ref=f15e839]: 24 Jun (Wed) - 8 Jul (Wed) | 0 days left | 7/9 value stories
+                      - article [ref=f15e840]:
+                        - paragraph [ref=f15e841]: Next action
+                        - heading "MAS-2502 - Fix N-card translations" [level=2] [ref=f15e842]
+                        - paragraph [ref=f15e843]: The item has been stale for 395h and is likely blocking sprint flow.
+                      - article [ref=f15e844]:
+                        - paragraph [ref=f15e845]: Signals
+                        - generic [ref=f15e846]:
+                          - generic [ref=f15e847]:
+                            - strong [ref=f15e849]: +10.0 SP recently
+                            - generic [ref=f15e850]: Done now
+                          - generic [ref=f15e851]:
+                            - strong [ref=f15e853]: "2"
+                            - generic [ref=f15e854]: Blockers
+                          - generic [ref=f15e855]:
+                            - strong [ref=f15e857]: "1"
+                            - generic [ref=f15e858]: Added work
+                          - generic [ref=f15e859]:
+                            - strong [ref=f15e861]: Moving
+                            - generic [ref=f15e862]: Last 24h
+                      - complementary [ref=f15e863]:
+                        - generic [ref=f15e864]:
+                          - generic [ref=f15e865]:
+                            - heading "Risk queue" [level=2] [ref=f15e866]
+                            - generic [ref=f15e867]: 6 actions waiting
+                          - button "MAS-2502 Fix N-card translations High The item has been stale for 395h and is likely blocking sprint flow. No movement 24h" [ref=f15e868] [cursor=pointer]:
+                            - generic [ref=f15e869]:
+                              - generic [ref=f15e870]:
+                                - link "MAS-2502" [ref=f15e871]:
+                                  - /url: https://vodacomtz.atlassian.net/browse/MAS-2502
+                                - strong [ref=f15e872]: Fix N-card translations
+                              - generic [ref=f15e873]: High
+                            - paragraph [ref=f15e874]: The item has been stale for 395h and is likely blocking sprint flow.
+                            - generic [ref=f15e875]: No movement 24h
+                          - button "MAS-2394 As a user, I want to be able to change to swahili language while using Global payment mini app High The item has been stale for 120.4h and is likely blocking sprint flow. No movement 24h" [ref=f15e877] [cursor=pointer]:
+                            - generic [ref=f15e878]:
+                              - generic [ref=f15e879]:
+                                - link "MAS-2394" [ref=f15e880]:
+                                  - /url: https://vodacomtz.atlassian.net/browse/MAS-2394
+                                - strong [ref=f15e881]: As a user, I want to be able to change to swahili language while using Global payment mini app
+                              - generic [ref=f15e882]: High
+                            - paragraph [ref=f15e883]: The item has been stale for 120.4h and is likely blocking sprint flow.
+                            - generic [ref=f15e884]: No movement 24h
+                          - button "MAS-2510 Operational support Low Scope was added after sprint start and needs explicit trade-off handling. Scope change" [ref=f15e886] [cursor=pointer]:
+                            - generic [ref=f15e887]:
+                              - generic [ref=f15e888]:
+                                - link "MAS-2510" [ref=f15e889]:
+                                  - /url: https://vodacomtz.atlassian.net/browse/MAS-2510
+                                - strong [ref=f15e890]: Operational support
+                              - generic [ref=f15e891]: Low
+                            - paragraph [ref=f15e892]: Scope was added after sprint start and needs explicit trade-off handling.
+                            - generic [ref=f15e893]: Scope change
+                          - list "Action queue" [ref=f15e895]:
+                            - button "Need unblock 2" [ref=f15e896] [cursor=pointer]:
+                              - generic [ref=f15e897]: Need unblock
+                              - strong [ref=f15e898]: "2"
+                            - button "Need estimate 0" [ref=f15e899] [cursor=pointer]:
+                              - generic [ref=f15e900]: Need estimate
+                              - strong [ref=f15e901]: "0"
+                            - button "Added work 1" [ref=f15e902] [cursor=pointer]:
+                              - generic [ref=f15e903]: Added work
+                              - strong [ref=f15e904]: "1"
+                            - button "Need owner 0" [ref=f15e905] [cursor=pointer]:
+                              - generic [ref=f15e906]: Need owner
+                              - strong [ref=f15e907]: "0"
+                    - generic [ref=f15e908]:
+                      - article [ref=f15e909]:
+                        - paragraph [ref=f15e910]: Value done
+                        - paragraph [ref=f15e911]: 7/9 value stories
+                        - paragraph [ref=f15e912]: 76% complete
+                      - article [ref=f15e915]:
+                        - paragraph [ref=f15e916]: Work left
+                        - paragraph [ref=f15e917]: "2"
+                        - paragraph [ref=f15e918]: 7/9 done
+                      - article [ref=f15e921]:
+                        - paragraph [ref=f15e922]: Risk queue
+                        - paragraph [ref=f15e923]: "6"
+                        - paragraph [ref=f15e924]: 3 top risks | 2 blockers
+                      - article [ref=f15e927]:
+                        - paragraph [ref=f15e928]: Trust
+                        - paragraph [ref=f15e929]: Needs evidence
+                        - paragraph [ref=f15e930]: 0% estimate evidence
+                    - generic [ref=f15e932]:
+                      - generic [ref=f15e933]:
+                        - generic [ref=f15e934]:
+                          - paragraph [ref=f15e935]: Value progress
+                          - heading "Done vs added work" [level=2] [ref=f15e936]
+                        - paragraph [ref=f15e937]: One evidence chart for movement, added work, and confidence change.
+                      - generic [ref=f15e938]:
+                        - img "Work movement showing completed work, added scope, and remaining story points" [ref=f15e939]:
+                          - generic [ref=f15e946]: 25 Jun (Thu)
+                          - generic [ref=f15e947]: 2 Jul (Thu)
+                          - generic [ref=f15e948]: 3 Jul (Fri)
+                          - generic [ref=f15e949]: 8 Jul (Wed)
+                          - generic [ref=f15e950]: 9 Jul (Thu)
+                        - generic [ref=f15e951]:
+                          - generic [ref=f15e952]: Completed
+                          - generic [ref=f15e954]: Added
+                          - generic [ref=f15e956]: Remaining
+                    - generic [ref=f15e958]:
+                      - article [ref=f15e959]:
+                        - generic [ref=f15e960]:
+                          - paragraph [ref=f15e961]: Completion Clustering
+                          - heading "38%" [level=3] [ref=f15e962]
+                          - paragraph [ref=f15e963]: Completion is spreading more evenly through the sprint.
+                      - article [ref=f15e966]:
+                        - generic [ref=f15e967]:
+                          - paragraph [ref=f15e968]: Scope Change Impact
+                          - heading "3.0 SP" [level=3] [ref=f15e969]
+                          - paragraph [ref=f15e970]: 3.0 SP (7%) was added after sprint start.
+                      - article [ref=f15e972]:
+                        - generic [ref=f15e973]:
+                          - paragraph [ref=f15e974]: Planned vs Actual
+                          - heading "-26.0 SP" [level=3] [ref=f15e975]
+                          - paragraph [ref=f15e976]: Behind by 26.0 SP against the ideal line.
+                      - article [ref=f15e979]:
+                        - generic [ref=f15e980]:
+                          - paragraph [ref=f15e981]: Confidence
+                          - heading "Low" [level=3] [ref=f15e982]
+                          - paragraph [ref=f15e983]: Confidence is moderated because sizing evidence is incomplete.
+            - group [ref=f15e986]:
+              - generic [ref=f15e987]:
+                - generic [ref=f15e990]:
+                  - generic [ref=f15e991]:
+                    - heading "Flow over time" [level=2] [ref=f15e993]
+                    - generic [ref=f15e994]:
+                      - generic [ref=f15e995]: SP complete 16.0
+                      - generic [ref=f15e996]: SP remaining 26.0
+                      - generic [ref=f15e997]: Ended
+                  - paragraph [ref=f15e998]:
+                    - strong [ref=f15e999]: 38%
+                    - text: complete
+                  - paragraph [ref=f15e1000]: Behind
+                  - paragraph [ref=f15e1001]: Multiple Jira story point fields exist; this burndown uses the primary field only. If numbers look off for some projects, align on a single story-points field.
+                  - paragraph [ref=f15e1002]: 4 stories completed after sprint end; burndown shows sprint-only completion.
+                  - generic [ref=f15e1003]:
+                    - img "Burndown chart with ideal line" [ref=f15e1004]
+                    - generic [ref=f15e1008]:
+                      - generic [ref=f15e1009]: Remaining SP
+                      - generic [ref=f15e1010]:
+                        - generic [ref=f15e1011]: 24 Jun (Wed)
+                        - generic [ref=f15e1012]: 1 Jul (Wed)
+                        - generic [ref=f15e1013]: 7 Jul (Tue)
+                    - generic [ref=f15e1014]:
+                      - generic [ref=f15e1015]: Actual
+                      - generic [ref=f15e1017]: Projection
+                      - generic [ref=f15e1019]: Ideal
+                  - group [ref=f15e1021]:
+                    - generic "View burndown table" [ref=f15e1022] [cursor=pointer]
+                - generic [ref=f15e1025]:
+                  - heading "Risks & Insights" [level=2] [ref=f15e1026]
+                  - paragraph [ref=f15e1027]: 2 stale in progress in sprint signals (queue SSOT)
+                  - generic [ref=f15e1028]:
+                    - 'generic "Stale in progress: sprint risk signals and work queue (same SSOT); count is max of signals and saved dependency notes." [ref=f15e1029]': 2 stale in progress
+                    - 'generic "Risks: team-entered notes in this card (not the same as signal tags in the queue)." [ref=f15e1030]': 6 risks
+                    - 'generic "Learnings: team notes captured below." [ref=f15e1031]': 0 learnings
+                  - tablist "Risks and insights views" [ref=f15e1032]:
+                    - tab "Stale 2" [selected] [ref=f15e1033] [cursor=pointer]
+                    - tab "Learnings 0" [ref=f15e1034] [cursor=pointer]
+                    - tab "Assumptions 6" [ref=f15e1035] [cursor=pointer]
+                  - tabpanel "Stale 2" [ref=f15e1036]:
+                    - paragraph [ref=f15e1038]: 2 stale in progress detected in sprint signals. Review the work queue below.
+                  - generic [ref=f15e1040]:
+                    - generic [ref=f15e1041]: "!"
+                    - generic [ref=f15e1042]:
+                      - strong [ref=f15e1043]: "Risk:"
+                      - text: "Completion anchored to: resolution date."
+                  - group [ref=f15e1044]:
+                    - generic "Manage notes" [ref=f15e1045] [cursor=pointer]
+                    - option "- Action type -" [selected]
+                    - option "Escalate"
+                    - option "Reassign"
+                    - option "Defer"
+                    - option "Custom"
+          - complementary [ref=f15e1046]:
+            - tablist "Sprint focus" [ref=f15e1047]:
+              - tab "Work" [selected] [ref=f15e1048] [cursor=pointer]
+              - tab "Risks" [ref=f15e1049] [cursor=pointer]
+              - tab "Flow" [ref=f15e1050] [cursor=pointer]
+            - tabpanel [ref=f15e1051]:
+              - paragraph [ref=f15e1052]: Unblock today
+              - strong [ref=f15e1053]: MAS-2502
+              - paragraph [ref=f15e1054]: Fix N-card translations
+              - generic [ref=f15e1055]:
+                - generic [ref=f15e1056]: Nudge draft
+                - textbox "Nudge draft" [ref=f15e1057]:
+                  - /placeholder: Quick unblock ask — press Enter to review…
+                  - text: "MAS-2502: blocked 395h — can we unblock today?"
+                - paragraph [ref=f15e1058]: Press Enter to open nudge review
+  - dialog "Create work draft" [ref=f15e282]:
+    - generic [ref=f15e283]:
+      - button "Project ▾" [ref=f15e285] [cursor=pointer]:
+        - generic [ref=f15e286]: Project
+        - text: ▾
+      - generic [ref=f15e287]: Create work
+      - button "AI provider settings" [ref=f15e288] [cursor=pointer]: ⚙
+      - button "Close" [ref=f15e289] [cursor=pointer]: ✕
+    - generic [ref=f15e291]:
+      - textbox "Narrative source text" [ref=f15e293]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f15e295]: ✓
+      - list "Work items" [ref=f15e296]
+    - generic [ref=f15e297]:
+      - generic "Set estimate for all items" [ref=f15e298]:
+        - generic [ref=f15e299]: "All:"
+        - slider "Set estimate for all items" [ref=f15e300] [cursor=pointer]: "0"
+        - generic [ref=f15e301]: —
+      - button "Create 0 issues" [disabled] [ref=f15e303]

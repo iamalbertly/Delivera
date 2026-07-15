@@ -1,0 +1,283 @@
+- generic [active] [ref=f38e1]:
+  - status [ref=f38e3]
+  - link "Skip to main content" [ref=f38e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f38e5]:
+    - generic [ref=f38e6]:
+      - button "Expand or collapse sidebar" [ref=f38e8] [cursor=pointer]
+      - navigation "Surfaces" [ref=f38e12]:
+        - link "Governance" [ref=f38e13] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=f38e14] [cursor=pointer]: Squads
+        - link "Actions" [ref=f38e15] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f38e16] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f38e18] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f38e19]: De
+        - generic [ref=f38e20]:
+          - generic [ref=f38e21]: Delivera
+          - generic "No report run yet" [ref=f38e22]
+      - searchbox "Context search" [ref=f38e25]
+      - group "Global actions" [ref=f38e26]:
+        - button "Create" [ref=f38e27] [cursor=pointer]:
+          - generic [ref=f38e28]: +
+        - generic "Checking AI status" [ref=f38e30]: AI · …
+        - button "Actions" [ref=f38e31] [cursor=pointer]
+        - button "Notifications" [ref=f38e32] [cursor=pointer]
+        - button "Help" [ref=f38e35] [cursor=pointer]
+        - button "Improve Delivera" [ref=f38e38] [cursor=pointer]
+        - link "Settings" [ref=f38e41] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f38e44] [cursor=pointer]: LY
+  - generic [ref=f38e45]:
+    - banner [ref=f38e46]:
+      - heading "Current Sprint - FY27DMS05" [level=1] [ref=f38e47]
+    - main [ref=f38e48]:
+      - generic [ref=f38e49]: Refreshing data… showing previous snapshot until new results arrive.
+      - generic [ref=f38e51]:
+        - generic [ref=f38e52]:
+          - generic "Sprint scope" [ref=f38e53]
+          - generic [ref=f38e55]:
+            - generic [ref=f38e56]: SD
+            - generic "FY27DMS05 | Jul 2, 2026 - Jul 16, 2026" [ref=f38e57] [cursor=pointer]: FY27DMS05
+            - generic "Jul 2, 2026 - Jul 16, 2026" [ref=f38e58]
+            - generic "Live · Snapshot - updated 26 min ago · No exportable rows": Stale work
+            - paragraph [ref=f38e59]: Critical · 0% done · 0 items · Ends in 4d
+            - status [ref=f38e60]:
+              - strong [ref=f38e61]: Critical
+              - generic "Sprint active · 0/6 done" [ref=f38e62]: No trackable work in this sprint yet
+          - generic [ref=f38e63]:
+            - generic [ref=f38e65]:
+              - button "Copy sprint summary" [ref=f38e66] [cursor=pointer]: Copy
+              - button "More export options" [ref=f38e67] [cursor=pointer]: Export ▾
+            - group [ref=f38e68]:
+              - generic "Context All work" [ref=f38e69] [cursor=pointer]:
+                - generic [ref=f38e71]: Context
+                - generic [ref=f38e72]: All work
+          - generic "Top sprint summary" [ref=f38e73]:
+            - link "Open report" [ref=f38e74] [cursor=pointer]:
+              - /url: /report?boardId=1&sprintId=8330&projects=SD
+            - link "2 blockers below" [ref=f38e75] [cursor=pointer]:
+              - /url: "#stuck-card"
+            - generic "Live · Snapshot - updated 26 min ago · No exportable rows" [ref=f38e76]:
+              - generic [ref=f38e77]: No exportable rows
+              - generic [ref=f38e78]: "|"
+              - generic [ref=f38e79]: Live sprint — blocker unchanged for 42+ days
+          - group [ref=f38e80]
+        - button "Top blocker" [ref=f38e81]:
+          - generic [ref=f38e82]: 🚫
+          - generic [ref=f38e83]:
+            - paragraph [ref=f38e84]: Top blocker · tap to nudge
+            - strong [ref=f38e85]:
+              - link "SD-5255" [ref=f38e86] [cursor=pointer]:
+                - /url: https://vodacomtz.atlassian.net/browse/SD-5255
+              - text: · As an App user, I want to have longer sessions after loggin in order to encourag
+            - paragraph [ref=f38e87]: The item has been stale for 997.4h and is likely blocking sprint flow.
+        - group "Switch sprint" [ref=f38e88]:
+          - generic "Past sprints" [ref=f38e89] [cursor=pointer]
+        - status [ref=f38e90]:
+          - generic [ref=f38e91]: "Data availability:"
+          - generic "No sprint issues returned for this board." [ref=f38e92]: Work items hidden
+          - text: — No sprint issues returned for this board. ·
+          - generic "No completed items in this sprint window yet." [ref=f38e93]: Daily completion hidden
+          - text: — No completed items in this sprint window yet.
+          - button "+1 more" [ref=f38e94] [cursor=pointer]
+          - link "[Why?]" [ref=f38e95] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=f38e96]:
+          - paragraph [ref=f38e97]:
+            - strong [ref=f38e98]: No issues for this context
+          - paragraph [ref=f38e99]: No issues were returned for the current sprint context.
+          - paragraph [ref=f38e100]: Add stories in Jira or pick a different board.
+          - paragraph [ref=f38e101]:
+            - button "Pick a board" [ref=f38e102] [cursor=pointer]
+        - generic [ref=f38e103]:
+          - region "Sprint today" [ref=f38e104]:
+            - heading "Sprint today" [level=2] [ref=f38e105]
+            - paragraph [ref=f38e106]:
+              - strong [ref=f38e107]: DELIVERY BLOCKED
+            - paragraph [ref=f38e108]: Sprint outcomes are at risk unless the top issue is resolved quickly. 68.0 SP was added after sprint start. No recent movement is visible in the last 24h.
+            - paragraph [ref=f38e109]:
+              - strong [ref=f38e110]: "Main blocker:"
+              - text: SD-5255
+            - paragraph [ref=f38e111]:
+              - strong [ref=f38e112]: "Next move:"
+              - text: Unblock
+            - paragraph [ref=f38e113]: Showing blockers below
+          - generic [ref=f38e114]:
+            - region "Sprint value summary" [ref=f38e115]:
+              - generic [ref=f38e116]:
+                - generic [ref=f38e117]: Value answer
+                - strong [ref=f38e118]: FY27DMS05
+                - paragraph [ref=f38e119]: Keep DMS board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=f38e120]:
+                - generic [ref=f38e121]: Done
+                - strong [ref=f38e122]: 0% complete
+                - paragraph [ref=f38e123]: 100% may spill over
+              - generic [ref=f38e124]:
+                - generic [ref=f38e125]: Customer impact
+                - generic [ref=f38e126]: Keep DMS board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=f38e128]:
+                - generic [ref=f38e129]: Risk
+                - strong [ref=f38e130]: Needs Attention
+                - paragraph [ref=f38e131]: Are we delivering value this sprint?
+            - group [ref=f38e132]:
+              - generic "Needs Attention — Sprint outcomes are at risk unless the top issue is resolved quickly. 68.0 SP was added after sprint start. No recent movement is visible in the last 24h." [ref=f38e133] [cursor=pointer]
+              - generic [ref=f38e134]:
+                - paragraph [ref=f38e135]:
+                  - text: 2 Jul (Thu) - 16 Jul (Thu)
+                  - generic [ref=f38e136]: "|"
+                  - text: 4 days left
+                - generic [ref=f38e137]:
+                  - article [ref=f38e138]:
+                    - generic [ref=f38e139]: ~
+                    - generic [ref=f38e140]:
+                      - paragraph [ref=f38e141]: Sprint answer
+                      - heading "Needs Attention" [level=2] [ref=f38e142]
+                      - paragraph [ref=f38e143]: Sprint outcomes are at risk unless the top issue is resolved quickly. 68.0 SP was added after sprint start. No recent movement is visible in the last 24h.
+                      - paragraph [ref=f38e144]: 2 Jul (Thu) - 16 Jul (Thu) | 4 days left | 0/6 value stories
+                  - article [ref=f38e145]:
+                    - paragraph [ref=f38e146]: Next action
+                    - heading "SD-5255 - As an App user, I want to have longer sessions after loggin in order to encourag" [level=2] [ref=f38e147]
+                    - paragraph [ref=f38e148]: The item has been stale for 997.4h and is likely blocking sprint flow.
+                  - article [ref=f38e149]:
+                    - paragraph [ref=f38e150]: Signals
+                    - generic [ref=f38e151]:
+                      - generic [ref=f38e152]:
+                        - strong [ref=f38e154]: +0 done
+                        - generic [ref=f38e155]: Done now
+                      - generic [ref=f38e156]:
+                        - strong [ref=f38e158]: "6"
+                        - generic [ref=f38e159]: Blockers
+                      - generic [ref=f38e160]:
+                        - strong [ref=f38e162]: "4"
+                        - generic [ref=f38e163]: Added work
+                      - generic [ref=f38e164]:
+                        - strong [ref=f38e166]: Inactive
+                        - generic [ref=f38e167]: Last 24h
+                  - complementary [ref=f38e168]:
+                    - generic [ref=f38e169]:
+                      - generic [ref=f38e170]:
+                        - heading "Risk queue" [level=2] [ref=f38e171]
+                        - generic [ref=f38e172]: 16 actions waiting
+                      - button "SD-5255 As an App user, I want to have longer sessions after loggin in order to encourag High The item has been stale for 997.4h and is likely blocking sprint flow. No movement 24h" [ref=f38e173] [cursor=pointer]:
+                        - generic [ref=f38e174]:
+                          - generic [ref=f38e175]:
+                            - link "SD-5255" [ref=f38e176]:
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5255
+                            - strong [ref=f38e177]: As an App user, I want to have longer sessions after loggin in order to encourag
+                          - generic [ref=f38e178]: High
+                        - paragraph [ref=f38e179]: The item has been stale for 997.4h and is likely blocking sprint flow.
+                        - generic [ref=f38e180]: No movement 24h
+                      - button "SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list High No owner is visible for work still inside the sprint. No assignee No movement 24h Scope change" [ref=f38e182] [cursor=pointer]:
+                        - generic [ref=f38e183]:
+                          - generic [ref=f38e184]:
+                            - link "SD-5307" [ref=f38e185]:
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5307
+                            - strong [ref=f38e186]: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list
+                          - generic [ref=f38e187]: High
+                        - paragraph [ref=f38e188]: No owner is visible for work still inside the sprint.
+                        - generic [ref=f38e189]:
+                          - generic [ref=f38e190]: No assignee
+                          - generic [ref=f38e191]: No movement 24h
+                          - generic [ref=f38e192]: Scope change
+                      - button "SD-5308 AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing High No owner is visible for work still inside the sprint. No assignee No movement 24h Scope change" [ref=f38e193] [cursor=pointer]:
+                        - generic [ref=f38e194]:
+                          - generic [ref=f38e195]:
+                            - link "SD-5308" [ref=f38e196]:
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5308
+                            - strong [ref=f38e197]: AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing
+                          - generic [ref=f38e198]: High
+                        - paragraph [ref=f38e199]: No owner is visible for work still inside the sprint.
+                        - generic [ref=f38e200]:
+                          - generic [ref=f38e201]: No assignee
+                          - generic [ref=f38e202]: No movement 24h
+                          - generic [ref=f38e203]: Scope change
+                      - list "Action queue" [ref=f38e204]:
+                        - button "Need unblock 6" [ref=f38e205] [cursor=pointer]:
+                          - generic [ref=f38e206]: Need unblock
+                          - strong [ref=f38e207]: "6"
+                        - button "Need estimate 0" [ref=f38e208] [cursor=pointer]:
+                          - generic [ref=f38e209]: Need estimate
+                          - strong [ref=f38e210]: "0"
+                        - button "Added work 4" [ref=f38e211] [cursor=pointer]:
+                          - generic [ref=f38e212]: Added work
+                          - strong [ref=f38e213]: "4"
+                        - button "Need owner 3" [ref=f38e214] [cursor=pointer]:
+                          - generic [ref=f38e215]: Need owner
+                          - strong [ref=f38e216]: "3"
+                - generic [ref=f38e217]:
+                  - article [ref=f38e218]:
+                    - paragraph [ref=f38e219]: Value done
+                    - paragraph [ref=f38e220]: 0/6 value stories
+                    - paragraph [ref=f38e221]: 0% complete
+                  - article [ref=f38e223]:
+                    - paragraph [ref=f38e224]: Work left
+                    - paragraph [ref=f38e225]: "6"
+                    - paragraph [ref=f38e226]: 0/6 done
+                  - article [ref=f38e228]:
+                    - paragraph [ref=f38e229]: Risk queue
+                    - paragraph [ref=f38e230]: "16"
+                    - paragraph [ref=f38e231]: 3 top risks | 6 blockers
+                  - article [ref=f38e234]:
+                    - paragraph [ref=f38e235]: Trust
+                    - paragraph [ref=f38e236]: Needs evidence
+                    - paragraph [ref=f38e237]: 0% estimate evidence
+                - generic [ref=f38e239]:
+                  - generic [ref=f38e240]:
+                    - generic [ref=f38e241]:
+                      - paragraph [ref=f38e242]: Value progress
+                      - heading "Done vs added work" [level=2] [ref=f38e243]
+                    - paragraph [ref=f38e244]: One evidence chart for movement, added work, and confidence change.
+                  - generic [ref=f38e245]:
+                    - img "Work movement showing completed work, added scope, and remaining story points" [ref=f38e246]:
+                      - generic [ref=f38e249]: Scope change +13.0 SP
+                      - generic [ref=f38e251]: Scope change +55.0 SP
+                      - generic [ref=f38e253]: 2 Jul (Thu)
+                      - generic [ref=f38e254]: 5 Jul (Sun)
+                    - generic [ref=f38e255]:
+                      - generic [ref=f38e256]: Completed
+                      - generic [ref=f38e258]: Added
+                      - generic [ref=f38e260]: Remaining
+                - generic [ref=f38e262]:
+                  - article [ref=f38e263]:
+                    - generic [ref=f38e264]:
+                      - paragraph [ref=f38e265]: Completion Clustering
+                      - heading "0%" [level=3] [ref=f38e266]
+                      - paragraph [ref=f38e267]: Completion is spreading more evenly through the sprint.
+                  - article [ref=f38e269]:
+                    - generic [ref=f38e270]:
+                      - paragraph [ref=f38e271]: Scope Change Impact
+                      - heading "68.0 SP" [level=3] [ref=f38e272]
+                      - paragraph [ref=f38e273]: 68.0 SP (70%) was added after sprint start.
+                  - article [ref=f38e276]:
+                    - generic [ref=f38e277]:
+                      - paragraph [ref=f38e278]: Planned vs Actual
+                      - heading "-74.6 SP" [level=3] [ref=f38e279]
+                      - paragraph [ref=f38e280]: Behind by 74.6 SP against the ideal line.
+                  - article [ref=f38e283]:
+                    - generic [ref=f38e284]:
+                      - paragraph [ref=f38e285]: Confidence
+                      - heading "Low" [level=3] [ref=f38e286]
+                      - paragraph [ref=f38e287]: Confidence is moderated because sizing evidence is incomplete.
+  - dialog "Create work draft" [ref=f38e291]:
+    - generic [ref=f38e292]:
+      - button "Project ▾" [ref=f38e294] [cursor=pointer]:
+        - generic [ref=f38e295]: Project
+        - text: ▾
+      - generic [ref=f38e296]: Create work
+      - button "AI provider settings" [ref=f38e297] [cursor=pointer]: ⚙
+      - button "Close" [ref=f38e298] [cursor=pointer]: ✕
+    - generic [ref=f38e300]:
+      - textbox "Narrative source text" [ref=f38e302]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f38e304]: ✓
+      - list "Work items" [ref=f38e305]
+    - generic [ref=f38e306]:
+      - generic "Set estimate for all items" [ref=f38e307]:
+        - generic [ref=f38e308]: "All:"
+        - slider "Set estimate for all items" [ref=f38e309] [cursor=pointer]: "0"
+        - generic [ref=f38e310]: —
+      - button "Create 0 issues" [disabled] [ref=f38e312]

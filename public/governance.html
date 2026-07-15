@@ -5,10 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio | Delivera</title>
   <style>
-    body{background:#f5f6f8;margin:0}
-    [data-instant-shell-mount][aria-busy="true"]:empty{min-height:52vh;background:#f5f6f8;display:block}
-    .instant-shimmer{height:.85rem;border-radius:6px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite}
+    html,body{background:var(--surface-page,#f5f6f8);margin:0}
+    [data-instant-shell-mount][aria-busy="true"]{min-height:52vh;background:var(--surface-page,#f5f6f8);display:block}
+    [data-instant-shell-mount]:empty,[data-instant-shell-mount].instant-shell-mount--reserve{min-height:40vh;background:var(--surface-page,#f5f6f8)}
+    .portfolio-decision-mount:empty,.portfolio-rail-commitments-mount:empty{min-height:12rem;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite;border-radius:8px}
+    .instant-shimmer{height:.85rem;border-radius:6px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite;margin:.35rem 0}
     @keyframes dlvr-shim{0%,100%{opacity:.7}50%{opacity:1}}
+    .instant-shell{padding:1rem 1.25rem}
+    .instant-shell-state-strip{display:flex;gap:.75rem;flex-wrap:wrap;font-size:.8rem;color:#4b5563;margin-bottom:.75rem}
+    .instant-shell-cockpit-grid,.instant-shell-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(12rem,18rem);gap:1rem;align-items:start}
+    .instant-shell-rail-card,.instant-shell-metric-card{padding:.75rem;border-radius:8px;background:#fff;border:1px solid #e5e7eb}
+    .instant-shell-metrics-row{display:flex;gap:.5rem;margin-top:.5rem}
+    .instant-shell-metrics-row > *{flex:1}
+    .instant-shell-label{margin:.75rem 0 0;font-size:.85rem;color:#6b7280}
+    .instant-shell-compare{margin-top:.5rem;padding:.65rem;border-radius:8px;background:#fff;border:1px solid #e5e7eb}
+    @media (max-width:900px){.instant-shell-cockpit-grid,.instant-shell-layout{grid-template-columns:1fr}}
   </style>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -16,18 +27,56 @@
   <a class="skip-to-content" href="#main-content">Skip to main content</a>
   <main class="portfolio-shell governance-shell" id="main-content" role="main" data-gov-brief-state="loading" data-delivera-surface="governance" data-delivera-data-state="loading">
     <div id="portfolio-scope-bar-mount" class="gov-scope-bar-sticky portfolio-scope-bar" aria-label="Portfolio scope"></div>
-    <div id="gov-loading" class="gov-loading-mount" aria-live="polite" aria-label="Preparing governance brief"></div>
+    <div id="gov-loading" class="gov-loading-mount" aria-live="polite" aria-label="Preparing governance brief" hidden></div>
     <div class="portfolio-layout portfolio-layout--priority-brief" id="portfolio-layout">
       <div class="portfolio-main-column portfolio-main-column--priority-brief">
-        <div id="governance-priority-surface-mount" class="governance-priority-surface-mount" data-instant-shell-mount="governance" aria-label="Governance priority brief" aria-busy="true"></div>
+        <div id="governance-priority-surface-mount" class="governance-priority-surface-mount" data-instant-shell-mount="governance" aria-label="Governance priority brief" aria-busy="true">
+          <div class="instant-shell instant-shell--governance" data-testid="instant-shell" data-instant-shell-cold="1" aria-busy="true" role="status">
+            <div class="instant-shell-state-strip" data-testid="instant-shell-state-strip">
+              <span class="instant-shell-state-surface">Portfolio Brief</span>
+              <span class="instant-shell-state-scope">All Projects</span>
+              <span class="instant-shell-state-sub">Loading portfolio…</span>
+            </div>
+            <div class="instant-shell-layout">
+              <div class="instant-shell-main">
+                <div class="instant-shell-hero">
+                  <div class="instant-shimmer" style="width:60%"></div>
+                  <div class="instant-shimmer" style="width:90%"></div>
+                  <div class="instant-shimmer" style="width:45%"></div>
+                </div>
+                <div class="instant-shell-compare" aria-label="Squad comparison loading">
+                  <div class="instant-shimmer" style="width:40%"></div>
+                  <div class="instant-shimmer" style="width:85%"></div>
+                  <div class="instant-shimmer" style="width:70%"></div>
+                </div>
+              </div>
+              <aside class="instant-shell-rail">
+                <div class="instant-shell-rail-card"><div class="instant-shimmer" style="width:60%"></div><div class="instant-shimmer" style="width:90%"></div><div class="instant-shimmer" style="width:40%"></div></div>
+                <div class="instant-shell-rail-card"><div class="instant-shimmer" style="width:50%"></div><div class="instant-shimmer" style="width:75%"></div></div>
+              </aside>
+            </div>
+            <p class="instant-shell-label">Loading boards…</p>
+          </div>
+        </div>
         <div id="portfolio-carousel-mount" class="portfolio-carousel-mount" aria-label="Compare squads" hidden></div>
         <div id="portfolio-signal-mount" class="portfolio-signal-mount" aria-label="AI portfolio signal" hidden></div>
         <div id="portfolio-commitments-mount" class="portfolio-commitments-mount" aria-label="Affected commitments" hidden></div>
         <div id="portfolio-prepared-actions-mount" class="portfolio-prepared-actions-mount" aria-label="Prepared actions" hidden></div>
       </div>
       <aside class="portfolio-rail" aria-label="Portfolio decision">
-        <div id="portfolio-decision-mount" class="portfolio-decision-mount"></div>
-        <div id="portfolio-rail-commitments-mount" class="portfolio-rail-commitments-mount" aria-label="At-risk commitments"></div>
+        <div id="portfolio-decision-mount" class="portfolio-decision-mount" data-instant-shell-mount="governance-rail" aria-busy="true" aria-label="Decision rail loading">
+          <div class="instant-shell-rail-card" data-testid="instant-shell-rail-cold">
+            <div class="instant-shimmer" style="width:60%"></div>
+            <div class="instant-shimmer" style="width:90%"></div>
+            <div class="instant-shimmer" style="width:40%"></div>
+          </div>
+        </div>
+        <div id="portfolio-rail-commitments-mount" class="portfolio-rail-commitments-mount" aria-label="At-risk commitments" data-instant-shell-mount="governance-rail-commitments" aria-busy="true">
+          <div class="instant-shell-rail-card">
+            <div class="instant-shimmer" style="width:50%"></div>
+            <div class="instant-shimmer" style="width:75%"></div>
+          </div>
+        </div>
       </aside>
     </div>
     <div id="portfolio-monitor-footer" class="portfolio-monitor-footer"></div>

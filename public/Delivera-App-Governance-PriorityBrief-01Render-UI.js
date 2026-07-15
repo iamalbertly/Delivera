@@ -5,6 +5,8 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { formatDecisionDueLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import { attentionTone } from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
+import { renderJiraWorkItemLink } from './Delivera-Shared-Jira-WorkItem-Link-01Render-UI.js';
+import { resolveEffectiveSquad } from './Delivera-Governance-EffectiveSquad-01Resolve-SSOT.js';
 
 /** Resolve a project key to its display name (e.g. SD → DMS board). */
 function squadName(key) {
@@ -12,22 +14,104 @@ function squadName(key) {
   return resolveProjectDisplay(key, { context: 'summary' }).primary || key;
 }
 
+function renderCauseItem(cause) {
+  if (!cause) return '';
+  if (typeof cause === 'string') return `<li>${escapeHtml(cause)}</li>`;
+  const text = cause.text || `${cause.title || ''}${cause.clause || ''}`;
+  if (cause.issueKey) {
+    return `<li>${renderJiraWorkItemLink({
+      issueKey: cause.issueKey,
+      title: cause.title || text,
+      issueUrl: cause.issueUrl || '',
+      kind: 'epic',
+      className: 'gov-priority-cause-link',
+    })}<span class="gov-priority-cause-clause">${escapeHtml(cause.clause || '')}</span></li>`;
+  }
+  return `<li>${escapeHtml(text)}</li>`;
+}
+
+function renderEvidenceRow(row) {
+  const tier = escapeHtml(row.relevanceTier || 'active-gap');
+  const label = escapeHtml(row.relevanceLabel || '');
+  return `
+    <li class="gov-attention-evidence-row gov-attention-evidence-row--${tier}" data-relevance-tier="${tier}">
+      ${renderJiraWorkItemLink({
+        issueKey: row.issueKey,
+        title: row.title,
+        issueUrl: row.issueUrl || '',
+        kind: 'epic',
+        className: 'gov-priority-cause-link',
+      })}
+      <span class="gov-attention-evidence-meta">
+        <span class="gov-relevance-chip gov-relevance-chip--${tier}">${label}</span>
+        ${row.activityLabel ? `<span class="gov-attention-evidence-activity">${escapeHtml(row.activityLabel)}</span>` : ''}
+      </span>
+    </li>`;
+}
+
+function renderAttentionEvidence(pb = {}, decision = {}) {
+  const ev = pb.attentionEvidence || {};
+  if (!ev.total) return '';
+  const active = (ev.active || []).map(renderEvidenceRow).join('');
+  const quarantine = (ev.quarantine || []).map(renderEvidenceRow).join('');
+  const squad = escapeHtml(pb.leadingSquadName || pb.evidenceFocusKey || 'leading squad');
+  const copyAttr = escapeHtml(JSON.stringify({
+    text: pb.evidenceCopyPack?.text || '',
+    jql: pb.evidenceCopyPack?.jql || '',
+  }).slice(0, 8000));
+  const effectiveSquad = resolveEffectiveSquad({
+    anchor: decision.anchorProject || pb.leadingSquad,
+    projects: (decision.insights || []).map((i) => i.projectKey),
+    brief: null,
+  });
+  return `
+    <div class="gov-attention-evidence" data-testid="governance-attention-evidence">
+      <div class="gov-attention-evidence-head">
+        <strong>${ev.total} commitment${ev.total === 1 ? '' : 's'} with board-gap evidence</strong>
+        <span class="gov-attention-evidence-sub">for ${squad} · selected boards</span>
+        <div class="gov-attention-evidence-actions">
+          <button type="button" class="btn btn-link btn-compact" data-portfolio-action="copy-evidence-pack" data-evidence-pack="${copyAttr}" data-testid="governance-copy-evidence">Copy keys + links</button>
+          <button type="button" class="btn btn-link btn-compact" data-portfolio-action="nudge-plan-stories" data-squad-key="${escapeHtml(effectiveSquad || pb.leadingSquad || '')}" data-testid="governance-plan-stories-cta">Plan stories pack</button>
+        </div>
+      </div>
+      ${active ? `<ul class="gov-attention-evidence-list gov-attention-evidence-list--active" data-testid="governance-evidence-active">${active}</ul>` : ''}
+      ${quarantine ? `
+        <details class="gov-attention-quarantine" data-testid="governance-evidence-quarantine">
+          <summary>Verify before planning (${ev.quarantineCount} possibly stale or hygiene)</summary>
+          <ul class="gov-attention-evidence-list">${quarantine}</ul>
+        </details>` : ''}
+    </div>`;
+}
+
+function renderConflictBanner(banner) {
+  if (!banner?.text) return '';
+  const sev = escapeHtml(banner.severity || 'warning');
+  return `
+    <p class="gov-legitimacy-banner gov-legitimacy-banner--${sev}" data-testid="governance-legitimacy-banner" role="status">
+      ${escapeHtml(banner.text)}
+    </p>`;
+}
+
 function renderAtRiskRows(atRiskSquads = [], anchorKey = '') {
-  const rows = (atRiskSquads || []).slice(0, 3);
+  const rows = (atRiskSquads || []).slice(0, 5).filter((s) => String(s.projectKey || '').toUpperCase() !== '__ALL__');
   if (!rows.length) return '';
   return `
     <table class="gov-priority-at-risk-table" data-testid="governance-at-risk-table">
       <thead>
-        <tr><th scope="col">Squad</th><th scope="col">State</th><th scope="col">Meaning</th></tr>
+        <tr><th scope="col">Squad</th><th scope="col">State</th><th scope="col">Trust</th><th scope="col">Meaning</th></tr>
       </thead>
       <tbody>
         ${rows.map((s) => {
           const tone = attentionTone(s.attentionState);
           const isAnchor = String(s.projectKey).toUpperCase() === String(anchorKey).toUpperCase();
+          const trust = s.dataTrustLabel
+            ? `<span class="gov-data-trust-chip gov-data-trust-chip--${escapeHtml(s.dataTrust || 'cannot-judge')}">${escapeHtml(s.dataTrustLabel)}</span>`
+            : '—';
           return `
-          <tr class="gov-priority-at-risk-row gov-priority-at-risk-row--${escapeHtml(tone)}${isAnchor ? ' is-anchor' : ' is-compare'}" data-squad-key="${escapeHtml(s.projectKey)}" data-governance-action="scroll-commitments" role="button" tabindex="0" title="Scroll to PI commitments">
+          <tr class="gov-priority-at-risk-row gov-priority-at-risk-row--${escapeHtml(tone)}${isAnchor ? ' is-anchor' : ' is-compare'}" data-squad-key="${escapeHtml(s.projectKey)}" data-governance-action="select-squad" role="button" tabindex="0" title="Switch scope to ${escapeHtml(s.squadName || s.projectKey)}">
             <td><strong>${escapeHtml(s.squadName || s.projectKey)}</strong></td>
             <td><span class="gov-status-pill gov-status-pill--${escapeHtml(tone)}">${escapeHtml(s.attentionLabel || '')}</span></td>
+            <td>${trust}</td>
             <td>${escapeHtml(s.meaning || '')}</td>
           </tr>`;
         }).join('')}
@@ -35,7 +119,7 @@ function renderAtRiskRows(atRiskSquads = [], anchorKey = '') {
     </table>`;
 }
 
-function renderBaselineProvenance(provenance = {}, { uploadBaseline = false, exposureLine = '', needAttentionCount = 0 } = {}) {
+function renderBaselineProvenance(provenance = {}, { uploadBaseline = false, exposureLine = '' } = {}) {
   if (!provenance.available) {
     return `
       <p class="gov-baseline-provenance gov-baseline-provenance--missing" data-testid="governance-baseline-provenance">
@@ -43,8 +127,6 @@ function renderBaselineProvenance(provenance = {}, { uploadBaseline = false, exp
         ${uploadBaseline ? '' : ' <button type="button" class="btn btn-link btn-compact" data-portfolio-action="open-alignment-studio" data-testid="governance-baseline-upload-link">Upload PI baseline slide</button>'}
       </p>`;
   }
-  // P1 FIX: Simplified — show relative baseline age, remove the redundant
-  // "Review N need attention" button (the Need Action CTA already covers this).
   const actions = [];
   if (provenance.sourceType === 'slide' || provenance.sourceImagePath) {
     actions.push('<button type="button" class="btn btn-link btn-compact" data-governance-action="open-baseline-image">Open original</button>');
@@ -60,54 +142,51 @@ function renderBaselineProvenance(provenance = {}, { uploadBaseline = false, exp
 
 export function renderPriorityBriefHero(priorityBrief = {}, decision = {}) {
   const pb = priorityBrief || {};
+  const effectiveSquad = resolveEffectiveSquad({
+    anchor: decision.anchorProject || pb.leadingSquad,
+    projects: (decision.insights || []).map((i) => i.projectKey).filter(Boolean),
+  });
   const uploadBaseline = pb.primaryActionTarget === 'alignment-studio-slide';
   const boardAlign = pb.primaryActionTarget === 'alignment-studio-board';
   const headlineCta = uploadBaseline
-    ? `<button type="button" class="btn btn-primary btn-compact gov-priority-headline-cta" data-testid="governance-headline-upload-cta" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide">${escapeHtml(pb.primaryAction || 'Upload PI baseline slide')}</button>`
+    ? `<button type="button" class="btn btn-primary btn-compact gov-priority-headline-cta" data-testid="governance-headline-upload-cta" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide" data-squad-key="${escapeHtml(effectiveSquad)}" data-wizard-mode="slide">${escapeHtml(pb.primaryAction || 'Upload PI baseline slide')}</button>`
     : boardAlign
-      ? `<button type="button" class="btn btn-primary btn-compact gov-priority-headline-cta" data-testid="governance-headline-board-cta" data-portfolio-action="open-alignment-studio" data-governance-action="align-board">${escapeHtml(pb.primaryAction || 'Align board in Alignment Studio')}</button>`
+      ? `<button type="button" class="btn btn-primary btn-compact gov-priority-headline-cta" data-testid="governance-headline-board-cta" data-portfolio-action="open-alignment-studio" data-governance-action="align-board" data-squad-key="${escapeHtml(effectiveSquad)}" data-wizard-mode="board">${escapeHtml(pb.primaryAction || 'Align board in Alignment Studio')}</button>`
       : '';
   const exposure = pb.exposureLine
     ? `<p class="gov-priority-exposure" data-testid="governance-priority-exposure"><span class="gov-status-rail gov-status-rail--critical" aria-hidden="true"></span>${escapeHtml(pb.exposureLine)}</p>`
     : '';
-  const causes = (pb.causeLines || []).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
+  const causes = (pb.causeLines || []).slice(0, 4).map(renderCauseItem).join('');
   const reviewDue = !pb.humanDecision?.text && pb.humanDecision?.dueAt
-    ? `<p class="gov-priority-review-due"><span aria-hidden="true">📅</span> Next review: <strong>${escapeHtml(formatDecisionDueLabel(pb.humanDecision.dueAt) || pb.humanDecision.dueAt)}</strong></p>`
+    ? `<p class="gov-priority-review-due">Next review: <strong>${escapeHtml(formatDecisionDueLabel(pb.humanDecision.dueAt) || pb.humanDecision.dueAt)}</strong></p>`
     : '';
   const freshness = pb.stale
     ? '<p class="gov-priority-freshness gov-priority-freshness--stale" data-testid="governance-freshness-pill">Cached view · <button type="button" class="btn btn-link btn-compact" data-portfolio-action="refresh-brief">Refresh</button></p>'
     : '';
 
-  // P1 FIX: Rewrite headline to delivery reality — not process-jargon.
-  // Users said "what the fuck is that decision" when seeing "needs one
-  // decision". They want to know: are they working on what they committed
-  // to? Is anything delivered? What's blocked?
   const deliveryHeadline = buildDeliveryHeadline(pb, decision);
 
   return `
     <section class="gov-priority-brief-hero" data-testid="governance-priority-brief" aria-label="Priority governance brief">
       <div class="gov-priority-brief-left">
+        ${renderConflictBanner(pb.conflictBanner)}
         <div class="gov-priority-headline-row">
           <h1 class="gov-priority-headline" data-testid="governance-priority-headline">${escapeHtml(deliveryHeadline)}</h1>
           ${headlineCta}
         </div>
         ${freshness}
+        <p class="gov-priority-legend" data-testid="governance-plan-legend">Plan-backed = this squad’s PI slide is on file. Board-gap = PI epic in Jira with zero stories on selected boards.</p>
         ${exposure}
-        ${causes ? `<ul class="gov-priority-cause-list" data-testid="governance-priority-cause">${causes}</ul>` : ''}
+        ${renderAttentionEvidence(pb, decision)}
+        ${!pb.attentionEvidence?.total && causes ? `<ul class="gov-priority-cause-list" data-testid="governance-priority-cause">${causes}</ul>` : ''}
         ${reviewDue}
-        ${renderBaselineProvenance(pb.baselineProvenance, { uploadBaseline, exposureLine: pb.exposureLine, needAttentionCount: pb.needAttentionCount })}
-        ${renderAtRiskRows(pb.atRiskSquads || decision.portfolioJudgment?.atRisk || [], decision.anchorProject || pb.leadingSquad || '')}
+        ${renderBaselineProvenance(pb.baselineProvenance, { uploadBaseline, exposureLine: pb.exposureLine })}
       </div>
     </section>`;
 }
 
-/**
- * P1 FIX: Build a delivery-reality headline — not process-jargon.
- * Answers the user's #1 question: "are they working on what they committed to?"
- * Three facts: delivered%, unlinked commitments, sprint time remaining.
- */
+/** Prefer PriorityBrief SSOT headline whenever present. */
 function buildDeliveryHeadline(pb = {}, decision = {}) {
-  // Prefer PriorityBrief SSOT headline whenever present (judgment language).
   if (pb.headline) return pb.headline;
   if (pb.baselineMissing || pb.primaryActionTarget === 'alignment-studio-slide') {
     return `${decision.periodKey || pb.periodKey || 'This quarter'}: Upload PI baseline to score commitments`;
@@ -160,4 +239,3 @@ export function renderPriorityBriefSkeleton() {
       <p class="gov-skeleton-label sr-only">Loading governance brief</p>
     </section>`;
 }
-

@@ -1,0 +1,99 @@
+- generic [active] [ref=f17e1]:
+  - status [ref=f17e3]
+  - link "Skip to main content" [ref=f17e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f17e5]:
+    - generic [ref=f17e6]:
+      - button "Expand or collapse sidebar" [ref=f17e8] [cursor=pointer]
+      - navigation "Surfaces" [ref=f17e12]:
+        - link "Governance" [ref=f17e13] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=f17e14] [cursor=pointer]: Squads
+        - link "Actions" [ref=f17e15] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f17e16] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f17e18] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f17e19]: De
+        - generic [ref=f17e20]:
+          - generic [ref=f17e21]: Delivera
+          - generic "No report run yet" [ref=f17e22]
+      - searchbox "Context search" [ref=f17e25]
+      - group "Global actions" [ref=f17e26]:
+        - button "Create" [ref=f17e27] [cursor=pointer]:
+          - generic [ref=f17e28]: +
+        - generic "Checking AI status" [ref=f17e30]: AI · …
+        - button "Actions" [ref=f17e31] [cursor=pointer]
+        - button "Notifications" [ref=f17e32] [cursor=pointer]
+        - button "Help" [ref=f17e35] [cursor=pointer]
+        - button "Improve Delivera" [ref=f17e38] [cursor=pointer]
+        - button "Account menu" [ref=f17e41] [cursor=pointer]: LY
+  - generic [ref=f17e42]:
+    - banner [ref=f17e43]:
+      - generic [ref=f17e45]:
+        - paragraph [ref=f17e46]:
+          - text: All Projects on Brief — this page uses
+          - strong [ref=f17e47]: DMS Squad (SD)
+          - text: .
+          - link "Open Brief for all" [ref=f17e48] [cursor=pointer]:
+            - /url: /governance
+        - generic [ref=f17e49]:
+          - generic [ref=f17e50]: Squad
+          - combobox "Selected squad" [ref=f17e51]:
+            - option "DMS Squad (SD)" [selected]
+            - option "M-SQUAD (MPSA)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "Digital Squad (MVA)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Finance Squad (FIN)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Bio metric KYC & KYA (BIO)"
+        - generic [ref=f17e52]:
+          - generic [ref=f17e53]: Quarter
+          - combobox "Quarter" [ref=f17e54]:
+            - option "FY24 Q4"
+            - option "FY25 Q3"
+            - option "FY25 Q4"
+            - option "FY26 Q1"
+            - option "FY26 Q2" [selected]
+            - option "FY26 Q3"
+            - option "FY27 Q1"
+            - option "FY27 Q2"
+        - link "Open Brief" [ref=f17e55] [cursor=pointer]:
+          - /url: /governance
+      - generic [ref=f17e56]:
+        - heading "Today" [level=1] [ref=f17e57]
+        - paragraph [ref=f17e60]:
+          - generic [ref=f17e61]: "Scope: SD, MPSA, MAS, RPA, MVA, ASG, FIN, MPSA2, TRS, VB, AMS2, BIO"
+          - link "Change on Answer" [ref=f17e62] [cursor=pointer]:
+            - /url: /governance
+    - main [ref=f17e63]:
+      - status [ref=f17e65]:
+        - generic [ref=f17e66]:
+          - generic [ref=f17e67]: Today
+          - generic [ref=f17e68]: Loading scope…
+          - generic [ref=f17e69]: "Loading Board: DMS board (SD)"
+  - dialog "Create work draft" [ref=f17e73]:
+    - generic [ref=f17e74]:
+      - button "Project ▾" [ref=f17e76] [cursor=pointer]:
+        - generic [ref=f17e77]: Project
+        - text: ▾
+      - generic [ref=f17e78]: Create work
+      - button "AI provider settings" [ref=f17e79] [cursor=pointer]: ⚙
+      - button "Close" [ref=f17e80] [cursor=pointer]: ✕
+    - generic [ref=f17e82]:
+      - textbox "Narrative source text" [ref=f17e84]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f17e86]: ✓
+      - list "Work items" [ref=f17e87]
+    - generic [ref=f17e88]:
+      - generic "Set estimate for all items" [ref=f17e89]:
+        - generic [ref=f17e90]: "All:"
+        - slider "Set estimate for all items" [ref=f17e91] [cursor=pointer]: "0"
+        - generic [ref=f17e92]: —
+      - button "Create 0 issues" [disabled] [ref=f17e94]

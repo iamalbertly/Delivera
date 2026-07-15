@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0.1",
+  "codename": "delivera-uat",
+  "releasedAt": "2026-07-15T00:00:00.000Z",
+  "environments": {
+    "uat": {
+      "url": "http://localhost:3001",
+      "branch": "main",
+      "autoDeploy": false
+    },
+    "staging": {
+      "url": "https://delivera-staging.vercel.app",
+      "branch": "staging",
+      "autoDeploy": true
+    },
+    "production": {
+      "url": "https://delivera.vercel.app",
+      "branch": "production",
+      "autoDeploy": true
+    }
+  },
+  "changelog": [
+    {
+      "version": "0.0.0.1",
+      "date": "2026-07-15",
+      "changes": [
+        "Fixed COPS phantom squad bug — squadDisplayName prefers catalog label over boardName",
+        "Fixed Create-work drawer state leak across SPA navigation",
+        "Fixed cadence chip staleness cap at sprint duration",
+        "Fixed cross-squad contamination in drilled mode",
+        "Fixed quarter dropdown defaulting to FY24 Q4",
+        "Removed duplicate Settings nav from Global actions",
+        "Removed Notifications + Help icons (not production-ready)",
+        "Hidden Squads + Settings pages from nav (not production-ready)",
+        "Merged exception rail + at-risk table into squad comparison carousel",
+        "Split systemic banner into 'need PI slides' vs 'blocked'",
+        "Added quarter-end PI commitment request timing mechanism",
+        "Fixed mapVerdictToAttention for squads with board data but no slide",
+        "Fixed btn-link contrast — uses primary color with underline",
+        "Added stale epic relevance decay in gap-list ranking"
+      ]
+    }
+  ]
+}

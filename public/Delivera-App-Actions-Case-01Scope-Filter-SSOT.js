@@ -1,13 +1,20 @@
 /**
  * Actions case scope filter — SSOT for project continuity on /actions.
  * Rejects foreign "X board" titles and wrong-key rows for the active squad.
+ * Never treats PORTFOLIO_ALL (__ALL__) as a Jira project key.
  */
+import { resolveEffectiveSquad } from './Delivera-Governance-EffectiveSquad-01Resolve-SSOT.js';
 
 export function resolveActionsProjectFromQuery(searchParams, sharedProjects = []) {
   const fromQuery = String(searchParams?.get?.('project') || '').trim().toUpperCase();
-  if (fromQuery) return fromQuery;
-  const first = Array.isArray(sharedProjects) ? sharedProjects[0] : '';
-  return String(first || '').toUpperCase();
+  if (fromQuery && fromQuery !== '__ALL__') return fromQuery;
+  const list = (Array.isArray(sharedProjects) ? sharedProjects : [])
+    .map((p) => String(p || '').trim().toUpperCase())
+    .filter((p) => p && p !== '__ALL__');
+  return resolveEffectiveSquad({
+    anchor: fromQuery || list[0] || '',
+    projects: list,
+  });
 }
 
 export function caseMatchesProject(row = {}, project = '') {

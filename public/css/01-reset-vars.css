@@ -271,6 +271,25 @@ body.sidebar-locked .app-sidebar {
   border-color: var(--neutral-border);
 }
 
+/* btn-link: text-style button with accessible contrast (audit 2026-07-15) */
+.btn-link {
+  background: transparent;
+  color: var(--primary);
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn-link:hover {
+  color: var(--primary-strong);
+  background: var(--surface-soft);
+}
+.btn-link.btn-compact {
+  text-decoration: none;
+}
+.btn-link.btn-compact:hover {
+  text-decoration: underline;
+}
+
 .btn:disabled,
 .btn-disabled {
   background: var(--button-disabled-bg) !important;

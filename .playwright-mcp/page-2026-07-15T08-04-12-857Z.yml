@@ -1,0 +1,70 @@
+- generic [active] [ref=f3e1]:
+  - link "Skip to main content" [ref=f3e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f3e3]:
+    - generic [ref=f3e4]:
+      - button "Expand or collapse sidebar" [ref=f3e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f3e10]:
+        - link "Governance" [ref=f3e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f3e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f3e13] [cursor=pointer]: Actions
+        - link "Settings" [ref=f3e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f3e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f3e17]: De
+        - generic [ref=f3e18]:
+          - generic [ref=f3e19]: Delivera
+          - generic "No report run yet" [ref=f3e20]
+      - searchbox "Context search" [ref=f3e23]
+      - group "Global actions" [ref=f3e24]:
+        - button "Create" [ref=f3e25] [cursor=pointer]:
+          - generic [ref=f3e26]: +
+        - generic "Checking AI status" [ref=f3e28]: AI · …
+        - button "Notifications" [ref=f3e29] [cursor=pointer]
+        - button "Help" [ref=f3e32] [cursor=pointer]
+        - button "Improve Delivera" [ref=f3e35] [cursor=pointer]
+        - link "Settings" [ref=f3e38] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f3e41] [cursor=pointer]: LY
+  - main [ref=f3e42]:
+    - generic [ref=f3e43]:
+      - generic [ref=f3e45]:
+        - generic [ref=f3e46]:
+          - generic [ref=f3e47]: Squad
+          - combobox "Selected squad" [ref=f3e48]:
+            - option "DMS Squad (SD)" [selected]
+            - option "M-SQUAD (MPSA)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "Digital Squad (MVA)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Finance Squad (FIN)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Bio metric KYC & KYA (BIO)"
+        - generic [ref=f3e49]:
+          - generic [ref=f3e50]: Quarter
+          - combobox "Quarter" [ref=f3e51]:
+            - option "FY24 Q4" [selected]
+            - option "FY25 Q3"
+            - option "FY25 Q4"
+            - option "FY26 Q1"
+            - option "FY26 Q2"
+            - option "FY26 Q3"
+            - option "FY27 Q1"
+            - option "FY27 Q2"
+        - link "Open Brief" [ref=f3e52] [cursor=pointer]:
+          - /url: /governance
+      - heading "Actions" [level=1] [ref=f3e53]
+      - paragraph [ref=f3e54]: Nudges, decisions, escalations, and proof — grouped by case.
+    - navigation "Actions tabs"
+    - status [ref=f3e57]:
+      - generic [ref=f3e58]:
+        - generic [ref=f3e59]: Actions
+        - generic [ref=f3e60]: SD
+        - generic [ref=f3e61]: Loading action queue…

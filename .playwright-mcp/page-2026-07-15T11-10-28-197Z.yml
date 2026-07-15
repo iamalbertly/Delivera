@@ -1,0 +1,129 @@
+- generic [active] [ref=f19e1]:
+  - link "Skip to main content" [ref=f19e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f19e3]:
+    - generic [ref=f19e4]:
+      - button "Expand or collapse sidebar" [ref=f19e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f19e10]:
+        - link "Governance" [ref=f19e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f19e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f19e13] [cursor=pointer]:
+          - /url: /actions
+        - generic [ref=f19e14] [cursor=pointer]: Settings
+      - link "Delivera No report run yet" [ref=f19e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f19e17]: De
+        - generic [ref=f19e18]:
+          - generic [ref=f19e19]: Delivera
+          - generic "No report run yet" [ref=f19e20]
+      - searchbox "Context search" [ref=f19e23]
+      - group "Global actions" [ref=f19e24]:
+        - button "Create" [ref=f19e25] [cursor=pointer]:
+          - generic [ref=f19e26]: +
+        - generic "Checking AI status" [ref=f19e28]: AI · …
+        - button "Actions" [ref=f19e29] [cursor=pointer]
+        - button "Notifications" [ref=f19e30] [cursor=pointer]
+        - button "Help" [ref=f19e33] [cursor=pointer]
+        - button "Improve Delivera" [ref=f19e36] [cursor=pointer]
+        - button "Account menu" [ref=f19e39] [cursor=pointer]: LY
+  - main [ref=f19e41]:
+    - generic [ref=f19e42]:
+      - paragraph [ref=f19e43]: Settings
+      - heading "Your workspace & trust" [level=1] [ref=f19e44]
+      - paragraph [ref=f19e45]: Defaults, org catalog, integrations, and activity — linked to Portfolio, Squads, and Actions.
+    - navigation "Settings sections" [ref=f19e46]:
+      - link "My workspace" [ref=f19e47] [cursor=pointer]:
+        - /url: "#my-workspace"
+      - link "Organization" [ref=f19e48] [cursor=pointer]:
+        - /url: "#organization"
+      - link "Epic format" [ref=f19e49] [cursor=pointer]:
+        - /url: "#settings-epic-format"
+      - link "Integrations" [ref=f19e50] [cursor=pointer]:
+        - /url: "#integrations"
+      - link "Activity" [ref=f19e51] [cursor=pointer]:
+        - /url: "#jira-activity"
+    - generic [ref=f19e52]:
+      - status [ref=f19e54]:
+        - generic [ref=f19e55]:
+          - generic [ref=f19e56]: Settings
+          - generic [ref=f19e57]: Loading scope…
+          - generic [ref=f19e58]: Showing last view · refreshing
+        - paragraph [ref=f19e59]:
+          - text: Showing last view · 120m ago ·
+          - strong [ref=f19e60]: Refreshing…
+        - generic:
+          - generic:
+            - status:
+              - generic:
+                - generic: Settings
+                - generic: Loading scope…
+                - generic: Showing last view · refreshing
+              - paragraph:
+                - text: Showing last view · 66m ago ·
+                - strong: Refreshing…
+              - generic:
+                - generic:
+                  - status:
+                    - generic:
+                      - generic: Settings
+                      - generic: Workspace
+                      - generic: Loading settings…
+                - generic:
+                  - generic:
+                    - paragraph: Loading organization settings…
+                - generic:
+                  - generic:
+                    - heading "Epic naming format" [level=2]
+                    - paragraph: All squads use this pattern when creating epics from PI slides or Alignment Studio.
+                    - generic:
+                      - generic:
+                        - text: Title template
+                        - textbox "Title template": "{quarter} – {system} – {subsystem} – {module} – {capability}"
+                      - generic:
+                        - text: Default subsystem
+                        - textbox "Default subsystem": NBA
+                      - paragraph:
+                        - strong: "Preview:"
+                        - text: FY27 Q2 – DMS – NBA – Example Capability
+                      - button "Save epic format"
+                      - paragraph: Applies to all squads on the next epic create.
+                - generic:
+                  - generic:
+                    - heading "Integrations" [level=2]
+                    - paragraph: Connection health and AI trust. Server credentials are administrator-managed.
+                    - generic: Loading health…
+                - generic:
+                  - heading "Jira activity" [level=2]
+                  - paragraph: Comments sent from Current Sprint. Review what was posted and undo when Jira allows.
+                  - generic:
+                    - paragraph: Loading activity…
+          - generic:
+            - heading "Jira activity" [level=2]
+            - paragraph: Comments sent from Current Sprint. Review what was posted and undo when Jira allows.
+            - generic:
+              - paragraph: Loading activity…
+      - generic [ref=f19e61]:
+        - heading "Jira activity" [level=2] [ref=f19e62]
+        - paragraph [ref=f19e63]: Comments sent from Current Sprint. Review what was posted and undo when Jira allows.
+        - paragraph [ref=f19e65]: No Jira comments sent from Delivera yet.
+  - dialog "Create work draft" [ref=f19e66]:
+    - generic [ref=f19e67]:
+      - button "Project ▾" [ref=f19e69] [cursor=pointer]:
+        - generic [ref=f19e70]: Project
+        - text: ▾
+      - generic [ref=f19e71]: Create work
+      - button "AI provider settings" [ref=f19e72] [cursor=pointer]: ⚙
+      - button "Close" [ref=f19e73] [cursor=pointer]: ✕
+    - generic [ref=f19e75]:
+      - textbox "Narrative source text" [ref=f19e77]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f19e79]: ✓
+      - list "Work items" [ref=f19e80]
+    - generic [ref=f19e81]:
+      - generic "Set estimate for all items" [ref=f19e82]:
+        - generic [ref=f19e83]: "All:"
+        - slider "Set estimate for all items" [ref=f19e84] [cursor=pointer]: "0"
+        - generic [ref=f19e85]: —
+      - button "Create 0 issues" [disabled] [ref=f19e87]

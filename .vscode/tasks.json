@@ -1,0 +1,65 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build CSS",
+			"type": "shell",
+			"command": "npm run build:css",
+			"group": "build"
+		},
+		{
+			"label": "Build CSS",
+			"type": "shell",
+			"command": "npm run build:css",
+			"group": "build"
+		},
+		{
+			"label": "Build CSS",
+			"type": "shell",
+			"command": "npm run build:css",
+			"group": "build"
+		},
+		{
+			"label": "Build CSS",
+			"type": "shell",
+			"command": "npm run build:css",
+			"group": "build"
+		},
+		{
+			"label": "Mark duplicate tests for deletion",
+			"type": "shell",
+			"command": "cd c:\\Shared\\Projects\\Delivera\\tests && for %f in (Delivera-Direct-Value-MasterPlan-Realtime-Validation-Tests.spec.js Delivera-Direct-Value-MasterPlan-Round4-Realtime-Validation-Tests.spec.js Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js Delivera-Direct-Value-MasterPlan-Round6-Realtime-Validation-Tests.spec.js Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js Delivera-Governance-AutoHacker-v3-Hidden-Value-Realtime-Validation-Tests.spec.js Delivera-Governance-AutoHacker-v4-DuplicateVoid-Fold-Realtime-Validation-Tests.spec.js Delivera-Governance-AutoHacker-v5-LayoutAdaptive-Realtime-Validation-Tests.spec.js) do ren \"%f\" \"DeleteThisFile_%f\""
+		},
+		{
+			"label": "Mark duplicate tests for deletion",
+			"type": "shell",
+			"command": "Set-Location c:\\Shared\\Projects\\Delivera\\tests; $files = @('Delivera-Direct-Value-MasterPlan-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round4-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round6-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v3-Hidden-Value-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v4-DuplicateVoid-Fold-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v5-LayoutAdaptive-Realtime-Validation-Tests.spec.js'); foreach ($f in $files) { if (Test-Path $f) { Rename-Item $f \"DeleteThisFile_$f\"; Write-Output \"Renamed: $f\" } }"
+		},
+		{
+			"label": "Mark duplicate tests",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Set-Location c:\\Shared\\Projects\\Delivera\\tests; $files = @('Delivera-Direct-Value-MasterPlan-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round4-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round6-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v3-Hidden-Value-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v4-DuplicateVoid-Fold-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v5-LayoutAdaptive-Realtime-Validation-Tests.spec.js'); foreach ($f in $files) { if (Test-Path $f) { Rename-Item $f ('DeleteThisFile_' + $f); Write-Output ('Renamed: ' + $f) } }\""
+		},
+		{
+			"label": "Rename duplicate tests",
+			"type": "shell",
+			"command": "cmd /c \"cd /d c:\\Shared\\Projects\\Delivera\\tests && ren Delivera-Direct-Value-MasterPlan-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Direct-Value-MasterPlan-Realtime-Validation-Tests.spec.js && ren Delivera-Direct-Value-MasterPlan-Round4-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Direct-Value-MasterPlan-Round4-Realtime-Validation-Tests.spec.js && ren Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js && ren Delivera-Direct-Value-MasterPlan-Round6-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Direct-Value-MasterPlan-Round6-Realtime-Validation-Tests.spec.js && ren Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js && ren Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js && ren Delivera-Governance-AutoHacker-v3-Hidden-Value-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Governance-AutoHacker-v3-Hidden-Value-Realtime-Validation-Tests.spec.js && ren Delivera-Governance-AutoHacker-v4-DuplicateVoid-Fold-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Governance-AutoHacker-v4-DuplicateVoid-Fold-Realtime-Validation-Tests.spec.js && ren Delivera-Governance-AutoHacker-v5-LayoutAdaptive-Realtime-Validation-Tests.spec.js DeleteThisFile_Delivera-Governance-AutoHacker-v5-LayoutAdaptive-Realtime-Validation-Tests.spec.js && echo DONE\""
+		},
+		{
+			"label": "Rename duplicate tests v2",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"cd c:\\Shared\\Projects\\Delivera\\tests; 'Delivera-Direct-Value-MasterPlan-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round4-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round5-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round6-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round7-Realtime-Validation-Tests.spec.js','Delivera-Direct-Value-MasterPlan-Round8-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v3-Hidden-Value-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v4-DuplicateVoid-Fold-Realtime-Validation-Tests.spec.js','Delivera-Governance-AutoHacker-v5-LayoutAdaptive-Realtime-Validation-Tests.spec.js' | ForEach-Object { if (Test-Path $_) { Rename-Item $_ ('DeleteThisFile_' + $_); Write-Output ('Renamed: ' + $_) } }\""
+		},
+		{
+			"label": "Build CSS",
+			"type": "shell",
+			"command": "npm run build:css",
+			"group": "build"
+		},
+		{
+			"label": "Find large JS files in public",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-ChildItem -Path c:\\Shared\\Projects\\Delivera\\public -Filter *.js -Recurse | ForEach-Object { $lines = (Get-Content $_.FullName | Measure-Object -Line).Lines; if ($lines -gt 200) { [PSCustomObject]@{Lines=$lines; Path=$_.FullName.Replace('c:\\Shared\\Projects\\Delivera\\public\\','')} } } | Sort-Object Lines -Descending | Format-Table -AutoSize\""
+		}
+	]
+}

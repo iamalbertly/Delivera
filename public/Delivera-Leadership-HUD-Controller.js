@@ -19,6 +19,7 @@ import {
   rememberSurfaceHtml,
   setDeliveraSurfaceState,
 } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { mountSharedStickyScope, ensureSharedStickyScopeMount } from './Delivera-Shared-Sticky-Scope-01Mount-UI.js';
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
 const STALE_THRESHOLD_MS = FRESHNESS_STALE_THRESHOLD_MS;
@@ -410,6 +411,13 @@ function updateTimeAgo() {
 
 function init() {
   paintInstantShell('leadership');
+  try {
+    mountSharedStickyScope({
+      mount: ensureSharedStickyScopeMount(document.querySelector('.hud-header-mission-control')),
+      profile: 'full',
+      onRefresh: () => fetchHudData(),
+    });
+  } catch (_) { /* non-fatal */ }
   initLeadershipHeaderActions();
   fetchHudData();
   setInterval(fetchHudData, REFRESH_INTERVAL_MS);

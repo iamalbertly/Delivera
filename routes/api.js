@@ -133,6 +133,25 @@ router.get('/healthz', async (req, res) => {
   });
 });
 
+// Version endpoint — returns app version + environment info (audit 2026-07-15)
+router.get('/version', async (req, res) => {
+  try {
+    const { readFileSync } = await import('fs');
+    const { join, dirname } = await import('path');
+    const { fileURLToPath } = await import('url');
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const versionFile = join(__dirname, '..', 'version.json');
+    const versionData = JSON.parse(readFileSync(versionFile, 'utf-8'));
+    res.status(200).json({
+      ...versionData,
+      environment: process.env.NODE_ENV || 'development',
+      deployedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(200).json({ version: '0.0.0.0', error: 'version.json not found' });
+  }
+});
+
 function getErrorStatusCode(error) {
     return error?.statusCode
         || error?.cause?.response?.status

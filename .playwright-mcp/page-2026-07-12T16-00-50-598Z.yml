@@ -1,0 +1,686 @@
+- generic [active] [ref=e1]:
+  - status [ref=e3]
+  - link "Skip to main content" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - button "Expand or collapse sidebar" [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - navigation "Surfaces" [ref=e12]:
+        - link "Portfolio" [ref=e13] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=e14] [cursor=pointer]: Squads
+        - link "Actions" [ref=e15] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e16] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=e18] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e19]: De
+        - generic [ref=e20]:
+          - generic [ref=e21]: Delivera
+          - generic "No report run yet" [ref=e22]
+      - generic [ref=e24]:
+        - img
+        - searchbox "Context search" [ref=e25]
+      - group "Global actions" [ref=e26]:
+        - button "Create" [ref=e27] [cursor=pointer]:
+          - generic [ref=e28]: +
+          - generic [ref=e29]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e315]: AI · Slides ready
+        - button "Actions" [ref=e31] [cursor=pointer]
+        - button "Notifications" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - button "Help" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+        - button "Improve Delivera" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+        - link "Settings" [ref=e41] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e42]
+        - button "Account menu" [ref=e44] [cursor=pointer]: LY
+  - generic [ref=e45]:
+    - banner [ref=e46]:
+      - heading "Current Sprint - FY27DMS05" [level=1] [ref=e47]
+    - main [ref=e48]:
+      - generic [ref=e51]:
+        - generic [ref=e316]:
+          - generic "Sprint scope" [ref=e317]
+          - generic [ref=e318]:
+            - generic [ref=e319]:
+              - generic "FY27DMS05 | Jul 2, 2026 - Jul 16, 2026" [ref=e320] [cursor=pointer]: FY27DMS05
+              - generic "Jul 2, 2026 - Jul 16, 2026" [ref=e321]
+              - generic "Live · Snapshot - updated just now · Export ready": Stale work
+              - paragraph [ref=e322]: Critical · 0% done · 6 items · Ends in 3d
+            - generic [ref=e323]: All work | blocker
+          - generic [ref=e324]:
+            - generic [ref=e326]:
+              - button "Copy sprint summary" [ref=e327] [cursor=pointer]: Copy
+              - button "Copy stand-up script" [ref=e328] [cursor=pointer]: Standup
+              - button "More export options" [ref=e329] [cursor=pointer]: ▾
+            - group [ref=e330]:
+              - generic "Context All work | blocker" [ref=e331] [cursor=pointer]:
+                - generic [ref=e333]: Context
+                - generic [ref=e334]: All work | blocker
+          - generic "Top sprint summary" [ref=e335]:
+            - link "Open report" [ref=e336] [cursor=pointer]:
+              - /url: /report?boardId=1&sprintId=8330&projects=SD
+            - button "Nudge SD-5255" [ref=e337]
+            - generic "Live · Snapshot - updated just now · Export ready" [ref=e338]:
+              - generic [ref=e339]: Export ready
+              - generic [ref=e340]: "|"
+              - generic [ref=e341]: Signals from live sprint data
+          - group [ref=e342]
+        - button "Top blocker" [ref=e343]:
+          - generic [ref=e344]: 🚫
+          - generic [ref=e345]:
+            - paragraph [ref=e346]: Top blocker · tap to nudge
+            - strong [ref=e347]:
+              - link "SD-5255" [ref=e348] [cursor=pointer]:
+                - /url: https://vodacomtz.atlassian.net/browse/SD-5255
+              - text: · As an App user, I want to have longer sessions after loggin in order to encourag
+            - paragraph [ref=e349]: The item has been stale for 991.6h and is likely blocking sprint flow.
+        - group "Switch sprint" [ref=e350]:
+          - generic "Past sprints" [ref=e351] [cursor=pointer]
+        - region "Work alignment" [ref=e353]:
+          - generic [ref=e354]:
+            - strong [ref=e355]: 0 of 5
+            - text: items PI-aligned · 5 off-PI
+            - link "5 off-PI" [ref=e356] [cursor=pointer]:
+              - /url: /governance?openAlignment=slide&scope=SD
+          - list [ref=e357]:
+            - listitem [ref=e358]:
+              - link "SD-5312" [ref=e359] [cursor=pointer]:
+                - /url: "#story-row-SD-5312"
+              - text: DEVSECOPS-FY27DMS04
+              - generic "PI baseline not set — epic unverified" [ref=e360]: Off PI
+            - listitem [ref=e361]:
+              - link "SD-5310" [ref=e362] [cursor=pointer]:
+                - /url: "#story-row-SD-5310"
+              - text: VOP-Feature Enhancement
+              - generic "PI baseline not set — epic unverified" [ref=e363]: Off PI
+            - listitem [ref=e364]:
+              - link "SD-5308" [ref=e365] [cursor=pointer]:
+                - /url: "#story-row-SD-5308"
+              - text: AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new A
+              - generic "PI baseline not set — epic unverified" [ref=e366]: Off PI
+        - generic [ref=e367]:
+          - generic [ref=e368]:
+            - generic [ref=e371]:
+              - generic [ref=e372]:
+                - generic [ref=e373]:
+                  - heading "Sprint work · 6 issues" [level=2] [ref=e375]
+                  - generic [ref=e377]: 3 blockers
+                - group "Direct action" [ref=e378]:
+                  - button "Nudge SD-5304" [ref=e379] [cursor=pointer]
+                - generic [ref=e381]:
+                  - generic [ref=e382]: Work risks Remediation queue
+                  - generic [ref=e383]: "Top focus: no urgent remediation"
+                  - generic [ref=e384]: +4 scope (68.0 SP)
+                  - generic "Jump to stories filtered by risk" [ref=e385]:
+                    - button "All" [ref=e386] [cursor=pointer]
+                    - button "Blockers" [ref=e387] [cursor=pointer]
+                    - button "Stuck in flow" [ref=e388] [cursor=pointer]
+                - region "Value-first sprint signals" [ref=e389]:
+                  - article [ref=e390]:
+                    - paragraph [ref=e391]: Value Delivered
+                    - strong [ref=e392]: 0/3 value stories
+                    - paragraph [ref=e393]: User-facing change completed this sprint.
+                  - article [ref=e395]:
+                    - paragraph [ref=e396]: Spillover Tracker
+                    - strong [ref=e397]: 6 stories
+                    - paragraph [ref=e398]: 100% of sprint scope is still open.
+                - generic [ref=e401]:
+                  - article [ref=e402]:
+                    - generic [ref=e404]:
+                      - paragraph [ref=e405]: What Was Delivered This Sprint
+                      - heading "Sprint confidence brief" [level=3] [ref=e406]
+                    - paragraph [ref=e407]: "3 of 6 items in active development. 3 blockers unresolved. 3d remaining. Delivery confidence: Medium."
+                    - paragraph [ref=e408]: Delivered outcomes will appear here as work reaches Done.
+                  - article [ref=e409]:
+                    - generic [ref=e410]:
+                      - generic [ref=e411]:
+                        - paragraph [ref=e412]: Blockers Panel
+                        - heading "Active blockers" [level=3] [ref=e413]
+                      - generic [ref=e414]: 3 visible
+                    - generic [ref=e415]:
+                      - 'button "SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In orde Status unchanged 56h — likely blocking sprint flow Likely owner: Husna Mohamed 2d blocked" [ref=e416]':
+                        - strong [ref=e418]:
+                          - link "SD-5304" [ref=e419] [cursor=pointer]:
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5304
+                          - text: As a TM & CSS, I want to receive notifications of SOGA focus campaign so In orde
+                        - paragraph [ref=e420]: Status unchanged 56h — likely blocking sprint flow
+                        - generic [ref=e421]:
+                          - generic [ref=e422]: "Likely owner: Husna Mohamed"
+                          - generic [ref=e423]: 2d blocked
+                      - 'button "SD-5308 AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing traffic Status unchanged 175h — likely blocking sprint flow Likely owner: Amani Musomba 7d blocked" [ref=e424]':
+                        - strong [ref=e426]:
+                          - link "SD-5308" [ref=e427] [cursor=pointer]:
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5308
+                          - text: AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing traffic
+                        - paragraph [ref=e428]: Status unchanged 175h — likely blocking sprint flow
+                        - generic [ref=e429]:
+                          - generic [ref=e430]: "Likely owner: Amani Musomba"
+                          - generic [ref=e431]: 7d blocked
+                      - 'button "SD-5312 DEVSECOPS-FY27DMS04 Status unchanged 175h — likely blocking sprint flow Likely owner: Amani Musomba 7d blocked" [ref=e432]':
+                        - strong [ref=e434]:
+                          - link "SD-5312" [ref=e435] [cursor=pointer]:
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5312
+                          - text: DEVSECOPS-FY27DMS04
+                        - paragraph [ref=e436]: Status unchanged 175h — likely blocking sprint flow
+                        - generic [ref=e437]:
+                          - generic [ref=e438]: "Likely owner: Amani Musomba"
+                          - generic [ref=e439]: 7d blocked
+                - region "Grouped sprint stories" [ref=e440]:
+                  - generic [ref=e441]:
+                    - generic [ref=e443]:
+                      - paragraph [ref=e444]: Value Delivery
+                      - heading "3 stories" [level=3] [ref=e445]
+                    - paragraph [ref=e446]: User-facing work and KPI movement that the business can recognise immediately.
+                    - generic [ref=e447]:
+                      - article [ref=e448]:
+                        - generic [ref=e449]:
+                          - generic [ref=e450]:
+                            - paragraph [ref=e451]:
+                              - link "SD-5255" [ref=e452] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/SD-5255
+                            - heading "As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe" [level=4] [ref=e453]
+                          - generic [ref=e454]: Growth
+                        - paragraph [ref=e455]: Story in To Do to move "As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe" forward this sprint.
+                        - generic [ref=e456]:
+                          - generic [ref=e457]:
+                            - term [ref=e458]: Business outcome
+                            - definition [ref=e459]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=e460]:
+                            - term [ref=e461]: Linked KPI
+                            - definition [ref=e462]: Supports growth KPI visibility
+                          - generic [ref=e463]:
+                            - term [ref=e464]: Owner
+                            - definition [ref=e465]: Husna Mohamed
+                          - generic [ref=e466]:
+                            - term [ref=e467]: Status
+                            - definition [ref=e468]: To Do
+                          - generic [ref=e469]:
+                            - term [ref=e470]: Blockers
+                            - definition [ref=e471]: No active blocker
+                      - article [ref=e472]:
+                        - generic [ref=e473]:
+                          - generic [ref=e474]:
+                            - paragraph [ref=e475]:
+                              - link "SD-5307" [ref=e476] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/SD-5307
+                            - heading "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list" [level=4] [ref=e477]
+                          - generic [ref=e478]: Growth
+                        - paragraph [ref=e479]: Story in To Do to move "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list" forward this sprint.
+                        - generic [ref=e480]:
+                          - generic [ref=e481]:
+                            - term [ref=e482]: Business outcome
+                            - definition [ref=e483]: Improves the quality and speed of the customer-facing experience this sprint.
+                          - generic [ref=e484]:
+                            - term [ref=e485]: Linked KPI
+                            - definition [ref=e486]: Supports Gross Adds visibility
+                          - generic [ref=e487]:
+                            - term [ref=e488]: Owner
+                            - definition [ref=e489]: Husna Mohamed
+                          - generic [ref=e490]:
+                            - term [ref=e491]: Status
+                            - definition [ref=e492]: To Do
+                          - generic [ref=e493]:
+                            - term [ref=e494]: Blockers
+                            - definition [ref=e495]: No active blocker
+                      - article [ref=e496]:
+                        - generic [ref=e497]:
+                          - generic [ref=e498]:
+                            - paragraph [ref=e499]:
+                              - link "SD-5310" [ref=e500] [cursor=pointer]:
+                                - /url: https://vodacomtz.atlassian.net/browse/SD-5310
+                            - heading "VOP-Feature Enhancement" [level=4] [ref=e501]
+                          - generic [ref=e502]: Growth
+                        - paragraph [ref=e503]: Story in To Do to move "VOP-Feature Enhancement" forward this sprint.
+                        - generic [ref=e504]:
+                          - generic [ref=e505]:
+                            - term [ref=e506]: Business outcome
+                            - definition [ref=e507]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=e508]:
+                            - term [ref=e509]: Linked KPI
+                            - definition [ref=e510]: Supports growth KPI visibility
+                          - generic [ref=e511]:
+                            - term [ref=e512]: Owner
+                            - definition [ref=e513]: Amani Musomba
+                          - generic [ref=e514]:
+                            - term [ref=e515]: Status
+                            - definition [ref=e516]: To Do
+                          - generic [ref=e517]:
+                            - term [ref=e518]: Blockers
+                            - definition [ref=e519]: No active blocker
+                  - generic [ref=e520]:
+                    - generic [ref=e522]:
+                      - paragraph [ref=e523]: Enablers
+                      - heading "0 stories" [level=3] [ref=e524]
+                    - paragraph [ref=e525]: Technical work that protects speed, trust, and the ability to keep delivering value.
+                    - generic [ref=e526]: No stories are currently grouped here.
+                  - generic [ref=e527]:
+                    - generic [ref=e529]:
+                      - paragraph [ref=e530]: Blocked / At Risk
+                      - heading "3 stories" [level=3] [ref=e531]
+                    - paragraph [ref=e532]: Stories that need intervention because ownership, flow, estimate, or blocker signals are present.
+                    - generic [ref=e533]:
+                      - button "SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on Growth Story in In Progress to move \"As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on\" forward this sprint. Business outcome Improves the quality and speed of the customer-facing experience this sprint. Linked KPI Supports Gross Adds visibility Owner Husna Mohamed Status In Progress Blockers Blocked | parent-flow" [ref=e534] [cursor=pointer]:
+                        - generic [ref=e535]:
+                          - generic [ref=e536]:
+                            - paragraph [ref=e537]:
+                              - link "SD-5304" [ref=e538]:
+                                - /url: https://vodacomtz.atlassian.net/browse/SD-5304
+                            - heading "As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on" [level=4] [ref=e539]
+                          - generic [ref=e540]: Growth
+                        - paragraph [ref=e541]: Story in In Progress to move "As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on" forward this sprint.
+                        - generic [ref=e542]:
+                          - generic [ref=e543]:
+                            - term [ref=e544]: Business outcome
+                            - definition [ref=e545]: Improves the quality and speed of the customer-facing experience this sprint.
+                          - generic [ref=e546]:
+                            - term [ref=e547]: Linked KPI
+                            - definition [ref=e548]: Supports Gross Adds visibility
+                          - generic [ref=e549]:
+                            - term [ref=e550]: Owner
+                            - definition [ref=e551]: Husna Mohamed
+                          - generic [ref=e552]:
+                            - term [ref=e553]: Status
+                            - definition [ref=e554]: In Progress
+                          - generic [ref=e555]:
+                            - term [ref=e556]: Blockers
+                            - definition [ref=e557]: Blocked | parent-flow
+                      - button "SD-5308 AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing Growth Story in In Progress to move \"AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing\" forward this sprint. Business outcome Moves a measurable sprint outcome forward in a way the business can explain clearly. Linked KPI Supports growth KPI visibility Owner Amani Musomba Status In Progress Blockers Blocked" [ref=e558] [cursor=pointer]:
+                        - generic [ref=e559]:
+                          - generic [ref=e560]:
+                            - paragraph [ref=e561]:
+                              - link "SD-5308" [ref=e562]:
+                                - /url: https://vodacomtz.atlassian.net/browse/SD-5308
+                            - heading "AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing" [level=4] [ref=e563]
+                          - generic [ref=e564]: Growth
+                        - paragraph [ref=e565]: Story in In Progress to move "AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing" forward this sprint.
+                        - generic [ref=e566]:
+                          - generic [ref=e567]:
+                            - term [ref=e568]: Business outcome
+                            - definition [ref=e569]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                          - generic [ref=e570]:
+                            - term [ref=e571]: Linked KPI
+                            - definition [ref=e572]: Supports growth KPI visibility
+                          - generic [ref=e573]:
+                            - term [ref=e574]: Owner
+                            - definition [ref=e575]: Amani Musomba
+                          - generic [ref=e576]:
+                            - term [ref=e577]: Status
+                            - definition [ref=e578]: In Progress
+                          - generic [ref=e579]:
+                            - term [ref=e580]: Blockers
+                            - definition [ref=e581]: Blocked
+                      - button "SD-5312 DEVSECOPS-FY27DMS04 Efficiency Story in In Progress to move \"DEVSECOPS-FY27DMS04\" forward this sprint. Business outcome Protects release flow, integration trust, and delivery reliability for customer-facing work. Linked KPI Supports flow efficiency and delivery trust Owner Amani Musomba Status In Progress Blockers Blocked" [ref=e582] [cursor=pointer]:
+                        - generic [ref=e583]:
+                          - generic [ref=e584]:
+                            - paragraph [ref=e585]:
+                              - link "SD-5312" [ref=e586]:
+                                - /url: https://vodacomtz.atlassian.net/browse/SD-5312
+                            - heading "DEVSECOPS-FY27DMS04" [level=4] [ref=e587]
+                          - generic [ref=e588]: Efficiency
+                        - paragraph [ref=e589]: Story in In Progress to move "DEVSECOPS-FY27DMS04" forward this sprint.
+                        - generic [ref=e590]:
+                          - generic [ref=e591]:
+                            - term [ref=e592]: Business outcome
+                            - definition [ref=e593]: Protects release flow, integration trust, and delivery reliability for customer-facing work.
+                          - generic [ref=e594]:
+                            - term [ref=e595]: Linked KPI
+                            - definition [ref=e596]: Supports flow efficiency and delivery trust
+                          - generic [ref=e597]:
+                            - term [ref=e598]: Owner
+                            - definition [ref=e599]: Amani Musomba
+                          - generic [ref=e600]:
+                            - term [ref=e601]: Status
+                            - definition [ref=e602]: In Progress
+                          - generic [ref=e603]:
+                            - term [ref=e604]: Blockers
+                            - definition [ref=e605]: Blocked
+              - group [ref=e606]:
+                - generic "Open Jira evidence and work table" [ref=e607] [cursor=pointer]
+                - table [ref=e609]:
+                  - rowgroup [ref=e610]:
+                    - row "Issue Summary Status Assignee SP Est Hrs Logged Hrs Risks" [ref=e611]:
+                      - columnheader "Issue" [ref=e612]
+                      - columnheader "Summary" [ref=e613]
+                      - columnheader "Status" [ref=e614]
+                      - columnheader "Assignee" [ref=e615]
+                      - columnheader "SP" [ref=e616]
+                      - columnheader "Est Hrs" [ref=e617]
+                      - columnheader "Logged Hrs" [ref=e618]
+                      - columnheader "Risks" [ref=e619]
+                  - rowgroup [ref=e620]:
+                    - row "SD-5255 As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe Outcome-linked work To Do - 8.0 0.0 0.0 No risk flags" [ref=e621]:
+                      - cell "SD-5255" [ref=e622]:
+                        - link "SD-5255" [ref=e624] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5255
+                      - cell "As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe Outcome-linked work" [ref=e625]:
+                        - text: As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe
+                        - generic "Outcome-linked work" [ref=e626]: O
+                      - cell "To Do" [ref=e627]
+                      - cell "-" [ref=e628]
+                      - cell "8.0" [ref=e629]
+                      - cell "0.0" [ref=e630]
+                      - cell "0.0" [ref=e631]
+                      - cell "No risk flags" [ref=e632]
+                    - row "SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on Outcome-linked work In Progress - 21.0 0.0 0.0 2 risks" [ref=e633]:
+                      - cell "SD-5304" [ref=e634]:
+                        - link "SD-5304" [ref=e636] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5304
+                      - cell "As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on Outcome-linked work" [ref=e637]:
+                        - text: As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on
+                        - generic "Outcome-linked work" [ref=e638]: O
+                      - cell "In Progress" [ref=e639]
+                      - cell "-" [ref=e640]
+                      - cell "21.0" [ref=e641]
+                      - cell "0.0" [ref=e642]
+                      - cell "0.0" [ref=e643]
+                      - cell "2 risks" [ref=e644]:
+                        - generic "Blocker, parent-flow" [ref=e645]: 2 risks
+                    - row "SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list Outcome-linked work To Do - 13.0 0.0 0.0 No risk flags" [ref=e646]:
+                      - cell "SD-5307" [ref=e647]:
+                        - link "SD-5307" [ref=e649] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5307
+                      - cell "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list Outcome-linked work" [ref=e650]:
+                        - text: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list
+                        - generic "Outcome-linked work" [ref=e651]: O
+                      - cell "To Do" [ref=e652]
+                      - cell "-" [ref=e653]
+                      - cell "13.0" [ref=e654]
+                      - cell "0.0" [ref=e655]
+                      - cell "0.0" [ref=e656]
+                      - cell "No risk flags" [ref=e657]
+                    - row "SD-5308 AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing Outcome-linked work In Progress - 21.0 0.0 0.0 Blocker" [ref=e658]:
+                      - cell "SD-5308" [ref=e659]:
+                        - link "SD-5308" [ref=e661] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5308
+                      - cell "AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing Outcome-linked work" [ref=e662]:
+                        - text: AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing
+                        - generic "Outcome-linked work" [ref=e663]: O
+                      - cell "In Progress" [ref=e664]
+                      - cell "-" [ref=e665]
+                      - cell "21.0" [ref=e666]
+                      - cell "0.0" [ref=e667]
+                      - cell "0.0" [ref=e668]
+                      - cell "Blocker" [ref=e669]:
+                        - generic "Blocker" [ref=e670]
+                    - row "SD-5310 VOP-Feature Enhancement Outcome-linked work To Do - 13.0 0.0 0.0 No risk flags" [ref=e671]:
+                      - cell "SD-5310" [ref=e672]:
+                        - link "SD-5310" [ref=e674] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5310
+                      - cell "VOP-Feature Enhancement Outcome-linked work" [ref=e675]:
+                        - text: VOP-Feature Enhancement
+                        - generic "Outcome-linked work" [ref=e676]: O
+                      - cell "To Do" [ref=e677]
+                      - cell "-" [ref=e678]
+                      - cell "13.0" [ref=e679]
+                      - cell "0.0" [ref=e680]
+                      - cell "0.0" [ref=e681]
+                      - cell "No risk flags" [ref=e682]
+                    - row "SD-5312 DEVSECOPS-FY27DMS04 Outcome-linked work In Progress - 21.0 0.0 0.0 Blocker" [ref=e683]:
+                      - cell "SD-5312" [ref=e684]:
+                        - link "SD-5312" [ref=e686] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5312
+                      - cell "DEVSECOPS-FY27DMS04 Outcome-linked work" [ref=e687]:
+                        - text: DEVSECOPS-FY27DMS04
+                        - generic "Outcome-linked work" [ref=e688]: O
+                      - cell "In Progress" [ref=e689]
+                      - cell "-" [ref=e690]
+                      - cell "21.0" [ref=e691]
+                      - cell "0.0" [ref=e692]
+                      - cell "0.0" [ref=e693]
+                      - cell "Blocker" [ref=e694]:
+                        - generic "Blocker" [ref=e695]
+            - generic [ref=e696]:
+              - region "Sprint today" [ref=e697]:
+                - heading "Sprint today" [level=2] [ref=e698]
+                - paragraph [ref=e699]:
+                  - strong [ref=e700]: DELIVERY BLOCKED
+                - paragraph [ref=e701]: Sprint outcomes are at risk unless the top issue is resolved quickly. 68.0 SP was added after sprint start. No recent movement is visible in the last 24h.
+                - paragraph [ref=e702]:
+                  - strong [ref=e703]: "Main blocker:"
+                  - text: SD-5255
+                - paragraph [ref=e704]:
+                  - strong [ref=e705]: "Next move:"
+                  - text: Unblock
+                - paragraph [ref=e706]: Showing blockers below
+              - generic [ref=e707]:
+                - region "Sprint value summary" [ref=e708]:
+                  - generic [ref=e709]:
+                    - generic [ref=e710]: Value answer
+                    - strong [ref=e711]: FY27DMS05
+                    - paragraph [ref=e712]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                  - generic [ref=e713]:
+                    - generic [ref=e714]: Done
+                    - strong [ref=e715]: 0% complete
+                    - paragraph [ref=e716]: 100% may spill over
+                  - generic [ref=e717]:
+                    - generic [ref=e718]: Customer impact
+                    - generic [ref=e720]: Moves a measurable sprint outcome forward in a way the business can explain clearly.
+                  - generic [ref=e721]:
+                    - generic [ref=e722]: Risk
+                    - strong [ref=e723]: Needs Attention
+                    - paragraph [ref=e724]: Are we delivering value this sprint?
+                - group [ref=e725]:
+                  - generic "Needs Attention — Sprint outcomes are at risk unless the top issue is resolved quickly. 68.0 SP was added after sprint start. No recent movement is visible in the last 24h." [ref=e726] [cursor=pointer]
+                  - generic [ref=e727]:
+                    - paragraph [ref=e728]:
+                      - text: 2 Jul (Thu) - 16 Jul (Thu)
+                      - generic [ref=e729]: "|"
+                      - text: 3 days left
+                    - generic [ref=e730]:
+                      - article [ref=e731]:
+                        - generic [ref=e732]: ~
+                        - generic [ref=e733]:
+                          - paragraph [ref=e734]: Sprint answer
+                          - heading "Needs Attention" [level=2] [ref=e735]
+                          - paragraph [ref=e736]: Sprint outcomes are at risk unless the top issue is resolved quickly. 68.0 SP was added after sprint start. No recent movement is visible in the last 24h.
+                          - paragraph [ref=e737]: 2 Jul (Thu) - 16 Jul (Thu) | 3 days left | 0/6 value stories
+                      - article [ref=e738]:
+                        - paragraph [ref=e739]: Next action
+                        - heading "SD-5255 - As an App user, I want to have longer sessions after loggin in order to encourag" [level=2] [ref=e740]
+                        - paragraph [ref=e741]: The item has been stale for 991.6h and is likely blocking sprint flow.
+                      - article [ref=e742]:
+                        - paragraph [ref=e743]: Signals
+                        - generic [ref=e744]:
+                          - generic [ref=e745]:
+                            - strong [ref=e747]: +0 done
+                            - generic [ref=e748]: Done now
+                          - generic [ref=e749]:
+                            - strong [ref=e751]: "6"
+                            - generic [ref=e752]: Blockers
+                          - generic [ref=e753]:
+                            - strong [ref=e755]: "4"
+                            - generic [ref=e756]: Added work
+                          - generic [ref=e757]:
+                            - strong [ref=e759]: Inactive
+                            - generic [ref=e760]: Last 24h
+                      - complementary [ref=e761]:
+                        - generic [ref=e762]:
+                          - generic [ref=e763]:
+                            - heading "Risk queue" [level=2] [ref=e764]
+                            - generic [ref=e765]: 16 actions waiting
+                          - button "SD-5255 As an App user, I want to have longer sessions after loggin in order to encourag High The item has been stale for 991.6h and is likely blocking sprint flow. No movement 24h" [ref=e766] [cursor=pointer]:
+                            - generic [ref=e767]:
+                              - generic [ref=e768]:
+                                - link "SD-5255" [ref=e769]:
+                                  - /url: https://vodacomtz.atlassian.net/browse/SD-5255
+                                - strong [ref=e770]: As an App user, I want to have longer sessions after loggin in order to encourag
+                              - generic [ref=e771]: High
+                            - paragraph [ref=e772]: The item has been stale for 991.6h and is likely blocking sprint flow.
+                            - generic [ref=e774]: No movement 24h
+                          - button "SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list High No owner is visible for work still inside the sprint. No assignee No movement 24h Scope change" [ref=e775] [cursor=pointer]:
+                            - generic [ref=e776]:
+                              - generic [ref=e777]:
+                                - link "SD-5307" [ref=e778]:
+                                  - /url: https://vodacomtz.atlassian.net/browse/SD-5307
+                                - strong [ref=e779]: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list
+                              - generic [ref=e780]: High
+                            - paragraph [ref=e781]: No owner is visible for work still inside the sprint.
+                            - generic [ref=e782]:
+                              - generic [ref=e783]: No assignee
+                              - generic [ref=e784]: No movement 24h
+                              - generic [ref=e785]: Scope change
+                          - button "SD-5308 AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing High No owner is visible for work still inside the sprint. No assignee No movement 24h Scope change" [ref=e786] [cursor=pointer]:
+                            - generic [ref=e787]:
+                              - generic [ref=e788]:
+                                - link "SD-5308" [ref=e789]:
+                                  - /url: https://vodacomtz.atlassian.net/browse/SD-5308
+                                - strong [ref=e790]: AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing
+                              - generic [ref=e791]: High
+                            - paragraph [ref=e792]: No owner is visible for work still inside the sprint.
+                            - generic [ref=e793]:
+                              - generic [ref=e794]: No assignee
+                              - generic [ref=e795]: No movement 24h
+                              - generic [ref=e796]: Scope change
+                          - list "Action queue" [ref=e797]:
+                            - button "Need unblock 6" [ref=e798] [cursor=pointer]:
+                              - generic [ref=e799]: Need unblock
+                              - strong [ref=e800]: "6"
+                            - button "Need estimate 0" [ref=e801] [cursor=pointer]:
+                              - generic [ref=e802]: Need estimate
+                              - strong [ref=e803]: "0"
+                            - button "Added work 4" [ref=e804] [cursor=pointer]:
+                              - generic [ref=e805]: Added work
+                              - strong [ref=e806]: "4"
+                            - button "Need owner 3" [ref=e807] [cursor=pointer]:
+                              - generic [ref=e808]: Need owner
+                              - strong [ref=e809]: "3"
+                    - generic [ref=e810]:
+                      - article [ref=e811]:
+                        - paragraph [ref=e812]: Value done
+                        - paragraph [ref=e813]: 0/6 value stories
+                        - paragraph [ref=e814]: 0% complete
+                      - article [ref=e816]:
+                        - paragraph [ref=e817]: Work left
+                        - paragraph [ref=e818]: "6"
+                        - paragraph [ref=e819]: 0/6 done
+                      - article [ref=e821]:
+                        - paragraph [ref=e822]: Risk queue
+                        - paragraph [ref=e823]: "16"
+                        - paragraph [ref=e824]: 3 top risks | 6 blockers
+                      - article [ref=e827]:
+                        - paragraph [ref=e828]: Trust
+                        - paragraph [ref=e829]: Needs evidence
+                        - paragraph [ref=e830]: 0% estimate evidence
+                    - generic [ref=e832]:
+                      - generic [ref=e833]:
+                        - generic [ref=e834]:
+                          - paragraph [ref=e835]: Value progress
+                          - heading "Done vs added work" [level=2] [ref=e836]
+                        - paragraph [ref=e837]: One evidence chart for movement, added work, and confidence change.
+                      - generic [ref=e838]:
+                        - img "Work movement showing completed work, added scope, and remaining story points" [ref=e839]:
+                          - generic [ref=e843]: Scope change +13.0 SP
+                          - generic [ref=e845]: Scope change +55.0 SP
+                          - generic [ref=e846]: 2 Jul (Thu)
+                          - generic [ref=e847]: 5 Jul (Sun)
+                        - generic [ref=e848]:
+                          - generic [ref=e849]: Completed
+                          - generic [ref=e851]: Added
+                          - generic [ref=e853]: Remaining
+                    - generic [ref=e855]:
+                      - article [ref=e856]:
+                        - generic [ref=e857]:
+                          - paragraph [ref=e858]: Completion Clustering
+                          - heading "0%" [level=3] [ref=e859]
+                          - paragraph [ref=e860]: Completion is spreading more evenly through the sprint.
+                        - img [ref=e861]
+                      - article [ref=e862]:
+                        - generic [ref=e863]:
+                          - paragraph [ref=e864]: Scope Change Impact
+                          - heading "68.0 SP" [level=3] [ref=e865]
+                          - paragraph [ref=e866]: 68.0 SP (70%) was added after sprint start.
+                        - img [ref=e867]
+                      - article [ref=e869]:
+                        - generic [ref=e870]:
+                          - paragraph [ref=e871]: Planned vs Actual
+                          - heading "-74.6 SP" [level=3] [ref=e872]
+                          - paragraph [ref=e873]: Behind by 74.6 SP against the ideal line.
+                        - img [ref=e874]
+                      - article [ref=e876]:
+                        - generic [ref=e877]:
+                          - paragraph [ref=e878]: Confidence
+                          - heading "Low" [level=3] [ref=e879]
+                          - paragraph [ref=e880]: Confidence is moderated because sizing evidence is incomplete.
+                        - img [ref=e881]
+            - group [ref=e883]:
+              - generic [ref=e884]:
+                - generic [ref=e887]:
+                  - generic [ref=e888]:
+                    - heading "Flow over time" [level=2] [ref=e890]
+                    - generic [ref=e891]:
+                      - generic [ref=e892]: SP complete 0.0
+                      - generic [ref=e893]: SP remaining 97.0
+                      - generic [ref=e894]: 3d left
+                  - generic [ref=e895]:
+                    - paragraph [ref=e896]:
+                      - strong [ref=e897]: No story points completed.
+                      - text: 97.0 SP remaining.
+                    - link "View work items" [ref=e898] [cursor=pointer]:
+                      - /url: "#stories-card"
+                  - group [ref=e899]:
+                    - generic "View burndown table" [ref=e900] [cursor=pointer]
+                - generic [ref=e903]:
+                  - heading "Risks & Insights" [level=2] [ref=e904]
+                  - paragraph [ref=e905]: 3 stale in progress in sprint signals (queue SSOT)
+                  - generic [ref=e906]:
+                    - 'generic "Stale in progress: sprint risk signals and work queue (same SSOT); count is max of signals and saved dependency notes." [ref=e907]': 3 stale in progress
+                    - 'generic "Risks: team-entered notes in this card (not the same as signal tags in the queue)." [ref=e908]': 6 risks
+                    - 'generic "Learnings: team notes captured below." [ref=e909]': 0 learnings
+                  - tablist "Risks and insights views" [ref=e910]:
+                    - tab "Stale 3" [selected] [ref=e911] [cursor=pointer]
+                    - tab "Learnings 0" [ref=e912] [cursor=pointer]
+                    - tab "Assumptions 6" [ref=e913] [cursor=pointer]
+                  - tabpanel "Stale 3" [ref=e914]:
+                    - paragraph [ref=e916]: 3 stale in progress detected in sprint signals. Review the work queue below.
+                  - generic [ref=e918]:
+                    - generic [ref=e919]: "!"
+                    - generic [ref=e920]:
+                      - strong [ref=e921]: "Risk:"
+                      - text: "Completion anchored to: resolution date."
+                  - group [ref=e922]:
+                    - generic "Manage notes" [ref=e923] [cursor=pointer]
+                    - option "- Action type -" [selected]
+                    - option "Escalate"
+                    - option "Reassign"
+                    - option "Defer"
+                    - option "Custom"
+          - complementary [ref=e924]:
+            - tablist "Sprint focus" [ref=e925]:
+              - tab "Work" [selected] [ref=e926] [cursor=pointer]
+              - tab "Risks" [ref=e927] [cursor=pointer]
+              - tab "Flow" [ref=e928] [cursor=pointer]
+            - tabpanel [ref=e929]:
+              - paragraph [ref=e930]: Unblock today
+              - strong [ref=e931]: SD-5255
+              - paragraph [ref=e932]: As an App user, I want to have longer sessions after loggin in order to encourag
+              - generic [ref=e933]:
+                - generic [ref=e934]: Nudge draft
+                - textbox "Nudge draft" [ref=e935]:
+                  - /placeholder: Quick unblock ask — press Enter to review…
+                  - text: "SD-5255: blocked 992h — can we unblock today?"
+                - paragraph [ref=e936]: Press Enter to open nudge review
+  - dialog "Create work draft" [ref=e292]:
+    - generic [ref=e293]:
+      - button "Project ▾" [ref=e295] [cursor=pointer]:
+        - generic [ref=e296]: Project
+        - text: ▾
+      - generic [ref=e297]: Create work
+      - button "AI provider settings" [ref=e298] [cursor=pointer]: ⚙
+      - button "Close" [ref=e299] [cursor=pointer]: ✕
+    - generic [ref=e301]:
+      - textbox "Narrative source text" [ref=e303]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e305]: ✓
+      - list "Work items" [ref=e306]
+    - generic [ref=e307]:
+      - generic "Set estimate for all items" [ref=e308]:
+        - generic [ref=e309]: "All:"
+        - slider "Set estimate for all items" [ref=e310] [cursor=pointer]: "0"
+        - generic [ref=e311]: —
+      - button "Create 0 issues" [disabled] [ref=e313]

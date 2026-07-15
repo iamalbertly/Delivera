@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings - Delivera</title>
   <style>
-    body{background:#f5f6f8;margin:0}
-    [data-instant-shell-mount][aria-busy="true"]:empty{min-height:40vh;background:#f5f6f8;display:block}
-    .instant-shimmer{height:.85rem;border-radius:6px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite}
+        html,body{background:var(--surface-page,#f5f6f8);margin:0}
+    [data-instant-shell-mount][aria-busy="true"]{min-height:52vh;background:#f5f6f8;display:block}
+    [data-instant-shell-mount]:empty,[data-instant-shell-mount].instant-shell-mount--reserve{min-height:40vh;background:#f5f6f8}
+    .instant-shimmer{height:.85rem;border-radius:6px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite;margin:.35rem 0}
     @keyframes dlvr-shim{0%,100%{opacity:.7}50%{opacity:1}}
   </style>
   <link rel="stylesheet" href="styles.css">
@@ -24,7 +25,17 @@
       </section>
       <nav id="settings-nav-rail" class="settings-nav-rail surface-card" aria-label="Settings sections"></nav>
       <div class="settings-hub-panels" aria-busy="true">
-        <div id="settings-instant-shell-mount" data-instant-shell-mount="settings" aria-busy="true"></div>
+        <div id="settings-instant-shell-mount" data-instant-shell-mount="settings" aria-busy="true">
+          <div class="instant-shell" data-testid="instant-shell" data-instant-shell-cold="1" aria-busy="true" role="status" style="padding:1rem">
+            <div class="instant-shell-state-strip" data-testid="instant-shell-state-strip">
+              <span class="instant-shell-state-surface">Settings</span>
+              <span class="instant-shell-state-scope">Workspace</span>
+              <span class="instant-shell-state-sub">Loading settings…</span>
+            </div>
+            <div class="instant-shimmer" style="width:65%"></div>
+            <div class="instant-shimmer" style="width:45%"></div>
+          </div>
+        </div>
         <div id="settings-my-workspace"></div>
         <div id="settings-organization"></div>
         <div id="settings-epic-format"></div>

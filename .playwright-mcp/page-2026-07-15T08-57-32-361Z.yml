@@ -1,0 +1,293 @@
+- generic [active] [ref=f8e1]:
+  - link "Skip to main content" [ref=f8e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f8e3]:
+    - generic [ref=f8e4]:
+      - button "Expand or collapse sidebar" [ref=f8e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f8e10]:
+        - generic [ref=f8e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=f8e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f8e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f8e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f8e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f8e17]: De
+      - searchbox "Context search" [ref=f8e22]
+      - group "Global actions" [ref=f8e23]:
+        - button "Create" [ref=f8e24] [cursor=pointer]:
+          - generic [ref=f8e25]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f8e27]: AI · Slides ready
+        - button "Notifications" [ref=f8e28] [cursor=pointer]
+        - button "Help" [ref=f8e31] [cursor=pointer]
+        - button "Improve Delivera" [ref=f8e34] [cursor=pointer]
+        - button "Account menu" [ref=f8e37] [cursor=pointer]: LY
+  - main [ref=f8e38]:
+    - generic "Portfolio scope" [ref=f8e39]:
+      - generic [ref=f8e40]:
+        - generic [ref=f8e41]:
+          - generic "Squad cadence" [ref=f8e42]: Current · Not saved yet · No active sprint
+          - generic "Upload PI plan slides in Alignment Studio" [ref=f8e44] [cursor=pointer]: No PI slides confirmed this quarter
+          - button "… Loading" [disabled] [ref=f8e45] [cursor=pointer]
+        - generic [ref=f8e46]:
+          - combobox "Selected scope" [ref=f8e49]:
+            - option "All Projects" [selected]
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)"
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f8e50]:
+            - generic [ref=f8e51]: Compare
+            - generic [ref=f8e52]: All Projects · 12 squads
+          - generic [ref=f8e54]:
+            - generic [ref=f8e55]: Timeframe
+            - combobox "Timeframe" [ref=f8e56]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2" [selected]
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2"
+          - generic [ref=f8e57]:
+            - generic [ref=f8e58]: Baseline
+            - combobox "Baseline" [ref=f8e59]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=f8e60]: Updating…
+    - generic "Governance priority brief" [ref=f8e63]:
+      - status: Loading portfolio signal…
+      - status [ref=f8e64]:
+        - generic [ref=f8e65]:
+          - generic [ref=f8e66]: Portfolio Brief
+          - generic [ref=f8e67]: __ALL__
+          - generic [ref=f8e68]: Showing last view · refreshing
+        - paragraph [ref=f8e69]:
+          - text: Showing last view · 23m ago ·
+          - strong [ref=f8e70]: Refreshing…
+        - generic:
+          - generic:
+            - paragraph: Power BI charts history · Rovo explains a ticket · Delivera closes the owner + evidence decision in one place.
+            - generic:
+              - generic:
+                - region "Priority governance brief":
+                  - generic:
+                    - status: Data conflict — delivery pulse is Blocked. Treat Blocked / missing baseline as authoritative over calm commitment copy.
+                    - generic:
+                      - 'heading "Portfolio: 12 squads need attention — DMS Squad (Kilimanjaro Legends) tops the board-gap list (6 PI commitments with zero stories on selected boards)." [level=1]'
+                    - paragraph: Plan-backed = this squad’s PI slide is on file. Board-gap = PI epic in Jira with zero stories on selected boards.
+                    - paragraph: No PI commitments on file
+                    - generic:
+                      - generic:
+                        - strong: 6 commitments with board-gap evidence
+                        - generic: for DMS Squad (Kilimanjaro Legends) · selected boards
+                        - generic:
+                          - button "Copy keys + links"
+                          - button "Plan stories pack"
+                      - list:
+                        - listitem:
+                          - link "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5314
+                            - generic: SD-5314
+                            - generic: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5309
+                            - generic: SD-5309
+                            - generic: FY27 Q2 – DMS – NBA – EVOD Upgrade
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5315 FY27 Q2 – DMS – NBA – Enhancements":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5315
+                            - generic: SD-5315
+                            - generic: FY27 Q2 – DMS – NBA – Enhancements
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5316
+                            - generic: SD-5316
+                            - generic: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5317
+                            - generic: SD-5317
+                            - generic: FY27 Q2 – DMS – DMS Capability Merging
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5311 FY27 Q2 – DMS – VOP Upgrade":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5311
+                            - generic: SD-5311
+                            - generic: FY27 Q2 – DMS – VOP Upgrade
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                    - generic:
+                      - paragraph:
+                        - strong: Portfolio view · FY27 Q2 · per-squad trust chips below
+                    - table:
+                      - rowgroup:
+                        - row "Squad State Trust Meaning":
+                          - columnheader "Squad"
+                          - columnheader "State"
+                          - columnheader "Trust"
+                          - columnheader "Meaning"
+                      - rowgroup:
+                        - button "DMS Squad (Kilimanjaro Legends) Decision required Plan-backed 6 committed · zero stories on selected boards":
+                          - cell "DMS Squad (Kilimanjaro Legends)":
+                            - strong: DMS Squad (Kilimanjaro Legends)
+                          - cell "Decision required"
+                          - cell "Plan-backed"
+                          - cell "6 committed · zero stories on selected boards"
+                        - button "M-SQUAD Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "M-SQUAD":
+                            - strong: M-SQUAD
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                        - button "Digital Squad Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "Digital Squad":
+                            - strong: Digital Squad
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                        - button "Mini - Apps Squad Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "Mini - Apps Squad":
+                            - strong: Mini - Apps Squad
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                        - button "Robotics Process Automation (RPA) Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "Robotics Process Automation (RPA)":
+                            - strong: Robotics Process Automation (RPA)
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                - generic:
+                  - generic "Squad comparison loading":
+                    - paragraph: Squad comparison
+                    - paragraph: Matching boards to PI baselines…
+                - region "PI commitments":
+                  - heading "PI commitments" [level=2]
+                  - paragraph: No unsupported PI commitment rows in this brief yet.
+                - navigation "Squad governance status":
+                  - list:
+                    - button "DMS Squad (Kilimanjaro Legends) Decision required Plan-backed 6 committed · zero stories on selected boards":
+                      - generic: DMS Squad (Kilimanjaro Legends)
+                      - generic: Decision required
+                      - generic "Sponsor or PO must record a decision": Plan-backed
+                      - generic: 6 committed · zero stories on selected boards
+                    - button "M-SQUAD Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: M-SQUAD
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "Digital Squad Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: Digital Squad
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "Mini - Apps Squad Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: Mini - Apps Squad
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "Robotics Process Automation (RPA) Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: Robotics Process Automation (RPA)
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "Agile and Security Guild Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: Agile and Security Guild
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "Finance Squad Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: Finance Squad
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "TRANSFORMERS Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: TRANSFORMERS
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "T-Squad Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: T-Squad
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "Vodacom Business Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: Vodacom Business
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "AMS Squad (Tachyons) Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: AMS Squad (Tachyons)
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "Bio metric KYC & KYA Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: Bio metric KYC & KYA
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+              - generic:
+                - complementary "Delivera actions and decisions":
+                  - group:
+                    - generic "System activity"
+                  - generic:
+                    - heading "Next human decision" [level=2]
+                    - paragraph: Pause investment decision
+                    - paragraph:
+                      - text: "Owner:"
+                      - strong: Product Owner
+                    - paragraph:
+                      - text: "Due:"
+                      - strong: Due in 2 days
+                  - generic:
+                    - button "Review board-gap evidence"
+                  - link "Open actions →":
+                    - /url: /actions?project=__ALL__
+    - alert [ref=f8e72]
+  - dialog "Create work draft" [ref=f8e73]:
+    - generic [ref=f8e74]:
+      - button "Project ▾" [ref=f8e76] [cursor=pointer]:
+        - generic [ref=f8e77]: Project
+        - text: ▾
+      - generic [ref=f8e78]: Create work
+      - button "AI provider settings" [ref=f8e79] [cursor=pointer]: ⚙
+      - button "Close" [ref=f8e80] [cursor=pointer]: ✕
+    - generic [ref=f8e82]:
+      - textbox "Narrative source text" [ref=f8e84]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f8e86]: ✓
+      - list "Work items" [ref=f8e87]
+    - generic [ref=f8e88]:
+      - generic "Set estimate for all items" [ref=f8e89]:
+        - generic [ref=f8e90]: "All:"
+        - slider "Set estimate for all items" [ref=f8e91] [cursor=pointer]: "0"
+        - generic [ref=f8e92]: —
+      - button "Create 0 issues" [disabled] [ref=f8e94]

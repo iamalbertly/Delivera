@@ -1,6 +1,7 @@
 /**
  * Priority Brief surface — single compose path for governance priority page.
- * Hero + agentic + exception + commitments + carousel slot (no parallel paint).
+ * Page layout: main column (hero → compare → commitments → exception) | sticky agentic rail.
+ * Squad Comparison sits flush under the hero — aside is NOT a sibling of hero-only.
  * Bento status grammar: Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.
  */
 import { renderPriorityBriefHero } from './Delivera-App-Governance-PriorityBrief-01Render-UI.js';
@@ -9,6 +10,7 @@ import { renderExceptionRail, bindExceptionRail } from './Delivera-App-Governanc
 import { renderCommitmentDetail } from './Delivera-App-Governance-CommitmentDetail-01Render-UI.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { GOVERNANCE_DISPLACEMENT_LINE } from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
+import { renderSquadCompareSkeletonHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 export function renderGovernancePrioritySurface(decision = {}, brief = {}, { cases = [] } = {}) {
   const pb = decision.priorityBrief || {};
@@ -23,14 +25,19 @@ export function renderGovernancePrioritySurface(decision = {}, brief = {}, { cas
   return `
     <div class="gov-priority-surface" data-testid="governance-priority-surface" data-governance-surface="priority-brief">
       <p class="gov-displacement-line" data-testid="governance-displacement-line">${escapeHtml(GOVERNANCE_DISPLACEMENT_LINE)}</p>
-      <div class="gov-priority-cockpit-grid gov-priority-hero-grid">
-        ${renderPriorityBriefHero(pbWithIntervention, decision)}
-        ${renderAgenticPanel(pbWithIntervention, decision, { writesDisabled, cases })}
+      <div class="gov-priority-layout" data-testid="governance-priority-layout">
+        <div class="gov-priority-main" data-testid="governance-priority-main">
+          ${renderPriorityBriefHero(pbWithIntervention, decision)}
+          ${renderSinceLastCheckStrip(brief)}
+          <div class="gov-priority-carousel-slot" data-priority-carousel-slot="1" data-testid="governance-squad-comparison" data-compare-pending="1">
+            ${renderSquadCompareSkeletonHtml()}
+          </div>
+          ${renderCommitmentDetail(pbWithIntervention)}
+        </div>
+        <div class="gov-priority-rail" data-testid="governance-priority-rail">
+          ${renderAgenticPanel(pbWithIntervention, decision, { writesDisabled, cases })}
+        </div>
       </div>
-      ${renderExceptionRail(judgment, { selectedKey })}
-      ${renderCommitmentDetail(pbWithIntervention)}
-      ${renderSinceLastCheckStrip(brief)}
-      <div class="gov-priority-carousel-slot" data-priority-carousel-slot="1" data-testid="governance-squad-comparison"></div>
       ${decision.sponsorBriefMarkdown ? `<div class="gov-sponsor-brief-preview" data-testid="governance-sponsor-brief-preview" hidden><pre>${escapeHtml(decision.sponsorBriefMarkdown)}</pre></div>` : ''}
     </div>`;
 }
@@ -54,12 +61,36 @@ function renderSinceLastCheckStrip(brief = {}) {
     </div>`;
 }
 
-export function bindGovernancePrioritySurface(root, { brief = null, onInspectEvidence = null } = {}) {
+export function bindGovernancePrioritySurface(root, {
+  brief = null,
+  onInspectEvidence = null,
+  onSelectSquad = null,
+} = {}) {
   if (!root) return;
-  bindExceptionRail(root);
+  bindExceptionRail(root, {
+    onSelectSquad: (key) => {
+      if (typeof onSelectSquad === 'function') onSelectSquad(key);
+    },
+  });
   const scrollTarget = () => root.querySelector(
     '[data-testid="governance-commitment-detail"], [data-testid="governance-commitment-above-fold"], .gov-priority-commitment-rail, [data-testid="governance-commitment-detail-fold"]'
   );
+  const selectSquad = (key) => {
+    if (!key) return;
+    if (typeof onSelectSquad === 'function') onSelectSquad(key);
+  };
+  root.querySelectorAll('[data-governance-action="select-squad"][data-squad-key]').forEach((row) => {
+    const activate = () => selectSquad(String(row.getAttribute('data-squad-key') || '').trim().toUpperCase());
+    if (row.tagName === 'TR') {
+      row.addEventListener('click', activate);
+      row.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          activate();
+        }
+      });
+    }
+  });
   root.querySelectorAll('.gov-priority-at-risk-row[data-governance-action="scroll-commitments"]').forEach((row) => {
     const activate = () => {
       const target = scrollTarget();
@@ -79,11 +110,52 @@ export function bindGovernancePrioritySurface(root, { brief = null, onInspectEvi
     const btn = ev.target.closest('[data-governance-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-governance-action');
+    // Journey actions are handled by handlePortfolioDelegatedClick on #main-content.
+    const portfolioJourneys = new Set([
+      'open-alignment-studio', 'upload-baseline-slide', 'align-board',
+      'record-decision', 'review-prepared', 'share-sponsor-brief',
+      'refresh-brief', 'open-baseline-image', 'view-prepared-items',
+      'view-governance-evidence',
+    ]);
+    if (portfolioJourneys.has(action)) return;
     if (action === 'inspect-evidence' || action === 'open-evidence') {
       ev.preventDefault();
       if (typeof onInspectEvidence === 'function') {
         onInspectEvidence(brief);
         return;
+      }
+    }
+    if (action === 'commitment-decision') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (btn.getAttribute('data-nudge-plan') === '1') {
+        const key = btn.getAttribute('data-commitment-issue') || '';
+        const title = btn.getAttribute('data-commitment-title') || key;
+        const owner = btn.getAttribute('data-commitment-owner') || 'PO/SM';
+        const msg = `${owner}: please plan stories under ${key}${title && title !== key ? ` (${title})` : ''} — this epic is on the PI plan and in Jira but has no stories on the selected boards yet.`;
+        const toast = (text, tone = 'info') => {
+          import('./Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js')
+            .then((m) => m.showInlineToast?.(document.getElementById('main-content'), text, tone))
+            .catch(() => {});
+        };
+        import('./Delivera-Shared-Clipboard-01Bridge.js')
+          .then((m) => m.writeTextToClipboardWithFallback?.(msg))
+          .then(() => toast('Planning nudge copied — paste to PO/SM'))
+          .catch(() => toast(msg));
+        return;
+      }
+      const issueKey = btn.getAttribute('data-commitment-issue') || '';
+      if (issueKey && brief && typeof onInspectEvidence === 'function') {
+        onInspectEvidence(brief);
+      }
+      return;
+    }
+    if (action === 'expand-commitment-detail') {
+      ev.preventDefault();
+      const overflow = root.querySelector('.gov-commitment-detail-overflow');
+      if (overflow) {
+        overflow.hidden = false;
+        btn.hidden = true;
       }
     }
   });

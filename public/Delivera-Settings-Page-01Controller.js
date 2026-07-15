@@ -10,7 +10,7 @@ import { ensureProjectCatalogLoaded } from './Delivera-Shared-Project-Display-01
 import { getSurfaceQuickLinks, PAGE_REPORT } from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { paintInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { paintInstantShell, clearInstantShell, rememberSurfaceHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 const SECTIONS = [
   { id: 'my-workspace', label: 'My workspace' },
@@ -104,12 +104,13 @@ export function initSettingsHub() {
   mountIntegrationsPanel(document.getElementById('settings-integrations'));
   initSettingsJiraActivityPanel();
 
-  document.querySelectorAll('.settings-hub-panels [data-testid="instant-shell"], .settings-hub-panels [data-testid="instant-shell-stale"]').forEach((el) => el.remove());
-  document.querySelector('.settings-hub-panels')?.removeAttribute('aria-busy');
+  const panels = document.querySelector('.settings-hub-panels');
+  if (panels && panels.innerHTML.length > 80) {
+    rememberSurfaceHtml('settings', panels.innerHTML);
+  }
+  clearInstantShell();
   const jiraActivity = document.getElementById('jira-activity');
   if (jiraActivity) jiraActivity.hidden = false;
-  document.body?.classList?.remove('delivera-instant-shell-active');
-  document.getElementById('main-content')?.removeAttribute('data-instant-shell');
 
   if (hash && hash !== 'my-workspace') {
     requestAnimationFrame(() => scrollToSection(hash));

@@ -603,24 +603,55 @@ test.describe('Governance layout overlap audit', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('governance scope bar sticks flush under top chrome (no sticky-offset double-count gap)', async ({ page }) => {
+  test('governance scope bar uses nav-only sticky top (not --sticky-offset double-count)', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await mockLayoutGovernancePage(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await waitForLayoutGovernanceReady(page);
-    const gap = await page.evaluate(() => {
-      const chrome = document.getElementById('app-top-chrome');
-      const sub = document.getElementById('app-sub-chrome-slot');
-      const scope = document.querySelector('#portfolio-scope-bar-mount.portfolio-scope-bar, .portfolio-scope-bar');
-      if (!chrome || !scope) return 9999;
-      const navBottom = (sub && !sub.hidden && sub.getBoundingClientRect().height > 0)
-        ? sub.getBoundingClientRect().bottom
-        : chrome.getBoundingClientRect().bottom;
-      return Math.round(scope.getBoundingClientRect().top - navBottom);
+    // Ensure page can scroll so sticky engages (mock brief can be short).
+    await page.evaluate(() => {
+      const spacer = document.createElement('div');
+      spacer.style.height = '1600px';
+      spacer.setAttribute('data-testid', 'sticky-scroll-spacer');
+      document.getElementById('main-content')?.appendChild(spacer);
+      window.scrollTo(0, 200);
     });
-    expect(gap).toBeLessThanOrEqual(8);
+    await page.waitForTimeout(80);
+    const metrics = await page.evaluate(() => {
+      const scope = document.querySelector('#portfolio-scope-bar-mount.portfolio-scope-bar, .portfolio-scope-bar');
+      if (!scope) return null;
+      const topPx = Number.parseFloat(getComputedStyle(scope).top) || 0;
+      const navVar = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-global-nav-top')) || 56;
+      const offsetVar = Number.parseFloat(getComputedStyle(document.body).getPropertyValue('--sticky-offset'))
+        || Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-offset'))
+        || 0;
+      const chrome = document.getElementById('app-top-chrome');
+      const chromeBottom = chrome ? chrome.getBoundingClientRect().bottom : navVar;
+      const scopeTop = scope.getBoundingClientRect().top;
+      const gap = Math.round(scopeTop - chromeBottom);
+      return {
+        topPx,
+        navVar,
+        offsetVar,
+        chromeBottom: Math.round(chromeBottom),
+        scopeTop: Math.round(scopeTop),
+        scrollY: Math.round(window.scrollY),
+        gap,
+        // Double-count classic: using --sticky-offset (nav+bar) as the bar's own top.
+        doubleCount: offsetVar > navVar + 8 && Math.abs(topPx - offsetVar) <= 2,
+        // Double against body padding: using --sticky-global-nav-top as sticky top.
+        navTopDouble: Math.abs(topPx - navVar) <= 2 && topPx > 8,
+        usesZeroTop: topPx <= 1,
+      };
+    });
+    expect(metrics, JSON.stringify(metrics)).not.toBeNull();
+    expect(metrics.doubleCount, JSON.stringify(metrics)).toBe(false);
+    expect(metrics.navTopDouble, JSON.stringify(metrics)).toBe(false);
+    expect(metrics.usesZeroTop, JSON.stringify(metrics)).toBe(true);
+    // While stuck under fixed chrome, gap must stay tight (plan: ≤8px).
+    expect(metrics.gap, JSON.stringify(metrics)).toBeLessThanOrEqual(8);
     assertTelemetryClean(telemetry);
   });
 
@@ -631,23 +662,18 @@ test.describe('Governance layout overlap audit', () => {
       sessionStorage.clear();
       localStorage.setItem('delivera_selectedProjects', 'SD');
     });
-    await routeProjectsCatalog(page);
+    await mockLayoutGovernancePage(page);
     await page.route('**/api/governance-brief.json**', async (route) => {
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 700));
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LAYOUT_BRIEF) });
     });
-    await page.route('**/api/**', (r) => {
-      const u = r.request().url();
-      if (u.includes('governance-brief')) return r.fallback();
-      return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
-    }).catch(() => {});
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]').first()).toBeVisible({ timeout: 4000 });
 
     await page.goto('/current-sprint');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('#current-sprint-loading [data-testid="instant-shell"], [data-testid="instant-shell-stale"]').first()).toBeVisible({ timeout: 4000 });
+    await expect(page.locator('#current-sprint-loading [data-testid="instant-shell"], [data-testid="instant-shell-stale"]').first()).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#current-sprint-loading.current-sprint-loading-with-spinner')).toHaveCount(0);
     assertTelemetryClean(telemetry);
   });

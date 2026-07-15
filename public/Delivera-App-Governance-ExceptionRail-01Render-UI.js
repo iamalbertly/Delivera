@@ -17,17 +17,23 @@ export function renderExceptionRail(portfolioJudgment = {}, { selectedKey = '' }
   const rows = atRisk.map((s) => {
     const tone = attentionTone(s.attentionState);
     const selected = String(s.projectKey).toUpperCase() === String(selectedKey).toUpperCase();
+    const trust = s.dataTrustLabel
+      ? `<span class="gov-data-trust-chip gov-data-trust-chip--${escapeHtml(s.dataTrust || 'cannot-judge')}" data-testid="governance-data-trust" title="${escapeHtml(s.attentionHint || s.dataTrustLabel)}">${escapeHtml(s.dataTrustLabel)}</span>`
+      : '';
     return `
-      <div
+      <button
+        type="button"
         class="gov-exception-rail-row gov-exception-rail-row--${escapeHtml(tone)}${selected ? ' is-selected' : ''}"
         data-testid="governance-squad-row"
         data-squad-key="${escapeHtml(s.projectKey)}"
-        role="listitem"
-        aria-current="${selected ? 'true' : 'false'}">
+        data-governance-action="select-squad"
+        aria-current="${selected ? 'true' : 'false'}"
+        title="${escapeHtml(s.attentionHint || s.meaning || `Switch scope to ${s.squadName || s.projectKey}`)}">
         <span class="gov-exception-rail-name">${escapeHtml(s.squadName || s.projectKey)}</span>
         <span class="gov-exception-rail-state">${escapeHtml(s.attentionLabel || '')}</span>
-        <span class="gov-exception-rail-meaning">${escapeHtml(s.meaning || '')}</span>
-      </div>`;
+        ${trust}
+        <span class="gov-exception-rail-meaning">${escapeHtml(s.meaning || s.attentionHint || '')}</span>
+      </button>`;
   }).join('');
 
   const collapsed = safeLine ? `
@@ -40,7 +46,14 @@ export function renderExceptionRail(portfolioJudgment = {}, { selectedKey = '' }
     </nav>`;
 }
 
-export function bindExceptionRail(root) {
-  if (!root) return;
-  // Read-only status strip — squad switching lives in scope bar only.
+export function bindExceptionRail(root, { onSelectSquad } = {}) {
+  if (!root || root.dataset.exceptionRailBound === '1') return;
+  root.dataset.exceptionRailBound = '1';
+  root.addEventListener('click', (ev) => {
+    const row = ev.target?.closest?.('[data-governance-action="select-squad"][data-squad-key]');
+    if (!row) return;
+    const key = String(row.getAttribute('data-squad-key') || '').trim().toUpperCase();
+    if (!key) return;
+    if (typeof onSelectSquad === 'function') onSelectSquad(key);
+  });
 }

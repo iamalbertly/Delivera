@@ -1,0 +1,365 @@
+- generic [active] [ref=f1e1]:
+  - link "Skip to main content" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Expand or collapse sidebar" [ref=f1e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f1e10]:
+        - generic [ref=f1e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=f1e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f1e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f1e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f1e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f1e17]: De
+      - searchbox "Context search" [ref=f1e22]
+      - group "Global actions" [ref=f1e23]:
+        - button "Create" [ref=f1e24] [cursor=pointer]:
+          - generic [ref=f1e25]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f1e99]: AI · Slides ready
+        - button "Notifications" [ref=f1e28] [cursor=pointer]
+        - button "Help" [ref=f1e31] [cursor=pointer]
+        - button "Improve Delivera" [ref=f1e34] [cursor=pointer]
+        - link "Settings" [ref=f1e37] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f1e40] [cursor=pointer]: LY
+  - main [ref=f1e41]:
+    - generic "Portfolio scope" [ref=f1e42]:
+      - generic [ref=f1e380]:
+        - generic [ref=f1e381]:
+          - generic "Squad cadence" [ref=f1e382]:
+            - generic [ref=f1e383]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 48d stale
+            - generic [ref=f1e384]: DELIVERY BLOCKED
+          - button "✕ Blocked" [ref=f1e385] [cursor=pointer]
+        - generic [ref=f1e386]:
+          - combobox "Selected scope" [ref=f1e389]:
+            - option "All Projects"
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)" [selected]
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f1e390]:
+            - generic [ref=f1e391]: Compare
+            - generic [ref=f1e392]:
+              - generic [ref=f1e393]:
+                - generic "M-SQUAD (MPSA)" [ref=f1e394]
+                - generic "Mini - Apps Squad (MAS)" [ref=f1e395]
+                - generic "Robotics Process Automation (RPA) (RPA)" [ref=f1e396]
+                - generic "Digital Squad (MVA)" [ref=f1e397]
+                - generic "Agile and Security Guild (ASG)" [ref=f1e398]
+                - generic "Finance Squad (FIN)" [ref=f1e399]
+                - generic "TRANSFORMERS (MPSA2)" [ref=f1e400]
+                - generic "T-Squad (TRS)" [ref=f1e401]
+                - generic "Vodacom Business (VB)" [ref=f1e402]
+                - generic "AMS Squad (Tachyons) (AMS2)" [ref=f1e403]
+                - generic "Bio metric KYC & KYA (BIO)" [ref=f1e404]
+              - button "Compare all" [ref=f1e405] [cursor=pointer]
+          - generic [ref=f1e406]:
+            - generic [ref=f1e407]: Timeframe
+            - combobox "Timeframe" [ref=f1e408]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f1e409]:
+            - generic [ref=f1e410]: Baseline
+            - combobox "Baseline" [ref=f1e411]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=f1e412]: Updating…
+    - generic [ref=f1e65]:
+      - generic "Governance priority brief" [ref=f1e66]:
+        - generic [ref=f1e121]:
+          - paragraph [ref=f1e122]: Power BI charts history · Rovo explains a ticket · Delivera closes the owner + evidence decision in one place.
+          - generic [ref=f1e123]:
+            - generic [ref=f1e124]:
+              - region "Priority governance brief" [ref=f1e125]:
+                - generic [ref=f1e126]:
+                  - status [ref=f1e127]: Data conflict — delivery pulse is Blocked. Treat Blocked / missing baseline as authoritative over calm commitment copy.
+                  - 'heading "Portfolio: 12 squads need attention — SD tops the board-gap list (6 PI commitments with zero stories on selected boards)." [level=1] [ref=f1e129]'
+                  - paragraph [ref=f1e130]: Plan-backed = this squad’s PI slide is on file. Board-gap = PI epic in Jira with zero stories on selected boards.
+                  - paragraph [ref=f1e131]: No PI commitments on file
+                  - generic [ref=f1e133]:
+                    - generic [ref=f1e134]:
+                      - strong [ref=f1e135]: 6 commitments with board-gap evidence
+                      - generic [ref=f1e136]: for SD · selected boards
+                      - generic [ref=f1e137]:
+                        - button "Copy keys + links" [ref=f1e138] [cursor=pointer]
+                        - button "Plan stories pack" [ref=f1e139] [cursor=pointer]
+                    - list [ref=f1e140]:
+                      - listitem [ref=f1e141]:
+                        - link "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns" [ref=f1e142] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5314
+                          - generic [ref=f1e143]: SD-5314
+                          - generic [ref=f1e144]: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns
+                        - generic [ref=f1e145]:
+                          - generic [ref=f1e146]: Active PI gap
+                          - generic [ref=f1e147]: in Jira · no stories on selected boards
+                      - listitem [ref=f1e148]:
+                        - link "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade" [ref=f1e149] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5309
+                          - generic [ref=f1e150]: SD-5309
+                          - generic [ref=f1e151]: FY27 Q2 – DMS – NBA – EVOD Upgrade
+                        - generic [ref=f1e152]:
+                          - generic [ref=f1e153]: Active PI gap
+                          - generic [ref=f1e154]: in Jira · no stories on selected boards
+                      - listitem [ref=f1e155]:
+                        - link "SD-5315 FY27 Q2 – DMS – NBA – Enhancements" [ref=f1e156] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5315
+                          - generic [ref=f1e157]: SD-5315
+                          - generic [ref=f1e158]: FY27 Q2 – DMS – NBA – Enhancements
+                        - generic [ref=f1e159]:
+                          - generic [ref=f1e160]: Active PI gap
+                          - generic [ref=f1e161]: in Jira · no stories on selected boards
+                      - listitem [ref=f1e162]:
+                        - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=f1e163] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5316
+                          - generic [ref=f1e164]: SD-5316
+                          - generic [ref=f1e165]: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                        - generic [ref=f1e166]:
+                          - generic [ref=f1e167]: Active PI gap
+                          - generic [ref=f1e168]: in Jira · no stories on selected boards
+                      - listitem [ref=f1e169]:
+                        - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging" [ref=f1e170] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5317
+                          - generic [ref=f1e171]: SD-5317
+                          - generic [ref=f1e172]: FY27 Q2 – DMS – DMS Capability Merging
+                        - generic [ref=f1e173]:
+                          - generic [ref=f1e174]: Active PI gap
+                          - generic [ref=f1e175]: in Jira · no stories on selected boards
+                      - listitem [ref=f1e176]:
+                        - link "SD-5311 FY27 Q2 – DMS – VOP Upgrade" [ref=f1e177] [cursor=pointer]:
+                          - /url: https://vodacomtz.atlassian.net/browse/SD-5311
+                          - generic [ref=f1e178]: SD-5311
+                          - generic [ref=f1e179]: FY27 Q2 – DMS – VOP Upgrade
+                        - generic [ref=f1e180]:
+                          - generic [ref=f1e181]: Active PI gap
+                          - generic [ref=f1e182]: in Jira · no stories on selected boards
+                  - paragraph [ref=f1e184]:
+                    - strong [ref=f1e185]: Portfolio view · FY27 Q2 · per-squad trust chips below
+                  - table [ref=f1e186]:
+                    - rowgroup [ref=f1e187]:
+                      - row [ref=f1e188]:
+                        - columnheader "Squad" [ref=f1e189]
+                        - columnheader "State" [ref=f1e190]
+                        - columnheader "Trust" [ref=f1e191]
+                        - columnheader "Meaning" [ref=f1e192]
+                    - rowgroup [ref=f1e193]:
+                      - button [ref=f1e194] [cursor=pointer]:
+                        - cell [ref=f1e195]:
+                          - strong [ref=f1e196]: SD
+                        - cell "Cannot verify" [ref=f1e197]
+                        - cell "Cannot judge" [ref=f1e199]
+                        - cell "Board not mapped to Jira" [ref=f1e201]
+                      - button [ref=f1e202] [cursor=pointer]:
+                        - cell [ref=f1e203]:
+                          - strong [ref=f1e204]: MPSA board
+                        - cell "Cannot verify" [ref=f1e205]
+                        - cell "Board health only" [ref=f1e207]
+                        - cell "Board health · plan not uploaded" [ref=f1e209]
+                      - button [ref=f1e210] [cursor=pointer]:
+                        - cell [ref=f1e211]:
+                          - strong [ref=f1e212]: MVA board
+                        - cell "Cannot verify" [ref=f1e213]
+                        - cell "Board health only" [ref=f1e215]
+                        - cell "Board health · plan not uploaded" [ref=f1e217]
+                      - button [ref=f1e218] [cursor=pointer]:
+                        - cell [ref=f1e219]:
+                          - strong [ref=f1e220]: MAS board
+                        - cell "Cannot verify" [ref=f1e221]
+                        - cell "Board health only" [ref=f1e223]
+                        - cell "Board health · plan not uploaded" [ref=f1e225]
+                      - button [ref=f1e226] [cursor=pointer]:
+                        - cell [ref=f1e227]:
+                          - strong [ref=f1e228]: RPA board
+                        - cell "Cannot verify" [ref=f1e229]
+                        - cell "Board health only" [ref=f1e231]
+                        - cell "Board health · plan not uploaded" [ref=f1e233]
+              - generic [ref=f1e234]:
+                - alert [ref=f1e235]:
+                  - text: ⚠️
+                  - strong [ref=f1e236]: 5 squads at 0% delivered
+                  - text: — possible shared root cause. Consider escalating to leadership instead of fixing each squad individually.
+                - region "Squad comparison" [ref=f1e237]:
+                  - generic [ref=f1e238]:
+                    - heading "Squad comparison" [level=2] [ref=f1e239]
+                    - paragraph [ref=f1e240]: Delivery, proof, and investment posture across peers
+                    - paragraph [ref=f1e241]: 0/12 plan-backed · 11 awaiting slide · 1 awaiting story planning
+                  - list [ref=f1e242]:
+                    - 'button "SD Committed · not planned yet 6 epics in Jira still have no stories on the selected boards Do next: Nudge squad to plan stories Nudge squad to plan stories" [ref=f1e243] [cursor=pointer]':
+                      - generic [ref=f1e244]:
+                        - strong [ref=f1e245]:
+                          - generic [ref=f1e246]: SD
+                        - button "Committed · not planned yet" [ref=f1e247]
+                      - generic [ref=f1e248]:
+                        - paragraph [ref=f1e249]: 6 epics in Jira still have no stories on the selected boards
+                        - paragraph [ref=f1e250]:
+                          - strong [ref=f1e251]: "Do next:"
+                          - text: Nudge squad to plan stories
+                        - button "Nudge squad to plan stories" [ref=f1e252]
+                    - 'button "MPSA Upload PI slide to judge plan No quarter PI slide on file for MPSA board Do next: Upload MPSA board PI slide Upload MPSA board PI slide" [ref=f1e253] [cursor=pointer]':
+                      - generic [ref=f1e254]:
+                        - strong [ref=f1e255]:
+                          - generic [ref=f1e256]: MPSA
+                        - button "Upload PI slide to judge plan" [ref=f1e257]
+                      - generic [ref=f1e258]:
+                        - paragraph [ref=f1e259]: No quarter PI slide on file for MPSA board
+                        - paragraph [ref=f1e260]:
+                          - strong [ref=f1e261]: "Do next:"
+                          - text: Upload MPSA board PI slide
+                        - button "Upload MPSA board PI slide" [ref=f1e262]
+                    - 'button "MAS Upload PI slide to judge plan No quarter PI slide on file for MAS board Do next: Upload MAS board PI slide Upload MAS board PI slide" [ref=f1e263] [cursor=pointer]':
+                      - generic [ref=f1e264]:
+                        - strong [ref=f1e265]:
+                          - generic [ref=f1e266]: MAS
+                        - button "Upload PI slide to judge plan" [ref=f1e267]
+                      - generic [ref=f1e268]:
+                        - paragraph [ref=f1e269]: No quarter PI slide on file for MAS board
+                        - paragraph [ref=f1e270]:
+                          - strong [ref=f1e271]: "Do next:"
+                          - text: Upload MAS board PI slide
+                        - button "Upload MAS board PI slide" [ref=f1e272]
+                    - 'button "RPA Upload PI slide to judge plan No quarter PI slide on file for RPA board Do next: Upload RPA board PI slide Upload RPA board PI slide" [ref=f1e273] [cursor=pointer]':
+                      - generic [ref=f1e274]:
+                        - strong [ref=f1e275]:
+                          - generic [ref=f1e276]: RPA
+                        - button "Upload PI slide to judge plan" [ref=f1e277]
+                      - generic [ref=f1e278]:
+                        - paragraph [ref=f1e279]: No quarter PI slide on file for RPA board
+                        - paragraph [ref=f1e280]:
+                          - strong [ref=f1e281]: "Do next:"
+                          - text: Upload RPA board PI slide
+                        - button "Upload RPA board PI slide" [ref=f1e282]
+                    - 'button "MVA Upload PI slide to judge plan No quarter PI slide on file for MVA board Do next: Upload MVA board PI slide Upload MVA board PI slide" [ref=f1e283] [cursor=pointer]':
+                      - generic [ref=f1e284]:
+                        - strong [ref=f1e285]:
+                          - generic [ref=f1e286]: MVA
+                        - button "Upload PI slide to judge plan" [ref=f1e287]
+                      - generic [ref=f1e288]:
+                        - paragraph [ref=f1e289]: No quarter PI slide on file for MVA board
+                        - paragraph [ref=f1e290]:
+                          - strong [ref=f1e291]: "Do next:"
+                          - text: Upload MVA board PI slide
+                        - button "Upload MVA board PI slide" [ref=f1e292]
+              - region "PI commitments" [ref=f1e293]:
+                - heading "PI commitments" [level=2] [ref=f1e294]
+                - paragraph [ref=f1e295]: No unsupported PI commitment rows in this brief yet.
+              - navigation "Squad governance status" [ref=f1e296]:
+                - list [ref=f1e297]:
+                  - button "SD Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e298] [cursor=pointer]:
+                    - generic [ref=f1e299]: SD
+                    - generic [ref=f1e300]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e301]: Cannot judge
+                    - generic [ref=f1e302]: Board not mapped to Jira
+                  - button "MPSA board Cannot verify Board health only Board health · plan not uploaded" [ref=f1e303] [cursor=pointer]:
+                    - generic [ref=f1e304]: MPSA board
+                    - generic [ref=f1e305]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e306]: Board health only
+                    - generic [ref=f1e307]: Board health · plan not uploaded
+                  - button "MVA board Cannot verify Board health only Board health · plan not uploaded" [ref=f1e308] [cursor=pointer]:
+                    - generic [ref=f1e309]: MVA board
+                    - generic [ref=f1e310]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e311]: Board health only
+                    - generic [ref=f1e312]: Board health · plan not uploaded
+                  - button "MAS board Cannot verify Board health only Board health · plan not uploaded" [ref=f1e313] [cursor=pointer]:
+                    - generic [ref=f1e314]: MAS board
+                    - generic [ref=f1e315]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e316]: Board health only
+                    - generic [ref=f1e317]: Board health · plan not uploaded
+                  - button "RPA board Cannot verify Board health only Board health · plan not uploaded" [ref=f1e318] [cursor=pointer]:
+                    - generic [ref=f1e319]: RPA board
+                    - generic [ref=f1e320]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e321]: Board health only
+                    - generic [ref=f1e322]: Board health · plan not uploaded
+                  - button "ASG Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e323] [cursor=pointer]:
+                    - generic [ref=f1e324]: ASG
+                    - generic [ref=f1e325]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e326]: Cannot judge
+                    - generic [ref=f1e327]: Board not mapped to Jira
+                  - button "FIN Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e328] [cursor=pointer]:
+                    - generic [ref=f1e329]: FIN
+                    - generic [ref=f1e330]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e331]: Cannot judge
+                    - generic [ref=f1e332]: Board not mapped to Jira
+                  - button "MPSA2 Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e333] [cursor=pointer]:
+                    - generic [ref=f1e334]: MPSA2
+                    - generic [ref=f1e335]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e336]: Cannot judge
+                    - generic [ref=f1e337]: Board not mapped to Jira
+                  - button "TRS Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e338] [cursor=pointer]:
+                    - generic [ref=f1e339]: TRS
+                    - generic [ref=f1e340]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e341]: Cannot judge
+                    - generic [ref=f1e342]: Board not mapped to Jira
+                  - button "VB Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e343] [cursor=pointer]:
+                    - generic [ref=f1e344]: VB
+                    - generic [ref=f1e345]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e346]: Cannot judge
+                    - generic [ref=f1e347]: Board not mapped to Jira
+                  - button "AMS2 Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e348] [cursor=pointer]:
+                    - generic [ref=f1e349]: AMS2
+                    - generic [ref=f1e350]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e351]: Cannot judge
+                    - generic [ref=f1e352]: Board not mapped to Jira
+                  - button "BIO Cannot verify Cannot judge Board not mapped to Jira" [ref=f1e353] [cursor=pointer]:
+                    - generic [ref=f1e354]: BIO
+                    - generic [ref=f1e355]: Cannot verify
+                    - generic "Upload this squad’s PI slide to judge plan" [ref=f1e356]: Cannot judge
+                    - generic [ref=f1e357]: Board not mapped to Jira
+            - complementary "Delivera actions and decisions" [ref=f1e359]:
+              - group [ref=f1e360]:
+                - generic "System activity" [ref=f1e361] [cursor=pointer]
+              - generic [ref=f1e362]:
+                - heading "Next human decision" [level=2] [ref=f1e363]
+                - paragraph [ref=f1e364]: Pause investment decision
+                - paragraph [ref=f1e365]:
+                  - text: "Owner:"
+                  - strong [ref=f1e366]: Product Owner
+                - paragraph [ref=f1e367]:
+                  - text: "Due:"
+                  - strong [ref=f1e368]: Due in 2 days
+              - button "Review board-gap evidence" [ref=f1e370] [cursor=pointer]
+              - link "Open actions →" [ref=f1e371] [cursor=pointer]:
+                - /url: /actions?project=__ALL__
+      - region "Alignment Studio" [ref=f1e372]:
+        - generic [ref=f1e373]:
+          - paragraph [ref=f1e374]: Board work does not match PI commitments
+          - paragraph [ref=f1e375]: 19 in Jira · 0 to create · 19 board epics (board)
+        - generic [ref=f1e376]:
+          - button "Set baseline →" [ref=f1e377] [cursor=pointer]
+          - group [ref=f1e378]:
+            - generic "More" [ref=f1e379] [cursor=pointer]
+  - dialog "Create work draft" [ref=f1e76]:
+    - generic [ref=f1e77]:
+      - button "Project ▾" [ref=f1e79] [cursor=pointer]:
+        - generic [ref=f1e80]: Project
+        - text: ▾
+      - generic [ref=f1e81]: Create work
+      - button "AI provider settings" [ref=f1e82] [cursor=pointer]: ⚙
+      - button "Close" [ref=f1e83] [cursor=pointer]: ✕
+    - generic [ref=f1e85]:
+      - textbox "Narrative source text" [ref=f1e87]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f1e89]: ✓
+      - list "Work items" [ref=f1e90]
+    - generic [ref=f1e91]:
+      - generic "Set estimate for all items" [ref=f1e92]:
+        - generic [ref=f1e93]: "All:"
+        - slider "Set estimate for all items" [ref=f1e94] [cursor=pointer]: "0"
+        - generic [ref=f1e95]: —
+      - button "Create 0 issues" [disabled] [ref=f1e97]

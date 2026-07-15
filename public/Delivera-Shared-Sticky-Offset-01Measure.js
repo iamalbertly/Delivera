@@ -2,10 +2,12 @@
  * Measures sticky chrome heights and publishes CSS custom properties for scroll offsets.
  *
  * Contract (consumers must not double-count):
- *   --sticky-global-nav-top = top chrome + sub-chrome (first sticky layer: scope bar / sprint HUD)
+ *   --sticky-global-nav-top = top chrome + sub-chrome (viewport-relative sticky / scroll-margins)
  *   --sticky-offset = nav + --gov-scope-bar-height (drawers / rails BELOW the scope bar)
  *   --gov-scope-bar-height = scope bar alone
  *   --current-sprint-hud-below-nav = sprint HUD (+ page header) height below nav
+ * Scope bar sticky `top` must be 0 under body.has-top-chrome (body padding clears chrome;
+ * overflow-x:hidden makes body the sticky CB — using --sticky-global-nav-top doubles ~56px).
  * Never use --sticky-offset as `top` on the scope bar itself — that includes its own height.
  */
 import { TOP_CHROME_ID, SUB_CHROME_SLOT_ID } from './Delivera-Shared-Top-Chrome-01Render-UI.js';
@@ -49,9 +51,9 @@ function publishStickyOffsets() {
 
   // Audit fix: measure the governance portfolio scope bar so right drawers
   // and sticky elements can offset below it instead of being clipped by it.
-  // The scope bar is position: sticky; top: 0 on the governance page and
-  // sits directly under the top-chrome, adding ~52px of sticky height that
-  // the drawer panel's margin-top did not account for.
+  // The scope bar is position: sticky; top: 0 under body.has-top-chrome
+  // (body padding clears fixed chrome; body is the sticky containing block).
+  // --sticky-offset = nav + this bar's height for drawers/rails below it.
   const govScopeBar = document.querySelector('#portfolio-scope-bar-mount.portfolio-scope-bar, .portfolio-scope-bar');
   const govScopeBarH = govScopeBar && !govScopeBar.hidden
     ? Math.ceil(govScopeBar.getBoundingClientRect().height || 0)

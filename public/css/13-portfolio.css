@@ -535,12 +535,15 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   --portfolio-scope-z: var(--z-scope-sticky, 1290);
 }
 
-/* Scope bar is the first sticky layer below nav — use nav-only top.
-   --sticky-offset includes this bar's height and must NOT be used here. */
+/* Scope bar is the first sticky layer below nav.
+   body.has-top-chrome already pads content under fixed chrome, and html/body
+   overflow-x:hidden makes body the sticky containing block — so top must be 0
+   (not --sticky-global-nav-top) or we get a chrome-height double-gap (~56px).
+   Never use --sticky-offset here (includes this bar's own height). */
 .portfolio-page .portfolio-scope-bar,
 #portfolio-scope-bar-mount.portfolio-scope-bar {
   position: sticky;
-  top: var(--sticky-global-nav-top, 56px);
+  top: 0;
   z-index: var(--portfolio-scope-z, var(--z-scope-sticky, 1290));
   background: var(--surface-page, #f8f9fb);
   padding: 0.18rem 0 0.22rem;
@@ -656,8 +659,7 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   padding: 0.15rem 0.35rem;
   min-height: 1.85rem;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible; /* never clip the + Add comparison dropdown (audit) */
   scrollbar-width: thin;
 }
 
@@ -2648,7 +2650,7 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
 
 @media (max-width: 768px) {
   .portfolio-page .portfolio-scope-bar {
-    top: var(--sticky-global-nav-top, 56px);
+    top: 0;
     min-height: 2.45rem;
     max-height: 2.95rem;
     padding: 0.14rem 0 0.18rem;
@@ -3307,4 +3309,36 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
     position: static;
     order: -1;
   }
+}
+
+/* Compare-all readiness gates */
+.portfolio-readiness-strip {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+}
+.portfolio-bento-card--gate-critical {
+  border-color: #dc2626;
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.35);
+}
+.portfolio-bento-card--gate-watch {
+  border-color: #d97706;
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.3);
+}
+.portfolio-squad-status--gate-critical {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.portfolio-squad-status--gate-watch {
+  background: #fffbeb;
+  color: #b45309;
+}
+.portfolio-bento-gate-cta {
+  margin-top: 0.5rem;
+}
+.portfolio-bento-gate-reason {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  color: #475569;
 }

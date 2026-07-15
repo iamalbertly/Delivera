@@ -156,7 +156,7 @@ export function buildWhyText(card = {}, delivered = 0, proof = 0) {
       parts.push('all commitments linked but completion evidence absent');
     }
   }
-  if (offPlan > 0) parts.push(`${offPlan}% off-plan load`);
+  if (offPlan > 0) parts.push(`${offPlan}% behind commitment`);
   if (card.linkedCount != null && card.totalCommitments) {
     parts.push(`${card.linkedCount}/${card.totalCommitments} Jira linked`);
   }

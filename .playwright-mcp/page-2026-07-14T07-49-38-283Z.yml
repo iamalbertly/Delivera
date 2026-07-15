@@ -1,0 +1,281 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e17]: De
+        - generic [ref=e19]: Delivera
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22]
+      - group "Global actions" [ref=e23]:
+        - button "Create" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+          - generic [ref=e26]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e27]: AI · Slides ready
+        - button "Notifications" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+        - button "Help" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - button "Improve Delivera" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+        - link "Settings" [ref=e37] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e38]
+        - button "Account menu" [ref=e40] [cursor=pointer]: LY
+  - main [ref=e41]:
+    - generic "Portfolio scope" [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic "Squad cadence" [ref=e45]:
+            - generic [ref=e46]: Current · Not saved yet · No active sprint
+          - button "… Loading" [disabled] [ref=e47] [cursor=pointer]
+        - generic [ref=e48]:
+          - combobox "Selected squad" [ref=e51]:
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)" [selected]
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=e52]:
+            - generic [ref=e53]: Compare
+            - generic [ref=e54]:
+              - generic [ref=e55]: No comparison
+              - button "Compare all" [ref=e56] [cursor=pointer]
+              - combobox "Add squad to compare" [ref=e57]:
+                - option "+ Add comparison" [selected]
+                - option "AMS Squad (Tachyons) (AMS2)"
+                - option "Agile and Security Guild (ASG)"
+                - option "Bio metric KYC & KYA (BIO)"
+                - option "Finance Squad (FIN)"
+                - option "Mini - Apps Squad (MAS)"
+                - option "M-SQUAD (MPSA)"
+                - option "TRANSFORMERS (MPSA2)"
+                - option "Digital Squad (MVA)"
+                - option "Robotics Process Automation (RPA) (RPA)"
+                - option "T-Squad (TRS)"
+                - option "Vodacom Business (VB)"
+          - generic [ref=e58]:
+            - generic [ref=e59]: Timeframe
+            - combobox "Timeframe" [ref=e60]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e61]:
+            - generic [ref=e62]: Baseline
+            - combobox "Baseline" [ref=e63]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=e64]: Updating…
+    - generic "Governance priority brief" [ref=e67]:
+      - status: Loading portfolio signal…
+      - status [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]: Portfolio Brief
+          - generic [ref=e71]: SD
+          - generic [ref=e72]: Showing last view · refreshing
+        - paragraph [ref=e73]:
+          - text: Showing last view · 38m ago ·
+          - strong [ref=e74]: Refreshing…
+        - generic:
+          - generic:
+            - paragraph: Power BI charts history · Rovo explains a ticket · Delivera closes the owner + evidence decision in one place.
+            - generic:
+              - region "Priority governance brief":
+                - generic:
+                  - generic:
+                    - heading "DMS board needs one decision. 8 FY27 Q2 commitments need attention." [level=1]
+                  - paragraph: 6 of 14 linked · 8 need attention
+                  - list:
+                    - listitem: FY27 Q2 – DMS – NBA – E-HOD Regional Profile has no linked delivery evidence
+                    - listitem: FY27 Q2 – DMS – DMS Capability Merging has no linked delivery evidence
+                  - generic:
+                    - paragraph:
+                      - strong: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+                  - table:
+                    - rowgroup:
+                      - row "Squad State Meaning":
+                        - columnheader "Squad"
+                        - columnheader "State"
+                        - columnheader "Meaning"
+                    - rowgroup:
+                      - button "DMS board Off-plan 6 linked · 8 need attention":
+                        - cell "DMS board":
+                          - strong: DMS board
+                        - cell "Off-plan":
+                          - generic: Off-plan
+                        - cell "6 linked · 8 need attention"
+              - complementary "Delivera actions and decisions":
+                - group:
+                  - generic "✓ 3 automations"
+                  - list:
+                    - listitem:
+                      - generic: ✓
+                      - text: Pulled Jira proof for selected squads
+                    - listitem:
+                      - generic: ✓
+                      - text: Matched board work to PI baseline
+                    - listitem:
+                      - generic: ✓
+                      - text: Drafted owner evidence requests where needed
+                  - paragraph: Delivera linked 6 of 14 promises, prepared 4 evidence requests.
+                - generic:
+                  - heading "Prepared by Delivera" [level=2]
+                  - paragraph: 4 evidence requests drafted and ready for review
+                  - button "Review and send 4 evidence requests"
+                - generic:
+                  - heading "Next human decision" [level=2]
+                  - paragraph: Accept the As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list scope move, or require recovery evidence by 2026-07-16T07:12:00.269Z.
+                  - paragraph:
+                    - text: "Owner:"
+                    - strong: Scrum Master
+                  - paragraph:
+                    - text: "Due:"
+                    - strong: Due in 2 days
+                - generic:
+                  - button "Review and record governance decision"
+                  - button "Inspect 8 unsupported promises"
+                  - button "Share sponsor brief"
+                - link "Open actions →":
+                  - /url: /actions?case=SD-FY27Q2-20260709-01
+                - paragraph: 6 promises linked automatically · 3 duplicate evidence requests prevented
+                - paragraph: "Governance loop: Prepared → next meaningful step"
+            - navigation "Squad governance status":
+              - list:
+                - listitem:
+                  - generic: DMS board
+                  - generic: Off-plan
+                  - generic: 6 linked · 8 need attention
+            - region "Missing or unproven PI commitments":
+              - heading "Missing or unproven PI commitments" [level=2]
+              - table:
+                - rowgroup:
+                  - row "Squad Status PI reference PI commitment Board work found Owner Next decision":
+                    - columnheader "Squad"
+                    - columnheader "Status"
+                    - columnheader "PI reference"
+                    - columnheader "PI commitment"
+                    - columnheader "Board work found"
+                    - columnheader "Owner"
+                    - columnheader "Next decision"
+                - rowgroup:
+                  - button "SD Linked · needs owner SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile FY27 Q2 – DMS – NBA – E-HOD Regional Profile Unlinked — Link promise to Jira work":
+                    - cell "SD"
+                    - cell "Linked · needs owner":
+                      - generic: Linked · needs owner
+                    - cell "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                      - generic "FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                        - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                          - /url: "#work-item-SD-5316"
+                          - generic: SD-5316
+                          - generic: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                    - cell "FY27 Q2 – DMS – NBA – E-HOD Regional Profile"
+                    - cell "Unlinked"
+                    - cell "—"
+                    - cell "Link promise to Jira work":
+                      - button "Link promise to Jira work"
+                  - button "SD Linked · needs owner SD-5317 FY27 Q2 – DMS – DMS Capability Merging FY27 Q2 – DMS – DMS Capability Merging Unlinked — Link promise to Jira work":
+                    - cell "SD"
+                    - cell "Linked · needs owner":
+                      - generic: Linked · needs owner
+                    - cell "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                      - generic "FY27 Q2 – DMS – DMS Capability Merging":
+                        - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                          - /url: "#work-item-SD-5317"
+                          - generic: SD-5317
+                          - generic: FY27 Q2 – DMS – DMS Capability Merging
+                    - cell "FY27 Q2 – DMS – DMS Capability Merging"
+                    - cell "Unlinked"
+                    - cell "—"
+                    - cell "Link promise to Jira work":
+                      - button "Link promise to Jira work"
+                  - button "SD Linked · needs owner SD-5255 As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe To Do — Assign commitment owner":
+                    - cell "SD"
+                    - cell "Linked · needs owner":
+                      - generic: Linked · needs owner
+                    - cell "SD-5255 As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe":
+                      - generic "As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe":
+                        - link "SD-5255 As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe":
+                          - /url: "#work-item-SD-5255"
+                          - generic: SD-5255
+                          - generic: As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe
+                    - cell "As an App user, I want to have longer sessions after loggin in order to encourage regular app visit and get real time pe"
+                    - cell "To Do"
+                    - cell "—"
+                    - cell "Assign commitment owner":
+                      - button "Assign commitment owner"
+                  - button "SD Linked · needs owner SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on In Progress — Assign commitment owner":
+                    - cell "SD"
+                    - cell "Linked · needs owner":
+                      - generic: Linked · needs owner
+                    - cell "SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on":
+                      - generic "As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on":
+                        - link "SD-5304 As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on":
+                          - /url: "#work-item-SD-5304"
+                          - generic: SD-5304
+                          - generic: As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on
+                    - cell "As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on"
+                    - cell "In Progress"
+                    - cell "—"
+                    - cell "Assign commitment owner":
+                      - button "Assign commitment owner"
+                  - button "SD Linked · needs owner SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list To Do — Record scope decision":
+                    - cell "SD"
+                    - cell "Linked · needs owner":
+                      - generic: Linked · needs owner
+                    - cell "SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list":
+                      - generic "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list":
+                        - link "SD-5307 As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list":
+                          - /url: "#work-item-SD-5307"
+                          - generic: SD-5307
+                          - generic: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list
+                    - cell "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list"
+                    - cell "To Do"
+                    - cell "—"
+                    - cell "Record scope decision":
+                      - button "Record scope decision"
+              - button "+3 more commitments"
+    - alert [ref=e76]
+  - dialog "Create work draft" [ref=e77]:
+    - generic [ref=e78]:
+      - button "Project ▾" [ref=e80] [cursor=pointer]:
+        - generic [ref=e81]: Project
+        - text: ▾
+      - generic [ref=e82]: Create work
+      - button "AI provider settings" [ref=e83] [cursor=pointer]: ⚙
+      - button "Close" [ref=e84] [cursor=pointer]: ✕
+    - generic [ref=e86]:
+      - textbox "Narrative source text" [ref=e88]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e90]: ✓
+      - list "Work items" [ref=e91]
+    - generic [ref=e92]:
+      - generic "Set estimate for all items" [ref=e93]:
+        - generic [ref=e94]: "All:"
+        - slider "Set estimate for all items" [ref=e95] [cursor=pointer]: "0"
+        - generic [ref=e96]: —
+      - button "Create 0 issues" [disabled] [ref=e98]

@@ -1,0 +1,88 @@
+- generic [active] [ref=f57e1]:
+  - link "Skip to main content" [ref=f57e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f57e3]:
+    - generic [ref=f57e4]:
+      - button "Expand or collapse sidebar" [ref=f57e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f57e10]:
+        - link "Governance" [ref=f57e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f57e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f57e13] [cursor=pointer]: Actions
+        - link "Settings" [ref=f57e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f57e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f57e17]: De
+        - generic [ref=f57e18]:
+          - generic [ref=f57e19]: Delivera
+          - generic "No report run yet" [ref=f57e20]
+      - searchbox "Context search" [ref=f57e23]
+      - group "Global actions" [ref=f57e24]:
+        - button "Create" [ref=f57e25] [cursor=pointer]:
+          - generic [ref=f57e26]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f57e68]: AI · Slides ready
+        - button "Notifications" [ref=f57e29] [cursor=pointer]
+        - button "Help" [ref=f57e32] [cursor=pointer]
+        - button "Improve Delivera" [ref=f57e35] [cursor=pointer]
+        - link "Settings" [ref=f57e38] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f57e41] [cursor=pointer]: LY
+  - main [ref=f57e42]:
+    - generic [ref=f57e43]:
+      - heading "2 actions need you" [level=1] [ref=f57e69]
+      - paragraph [ref=f57e45]: "2 decisions waiting on you · Portfolio: DELIVERY BLOCKED. Testing of E-SIM Tourism Android APP"
+    - navigation "Actions tabs" [ref=f57e70]:
+      - button "Action needed 2" [ref=f57e71] [cursor=pointer]:
+        - text: Action needed
+        - generic [ref=f57e72]: "2"
+    - generic [ref=f57e46]:
+      - generic [ref=f57e47]:
+        - paragraph [ref=f57e73]:
+          - text: "Scope:"
+          - strong [ref=f57e74]: MAS
+        - generic [ref=f57e75]:
+          - article [ref=f57e76]:
+            - generic [ref=f57e77]:
+              - paragraph [ref=f57e78]:
+                - link "MAS" [ref=f57e79] [cursor=pointer]:
+                  - /url: /current-sprint?projects=MAS
+              - heading "Fix N-card translations" [level=2] [ref=f57e80]
+              - paragraph [ref=f57e81]: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio" [ref=f57e82] [cursor=pointer]:
+                - /url: /governance?project=MAS
+            - generic [ref=f57e83]:
+              - button "Approve nudge" [ref=f57e84] [cursor=pointer]
+              - button "Review case" [ref=f57e85] [cursor=pointer]
+          - article [ref=f57e86]:
+            - generic [ref=f57e87]:
+              - paragraph [ref=f57e88]:
+                - link "MAS" [ref=f57e89] [cursor=pointer]:
+                  - /url: /current-sprint?projects=MAS
+              - heading "Confirm whether DMS board board, project, or sprint scope is correct for this period." [level=2] [ref=f57e90]
+              - paragraph [ref=f57e91]: "0 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio" [ref=f57e92] [cursor=pointer]:
+                - /url: /governance?project=MAS
+            - generic [ref=f57e93]:
+              - button "Approve nudge" [ref=f57e94] [cursor=pointer]
+              - button "Review case" [ref=f57e95] [cursor=pointer]
+      - complementary "Case preview" [ref=f57e96]:
+        - generic [ref=f57e97]:
+          - paragraph [ref=f57e98]: Case preview
+          - paragraph [ref=f57e99]: "Portfolio: DELIVERY BLOCKED. Testing of E-SIM Tourism Android APP"
+          - heading "Fix N-card translations" [level=2] [ref=f57e100]
+          - paragraph [ref=f57e101]:
+            - strong [ref=f57e102]: Intervention approval
+          - paragraph [ref=f57e103]:
+            - strong [ref=f57e104]: "State:"
+            - text: clarification-required
+          - paragraph [ref=f57e105]:
+            - strong [ref=f57e106]: "Issues:"
+            - text: MAS-2502
+          - paragraph [ref=f57e107]: "Ping Nganyaga, on MAS-2502: unblock or cut scope before the next check-in."
+          - generic [ref=f57e108]:
+            - button "Approve nudge" [ref=f57e109] [cursor=pointer]
+            - button "Decline" [ref=f57e110] [cursor=pointer]
+            - link "View in Portfolio" [ref=f57e111] [cursor=pointer]:
+              - /url: /governance?project=MAS

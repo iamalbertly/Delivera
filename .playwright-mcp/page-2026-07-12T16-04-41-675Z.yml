@@ -1,0 +1,80 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - link "Portfolio" [ref=e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=e13] [cursor=pointer]: Actions
+        - link "Settings" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e17]: De
+        - generic [ref=e18]:
+          - generic [ref=e19]: Delivera
+          - generic "No report run yet" [ref=e20]
+      - group "Global actions" [ref=e24]:
+        - button "Create" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: +
+          - generic [ref=e27]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e46]: AI · Slides ready
+        - button "Notifications" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+        - button "Help" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - button "Improve Delivera" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+        - link "Settings" [ref=e38] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e39]
+        - button "Account menu" [ref=e41] [cursor=pointer]: LY
+  - main [ref=e42]:
+    - generic [ref=e43]:
+      - heading "Actions" [level=1] [ref=e44]
+      - paragraph [ref=e45]: All clear — nudges and decisions appear here when needed.
+    - navigation "Actions tabs" [ref=e47]:
+      - button "Action needed" [ref=e48] [cursor=pointer]
+      - button "Escalations" [ref=e49] [cursor=pointer]
+      - button "Done" [ref=e50] [cursor=pointer]
+    - generic [ref=e51]:
+      - region "Sprint blockers" [ref=e54]:
+        - heading "Sprint blockers (3)" [level=2] [ref=e55]
+        - list [ref=e56]:
+          - listitem [ref=e57]:
+            - strong [ref=e58]: SD-5255
+            - generic [ref=e59]: As an App user, I want to have longer sessions after loggin in order to encourag
+            - button "Nudge" [ref=e60] [cursor=pointer]
+          - listitem [ref=e61]:
+            - strong [ref=e62]: SD-5307
+            - generic [ref=e63]: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sen
+            - button "Nudge" [ref=e64] [cursor=pointer]
+          - listitem [ref=e65]:
+            - strong [ref=e66]: SD-5310
+            - generic [ref=e67]: VOP-Feature Enhancement
+            - button "Nudge" [ref=e68] [cursor=pointer]
+        - link "Open in Squads" [ref=e69] [cursor=pointer]:
+          - /url: /current-sprint#stuck-card
+      - complementary "Case preview" [ref=e70]:
+        - generic [ref=e71]:
+          - paragraph [ref=e72]: Case preview
+          - paragraph [ref=e73]: "Portfolio: DELIVERY BLOCKED. Testing of E-SIM Tourism Android APP"
+          - heading "Confirm whether MPSA board board, project, or sprint scope is correct for this period." [level=2] [ref=e74]
+          - paragraph [ref=e75]:
+            - strong [ref=e76]: Intervention approval
+          - paragraph [ref=e77]:
+            - strong [ref=e78]: "State:"
+            - text: clarification-required
+          - paragraph [ref=e79]:
+            - strong [ref=e80]: "Issues:"
+            - text: —
+          - paragraph [ref=e81]: Review facts and approve the next nudge when ready.
+          - generic [ref=e82]:
+            - button "Decline" [ref=e83] [cursor=pointer]
+            - link "View in Portfolio" [ref=e84] [cursor=pointer]:
+              - /url: /governance?project=SD

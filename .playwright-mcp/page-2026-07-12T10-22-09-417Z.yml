@@ -1,0 +1,203 @@
+- generic [active] [ref=e1]:
+  - complementary "Primary" [ref=e2]
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Expand or collapse sidebar" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - navigation "Surfaces" [ref=e11]:
+        - generic [ref=e12] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e13] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e14] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e15] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e17] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e18]: De
+        - generic [ref=e20]: Delivera
+      - generic [ref=e22]:
+        - img
+        - searchbox "Context search" [ref=e23]
+      - group "Global actions" [ref=e24]:
+        - button "Create" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: +
+          - generic [ref=e27]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e28]: AI · Slides ready
+        - button "Notifications" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+        - button "Help" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - button "Improve Delivera" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+        - link "Settings" [ref=e38] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e39]
+        - button "Account menu" [ref=e41] [cursor=pointer]: LY
+  - main [ref=e42]:
+    - generic "Portfolio scope" [ref=e43]:
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - generic [ref=e96]: Portfolio / DMS Squad / Compare
+          - generic "Squad cadence" [ref=e97]:
+            - generic [ref=e98]: Current · Day 45/90 · Sprint stalled · 0% movement · 45d stale
+          - generic [ref=e99]: Current · Day 45/90 · 50% time elapsed
+          - button "● Watch" [ref=e100] [cursor=pointer]
+        - generic [ref=e101]:
+          - combobox "Selected squad" [ref=e104]:
+            - option "AMS Squad (Tachyons)"
+            - option "Agile and Security Guild"
+            - option "Bio metric KYC & KYA"
+            - option "Finance Squad"
+            - option "Mini - Apps Squad"
+            - option "M-SQUAD"
+            - option "TRANSFORMERS"
+            - option "Digital Squad"
+            - option "Robotics Process Automation (RPA)"
+            - option "DMS Squad" [selected]
+            - option "T-Squad"
+            - option "Vodacom Business"
+          - generic [ref=e105]:
+            - generic [ref=e106]: Compare
+            - generic [ref=e107]:
+              - generic [ref=e108]:
+                - generic "M-SQUAD" [ref=e109]
+                - generic "Mini - Apps Squad" [ref=e110]
+              - combobox "Add squad to compare" [ref=e111]:
+                - option "+ Add comparison" [selected]
+                - option "AMS Squad (Tachyons)"
+                - option "Agile and Security Guild"
+                - option "Bio metric KYC & KYA"
+                - option "Finance Squad"
+                - option "TRANSFORMERS"
+                - option "Digital Squad"
+                - option "Robotics Process Automation (RPA)"
+                - option "T-Squad"
+                - option "Vodacom Business"
+          - generic [ref=e112]:
+            - generic [ref=e113]: Timeframe
+            - combobox "Timeframe" [ref=e114]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e115]:
+            - generic [ref=e116]: Baseline
+            - combobox "Baseline" [ref=e117]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+    - generic [ref=e119]:
+      - generic "Governance priority brief" [ref=e120]:
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - region "Priority governance brief" [ref=e123]:
+              - generic [ref=e124]:
+                - heading "Upload this quarter PI baseline slide to verify DMS board commitments" [level=1] [ref=e125]
+                - paragraph [ref=e126]: No promises mapped
+                - list [ref=e128]:
+                  - listitem [ref=e129]: Insufficient delivery evidence
+                - paragraph [ref=e130]:
+                  - text: "📅 Next review:"
+                  - strong [ref=e131]: 2026-07-14T10:21:58.775Z
+                - paragraph [ref=e132]:
+                  - strong [ref=e133]: No this quarter PI baseline slide on file — upload your PowerPoint plan slide to verify commitments
+                  - button "Upload PI baseline slide" [ref=e134] [cursor=pointer]
+            - complementary "Delivera actions and decisions" [ref=e135]:
+              - generic [ref=e136]:
+                - heading "What happens when you upload" [level=2] [ref=e137]
+                - list [ref=e138]:
+                  - listitem [ref=e139]:
+                    - generic [ref=e140]: →
+                    - text: Ready to read your PI plan slide from PowerPoint
+                  - listitem [ref=e141]:
+                    - generic [ref=e142]: →
+                    - text: Will match slide promises to Jira board work
+                  - listitem [ref=e143]:
+                    - generic [ref=e144]: →
+                    - text: Unlocks quarter commitment verification
+              - generic [ref=e145]:
+                - heading "Prepared by Delivera" [level=2] [ref=e146]
+                - paragraph [ref=e147]: 3 evidence requests drafted and ready for review
+                - button "Review and send 3 evidence requests" [ref=e148] [cursor=pointer]
+              - generic [ref=e149]:
+                - heading "Next human decision" [level=2] [ref=e150]
+                - paragraph [ref=e151]: Confirm whether DMS board board, project, or sprint scope is correct for this period.
+                - paragraph [ref=e152]:
+                  - text: "Owner:"
+                  - strong [ref=e153]: Product Owner
+                - paragraph [ref=e154]:
+                  - text: "Due:"
+                  - strong [ref=e155]: 2026-07-14T10:21:58.775Z
+              - button "Upload PI baseline slide" [ref=e157] [cursor=pointer]
+              - paragraph [ref=e158]: 2 duplicate evidence requests prevented
+              - paragraph [ref=e159]: "Governance loop: Prepared → next meaningful step"
+          - navigation "Squad governance status":
+            - list
+          - region "Supporting evidence" [ref=e160]:
+            - region "What changed" [ref=e161]:
+              - heading "What changed" [level=2] [ref=e162]
+              - list [ref=e163]:
+                - listitem [ref=e164]:
+                  - generic [ref=e165]: 🔄
+                  - generic [ref=e166]:
+                    - strong [ref=e167]: Impact exposure
+                    - paragraph [ref=e168]: 5 DMS board commitments may miss the period.
+                - listitem [ref=e169]:
+                  - generic [ref=e170]: 🔄
+                  - generic [ref=e171]:
+                    - strong [ref=e172]: Scope uncertainty
+                    - paragraph [ref=e173]: 5 active items not confirmed in the PI baseline.
+                - listitem [ref=e174]:
+                  - generic [ref=e175]: 🔄
+                  - generic [ref=e176]:
+                    - strong [ref=e177]: Decision delay
+                    - paragraph [ref=e178]: 1 PO confirmation still missing.
+          - region "Portfolio alignment summary" [ref=e179]:
+            - heading "Portfolio alignment" [level=2] [ref=e180]
+            - generic [ref=e181]:
+              - article [ref=e182]:
+                - heading "DMS board" [level=3] [ref=e183]
+                - paragraph [ref=e184]: Cannot verify
+                - paragraph [ref=e185]: Upload PI baseline slide for this quarter
+              - article [ref=e186]:
+                - heading "MPSA board" [level=3] [ref=e187]
+                - paragraph [ref=e188]: Cannot verify
+                - paragraph [ref=e189]: Upload PI baseline slide for this quarter
+              - article [ref=e190]:
+                - heading "MAS board" [level=3] [ref=e191]
+                - paragraph [ref=e192]: Cannot verify
+                - paragraph [ref=e193]: Upload PI baseline slide for this quarter
+      - region "Alignment Studio" [ref=e194]:
+        - generic [ref=e195]:
+          - paragraph [ref=e196]: Board work does not match PI commitments
+          - paragraph [ref=e197]: 18 in Jira · 0 to create · 18 board epics (board)
+        - generic [ref=e198]:
+          - button "Set baseline →" [ref=e199] [cursor=pointer]
+          - group [ref=e200]:
+            - generic "More" [ref=e201] [cursor=pointer]
+    - paragraph [ref=e202]: Governance brief compares PI baseline promises with Jira evidence and prepared actions.
+  - dialog "Create work draft" [ref=e71]:
+    - generic [ref=e72]:
+      - button "Project ▾" [ref=e74] [cursor=pointer]:
+        - generic [ref=e75]: Project
+        - text: ▾
+      - generic [ref=e76]: Create work
+      - button "AI provider settings" [ref=e77] [cursor=pointer]: ⚙
+      - button "Close" [ref=e78] [cursor=pointer]: ✕
+    - generic [ref=e80]:
+      - textbox "Narrative source text" [ref=e82]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e84]: ✓
+      - list "Work items" [ref=e85]
+    - generic [ref=e86]:
+      - generic "Set estimate for all items" [ref=e87]:
+        - generic [ref=e88]: "All:"
+        - slider "Set estimate for all items" [ref=e89] [cursor=pointer]: "0"
+        - generic [ref=e90]: —
+      - button "Create 0 issues" [disabled] [ref=e92]

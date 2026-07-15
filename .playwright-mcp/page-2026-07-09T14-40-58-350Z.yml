@@ -1,0 +1,281 @@
+- generic [active] [ref=e1]:
+  - complementary "Primary" [ref=e2]
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Expand or collapse sidebar" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - navigation "Surfaces" [ref=e11]:
+        - generic [ref=e12] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e13] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e14] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e15] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e17] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e18]: De
+        - generic [ref=e20]: Delivera
+      - generic [ref=e22]:
+        - img
+        - searchbox "Context search" [ref=e23]
+      - group "Global actions" [ref=e24]:
+        - button "Create" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: +
+          - generic [ref=e27]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e468]: AI · Slides ready
+        - button "Notifications" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+        - button "Help" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - button "Improve Delivera" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+        - link "Settings" [ref=e38] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e39]
+        - button "Account menu" [ref=e41] [cursor=pointer]: LY
+  - main [ref=e42]:
+    - generic "Portfolio scope" [ref=e43]:
+      - generic [ref=e262]:
+        - generic [ref=e263]:
+          - generic "Squad cadence" [ref=e264]:
+            - generic [ref=e265]: Current · Day 45/90 · Sprint open · 0% movement · 42d stale
+          - button "✕ Blocked" [ref=e266] [cursor=pointer]
+        - generic [ref=e267]:
+          - combobox "Selected squad" [ref=e270]:
+            - option "AMS Squad (Tachyons)"
+            - option "Agile and Security Guild"
+            - option "Bio metric KYC & KYA"
+            - option "Finance Squad"
+            - option "Mini - Apps Squad"
+            - option "M-SQUAD"
+            - option "TRANSFORMERS"
+            - option "Digital Squad"
+            - option "Robotics Process Automation (RPA)"
+            - option "DMS Squad" [selected]
+            - option "T-Squad"
+            - option "Vodacom Business"
+          - generic [ref=e271]:
+            - generic [ref=e272]: Compare
+            - generic [ref=e273]:
+              - generic "M-SQUAD, Mini - Apps Squad" [ref=e274]: +2 Squads
+              - combobox "Add squad to compare" [ref=e275]:
+                - option "+ Add comparison" [selected]
+                - option "AMS Squad (Tachyons)"
+                - option "Agile and Security Guild"
+                - option "Bio metric KYC & KYA"
+                - option "Finance Squad"
+                - option "TRANSFORMERS"
+                - option "Digital Squad"
+                - option "Robotics Process Automation (RPA)"
+                - option "T-Squad"
+                - option "Vodacom Business"
+          - generic [ref=e276]:
+            - generic [ref=e277]: Timeframe
+            - combobox "Timeframe" [ref=e278]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e279]:
+            - generic [ref=e280]: Baseline
+            - combobox "Baseline" [ref=e281]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=e282]: Cached view
+    - generic [ref=e65]:
+      - generic [ref=e66]:
+        - generic "AI portfolio signal" [ref=e67]:
+          - region "Portfolio decision cockpit" [ref=e283]:
+            - generic [ref=e284]:
+              - generic [ref=e285]: Delivery blocked
+              - generic [ref=e286]: PI not aligned
+            - generic [ref=e287]:
+              - paragraph [ref=e288]: Portfolio decision cockpit
+              - generic [ref=e289]: Decision required
+              - status [ref=e291]:
+                - generic [ref=e293]: ✦
+                - generic [ref=e294]: AI agent learning from live Jira & portfolio signals
+            - link "Review decision below" [ref=e295] [cursor=pointer]:
+              - /url: "#portfolio-decision"
+        - region "Alignment Studio" [ref=e296]:
+          - generic [ref=e297]:
+            - paragraph [ref=e298]: Board work does not match PI commitments
+            - paragraph [ref=e299]: 15 in Jira · 0 to create · 15 board epics (board)
+          - generic [ref=e300]:
+            - button "Set baseline →" [ref=e301] [cursor=pointer]
+            - group [ref=e302]:
+              - generic "More" [ref=e303] [cursor=pointer]
+        - generic "Affected commitments" [ref=e144]:
+          - region "Affected commitments" [ref=e304]:
+            - heading "Affected commitments" [level=2] [ref=e305]
+            - list [ref=e306]:
+              - 'button "SD-FY27Q2-20260708-01 Start the planned sprint or confirm the board owner for this item. At risk FY27Q2 · SD Next move: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio." [ref=e307] [cursor=pointer]':
+                - generic [ref=e308]:
+                  - strong [ref=e309]:
+                    - link "SD-FY27Q2-20260708-01 Start the planned sprint or confirm the board owner for this item." [ref=e310]:
+                      - /url: "#work-item-SD-FY27Q2-20260708-01"
+                      - generic [ref=e311]: SD-FY27Q2-20260708-01
+                      - generic [ref=e312]: Start the planned sprint or confirm the board owner for this item.
+                  - generic [ref=e313]: At risk
+                - paragraph [ref=e314]: FY27Q2 · SD
+                - paragraph [ref=e315]: "Next move: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio."
+        - generic "Compare squads" [ref=e160]:
+          - region "Squad performance grid" [ref=e316]:
+            - generic [ref=e317]:
+              - heading "Squad performance grid" [level=2] [ref=e318]
+              - paragraph [ref=e319]: Delivery / proof / open commitment drift
+            - list [ref=e320]:
+              - generic [ref=e321]:
+                - generic [ref=e322]: Squad
+                - generic [ref=e323]: Root issue
+                - generic [ref=e324]: Delivery
+                - generic [ref=e325]: Proof
+                - generic [ref=e326]: Gaps
+                - generic [ref=e327]: Next move
+              - generic "Delivered 100% · Off-plan 0% · Proof 74% · 5 commitments" [ref=e328] [cursor=pointer]:
+                - button "SD DMS board Improving" [ref=e329]:
+                  - strong [ref=e330]:
+                    - link "SD DMS board" [ref=e331]:
+                      - /url: "#work-item-SD"
+                      - generic [ref=e332]: SD
+                      - generic [ref=e333]: DMS board
+                  - generic [ref=e334]: Improving
+                - generic [ref=e335]: Monitoring
+                - generic "Delivered 100%" [ref=e336]
+                - generic "Proof 74%" [ref=e338]
+                - generic [ref=e340]: "1"
+                - generic [ref=e341]: Review 1 prepared nudge
+              - generic "Delivered 0% · Off-plan 0% · Proof 16% · 13 commitments" [ref=e342] [cursor=pointer]:
+                - button "MPSA MPSA board At risk" [ref=e343]:
+                  - strong [ref=e344]:
+                    - link "MPSA MPSA board" [ref=e345]:
+                      - /url: "#work-item-MPSA"
+                      - generic [ref=e346]: MPSA
+                      - generic [ref=e347]: MPSA board
+                  - generic [ref=e348]: At risk
+                - generic [ref=e349]: Evidence gap
+                - generic "Delivered 0%" [ref=e350]
+                - generic "Proof 16%" [ref=e351]
+                - generic [ref=e353]: "2"
+                - generic [ref=e354]: Monitor next checkpoint
+              - generic "Delivered 78% · Off-plan 0% · Proof 16% · 9 commitments" [ref=e355] [cursor=pointer]:
+                - button "MAS MAS board At risk" [ref=e356]:
+                  - strong [ref=e357]:
+                    - link "MAS MAS board" [ref=e358]:
+                      - /url: "#work-item-MAS"
+                      - generic [ref=e359]: MAS
+                      - generic [ref=e360]: MAS board
+                  - generic [ref=e361]: At risk
+                - generic [ref=e362]: Evidence gap
+                - generic "Delivered 78%" [ref=e363]
+                - generic "Proof 16%" [ref=e365]
+                - generic [ref=e367]: "2"
+                - generic [ref=e368]: Monitor next checkpoint
+      - complementary "Portfolio decision" [ref=e201]:
+        - generic "At-risk commitments"
+        - generic [ref=e202]:
+          - region "Decision required" [ref=e369]:
+            - paragraph [ref=e370]: Decision required
+            - heading "Scope and commitment uncertainty" [level=2] [ref=e371]
+            - generic [ref=e372]:
+              - generic [ref=e373]:
+                - generic [ref=e374]: Impact
+                - strong [ref=e375]: 1 commitment at risk
+              - generic [ref=e376]:
+                - generic [ref=e377]: Owner
+                - strong [ref=e378]: Scrum Master
+              - generic [ref=e379]:
+                - generic [ref=e380]: Due
+                - strong [ref=e381]: Due in 2 days
+              - generic [ref=e382]:
+                - generic [ref=e383]: Evidence
+                - strong [ref=e384]: High
+              - generic [ref=e385]:
+                - generic [ref=e386]: Escalation
+                - strong [ref=e387]: 24 hours after due date
+            - paragraph [ref=e388]:
+              - strong [ref=e389]: Proof
+              - text: · 0 done stories of 13 committed in scope
+            - group [ref=e390]:
+              - generic "Source details" [ref=e391] [cursor=pointer]
+            - generic [ref=e392]:
+              - button "Upload PI slide" [ref=e393] [cursor=pointer]
+              - button "See all evidence" [ref=e394] [cursor=pointer]
+          - generic [ref=e395]:
+            - generic [ref=e396]:
+              - strong [ref=e397]: Last Jira sync
+              - text: 2026-07-09T14:37:28.922Z
+            - generic [ref=e398]:
+              - strong [ref=e399]: Boards connected
+              - text: 3 of 3
+            - generic [ref=e400]:
+              - strong [ref=e401]: Commitments mapped
+              - text: 3 of 3
+            - generic [ref=e402]:
+              - strong [ref=e403]: Data gaps
+              - text: "1"
+            - generic [ref=e404]:
+              - strong [ref=e405]: Confidence
+              - text: Low
+  - dialog "Create work draft" [ref=e78]:
+    - generic [ref=e79]:
+      - button "Project ▾" [ref=e81] [cursor=pointer]:
+        - generic [ref=e82]: Project
+        - text: ▾
+      - generic [ref=e83]: Create work
+      - button "AI provider settings" [ref=e84] [cursor=pointer]: ⚙
+      - button "Close" [ref=e85] [cursor=pointer]: ✕
+    - generic [ref=e87]:
+      - textbox "Narrative source text" [ref=e89]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e91]: ✓
+      - list "Work items" [ref=e92]
+    - generic [ref=e93]:
+      - generic "Set estimate for all items" [ref=e94]:
+        - generic [ref=e95]: "All:"
+        - slider "Set estimate for all items" [ref=e96] [cursor=pointer]: "0"
+        - generic [ref=e97]: —
+      - button "Create 0 issues" [disabled] [ref=e99]
+  - dialog "Alignment Studio · SD+MPSA+MAS · FY27 Q2" [ref=e408]:
+    - banner [ref=e409]:
+      - heading "Alignment Studio · SD+MPSA+MAS · FY27 Q2" [level=2] [ref=e410]
+      - button "Close" [ref=e411] [cursor=pointer]
+    - generic [ref=e469]:
+      - generic [ref=e470]:
+        - generic [ref=e471]:
+          - strong [ref=e472]: "Project:"
+          - text: SD, MPSA, MAS
+        - generic [ref=e473]:
+          - strong [ref=e474]: "Squad:"
+          - text: Not detected (upload slide)
+        - generic [ref=e475]:
+          - strong [ref=e476]: "Quarter:"
+          - text: FY27 Q2
+        - paragraph [ref=e477]: Save what your squad agreed to deliver this quarter.
+      - paragraph [ref=e478]: Alignment Studio
+      - group [ref=e479]:
+        - generic "How this works" [ref=e480] [cursor=pointer]
+        - list [ref=e481]:
+          - listitem [ref=e482]: We read promised work from your board (stories link to these items)
+          - listitem [ref=e483]: Tick what your squad promised this quarter
+          - listitem [ref=e484]: Save — carryover and removed scope become provable
+      - paragraph [ref=e485]: Could not read commitments from slide — check AI in Settings or retry.
+      - group [ref=e486]:
+        - generic "Read PI plan slide" [ref=e487] [cursor=pointer]
+        - generic [ref=e488] [cursor=pointer]:
+          - text: Upload PI plan slide (screenshot or export)
+          - generic [ref=e489]: Drag & drop or click
+          - button "Upload PI plan slide (screenshot or export) Drag & drop or click" [ref=e490]
+        - paragraph [ref=e491]: Slide reading uses your server-configured AI (OpenRouter).
+      - generic [ref=e492]:
+        - button "Refresh" [ref=e493] [cursor=pointer]
+        - link "Open in Jira" [ref=e494] [cursor=pointer]:
+          - /url: https://vodacomtz.atlassian.net/browse/SD
+        - button "Close" [ref=e495] [cursor=pointer]

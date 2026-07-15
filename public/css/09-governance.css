@@ -48,10 +48,10 @@ body.governance-page.sidebar-open .governance-shell {
   }
 }
 
-/* portfolio-scope-bar on governance inherits the same nav-only top (see 13-portfolio.css). */
+/* portfolio-scope-bar / gov-scope-bar: top:0 under padded body (see 13-portfolio.css). */
 .gov-scope-bar-sticky {
   position: sticky;
-  top: var(--sticky-global-nav-top, 0);
+  top: 0;
   z-index: 50;
   margin-bottom: 4px;
   background: var(--surface, #fff);
@@ -374,6 +374,23 @@ body.governance-page.has-top-chrome #main-content > #gov-scope-bar-mount.gov-sco
   color: #334155;
 }
 .gov-baseline-context-why { flex: 1 1 100%; margin: 4px 0 0; color: #64748b; }
+.gov-baseline-layout-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.gov-baseline-provenance {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.gov-baseline-rag { font-size: 0.75rem; color: #64748b; }
 .gov-baseline-few-items {
   margin: 6px 0;
   padding: 8px 10px;
@@ -1317,7 +1334,7 @@ body.has-top-chrome.governance-page .governance-actions #gov-export { display: n
   .governance-shell { padding: 8px 12px 40px; }
   .gov-scope-bar-sticky {
     position: sticky;
-    top: var(--sticky-global-nav-top, 0);
+    top: 0;
     z-index: 50;
     margin-bottom: 4px;
     max-height: min(44vh, 320px);
@@ -2233,4 +2250,34 @@ body.governance-page .gov-compare-add-tray { position: relative; z-index: 2; }
 .gov-cadence-pack[data-movement-health="stalled"] .gov-cadence-chip--scope,
 .gov-cadence-pack[data-movement-health="stalled"] .gov-cadence-chip--sprint {
   color: #b45309;
+}
+
+/* Commitment decision contrast + stage chips (governance truth UX) */
+.gov-commitment-decision.btn-secondary,
+.gov-commitment-detail-table .gov-commitment-decision {
+  color: #fff !important;
+  background: var(--brand-primary, #8b1538) !important;
+  border: 1px solid var(--brand-primary, #8b1538) !important;
+  font-weight: 600;
+  text-decoration: none;
+}
+.gov-commitment-decision.btn-secondary:hover {
+  filter: brightness(0.92);
+}
+.gov-stage-chip {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.gov-stage-chip--critical { background: #fef2f2; color: #b91c1c; }
+.gov-stage-chip--watch { background: #fffbeb; color: #b45309; }
+.gov-stage-chip--ok { background: #ecfdf5; color: #047857; }
+.gov-priority-legend {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.78rem;
+  color: #64748b;
 }

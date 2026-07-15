@@ -288,8 +288,11 @@ export function createPiBaselineWizardActions(ctx) {
       }
       ctx.close();
     });
-    el.querySelector('[data-baseline-switch-sd]')?.addEventListener('click', () => {
-      try { localStorage.setItem(PROJECTS_SSOT_KEY, 'SD'); } catch (_) { /* ignore */ }
+    el.querySelector('[data-baseline-switch-sd], [data-baseline-switch-scope]')?.addEventListener('click', (ev) => {
+      const target = ev.currentTarget?.getAttribute('data-baseline-switch-scope')
+        || (ev.currentTarget?.hasAttribute('data-baseline-switch-sd') ? 'SD' : '');
+      if (!target) return;
+      try { localStorage.setItem(PROJECTS_SSOT_KEY, target); } catch (_) { /* ignore */ }
       ctx.close();
       window.location.reload();
     });

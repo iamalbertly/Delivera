@@ -61,7 +61,9 @@ test.describe('Governance projects catalog SSOT', () => {
     await page.goto('/governance');
     if (page.url().includes('/login')) { test.skip(true, 'Auth required'); return; }
     await waitForGovernanceReady(page);
-    await expect(page.locator('#portfolio-scope-selected option')).toHaveCount(GOV_CATALOG_KEYS.length);
+    await expect(page.locator('#portfolio-scope-selected option')).toHaveCount(GOV_CATALOG_KEYS.length + 1);
+    await expect(page.locator('#portfolio-scope-selected option').first()).toHaveAttribute('value', '__ALL__');
+    await expect(page.locator('#portfolio-scope-selected option').first()).toContainText(/All Projects/i);
     await expect(page.locator('[data-testid="gov-cadence-pack"]')).toBeVisible();
   });
 

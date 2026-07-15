@@ -1,0 +1,73 @@
+- generic [active] [ref=e1]:
+  - status [ref=e3]
+  - link "Skip to main content" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - button "Expand or collapse sidebar" [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - navigation "Surfaces" [ref=e12]:
+        - link "Governance" [ref=e13] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=e14] [cursor=pointer]: Squads
+        - link "Actions" [ref=e15] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e16] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=e18] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e19]: De
+        - generic [ref=e20]:
+          - generic [ref=e21]: Delivera
+          - generic "No report run yet" [ref=e22]
+      - generic [ref=e24]:
+        - img
+        - searchbox "Context search" [ref=e25]
+      - group "Global actions" [ref=e26]:
+        - button "Create" [ref=e27] [cursor=pointer]:
+          - generic [ref=e28]: +
+          - generic [ref=e29]: Create
+        - generic "Checking AI status" [ref=e30]: AI · …
+        - button "Actions" [ref=e31] [cursor=pointer]
+        - button "Notifications" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - button "Help" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+        - button "Improve Delivera" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+        - link "Settings" [ref=e41] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e42]
+        - button "Account menu" [ref=e44] [cursor=pointer]: LY
+  - generic [ref=e45]:
+    - banner [ref=e46]:
+      - generic [ref=e47]:
+        - heading "Today" [level=1] [ref=e48]: Today
+        - paragraph [ref=e51]:
+          - generic [ref=e52]: "Scope: SD"
+          - link "Change on Answer" [ref=e53] [cursor=pointer]:
+            - /url: /governance
+    - main [ref=e54]:
+      - generic [ref=e56]: Refreshing data… showing previous snapshot until new results arrive.
+      - status [ref=e58]:
+        - generic [ref=e60]: SD
+        - paragraph [ref=e97]: Loading sprint health…
+  - dialog "Create work draft" [ref=e98]:
+    - generic [ref=e99]:
+      - button "Project ▾" [ref=e101] [cursor=pointer]:
+        - generic [ref=e102]: Project
+        - text: ▾
+      - generic [ref=e103]: Create work
+      - button "AI provider settings" [ref=e104] [cursor=pointer]: ⚙
+      - button "Close" [ref=e105] [cursor=pointer]: ✕
+    - generic [ref=e107]:
+      - textbox "Narrative source text" [ref=e109]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e111]: ✓
+      - list "Work items" [ref=e112]
+    - generic [ref=e113]:
+      - generic "Set estimate for all items" [ref=e114]:
+        - generic [ref=e115]: "All:"
+        - slider "Set estimate for all items" [ref=e116] [cursor=pointer]: "0"
+        - generic [ref=e117]: —
+      - button "Create 0 issues" [disabled] [ref=e119]

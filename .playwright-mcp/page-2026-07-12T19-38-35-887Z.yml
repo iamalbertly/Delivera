@@ -1,0 +1,52 @@
+- generic [ref=f20e1]:
+  - link "Skip to main content" [ref=f20e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f20e3]:
+    - generic [ref=f20e4]:
+      - button "Expand or collapse sidebar" [ref=f20e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f20e10]:
+        - link "Governance" [ref=f20e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f20e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f20e13] [cursor=pointer]:
+          - /url: /actions
+        - generic [ref=f20e14] [cursor=pointer]: Settings
+      - link "Delivera No report run yet" [ref=f20e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f20e17]: De
+        - generic [ref=f20e18]:
+          - generic [ref=f20e19]: Delivera
+          - generic "No report run yet" [ref=f20e20]
+      - searchbox "Context search" [ref=f20e23]
+      - group "Global actions" [ref=f20e24]:
+        - button "Create" [ref=f20e25] [cursor=pointer]:
+          - generic [ref=f20e26]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f20e67]: AI · Slides ready
+        - button "Actions" [ref=f20e29] [cursor=pointer]
+        - button "Notifications" [ref=f20e30] [cursor=pointer]
+        - button "Help" [ref=f20e33] [cursor=pointer]
+        - button "Improve Delivera" [ref=f20e36] [cursor=pointer]
+        - button "Account menu" [ref=f20e39] [cursor=pointer]: LY
+  - main [ref=f20e41]:
+    - status [ref=f20e42]:
+      - paragraph [ref=f20e43]: Loading settings…
+  - dialog "Create work draft" [ref=f20e44]:
+    - generic [ref=f20e45]:
+      - button "Project ▾" [ref=f20e47] [cursor=pointer]:
+        - generic [ref=f20e48]: Project
+        - text: ▾
+      - generic [ref=f20e49]: Create work
+      - button "AI provider settings" [ref=f20e50] [cursor=pointer]: ⚙
+      - button "Close" [ref=f20e51] [cursor=pointer]: ✕
+    - generic [ref=f20e53]:
+      - textbox "Narrative source text" [ref=f20e55]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f20e57]: ✓
+      - list "Work items" [ref=f20e58]
+    - generic [ref=f20e59]:
+      - generic "Set estimate for all items" [ref=f20e60]:
+        - generic [ref=f20e61]: "All:"
+        - slider "Set estimate for all items" [ref=f20e62] [cursor=pointer]: "0"
+        - generic [ref=f20e63]: —
+      - button "Create 0 issues" [disabled] [ref=f20e65]

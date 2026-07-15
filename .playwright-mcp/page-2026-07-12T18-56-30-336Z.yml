@@ -1,0 +1,274 @@
+- generic [active] [ref=f15e1]:
+  - status [ref=f15e3]
+  - link "Skip to main content" [ref=f15e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f15e5]:
+    - generic [ref=f15e6]:
+      - button "Expand or collapse sidebar" [ref=f15e8] [cursor=pointer]
+      - navigation "Surfaces" [ref=f15e12]:
+        - link "Governance" [ref=f15e13] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=f15e14] [cursor=pointer]: Squads
+        - link "Actions" [ref=f15e15] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f15e16] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f15e18] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f15e19]: De
+        - generic [ref=f15e20]:
+          - generic [ref=f15e21]: Delivera
+          - generic "No report run yet" [ref=f15e22]
+      - searchbox "Context search" [ref=f15e25]
+      - group "Global actions" [ref=f15e26]:
+        - button "Create" [ref=f15e27] [cursor=pointer]:
+          - generic [ref=f15e28]: +
+        - generic "Checking AI status" [ref=f15e30]: AI · …
+        - button "Actions" [ref=f15e31] [cursor=pointer]
+        - button "Notifications" [ref=f15e32] [cursor=pointer]
+        - button "Help" [ref=f15e35] [cursor=pointer]
+        - button "Improve Delivera" [ref=f15e38] [cursor=pointer]
+        - link "Settings" [ref=f15e41] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f15e44] [cursor=pointer]: LY
+  - generic [ref=f15e45]:
+    - banner [ref=f15e46]:
+      - heading "Current Sprint - FY27 Q1MAS 55" [level=1] [ref=f15e47]
+    - main [ref=f15e48]:
+      - generic [ref=f15e49]:
+        - generic [ref=f15e50]:
+          - generic "Sprint scope" [ref=f15e51]
+          - generic [ref=f15e53]:
+            - generic [ref=f15e54]: Mini - Apps Squad
+            - generic "FY27 Q1MAS 55 | Jun 24, 2026 - Jul 8, 2026" [ref=f15e55] [cursor=pointer]: FY27 Q1MAS 55
+            - generic "Jun 24, 2026 - Jul 8, 2026" [ref=f15e56]
+            - generic "Live · Snapshot - updated 17 min ago · No exportable rows": Stale work
+            - paragraph [ref=f15e57]: At Risk · 76% done · 0 items · Ended
+            - status [ref=f15e58]:
+              - strong [ref=f15e59]: At Risk
+              - generic "Sprint active · 7/9 done" [ref=f15e60]: No trackable work in this sprint yet
+          - generic [ref=f15e61]:
+            - generic [ref=f15e63]:
+              - button "Copy sprint summary" [ref=f15e64] [cursor=pointer]: Copy
+              - button "Copy stand-up script" [ref=f15e65] [cursor=pointer]: Standup
+              - button "More export options" [ref=f15e66] [cursor=pointer]: ▾
+            - group [ref=f15e67]:
+              - generic "Context All work" [ref=f15e68] [cursor=pointer]:
+                - generic [ref=f15e70]: Context
+                - generic [ref=f15e71]: All work
+          - generic "Top sprint summary" [ref=f15e72]:
+            - link "Open report" [ref=f15e73] [cursor=pointer]:
+              - /url: /report?boardId=15&sprintId=8561&projects=MAS
+            - link "2 blockers below" [ref=f15e74] [cursor=pointer]:
+              - /url: "#stuck-card"
+            - generic "Live · Snapshot - updated 17 min ago · No exportable rows" [ref=f15e75]:
+              - generic [ref=f15e76]: No exportable rows
+              - generic [ref=f15e77]: "|"
+              - generic [ref=f15e78]: Live sprint — blocker unchanged for 16+ days
+          - group [ref=f15e79]
+        - button "Top blocker" [ref=f15e80]:
+          - generic [ref=f15e81]: 🚫
+          - generic [ref=f15e82]:
+            - paragraph [ref=f15e83]: Top blocker · tap to nudge
+            - strong [ref=f15e84]:
+              - link "MAS-2502" [ref=f15e85] [cursor=pointer]:
+                - /url: https://vodacomtz.atlassian.net/browse/MAS-2502
+              - text: · Fix N-card translations
+            - paragraph [ref=f15e86]: The item has been stale for 394.8h and is likely blocking sprint flow.
+        - group "Switch sprint" [ref=f15e87]:
+          - generic "Past sprints" [ref=f15e88] [cursor=pointer]
+        - status [ref=f15e89]:
+          - generic [ref=f15e90]: "Data availability:"
+          - generic "No sprint issues returned for this board." [ref=f15e91]: Work items hidden
+          - text: — No sprint issues returned for this board. ·
+          - generic "No completed items in this sprint window yet." [ref=f15e92]: Daily completion hidden
+          - text: — No completed items in this sprint window yet.
+          - button "+1 more" [ref=f15e93] [cursor=pointer]
+          - link "[Why?]" [ref=f15e94] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=f15e95]:
+          - paragraph [ref=f15e96]:
+            - strong [ref=f15e97]: No issues for this context
+          - paragraph [ref=f15e98]: No issues were returned for the current sprint context.
+          - paragraph [ref=f15e99]: Add stories in Jira or pick a different board.
+          - paragraph [ref=f15e100]:
+            - button "Pick a board" [ref=f15e101] [cursor=pointer]
+        - generic [ref=f15e102]:
+          - region "Sprint today" [ref=f15e103]:
+            - heading "Sprint today" [level=2] [ref=f15e104]
+            - paragraph [ref=f15e105]:
+              - strong [ref=f15e106]: DELIVERY BLOCKED
+            - paragraph [ref=f15e107]: Sprint outcomes are at risk unless the top issue is resolved quickly. 3.0 SP was added after sprint start.
+            - paragraph [ref=f15e108]:
+              - strong [ref=f15e109]: "Main blocker:"
+              - text: MAS-2502
+            - paragraph [ref=f15e110]:
+              - strong [ref=f15e111]: "Next move:"
+              - text: Unblock
+            - paragraph [ref=f15e112]: Showing blockers below
+          - generic [ref=f15e113]:
+            - region "Sprint value summary" [ref=f15e114]:
+              - generic [ref=f15e115]:
+                - generic [ref=f15e116]: Value answer
+                - strong [ref=f15e117]: FY27 Q1MAS 55
+                - paragraph [ref=f15e118]: Keep MAS board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=f15e119]:
+                - generic [ref=f15e120]: Done
+                - strong [ref=f15e121]: 78% complete
+                - paragraph [ref=f15e122]: 22% may spill over
+              - generic [ref=f15e123]:
+                - generic [ref=f15e124]: Customer impact
+                - generic [ref=f15e125]: Keep MAS board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=f15e127]:
+                - generic [ref=f15e128]: Risk
+                - strong [ref=f15e129]: Needs Attention
+                - paragraph [ref=f15e130]: Are we delivering value this sprint?
+            - group [ref=f15e131]:
+              - generic "Needs Attention — Sprint outcomes are at risk unless the top issue is resolved quickly. 3.0 SP was added after sprint start." [ref=f15e132] [cursor=pointer]
+              - generic [ref=f15e133]:
+                - paragraph [ref=f15e134]:
+                  - text: 24 Jun (Wed) - 8 Jul (Wed)
+                  - generic [ref=f15e135]: "|"
+                  - text: 0 days left
+                - generic [ref=f15e136]:
+                  - article [ref=f15e137]:
+                    - generic [ref=f15e138]: ~
+                    - generic [ref=f15e139]:
+                      - paragraph [ref=f15e140]: Sprint answer
+                      - heading "Needs Attention" [level=2] [ref=f15e141]
+                      - paragraph [ref=f15e142]: Sprint outcomes are at risk unless the top issue is resolved quickly. 3.0 SP was added after sprint start.
+                      - paragraph [ref=f15e143]: 24 Jun (Wed) - 8 Jul (Wed) | 0 days left | 7/9 value stories
+                  - article [ref=f15e144]:
+                    - paragraph [ref=f15e145]: Next action
+                    - heading "MAS-2502 - Fix N-card translations" [level=2] [ref=f15e146]
+                    - paragraph [ref=f15e147]: The item has been stale for 394.8h and is likely blocking sprint flow.
+                  - article [ref=f15e148]:
+                    - paragraph [ref=f15e149]: Signals
+                    - generic [ref=f15e150]:
+                      - generic [ref=f15e151]:
+                        - strong [ref=f15e153]: +10.0 SP recently
+                        - generic [ref=f15e154]: Done now
+                      - generic [ref=f15e155]:
+                        - strong [ref=f15e157]: "2"
+                        - generic [ref=f15e158]: Blockers
+                      - generic [ref=f15e159]:
+                        - strong [ref=f15e161]: "1"
+                        - generic [ref=f15e162]: Added work
+                      - generic [ref=f15e163]:
+                        - strong [ref=f15e165]: Moving
+                        - generic [ref=f15e166]: Last 24h
+                  - complementary [ref=f15e167]:
+                    - generic [ref=f15e168]:
+                      - generic [ref=f15e169]:
+                        - heading "Risk queue" [level=2] [ref=f15e170]
+                        - generic [ref=f15e171]: 6 actions waiting
+                      - button "MAS-2502 Fix N-card translations High The item has been stale for 394.8h and is likely blocking sprint flow. No movement 24h" [ref=f15e172] [cursor=pointer]:
+                        - generic [ref=f15e173]:
+                          - generic [ref=f15e174]:
+                            - link "MAS-2502" [ref=f15e175]:
+                              - /url: https://vodacomtz.atlassian.net/browse/MAS-2502
+                            - strong [ref=f15e176]: Fix N-card translations
+                          - generic [ref=f15e177]: High
+                        - paragraph [ref=f15e178]: The item has been stale for 394.8h and is likely blocking sprint flow.
+                        - generic [ref=f15e179]: No movement 24h
+                      - button "MAS-2394 As a user, I want to be able to change to swahili language while using Global payment mini app High The item has been stale for 120.2h and is likely blocking sprint flow. No movement 24h" [ref=f15e181] [cursor=pointer]:
+                        - generic [ref=f15e182]:
+                          - generic [ref=f15e183]:
+                            - link "MAS-2394" [ref=f15e184]:
+                              - /url: https://vodacomtz.atlassian.net/browse/MAS-2394
+                            - strong [ref=f15e185]: As a user, I want to be able to change to swahili language while using Global payment mini app
+                          - generic [ref=f15e186]: High
+                        - paragraph [ref=f15e187]: The item has been stale for 120.2h and is likely blocking sprint flow.
+                        - generic [ref=f15e188]: No movement 24h
+                      - button "MAS-2510 Operational support Low Scope was added after sprint start and needs explicit trade-off handling. Scope change" [ref=f15e190] [cursor=pointer]:
+                        - generic [ref=f15e191]:
+                          - generic [ref=f15e192]:
+                            - link "MAS-2510" [ref=f15e193]:
+                              - /url: https://vodacomtz.atlassian.net/browse/MAS-2510
+                            - strong [ref=f15e194]: Operational support
+                          - generic [ref=f15e195]: Low
+                        - paragraph [ref=f15e196]: Scope was added after sprint start and needs explicit trade-off handling.
+                        - generic [ref=f15e197]: Scope change
+                      - list "Action queue" [ref=f15e199]:
+                        - button "Need unblock 2" [ref=f15e200] [cursor=pointer]:
+                          - generic [ref=f15e201]: Need unblock
+                          - strong [ref=f15e202]: "2"
+                        - button "Need estimate 0" [ref=f15e203] [cursor=pointer]:
+                          - generic [ref=f15e204]: Need estimate
+                          - strong [ref=f15e205]: "0"
+                        - button "Added work 1" [ref=f15e206] [cursor=pointer]:
+                          - generic [ref=f15e207]: Added work
+                          - strong [ref=f15e208]: "1"
+                        - button "Need owner 0" [ref=f15e209] [cursor=pointer]:
+                          - generic [ref=f15e210]: Need owner
+                          - strong [ref=f15e211]: "0"
+                - generic [ref=f15e212]:
+                  - article [ref=f15e213]:
+                    - paragraph [ref=f15e214]: Value done
+                    - paragraph [ref=f15e215]: 7/9 value stories
+                    - paragraph [ref=f15e216]: 76% complete
+                  - article [ref=f15e219]:
+                    - paragraph [ref=f15e220]: Work left
+                    - paragraph [ref=f15e221]: "2"
+                    - paragraph [ref=f15e222]: 7/9 done
+                  - article [ref=f15e225]:
+                    - paragraph [ref=f15e226]: Risk queue
+                    - paragraph [ref=f15e227]: "6"
+                    - paragraph [ref=f15e228]: 3 top risks | 2 blockers
+                  - article [ref=f15e231]:
+                    - paragraph [ref=f15e232]: Trust
+                    - paragraph [ref=f15e233]: Needs evidence
+                    - paragraph [ref=f15e234]: 0% estimate evidence
+                - generic [ref=f15e236]:
+                  - generic [ref=f15e237]:
+                    - generic [ref=f15e238]:
+                      - paragraph [ref=f15e239]: Value progress
+                      - heading "Done vs added work" [level=2] [ref=f15e240]
+                    - paragraph [ref=f15e241]: One evidence chart for movement, added work, and confidence change.
+                  - generic [ref=f15e242]:
+                    - img "Work movement showing completed work, added scope, and remaining story points" [ref=f15e243]:
+                      - generic [ref=f15e245]: 25 Jun (Thu)
+                    - generic [ref=f15e246]:
+                      - generic [ref=f15e247]: Completed
+                      - generic [ref=f15e249]: Added
+                      - generic [ref=f15e251]: Remaining
+                - generic [ref=f15e253]:
+                  - article [ref=f15e254]:
+                    - generic [ref=f15e255]:
+                      - paragraph [ref=f15e256]: Completion Clustering
+                      - heading "38%" [level=3] [ref=f15e257]
+                      - paragraph [ref=f15e258]: Completion is spreading more evenly through the sprint.
+                  - article [ref=f15e261]:
+                    - generic [ref=f15e262]:
+                      - paragraph [ref=f15e263]: Scope Change Impact
+                      - heading "3.0 SP" [level=3] [ref=f15e264]
+                      - paragraph [ref=f15e265]: 3.0 SP (7%) was added after sprint start.
+                  - article [ref=f15e267]:
+                    - generic [ref=f15e268]:
+                      - paragraph [ref=f15e269]: Planned vs Actual
+                      - heading "-26.0 SP" [level=3] [ref=f15e270]
+                      - paragraph [ref=f15e271]: Behind by 26.0 SP against the ideal line.
+                  - article [ref=f15e274]:
+                    - generic [ref=f15e275]:
+                      - paragraph [ref=f15e276]: Confidence
+                      - heading "Low" [level=3] [ref=f15e277]
+                      - paragraph [ref=f15e278]: Confidence is moderated because sizing evidence is incomplete.
+  - dialog "Create work draft" [ref=f15e282]:
+    - generic [ref=f15e283]:
+      - button "Project ▾" [ref=f15e285] [cursor=pointer]:
+        - generic [ref=f15e286]: Project
+        - text: ▾
+      - generic [ref=f15e287]: Create work
+      - button "AI provider settings" [ref=f15e288] [cursor=pointer]: ⚙
+      - button "Close" [ref=f15e289] [cursor=pointer]: ✕
+    - generic [ref=f15e291]:
+      - textbox "Narrative source text" [ref=f15e293]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f15e295]: ✓
+      - list "Work items" [ref=f15e296]
+    - generic [ref=f15e297]:
+      - generic "Set estimate for all items" [ref=f15e298]:
+        - generic [ref=f15e299]: "All:"
+        - slider "Set estimate for all items" [ref=f15e300] [cursor=pointer]: "0"
+        - generic [ref=f15e301]: —
+      - button "Create 0 issues" [disabled] [ref=f15e303]

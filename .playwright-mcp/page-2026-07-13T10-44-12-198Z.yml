@@ -1,0 +1,38 @@
+- generic [active] [ref=f57e1]:
+  - link "Skip to main content" [ref=f57e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f57e3]:
+    - generic [ref=f57e4]:
+      - button "Expand or collapse sidebar" [ref=f57e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f57e10]:
+        - link "Governance" [ref=f57e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f57e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f57e13] [cursor=pointer]: Actions
+        - link "Settings" [ref=f57e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f57e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f57e17]: De
+        - generic [ref=f57e18]:
+          - generic [ref=f57e19]: Delivera
+          - generic "No report run yet" [ref=f57e20]
+      - searchbox "Context search" [ref=f57e23]
+      - group "Global actions" [ref=f57e24]:
+        - button "Create" [ref=f57e25] [cursor=pointer]:
+          - generic [ref=f57e26]: +
+        - generic "Checking AI status" [ref=f57e28]: AI · …
+        - button "Notifications" [ref=f57e29] [cursor=pointer]
+        - button "Help" [ref=f57e32] [cursor=pointer]
+        - button "Improve Delivera" [ref=f57e35] [cursor=pointer]
+        - link "Settings" [ref=f57e38] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f57e41] [cursor=pointer]: LY
+  - main [ref=f57e42]:
+    - generic [ref=f57e43]:
+      - heading "Actions" [level=1] [ref=f57e44]
+      - paragraph [ref=f57e45]: Nudges, decisions, escalations, and proof — grouped by case.
+    - navigation "Actions tabs"
+    - status [ref=f57e48]:
+      - paragraph [ref=f57e67]: Loading action queue…

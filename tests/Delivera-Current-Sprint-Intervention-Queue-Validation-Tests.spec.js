@@ -80,12 +80,13 @@ test.describe('Current Sprint Intervention Queue Validation', () => {
     // Fixture has 1 blocker (MPSA-1), 1 missing estimate (MPSA-3), 1 unassigned (MPSA-2)
     await expect(queue).toContainText(/\d+ stale in progress|\d+ missing est|\d+ unowned/i);
 
-    // Take action CTA must be dynamic — shows top stuck issue key when available
-    const takeActionBtn = page.locator('.sprint-intervention-item-primary');
+    // Take action CTA: full primary button when not lean; lean HUD may surface a
+    // "N blockers below" jump link instead of the nudge primary.
+    const takeActionBtn = page.locator('.sprint-intervention-item-primary, .sprint-intervention-item-link').first();
     await expect(takeActionBtn).toBeAttached();
     const ctaText = (await takeActionBtn.textContent().catch(() => '') || '').trim();
-    // When stuckCandidates[0] has MPSA-1, CTA surfaces issue key with nudge/unblock verb
-    expect(ctaText).toMatch(/Unblock MPSA-1|Ping .*MPSA-1|Nudge .*MPSA-1|Take action/i);
+    // When stuckCandidates[0] has MPSA-1, CTA surfaces issue key with nudge/unblock verb (or lean jump link)
+    expect(ctaText).toMatch(/Unblock MPSA-1|Ping .*MPSA-1|Nudge .*MPSA-1|Take action|\d+\s+blockers?\s+below/i);
 
     await expect(page.locator('[data-open-outcome-modal]').first()).toBeAttached();
     assertTelemetryClean(telemetry);

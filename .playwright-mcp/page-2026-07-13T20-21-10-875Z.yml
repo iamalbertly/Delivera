@@ -1,0 +1,161 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e17]: De
+        - generic [ref=e19]: Delivera
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22]
+      - group "Global actions" [ref=e23]:
+        - button "Create" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+          - generic [ref=e26]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e99]: AI · Slides ready
+        - button "Notifications" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+        - button "Help" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - button "Improve Delivera" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+        - link "Settings" [ref=e37] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e38]
+        - button "Account menu" [ref=e40] [cursor=pointer]: LY
+  - main [ref=e41]:
+    - generic "Portfolio scope" [ref=e42]:
+      - generic [ref=e100]:
+        - generic [ref=e101]:
+          - generic "Squad cadence" [ref=e102]:
+            - generic [ref=e103]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 8d stale
+            - generic [ref=e104]: DELIVERY BLOCKED
+          - button "✕ Blocked" [ref=e105] [cursor=pointer]
+        - generic [ref=e106]:
+          - combobox "Selected squad" [ref=e109]:
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)" [selected]
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=e110]:
+            - generic [ref=e111]: Compare
+            - generic [ref=e112]:
+              - generic [ref=e113]: No comparison
+              - button "Compare all" [ref=e114] [cursor=pointer]
+          - generic [ref=e115]:
+            - generic [ref=e116]: Timeframe
+            - combobox "Timeframe" [ref=e117]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e118]:
+            - generic [ref=e119]: Baseline
+            - combobox "Baseline" [ref=e120]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+    - generic "Governance priority brief" [ref=e67]:
+      - generic [ref=e121]:
+        - generic [ref=e122]:
+          - paragraph [ref=e123]: Power BI charts history · Rovo explains a ticket · Delivera closes the owner + evidence decision in one place.
+          - 'heading "DMS Squad: 0% delivered · 8 commitments at risk" [level=1] [ref=e124]'
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - generic [ref=e127]: Commitment recovery
+              - strong [ref=e128]: 8 of 8 need recovery
+            - generic [ref=e129]:
+              - generic [ref=e130]: Sponsor position
+              - strong [ref=e131]: Conditional · value remains recoverable
+            - generic [ref=e132]:
+              - generic [ref=e133]: Decision confidence
+              - strong [ref=e134]: Low · 10% proof
+          - paragraph [ref=e135]:
+            - strong [ref=e136]: "Act now:"
+            - text: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio.
+            - generic [ref=e137]: 👤 Scrum Master
+            - generic [ref=e138]: 📅 in 2d
+            - button "Resolve →" [ref=e139] [cursor=pointer]
+        - generic [ref=e140]:
+          - generic [ref=e142]:
+            - paragraph [ref=e143]:
+              - text: Single squad deep dive —
+              - strong [ref=e144]: DMS board
+              - text: only.
+            - button "← Back to comparison" [ref=e145] [cursor=pointer]
+          - region "Squad comparison" [ref=e146]:
+            - generic [ref=e147]:
+              - heading "Squad comparison" [level=2] [ref=e148]
+              - paragraph [ref=e149]: Delivery, proof, and investment posture across peers
+            - list [ref=e150]:
+              - 'button "SD DMS 🔴 Critical 0% delivered 4 commitments · 4 at risk Trend: Declining Likely cause: Jira flow missing or stalled Do next: 0% delivered — sprint stalled or not started Open sprint →" [ref=e151] [cursor=pointer]':
+                - generic [ref=e152]:
+                  - strong [ref=e153]:
+                    - link "SD DMS" [ref=e154]:
+                      - /url: "#work-item-SD"
+                      - generic [ref=e155]: SD
+                      - generic [ref=e156]: DMS
+                  - button "🔴 Critical" [ref=e157]
+                - generic [ref=e158]:
+                  - button "0% delivered" [ref=e159]
+                  - button "4 commitments · 4 at risk" [ref=e160]
+                  - paragraph [ref=e161]: "Trend: Declining"
+                  - paragraph [ref=e162]: "Likely cause: Jira flow missing or stalled"
+                  - 'button "Do next: 0% delivered — sprint stalled or not started" [ref=e163]':
+                    - strong [ref=e164]: "Do next:"
+                    - text: 0% delivered — sprint stalled or not started
+                - link "Open sprint →" [ref=e166]:
+                  - /url: /current-sprint?projects=SD&period=FY27%20Q2
+        - generic [ref=e167]:
+          - generic [ref=e168]:
+            - generic [ref=e169]: Delivera completed
+            - paragraph [ref=e170]: Jira checked · Baseline matched · 4 drafts ready
+          - generic [ref=e171]:
+            - generic [ref=e172]: Leadership decision
+            - paragraph [ref=e173]:
+              - strong [ref=e174]: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio.
+              - text: 👤 Scrum Master 📅 in 2d
+            - paragraph [ref=e175]: "Escalate if: No dated recovery plan"
+          - button "Review and record →" [ref=e177] [cursor=pointer]
+  - dialog "Create work draft" [ref=e76]:
+    - generic [ref=e77]:
+      - button "Project ▾" [ref=e79] [cursor=pointer]:
+        - generic [ref=e80]: Project
+        - text: ▾
+      - generic [ref=e81]: Create work
+      - button "AI provider settings" [ref=e82] [cursor=pointer]: ⚙
+      - button "Close" [ref=e83] [cursor=pointer]: ✕
+    - generic [ref=e85]:
+      - textbox "Narrative source text" [ref=e87]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e89]: ✓
+      - list "Work items" [ref=e90]
+    - generic [ref=e91]:
+      - generic "Set estimate for all items" [ref=e92]:
+        - generic [ref=e93]: "All:"
+        - slider "Set estimate for all items" [ref=e94] [cursor=pointer]: "0"
+        - generic [ref=e95]: —
+      - button "Create 0 issues" [disabled] [ref=e97]

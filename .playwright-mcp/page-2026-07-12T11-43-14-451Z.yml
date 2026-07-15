@@ -1,0 +1,63 @@
+- generic [active] [ref=e1]:
+  - complementary "Primary" [ref=e2]
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Expand or collapse sidebar" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - navigation "Surfaces" [ref=e11]:
+        - generic [ref=e12] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e13] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e14] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e15] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=e17]:
+        - img
+        - searchbox "Context search" [ref=e18] [cursor=pointer]
+      - group "Global actions" [ref=e19]:
+        - button [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates":
+          - generic: Slide vision ready (OpenRouter) — narration may use templates
+        - button "Notifications" [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+        - button "Improve Delivera" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+        - link "Settings" [ref=e28] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e29]
+  - main [ref=e31]:
+    - generic "Portfolio scope" [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic "Squad cadence" [ref=e35]:
+            - generic [ref=e36]: Current · Not saved yet · No active sprint
+          - generic "Set PI baseline to enable time-box" [ref=e37]: Time-box not set
+          - button "● Watch" [ref=e38] [cursor=pointer]
+        - 'button "Filters: DMS Squad / FY27 Q2" [ref=e39] [cursor=pointer]'
+    - generic:
+      - generic:
+        - generic "Governance priority brief"
+    - alert [ref=e41]
+  - dialog "Create work draft" [ref=e42]:
+    - generic [ref=e43]:
+      - button "Project ▾" [ref=e45] [cursor=pointer]:
+        - generic [ref=e46]: Project
+        - text: ▾
+      - generic [ref=e47]: Create work
+      - button "AI provider settings" [ref=e48] [cursor=pointer]: ⚙
+      - button "Close" [ref=e49] [cursor=pointer]: ✕
+    - generic [ref=e51]:
+      - textbox "Narrative source text" [ref=e53]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e55]: ✓
+      - list "Work items" [ref=e56]
+    - generic [ref=e57]:
+      - generic "Set estimate for all items" [ref=e58]:
+        - generic [ref=e59]: "All:"
+        - slider "Set estimate for all items" [ref=e60] [cursor=pointer]: "0"
+        - generic [ref=e61]: —
+      - button "Create 0 issues" [disabled] [ref=e63]

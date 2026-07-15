@@ -33,6 +33,7 @@ import { renderReportNamedViewsBar, wireReportNamedViews } from './Delivera-Repo
 import { initOverlayManager } from './Delivera-Shared-Overlay-Manager.js';
 import { wireLeadershipContentInteractions } from './Delivera-Leadership-Shared-Actions.js';
 import { paintInstantShell, setDeliveraSurfaceState } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { mountSharedStickyScope, ensureSharedStickyScopeMount } from './Delivera-Shared-Sticky-Scope-01Mount-UI.js';
 
 const LEADERSHIP_HASH = '#trends';
 
@@ -40,6 +41,13 @@ function initReportPage() {
   try { document.body.classList.add('report-page'); } catch (_) {}
   paintInstantShell('report');
   setDeliveraSurfaceState('report', 'loading');
+  try {
+    mountSharedStickyScope({
+      mount: ensureSharedStickyScopeMount(document.querySelector('.report-shell-top')),
+      profile: 'full',
+      onRefresh: () => { try { document.dispatchEvent(new CustomEvent('delivera:scope-refresh')); } catch (_) {} },
+    });
+  } catch (_) { /* non-fatal */ }
   try {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     if (!window.location.hash) {

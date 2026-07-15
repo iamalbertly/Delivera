@@ -17,10 +17,15 @@ import {
   bindProjectsStorageSync,
   ensurePortfolioDefaultScope,
   resolveDefaultCompare,
+  resolveAllProjectsRanked,
   readGovViewMode,
   writeGovViewMode,
   clearGovViewMode,
+  PORTFOLIO_ALL,
+  PORTFOLIO_ALL_LABEL,
+  isPortfolioAllAnchor,
 } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
+import { densityFromBrief, portfolioHasNoBaselines } from './Delivera-Governance-Portfolio-Scope-Rank-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { renderSinceLastCheckChip, renderTimeboxChip } from './Delivera-App-Portfolio-Signal-01Render-UI.js';
 import { renderScopeCadenceLine } from './Delivera-App-Governance-Cadence-01Pack-Render-UI.js';
@@ -75,7 +80,10 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   ensurePortfolioDefaultScope();
   projects = readScopeProjects();
   let anchor = readPortfolioAnchor(projects);
-  let compare = projects.filter((p) => String(p).toUpperCase() !== String(anchor).toUpperCase());
+  let compare = isPortfolioAllAnchor(anchor)
+    ? [...projects]
+    : projects.filter((p) => String(p).toUpperCase() !== String(anchor).toUpperCase());
+  if (isPortfolioAllAnchor(anchor)) writeGovViewMode('compare');
   let quarters = [];
   let activeQuarter = readStoredQuarter();
   let baselineMode = readPortfolioBaselineMode();
@@ -86,15 +94,24 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   const priorityBriefPage = typeof document !== 'undefined'
     && document.body?.classList?.contains('governance-priority-brief-page');
   let scopeCollapsed = readScopeSeen() || priorityBriefPage;
-  let catalogKeys = unionScopeProjectKeys([anchor, ...compare]);
+  let catalogKeys = unionScopeProjectKeys(isPortfolioAllAnchor(anchor) ? projects : [anchor, ...compare]);
   // Audit fix: track pre-drill scope so "Back to comparison" can restore it.
   let preDrillScope = null;
 
   function commitScope({ reload = true } = {}) {
     writeScopeSeen();
     writePortfolioAnchor(anchor);
-    writePortfolioProjectsCsv(anchor, compare);
-    projects = [anchor, ...compare];
+    if (isPortfolioAllAnchor(anchor)) {
+      writeGovViewMode('compare');
+      const brief = getBrief?.() || {};
+      const ranked = resolveAllProjectsRanked(densityFromBrief(brief));
+      writePortfolioProjectsCsv(PORTFOLIO_ALL, ranked);
+      projects = ranked;
+      compare = ranked;
+    } else {
+      writePortfolioProjectsCsv(anchor, compare);
+      projects = [anchor, ...compare];
+    }
     if (reload) {
       onScopeChange?.(projects);
       onRefresh?.();
@@ -102,17 +119,22 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   }
 
   function render() {
-    catalogKeys = unionScopeProjectKeys([anchor, ...compare]);
+    catalogKeys = unionScopeProjectKeys([...(isPortfolioAllAnchor(anchor) ? [] : [anchor]), ...compare]);
     const allOptions = catalogKeys.length ? catalogKeys : projects;
-    const compareSummary = compare.length
-      ? `<span class="portfolio-scope-compare-tags" data-testid="portfolio-scope-compare-tags">${compare.map((pk) => `<span class="portfolio-scope-tag" title="${escapeHtml(displayName(pk))}">${escapeHtml(displayName(pk))}</span>`).join('')}</span>`
-      : '<span class="portfolio-scope-tag portfolio-scope-tag--empty">No comparison</span>';
+    const allMode = isPortfolioAllAnchor(anchor);
+    const compareSummary = allMode
+      ? `<span class="portfolio-scope-tag portfolio-scope-tag--all" data-testid="portfolio-scope-all-mode">${escapeHtml(PORTFOLIO_ALL_LABEL)} · ${escapeHtml(String(projects.length))} squads</span>`
+      : (compare.length
+        ? `<span class="portfolio-scope-compare-tags" data-testid="portfolio-scope-compare-tags">${compare.map((pk) => `<span class="portfolio-scope-tag" title="${escapeHtml(displayName(pk))}">${escapeHtml(displayName(pk))}</span>`).join('')}</span>`
+        : '<span class="portfolio-scope-tag portfolio-scope-tag--empty">No comparison</span>');
     // "Compare all" button: one click adds all squads as peers. Reuses
     // resolveDefaultCompare to get all catalog keys minus the anchor.
     // (Audit finding: user requested "a way for the user to click and add
     // comparison all of them by default".)
-    const compareAllBtn = `<button type="button" class="btn btn-link btn-compact portfolio-scope-compare-all" data-portfolio-compare-all title="Compare all squads at once">Compare all</button>`;
-    const availableToAdd = allOptions.filter((k) => {
+    const compareAllBtn = allMode
+      ? ''
+      : `<button type="button" class="btn btn-link btn-compact portfolio-scope-compare-all" data-portfolio-compare-all title="Compare all squads at once">Compare all</button>`;
+    const availableToAdd = allMode ? [] : allOptions.filter((k) => {
       const U = String(k).toUpperCase();
       return U !== String(anchor).toUpperCase() && !compare.some((c) => String(c).toUpperCase() === U);
     });
@@ -127,10 +149,18 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     const hideTimeframeDup = Boolean(cadenceHtml.trim() || timeboxChip.trim());
     const breadcrumb = hideTimeframeDup
       ? ''
-      : `<span class="portfolio-scope-breadcrumb" data-testid="portfolio-scope-breadcrumb">Portfolio / ${escapeHtml(displayName(anchor))} / Compare</span>`;
+      : `<span class="portfolio-scope-breadcrumb" data-testid="portfolio-scope-breadcrumb">Portfolio / ${escapeHtml(allMode ? PORTFOLIO_ALL_LABEL : displayName(anchor))} / Compare</span>`;
     const baselineOptions = baselineOptionsForBrief(getBrief?.() || {});
-    const hideCompareSelect = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
-      && Boolean(document.querySelector('[data-portfolio-carousel]'));
+    const hideCompareSelect = allMode || (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+      && Boolean(document.querySelector('[data-portfolio-carousel]')));
+    const briefNow = getBrief?.() || {};
+    const noBaselineChip = allMode && portfolioHasNoBaselines(briefNow, projects)
+      ? `<span class="gov-scope-status-chip gov-scope-status-chip--setup" data-testid="portfolio-no-pi-slides" title="Upload PI plan slides in Alignment Studio">No PI slides confirmed this quarter</span>`
+      : '';
+    const selectedOptions = [
+      `<option value="${PORTFOLIO_ALL}"${allMode ? ' selected' : ''}>${escapeHtml(PORTFOLIO_ALL_LABEL)}</option>`,
+      ...allOptions.map((pk) => `<option value="${escapeHtml(pk)}"${!allMode && String(pk).toUpperCase() === String(anchor).toUpperCase() ? ' selected' : ''}>${escapeHtml(displayName(pk))}</option>`),
+    ].join('');
 
     mount.innerHTML = `
       <div class="portfolio-scope-filters${scopeCollapsed ? ' portfolio-scope-filters--collapsed' : ''}" data-portfolio-scope-filters>
@@ -139,20 +169,21 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
           ${cadenceHtml}
           ${showTimeboxChip ? timeboxChip : ''}
           <span class="gov-scope-since-wrap">${renderSinceLastCheckChip(getBrief?.() || {})}</span>
+          ${noBaselineChip}
           ${renderStatusPill(statusTier)}
         </div>
         <button type="button" class="portfolio-scope-collapse-toggle btn btn-link btn-compact" data-portfolio-scope-toggle aria-expanded="${scopeCollapsed ? 'false' : 'true'}">
-          ${scopeCollapsed ? `Filters: ${escapeHtml(displayName(anchor))} / ${escapeHtml(activeQuarter || 'Current')}` : 'Close filters'}
+          ${scopeCollapsed ? `Filters: ${escapeHtml(allMode ? PORTFOLIO_ALL_LABEL : displayName(anchor))} / ${escapeHtml(activeQuarter || 'Current')}` : 'Close filters'}
         </button>
         <div class="portfolio-scope-filters-body" data-portfolio-scope-body${scopeCollapsed ? ' hidden' : ''}>
           <label class="portfolio-scope-field">
             <span class="portfolio-scope-select-wrap">
-              <select id="portfolio-scope-selected" class="portfolio-scope-select" aria-label="Selected squad">
-                ${allOptions.map((pk) => `<option value="${escapeHtml(pk)}"${String(pk).toUpperCase() === String(anchor).toUpperCase() ? ' selected' : ''}>${escapeHtml(displayName(pk))}</option>`).join('')}
+              <select id="portfolio-scope-selected" class="portfolio-scope-select" aria-label="Selected scope">
+                ${selectedOptions}
               </select>
             </span>
           </label>
-          <div class="portfolio-scope-field portfolio-scope-field--compare">
+          <div class="portfolio-scope-field portfolio-scope-field--compare"${allMode ? ' hidden' : ''}>
             <span class="portfolio-scope-field-label">Compare</span>
             <div class="portfolio-scope-compare-row">
               ${compareSummary}
@@ -179,6 +210,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
         </div>
       </div>`;
     mount.dataset.portfolioScope = '1';
+    mount.dataset.portfolioAll = allMode ? '1' : '0';
 
     // Auto-refresh on focus-return if data older than 5 min (replaces manual Refresh button).
     if (!mount._autoRefreshBound) {
@@ -197,9 +229,25 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     mount.querySelector('#portfolio-scope-selected')?.addEventListener('change', (ev) => {
       const next = ev.target.value;
       if (!next || String(next).toUpperCase() === String(anchor).toUpperCase()) return;
-      compare = [anchor, ...compare.filter((p) => String(p).toUpperCase() !== String(next).toUpperCase())]
-        .filter((p) => String(p).toUpperCase() !== String(next).toUpperCase());
-      anchor = next;
+      if (isPortfolioAllAnchor(next)) {
+        anchor = PORTFOLIO_ALL;
+        compare = resolveAllProjectsRanked(densityFromBrief(getBrief?.() || {}));
+        writeGovViewMode('compare');
+        commitScope();
+        render();
+        return;
+      }
+      const prevAll = isPortfolioAllAnchor(anchor);
+      if (prevAll) {
+        anchor = next;
+        compare = resolveDefaultCompare(next);
+        writeGovViewMode('drill');
+      } else {
+        compare = [anchor, ...compare.filter((p) => String(p).toUpperCase() !== String(next).toUpperCase())]
+          .filter((p) => String(p).toUpperCase() !== String(next).toUpperCase() && !isPortfolioAllAnchor(p));
+        anchor = next;
+        writeGovViewMode('drill');
+      }
       commitScope();
       render();
     });
@@ -262,21 +310,31 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
   bindProjectsStorageSync(() => {
     projects = readScopeProjects();
     anchor = readPortfolioAnchor(projects);
-    compare = projects.filter((p) => String(p).toUpperCase() !== String(anchor).toUpperCase());
+    compare = isPortfolioAllAnchor(anchor)
+      ? [...projects]
+      : projects.filter((p) => String(p).toUpperCase() !== String(anchor).toUpperCase());
     render();
   });
   render();
 
   const baselineWizard = mountPIBaselineWizard({
-    getProjectsCsv: () => [anchor, ...compare].join(','),
-    getAnchorProject: () => anchor,
+    getProjectsCsv: () => (isPortfolioAllAnchor(anchor) ? projects : [anchor, ...compare]).join(','),
+    getAnchorProject: () => (isPortfolioAllAnchor(anchor) ? (projects[0] || 'SD') : anchor),
     getQuarterLabel: () => activeQuarter,
     getCachedDetailRows: () => getLastDecision?.()?.priorityBrief?.detailRows || [],
     onSaved: () => onRefresh?.({ force: true }),
   });
 
   return {
-    getProjects: () => [anchor, ...compare.filter((p) => String(p).toUpperCase() !== String(anchor).toUpperCase())],
+    // In drill mode (single squad), only send the anchor to the brief API.
+    // Sending all compare peers causes cross-squad contamination — the
+    // drilled squad's H1 and evidence list gets polluted with other squads'
+    // stories. (Audit 2026-07-15: "clicking DMS details shouldn't confuse
+    // it with other squads".) Compare peers are for the carousel, not the
+    // brief API.
+    getProjects: () => (isPortfolioAllAnchor(anchor) ? [...projects] : [anchor]),
+    getAnchor: () => anchor,
+    isAllProjects: () => isPortfolioAllAnchor(anchor),
     getQuarterLabel: () => activeQuarter,
     getPeriodWindow: () => 'pi',
     getBaselineMode: () => baselineMode,
@@ -322,8 +380,24 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     openBaselineWizard: (opts) => baselineWizard?.open(false, opts),
     setAnchor(nextAnchor) {
       if (!nextAnchor) return;
+      if (isPortfolioAllAnchor(nextAnchor)) {
+        anchor = PORTFOLIO_ALL;
+        compare = resolveAllProjectsRanked(densityFromBrief(getBrief?.() || {}));
+        writeGovViewMode('compare');
+        commitScope({ reload: false });
+        render();
+        return;
+      }
+      if (isPortfolioAllAnchor(anchor)) {
+        anchor = nextAnchor;
+        compare = resolveDefaultCompare(nextAnchor);
+        writeGovViewMode('drill');
+        commitScope({ reload: false });
+        render();
+        return;
+      }
       compare = [anchor, ...compare.filter((p) => String(p).toUpperCase() !== String(nextAnchor).toUpperCase())]
-        .filter((p) => String(p).toUpperCase() !== String(nextAnchor).toUpperCase());
+        .filter((p) => String(p).toUpperCase() !== String(nextAnchor).toUpperCase() && !isPortfolioAllAnchor(p));
       anchor = nextAnchor;
       commitScope({ reload: false });
       render();
@@ -350,7 +424,7 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
     },
     /**
      * Restore the pre-drill multi-squad comparison scope.
-     * Falls back to all-squads compare if preDrillScope is null (e.g. after
+     * Falls back to All Projects if preDrillScope is null (e.g. after
      * a page reload that restored a drilled scope from cache). Never leaves
      * the user stranded in single-squad view with no escape.
      * (Audit finding: "Back to comparison" did nothing — preDrillScope was null.)
@@ -361,10 +435,11 @@ export function mountPortfolioScopeBarMode({ mount, onRefresh, onScopeChange, ge
         compare = [...preDrillScope.compare];
         preDrillScope = null;
       } else {
-        // Fallback: restore to default compare (all squads minus anchor).
-        compare = resolveDefaultCompare(anchor);
+        anchor = PORTFOLIO_ALL;
+        compare = resolveAllProjectsRanked(densityFromBrief(getBrief?.() || {}));
       }
       clearGovViewMode();
+      writeGovViewMode('compare');
       commitScope({ reload: true });
       render();
     },

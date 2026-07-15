@@ -1,0 +1,179 @@
+- generic [active] [ref=f18e1]:
+  - link "Skip to main content" [ref=f18e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f18e3]:
+    - generic [ref=f18e4]:
+      - button "Expand or collapse sidebar" [ref=f18e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f18e10]:
+        - link "Governance" [ref=f18e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f18e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f18e13] [cursor=pointer]: Actions
+        - link "Settings" [ref=f18e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f18e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f18e17]: De
+        - generic [ref=f18e18]:
+          - generic [ref=f18e19]: Delivera
+          - generic "No report run yet" [ref=f18e20]
+      - searchbox "Context search" [ref=f18e23]
+      - group "Global actions" [ref=f18e24]:
+        - button "Create" [ref=f18e25] [cursor=pointer]:
+          - generic [ref=f18e26]: +
+        - generic "Checking AI status" [ref=f18e28]: AI · …
+        - button "Notifications" [ref=f18e29] [cursor=pointer]
+        - button "Help" [ref=f18e32] [cursor=pointer]
+        - button "Improve Delivera" [ref=f18e35] [cursor=pointer]
+        - button "Account menu" [ref=f18e38] [cursor=pointer]: LY
+  - main [ref=f18e39]:
+    - generic [ref=f18e40]:
+      - generic [ref=f18e42]:
+        - paragraph [ref=f18e43]:
+          - text: All Projects on Brief — this page uses
+          - strong [ref=f18e44]: DMS Squad (SD)
+          - text: .
+          - link "Open Brief for all" [ref=f18e45] [cursor=pointer]:
+            - /url: /governance
+        - generic [ref=f18e46]:
+          - generic [ref=f18e47]: Squad
+          - combobox "Selected squad" [ref=f18e48]:
+            - option "DMS Squad (SD)" [selected]
+            - option "M-SQUAD (MPSA)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "Digital Squad (MVA)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Finance Squad (FIN)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Bio metric KYC & KYA (BIO)"
+        - generic [ref=f18e49]:
+          - generic [ref=f18e50]: Quarter
+          - combobox "Quarter" [ref=f18e51]:
+            - option "FY24 Q4"
+            - option "FY25 Q3"
+            - option "FY25 Q4"
+            - option "FY26 Q1"
+            - option "FY26 Q2" [selected]
+            - option "FY26 Q3"
+            - option "FY27 Q1"
+            - option "FY27 Q2"
+        - link "Open Brief" [ref=f18e52] [cursor=pointer]:
+          - /url: /governance
+      - heading "Actions" [level=1] [ref=f18e53]
+      - paragraph [ref=f18e54]: Nudges, decisions, escalations, and proof — grouped by case.
+    - navigation "Actions tabs"
+    - status [ref=f18e57]:
+      - generic [ref=f18e58]:
+        - generic [ref=f18e59]: Actions
+        - generic [ref=f18e60]: SD
+        - generic [ref=f18e61]: Showing last view · refreshing
+      - paragraph [ref=f18e62]:
+        - text: Showing last view · 119m ago ·
+        - strong [ref=f18e63]: Refreshing…
+      - generic:
+        - paragraph:
+          - text: "Scope:"
+          - strong: DMS Squad (SD)
+        - generic:
+          - region "Sprint blockers":
+            - generic:
+              - heading "Sprint blockers (3)" [level=2]
+              - button "Nudge all 3"
+            - list:
+              - listitem:
+                - generic:
+                  - strong: SD-5255
+                  - generic: 44d stale
+                  - generic "As an App user, I want to have longer sessions after loggin in order to encourag"
+                - button "Nudge"
+              - listitem:
+                - generic:
+                  - strong: SD-5307
+                  - generic: 13d stale
+                  - generic "As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sen"
+                - button "Nudge"
+              - listitem:
+                - generic:
+                  - strong: SD-5310
+                  - generic: 10d stale
+                  - generic "VOP-Feature Enhancement"
+                - button "Nudge"
+            - link "Open in Squads":
+              - /url: /current-sprint#stuck-card
+          - article:
+            - generic:
+              - paragraph:
+                - link "SD":
+                  - /url: /current-sprint?projects=SD
+              - heading "As a TM & CSS, I want to receive notifications of SOGA focus campaign s…" [level=2]
+              - paragraph: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio":
+                - /url: /governance?project=SD
+            - generic:
+              - button "Approve nudge"
+              - button "Review case"
+          - article:
+            - generic:
+              - paragraph:
+                - link "SD":
+                  - /url: /current-sprint?projects=SD
+              - heading "DEVSECOPS-FY27DMS04" [level=2]
+              - paragraph: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio":
+                - /url: /governance?project=SD
+            - generic:
+              - button "Approve nudge"
+              - button "Review case"
+          - article:
+            - generic:
+              - paragraph:
+                - link "SD":
+                  - /url: /current-sprint?projects=SD
+              - heading "AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new …" [level=2]
+              - paragraph: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio":
+                - /url: /governance?project=SD
+            - generic:
+              - button "Approve nudge"
+              - button "Review case"
+          - article:
+            - generic:
+              - paragraph:
+                - link "SD":
+                  - /url: /current-sprint?projects=SD
+              - heading "As a TM & CSS, I want to receive notifications of SOGA focus campaign s…" [level=2]
+              - paragraph: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio":
+                - /url: /governance?project=SD
+            - generic:
+              - button "Approve nudge"
+              - button "Review case"
+          - article:
+            - generic:
+              - paragraph:
+                - link "SD":
+                  - /url: /current-sprint?projects=SD
+              - heading "DEVSECOPS" [level=2]
+              - paragraph: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio":
+                - /url: /governance?project=SD
+            - generic:
+              - button "Approve nudge"
+              - button "Review case"
+          - article:
+            - generic:
+              - paragraph:
+                - link "SD":
+                  - /url: /current-sprint?projects=SD
+              - heading "AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new …" [level=2]
+              - paragraph: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio":
+                - /url: /governance?project=SD
+            - generic:
+              - button "Approve nudge"
+              - button "Review case"

@@ -1,0 +1,229 @@
+- generic [active] [ref=f55e1]:
+  - link "Skip to main content" [ref=f55e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f55e3]:
+    - generic [ref=f55e4]:
+      - button "Expand or collapse sidebar" [ref=f55e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f55e10]:
+        - generic [ref=f55e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=f55e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f55e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f55e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f55e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f55e17]: De
+      - searchbox "Context search" [ref=f55e22]
+      - group "Global actions" [ref=f55e23]:
+        - button "Create" [ref=f55e24] [cursor=pointer]:
+          - generic [ref=f55e25]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f55e111]: AI · Slides ready
+        - button "Notifications" [ref=f55e28] [cursor=pointer]
+        - button "Help" [ref=f55e31] [cursor=pointer]
+        - button "Improve Delivera" [ref=f55e34] [cursor=pointer]
+        - link "Settings" [ref=f55e37] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f55e40] [cursor=pointer]: LY
+  - main [ref=f55e41]:
+    - generic "Portfolio scope" [ref=f55e42]:
+      - generic [ref=f55e112]:
+        - generic [ref=f55e113]:
+          - generic "Squad cadence" [ref=f55e114]:
+            - generic [ref=f55e115]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 70d stale
+            - generic [ref=f55e116]: DELIVERY BLOCKED
+          - button "✕ Blocked" [ref=f55e117] [cursor=pointer]
+        - generic [ref=f55e118]:
+          - combobox "Selected squad" [ref=f55e121]:
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)" [selected]
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f55e122]:
+            - generic [ref=f55e123]: Compare
+            - generic [ref=f55e125]:
+              - generic "Mini - Apps Squad (MAS)" [ref=f55e126]
+              - generic "Robotics Process Automation (RPA) (RPA)" [ref=f55e127]
+              - generic "TRANSFORMERS (MPSA2)" [ref=f55e128]
+          - generic [ref=f55e129]:
+            - generic [ref=f55e130]: Timeframe
+            - combobox "Timeframe" [ref=f55e131]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f55e132]:
+            - generic [ref=f55e133]: Baseline
+            - combobox "Baseline" [ref=f55e134]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+    - generic "Governance priority brief" [ref=f55e69]:
+      - generic [ref=f55e135]:
+        - generic [ref=f55e136]:
+          - 'heading "FY27 Q2: 2 of 4 squads need intervention · 1 report zero delivery · 8 commitments exposed" [level=1] [ref=f55e137]'
+          - generic [ref=f55e138]:
+            - generic [ref=f55e139]:
+              - generic [ref=f55e140]: Commitment recovery
+              - strong [ref=f55e141]: 8 of 8 need recovery
+            - generic [ref=f55e142]:
+              - generic [ref=f55e143]: Sponsor position
+              - strong [ref=f55e144]: Conditional · value remains recoverable
+            - generic [ref=f55e145]:
+              - generic [ref=f55e146]: Decision confidence
+              - strong [ref=f55e147]: Low · 10% proof
+          - paragraph [ref=f55e148]:
+            - strong [ref=f55e149]: "Act now:"
+            - text: 8 DMS Squad commitments are linked but have no assigned owner. Assign owners before the next check-in.
+            - generic [ref=f55e150]: 👤 Product Owner
+            - generic [ref=f55e151]: 📅 in 2d
+            - button "Resolve →" [ref=f55e152] [cursor=pointer]
+          - generic [ref=f55e153]:
+            - generic [ref=f55e154]: 🔗
+            - generic [ref=f55e155]:
+              - strong [ref=f55e156]: "Shared signal:"
+              - text: DMS Squad and Mini - Apps Squad and Robotics Process Automation (RPA) and TRANSFORMERS have no meaningful sprint movement. Check Jira connection before separate recovery plans.
+        - generic [ref=f55e157]:
+          - alert [ref=f55e158]:
+            - text: ⚠️
+            - strong [ref=f55e159]: 2 squads at 0% delivered
+            - text: — possible shared root cause. Consider escalating to leadership instead of fixing each squad individually.
+          - region "Squad comparison" [ref=f55e160]:
+            - generic [ref=f55e161]:
+              - heading "Squad comparison" [level=2] [ref=f55e162]
+              - paragraph [ref=f55e163]: Delivery, proof, and investment posture across peers
+            - list [ref=f55e164]:
+              - 'button "SD DMS board 🔴 Critical 0% delivered 4 commitments · 4 at risk Trend: Declining Likely cause: Jira flow missing or stalled Next: 0% delivered — sprint stalled or not started Decision 0% delivered — sprint stalled or not started Drill in → View details →" [ref=f55e165] [cursor=pointer]':
+                - generic [ref=f55e166]:
+                  - strong [ref=f55e167]:
+                    - link "SD DMS board" [ref=f55e168]:
+                      - /url: "#work-item-SD"
+                      - generic [ref=f55e169]: SD
+                      - generic [ref=f55e170]: DMS board
+                  - generic [ref=f55e171]: 🔴 Critical
+                - generic [ref=f55e172]:
+                  - paragraph [ref=f55e173]: 0% delivered
+                  - paragraph [ref=f55e174]: 4 commitments · 4 at risk
+                  - paragraph [ref=f55e175]: "Trend: Declining"
+                  - paragraph [ref=f55e176]: "Likely cause: Jira flow missing or stalled"
+                  - paragraph [ref=f55e177]:
+                    - strong [ref=f55e178]: "Next:"
+                    - text: 0% delivered — sprint stalled or not started
+                - generic [ref=f55e179]:
+                  - generic [ref=f55e180]: Decision
+                  - strong [ref=f55e181]: 0% delivered — sprint stalled or not started
+                - generic [ref=f55e182]:
+                  - button "Drill in →" [ref=f55e183]
+                  - link "View details →" [ref=f55e184]:
+                    - /url: /current-sprint?projects=SD&period=FY27%20Q2
+              - 'button "MAS MAS board ● Watch 78% delivered 9 commitments · all on track Trend: Watch Likely cause: Evidence gap — work may be done but unproven Next: 78% delivered but 16% proof — evidence gap Decision 78% delivered but 16% proof — evidence gap Drill in → View details →" [ref=f55e185] [cursor=pointer]':
+                - generic [ref=f55e186]:
+                  - strong [ref=f55e187]:
+                    - link "MAS MAS board" [ref=f55e188]:
+                      - /url: "#work-item-MAS"
+                      - generic [ref=f55e189]: MAS
+                      - generic [ref=f55e190]: MAS board
+                  - generic [ref=f55e191]: ● Watch
+                - generic [ref=f55e192]:
+                  - paragraph [ref=f55e193]: 78% delivered
+                  - paragraph [ref=f55e194]: 9 commitments · all on track
+                  - paragraph [ref=f55e195]: "Trend: Watch"
+                  - paragraph [ref=f55e196]: "Likely cause: Evidence gap — work may be done but unproven"
+                  - paragraph [ref=f55e197]:
+                    - strong [ref=f55e198]: "Next:"
+                    - text: 78% delivered but 16% proof — evidence gap
+                - generic [ref=f55e199]:
+                  - generic [ref=f55e200]: Decision
+                  - strong [ref=f55e201]: 78% delivered but 16% proof — evidence gap
+                - generic [ref=f55e202]:
+                  - button "Drill in →" [ref=f55e203]
+                  - link "View details →" [ref=f55e204]:
+                    - /url: /current-sprint?projects=MAS&period=FY27%20Q2
+              - 'button "RPA RPA board ○ Not assessable 0% delivered No commitments baseline Trend: Declining Likely cause: Behind on delivery — monitor closely Next: Validate delivery recovery Decision Validate delivery recovery Drill in → View details →" [ref=f55e205] [cursor=pointer]':
+                - generic [ref=f55e206]:
+                  - strong [ref=f55e207]:
+                    - link "RPA RPA board" [ref=f55e208]:
+                      - /url: "#work-item-RPA"
+                      - generic [ref=f55e209]: RPA
+                      - generic [ref=f55e210]: RPA board
+                  - generic [ref=f55e211]: ○ Not assessable
+                - generic [ref=f55e212]:
+                  - paragraph [ref=f55e213]: 0% delivered
+                  - paragraph [ref=f55e214]: No commitments baseline
+                  - paragraph [ref=f55e215]: "Trend: Declining"
+                  - paragraph [ref=f55e216]: "Likely cause: Behind on delivery — monitor closely"
+                  - paragraph [ref=f55e217]:
+                    - strong [ref=f55e218]: "Next:"
+                    - text: Validate delivery recovery
+                - generic [ref=f55e219]:
+                  - generic [ref=f55e220]: Decision
+                  - strong [ref=f55e221]: Validate delivery recovery
+                - generic [ref=f55e222]:
+                  - button "Drill in →" [ref=f55e223]
+                  - link "View details →" [ref=f55e224]:
+                    - /url: /current-sprint?projects=RPA&period=FY27%20Q2
+              - 'button "MPSA2 MPSA2 board 🔴 Critical 18% delivered 17 commitments · all on track Trend: Watch Likely cause: Delivery stalled, evidence incomplete Next: 18% delivered — behind on commitments Decision 18% delivered — behind on commitments Drill in → View details →" [ref=f55e225] [cursor=pointer]':
+                - generic [ref=f55e226]:
+                  - strong [ref=f55e227]:
+                    - link "MPSA2 MPSA2 board" [ref=f55e228]:
+                      - /url: "#work-item-MPSA2"
+                      - generic [ref=f55e229]: MPSA2
+                      - generic [ref=f55e230]: MPSA2 board
+                  - generic [ref=f55e231]: 🔴 Critical
+                - generic [ref=f55e232]:
+                  - paragraph [ref=f55e233]: 18% delivered
+                  - paragraph [ref=f55e234]: 17 commitments · all on track
+                  - paragraph [ref=f55e235]: "Trend: Watch"
+                  - paragraph [ref=f55e236]: "Likely cause: Delivery stalled, evidence incomplete"
+                  - paragraph [ref=f55e237]:
+                    - strong [ref=f55e238]: "Next:"
+                    - text: 18% delivered — behind on commitments
+                - generic [ref=f55e239]:
+                  - generic [ref=f55e240]: Decision
+                  - strong [ref=f55e241]: 18% delivered — behind on commitments
+                - generic [ref=f55e242]:
+                  - button "Drill in →" [ref=f55e243]
+                  - link "View details →" [ref=f55e244]:
+                    - /url: /current-sprint?projects=MPSA2&period=FY27%20Q2
+        - generic [ref=f55e245]:
+          - generic [ref=f55e246]:
+            - generic [ref=f55e247]: Delivera completed
+            - paragraph [ref=f55e248]: Jira checked · Baseline matched · 4 drafts ready
+          - generic [ref=f55e249]:
+            - generic [ref=f55e250]: Leadership decision
+            - paragraph [ref=f55e251]:
+              - strong [ref=f55e252]: 8 DMS Squad commitments are linked but have no assigned owner. Assign owners before the next check-in.
+              - text: 👤 Product Owner 📅 in 2d
+            - paragraph [ref=f55e253]: "Escalate if: No dated recovery plan"
+          - button "Review and record →" [ref=f55e255] [cursor=pointer]
+  - dialog "Create work draft" [ref=f55e88]:
+    - generic [ref=f55e89]:
+      - button "Project ▾" [ref=f55e91] [cursor=pointer]:
+        - generic [ref=f55e92]: Project
+        - text: ▾
+      - generic [ref=f55e93]: Create work
+      - button "AI provider settings" [ref=f55e94] [cursor=pointer]: ⚙
+      - button "Close" [ref=f55e95] [cursor=pointer]: ✕
+    - generic [ref=f55e97]:
+      - textbox "Narrative source text" [ref=f55e99]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f55e101]: ✓
+      - list "Work items" [ref=f55e102]
+    - generic [ref=f55e103]:
+      - generic "Set estimate for all items" [ref=f55e104]:
+        - generic [ref=f55e105]: "All:"
+        - slider "Set estimate for all items" [ref=f55e106] [cursor=pointer]: "0"
+        - generic [ref=f55e107]: —
+      - button "Create 0 issues" [disabled] [ref=f55e109]

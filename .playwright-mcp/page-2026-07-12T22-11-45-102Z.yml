@@ -1,0 +1,34 @@
+- generic [active] [ref=f39e1]:
+  - link "Skip to main content" [ref=f39e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f39e3]:
+    - generic [ref=f39e4]:
+      - button "Expand or collapse sidebar" [ref=f39e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f39e10]:
+        - link "Governance" [ref=f39e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f39e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f39e13] [cursor=pointer]: Actions
+        - link "Settings" [ref=f39e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f39e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f39e17]: De
+        - generic [ref=f39e18]:
+          - generic [ref=f39e19]: Delivera
+          - generic "No report run yet" [ref=f39e20]
+      - searchbox "Context search" [ref=f39e23]
+      - group "Global actions" [ref=f39e24]:
+        - button "Create" [ref=f39e25] [cursor=pointer]:
+          - generic [ref=f39e26]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f39e63]: AI · Slides ready
+        - button "Notifications" [ref=f39e29] [cursor=pointer]
+        - button "Help" [ref=f39e32] [cursor=pointer]
+        - button "Improve Delivera" [ref=f39e35] [cursor=pointer]
+        - link "Settings" [ref=f39e38] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f39e41] [cursor=pointer]: LY
+  - main [ref=f39e42]:
+    - status [ref=f39e43]:
+      - paragraph [ref=f39e62]: Loading action queue…

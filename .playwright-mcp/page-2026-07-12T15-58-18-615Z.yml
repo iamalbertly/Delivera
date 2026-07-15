@@ -1,0 +1,238 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e17]: De
+        - generic [ref=e19]: Delivera
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22]
+      - group "Global actions" [ref=e23]:
+        - button "Create" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+          - generic [ref=e26]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e93]: AI · Slides ready
+        - button "Notifications" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+        - button "Help" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - button "Improve Delivera" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+        - link "Settings" [ref=e37] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e38]
+        - button "Account menu" [ref=e40] [cursor=pointer]: LY
+  - main [ref=e41]:
+    - generic "Portfolio scope" [ref=e42]:
+      - generic [ref=e118]:
+        - generic [ref=e119]:
+          - generic "Squad cadence" [ref=e120]:
+            - generic [ref=e121]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 45d stale
+          - generic [ref=e122]: FY27 Q2 · Day 45/90 · 50% time elapsed
+          - button "✕ Blocked" [ref=e123] [cursor=pointer]
+        - generic [ref=e124]:
+          - combobox "Selected squad" [ref=e127]:
+            - option "AMS Squad (Tachyons)"
+            - option "Agile and Security Guild"
+            - option "Bio metric KYC & KYA"
+            - option "Finance Squad"
+            - option "Mini - Apps Squad"
+            - option "M-SQUAD"
+            - option "TRANSFORMERS"
+            - option "Digital Squad"
+            - option "Robotics Process Automation (RPA)"
+            - option "DMS Squad" [selected]
+            - option "T-Squad"
+            - option "Vodacom Business"
+          - generic [ref=e128]:
+            - generic [ref=e129]: Compare
+            - generic [ref=e131]:
+              - generic "M-SQUAD" [ref=e132]
+              - generic "Mini - Apps Squad" [ref=e133]
+          - generic [ref=e134]:
+            - generic [ref=e135]: Timeframe
+            - combobox "Timeframe" [ref=e136]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e137]:
+            - generic [ref=e138]: Baseline
+            - combobox "Baseline" [ref=e139]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+          - generic [ref=e140]: Cached view
+    - generic [ref=e67]:
+      - generic "Governance priority brief" [ref=e142]:
+        - generic [ref=e143]:
+          - generic [ref=e144]:
+            - region "Priority governance brief" [ref=e145]:
+              - generic [ref=e146]:
+                - heading "MAS board needs one decision. 14 FY27 Q2 promises remain unsupported." [level=1] [ref=e148]
+                - paragraph [ref=e149]: 12 of 14 promises lack delivery proof
+                - list [ref=e151]:
+                  - listitem [ref=e152]: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns lacks delivery proof
+                  - listitem [ref=e153]: FY27 Q2 – DMS – NBA – EVOD Upgrade lacks delivery proof
+                - paragraph [ref=e154]:
+                  - text: "📅 Next review:"
+                  - strong [ref=e155]: 2026-07-14T15:57:58.523Z
+                - table [ref=e156]:
+                  - rowgroup [ref=e157]:
+                    - row "Squad State Meaning" [ref=e158]:
+                      - columnheader "Squad" [ref=e159]
+                      - columnheader "State" [ref=e160]
+                      - columnheader "Meaning" [ref=e161]
+                  - rowgroup [ref=e162]:
+                    - button "Open evidence for MAS board" [ref=e163]:
+                      - cell "MAS board" [ref=e164]:
+                        - strong [ref=e165]: MAS board
+                      - cell "Off-plan" [ref=e166]:
+                        - generic [ref=e167]: Off-plan
+                      - cell "14 promises unsupported" [ref=e168]
+                    - button "Open evidence for MPSA board" [ref=e169]:
+                      - cell "MPSA board" [ref=e170]:
+                        - strong [ref=e171]: MPSA board
+                      - cell "Off-plan" [ref=e172]:
+                        - generic [ref=e173]: Off-plan
+                      - cell "13 promises unsupported" [ref=e174]
+                    - button "Open evidence for DMS board" [ref=e175]:
+                      - cell "DMS board" [ref=e176]:
+                        - strong [ref=e177]: DMS board
+                      - cell "Off-plan" [ref=e178]:
+                        - generic [ref=e179]: Off-plan
+                      - cell "12 promises unsupported" [ref=e180]
+                - generic [ref=e181]:
+                  - paragraph [ref=e182]:
+                    - strong [ref=e183]: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+                  - paragraph [ref=e184]: "Extracted: 6 · Linked: 4 · Unsupported: 28"
+                  - button "Compare 28 unsupported promises with Jira" [ref=e186] [cursor=pointer]
+            - complementary "Delivera actions and decisions" [ref=e187]:
+              - generic [ref=e188]:
+                - heading "What the system already did" [level=2] [ref=e189]
+                - list [ref=e190]:
+                  - listitem [ref=e191]:
+                    - generic [ref=e192]: ✓
+                    - text: Pulled Jira proof for selected squads
+                  - listitem [ref=e193]:
+                    - generic [ref=e194]: ✓
+                    - text: Matched board work to PI baseline
+                  - listitem [ref=e195]:
+                    - generic [ref=e196]: ✓
+                    - text: Drafted owner evidence requests where needed
+                - paragraph [ref=e197]: Delivera linked 4 of 6 promises, prepared 3 evidence requests.
+              - generic [ref=e198]:
+                - heading "Prepared by Delivera" [level=2] [ref=e199]
+                - paragraph [ref=e200]: 3 evidence requests drafted and ready for review
+                - button "Review and send 3 evidence requests" [ref=e201] [cursor=pointer]
+              - generic [ref=e202]:
+                - heading "Next human decision" [level=2] [ref=e203]
+                - paragraph [ref=e204]: Accept the As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list scope move, or require recovery evidence by 2026-07-14T15:57:58.523Z.
+                - paragraph [ref=e205]:
+                  - text: "Owner:"
+                  - strong [ref=e206]: Product Owner
+                - paragraph [ref=e207]:
+                  - text: "Due:"
+                  - strong [ref=e208]: 2026-07-14T15:57:58.523Z
+              - generic [ref=e209]:
+                - button "Review and record governance decision" [ref=e210] [cursor=pointer]
+                - button "Inspect 12 unsupported promises" [ref=e211] [cursor=pointer]
+                - button "Share sponsor brief" [ref=e212] [cursor=pointer]
+              - paragraph [ref=e213]: 4 promises linked automatically · 2 duplicate evidence requests prevented
+              - paragraph [ref=e214]: "Governance loop: Prepared → next meaningful step"
+          - navigation "Squad governance status" [ref=e215]:
+            - list [ref=e216]:
+              - button "MAS board Off-plan 14 promises unsupported" [ref=e217] [cursor=pointer]:
+                - generic [ref=e218]: MAS board
+                - generic [ref=e219]: Off-plan
+                - generic [ref=e220]: 14 promises unsupported
+              - button "MPSA board Off-plan 13 promises unsupported" [ref=e221] [cursor=pointer]:
+                - generic [ref=e222]: MPSA board
+                - generic [ref=e223]: Off-plan
+                - generic [ref=e224]: 13 promises unsupported
+              - button "DMS board Off-plan 12 promises unsupported" [pressed] [ref=e225] [cursor=pointer]:
+                - generic [ref=e226]: DMS board
+                - generic [ref=e227]: Off-plan
+                - generic [ref=e228]: 12 promises unsupported
+          - region "Supporting evidence" [ref=e229]:
+            - generic [ref=e230]:
+              - article [ref=e231]:
+                - heading "Promise trace" [level=3] [ref=e232]
+                - paragraph [ref=e233]: 6 promised · 4 linked · 28 unsupported
+                - button "Inspect promise-to-Jira trace" [ref=e234] [cursor=pointer]
+              - article [ref=e235]:
+                - heading "Scope decision" [level=3] [ref=e236]
+                - paragraph [ref=e237]: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list moved after planning · Approval not recorded
+                - button "Open scope-change history" [ref=e238] [cursor=pointer]
+              - article [ref=e239]:
+                - heading "Recovery outlook" [level=3] [ref=e240]
+                - paragraph [ref=e241]: 12 hours remain · recovery unlikely for all gaps · Medium confidence
+                - button "Review recovery basis" [ref=e242] [cursor=pointer]
+            - region "What changed" [ref=e243]:
+              - heading "What changed" [level=2] [ref=e244]
+              - list [ref=e245]:
+                - listitem [ref=e246]:
+                  - generic [ref=e247]: 🔄
+                  - generic [ref=e248]:
+                    - strong [ref=e249]: Impact exposure
+                    - paragraph [ref=e250]: 5 DMS board commitments may miss FY27 Q2.
+                - listitem [ref=e251]:
+                  - generic [ref=e252]: 🔄
+                  - generic [ref=e253]:
+                    - strong [ref=e254]: Decision delay
+                    - paragraph [ref=e255]: 1 PO confirmation still missing.
+                - listitem [ref=e256]:
+                  - generic [ref=e257]: 🔄
+                  - generic [ref=e258]:
+                    - strong [ref=e259]: Evidence weakness
+                    - paragraph [ref=e260]: Only 10% of required proof is available.
+          - group [ref=e261]:
+            - generic "Show commitment detail" [ref=e262]
+      - complementary "Portfolio decision" [ref=e263]:
+        - generic [ref=e265]:
+          - region "Prepared actions" [ref=e266]:
+            - heading "Prepared actions" [level=3] [ref=e267]
+            - paragraph [ref=e268]: 3 nudges ready
+            - link "Open actions →" [ref=e269] [cursor=pointer]:
+              - /url: /actions?case=SD-FY27Q2-20260709-01
+          - region "Baseline status" [ref=e270]:
+            - heading "Baseline" [level=3] [ref=e271]
+            - text: Baseline on file
+            - paragraph [ref=e272]: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+        - generic "At-risk commitments"
+    - paragraph [ref=e273]: Governance brief compares PI baseline promises with Jira evidence and prepared actions.
+  - dialog "Create work draft" [ref=e70]:
+    - generic [ref=e71]:
+      - button "Project ▾" [ref=e73] [cursor=pointer]:
+        - generic [ref=e74]: Project
+        - text: ▾
+      - generic [ref=e75]: Create work
+      - button "AI provider settings" [ref=e76] [cursor=pointer]: ⚙
+      - button "Close" [ref=e77] [cursor=pointer]: ✕
+    - generic [ref=e79]:
+      - textbox "Narrative source text" [ref=e81]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e83]: ✓
+      - list "Work items" [ref=e84]
+    - generic [ref=e85]:
+      - generic "Set estimate for all items" [ref=e86]:
+        - generic [ref=e87]: "All:"
+        - slider "Set estimate for all items" [ref=e88] [cursor=pointer]: "0"
+        - generic [ref=e89]: —
+      - button "Create 0 issues" [disabled] [ref=e91]

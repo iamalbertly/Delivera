@@ -1,0 +1,107 @@
+- generic [active] [ref=f16e1]:
+  - link "Skip to main content" [ref=f16e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f16e3]:
+    - generic [ref=f16e4]:
+      - button "Expand or collapse sidebar" [ref=f16e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f16e10]:
+        - link "Governance" [ref=f16e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f16e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f16e13] [cursor=pointer]: Actions
+        - link "Settings" [ref=f16e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f16e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f16e17]: De
+        - generic [ref=f16e18]:
+          - generic [ref=f16e19]: Delivera
+          - generic "No report run yet" [ref=f16e20]
+      - searchbox "Context search" [ref=f16e23]
+      - group "Global actions" [ref=f16e24]:
+        - button "Create" [ref=f16e25] [cursor=pointer]:
+          - generic [ref=f16e26]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f16e46]: AI · Slides ready
+        - button "Notifications" [ref=f16e29] [cursor=pointer]
+        - button "Help" [ref=f16e32] [cursor=pointer]
+        - button "Improve Delivera" [ref=f16e35] [cursor=pointer]
+        - link "Settings" [ref=f16e38] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f16e41] [cursor=pointer]: LY
+  - main [ref=f16e42]:
+    - generic [ref=f16e43]:
+      - heading "2 blockers · 2 decisions" [level=1] [ref=f16e47]
+      - paragraph [ref=f16e45]: 2 blockers in sprint · 2 governance decisions · DELIVERY BLOCKED. Testing of E-SIM Tourism Android APP
+    - navigation "Actions tabs" [ref=f16e48]:
+      - button "Action needed 2" [ref=f16e49] [cursor=pointer]:
+        - text: Action needed
+        - generic [ref=f16e50]: "2"
+    - generic [ref=f16e51]:
+      - generic [ref=f16e52]:
+        - paragraph [ref=f16e53]:
+          - text: "Scope:"
+          - strong [ref=f16e54]: MAS
+        - generic [ref=f16e55]:
+          - region "Sprint blockers" [ref=f16e56]:
+            - generic [ref=f16e57]:
+              - heading "Sprint blockers (2)" [level=2] [ref=f16e58]
+              - button "Nudge all 2" [ref=f16e59] [cursor=pointer]
+            - list [ref=f16e60]:
+              - listitem [ref=f16e61]:
+                - generic [ref=f16e62]:
+                  - strong [ref=f16e63]: MAS-2502
+                  - generic [ref=f16e64]: 16d stale
+                  - generic "Fix N-card translations" [ref=f16e65]
+                - button "Nudge" [ref=f16e66] [cursor=pointer]
+              - listitem [ref=f16e67]:
+                - generic [ref=f16e68]:
+                  - strong [ref=f16e69]: MAS-2394
+                  - generic [ref=f16e70]: 5d stale
+                  - generic "As a user, I want to be able to change to swahili language while using Global pa" [ref=f16e71]
+                - button "Nudge" [ref=f16e72] [cursor=pointer]
+            - link "Open in Squads" [ref=f16e73] [cursor=pointer]:
+              - /url: /current-sprint#stuck-card
+          - article [ref=f16e74]:
+            - generic [ref=f16e75]:
+              - paragraph [ref=f16e76]:
+                - link "MAS" [ref=f16e77] [cursor=pointer]:
+                  - /url: /current-sprint?projects=MAS
+              - heading "Confirm whether DMS board board, project, or sprint scope is correct for this period." [level=2] [ref=f16e78]
+              - paragraph [ref=f16e79]: "0 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio" [ref=f16e80] [cursor=pointer]:
+                - /url: /governance?project=MAS
+            - generic [ref=f16e81]:
+              - button "Approve nudge" [ref=f16e82] [cursor=pointer]
+              - button "Review case" [ref=f16e83] [cursor=pointer]
+          - article [ref=f16e84]:
+            - generic [ref=f16e85]:
+              - paragraph [ref=f16e86]:
+                - link "MAS" [ref=f16e87] [cursor=pointer]:
+                  - /url: /current-sprint?projects=MAS
+              - heading "Fix N-card translations" [level=2] [ref=f16e88]
+              - paragraph [ref=f16e89]: "1 related issues · 1+ nudges ready · Proof: Medium"
+              - link "View in Portfolio" [ref=f16e90] [cursor=pointer]:
+                - /url: /governance?project=MAS
+            - generic [ref=f16e91]:
+              - button "Approve nudge" [ref=f16e92] [cursor=pointer]
+              - button "Review case" [ref=f16e93] [cursor=pointer]
+      - complementary "Case preview" [ref=f16e94]:
+        - generic [ref=f16e95]:
+          - paragraph [ref=f16e96]: Case preview
+          - paragraph [ref=f16e97]: "Portfolio: DELIVERY BLOCKED. Testing of E-SIM Tourism Android APP"
+          - heading "Confirm whether DMS board board, project, or sprint scope is correct for this period." [level=2] [ref=f16e98]
+          - paragraph [ref=f16e99]:
+            - strong [ref=f16e100]: Intervention approval
+          - paragraph [ref=f16e101]:
+            - strong [ref=f16e102]: "State:"
+            - text: clarification-required
+          - paragraph [ref=f16e103]:
+            - strong [ref=f16e104]: "Issues:"
+            - text: —
+          - paragraph [ref=f16e105]: Confirm whether MPSA board board, project, or sprint scope is correct for this period.
+          - generic [ref=f16e106]:
+            - button "Approve nudge" [ref=f16e107] [cursor=pointer]
+            - button "Decline" [ref=f16e108] [cursor=pointer]
+            - link "View in Portfolio" [ref=f16e109] [cursor=pointer]:
+              - /url: /governance?project=MAS

@@ -2,6 +2,7 @@ import { currentSprintDom, currentSprintKeys } from './Delivera-CurrentSprint-Pa
 import { showLoading, showError, clearError } from './Delivera-CurrentSprint-Page-Status.js';
 import { loadBoards, loadCurrentSprint } from './Delivera-CurrentSprint-Page-Data-Loaders.js';
 import { paintInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { mountSharedStickyScope, ensureSharedStickyScopeMount } from './Delivera-Shared-Sticky-Scope-01Mount-UI.js';
 import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Delivera-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
 import { appendCurrentSprintLoginLink, showCurrentSprintRenderedContent } from './Delivera-CurrentSprint-Page-Rendered-Content-Wiring-Helpers.js';
@@ -10,6 +11,7 @@ import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprin
 import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
 import { hydrateCurrentSprintProjectsSelect } from './Delivera-CurrentSprint-Projects-Catalog-01Hydrate.js';
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { resolveEffectiveSquad } from './Delivera-Governance-EffectiveSquad-01Resolve-SSOT.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -413,6 +415,30 @@ function init() {
   // P0 FIX: Paint instant skeleton shell — no blank white page.
   const scopeHint = (new URLSearchParams(window.location.search).get('projects') || '').split(',')[0] || '';
   paintInstantShell('current-sprint', { scopeLabel: scopeHint });
+  try {
+    mountSharedStickyScope({
+      mount: ensureSharedStickyScopeMount(document.querySelector('.current-sprint-header')),
+      profile: 'compact',
+      onRefresh: () => {
+        const csv = readSharedProjectsCsv() || '';
+        const projects = csv.split(',').map((p) => p.trim()).filter(Boolean);
+        const pk = resolveEffectiveSquad({
+          anchor: projects[0] || '',
+          projects,
+        });
+        if (pk) persistProjectsSelection(pk);
+        syncProjectsSelect(getStoredProjects());
+        document.querySelector('.current-sprint-scope-inline')?.setAttribute('hidden', '');
+        document.getElementById('current-sprint-scope-chip')?.setAttribute('hidden', '');
+        void loadBoards();
+      },
+      onScopeChange: (list) => {
+        if (list?.[0]) persistProjectsSelection(list.join(','));
+      },
+    });
+    document.querySelector('.current-sprint-scope-inline')?.setAttribute('hidden', '');
+    document.getElementById('current-sprint-scope-chip')?.setAttribute('hidden', '');
+  } catch (_) { /* scope tray non-fatal */ }
   hydrateCurrentSprintProjectsSelect();
   resetPerfMarks('current-sprint');
   try {

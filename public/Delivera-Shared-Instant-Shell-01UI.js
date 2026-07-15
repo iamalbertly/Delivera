@@ -19,6 +19,7 @@ const SURFACE_LABELS = Object.freeze({
   report: 'Proof',
   leadership: 'Leadership',
   evidence: 'Evidence',
+  home: 'Dashboard',
 });
 
 function cacheKey(pageType, scopeLabel = '') {
@@ -94,6 +95,7 @@ function resolveMount(pageType) {
     leadership: () => document.getElementById('hud-grid'),
     evidence: () => document.getElementById('eos-loading')
       || document.getElementById('evidence-os-root'),
+    home: () => document.querySelector('[data-instant-shell-mount="home"]'),
   };
   const finder = map[pageType];
   return (finder && finder())
@@ -103,8 +105,19 @@ function resolveMount(pageType) {
 
 function renderStateStrip(pageType, scopeLabel, subState) {
   const surface = SURFACE_LABELS[pageType] || 'Delivera';
-  const scope = scopeLabel || 'Loading scope…';
-  const sub = subState || 'Reading live data…';
+  const scope = scopeLabel || (pageType === 'governance' || pageType === 'portfolio' ? 'All Projects' : 'Loading scope…');
+  const defaults = {
+    governance: 'Loading portfolio…',
+    portfolio: 'Loading portfolio…',
+    'current-sprint': 'Loading sprint…',
+    actions: 'Loading actions…',
+    settings: 'Loading settings…',
+    report: 'Loading proof…',
+    leadership: 'Loading leadership…',
+    evidence: 'Loading evidence…',
+    home: 'Loading dashboard…',
+  };
+  const sub = subState || defaults[pageType] || 'Reading live data…';
   return `
     <div class="instant-shell-state-strip" data-testid="instant-shell-state-strip">
       <span class="instant-shell-state-surface">${escapeHtml(surface)}</span>
@@ -156,6 +169,16 @@ export function paintInstantShell(pageType, opts = {}) {
     return;
   }
 
+  // Keep pre-JS cold shell if already present — only refresh stage label (no flash to empty).
+  const cold = targetMount.querySelector('[data-instant-shell-cold="1"], [data-testid="instant-shell"]');
+  if (cold && !targetMount.querySelector('[data-gov-priority-rendered], [data-current-sprint-content], [data-actions-content]')) {
+    document.body?.classList?.add('delivera-instant-shell-active');
+    if (opts.message) updateInstantShellLabel(opts.message);
+    const scopeEl = cold.querySelector('.instant-shell-state-scope');
+    if (scopeEl && scopeLabel) scopeEl.textContent = scopeLabel;
+    return;
+  }
+
   targetMount.innerHTML = renderShell(pageType, scopeLabel, opts.message);
   document.body?.classList?.add('delivera-instant-shell-active');
 }
@@ -190,8 +213,10 @@ function renderShell(pageType, scopeLabel, message) {
       return renderLeadershipShell(scopeChip, scopeLabel, message);
     case 'evidence':
       return renderEvidenceShell(scopeChip, scopeLabel, message);
+    case 'home':
+      return renderGenericShell(scopeLabel, message || 'Loading dashboard…', 'home');
     default:
-      return renderGenericShell(scopeLabel, message);
+      return renderGenericShell(scopeLabel, message, pageType);
   }
 }
 
@@ -212,23 +237,20 @@ function renderGovernanceShell(scopeChip, scopeLabel, message) {
       ${renderStateStrip('governance', scopeLabel, label)}
       <p class="instant-shell-value-line">${escapeHtml(GOVERNANCE_DISPLACEMENT_LINE_SHORT)}</p>
       <div class="instant-shell-scope-bar">${scopeChip}${shimmerRow('40%')}</div>
-      <div class="instant-shell-cockpit-grid">
-        <div class="instant-shell-main">
+      <div class="instant-shell-layout gov-priority-layout">
+        <div class="instant-shell-main gov-priority-main">
           <div class="instant-shell-hero">
             ${shimmerRow('60%')}
             ${shimmerRow('90%')}
             ${shimmerRow('45%')}
-            <div class="instant-shell-metrics-row">
-              <div class="instant-shell-metric-card">${shimmerRow('50%')}${shimmerRow('80%')}</div>
-              <div class="instant-shell-metric-card">${shimmerRow('50%')}${shimmerRow('80%')}</div>
-              <div class="instant-shell-metric-card">${shimmerRow('50%')}${shimmerRow('80%')}</div>
-            </div>
           </div>
-          <div class="instant-shell-evidence">
-            ${shimmerRows(2, ['70%', '50%'])}
+          <div class="instant-shell-compare" aria-label="Squad comparison loading">
+            ${shimmerRow('40%')}
+            ${shimmerRow('85%')}
+            ${shimmerRow('70%')}
           </div>
         </div>
-        <aside class="instant-shell-rail">
+        <aside class="instant-shell-rail gov-priority-rail">
           <div class="instant-shell-rail-card">${shimmerRows(3, ['60%', '90%', '40%'])}</div>
           <div class="instant-shell-rail-card">${shimmerRows(2, ['50%', '70%'])}</div>
         </aside>
@@ -332,13 +354,30 @@ function renderEvidenceShell(scopeChip, scopeLabel, message) {
     </div>`;
 }
 
-function renderGenericShell(scopeLabel, message) {
+function renderGenericShell(scopeLabel, message, pageType = 'home') {
   const label = message || 'Loading…';
   return `
     <div class="instant-shell instant-shell--generic" data-testid="instant-shell" aria-busy="true" role="status">
-      ${renderStateStrip('governance', scopeLabel, label)}
+      ${renderStateStrip(pageType, scopeLabel, label)}
       ${shimmerRows(5, ['60%', '90%', '70%', '50%', '80%'])}
       <p class="instant-shell-label">${escapeHtml(label)}</p>
+    </div>`;
+}
+
+/**
+ * Bonus: labeled compare-band skeleton — keeps under-hero area filled until live carousel paints.
+ * Used by Priority Surface first paint and portfolio cache/refresh paths.
+ */
+export function renderSquadCompareSkeletonHtml(opts = {}) {
+  const label = opts.label || 'Squad comparison';
+  const sub = opts.sub || 'Matching boards to PI baselines…';
+  return `
+    <div class="portfolio-carousel-cache-placeholder gov-compare-skeleton" data-testid="portfolio-carousel-cache-placeholder" aria-label="${escapeHtml(label)} loading" aria-busy="true">
+      <p class="gov-compare-skeleton-label">${escapeHtml(label)}</p>
+      <p class="gov-compare-skeleton-sub">${escapeHtml(sub)}</p>
+      <div class="instant-shimmer" style="width:70%;height:.7rem;margin:.35rem 0"></div>
+      <div class="instant-shimmer" style="width:90%;height:.7rem;margin:.35rem 0"></div>
+      <div class="instant-shimmer" style="width:55%;height:.7rem;margin:.35rem 0"></div>
     </div>`;
 }
 
@@ -348,6 +387,11 @@ export function clearInstantShell() {
     main.removeAttribute('data-instant-shell');
   }
   document.body?.classList?.remove('delivera-instant-shell-active');
+  // Drop 52vh loading void — mount must not stay aria-busy after live content.
+  document.querySelectorAll('[data-instant-shell-mount][aria-busy="true"]').forEach((mount) => {
+    mount.removeAttribute('aria-busy');
+    mount.setAttribute('aria-busy', 'false');
+  });
   document.querySelectorAll('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]').forEach((el) => {
     const parent = el.parentElement;
     if (!parent) {
@@ -355,10 +399,15 @@ export function clearInstantShell() {
       return;
     }
     const hasReal = parent.querySelector(
-      '[data-testid="governance-priority-brief"], [data-portfolio-signal], [data-portfolio-bento-card], [data-testid="portfolio-bento-card"], .actions-case-card, [data-current-sprint-content], .settings-section-card:not(.instant-shell *), .current-sprint-signal-strip, .gov-priority-surface, .hud-card, .evidence-os-row, .preview-ready'
+      '[data-testid="governance-priority-brief"], [data-portfolio-signal], [data-portfolio-bento-card], [data-testid="portfolio-bento-card"], .actions-case-card, [data-current-sprint-content], .settings-section-card:not(.instant-shell *), .current-sprint-signal-strip, .gov-priority-surface, .hud-card, .evidence-os-row, .preview-ready, #home-live-surface'
     );
     if (hasReal || parent.children.length > 1) {
       el.remove();
     }
+  });
+  // Bonus: never leave a cleared mount as an empty white rectangle.
+  document.querySelectorAll('[data-instant-shell-mount]').forEach((mount) => {
+    if (mount.children.length) mount.classList.remove('instant-shell-mount--reserve');
+    else mount.classList.add('instant-shell-mount--reserve');
   });
 }

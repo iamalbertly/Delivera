@@ -1,0 +1,236 @@
+- generic [active] [ref=e1]:
+  - complementary "Primary" [ref=e2]
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Expand or collapse sidebar" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - navigation "Surfaces" [ref=e11]:
+        - generic [ref=e12] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e13] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e14] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e15] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e17] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e18]: De
+        - generic [ref=e20]: Delivera
+      - generic [ref=e22]:
+        - img
+        - searchbox "Context search" [ref=e23]
+      - group "Global actions" [ref=e24]:
+        - button "Create" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: +
+          - generic [ref=e27]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e101]: AI · Slides ready
+        - button "Notifications" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+        - button "Help" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - button "Improve Delivera" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+        - link "Settings" [ref=e38] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e39]
+        - button "Account menu" [ref=e41] [cursor=pointer]: LY
+  - main [ref=e42]:
+    - status [ref=e240]: Switching to SD + MPSA +1…
+    - generic "Portfolio scope" [ref=e43]:
+      - generic [ref=e241]:
+        - generic [ref=e242]:
+          - generic "Squad cadence" [ref=e243]:
+            - generic [ref=e244]: Current · Day 45/90 · Sprint open · 0% movement · 42d stale
+          - button "✕ Blocked" [ref=e245] [cursor=pointer]
+        - generic [ref=e246]:
+          - combobox "Selected squad" [ref=e249]:
+            - option "AMS Squad (Tachyons)"
+            - option "Agile and Security Guild"
+            - option "Bio metric KYC & KYA"
+            - option "Finance Squad"
+            - option "Mini - Apps Squad"
+            - option "M-SQUAD"
+            - option "TRANSFORMERS"
+            - option "Digital Squad"
+            - option "Robotics Process Automation (RPA)"
+            - option "DMS Squad" [selected]
+            - option "T-Squad"
+            - option "Vodacom Business"
+          - generic [ref=e250]:
+            - generic [ref=e251]: Compare
+            - generic [ref=e252]:
+              - generic "M-SQUAD, Mini - Apps Squad" [ref=e253]: +2 Squads
+              - combobox "Add squad to compare" [ref=e254]:
+                - option "+ Add comparison" [selected]
+                - option "AMS Squad (Tachyons)"
+                - option "Agile and Security Guild"
+                - option "Bio metric KYC & KYA"
+                - option "Finance Squad"
+                - option "TRANSFORMERS"
+                - option "Digital Squad"
+                - option "Robotics Process Automation (RPA)"
+                - option "T-Squad"
+                - option "Vodacom Business"
+          - generic [ref=e255]:
+            - generic [ref=e256]: Timeframe
+            - combobox "Timeframe" [ref=e257]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e258]:
+            - generic [ref=e259]: Baseline
+            - combobox "Baseline" [ref=e260]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=e261]: Updating…
+    - generic [ref=e65]:
+      - generic [ref=e66]:
+        - generic "AI portfolio signal" [ref=e67]:
+          - region "Portfolio decision cockpit" [ref=e123]:
+            - generic [ref=e124]:
+              - generic [ref=e125]: Delivery blocked
+              - generic [ref=e126]: PI not aligned
+            - generic [ref=e127]:
+              - paragraph [ref=e128]: Portfolio decision cockpit
+              - generic [ref=e129]: Decision required
+              - status [ref=e131]:
+                - generic [ref=e133]: ✦
+                - generic [ref=e134]: AI agent learning from live Jira & portfolio signals
+            - link "Review decision below" [ref=e135] [cursor=pointer]:
+              - /url: "#portfolio-decision"
+        - region "Alignment Studio" [ref=e136]:
+          - generic [ref=e137]:
+            - paragraph [ref=e138]: Board work does not match PI commitments
+            - paragraph [ref=e139]: 12 in Jira · 0 to create · 12 board epics (board)
+          - generic [ref=e140]:
+            - button "Set baseline →" [ref=e141] [cursor=pointer]
+            - group [ref=e142]:
+              - generic "More" [ref=e143] [cursor=pointer]
+        - generic "Affected commitments" [ref=e144]:
+          - region "Affected commitments" [ref=e145]:
+            - heading "Affected commitments" [level=2] [ref=e146]
+            - list [ref=e147]:
+              - 'button "MPSA-8419 Testing of E-SIM Tourism Android APP At risk · MPSA Reason: Testing of E-SIM Tourism Android APP Decision: Ping Lilian on MPSA-8419: unblock or cut scope before the next check-in." [ref=e148] [cursor=pointer]':
+                - generic [ref=e149]:
+                  - strong [ref=e150]:
+                    - link "MPSA-8419 Testing of E-SIM Tourism Android APP" [ref=e151]:
+                      - /url: "#work-item-MPSA-8419"
+                      - generic [ref=e152]: MPSA-8419
+                      - generic [ref=e153]: Testing of E-SIM Tourism Android APP
+                  - generic [ref=e154]: At risk
+                - paragraph [ref=e155]: · MPSA
+                - paragraph [ref=e156]: "Reason: Testing of E-SIM Tourism Android APP"
+                - paragraph [ref=e157]: "Decision: Ping Lilian on MPSA-8419: unblock or cut scope before the next check-in."
+            - button "+2 more" [ref=e159] [cursor=pointer]
+        - generic "Compare squads" [ref=e160]:
+          - region "Squad performance grid" [ref=e161]:
+            - generic [ref=e162]:
+              - heading "Squad performance grid" [level=2] [ref=e163]
+              - paragraph [ref=e164]: Delivery / proof / open commitment drift
+            - paragraph [ref=e165]: "Shared root issue: Evidence gap"
+            - list [ref=e166]:
+              - generic [ref=e167]:
+                - generic [ref=e168]: Squad
+                - generic [ref=e169]: Root issue
+                - generic [ref=e170]: Delivery
+                - generic [ref=e171]: Proof
+                - generic [ref=e172]: Gaps
+                - generic [ref=e173]: Next move
+              - generic "Delivered 0% · Off-plan 0% · Proof 16% · 13 commitments" [ref=e174] [cursor=pointer]:
+                - button "MPSA MPSA board At risk" [ref=e175]:
+                  - strong [ref=e176]:
+                    - link "MPSA MPSA board" [ref=e177]:
+                      - /url: "#work-item-MPSA"
+                      - generic [ref=e178]: MPSA
+                      - generic [ref=e179]: MPSA board
+                  - generic [ref=e180]: At risk
+                - generic [ref=e181]: "MPSA: 0% done · 4 gaps"
+                - generic "Delivered 0%" [ref=e182]
+                - generic "Proof 16%" [ref=e183]
+                - generic [ref=e185]: "4"
+                - generic [ref=e186]: Review 2 prepared nudges
+              - generic "Delivered 78% · Off-plan 0% · Proof 16% · 9 commitments" [ref=e187] [cursor=pointer]:
+                - button "MAS MAS board At risk" [ref=e188]:
+                  - strong [ref=e189]:
+                    - link "MAS MAS board" [ref=e190]:
+                      - /url: "#work-item-MAS"
+                      - generic [ref=e191]: MAS
+                      - generic [ref=e192]: MAS board
+                  - generic [ref=e193]: At risk
+                - generic [ref=e194]: "MAS: 78% done · 2 gaps"
+                - generic "Delivered 78%" [ref=e195]
+                - generic "Proof 16%" [ref=e197]
+                - generic [ref=e199]: "2"
+                - generic [ref=e200]: Monitor next checkpoint
+      - complementary "Portfolio decision" [ref=e201]:
+        - generic "At-risk commitments"
+        - generic [ref=e202]:
+          - region "Decision required" [ref=e203]:
+            - paragraph [ref=e204]: Decision required
+            - heading "Scope and commitment uncertainty" [level=2] [ref=e205]
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: Impact
+                - strong [ref=e209]: 4 commitments at risk
+              - generic [ref=e210]:
+                - generic [ref=e211]: Owner
+                - strong [ref=e212]: Scrum Master
+              - generic [ref=e213]:
+                - generic [ref=e214]: Due
+                - strong [ref=e215]: Due in 2 days
+              - generic [ref=e216]:
+                - generic [ref=e217]: Evidence
+                - strong [ref=e218]: Low
+              - generic [ref=e219]:
+                - generic [ref=e220]: Escalation
+                - strong [ref=e221]: 24 hours after due date
+            - paragraph [ref=e222]:
+              - strong [ref=e223]: Proof
+              - text: · 0 done stories of 13 committed in scope
+            - group [ref=e224]:
+              - generic "Source details" [ref=e225] [cursor=pointer]
+            - generic [ref=e226]:
+              - button "Upload PI slide" [ref=e227] [cursor=pointer]
+              - button "See all evidence" [ref=e228] [cursor=pointer]
+          - generic [ref=e229]:
+            - generic [ref=e230]:
+              - strong [ref=e231]: Last Jira sync
+              - text: 2026-07-09T14:33:57.539Z
+            - generic [ref=e232]:
+              - strong [ref=e233]: Boards connected
+              - text: 2 of 2
+            - generic [ref=e234]:
+              - strong [ref=e235]: Commitments mapped
+              - text: 6 of 6
+            - generic [ref=e236]:
+              - strong [ref=e237]: Data gaps
+              - text: "1"
+            - generic [ref=e238]:
+              - strong [ref=e239]: Confidence
+              - text: Low
+  - dialog "Create work draft" [ref=e78]:
+    - generic [ref=e79]:
+      - button "Project ▾" [ref=e81] [cursor=pointer]:
+        - generic [ref=e82]: Project
+        - text: ▾
+      - generic [ref=e83]: Create work
+      - button "AI provider settings" [ref=e84] [cursor=pointer]: ⚙
+      - button "Close" [ref=e85] [cursor=pointer]: ✕
+    - generic [ref=e87]:
+      - textbox "Narrative source text" [ref=e89]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e91]: ✓
+      - list "Work items" [ref=e92]
+    - generic [ref=e93]:
+      - generic "Set estimate for all items" [ref=e94]:
+        - generic [ref=e95]: "All:"
+        - slider "Set estimate for all items" [ref=e96] [cursor=pointer]: "0"
+        - generic [ref=e97]: —
+      - button "Create 0 issues" [disabled] [ref=e99]

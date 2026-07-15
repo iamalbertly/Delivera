@@ -1,0 +1,283 @@
+- generic [active] [ref=e1]:
+  - status [ref=e3]
+  - link "Skip to main content" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - button "Expand or collapse sidebar" [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - navigation "Surfaces" [ref=e12]:
+        - link "Governance" [ref=e13] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=e14] [cursor=pointer]: Squads
+        - link "Actions" [ref=e15] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e16] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=e18] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e19]: De
+        - generic [ref=e20]:
+          - generic [ref=e21]: Delivera
+          - generic "No report run yet" [ref=e22]
+      - generic [ref=e24]:
+        - img
+        - searchbox "Context search" [ref=e25]
+      - group "Global actions" [ref=e26]:
+        - button "Create" [ref=e27] [cursor=pointer]:
+          - generic [ref=e28]: +
+          - generic [ref=e29]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e30]: AI · Slides ready
+        - button "Actions" [ref=e31] [cursor=pointer]
+        - button "Notifications" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+        - button "Help" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+        - button "Improve Delivera" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+        - link "Settings" [ref=e41] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e42]
+        - button "Account menu" [ref=e44] [cursor=pointer]: LY
+  - generic [ref=e45]:
+    - banner [ref=e46]:
+      - heading "Current Sprint - FY27Q2 MPSA1" [level=1] [ref=e47]
+    - main [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic "Sprint scope" [ref=e51]
+          - generic [ref=e53]:
+            - generic [ref=e54]: M-SQUAD
+            - generic "FY27Q2 MPSA1 | Jul 8, 2026 - Jul 22, 2026" [ref=e55] [cursor=pointer]: FY27Q2 MPSA1
+            - generic "Jul 8, 2026 - Jul 22, 2026" [ref=e56]
+            - generic "Live · Snapshot - updated 5 min ago · No exportable rows": Stale work
+            - paragraph [ref=e57]: Critical · 12% done · 0 items · Ends in 6d
+            - status "Sprint health verdict" [ref=e58]:
+              - strong [ref=e59]: Critical
+              - generic "Sprint active · 2/13 done" [ref=e60]: No trackable work in this sprint yet
+          - generic [ref=e61]:
+            - generic [ref=e63]:
+              - button "Copy sprint summary" [ref=e64] [cursor=pointer]: Copy
+              - button "More export options" [ref=e65] [cursor=pointer]: Export ▾
+            - group [ref=e66]:
+              - generic "Context All work" [ref=e67] [cursor=pointer]:
+                - generic [ref=e69]: Context
+                - generic [ref=e70]: All work
+          - generic "Top sprint summary" [ref=e71]:
+            - link "Open report" [ref=e72] [cursor=pointer]:
+              - /url: /report?boardId=9&sprintId=8759&projects=MPSA
+            - link "1 blocker below" [ref=e73] [cursor=pointer]:
+              - /url: "#stuck-card"
+            - generic "Live · Snapshot - updated 5 min ago · No exportable rows" [ref=e74]:
+              - generic [ref=e75]: No exportable rows
+              - generic [ref=e76]: "|"
+              - generic [ref=e77]: Live sprint — blocker unchanged for 47+ days
+          - group [ref=e78]
+        - button "Top blocker" [ref=e79]:
+          - generic [ref=e80]: 🚫
+          - generic [ref=e81]:
+            - paragraph [ref=e82]: Top blocker · tap to nudge
+            - strong [ref=e83]:
+              - link "MPSA-8419" [ref=e84] [cursor=pointer]:
+                - /url: https://vodacomtz.atlassian.net/browse/MPSA-8419
+              - text: · Testing of E-SIM Tourism Android APP
+            - paragraph [ref=e85]: The item has been stale for 1120.8h and is likely blocking sprint flow.
+        - group "Switch sprint" [ref=e86]:
+          - generic "Past sprints" [ref=e87] [cursor=pointer]
+        - status [ref=e88]:
+          - generic [ref=e89]: "Data availability:"
+          - generic "No sprint issues returned for this board." [ref=e90]: Work items hidden
+          - text: — No sprint issues returned for this board. ·
+          - generic "No completed items in this sprint window yet." [ref=e91]: Daily completion hidden
+          - text: — No completed items in this sprint window yet.
+          - button "+1 more" [ref=e92] [cursor=pointer]
+          - link "[Why?]" [ref=e93] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=e94]:
+          - paragraph [ref=e95]:
+            - strong [ref=e96]: No issues for this context
+          - paragraph [ref=e97]: No issues were returned for the current sprint context.
+          - paragraph [ref=e98]: Add stories in Jira or pick a different board.
+          - paragraph [ref=e99]:
+            - button "Pick a board" [ref=e100] [cursor=pointer]
+        - generic [ref=e101]:
+          - region "Sprint today" [ref=e102]:
+            - heading "Sprint today" [level=2] [ref=e103]
+            - paragraph [ref=e104]:
+              - strong [ref=e105]: DELIVERY BLOCKED
+            - paragraph [ref=e106]: Sprint outcomes are at risk unless the top issue is resolved quickly.
+            - paragraph [ref=e107]:
+              - strong [ref=e108]: "Main blocker:"
+              - text: MPSA-8419
+            - paragraph [ref=e109]:
+              - strong [ref=e110]: "Next move:"
+              - text: Unblock
+            - paragraph [ref=e111]: Showing blockers below
+          - generic [ref=e112]:
+            - region "Sprint value summary" [ref=e113]:
+              - generic [ref=e114]:
+                - generic [ref=e115]: Value answer
+                - strong [ref=e116]: FY27Q2 MPSA1
+                - paragraph [ref=e117]: Keep MPSA board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=e118]:
+                - generic [ref=e119]: Done
+                - strong [ref=e120]: 15% complete
+                - paragraph [ref=e121]: 85% may spill over
+              - generic [ref=e122]:
+                - generic [ref=e123]: Customer impact
+                - generic [ref=e125]: Keep MPSA board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=e126]:
+                - generic [ref=e127]: Risk
+                - strong [ref=e128]: Needs Attention
+                - paragraph [ref=e129]: Are we delivering value this sprint?
+            - group [ref=e130]:
+              - generic "Needs Attention — Sprint outcomes are at risk unless the top issue is resolved quickly." [ref=e131] [cursor=pointer]
+              - generic [ref=e132]:
+                - paragraph [ref=e133]:
+                  - text: 8 Jul (Wed) - 22 Jul (Wed)
+                  - generic [ref=e134]: "|"
+                  - text: 6 days left
+                - generic [ref=e135]:
+                  - article [ref=e136]:
+                    - generic [ref=e137]: ~
+                    - generic [ref=e138]:
+                      - paragraph [ref=e139]: Sprint answer
+                      - heading "Needs Attention" [level=2] [ref=e140]
+                      - paragraph [ref=e141]: Sprint outcomes are at risk unless the top issue is resolved quickly.
+                      - paragraph [ref=e142]: 8 Jul (Wed) - 22 Jul (Wed) | 6 days left | 2/13 value stories
+                  - article [ref=e143]:
+                    - paragraph [ref=e144]: Next action
+                    - heading "MPSA-8419 - Testing of E-SIM Tourism Android APP" [level=2] [ref=e145]
+                    - paragraph [ref=e146]: The item has been stale for 1120.8h and is likely blocking sprint flow.
+                  - article [ref=e147]:
+                    - paragraph [ref=e148]: Signals
+                    - generic [ref=e149]:
+                      - generic [ref=e150]:
+                        - strong [ref=e152]: +18.0 SP recently
+                        - generic [ref=e153]: Done now
+                      - generic [ref=e154]:
+                        - strong [ref=e156]: "11"
+                        - generic [ref=e157]: Blockers
+                      - generic [ref=e158]:
+                        - strong [ref=e160]: "0"
+                        - generic [ref=e161]: Added work
+                      - generic [ref=e162]:
+                        - strong [ref=e164]: Moving
+                        - generic [ref=e165]: Last 24h
+                  - complementary [ref=e166]:
+                    - generic [ref=e167]:
+                      - generic [ref=e168]:
+                        - heading "Risk queue" [level=2] [ref=e169]
+                        - generic [ref=e170]: 17 actions waiting
+                      - button "MPSA-8419 Testing of E-SIM Tourism Android APP High The item has been stale for 1120.8h and is likely blocking sprint flow. No movement 24h" [ref=e171] [cursor=pointer]:
+                        - generic [ref=e172]:
+                          - generic [ref=e173]:
+                            - link "MPSA-8419" [ref=e174]:
+                              - /url: https://vodacomtz.atlassian.net/browse/MPSA-8419
+                            - strong [ref=e175]: Testing of E-SIM Tourism Android APP
+                          - generic [ref=e176]: High
+                        - paragraph [ref=e177]: The item has been stale for 1120.8h and is likely blocking sprint flow.
+                        - generic [ref=e179]: No movement 24h
+                      - button "MPSA-8575 [NHIF USSD & MINI APP] Pilot testing for Phase 1 High No owner is visible for work still inside the sprint. No assignee No movement 24h" [ref=e180] [cursor=pointer]:
+                        - generic [ref=e181]:
+                          - generic [ref=e182]:
+                            - link "MPSA-8575" [ref=e183]:
+                              - /url: https://vodacomtz.atlassian.net/browse/MPSA-8575
+                            - strong [ref=e184]: "[NHIF USSD & MINI APP] Pilot testing for Phase 1"
+                          - generic [ref=e185]: High
+                        - paragraph [ref=e186]: No owner is visible for work still inside the sprint.
+                        - generic [ref=e187]:
+                          - generic [ref=e188]: No assignee
+                          - generic [ref=e189]: No movement 24h
+                      - button "MPSA-8647 [NHIF TOTOAFYA USSD]As a customer I want to be able to purchase for toto from NHIF Purchase flow and Check Package price High No owner is visible for work still inside the sprint. No assignee No movement 24h" [ref=e190] [cursor=pointer]:
+                        - generic [ref=e191]:
+                          - generic [ref=e192]:
+                            - link "MPSA-8647" [ref=e193]:
+                              - /url: https://vodacomtz.atlassian.net/browse/MPSA-8647
+                            - strong [ref=e194]: "[NHIF TOTOAFYA USSD]As a customer I want to be able to purchase for toto from NHIF Purchase flow and Check Package price"
+                          - generic [ref=e195]: High
+                        - paragraph [ref=e196]: No owner is visible for work still inside the sprint.
+                        - generic [ref=e197]:
+                          - generic [ref=e198]: No assignee
+                          - generic [ref=e199]: No movement 24h
+                      - list "Action queue" [ref=e200]:
+                        - button "Need unblock 11" [ref=e201] [cursor=pointer]:
+                          - generic [ref=e202]: Need unblock
+                          - strong [ref=e203]: "11"
+                        - button "Need estimate 0" [ref=e204] [cursor=pointer]:
+                          - generic [ref=e205]: Need estimate
+                          - strong [ref=e206]: "0"
+                        - button "Added work 0" [ref=e207] [cursor=pointer]:
+                          - generic [ref=e208]: Added work
+                          - strong [ref=e209]: "0"
+                        - button "Need owner 3" [ref=e210] [cursor=pointer]:
+                          - generic [ref=e211]: Need owner
+                          - strong [ref=e212]: "3"
+                - generic [ref=e213]:
+                  - article [ref=e214]:
+                    - paragraph [ref=e215]: Value done
+                    - paragraph [ref=e216]: 2/13 value stories
+                    - paragraph [ref=e217]: 12% complete
+                  - article [ref=e220]:
+                    - paragraph [ref=e221]: Work left
+                    - paragraph [ref=e222]: "11"
+                    - paragraph [ref=e223]: 2/13 done
+                  - article [ref=e226]:
+                    - paragraph [ref=e227]: Risk queue
+                    - paragraph [ref=e228]: "17"
+                    - paragraph [ref=e229]: 3 top risks | 11 blockers
+                  - article [ref=e232]:
+                    - paragraph [ref=e233]: Trust
+                    - paragraph [ref=e234]: Needs evidence
+                    - paragraph [ref=e235]: 0% estimate evidence
+                - generic [ref=e237]:
+                  - generic [ref=e238]:
+                    - generic [ref=e239]:
+                      - paragraph [ref=e240]: Value progress
+                      - heading "Done vs added work" [level=2] [ref=e241]
+                    - paragraph [ref=e242]: One evidence chart for movement, added work, and confidence change.
+                  - generic [ref=e243]: Work movement will appear when sprint progress signals are available.
+                - generic [ref=e244]:
+                  - article [ref=e245]:
+                    - generic [ref=e246]:
+                      - paragraph [ref=e247]: Completion Clustering
+                      - heading "12%" [level=3] [ref=e248]
+                      - paragraph [ref=e249]: Completion is spreading more evenly through the sprint.
+                    - img [ref=e250]
+                  - article [ref=e251]:
+                    - generic [ref=e252]:
+                      - paragraph [ref=e253]: Scope Change Impact
+                      - heading "0.0 SP" [level=3] [ref=e254]
+                      - paragraph [ref=e255]: No material mid-sprint scope increase is visible.
+                    - img [ref=e256]
+                  - article [ref=e257]:
+                    - generic [ref=e258]:
+                      - paragraph [ref=e259]: Planned vs Actual
+                      - heading "-54.0 SP" [level=3] [ref=e260]
+                      - paragraph [ref=e261]: Behind by 54.0 SP against the ideal line.
+                    - img [ref=e262]
+                  - article [ref=e264]:
+                    - generic [ref=e265]:
+                      - paragraph [ref=e266]: Confidence
+                      - heading "Low" [level=3] [ref=e267]
+                      - paragraph [ref=e268]: Confidence is moderated because sizing evidence is incomplete.
+                    - img [ref=e269]
+  - dialog "Create work draft" [ref=e272]:
+    - generic [ref=e273]:
+      - button "Project ▾" [ref=e275] [cursor=pointer]:
+        - generic [ref=e276]: Project
+        - text: ▾
+      - generic [ref=e277]: Create work
+      - button "AI provider settings" [ref=e278] [cursor=pointer]: ⚙
+      - button "Close" [ref=e279] [cursor=pointer]: ✕
+    - generic [ref=e281]:
+      - textbox "Narrative source text" [ref=e283]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e285]: ✓
+      - list "Work items" [ref=e286]
+    - generic [ref=e287]:
+      - generic "Set estimate for all items" [ref=e288]:
+        - generic [ref=e289]: "All:"
+        - slider "Set estimate for all items" [ref=e290] [cursor=pointer]: "0"
+        - generic [ref=e291]: —
+      - button "Create 0 issues" [disabled] [ref=e293]

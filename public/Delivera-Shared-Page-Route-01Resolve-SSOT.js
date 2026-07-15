@@ -18,14 +18,20 @@ export const PAGE_LOGIN = 'login';
 export const LEADERSHIP_HASH = '#trends';
 
 /** Portfolio command surface primaries (top chrome switcher). */
-export const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_SPRINTS, PAGE_ACTIONS, PAGE_SETTINGS];
+export const PRIMARY_NAV_KEYS = [PAGE_GOVERNANCE, PAGE_ACTIONS];
 
 export const SURFACE_SWITCHER = [
   { key: PAGE_GOVERNANCE, label: 'Governance', href: '/governance' },
-  { key: PAGE_SPRINTS, label: 'Squads', href: '/current-sprint' },
   { key: PAGE_ACTIONS, label: 'Actions', href: '/actions' },
-  { key: PAGE_SETTINGS, label: 'Settings', href: '/settings' },
 ];
+
+/**
+ * Hidden surfaces — not ready for production use. Kept in codebase for
+ * future activation but removed from nav. (Audit 2026-07-15: Squads and
+ * Settings pages are not production-ready; Notifications and Help icons
+ * are non-functional.)
+ */
+export const HIDDEN_SURFACES = [PAGE_SPRINTS, PAGE_SETTINGS];
 
 /** Short descriptions for settings quick-nav cards (keyed by page). */
 export const SURFACE_QUICK_DESC = {
@@ -41,7 +47,7 @@ export const SURFACE_QUICK_DESC = {
  * @param {string[]} [extraKeys] — e.g. PAGE_REPORT for Proof card
  */
 export function getSurfaceQuickLinks(extraKeys = []) {
-  const keys = [...PRIMARY_NAV_KEYS.filter((k) => k !== PAGE_SETTINGS), ...extraKeys];
+  const keys = [...PRIMARY_NAV_KEYS, ...extraKeys];
   const byKey = Object.fromEntries(SURFACE_SWITCHER.map((s) => [s.key, s]));
   if (extraKeys.includes(PAGE_REPORT)) {
     byKey[PAGE_REPORT] = { key: PAGE_REPORT, label: 'Proof', href: '/report' };

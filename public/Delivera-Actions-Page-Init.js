@@ -14,6 +14,7 @@ import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { paintInstantShell, clearInstantShell, rememberSurfaceHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { mountSharedStickyScope, ensureSharedStickyScopeMount } from './Delivera-Shared-Sticky-Scope-01Mount-UI.js';
 import {
   filterCasesByTab,
   resolveActionsProjectFromQuery,
@@ -350,11 +351,23 @@ async function init() {
   document.title = 'Actions | Delivera';
   // P0 FIX: Paint instant skeleton shell — no blank white page.
   paintInstantShell('actions', { scopeLabel: resolveActionsProject() });
+  try {
+    mountSharedStickyScope({
+      mount: ensureSharedStickyScopeMount(document.querySelector('.actions-header')),
+      profile: 'compact',
+      onRefresh: () => { void paint(); },
+    });
+  } catch (_) { /* non-fatal */ }
   if (window.matchMedia('(min-width: 1024px)').matches) {
     document.body.classList.add('actions-preview-desktop');
   }
   await paint();
   clearInstantShell();
+  const actionsMount = document.getElementById('actions-list');
+  if (actionsMount) {
+    actionsMount.removeAttribute('aria-busy');
+    actionsMount.setAttribute('aria-busy', 'false');
+  }
   const list = document.getElementById('actions-list');
   if (list) rememberSurfaceHtml('actions', list.innerHTML, { scopeLabel: resolveActionsProject() });
   const shell = document.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]');

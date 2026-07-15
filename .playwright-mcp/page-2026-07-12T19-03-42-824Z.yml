@@ -1,0 +1,107 @@
+- generic [active] [ref=f18e1]:
+  - link "Skip to main content" [ref=f18e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f18e3]:
+    - generic [ref=f18e4]:
+      - button "Expand or collapse sidebar" [ref=f18e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f18e10]:
+        - generic [ref=f18e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=f18e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f18e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f18e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f18e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f18e17]: De
+      - searchbox "Context search" [ref=f18e22]
+      - group "Global actions" [ref=f18e23]:
+        - button "Create" [ref=f18e24] [cursor=pointer]:
+          - generic [ref=f18e25]: +
+        - generic "Checking AI status" [ref=f18e27]: AI · …
+        - button "Notifications" [ref=f18e28] [cursor=pointer]
+        - button "Help" [ref=f18e31] [cursor=pointer]
+        - button "Improve Delivera" [ref=f18e34] [cursor=pointer]
+        - link "Settings" [ref=f18e37] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f18e40] [cursor=pointer]: LY
+  - main [ref=f18e41]:
+    - generic "Portfolio scope" [ref=f18e42]:
+      - generic [ref=f18e43]:
+        - generic [ref=f18e44]:
+          - generic "Squad cadence" [ref=f18e45]: Current · Not saved yet · No active sprint
+          - generic "Set PI baseline to enable time-box" [ref=f18e47]: Time-box not set
+          - button "● Watch" [ref=f18e48] [cursor=pointer]
+        - generic [ref=f18e49]:
+          - combobox "Selected squad" [ref=f18e52]:
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)" [selected]
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)"
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f18e53]:
+            - generic [ref=f18e54]: Compare
+            - generic [ref=f18e55]:
+              - generic [ref=f18e56]:
+                - generic "DMS Squad (SD)" [ref=f18e57]
+                - generic "M-SQUAD (MPSA)" [ref=f18e58]
+              - combobox "Add squad to compare" [ref=f18e59]:
+                - option "+ Add comparison" [selected]
+                - option "AMS Squad (Tachyons) (AMS2)"
+                - option "Agile and Security Guild (ASG)"
+                - option "Bio metric KYC & KYA (BIO)"
+                - option "Finance Squad (FIN)"
+                - option "TRANSFORMERS (MPSA2)"
+                - option "Digital Squad (MVA)"
+                - option "Robotics Process Automation (RPA) (RPA)"
+                - option "T-Squad (TRS)"
+                - option "Vodacom Business (VB)"
+          - generic [ref=f18e60]:
+            - generic [ref=f18e61]: Timeframe
+            - combobox "Timeframe" [ref=f18e62]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f18e63]:
+            - generic [ref=f18e64]: Baseline
+            - combobox "Baseline" [ref=f18e65]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=f18e66]: Updating…
+    - generic "Governance priority brief" [ref=f18e69]:
+      - generic [ref=f18e71]:
+        - paragraph [ref=f18e79]: Loading MAS delivery answer…
+        - complementary [ref=f18e80]
+    - alert [ref=f18e87]
+  - dialog "Create work draft" [ref=f18e88]:
+    - generic [ref=f18e89]:
+      - button "Project ▾" [ref=f18e91] [cursor=pointer]:
+        - generic [ref=f18e92]: Project
+        - text: ▾
+      - generic [ref=f18e93]: Create work
+      - button "AI provider settings" [ref=f18e94] [cursor=pointer]: ⚙
+      - button "Close" [ref=f18e95] [cursor=pointer]: ✕
+    - generic [ref=f18e97]:
+      - textbox "Narrative source text" [ref=f18e99]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f18e101]: ✓
+      - list "Work items" [ref=f18e102]
+    - generic [ref=f18e103]:
+      - generic "Set estimate for all items" [ref=f18e104]:
+        - generic [ref=f18e105]: "All:"
+        - slider "Set estimate for all items" [ref=f18e106] [cursor=pointer]: "0"
+        - generic [ref=f18e107]: —
+      - button "Create 0 issues" [disabled] [ref=f18e109]

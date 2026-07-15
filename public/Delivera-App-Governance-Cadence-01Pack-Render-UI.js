@@ -9,8 +9,21 @@ import { maxStaleHoursFromBrief, resolveBaselineEntryPoint, deriveTrustChipLabel
 function staleLabelFromBrief(brief = {}) {
   const h = maxStaleHoursFromBrief(brief);
   if (h <= 0) return '';
-  if (h < 24) return `${Math.round(h)}h stale`;
-  return `${Math.round(h / 24)}d stale`;
+  // Cap staleness at the sprint's actual duration — a sprint that started
+  // 13d ago cannot be "48d stale". The maxStaleHours measures the oldest
+  // stale issue's age, not the sprint's staleness. (Audit 2026-07-15:
+  // cadence chip showed "48d stale" for a 13-day-old sprint.)
+  const selected = (brief?.projects || []).map((p) => String(p).toUpperCase());
+  const squad = (brief?.squadInsights || []).find((s) => selected.includes(String(s.projectKey || '').toUpperCase()))
+    || brief?.squadInsights?.[0];
+  const daysElapsed = Number(squad?.sprintPulse?.daysElapsedCalendar) || Number(squad?.sprintPulse?.daysElapsed) || 0;
+  let cappedH = h;
+  if (daysElapsed > 0) {
+    const sprintAgeH = daysElapsed * 24;
+    if (sprintAgeH > 0 && sprintAgeH < h) cappedH = sprintAgeH;
+  }
+  if (cappedH < 24) return `${Math.round(cappedH)}h stale`;
+  return `${Math.round(cappedH / 24)}d stale`;
 }
 
 function sprintCadencePart(c, brief = {}) {
@@ -62,6 +75,20 @@ function daysAgo(iso) {
   const ms = new Date(iso).getTime();
   if (!Number.isFinite(ms)) return null;
   return Math.max(0, Math.floor((Date.now() - ms) / 86400000));
+}
+
+/**
+ * Compute the next Vodacom fiscal quarter label from a current quarter string.
+ * e.g. "FY26 Q2" → "FY26 Q3", "FY26 Q4" → "FY27 Q1"
+ */
+function nextQuarterLabel(periodKey = '') {
+  const m = String(periodKey).match(/FY(\d{2,4})\s*Q([1-4])/i);
+  if (!m) return 'next quarter';
+  let fy = parseInt(m[1], 10);
+  let q = parseInt(m[2], 10);
+  q += 1;
+  if (q > 4) { q = 1; fy += 1; }
+  return `FY${String(fy).padStart(2,'0')} Q${q}`;
 }
 
 function deriveMovementHealth(brief = {}, cadenceStatus = 'idle') {
@@ -176,11 +203,18 @@ export function renderScopeCadenceLine(decision = {}, brief = {}) {
     ? COPY.cadenceQuarterDelivery.replace('{pct}', String(c.deliveryPct))
     : '';
   const dormantAttr = c.movementHealth === 'dormant' ? ' data-testid="gov-cadence-dormant"' : '';
+  // Quarter-end PI commitment request: when 80%+ of the quarter is done,
+  // prompt for the next quarter's PI commitments. (Audit 2026-07-15: timing
+  // mechanism for requesting PI slides near quarter end.)
+  const piRequestChip = (tb.isSet && tb.elapsed / tb.total >= 0.8)
+    ? `<span class="gov-cadence-chip gov-cadence-chip--pi-request" data-testid="gov-cadence-pi-request">📋 Request ${nextQuarterLabel(periodKey)} PI slides</span>`
+    : '';
   return `
     <div class="gov-cadence-pack gov-scope-cadence-line" data-testid="gov-cadence-pack" data-cadence-status="${escapeHtml(c.status)}" data-movement-health="${escapeHtml(c.movementHealth || 'healthy')}"${dormantAttr} aria-label="${escapeHtml(COPY.cadencePackLabel)}" title="${escapeHtml(line)}">
       <span class="gov-cadence-chip gov-cadence-chip--scope">${escapeHtml(line)}</span>
       ${trustChip ? `<span class="gov-cadence-chip gov-cadence-chip--trust gov-cadence-chip--danger">${escapeHtml(trustChip)}</span>` : ''}
       ${deliveryLine ? `<span class="gov-cadence-chip gov-cadence-chip--delivery">${escapeHtml(deliveryLine)}</span>` : ''}
+      ${piRequestChip}
     </div>`;
 }
 

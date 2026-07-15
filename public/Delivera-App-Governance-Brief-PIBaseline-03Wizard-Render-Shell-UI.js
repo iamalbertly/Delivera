@@ -36,18 +36,31 @@ export function renderContextBanner(projectsCsv, quarterLabel, opts = {}) {
   const slideMismatch = Boolean(opts.slideScopeMismatch);
   const quarterMismatch = Boolean(opts.inferredQuarter && quarterLabel
     && String(opts.inferredQuarter).trim() !== String(quarterLabel).trim());
+  const suggestedScope = String(opts.suggestedScope || '').toUpperCase();
+  const switchLabel = suggestedScope === 'FIN'
+    ? 'Use FIN (Finance)'
+    : (suggestedScope === 'SD' || detectedSquad === 'DMS' ? 'Use SD (DMS)' : `Use ${suggestedScope || detectedSquad}`);
+  const switchTarget = suggestedScope || (detectedSquad === 'DMS' ? 'SD' : detectedSquad);
   const mismatchHint = slideMismatch
-    ? `<p class="gov-baseline-squad-warn" data-testid="gov-baseline-squad-mismatch">${escapeHtml(COPY.baselineSquadMismatch)} <button type="button" class="btn btn-link btn-compact" data-baseline-switch-sd="1">Use SD (DMS)</button></p>`
+    ? `<p class="gov-baseline-squad-warn" data-testid="gov-baseline-squad-mismatch">${escapeHtml(COPY.baselineSquadMismatch)} <button type="button" class="btn btn-link btn-compact" data-baseline-switch-scope="${escapeHtml(switchTarget)}">${escapeHtml(switchLabel)}</button></p>`
     : '';
   const quarterHint = quarterMismatch
     ? `<p class="gov-baseline-quarter-warn" data-testid="gov-baseline-quarter-mismatch">Slide shows ${escapeHtml(String(opts.inferredQuarter))} — <button type="button" class="btn btn-link btn-compact" data-baseline-switch-quarter="${escapeHtml(String(opts.inferredQuarter))}">Switch to ${escapeHtml(String(opts.inferredQuarter))}</button></p>`
+    : '';
+  const layoutChip = opts.layoutLabel
+    ? `<span class="gov-baseline-layout-chip" data-testid="gov-baseline-layout-chip">${escapeHtml(opts.layoutLabel)}</span>`
+    : '';
+  const lowConf = opts.lowConfidence
+    ? `<p class="gov-baseline-status gov-baseline-status--warn" data-testid="gov-baseline-low-confidence">Low confidence read — verify every commitment before creating.</p>`
     : '';
   return `
     <div class="gov-baseline-context" data-testid="gov-baseline-context">
       <span><strong>Project:</strong> ${escapeHtml(projects)}</span>
       <span><strong>Squad:</strong> ${escapeHtml(squad)}${detectedSquad ? (opts.cachedUploadDate ? ` · saved ${escapeHtml(opts.cachedUploadDate)}` : '') : ' <span class="gov-baseline-context-muted">(upload slide)</span>'}</span>
       <span><strong>Quarter:</strong> ${escapeHtml(quarter)}</span>
+      ${layoutChip}
       <p class="gov-baseline-context-why">${escapeHtml(COPY.piBaselineWhy)}</p>
+      ${lowConf}
       ${mismatchHint}
       ${quarterHint}
     </div>`;
@@ -208,6 +221,9 @@ export function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = 
       inferredSquad: data?.inferredSquad || '',
       inferredQuarter: data?.inferredQuarter || '',
       slideScopeMismatch: data?.slideScopeMismatch || false,
+      suggestedScope: data?.suggestedScope || '',
+      layoutLabel: data?.layoutLabel || '',
+      lowConfidence: Boolean(data?.lowConfidence),
       commitmentCount: (data?.extracted || []).length || data?.extractionMeta?.commitmentCount || 0,
     },
   });
@@ -215,7 +231,7 @@ export function renderEmpty(data, jiraUrl, projectsCsv, quarterLabel, partial = 
 
 export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = null, aiCapability = null) {
   const extracted = (data.extracted || []).slice(0, 12).map((r) => `
-    <li>${escapeHtml([r.month, r.theme, r.bullet].filter(Boolean).join(' · '))}</li>`).join('');
+    <li>${escapeHtml([r.month, r.module || r.theme, r.deliveryItem || r.bullet].filter(Boolean).join(' · '))}${r.ragStatus ? ` <span class="gov-baseline-rag">${escapeHtml(r.ragStatus)}</span>` : ''}</li>`).join('');
   const dupOnly = (data.duplicateRisk || []).filter((c) => c.method === 'slide-duplicate-risk' && c.issueKey);
   const unmatchedRaw = (data.unmatched || []).filter((c) => c.method !== 'slide-duplicate-risk' || !c.issueKey);
   const unmatched = unmatchedRaw.map((c, i) => candidateRow(c, `u-${i}`, jiraHost)).join('');
@@ -253,6 +269,9 @@ export function renderSlideReview(data, projectsCsv, quarterLabel, jiraHost = nu
       inferredSquad: data.inferredSquad || (String(projectsCsv).toUpperCase().includes('SD') ? 'DMS' : ''),
       inferredQuarter: data.inferredQuarter,
       slideScopeMismatch: data.slideScopeMismatch,
+      suggestedScope: data.suggestedScope || '',
+      layoutLabel: data.layoutLabel || '',
+      lowConfidence: Boolean(data.lowConfidence),
       commitmentCount: (data.extracted || []).length || data.extractionMeta?.commitmentCount || 0,
       cachedSquad: data.cached ? (data.inferredSquad || (String(projectsCsv).toUpperCase().includes('SD') ? 'DMS' : '')) : '',
       cachedUploadDate: data.cached && data._cachedAt ? formatHumanAge(new Date(data._cachedAt).toISOString()) : '',

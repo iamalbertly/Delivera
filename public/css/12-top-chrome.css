@@ -70,13 +70,17 @@ body.governance-page .app-top-brand-context {
 
 /*
   Sticky offset contract (Delivera-Shared-Sticky-Offset-01Measure.js publishes live values):
-  --sticky-global-nav-top  → global nav stack only (top chrome + sub-chrome). Use for the
-    FIRST sticky layer below nav: portfolio/gov scope bar, sprint HUD, leadership HUD header.
+  --sticky-global-nav-top  → global nav stack only (top chrome + sub-chrome).
+    Use for sticky layers that stick relative to the *viewport* (sprint HUD, leadership HUD)
+    or for scroll-margins that must clear the fixed chrome.
   --sticky-offset          → nav + --gov-scope-bar-height. Use for overlays BELOW the full
     sticky stack: drawers, side rails, scroll targets past the scope bar.
   --gov-scope-bar-height   → scope bar height alone; add to nav for elements below the bar.
   --current-sprint-hud-below-nav → sprint HUD height; for sticky content below the HUD.
+  Scope bar sticky top: use `top: 0` when body.has-top-chrome (body padding clears chrome
+    and overflow-x:hidden makes body the sticky CB — using --sticky-global-nav-top doubles).
   Never add --sub-chrome-height on top of --sticky-global-nav-top (already folded in).
+  Never use --sticky-offset as `top` on the scope bar itself.
 */
 body.has-top-chrome {
   --sticky-global-nav-top: var(--top-chrome-height, 56px);

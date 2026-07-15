@@ -115,13 +115,13 @@ async function mockRound11Portfolio(page, { emptyStorage = false, synergyLow = f
 }
 
 test.describe('Portfolio direct-value Round11 @portfolio-round11', () => {
-  test('01 empty storage applies DMS peer preset', async ({ page }) => {
+  test('01 empty storage applies All Projects default', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockRound11Portfolio(page, { emptyStorage: true });
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await page.waitForSelector('#portfolio-scope-selected', { timeout: 120000 });
-    await expect(page.locator('#portfolio-scope-selected')).toHaveValue('SD');
+    await expect(page.locator('#portfolio-scope-selected')).toHaveValue('__ALL__');
     assertTelemetryClean(t);
   });
 

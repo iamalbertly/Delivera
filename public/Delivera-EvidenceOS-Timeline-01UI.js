@@ -5,6 +5,7 @@ import {
   clearInstantShell,
   setDeliveraSurfaceState,
 } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { mountSharedStickyScope, ensureSharedStickyScopeMount } from './Delivera-Shared-Sticky-Scope-01Mount-UI.js';
 
 const state = {
   cockpit: null,
@@ -248,6 +249,13 @@ async function handleIntent(event) {
 
 document.addEventListener('DOMContentLoaded', () => {
   paintInstantShell('evidence');
+  try {
+    mountSharedStickyScope({
+      mount: ensureSharedStickyScopeMount(document.querySelector('.evidence-os-header')),
+      profile: 'pi',
+      onRefresh: () => { void load(); },
+    });
+  } catch (_) { /* non-fatal */ }
   drawerController = createModalBehavior('#eos-capture-drawer', { mode: 'drawer' });
   document.addEventListener('click', (event) => {
     if (event.target?.closest?.('[data-eos-action="capture"]')) drawerController.open({ triggerEl: event.target });

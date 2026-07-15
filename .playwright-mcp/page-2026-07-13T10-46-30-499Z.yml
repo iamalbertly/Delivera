@@ -1,0 +1,379 @@
+- generic [active] [ref=f58e1]:
+  - link "Skip to main content" [ref=f58e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f58e3]:
+    - generic [ref=f58e4]:
+      - button "Expand or collapse sidebar" [ref=f58e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f58e10]:
+        - link "Governance" [ref=f58e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f58e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f58e13] [cursor=pointer]:
+          - /url: /actions
+        - generic [ref=f58e14] [cursor=pointer]: Settings
+      - link "Delivera No report run yet" [ref=f58e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f58e17]: De
+        - generic [ref=f58e18]:
+          - generic [ref=f58e19]: Delivera
+          - generic "No report run yet" [ref=f58e20]
+      - searchbox "Context search" [ref=f58e23]
+      - group "Global actions" [ref=f58e24]:
+        - button "Create" [ref=f58e25] [cursor=pointer]:
+          - generic [ref=f58e26]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f58e229]: AI · Slides ready
+        - button "Actions" [ref=f58e29] [cursor=pointer]
+        - button "Notifications" [ref=f58e30] [cursor=pointer]
+        - button "Help" [ref=f58e33] [cursor=pointer]
+        - button "Improve Delivera" [ref=f58e36] [cursor=pointer]
+        - button "Account menu" [ref=f58e39] [cursor=pointer]: LY
+  - main [ref=f58e41]:
+    - generic [ref=f58e42]:
+      - paragraph [ref=f58e43]: Settings
+      - heading "Your workspace & trust" [level=1] [ref=f58e44]
+      - paragraph [ref=f58e45]: Defaults, org catalog, integrations, and activity — linked to Portfolio, Squads, and Actions.
+    - navigation "Settings sections" [ref=f58e46]:
+      - link "My workspace" [ref=f58e47] [cursor=pointer]:
+        - /url: "#my-workspace"
+      - link "Organization" [ref=f58e48] [cursor=pointer]:
+        - /url: "#organization"
+      - link "Epic format" [ref=f58e49] [cursor=pointer]:
+        - /url: "#settings-epic-format"
+      - link "Integrations" [ref=f58e50] [cursor=pointer]:
+        - /url: "#integrations"
+      - link "Activity" [ref=f58e51] [cursor=pointer]:
+        - /url: "#jira-activity"
+    - generic [ref=f58e52]:
+      - generic [ref=f58e54]:
+        - heading "My workspace" [level=2] [ref=f58e55]
+        - paragraph [ref=f58e56]: Personal defaults stay in this browser. Organization settings are managed by your administrator.
+        - heading "Language" [level=3] [ref=f58e57]
+        - generic [ref=f58e58]:
+          - checkbox "Simple mode — plain English across Brief and Sprint" [ref=f58e59]
+          - text: Simple mode — plain English across Brief and Sprint
+        - heading "Default project scope" [level=3] [ref=f58e60]
+        - paragraph [ref=f58e61]:
+          - link "Set PI baseline →" [ref=f58e62] [cursor=pointer]:
+            - /url: /governance?openAlignment=slide
+          - text: to verify quarter commitments.
+        - searchbox "Search project scope" [ref=f58e63]
+        - generic [ref=f58e64]:
+          - paragraph [ref=f58e65]: Recent squads
+          - generic [ref=f58e66]:
+            - button "Mini - Apps Squad (MAS)" [ref=f58e67] [cursor=pointer]
+            - button "Robotics Process Automation (RPA) (RPA)" [ref=f58e68] [cursor=pointer]
+            - button "DMS Squad (SD)" [ref=f58e69] [cursor=pointer]
+            - button "TRANSFORMERS (MPSA2)" [ref=f58e70] [cursor=pointer]
+        - group "Default projects" [ref=f58e71]:
+          - generic [ref=f58e72] [cursor=pointer]:
+            - checkbox "M-SQUAD MPSA" [ref=f58e73]
+            - generic [ref=f58e74]: M-SQUAD
+            - generic [ref=f58e75]: MPSA
+          - generic [ref=f58e76] [cursor=pointer]:
+            - checkbox "MAS MAS" [checked] [ref=f58e77]
+            - generic [ref=f58e78]: MAS
+            - generic [ref=f58e79]: MAS
+          - generic [ref=f58e80] [cursor=pointer]:
+            - checkbox "RPA RPA" [checked] [ref=f58e81]
+            - generic [ref=f58e82]: RPA
+            - generic [ref=f58e83]: RPA
+          - generic [ref=f58e84] [cursor=pointer]:
+            - checkbox "Digital MVA" [ref=f58e85]
+            - generic [ref=f58e86]: Digital
+            - generic [ref=f58e87]: MVA
+          - generic [ref=f58e88] [cursor=pointer]:
+            - checkbox "ASG ASG" [ref=f58e89]
+            - generic [ref=f58e90]: ASG
+            - generic [ref=f58e91]: ASG
+          - generic [ref=f58e92] [cursor=pointer]:
+            - checkbox "Finance FIN" [ref=f58e93]
+            - generic [ref=f58e94]: Finance
+            - generic [ref=f58e95]: FIN
+          - generic [ref=f58e96] [cursor=pointer]:
+            - checkbox "DMS SD" [checked] [ref=f58e97]
+            - generic [ref=f58e98]: DMS
+            - generic [ref=f58e99]: SD
+          - generic [ref=f58e100] [cursor=pointer]:
+            - checkbox "TRANSFORMERS MPSA2" [checked] [ref=f58e101]
+            - generic [ref=f58e102]: TRANSFORMERS
+            - generic [ref=f58e103]: MPSA2
+          - generic [ref=f58e104] [cursor=pointer]:
+            - checkbox "T-Squad TRS" [ref=f58e105]
+            - generic [ref=f58e106]: T-Squad
+            - generic [ref=f58e107]: TRS
+          - generic [ref=f58e108] [cursor=pointer]:
+            - checkbox "VB VB" [ref=f58e109]
+            - generic [ref=f58e110]: VB
+            - generic [ref=f58e111]: VB
+          - generic [ref=f58e112] [cursor=pointer]:
+            - checkbox "AMS AMS2" [ref=f58e113]
+            - generic [ref=f58e114]: AMS
+            - generic [ref=f58e115]: AMS2
+          - generic [ref=f58e116] [cursor=pointer]:
+            - checkbox "BIO BIO" [ref=f58e117]
+            - generic [ref=f58e118]: BIO
+            - generic [ref=f58e119]: BIO
+        - generic [ref=f58e120]:
+          - button "Save defaults" [ref=f58e121] [cursor=pointer]
+          - button "Reset to org defaults" [ref=f58e122] [cursor=pointer]
+        - paragraph
+        - heading "Saved views" [level=3] [ref=f58e123]
+        - paragraph [ref=f58e124]: Saved views appear here after you use Proof or Sprint filters.
+      - generic [ref=f58e230]:
+        - heading "Organization" [level=2] [ref=f58e231]
+        - paragraph [ref=f58e232]: Squad names and delivery rules configured by your administrator. Read-only here.
+        - paragraph [ref=f58e233]:
+          - text: "Display mode:"
+          - strong [ref=f58e234]: label
+          - text: (set via DELIVERA_PROJECT_DISPLAY_MODE)
+        - table [ref=f58e235]:
+          - rowgroup [ref=f58e236]:
+            - row [ref=f58e237]:
+              - columnheader "Jira key" [ref=f58e238]
+              - columnheader "Display name" [ref=f58e239]
+              - columnheader "Short" [ref=f58e240]
+              - columnheader "Default" [ref=f58e241]
+              - columnheader "Access" [ref=f58e242]
+          - rowgroup [ref=f58e243]:
+            - row [ref=f58e244]:
+              - cell [ref=f58e245]:
+                - code [ref=f58e246]: MPSA
+              - cell "M-SQUAD" [ref=f58e247]
+              - cell "M-SQUAD" [ref=f58e248]
+              - cell "Yes" [ref=f58e249]
+              - cell "Verified" [ref=f58e250]
+            - row [ref=f58e251]:
+              - cell [ref=f58e252]:
+                - code [ref=f58e253]: MAS
+              - cell "Mini - Apps Squad" [ref=f58e254]
+              - cell "MAS" [ref=f58e255]
+              - cell "Yes" [ref=f58e256]
+              - cell "Verified" [ref=f58e257]
+            - row [ref=f58e258]:
+              - cell [ref=f58e259]:
+                - code [ref=f58e260]: RPA
+              - cell "Robotics Process Automation (RPA)" [ref=f58e261]
+              - cell "RPA" [ref=f58e262]
+              - cell "—" [ref=f58e263]
+              - cell "Verified" [ref=f58e264]
+            - row [ref=f58e265]:
+              - cell [ref=f58e266]:
+                - code [ref=f58e267]: MVA
+              - cell "Digital Squad" [ref=f58e268]
+              - cell "Digital" [ref=f58e269]
+              - cell "—" [ref=f58e270]
+              - cell "Verified" [ref=f58e271]
+            - row [ref=f58e272]:
+              - cell [ref=f58e273]:
+                - code [ref=f58e274]: ASG
+              - cell "Agile and Security Guild" [ref=f58e275]
+              - cell "ASG" [ref=f58e276]
+              - cell "—" [ref=f58e277]
+              - cell "Verified" [ref=f58e278]
+            - row [ref=f58e279]:
+              - cell [ref=f58e280]:
+                - code [ref=f58e281]: FIN
+              - cell "Finance Squad" [ref=f58e282]
+              - cell "Finance" [ref=f58e283]
+              - cell "—" [ref=f58e284]
+              - cell "Verified" [ref=f58e285]
+            - row [ref=f58e286]:
+              - cell [ref=f58e287]:
+                - code [ref=f58e288]: SD
+              - cell "DMS Squad" [ref=f58e289]
+              - cell "DMS" [ref=f58e290]
+              - cell "—" [ref=f58e291]
+              - cell "Verified" [ref=f58e292]
+            - row [ref=f58e293]:
+              - cell [ref=f58e294]:
+                - code [ref=f58e295]: MPSA2
+              - cell "TRANSFORMERS" [ref=f58e296]
+              - cell "TRANSFORMERS" [ref=f58e297]
+              - cell "—" [ref=f58e298]
+              - cell "Verified" [ref=f58e299]
+            - row [ref=f58e300]:
+              - cell [ref=f58e301]:
+                - code [ref=f58e302]: TRS
+              - cell "T-Squad" [ref=f58e303]
+              - cell "T-Squad" [ref=f58e304]
+              - cell "—" [ref=f58e305]
+              - cell "Verified" [ref=f58e306]
+            - row [ref=f58e307]:
+              - cell [ref=f58e308]:
+                - code [ref=f58e309]: VB
+              - cell "Vodacom Business" [ref=f58e310]
+              - cell "VB" [ref=f58e311]
+              - cell "—" [ref=f58e312]
+              - cell "Verified" [ref=f58e313]
+            - row [ref=f58e314]:
+              - cell [ref=f58e315]:
+                - code [ref=f58e316]: AMS2
+              - cell "AMS Squad (Tachyons)" [ref=f58e317]
+              - cell "AMS" [ref=f58e318]
+              - cell "—" [ref=f58e319]
+              - cell "Verified" [ref=f58e320]
+            - row [ref=f58e321]:
+              - cell [ref=f58e322]:
+                - code [ref=f58e323]: BIO
+              - cell "Bio metric KYC & KYA" [ref=f58e324]
+              - cell "BIO" [ref=f58e325]
+              - cell "—" [ref=f58e326]
+              - cell "Verified" [ref=f58e327]
+        - group [ref=f58e328]:
+          - generic "Delivery rules (read-only)" [ref=f58e329]
+        - paragraph [ref=f58e330]:
+          - text: "To change squad names or rules, contact your administrator. Catalog:"
+          - code [ref=f58e331]: data/Delivera-Org-Project-Catalog.json
+      - generic [ref=f58e129]:
+        - heading "Epic naming format" [level=2] [ref=f58e130]
+        - paragraph [ref=f58e131]: All squads use this pattern when creating epics from PI slides or Alignment Studio.
+        - generic [ref=f58e132]:
+          - generic [ref=f58e133]:
+            - text: Title template
+            - textbox "Title template" [ref=f58e134]: "{quarter} – {system} – {subsystem} – {capability}"
+          - generic [ref=f58e135]:
+            - text: Default subsystem
+            - textbox "Default subsystem" [ref=f58e136]: NBA
+          - paragraph [ref=f58e137]:
+            - strong [ref=f58e138]: "Preview:"
+            - text: FY27 Q2 – DMS – NBA – Example Capability
+          - button "Save epic format" [ref=f58e139] [cursor=pointer]
+          - paragraph [ref=f58e140]: Applies to all squads on the next epic create.
+      - generic [ref=f58e142]:
+        - heading "Integrations" [level=2] [ref=f58e143]
+        - paragraph [ref=f58e144]: Connection health and AI trust. Server credentials are administrator-managed.
+        - generic [ref=f58e145]:
+          - generic [ref=f58e146]:
+            - paragraph [ref=f58e147]:
+              - strong [ref=f58e148]: Jira
+              - text: https://vodacomtz.atlassian.net · token configured · auth disabled
+            - paragraph [ref=f58e149]:
+              - strong [ref=f58e150]: Cache
+              - text: redis-url
+          - heading "Project access" [level=3] [ref=f58e151]
+          - list [ref=f58e152]:
+            - listitem [ref=f58e153]:
+              - generic [ref=f58e154]:
+                - text: M-SQUAD
+                - code [ref=f58e155]: MPSA
+              - generic [ref=f58e156]: Boards found
+            - listitem [ref=f58e157]:
+              - generic [ref=f58e158]:
+                - text: MAS
+                - code [ref=f58e159]: MAS
+              - generic [ref=f58e160]: Boards found
+            - listitem [ref=f58e161]:
+              - generic [ref=f58e162]:
+                - text: RPA
+                - code [ref=f58e163]: RPA
+              - generic [ref=f58e164]: Boards found
+            - listitem [ref=f58e165]:
+              - generic [ref=f58e166]:
+                - text: Digital
+                - code [ref=f58e167]: MVA
+              - generic [ref=f58e168]: Boards found
+            - listitem [ref=f58e169]:
+              - generic [ref=f58e170]:
+                - text: ASG
+                - code [ref=f58e171]: ASG
+              - generic [ref=f58e172]: Boards found
+            - listitem [ref=f58e173]:
+              - generic [ref=f58e174]:
+                - text: Finance
+                - code [ref=f58e175]: FIN
+              - generic [ref=f58e176]: Boards found
+            - listitem [ref=f58e177]:
+              - generic [ref=f58e178]:
+                - text: DMS
+                - code [ref=f58e179]: SD
+              - generic [ref=f58e180]: Boards found
+            - listitem [ref=f58e181]:
+              - generic [ref=f58e182]:
+                - text: TRANSFORMERS
+                - code [ref=f58e183]: MPSA2
+              - generic [ref=f58e184]: Boards found
+            - listitem [ref=f58e185]:
+              - generic [ref=f58e186]:
+                - text: T-Squad
+                - code [ref=f58e187]: TRS
+              - generic [ref=f58e188]: Boards found
+            - listitem [ref=f58e189]:
+              - generic [ref=f58e190]:
+                - text: VB
+                - code [ref=f58e191]: VB
+              - generic [ref=f58e192]: Boards found
+            - listitem [ref=f58e193]:
+              - generic [ref=f58e194]:
+                - text: AMS
+                - code [ref=f58e195]: AMS2
+              - generic [ref=f58e196]: Boards found
+            - listitem [ref=f58e197]:
+              - generic [ref=f58e198]:
+                - text: BIO
+                - code [ref=f58e199]: BIO
+              - generic [ref=f58e200]: Boards found
+        - generic [ref=f58e333]:
+          - heading "AI reasoning layer" [level=3] [ref=f58e334]
+          - paragraph [ref=f58e335]: "AI connected: Server (OpenRouter) · Slides ready"
+          - paragraph [ref=f58e336]: Server AI is configured in .env — browser override is optional.
+          - paragraph [ref=f58e337]: "Last 24h: 5315 calls - Fallbacks: 5227"
+          - paragraph [ref=f58e338]: High template fallback (98% in 24h). Brief wording may use deterministic templates.
+          - generic [ref=f58e339]:
+            - generic [ref=f58e340]:
+              - strong [ref=f58e341]: "Used for:"
+              - list [ref=f58e342]:
+                - listitem [ref=f58e343]: Clearer Brief wording
+                - listitem [ref=f58e344]: PI baseline classification
+                - listitem [ref=f58e345]: Simple Mode copy
+                - listitem [ref=f58e346]: Feedback improvement proposals
+                - listitem [ref=f58e347]: Grouped nudge drafts
+            - generic [ref=f58e348]:
+              - strong [ref=f58e349]: "Never used for:"
+              - list [ref=f58e350]:
+                - listitem [ref=f58e351]: Jira writes
+                - listitem [ref=f58e352]: Final counts
+                - listitem [ref=f58e353]: Confirmed PI baseline
+                - listitem [ref=f58e354]: Owner facts
+                - listitem [ref=f58e355]: Risk truth
+          - heading "Browser override (optional)" [level=3] [ref=f58e356]
+          - generic [ref=f58e357]:
+            - text: Provider
+            - combobox "Provider" [ref=f58e358]:
+              - option "Built-in (no key)" [selected]
+              - option "OpenAI"
+              - option "Claude"
+              - option "Gemini"
+              - option "OpenRouter"
+          - generic [ref=f58e359]:
+            - text: API key
+            - textbox "API key" [ref=f58e360]:
+              - /placeholder: Paste key…
+          - generic [ref=f58e361]:
+            - button "Save in browser" [ref=f58e362] [cursor=pointer]
+            - button "Test" [ref=f58e363] [cursor=pointer]
+            - button "Clear" [ref=f58e364] [cursor=pointer]
+          - paragraph
+      - generic [ref=f58e201]:
+        - heading "Jira activity" [level=2] [ref=f58e202]
+        - paragraph [ref=f58e203]: Comments sent from Current Sprint. Review what was posted and undo when Jira allows.
+        - paragraph [ref=f58e365]: No Jira comments sent from Delivera yet.
+  - dialog "Create work draft" [ref=f58e206]:
+    - generic [ref=f58e207]:
+      - button "Project ▾" [ref=f58e209] [cursor=pointer]:
+        - generic [ref=f58e210]: Project
+        - text: ▾
+      - generic [ref=f58e211]: Create work
+      - button "AI provider settings" [ref=f58e212] [cursor=pointer]: ⚙
+      - button "Close" [ref=f58e213] [cursor=pointer]: ✕
+    - generic [ref=f58e215]:
+      - textbox "Narrative source text" [ref=f58e217]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f58e219]: ✓
+      - list "Work items" [ref=f58e220]
+    - generic [ref=f58e221]:
+      - generic "Set estimate for all items" [ref=f58e222]:
+        - generic [ref=f58e223]: "All:"
+        - slider "Set estimate for all items" [ref=f58e224] [cursor=pointer]: "0"
+        - generic [ref=f58e225]: —
+      - button "Create 0 issues" [disabled] [ref=f58e227]

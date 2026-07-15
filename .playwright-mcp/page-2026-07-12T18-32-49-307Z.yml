@@ -1,0 +1,117 @@
+- generic [active] [ref=f7e1]:
+  - link "Skip to main content" [ref=f7e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f7e8]:
+    - generic [ref=f7e9]:
+      - button "Expand or collapse sidebar" [ref=f7e11] [cursor=pointer]
+      - navigation "Surfaces" [ref=f7e15]:
+        - link "Governance" [ref=f7e16] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f7e17] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f7e18] [cursor=pointer]: Actions
+        - link "Settings" [ref=f7e19] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f7e21] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f7e22]: De
+      - searchbox "Context search" [ref=f7e27]
+      - group "Global actions" [ref=f7e28]:
+        - button "Create" [ref=f7e29] [cursor=pointer]:
+          - generic [ref=f7e30]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f7e32]: AI · Slides ready
+        - button "Notifications" [ref=f7e33] [cursor=pointer]
+        - button "Help" [ref=f7e36] [cursor=pointer]
+        - button "Improve Delivera" [ref=f7e39] [cursor=pointer]
+        - link "Settings" [ref=f7e42] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f7e45] [cursor=pointer]: LY
+  - main [ref=f7e3]:
+    - generic "Portfolio scope" [ref=f7e4]:
+      - generic [ref=f7e46]:
+        - generic [ref=f7e47]:
+          - generic "Squad cadence" [ref=f7e48]:
+            - generic [ref=f7e49]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 45d stale
+            - generic [ref=f7e50]: DELIVERY BLOCKED
+          - generic [ref=f7e51]: FY27 Q2 · Day 45/90 · 50% time elapsed
+          - button "✕ Blocked" [ref=f7e52] [cursor=pointer]
+        - generic [ref=f7e53]:
+          - combobox "Selected squad" [ref=f7e56]:
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)" [selected]
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)"
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f7e57]:
+            - generic [ref=f7e58]: Compare
+            - generic [ref=f7e60]:
+              - generic "DMS Squad (SD)" [ref=f7e61]
+              - generic "M-SQUAD (MPSA)" [ref=f7e62]
+          - generic [ref=f7e63]:
+            - generic [ref=f7e64]: Timeframe
+            - combobox "Timeframe" [ref=f7e65]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f7e66]:
+            - generic [ref=f7e67]: Baseline
+            - combobox "Baseline" [ref=f7e68]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+          - generic [ref=f7e69]: Cached view
+    - generic "Governance priority brief" [ref=f7e72]:
+      - generic [ref=f7e74]:
+        - paragraph [ref=f7e82]: Loading MAS delivery answer…
+        - complementary [ref=f7e83]
+  - dialog "Create work draft" [ref=f7e89]:
+    - generic [ref=f7e90]:
+      - button "Project ▾" [ref=f7e92] [cursor=pointer]:
+        - generic [ref=f7e93]: Project
+        - text: ▾
+      - generic [ref=f7e94]: Create work
+      - button "AI provider settings" [ref=f7e95] [cursor=pointer]: ⚙
+      - button "Close" [ref=f7e96] [cursor=pointer]: ✕
+    - generic [ref=f7e98]:
+      - textbox "Narrative source text" [ref=f7e100]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f7e102]: ✓
+      - list "Work items" [ref=f7e103]
+    - generic [ref=f7e104]:
+      - generic "Set estimate for all items" [ref=f7e105]:
+        - generic [ref=f7e106]: "All:"
+        - slider "Set estimate for all items" [ref=f7e107] [cursor=pointer]: "0"
+        - generic [ref=f7e108]: —
+      - button "Create 0 issues" [disabled] [ref=f7e110]
+  - dialog [ref=f7e114]:
+    - banner [ref=f7e115]:
+      - heading "Governance evidence" [level=2] [ref=f7e116]
+      - button "Close" [ref=f7e117] [cursor=pointer]
+    - generic [ref=f7e119]:
+      - paragraph [ref=f7e120]: Use this neutral governance evidence summary to support the portfolio decision.
+      - generic [ref=f7e121]:
+        - generic [ref=f7e122]:
+          - term [ref=f7e123]: Decision required
+          - definition [ref=f7e124]: Confirm whether MPSA board board, project, or sprint scope is correct for this period.
+        - generic [ref=f7e125]:
+          - term [ref=f7e126]: Owner
+          - definition [ref=f7e127]: Product Owner
+        - generic [ref=f7e128]:
+          - term [ref=f7e129]: Evidence confidence
+          - definition [ref=f7e130]: "Low evidence confidence: 1 of 12 evidence points available"
+      - generic [ref=f7e131]: "Safest wording: This is a delivery confidence issue supported by evidence, not a person issue. DELIVERY BLOCKED. Testing of E-SIM Tourism Android APP Recommended next step: confirm scope, owner lane, and end date before escalation."
+      - generic [ref=f7e132]:
+        - button "Copy evidence summary" [ref=f7e133] [cursor=pointer]
+        - link "Open deep evidence in Actions" [ref=f7e134] [cursor=pointer]:
+          - /url: /actions?caseId=MAS-FY27Q2-20260712-02&project=MAS&period=FY27+Q2&tab=proof

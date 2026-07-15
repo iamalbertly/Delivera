@@ -8,8 +8,10 @@
 body.governance-priority-brief-page.portfolio-page .portfolio-scope-bar,
 body.governance-priority-brief-page #portfolio-scope-bar-mount.portfolio-scope-bar {
   position: sticky;
-  /* Nav-only: --sticky-offset includes this bar's own height (double-count gap). */
-  top: var(--sticky-global-nav-top, 56px);
+  /* top:0 — body padding clears fixed chrome; body is sticky CB via overflow-x:hidden.
+     --sticky-offset includes this bar's height (double-count). --sticky-global-nav-top
+     doubles against body padding (~56px white gap). */
+  top: 0;
   z-index: var(--z-scope-sticky, 1290);
   --portfolio-scope-z: var(--z-scope-sticky, 1290);
   flex-shrink: 0;
@@ -80,7 +82,210 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
 
 /* P0 FIX: Carousel slot inside the priority surface — visible on governance page. */
 .gov-priority-carousel-slot {
-  margin-top: 0.5rem;
+  margin-top: 0.15rem;
+  margin-bottom: 0.5rem;
+  min-height: 7rem;
+}
+
+/* Flush Squad Comparison under hero — kill post-hero white void */
+.gov-priority-brief-hero {
+  margin-bottom: 0;
+}
+.gov-priority-main > .gov-since-last-check:empty,
+.gov-priority-main > .gov-since-last-check:not(:has(*)) {
+  display: none;
+}
+.gov-priority-main > .gov-priority-brief-hero + .gov-priority-carousel-slot,
+.gov-priority-main > .gov-priority-brief-hero + .gov-since-last-check + .gov-priority-carousel-slot {
+  margin-top: 0.25rem;
+}
+
+.gov-legitimacy-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.gov-legitimacy-banner--critical {
+  background: #fef2f2;
+  color: #7f1d1d;
+  border: 1px solid #fecaca;
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+.gov-legitimacy-banner--warning {
+  background: #fffbeb;
+  color: #78350f;
+  border: 1px solid #fde68a;
+  box-shadow: inset 3px 0 0 #d97706;
+}
+
+.gov-attention-evidence {
+  margin: 0.65rem 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafbfc;
+}
+.gov-attention-evidence-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.gov-attention-evidence-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.gov-attention-evidence-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.gov-attention-evidence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.gov-attention-evidence-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+}
+.gov-attention-evidence-row--active-gap {
+  border-left: 3px solid #dc2626;
+}
+.gov-attention-evidence-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.gov-relevance-chip {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 650;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.gov-relevance-chip--active-gap {
+  background: #fef2f2;
+  color: #991b1b;
+}
+.gov-relevance-chip--stale-candidate,
+.gov-relevance-chip--hygiene-suspect {
+  background: #f1f5f9;
+  color: #475569;
+}
+.gov-attention-quarantine {
+  margin-top: 0.55rem;
+  font-size: 0.85rem;
+}
+.gov-attention-quarantine summary {
+  cursor: pointer;
+  color: #475569;
+  font-weight: 600;
+}
+.gov-priority-headline {
+  color: #0f172a;
+}
+.gov-priority-exposure .gov-status-rail--critical {
+  background: #dc2626;
+}
+
+.shared-sticky-scope-all-hint {
+  flex: 1 1 100%;
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  color: #475569;
+}
+/* Never collapse compare to a white void — reserve shimmer while pending/empty. */
+.gov-priority-carousel-slot:empty,
+.gov-priority-carousel-slot[data-compare-pending="1"]:empty {
+  display: block;
+  min-height: 7rem;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef2f7, #f8f8fa, #eef2f7);
+  background-size: 200% 100%;
+  animation: dlvr-shim 1.2s ease-in-out infinite;
+}
+@keyframes dlvr-shim {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.gov-compare-skeleton {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  min-height: 7rem;
+}
+.gov-compare-skeleton-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #334155;
+}
+.gov-compare-skeleton-sub {
+  margin: 0.2rem 0 0.45rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN | RAIL layout — aside spans full left stack so Squad Comparison
+   sits flush under the hero (no white void beside a tall agentic panel).
+   ═══════════════════════════════════════════════════════════════ */
+.gov-priority-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+}
+.gov-priority-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.gov-priority-rail {
+  min-width: 0;
+}
+.gov-priority-rail .gov-agentic-panel {
+  position: sticky;
+  top: 4.5rem;
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+}
+/* Bonus: keep primary decision CTAs visible while scrolling main column */
+.gov-priority-rail .gov-agentic-ctas {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 0.65rem 0 0.25rem;
+  margin-top: auto;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, var(--surface, #fff) 28%);
+  border-top: 1px solid var(--border-subtle, #e8e8ec);
+}
+/* Legacy cockpit/hero-grid aliases kept for older HTML/shells */
+.gov-priority-cockpit-grid,
+.gov-priority-hero-grid {
+  display: contents;
 }
 
 /* Audit fix: use the full width on wide desktops so the 3-column layout
@@ -89,13 +294,30 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   body.governance-priority-brief-page .gov-priority-surface {
     max-width: min(1680px, 96vw);
   }
+  body.governance-priority-brief-page .gov-priority-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  }
 }
 
-.gov-priority-hero-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-  gap: 1.25rem;
-  align-items: start;
+@media (max-width: 960px) {
+  .gov-priority-layout {
+    grid-template-columns: 1fr;
+  }
+  .gov-priority-rail {
+    order: 2;
+  }
+  .gov-priority-main {
+    order: 1;
+  }
+  .gov-priority-rail .gov-agentic-panel {
+    position: static;
+    max-height: none;
+  }
+  .gov-priority-rail .gov-agentic-ctas {
+    position: static;
+    background: transparent;
+    border-top: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -379,11 +601,8 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
 }
 
 .gov-priority-cockpit-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-  gap: 1.25rem;
-  align-items: start;
-  width: 100%; /* P0 FIX: fill the surface width. */
+  /* Deprecated: real desktop layout is .gov-priority-layout (main | rail). */
+  display: contents;
 }
 
 /* P0 FIX: 3-column desktop layout to kill the 67% empty space.
@@ -779,6 +998,10 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle, #e8e8ec);
+  border-radius: 12px;
+  background: var(--surface, #fff);
 }
 
 .gov-agentic-band {
@@ -867,6 +1090,10 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   cursor: pointer;
   min-height: 44px;
   text-align: left;
+  font: inherit;
+  color: inherit;
+  width: auto;
+  max-width: 100%;
 }
 
 .gov-exception-rail-row--critical {
@@ -879,8 +1106,45 @@ body.governance-priority-brief-page .portfolio-main-column--priority-brief {
   background: #fffbeb;
 }
 
+.gov-exception-rail-row--muted {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
 .gov-exception-rail-row.is-selected {
   box-shadow: 0 0 0 2px #2563eb;
+}
+
+.gov-data-trust-chip {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: #eef2ff;
+  color: #3730a3;
+  white-space: nowrap;
+}
+
+.gov-data-trust-chip--plan-backed {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.gov-data-trust-chip--board-health-only {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.gov-data-trust-chip--cannot-judge {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.gov-priority-cause-clause {
+  margin-left: 0.25rem;
+  color: var(--text-muted, #6b7280);
 }
 
 .gov-exception-rail-collapsed {
@@ -1105,3 +1369,6 @@ body.governance-priority-brief-page .portfolio-layout--priority-brief .portfolio
   color: #15803d;
   font-weight: 600;
 }
+
+/* Dense layout: carousel under hero, no void */
+.gov-priority-carousel-slot{margin-top:0.35rem;margin-bottom:0.75rem;min-height:7rem}.gov-priority-carousel-slot:empty{display:block;min-height:7rem;border-radius:10px;background:linear-gradient(90deg,#eef2f7,#f8f8fa,#eef2f7);background-size:200% 100%;animation:dlvr-shim 1.2s ease-in-out infinite}.gov-priority-surface .gov-priority-cockpit-grid{margin-bottom:0.35rem}.shared-sticky-scope-mount{position:sticky;top:0;z-index:40;background:#f5f6f8;padding:0.35rem 0;border-bottom:1px solid #e5e7eb}.shared-sticky-scope{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0.65rem}.shared-sticky-scope-field{display:flex;flex-direction:column;gap:0.15rem;font-size:0.72rem}.shared-sticky-scope-label{font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.02em}.shared-sticky-scope select{min-width:8rem;padding:0.35rem 0.5rem;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-size:0.85rem}.shared-sticky-scope-link{align-self:center}

@@ -175,7 +175,7 @@ export function renderCurrentSprintPage(data) {
     + '</div>'
     + '</div>';
 
-  const headerOpts = { sectionLinksHtml: '', viewportLean: true, sectionLinksInDrawer: true };
+  const headerOpts = { sectionLinksHtml, viewportLean: true, sectionLinksInDrawer: true };
   html += renderHeaderBar(data, headerOpts);
   html += renderTopBlockerCard(data);
   html += renderNextUpStrip(data);

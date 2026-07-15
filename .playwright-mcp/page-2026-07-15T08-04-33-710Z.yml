@@ -1,0 +1,81 @@
+- generic [active] [ref=f4e1]:
+  - link "Skip to main content" [ref=f4e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f4e3]:
+    - generic [ref=f4e4]:
+      - button "Expand or collapse sidebar" [ref=f4e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f4e10]:
+        - link "Governance" [ref=f4e11] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f4e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f4e13] [cursor=pointer]:
+          - /url: /actions
+        - generic [ref=f4e14] [cursor=pointer]: Settings
+      - link "Delivera No report run yet" [ref=f4e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f4e17]: De
+        - generic [ref=f4e18]:
+          - generic [ref=f4e19]: Delivera
+          - generic "No report run yet" [ref=f4e20]
+      - searchbox "Context search" [ref=f4e23]
+      - group "Global actions" [ref=f4e24]:
+        - button "Create" [ref=f4e25] [cursor=pointer]:
+          - generic [ref=f4e26]: +
+        - generic "Checking AI status" [ref=f4e28]: AI · …
+        - button "Actions" [ref=f4e29] [cursor=pointer]
+        - button "Notifications" [ref=f4e30] [cursor=pointer]
+        - button "Help" [ref=f4e33] [cursor=pointer]
+        - button "Improve Delivera" [ref=f4e36] [cursor=pointer]
+        - button "Account menu" [ref=f4e39] [cursor=pointer]: LY
+  - main [ref=f4e41]:
+    - generic [ref=f4e42]:
+      - paragraph [ref=f4e43]: Settings
+      - heading "Your workspace & trust" [level=1] [ref=f4e44]
+      - paragraph [ref=f4e45]: Defaults, org catalog, integrations, and activity — linked to Portfolio, Squads, and Actions.
+    - navigation "Settings sections" [ref=f4e46]:
+      - link "My workspace" [ref=f4e47] [cursor=pointer]:
+        - /url: "#my-workspace"
+      - link "Organization" [ref=f4e48] [cursor=pointer]:
+        - /url: "#organization"
+      - link "Epic format" [ref=f4e49] [cursor=pointer]:
+        - /url: "#settings-epic-format"
+      - link "Integrations" [ref=f4e50] [cursor=pointer]:
+        - /url: "#integrations"
+      - link "Activity" [ref=f4e51] [cursor=pointer]:
+        - /url: "#jira-activity"
+    - generic [ref=f4e52]:
+      - status [ref=f4e54]:
+        - generic [ref=f4e55]:
+          - generic [ref=f4e56]: Settings
+          - generic [ref=f4e57]: Workspace
+          - generic [ref=f4e58]: Loading settings…
+      - paragraph [ref=f4e63]: Loading organization settings…
+      - paragraph [ref=f4e66]: Loading epic format…
+      - generic [ref=f4e68]:
+        - heading "Integrations" [level=2] [ref=f4e69]
+        - paragraph [ref=f4e70]: Connection health and AI trust. Server credentials are administrator-managed.
+        - generic [ref=f4e71]: Loading health…
+      - generic [ref=f4e72]:
+        - heading "Jira activity" [level=2] [ref=f4e73]
+        - paragraph [ref=f4e74]: Comments sent from Current Sprint. Review what was posted and undo when Jira allows.
+        - paragraph [ref=f4e76]: No Jira comments sent from Delivera yet.
+  - dialog "Create work draft" [ref=f4e77]:
+    - generic [ref=f4e78]:
+      - button "Project ▾" [ref=f4e80] [cursor=pointer]:
+        - generic [ref=f4e81]: Project
+        - text: ▾
+      - generic [ref=f4e82]: Create work
+      - button "AI provider settings" [ref=f4e83] [cursor=pointer]: ⚙
+      - button "Close" [ref=f4e84] [cursor=pointer]: ✕
+    - generic [ref=f4e86]:
+      - textbox "Narrative source text" [ref=f4e88]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f4e90]: ✓
+      - list "Work items" [ref=f4e91]
+    - generic [ref=f4e92]:
+      - generic "Set estimate for all items" [ref=f4e93]:
+        - generic [ref=f4e94]: "All:"
+        - slider "Set estimate for all items" [ref=f4e95] [cursor=pointer]: "0"
+        - generic [ref=f4e96]: —
+      - button "Create 0 issues" [disabled] [ref=f4e98]

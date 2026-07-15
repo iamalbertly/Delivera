@@ -1,0 +1,428 @@
+- generic [active] [ref=f5e1]:
+  - link "Skip to main content" [ref=f5e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f5e3]:
+    - generic [ref=f5e4]:
+      - button "Expand or collapse sidebar" [ref=f5e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f5e10]:
+        - generic [ref=f5e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=f5e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f5e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f5e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f5e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f5e17]: De
+      - searchbox "Context search" [ref=f5e22]
+      - group "Global actions" [ref=f5e23]:
+        - button "Create" [ref=f5e24] [cursor=pointer]:
+          - generic [ref=f5e25]: +
+        - generic "Checking AI status" [ref=f5e27]: AI · …
+        - button "Notifications" [ref=f5e28] [cursor=pointer]
+        - button "Help" [ref=f5e31] [cursor=pointer]
+        - button "Improve Delivera" [ref=f5e34] [cursor=pointer]
+        - link "Settings" [ref=f5e37] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f5e40] [cursor=pointer]: LY
+  - main [ref=f5e41]:
+    - generic "Portfolio scope" [ref=f5e42]:
+      - generic [ref=f5e43]:
+        - generic [ref=f5e44]:
+          - generic "Squad cadence" [ref=f5e45]: Current · Not saved yet · No active sprint
+          - button "… Loading" [disabled] [ref=f5e47] [cursor=pointer]
+        - generic [ref=f5e48]:
+          - combobox "Selected scope" [ref=f5e51]:
+            - option "All Projects"
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)" [selected]
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f5e52]:
+            - generic [ref=f5e53]: Compare
+            - generic [ref=f5e54]:
+              - generic [ref=f5e55]:
+                - generic "M-SQUAD (MPSA)" [ref=f5e56]
+                - generic "Mini - Apps Squad (MAS)" [ref=f5e57]
+                - generic "Robotics Process Automation (RPA) (RPA)" [ref=f5e58]
+                - generic "Digital Squad (MVA)" [ref=f5e59]
+                - generic "Agile and Security Guild (ASG)" [ref=f5e60]
+                - generic "Finance Squad (FIN)" [ref=f5e61]
+                - generic "TRANSFORMERS (MPSA2)" [ref=f5e62]
+                - generic "T-Squad (TRS)" [ref=f5e63]
+                - generic "Vodacom Business (VB)" [ref=f5e64]
+                - generic "AMS Squad (Tachyons) (AMS2)" [ref=f5e65]
+                - generic "Bio metric KYC & KYA (BIO)" [ref=f5e66]
+              - button "Compare all" [ref=f5e67] [cursor=pointer]
+              - combobox "Add squad to compare" [ref=f5e68]:
+                - option "+ Add comparison" [selected]
+          - generic [ref=f5e69]:
+            - generic [ref=f5e70]: Timeframe
+            - combobox "Timeframe" [ref=f5e71]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f5e72]:
+            - generic [ref=f5e73]: Baseline
+            - combobox "Baseline" [ref=f5e74]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=f5e75]: Updating…
+    - generic "Governance priority brief" [ref=f5e78]:
+      - status: Loading portfolio signal…
+      - status [ref=f5e79]:
+        - generic [ref=f5e80]:
+          - generic [ref=f5e81]: Portfolio Brief
+          - generic [ref=f5e82]: SD
+          - generic [ref=f5e83]: Showing last view · refreshing
+        - paragraph [ref=f5e84]:
+          - text: Showing last view · 7m ago ·
+          - strong [ref=f5e85]: Refreshing…
+        - generic:
+          - generic:
+            - paragraph: Power BI charts history · Rovo explains a ticket · Delivera closes the owner + evidence decision in one place.
+            - generic:
+              - generic:
+                - region "Priority governance brief":
+                  - generic:
+                    - status: Data conflict — delivery pulse is Blocked. Treat Blocked / missing baseline as authoritative over calm commitment copy.
+                    - generic:
+                      - heading "COPS PROJECT has 6 PI commitments in Jira with zero stories on selected boards." [level=1]
+                    - paragraph: Plan-backed = this squad’s PI slide is on file. Board-gap = PI epic in Jira with zero stories on selected boards.
+                    - paragraph: 0 of 6 linked · 6 need action
+                    - generic:
+                      - generic:
+                        - strong: 6 commitments with board-gap evidence
+                        - generic: for COPS PROJECT · selected boards
+                        - generic:
+                          - button "Copy keys + links"
+                          - button "Plan stories pack"
+                      - list:
+                        - listitem:
+                          - link "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5314
+                            - generic: SD-5314
+                            - generic: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5309
+                            - generic: SD-5309
+                            - generic: FY27 Q2 – DMS – NBA – EVOD Upgrade
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5315 FY27 Q2 – DMS – NBA – Enhancements":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5315
+                            - generic: SD-5315
+                            - generic: FY27 Q2 – DMS – NBA – Enhancements
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5316
+                            - generic: SD-5316
+                            - generic: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5317
+                            - generic: SD-5317
+                            - generic: FY27 Q2 – DMS – DMS Capability Merging
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                        - listitem:
+                          - link "SD-5311 FY27 Q2 – DMS – VOP Upgrade":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5311
+                            - generic: SD-5311
+                            - generic: FY27 Q2 – DMS – VOP Upgrade
+                          - generic:
+                            - generic: Active PI gap
+                            - generic: in Jira · no stories on selected boards
+                    - generic:
+                      - paragraph:
+                        - strong: "Compared against: SD:FY27 Q2, uploaded Jul 12 (COPS PROJECT)"
+                    - table:
+                      - rowgroup:
+                        - row "Squad State Trust Meaning":
+                          - columnheader "Squad"
+                          - columnheader "State"
+                          - columnheader "Trust"
+                          - columnheader "Meaning"
+                      - rowgroup:
+                        - button "COPS PROJECT Decision required Plan-backed 6 committed · zero stories on selected boards":
+                          - cell "COPS PROJECT":
+                            - strong: COPS PROJECT
+                          - cell "Decision required"
+                          - cell "Plan-backed"
+                          - cell "6 committed · zero stories on selected boards"
+                        - button "MPSA board Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "MPSA board":
+                            - strong: MPSA board
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                        - button "MVA board Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "MVA board":
+                            - strong: MVA board
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                        - button "MAS board Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "MAS board":
+                            - strong: MAS board
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                        - button "RPA board Cannot verify Board health only Board health · plan not uploaded":
+                          - cell "RPA board":
+                            - strong: RPA board
+                          - cell "Cannot verify"
+                          - cell "Board health only"
+                          - cell "Board health · plan not uploaded"
+                - generic:
+                  - generic "Squad comparison loading":
+                    - paragraph: Squad comparison
+                    - paragraph: Matching boards to PI baselines…
+                - region "Missing or unproven PI commitments":
+                  - heading "Missing or unproven PI commitments" [level=2]
+                  - table:
+                    - rowgroup:
+                      - row "Squad Status PI reference PI commitment Board work found Owner Next decision":
+                        - columnheader "Squad"
+                        - columnheader "Status"
+                        - columnheader "PI reference"
+                        - columnheader "PI commitment"
+                        - columnheader "Board work found"
+                        - columnheader "Owner"
+                        - columnheader "Next decision"
+                    - rowgroup:
+                      - button "SD Committed · not planned yet Not planned SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns in Jira · no stories on selected boards — Nudge squad to plan stories":
+                        - cell "SD"
+                        - cell "Committed · not planned yet Not planned":
+                          - generic: Committed · not planned yet
+                          - generic: Not planned
+                        - cell "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns":
+                          - generic "FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns":
+                            - link "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns":
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5314
+                              - generic: SD-5314
+                              - generic: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns
+                        - cell "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns":
+                          - link "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5314
+                            - generic: SD-5314
+                            - generic: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns
+                        - cell "in Jira · no stories on selected boards"
+                        - cell "—"
+                        - cell "Nudge squad to plan stories":
+                          - button "Nudge squad to plan stories"
+                      - button "SD Committed · not planned yet Not planned SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade in Jira · no stories on selected boards — Nudge squad to plan stories":
+                        - cell "SD"
+                        - cell "Committed · not planned yet Not planned":
+                          - generic: Committed · not planned yet
+                          - generic: Not planned
+                        - cell "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade":
+                          - generic "FY27 Q2 – DMS – NBA – EVOD Upgrade":
+                            - link "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade":
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5309
+                              - generic: SD-5309
+                              - generic: FY27 Q2 – DMS – NBA – EVOD Upgrade
+                        - cell "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade":
+                          - link "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5309
+                            - generic: SD-5309
+                            - generic: FY27 Q2 – DMS – NBA – EVOD Upgrade
+                        - cell "in Jira · no stories on selected boards"
+                        - cell "—"
+                        - cell "Nudge squad to plan stories":
+                          - button "Nudge squad to plan stories"
+                      - button "SD Committed · not planned yet Not planned SD-5315 FY27 Q2 – DMS – NBA – Enhancements SD-5315 FY27 Q2 – DMS – NBA – Enhancements in Jira · no stories on selected boards — Nudge squad to plan stories":
+                        - cell "SD"
+                        - cell "Committed · not planned yet Not planned":
+                          - generic: Committed · not planned yet
+                          - generic: Not planned
+                        - cell "SD-5315 FY27 Q2 – DMS – NBA – Enhancements":
+                          - generic "FY27 Q2 – DMS – NBA – Enhancements":
+                            - link "SD-5315 FY27 Q2 – DMS – NBA – Enhancements":
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5315
+                              - generic: SD-5315
+                              - generic: FY27 Q2 – DMS – NBA – Enhancements
+                        - cell "SD-5315 FY27 Q2 – DMS – NBA – Enhancements":
+                          - link "SD-5315 FY27 Q2 – DMS – NBA – Enhancements":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5315
+                            - generic: SD-5315
+                            - generic: FY27 Q2 – DMS – NBA – Enhancements
+                        - cell "in Jira · no stories on selected boards"
+                        - cell "—"
+                        - cell "Nudge squad to plan stories":
+                          - button "Nudge squad to plan stories"
+                      - button "SD Committed · not planned yet Not planned SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile in Jira · no stories on selected boards — Nudge squad to plan stories":
+                        - cell "SD"
+                        - cell "Committed · not planned yet Not planned":
+                          - generic: Committed · not planned yet
+                          - generic: Not planned
+                        - cell "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                          - generic "FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                            - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5316
+                              - generic: SD-5316
+                              - generic: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                        - cell "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                          - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5316
+                            - generic: SD-5316
+                            - generic: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                        - cell "in Jira · no stories on selected boards"
+                        - cell "—"
+                        - cell "Nudge squad to plan stories":
+                          - button "Nudge squad to plan stories"
+                      - button "SD Committed · not planned yet Not planned SD-5317 FY27 Q2 – DMS – DMS Capability Merging SD-5317 FY27 Q2 – DMS – DMS Capability Merging in Jira · no stories on selected boards — Nudge squad to plan stories":
+                        - cell "SD"
+                        - cell "Committed · not planned yet Not planned":
+                          - generic: Committed · not planned yet
+                          - generic: Not planned
+                        - cell "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                          - generic "FY27 Q2 – DMS – DMS Capability Merging":
+                            - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                              - /url: https://vodacomtz.atlassian.net/browse/SD-5317
+                              - generic: SD-5317
+                              - generic: FY27 Q2 – DMS – DMS Capability Merging
+                        - cell "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                          - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging":
+                            - /url: https://vodacomtz.atlassian.net/browse/SD-5317
+                            - generic: SD-5317
+                            - generic: FY27 Q2 – DMS – DMS Capability Merging
+                        - cell "in Jira · no stories on selected boards"
+                        - cell "—"
+                        - cell "Nudge squad to plan stories":
+                          - button "Nudge squad to plan stories"
+                  - button "+1 more commitments"
+                - navigation "Squad governance status":
+                  - list:
+                    - button "COPS PROJECT Decision required Plan-backed 6 committed · zero stories on selected boards":
+                      - generic: COPS PROJECT
+                      - generic: Decision required
+                      - generic "Sponsor or PO must record a decision": Plan-backed
+                      - generic: 6 committed · zero stories on selected boards
+                    - button "MPSA board Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: MPSA board
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "MVA board Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: MVA board
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "MAS board Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: MAS board
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "RPA board Cannot verify Board health only Board health · plan not uploaded":
+                      - generic: RPA board
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Board health only
+                      - generic: Board health · plan not uploaded
+                    - button "ASG Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: ASG
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "FIN Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: FIN
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "MPSA2 Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: MPSA2
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "TRS Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: TRS
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "VB Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: VB
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "AMS2 Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: AMS2
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+                    - button "BIO Cannot verify Cannot judge Board not mapped to Jira":
+                      - generic: BIO
+                      - generic: Cannot verify
+                      - generic "Upload this squad’s PI slide to judge plan": Cannot judge
+                      - generic: Board not mapped to Jira
+              - generic:
+                - complementary "Delivera actions and decisions":
+                  - group:
+                    - generic "System activity"
+                  - generic:
+                    - heading "Prepared by Delivera" [level=2]
+                    - paragraph: 4 evidence requests drafted and ready for review
+                    - button "Review and send 4 evidence requests"
+                  - generic:
+                    - heading "Next human decision" [level=2]
+                    - paragraph: Nudge squad to plan stories under this epic
+                    - paragraph:
+                      - text: "Owner:"
+                      - strong: Scrum Master
+                    - paragraph:
+                      - text: "Due:"
+                      - strong: Due in 2 days
+                  - generic:
+                    - button "Review board-gap evidence"
+                    - button "Inspect 6 promises that need action"
+                    - button "Share sponsor brief"
+                  - link "Open actions →":
+                    - /url: /actions?case=SD-FY27Q2-20260709-01
+                  - paragraph: 3 duplicate evidence requests prevented
+                  - paragraph: "Governance loop: Prepared → next meaningful step"
+    - alert [ref=f5e87]
+  - dialog "Create work draft" [ref=f5e88]:
+    - generic [ref=f5e89]:
+      - button "Project ▾" [ref=f5e91] [cursor=pointer]:
+        - generic [ref=f5e92]: Project
+        - text: ▾
+      - generic [ref=f5e93]: Create work
+      - button "AI provider settings" [ref=f5e94] [cursor=pointer]: ⚙
+      - button "Close" [ref=f5e95] [cursor=pointer]: ✕
+    - generic [ref=f5e97]:
+      - textbox "Narrative source text" [ref=f5e99]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f5e101]: ✓
+      - list "Work items" [ref=f5e102]
+    - generic [ref=f5e103]:
+      - generic "Set estimate for all items" [ref=f5e104]:
+        - generic [ref=f5e105]: "All:"
+        - slider "Set estimate for all items" [ref=f5e106] [cursor=pointer]: "0"
+        - generic [ref=f5e107]: —
+      - button "Create 0 issues" [disabled] [ref=f5e109]

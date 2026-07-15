@@ -1,0 +1,338 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e17]: De
+        - generic [ref=e19]: Delivera
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22]
+      - group "Global actions" [ref=e23]:
+        - button "Create" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+          - generic [ref=e26]: Create
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=e27]: AI · Slides ready
+        - button "Notifications" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+        - button "Help" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - button "Improve Delivera" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+        - link "Settings" [ref=e37] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e38]
+        - button "Account menu" [ref=e40] [cursor=pointer]: LY
+  - main [ref=e41]:
+    - generic "Portfolio scope" [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic "Squad cadence" [ref=e45]:
+            - generic [ref=e46]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 45d stale
+          - generic [ref=e47]: FY27 Q2 · Day 45/90 · 50% time elapsed
+          - button "✕ Blocked" [ref=e48] [cursor=pointer]
+        - generic [ref=e49]:
+          - combobox "Selected squad" [ref=e52]:
+            - option "AMS Squad (Tachyons)"
+            - option "Agile and Security Guild"
+            - option "Bio metric KYC & KYA"
+            - option "Finance Squad"
+            - option "Mini - Apps Squad"
+            - option "M-SQUAD"
+            - option "TRANSFORMERS"
+            - option "Digital Squad"
+            - option "Robotics Process Automation (RPA)"
+            - option "DMS Squad" [selected]
+            - option "T-Squad"
+            - option "Vodacom Business"
+          - generic [ref=e53]:
+            - generic [ref=e54]: Compare
+            - generic [ref=e56]:
+              - generic "M-SQUAD" [ref=e57]
+              - generic "Mini - Apps Squad" [ref=e58]
+          - generic [ref=e59]:
+            - generic [ref=e60]: Timeframe
+            - combobox "Timeframe" [ref=e61]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e62]:
+            - generic [ref=e63]: Baseline
+            - combobox "Baseline" [ref=e64]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+    - generic [ref=e65]:
+      - generic "Governance priority brief" [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - region "Priority governance brief" [ref=e70]:
+              - generic [ref=e71]:
+                - heading "MAS board needs one decision. 14 FY27 Q2 promises remain unsupported." [level=1] [ref=e73]
+                - paragraph [ref=e74]: 12 of 14 promises lack delivery proof
+                - list [ref=e76]:
+                  - listitem [ref=e77]: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns lacks delivery proof
+                  - listitem [ref=e78]: FY27 Q2 – DMS – NBA – EVOD Upgrade lacks delivery proof
+                - paragraph [ref=e79]:
+                  - text: "📅 Next review:"
+                  - strong [ref=e80]: 2026-07-14T16:03:08.497Z
+                - table [ref=e81]:
+                  - rowgroup [ref=e82]:
+                    - row "Squad State Meaning" [ref=e83]:
+                      - columnheader "Squad" [ref=e84]
+                      - columnheader "State" [ref=e85]
+                      - columnheader "Meaning" [ref=e86]
+                  - rowgroup [ref=e87]:
+                    - button "Open evidence for MAS board" [ref=e88]:
+                      - cell "MAS board" [ref=e89]:
+                        - strong [ref=e90]: MAS board
+                      - cell "Off-plan" [ref=e91]:
+                        - generic [ref=e92]: Off-plan
+                      - cell "14 promises unsupported" [ref=e93]
+                    - button "Open evidence for MPSA board" [ref=e94]:
+                      - cell "MPSA board" [ref=e95]:
+                        - strong [ref=e96]: MPSA board
+                      - cell "Off-plan" [ref=e97]:
+                        - generic [ref=e98]: Off-plan
+                      - cell "13 promises unsupported" [ref=e99]
+                    - button "Open evidence for DMS board" [ref=e100]:
+                      - cell "DMS board" [ref=e101]:
+                        - strong [ref=e102]: DMS board
+                      - cell "Off-plan" [ref=e103]:
+                        - generic [ref=e104]: Off-plan
+                      - cell "12 promises unsupported" [ref=e105]
+                - generic [ref=e106]:
+                  - paragraph [ref=e107]:
+                    - strong [ref=e108]: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+                  - paragraph [ref=e109]: "Extracted: 6 · Linked: 4 · Unsupported: 28"
+                  - button "Compare 28 unsupported promises with Jira" [ref=e111] [cursor=pointer]
+            - complementary "Delivera actions and decisions" [ref=e112]:
+              - generic [ref=e113]:
+                - heading "What the system already did" [level=2] [ref=e114]
+                - list [ref=e115]:
+                  - listitem [ref=e116]:
+                    - generic [ref=e117]: ✓
+                    - text: Pulled Jira proof for selected squads
+                  - listitem [ref=e118]:
+                    - generic [ref=e119]: ✓
+                    - text: Matched board work to PI baseline
+                  - listitem [ref=e120]:
+                    - generic [ref=e121]: ✓
+                    - text: Drafted owner evidence requests where needed
+                - paragraph [ref=e122]: Delivera linked 4 of 6 promises, prepared 3 evidence requests.
+              - generic [ref=e123]:
+                - heading "Prepared by Delivera" [level=2] [ref=e124]
+                - paragraph [ref=e125]: 3 evidence requests drafted and ready for review
+                - button "Review and send 3 evidence requests" [ref=e126] [cursor=pointer]
+              - generic [ref=e127]:
+                - heading "Next human decision" [level=2] [ref=e128]
+                - paragraph [ref=e129]: Accept the As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list scope move, or require recovery evidence by 2026-07-14T16:03:08.497Z.
+                - paragraph [ref=e130]:
+                  - text: "Owner:"
+                  - strong [ref=e131]: Product Owner
+                - paragraph [ref=e132]:
+                  - text: "Due:"
+                  - strong [ref=e133]: 2026-07-14T16:03:08.497Z
+              - generic [ref=e134]:
+                - button "Review and record governance decision" [ref=e135] [cursor=pointer]
+                - button "Inspect 12 unsupported promises" [ref=e136] [cursor=pointer]
+                - button "Share sponsor brief" [ref=e137] [cursor=pointer]
+              - paragraph [ref=e138]: 4 promises linked automatically · 2 duplicate evidence requests prevented
+              - paragraph [ref=e139]: "Governance loop: Prepared → next meaningful step"
+          - navigation "Squad governance status" [ref=e140]:
+            - list [ref=e141]:
+              - button "MAS board Off-plan 14 promises unsupported" [ref=e142] [cursor=pointer]:
+                - generic [ref=e143]: MAS board
+                - generic [ref=e144]: Off-plan
+                - generic [ref=e145]: 14 promises unsupported
+              - button "MPSA board Off-plan 13 promises unsupported" [ref=e146] [cursor=pointer]:
+                - generic [ref=e147]: MPSA board
+                - generic [ref=e148]: Off-plan
+                - generic [ref=e149]: 13 promises unsupported
+              - button "DMS board Off-plan 12 promises unsupported" [pressed] [ref=e150] [cursor=pointer]:
+                - generic [ref=e151]: DMS board
+                - generic [ref=e152]: Off-plan
+                - generic [ref=e153]: 12 promises unsupported
+          - region "Supporting evidence" [ref=e154]:
+            - generic [ref=e155]:
+              - article [ref=e156]:
+                - heading "Promise trace" [level=3] [ref=e157]
+                - paragraph [ref=e158]: 6 promised · 4 linked · 28 unsupported
+                - button "Inspect promise-to-Jira trace" [ref=e159] [cursor=pointer]
+              - article [ref=e160]:
+                - heading "Scope decision" [level=3] [ref=e161]
+                - paragraph [ref=e162]: As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list moved after planning · Approval not recorded
+                - button "Open scope-change history" [ref=e163] [cursor=pointer]
+              - article [ref=e164]:
+                - heading "Recovery outlook" [level=3] [ref=e165]
+                - paragraph [ref=e166]: 12 hours remain · recovery unlikely for all gaps · Medium confidence
+                - button "Review recovery basis" [ref=e167] [cursor=pointer]
+            - region "What changed" [ref=e168]:
+              - heading "What changed" [level=2] [ref=e169]
+              - list [ref=e170]:
+                - listitem [ref=e171]:
+                  - generic [ref=e172]: 🔄
+                  - generic [ref=e173]:
+                    - strong [ref=e174]: Impact exposure
+                    - paragraph [ref=e175]: 5 DMS board commitments may miss FY27 Q2.
+                - listitem [ref=e176]:
+                  - generic [ref=e177]: 🔄
+                  - generic [ref=e178]:
+                    - strong [ref=e179]: Decision delay
+                    - paragraph [ref=e180]: 1 PO confirmation still missing.
+                - listitem [ref=e181]:
+                  - generic [ref=e182]: 🔄
+                  - generic [ref=e183]:
+                    - strong [ref=e184]: Evidence weakness
+                    - paragraph [ref=e185]: Only 10% of required proof is available.
+          - group [ref=e186]:
+            - generic "Show commitment detail" [ref=e187]
+            - generic [ref=e188]:
+              - region "Portfolio alignment summary" [ref=e189]:
+                - heading "Portfolio alignment" [level=2] [ref=e190]
+                - generic [ref=e191]:
+                  - article [ref=e192]:
+                    - heading "MAS board" [level=3] [ref=e193]
+                    - paragraph [ref=e194]: Off-plan
+                    - paragraph [ref=e195]: 14 promises unsupported
+                  - article [ref=e196]:
+                    - heading "MPSA board" [level=3] [ref=e197]
+                    - paragraph [ref=e198]: Off-plan
+                    - paragraph [ref=e199]: 13 promises unsupported
+                  - article [ref=e200]:
+                    - heading "DMS board" [level=3] [ref=e201]
+                    - paragraph [ref=e202]: Off-plan
+                    - paragraph [ref=e203]: 12 promises unsupported
+              - region "Missing or unproven PI commitments" [ref=e204]:
+                - heading "Missing or unproven PI commitments" [level=2] [ref=e205]
+                - generic [ref=e206]: Below the fold
+                - table [ref=e207]:
+                  - rowgroup [ref=e208]:
+                    - row "Squad Status PI reference PI commitment Board work found Owner Next decision" [ref=e209]:
+                      - columnheader "Squad" [ref=e210]
+                      - columnheader "Status" [ref=e211]
+                      - columnheader "PI reference" [ref=e212]
+                      - columnheader "PI commitment" [ref=e213]
+                      - columnheader "Board work found" [ref=e214]
+                      - columnheader "Owner" [ref=e215]
+                      - columnheader "Next decision" [ref=e216]
+                  - rowgroup [ref=e217]:
+                    - button "SD Unsupported SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns In Progress — Assign commitment owner" [ref=e218]:
+                      - cell "SD" [ref=e219]
+                      - cell "Unsupported" [ref=e220]:
+                        - generic [ref=e221]: Unsupported
+                      - cell "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns" [ref=e222]:
+                        - link "SD-5314 FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns" [ref=e223] [cursor=pointer]:
+                          - /url: "#work-item-SD-5314"
+                          - generic [ref=e224]: SD-5314
+                          - generic [ref=e225]: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns
+                      - cell "FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns" [ref=e226]
+                      - cell "In Progress" [ref=e227]
+                      - cell "—" [ref=e228]
+                      - cell "Assign commitment owner" [ref=e229]:
+                        - button "Assign commitment owner" [ref=e230] [cursor=pointer]
+                    - button "SD Unsupported SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade FY27 Q2 – DMS – NBA – EVOD Upgrade In Progress — Assign commitment owner" [ref=e231]:
+                      - cell "SD" [ref=e232]
+                      - cell "Unsupported" [ref=e233]:
+                        - generic [ref=e234]: Unsupported
+                      - cell "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade" [ref=e235]:
+                        - link "SD-5309 FY27 Q2 – DMS – NBA – EVOD Upgrade" [ref=e236] [cursor=pointer]:
+                          - /url: "#work-item-SD-5309"
+                          - generic [ref=e237]: SD-5309
+                          - generic [ref=e238]: FY27 Q2 – DMS – NBA – EVOD Upgrade
+                      - cell "FY27 Q2 – DMS – NBA – EVOD Upgrade" [ref=e239]
+                      - cell "In Progress" [ref=e240]
+                      - cell "—" [ref=e241]
+                      - cell "Assign commitment owner" [ref=e242]:
+                        - button "Assign commitment owner" [ref=e243] [cursor=pointer]
+                    - button "SD Unsupported SD-5315 FY27 Q2 – DMS – NBA – Enhancements FY27 Q2 – DMS – NBA – Enhancements In Progress — Assign commitment owner" [ref=e244]:
+                      - cell "SD" [ref=e245]
+                      - cell "Unsupported" [ref=e246]:
+                        - generic [ref=e247]: Unsupported
+                      - cell "SD-5315 FY27 Q2 – DMS – NBA – Enhancements" [ref=e248]:
+                        - link "SD-5315 FY27 Q2 – DMS – NBA – Enhancements" [ref=e249] [cursor=pointer]:
+                          - /url: "#work-item-SD-5315"
+                          - generic [ref=e250]: SD-5315
+                          - generic [ref=e251]: FY27 Q2 – DMS – NBA – Enhancements
+                      - cell "FY27 Q2 – DMS – NBA – Enhancements" [ref=e252]
+                      - cell "In Progress" [ref=e253]
+                      - cell "—" [ref=e254]
+                      - cell "Assign commitment owner" [ref=e255]:
+                        - button "Assign commitment owner" [ref=e256] [cursor=pointer]
+                    - button "SD Unsupported SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile FY27 Q2 – DMS – NBA – E-HOD Regional Profile 0 matching items — Link promise to Jira work" [ref=e257]:
+                      - cell "SD" [ref=e258]
+                      - cell "Unsupported" [ref=e259]:
+                        - generic [ref=e260]: Unsupported
+                      - cell "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=e261]:
+                        - link "SD-5316 FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=e262] [cursor=pointer]:
+                          - /url: "#work-item-SD-5316"
+                          - generic [ref=e263]: SD-5316
+                          - generic [ref=e264]: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                      - cell "FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [ref=e265]
+                      - cell "0 matching items" [ref=e266]
+                      - cell "—" [ref=e267]
+                      - cell "Link promise to Jira work" [ref=e268]:
+                        - button "Link promise to Jira work" [ref=e269] [cursor=pointer]
+                    - button "SD Unsupported SD-5317 FY27 Q2 – DMS – DMS Capability Merging FY27 Q2 – DMS – DMS Capability Merging 0 matching items — Link promise to Jira work" [ref=e270]:
+                      - cell "SD" [ref=e271]
+                      - cell "Unsupported" [ref=e272]:
+                        - generic [ref=e273]: Unsupported
+                      - cell "SD-5317 FY27 Q2 – DMS – DMS Capability Merging" [ref=e274]:
+                        - link "SD-5317 FY27 Q2 – DMS – DMS Capability Merging" [ref=e275] [cursor=pointer]:
+                          - /url: "#work-item-SD-5317"
+                          - generic [ref=e276]: SD-5317
+                          - generic [ref=e277]: FY27 Q2 – DMS – DMS Capability Merging
+                      - cell "FY27 Q2 – DMS – DMS Capability Merging" [ref=e278]
+                      - cell "0 matching items" [ref=e279]
+                      - cell "—" [ref=e280]
+                      - cell "Link promise to Jira work" [ref=e281]:
+                        - button "Link promise to Jira work" [ref=e282] [cursor=pointer]
+                - button "+7 more commitments" [ref=e283] [cursor=pointer]
+      - complementary "Portfolio decision" [ref=e284]:
+        - generic [ref=e286]:
+          - region "Prepared actions" [ref=e287]:
+            - heading "Prepared actions" [level=3] [ref=e288]
+            - paragraph [ref=e289]: 3 nudges ready
+            - link "Open actions →" [ref=e290] [cursor=pointer]:
+              - /url: /actions?case=SD-FY27Q2-20260709-01
+          - region "Baseline status" [ref=e291]:
+            - heading "Baseline" [level=3] [ref=e292]
+            - text: Baseline on file
+            - paragraph [ref=e293]: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+        - generic "At-risk commitments"
+    - paragraph [ref=e295]: Governance brief compares PI baseline promises with Jira evidence and prepared actions.
+  - dialog "Create work draft" [ref=e296]:
+    - generic [ref=e297]:
+      - button "Project ▾" [ref=e299] [cursor=pointer]:
+        - generic [ref=e300]: Project
+        - text: ▾
+      - generic [ref=e301]: Create work
+      - button "AI provider settings" [ref=e302] [cursor=pointer]: ⚙
+      - button "Close" [ref=e303] [cursor=pointer]: ✕
+    - generic [ref=e305]:
+      - textbox "Narrative source text" [ref=e307]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e309]: ✓
+      - list "Work items" [ref=e310]
+    - generic [ref=e311]:
+      - generic "Set estimate for all items" [ref=e312]:
+        - generic [ref=e313]: "All:"
+        - slider "Set estimate for all items" [ref=e314] [cursor=pointer]: "0"
+        - generic [ref=e315]: —
+      - button "Create 0 issues" [disabled] [ref=e317]

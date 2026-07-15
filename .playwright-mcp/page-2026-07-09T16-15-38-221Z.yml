@@ -1,0 +1,51 @@
+- generic [active] [ref=f14e1]:
+  - status [ref=f14e3]
+  - complementary "Primary" [ref=f14e4]:
+    - generic [ref=f14e6]:
+      - heading "Context" [level=3] [ref=f14e7]
+      - paragraph [ref=f14e8]: No report run yet
+    - generic "Data freshness indicator" [ref=f14e9]:
+      - 'button "Logging alerts: 0 · Healthy" [ref=f14e10]'
+  - link "Skip to main content" [ref=f14e11] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f14e12]:
+    - generic [ref=f14e13]:
+      - button "Expand or collapse sidebar" [expanded] [ref=f14e15] [cursor=pointer]:
+        - img [ref=f14e16]
+      - navigation "Surfaces" [ref=f14e19]:
+        - link "Portfolio" [ref=f14e20] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f14e21] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f14e22] [cursor=pointer]: Actions
+        - link "Settings" [ref=f14e23] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f14e25] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f14e26]: De
+        - generic [ref=f14e27]:
+          - generic [ref=f14e28]: Delivera
+          - generic "No report run yet" [ref=f14e29]
+      - generic [ref=f14e31]:
+        - img
+        - searchbox "Context search" [ref=f14e32]
+      - group "Global actions" [ref=f14e33]:
+        - button "Create" [ref=f14e34] [cursor=pointer]:
+          - generic [ref=f14e35]: +
+          - generic [ref=f14e36]: Create
+        - generic "Checking AI status" [ref=f14e37]: AI · …
+        - button "Notifications" [ref=f14e38] [cursor=pointer]:
+          - img [ref=f14e39]
+        - button "Help" [ref=f14e41] [cursor=pointer]:
+          - img [ref=f14e42]
+        - button "Improve Delivera" [ref=f14e44] [cursor=pointer]:
+          - img [ref=f14e45]
+        - link "Settings" [ref=f14e47] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=f14e48]
+        - button "Account menu" [ref=f14e50] [cursor=pointer]: LY
+  - main [ref=f14e51]:
+    - generic [ref=f14e52]:
+      - heading "Actions" [level=1] [ref=f14e53]
+      - paragraph [ref=f14e54]: Nudges, decisions, escalations, and proof — grouped by case.
+    - navigation "Actions tabs"

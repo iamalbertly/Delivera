@@ -1,0 +1,157 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e37]:
+    - generic [ref=e38]:
+      - button "Expand or collapse sidebar" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+      - navigation "Surfaces" [ref=e44]:
+        - generic [ref=e45] [cursor=pointer]: Governance
+        - link "Squads" [ref=e46] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e47] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e48] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e50] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e51]: De
+        - generic [ref=e53]: Delivera
+      - generic [ref=e55]:
+        - img
+        - searchbox "Context search" [ref=e56]
+      - group "Global actions" [ref=e57]:
+        - button "Create" [ref=e58] [cursor=pointer]:
+          - generic [ref=e59]: +
+          - generic [ref=e60]: Create
+        - generic "Checking AI status" [ref=e61]: AI · …
+        - button "Notifications" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+        - button "Help" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+        - button "Improve Delivera" [ref=e68] [cursor=pointer]:
+          - img [ref=e69]
+        - link "Settings" [ref=e71] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e72]
+        - button "Account menu" [ref=e74] [cursor=pointer]: DL
+  - main [ref=e3]:
+    - generic "Portfolio scope" [ref=e4]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic "Squad cadence" [ref=e77]:
+            - generic [ref=e78]: Current · Not saved yet · No active sprint
+          - button "● Watch" [ref=e79] [cursor=pointer]
+        - generic [ref=e80]:
+          - combobox "Selected squad" [ref=e83]:
+            - option "AMS2"
+            - option "ASG"
+            - option "BIO"
+            - option "FIN"
+            - option "MAS"
+            - option "MPSA"
+            - option "MPSA2"
+            - option "MVA"
+            - option "RPA"
+            - option "SD" [selected]
+            - option "TRS"
+            - option "VB"
+          - generic [ref=e84]:
+            - generic [ref=e85]: Compare
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - generic "MPSA" [ref=e88]
+                - generic "MAS" [ref=e89]
+                - generic "RPA" [ref=e90]
+                - generic "MVA" [ref=e91]
+                - generic "ASG" [ref=e92]
+                - generic "FIN" [ref=e93]
+                - generic "MPSA2" [ref=e94]
+                - generic "TRS" [ref=e95]
+                - generic "VB" [ref=e96]
+                - generic "AMS2" [ref=e97]
+                - generic "BIO" [ref=e98]
+              - button "Compare all" [ref=e99] [cursor=pointer]
+              - combobox "Add squad to compare" [ref=e100]:
+                - option "+ Add comparison" [selected]
+          - generic [ref=e101]:
+            - generic [ref=e102]: Timeframe
+            - combobox "Timeframe" [ref=e103]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=e104]:
+            - generic [ref=e105]: Baseline
+            - combobox "Baseline" [ref=e106]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=e107]: Cached view
+    - generic "Governance priority brief" [ref=e7]:
+      - status [ref=e108]:
+        - paragraph [ref=e109]:
+          - text: Showing last view · 1m ago ·
+          - strong [ref=e110]: Refreshing…
+        - generic:
+          - generic:
+            - generic:
+              - paragraph: Power BI charts history · Rovo explains a ticket · Delivera closes the owner + evidence decision in one place.
+              - 'heading "FY27 Q2: 3 of 12 squads need intervention · 1 report zero delivery · 6 commitments exposed" [level=1]'
+              - generic:
+                - generic:
+                  - generic: Commitment recovery
+                  - strong: 6 of 6 need recovery
+                - generic:
+                  - generic: Sponsor position
+                  - strong: Conditional · value remains recoverable
+                - generic:
+                  - generic: Decision confidence
+                  - strong: Medium · 48% proof
+              - paragraph:
+                - strong: "Act now:"
+                - text: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio.
+                - generic: 👤 Scrum Master
+                - generic: 📅 in 2d
+                - button "Resolve →"
+              - generic:
+                - generic: 🔗
+                - generic:
+                  - strong: "Shared signal:"
+                  - text: DMS Squad and Robotics Process Automation (RPA) have no meaningful sprint movement. Check Jira connection before separate recovery plans.
+                - button "Fix Jira connection →"
+            - generic:
+              - generic:
+                - generic: Delivera completed
+                - paragraph: Jira checked · Baseline matched · 4 drafts ready
+              - generic:
+                - generic: Leadership decision
+                - paragraph:
+                  - strong: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio.
+                  - text: 👤 Scrum Master 📅 in 2d
+                - paragraph: "Escalate if: No dated recovery plan"
+              - generic:
+                - button "Review and record →"
+    - alert [ref=e36]
+  - dialog "Create work draft" [ref=e111]:
+    - generic [ref=e112]:
+      - button "Project ▾" [ref=e114] [cursor=pointer]:
+        - generic [ref=e115]: Project
+        - text: ▾
+      - generic [ref=e116]: Create work
+      - button "AI provider settings" [ref=e117] [cursor=pointer]: ⚙
+      - button "Close" [ref=e118] [cursor=pointer]: ✕
+    - generic [ref=e120]:
+      - textbox "Narrative source text" [ref=e122]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e124]: ✓
+      - list "Work items" [ref=e125]
+    - generic [ref=e126]:
+      - generic "Set estimate for all items" [ref=e127]:
+        - generic [ref=e128]: "All:"
+        - slider "Set estimate for all items" [ref=e129] [cursor=pointer]: "0"
+        - generic [ref=e130]: —
+      - button "Create 0 issues" [disabled] [ref=e132]

@@ -45,7 +45,7 @@ import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { installPortfolioSurfaceHook, refreshPortfolioSurface, paintPortfolioFromCache, paintPortfolioBentoSkeleton } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
-import { mountBriefScopeBarMode } from './Delivera-App-Governance-Brief-ScopeBar-05Brief-Mode-Render-UI.js';
+import { updateInstantShellLabel } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 function resolveBaselineGapFlags(brief = {}) {
   const gaps = brief?.meta?.setupGaps || [];
@@ -166,15 +166,8 @@ function hydrateHiddenLegacyBriefSurfaces(brief) {
     supportingEvidence.hidden = false;
   }
   mountEvidenceTabShell();
-  const hiddenScope = document.getElementById('gov-scope-bar-mount');
-  if (hiddenScope && hiddenScope.dataset.briefScopeMounted !== '1') {
-    mountBriefScopeBarMode({
-      mount: hiddenScope,
-      onRefresh: () => loadBrief({ force: true }),
-      onScopeChange: () => loadBrief({ force: true }),
-    });
-    hiddenScope.dataset.briefScopeMounted = '1';
-  }
+  // Brief-mode scope bar is obsolete on priority-brief HTML (portfolio mount is SSOT).
+  // Do not revive zombie #gov-scope-bar-mount mounts.
   const compareMount = document.getElementById('gov-compare-rail-mount');
   if (compareMount) {
     const compareHtml = squadCount >= 2 ? renderCompareRail(brief, scopeKeys, { hideBaselineCta: hasBaselineGap || piFocusOwnsBaseline }) : '';
@@ -300,8 +293,8 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
   renderBriefUi(brief);
 
   if (isPortfolioPage) {
-    // Legacy paint functions removed — portfolio surface is rendered entirely
-    // by refreshPortfolioSurface() in the async block below. No double-paint needed.
+    // Progressive paint: show priority surface as soon as brief JSON is available,
+    // then enrich with seeded intervention cases on a second pass.
     void (async () => {
       try {
         const trust = await resolveAiTrustDisplay();
@@ -310,6 +303,10 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
         govPage.aiTrustState = null;
       }
       patchLegacySecondaryChrome(brief);
+      updateInstantShellLabel('Building decisions…');
+      try {
+        await refreshPortfolioSurface(brief, []);
+      } catch (_) { /* first paint is best-effort */ }
       try {
         const anchor = readPortfolioAnchor(brief?.projects);
         const periodKey = govPage.scopeBarApi?.getQuarterLabel?.() || brief?.meta?.quarter || '';
@@ -321,7 +318,6 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
         });
         govPage.lastPortfolioCases = seeded.cases || [];
       } catch (_) { /* first paint already shown */ }
-      // Single refresh with seeded cases — no duplicate portfolio-decision POST.
       try {
         await refreshPortfolioSurface(brief, govPage.lastPortfolioCases || []);
       } catch (_) {
@@ -637,6 +633,7 @@ export async function loadBrief(options = {}) {
       switchLabel || (cached ? 'Refreshing live signal…' : 'Loading portfolio signal…'),
       { preserveContent: preservePortfolio },
     );
+    updateInstantShellLabel('Loading boards…');
   } else {
     showGovernanceLoading(
       switchLabel || (preserve ? 'Refreshing… showing previous answer until live data arrives.' : 'Loading your delivery answer…'),
@@ -678,6 +675,7 @@ export async function loadBrief(options = {}) {
     govPage.lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
     if (seq !== loadBriefSeq) return;
     clearScopeStaleOverlay();
+    updateInstantShellLabel('Matching PI baselines…');
     await applyBriefToUi(brief, govPage.lastFeedbackSummary);
     if (seq !== loadBriefSeq) return;
     if (isPortfolioPage) {

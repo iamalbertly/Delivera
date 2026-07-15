@@ -1,0 +1,111 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e17]: De
+        - generic [ref=e19]: Delivera
+      - generic [ref=e21]:
+        - img
+        - searchbox "Context search" [ref=e22]
+      - group "Global actions" [ref=e23]:
+        - button "Create" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: +
+          - generic [ref=e26]: Create
+        - generic "Checking AI status" [ref=e27]: AI · …
+        - button "Notifications" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+        - button "Help" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+        - button "Improve Delivera" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+        - link "Settings" [ref=e37] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e38]
+        - button "Account menu" [ref=e40] [cursor=pointer]: LY
+  - main [ref=e41]:
+    - generic "Portfolio scope" [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic "Squad cadence" [ref=e45]:
+            - generic [ref=e46]: Current · Not saved yet · No active sprint
+          - generic "Set PI baseline to enable time-box" [ref=e47]: Time-box not set
+          - button "● Watch" [ref=e48] [cursor=pointer]
+        - generic [ref=e49]:
+          - combobox "Selected squad" [ref=e52]:
+            - option "AMS2"
+            - option "ASG"
+            - option "BIO"
+            - option "FIN"
+            - option "MAS"
+            - option "MPSA"
+            - option "MPSA2"
+            - option "MVA"
+            - option "RPA"
+            - option "SD" [selected]
+            - option "TRS"
+            - option "VB"
+          - generic [ref=e53]:
+            - generic [ref=e54]: Compare
+            - generic [ref=e55]:
+              - generic [ref=e56]:
+                - generic "MPSA" [ref=e57]
+                - generic "MAS" [ref=e58]
+              - combobox "Add squad to compare" [ref=e59]:
+                - option "+ Add comparison" [selected]
+                - option "AMS2"
+                - option "ASG"
+                - option "BIO"
+                - option "FIN"
+                - option "MPSA2"
+                - option "MVA"
+                - option "RPA"
+                - option "TRS"
+                - option "VB"
+          - generic [ref=e60]:
+            - generic [ref=e61]: Timeframe
+            - combobox "Timeframe" [ref=e62]:
+              - option "Current" [selected]
+          - generic [ref=e63]:
+            - generic [ref=e64]: Baseline
+            - combobox "Baseline" [ref=e65]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=e66]: Showing cached · refreshing…
+    - generic [ref=e67]:
+      - generic:
+        - generic "Governance priority brief"
+      - complementary "Portfolio decision":
+        - generic "At-risk commitments"
+    - alert [ref=e69]
+  - dialog "Create work draft" [ref=e70]:
+    - generic [ref=e71]:
+      - button "Project ▾" [ref=e73] [cursor=pointer]:
+        - generic [ref=e74]: Project
+        - text: ▾
+      - generic [ref=e75]: Create work
+      - button "AI provider settings" [ref=e76] [cursor=pointer]: ⚙
+      - button "Close" [ref=e77] [cursor=pointer]: ✕
+    - generic [ref=e79]:
+      - textbox "Narrative source text" [ref=e81]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=e83]: ✓
+      - list "Work items" [ref=e84]
+    - generic [ref=e85]:
+      - generic "Set estimate for all items" [ref=e86]:
+        - generic [ref=e87]: "All:"
+        - slider "Set estimate for all items" [ref=e88] [cursor=pointer]: "0"
+        - generic [ref=e89]: —
+      - button "Create 0 issues" [disabled] [ref=e91]

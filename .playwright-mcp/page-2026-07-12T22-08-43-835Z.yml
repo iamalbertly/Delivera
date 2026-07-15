@@ -1,0 +1,212 @@
+- generic [active] [ref=f37e1]:
+  - link "Skip to main content" [ref=f37e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f37e3]:
+    - generic [ref=f37e4]:
+      - button "Expand or collapse sidebar" [ref=f37e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=f37e10]:
+        - generic [ref=f37e11] [cursor=pointer]: Governance
+        - link "Squads" [ref=f37e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f37e13] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f37e14] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f37e16] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f37e17]: De
+      - searchbox "Context search" [ref=f37e22]
+      - group "Global actions" [ref=f37e23]:
+        - button "Create" [ref=f37e24] [cursor=pointer]:
+          - generic [ref=f37e25]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f37e108]: AI · Slides ready
+        - button "Notifications" [ref=f37e28] [cursor=pointer]
+        - button "Help" [ref=f37e31] [cursor=pointer]
+        - button "Improve Delivera" [ref=f37e34] [cursor=pointer]
+        - link "Settings" [ref=f37e37] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f37e40] [cursor=pointer]: LY
+  - main [ref=f37e41]:
+    - generic "Portfolio scope" [ref=f37e42]:
+      - generic [ref=f37e109]:
+        - generic [ref=f37e110]:
+          - generic "Squad cadence" [ref=f37e111]:
+            - generic [ref=f37e112]: FY27 Q2 · Day 45/90 · Sprint stalled · 0% movement · 8d stale
+            - generic [ref=f37e113]: DELIVERY BLOCKED
+          - button "✕ Blocked" [ref=f37e114] [cursor=pointer]
+        - generic [ref=f37e115]:
+          - combobox "Selected squad" [ref=f37e118]:
+            - option "AMS Squad (Tachyons) (AMS2)"
+            - option "Agile and Security Guild (ASG)"
+            - option "Bio metric KYC & KYA (BIO)"
+            - option "Finance Squad (FIN)"
+            - option "Mini - Apps Squad (MAS)"
+            - option "M-SQUAD (MPSA)"
+            - option "TRANSFORMERS (MPSA2)"
+            - option "Digital Squad (MVA)"
+            - option "Robotics Process Automation (RPA) (RPA)"
+            - option "DMS Squad (SD)" [selected]
+            - option "T-Squad (TRS)"
+            - option "Vodacom Business (VB)"
+          - generic [ref=f37e119]:
+            - generic [ref=f37e120]: Compare
+            - generic [ref=f37e121]: No comparison
+          - generic [ref=f37e123]:
+            - generic [ref=f37e124]: Timeframe
+            - combobox "Timeframe" [ref=f37e125]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f37e126]:
+            - generic [ref=f37e127]: Baseline
+            - combobox "Baseline" [ref=f37e128]:
+              - option "Set baseline →" [selected]
+              - option "No baseline"
+    - generic "Governance priority brief" [ref=f37e66]:
+      - generic [ref=f37e130]:
+        - generic [ref=f37e131]:
+          - region "Priority governance brief" [ref=f37e132]:
+            - generic [ref=f37e133]:
+              - heading "DMS board needs one decision. 8 FY27 Q2 commitments need attention." [level=1] [ref=f37e135]
+              - paragraph [ref=f37e136]: 6 of 14 linked · 8 need attention
+              - paragraph [ref=f37e138]:
+                - generic [ref=f37e139]: →
+                - strong [ref=f37e140]: "Do next:"
+                - text: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio. — Scrum Master
+              - list [ref=f37e141]:
+                - listitem [ref=f37e142]: FY27 Q2 – DMS – NBA – E-HOD Regional Profile has no linked delivery evidence
+                - listitem [ref=f37e143]: FY27 Q2 – DMS – DMS Capability Merging has no linked delivery evidence
+              - table [ref=f37e144]:
+                - rowgroup [ref=f37e145]:
+                  - row [ref=f37e146]:
+                    - columnheader "Squad" [ref=f37e147]
+                    - columnheader "State" [ref=f37e148]
+                    - columnheader "Meaning" [ref=f37e149]
+                - rowgroup [ref=f37e150]:
+                  - button [ref=f37e151] [cursor=pointer]:
+                    - cell [ref=f37e152]:
+                      - strong [ref=f37e153]: DMS board
+                    - cell "Off-plan" [ref=f37e154]
+                    - cell "6 linked · 8 need attention" [ref=f37e156]
+              - generic [ref=f37e157]:
+                - paragraph [ref=f37e158]:
+                  - strong [ref=f37e159]: "Compared against: SD:FY27 Q2, uploaded Jul 12"
+                - button "Review 8 need attention" [ref=f37e161] [cursor=pointer]
+          - generic "What changed since last visit" [ref=f37e162]:
+            - generic [ref=f37e163]: What changed
+            - generic [ref=f37e164]:
+              - strong [ref=f37e165]: Impact exposure
+              - text: — AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new …; DEVSEC
+            - generic [ref=f37e166]:
+              - strong [ref=f37e167]: Evidence weakness
+              - text: "— Board resolved: yes · Off-plan: 0%"
+          - generic [ref=f37e168]:
+            - generic [ref=f37e170]:
+              - paragraph [ref=f37e171]:
+                - text: Single squad deep dive —
+                - strong [ref=f37e172]: DMS board
+                - text: only.
+              - button "← Back to comparison" [ref=f37e173] [cursor=pointer]
+            - region "Squad comparison" [ref=f37e174]:
+              - generic [ref=f37e175]:
+                - heading "Squad comparison" [level=2] [ref=f37e176]
+                - paragraph [ref=f37e177]: Delivery, proof, and investment posture across peers
+              - list [ref=f37e178]:
+                - button "SD DMS board 🔴 Critical Promised impact 4 Delivered 0% Movement Low Off-plan load 0% Proof confidence 10% Decision Confirm scope and proof Drill in → View details →" [ref=f37e179] [cursor=pointer]:
+                  - generic [ref=f37e180]:
+                    - strong [ref=f37e181]:
+                      - link "SD DMS board" [ref=f37e182]:
+                        - /url: "#work-item-SD"
+                        - generic [ref=f37e183]: SD
+                        - generic [ref=f37e184]: DMS board
+                    - generic [ref=f37e185]: 🔴 Critical
+                  - generic [ref=f37e186]:
+                    - generic [ref=f37e187]:
+                      - term [ref=f37e188]: Promised impact
+                      - definition [ref=f37e189]: "4"
+                    - generic [ref=f37e190]:
+                      - term [ref=f37e191]: Delivered
+                      - definition [ref=f37e192]: 0%
+                    - generic [ref=f37e193]:
+                      - term [ref=f37e194]: Movement
+                      - definition [ref=f37e195]: Low
+                    - generic [ref=f37e196]:
+                      - term [ref=f37e197]: Off-plan load
+                      - definition [ref=f37e198]: 0%
+                    - generic [ref=f37e199]:
+                      - term [ref=f37e200]: Proof confidence
+                      - definition [ref=f37e201]: 10%
+                  - generic [ref=f37e202]:
+                    - generic [ref=f37e203]: Decision
+                    - strong [ref=f37e204]: Confirm scope and proof
+                  - generic [ref=f37e205]:
+                    - button "Drill in →" [ref=f37e206]
+                    - link "View details →" [ref=f37e207]:
+                      - /url: /current-sprint?projects=SD&period=FY27%20Q2
+          - generic [ref=f37e208]:
+            - generic [ref=f37e209]:
+              - generic [ref=f37e210]: Action needed
+              - paragraph [ref=f37e211]: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio.
+              - generic [ref=f37e212]: 👤 Scrum Master
+              - generic [ref=f37e213]: 📅 Due in 2d
+            - button "Resolve →" [ref=f37e214] [cursor=pointer]
+        - complementary [ref=f37e215]:
+          - complementary "Delivera actions and decisions" [ref=f37e216]:
+            - group [ref=f37e217]:
+              - generic "✓ 3 automations" [ref=f37e218] [cursor=pointer]
+              - list [ref=f37e219]:
+                - listitem [ref=f37e220]:
+                  - generic [ref=f37e221]: ✓
+                  - text: Pulled Jira proof for selected squads
+                - listitem [ref=f37e222]:
+                  - generic [ref=f37e223]: ✓
+                  - text: Matched board work to PI baseline
+                - listitem [ref=f37e224]:
+                  - generic [ref=f37e225]: ✓
+                  - text: Drafted owner evidence requests where needed
+              - paragraph [ref=f37e226]: Delivera linked 6 of 14 promises, prepared 4 evidence requests.
+            - generic [ref=f37e227]:
+              - heading "Prepared by Delivera" [level=2] [ref=f37e228]
+              - paragraph [ref=f37e229]: 4 evidence requests drafted and ready for review
+              - button "Review and send 4 evidence requests" [ref=f37e230] [cursor=pointer]
+            - generic [ref=f37e231]:
+              - heading "Next human decision" [level=2] [ref=f37e232]
+              - paragraph [ref=f37e233]: Accept the As Pricing user (Arnold's Team), I want to be see gaps in competitor bundles sent by CSS without going through the list scope move, or require recovery evidence by 2026-07-14T22:08:29.512Z.
+              - paragraph [ref=f37e234]:
+                - text: "Owner:"
+                - strong [ref=f37e235]: Scrum Master
+              - paragraph [ref=f37e236]:
+                - text: "Due:"
+                - strong [ref=f37e237]: Due in 2 days
+            - generic [ref=f37e238]:
+              - button "Review and record governance decision" [ref=f37e239] [cursor=pointer]
+              - button "Inspect 8 unsupported promises" [ref=f37e240] [cursor=pointer]
+              - button "Share sponsor brief" [ref=f37e241] [cursor=pointer]
+            - link "Open actions →" [ref=f37e242] [cursor=pointer]:
+              - /url: /actions?case=SD-FY27Q2-20260709-01
+            - paragraph [ref=f37e243]: 6 promises linked automatically · 3 duplicate evidence requests prevented
+            - paragraph [ref=f37e244]: "Governance loop: Prepared → next meaningful step"
+  - dialog "Create work draft" [ref=f37e85]:
+    - generic [ref=f37e86]:
+      - button "Project ▾" [ref=f37e88] [cursor=pointer]:
+        - generic [ref=f37e89]: Project
+        - text: ▾
+      - generic [ref=f37e90]: Create work
+      - button "AI provider settings" [ref=f37e91] [cursor=pointer]: ⚙
+      - button "Close" [ref=f37e92] [cursor=pointer]: ✕
+    - generic [ref=f37e94]:
+      - textbox "Narrative source text" [ref=f37e96]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f37e98]: ✓
+      - list "Work items" [ref=f37e99]
+    - generic [ref=f37e100]:
+      - generic "Set estimate for all items" [ref=f37e101]:
+        - generic [ref=f37e102]: "All:"
+        - slider "Set estimate for all items" [ref=f37e103] [cursor=pointer]: "0"
+        - generic [ref=f37e104]: —
+      - button "Create 0 issues" [disabled] [ref=f37e106]

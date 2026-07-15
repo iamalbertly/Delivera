@@ -1,0 +1,187 @@
+- generic [active] [ref=f8e1]:
+  - complementary "Primary" [ref=f8e2]:
+    - generic [ref=f8e4]:
+      - heading "Context" [level=3] [ref=f8e5]
+      - generic "Context" [ref=f8e6]:
+        - generic [ref=f8e7]:
+          - generic [ref=f8e8]: Projects
+          - generic [ref=f8e9]: SD, MPSA, MAS
+    - generic "Data freshness indicator" [ref=f8e10]:
+      - 'button "Logging alerts: 0 · Healthy" [ref=f8e11]'
+  - link "Skip to main content" [ref=f8e12] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f8e13]:
+    - generic [ref=f8e14]:
+      - button "Expand or collapse sidebar" [expanded] [ref=f8e16] [cursor=pointer]:
+        - img [ref=f8e17]
+      - navigation "Surfaces" [ref=f8e20]:
+        - generic [ref=f8e21] [cursor=pointer]: Portfolio
+        - link "Squads" [ref=f8e22] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Actions" [ref=f8e23] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f8e24] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera" [ref=f8e26] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f8e27]: De
+        - generic [ref=f8e29]: Delivera
+      - generic [ref=f8e31]:
+        - img
+        - searchbox "Context search" [ref=f8e32]
+      - group "Global actions" [ref=f8e33]:
+        - button "Create" [ref=f8e34] [cursor=pointer]:
+          - generic [ref=f8e35]: +
+          - generic [ref=f8e36]: Create
+        - generic "Checking AI status" [ref=f8e37]: AI · …
+        - button "Notifications" [ref=f8e38] [cursor=pointer]:
+          - img [ref=f8e39]
+        - button "Help" [ref=f8e41] [cursor=pointer]:
+          - img [ref=f8e42]
+        - button "Improve Delivera" [ref=f8e44] [cursor=pointer]:
+          - img [ref=f8e45]
+        - link "Settings" [ref=f8e47] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=f8e48]
+        - button "Account menu" [ref=f8e50] [cursor=pointer]: LY
+  - main [ref=f8e51]:
+    - generic "Portfolio scope" [ref=f8e52]:
+      - generic [ref=f8e53]:
+        - generic [ref=f8e54]:
+          - generic "Squad cadence" [ref=f8e55]:
+            - generic [ref=f8e56]: Current · Day 45/90 · Sprint stalled · 0% movement · 42d stale
+          - button "✕ Blocked" [ref=f8e57] [cursor=pointer]
+        - generic [ref=f8e58]:
+          - combobox "Selected squad" [ref=f8e61]:
+            - option "AMS Squad (Tachyons)"
+            - option "Agile and Security Guild"
+            - option "Bio metric KYC & KYA"
+            - option "Finance Squad"
+            - option "Mini - Apps Squad"
+            - option "M-SQUAD"
+            - option "TRANSFORMERS"
+            - option "Digital Squad"
+            - option "Robotics Process Automation (RPA)"
+            - option "DMS Squad" [selected]
+            - option "T-Squad"
+            - option "Vodacom Business"
+          - generic [ref=f8e62]:
+            - generic [ref=f8e63]: Compare
+            - generic "M-SQUAD, Mini - Apps Squad" [ref=f8e65]: +2 Squads
+          - generic [ref=f8e66]:
+            - generic [ref=f8e67]: Timeframe
+            - combobox "Timeframe" [ref=f8e68]:
+              - option "FY24 Q4"
+              - option "FY25 Q3"
+              - option "FY25 Q4"
+              - option "FY26 Q1"
+              - option "FY26 Q2"
+              - option "FY26 Q3"
+              - option "FY27 Q1"
+              - option "FY27 Q2" [selected]
+          - generic [ref=f8e69]:
+            - generic [ref=f8e70]: Baseline
+            - combobox "Baseline" [ref=f8e71]:
+              - option "PI baseline" [selected]
+              - option "No baseline"
+          - generic [ref=f8e72]: Updating…
+    - generic [ref=f8e73]:
+      - generic [ref=f8e74]:
+        - generic "AI portfolio signal" [ref=f8e75]:
+          - region "Portfolio decision cockpit" [ref=f8e76]:
+            - generic [ref=f8e77]:
+              - generic [ref=f8e78]: Delivery blocked
+              - generic [ref=f8e79]: PI not aligned
+            - generic [ref=f8e80]:
+              - paragraph [ref=f8e81]: Portfolio decision cockpit
+              - generic [ref=f8e82]: Decision required
+            - link "Review decision below" [ref=f8e83] [cursor=pointer]:
+              - /url: "#portfolio-decision"
+        - region "Alignment Studio" [ref=f8e84]:
+          - generic [ref=f8e85]:
+            - paragraph [ref=f8e86]: Board work does not match PI commitments
+            - paragraph [ref=f8e87]: 15 in Jira · 0 to create · 15 board epics (slide-vision)
+          - generic [ref=f8e88]:
+            - button "Set baseline →" [ref=f8e89] [cursor=pointer]
+            - group [ref=f8e90]:
+              - generic "More" [ref=f8e91] [cursor=pointer]
+        - generic "Affected commitments" [ref=f8e92]:
+          - region "Affected commitments" [ref=f8e93]:
+            - heading "Affected commitments" [level=2] [ref=f8e94]
+            - list [ref=f8e95]:
+              - 'button "SD-FY27Q2-20260709-01 Confirm whether MPSA board board, project, or sprint scope is correct for this period. At risk FY27Q2 · SD Next move: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio." [ref=f8e96] [cursor=pointer]':
+                - generic [ref=f8e97]:
+                  - strong [ref=f8e98]:
+                    - link "SD-FY27Q2-20260709-01 Confirm whether MPSA board board, project, or sprint scope is correct for this period." [ref=f8e99]:
+                      - /url: "#work-item-SD-FY27Q2-20260709-01"
+                      - generic [ref=f8e100]: SD-FY27Q2-20260709-01
+                      - generic [ref=f8e101]: Confirm whether MPSA board board, project, or sprint scope is correct for this period.
+                  - generic [ref=f8e102]: At risk
+                - paragraph [ref=f8e103]: FY27Q2 · SD
+                - paragraph [ref=f8e104]: "Next move: Confirm SP field mapping for DMS board or mark SP metrics unavailable for this portfolio."
+      - complementary "Portfolio decision" [ref=f8e105]:
+        - generic "At-risk commitments"
+        - generic [ref=f8e106]:
+          - region "Decision required" [ref=f8e107]:
+            - paragraph [ref=f8e108]: Decision required
+            - heading "Scope and commitment uncertainty" [level=2] [ref=f8e109]
+            - generic [ref=f8e110]:
+              - generic [ref=f8e111]:
+                - generic [ref=f8e112]: Impact
+                - strong [ref=f8e113]: 1 commitment at risk
+              - generic [ref=f8e114]:
+                - generic [ref=f8e115]: Owner
+                - strong [ref=f8e116]: Scrum Master
+              - generic [ref=f8e117]:
+                - generic [ref=f8e118]: Due
+                - strong [ref=f8e119]: Due in 2 days
+              - generic [ref=f8e120]:
+                - generic [ref=f8e121]: Evidence
+                - strong [ref=f8e122]: High
+              - generic [ref=f8e123]:
+                - generic [ref=f8e124]: Escalation
+                - strong [ref=f8e125]: 24 hours after due date
+            - paragraph [ref=f8e126]:
+              - strong [ref=f8e127]: Proof
+              - text: · 0 done stories of 13 committed in scope
+            - group [ref=f8e128]:
+              - generic "Source details" [ref=f8e129] [cursor=pointer]
+            - generic [ref=f8e130]:
+              - button "Upload PI slide" [ref=f8e131] [cursor=pointer]
+              - button "See all evidence" [ref=f8e132] [cursor=pointer]
+          - generic [ref=f8e133]:
+            - generic [ref=f8e134]:
+              - strong [ref=f8e135]: Last Jira sync
+              - text: 2026-07-09T15:53:46.031Z
+            - generic [ref=f8e136]:
+              - strong [ref=f8e137]: Boards connected
+              - text: 3 of 3
+            - generic [ref=f8e138]:
+              - strong [ref=f8e139]: Commitments mapped
+              - text: 3 of 3
+            - generic [ref=f8e140]:
+              - strong [ref=f8e141]: Data gaps
+              - text: "1"
+            - generic [ref=f8e142]:
+              - strong [ref=f8e143]: Confidence
+              - text: Low
+    - alert [ref=f8e144]
+  - dialog "Create work draft" [ref=f8e145]:
+    - generic [ref=f8e146]:
+      - button "Project ▾" [ref=f8e148] [cursor=pointer]:
+        - generic [ref=f8e149]: Project
+        - text: ▾
+      - generic [ref=f8e150]: Create work
+      - button "AI provider settings" [ref=f8e151] [cursor=pointer]: ⚙
+      - button "Close" [ref=f8e152] [cursor=pointer]: ✕
+    - generic [ref=f8e154]:
+      - textbox "Narrative source text" [ref=f8e156]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f8e158]: ✓
+      - list "Work items" [ref=f8e159]
+    - generic [ref=f8e160]:
+      - generic "Set estimate for all items" [ref=f8e161]:
+        - generic [ref=f8e162]: "All:"
+        - slider "Set estimate for all items" [ref=f8e163] [cursor=pointer]: "0"
+        - generic [ref=f8e164]: —
+      - button "Create 0 issues" [disabled] [ref=f8e166]

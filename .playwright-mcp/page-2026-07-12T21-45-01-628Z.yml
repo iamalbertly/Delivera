@@ -1,0 +1,39 @@
+- generic [active] [ref=f33e1]:
+  - complementary "Primary" [ref=f33e2]:
+    - generic [ref=f33e3]:
+      - generic [ref=f33e4]: De
+      - generic [ref=f33e5]: Delivera
+      - generic [ref=f33e6]: Grow my Impact
+  - link "Skip to main content" [ref=f33e7] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f33e8]:
+    - generic [ref=f33e9]:
+      - button "Expand or collapse sidebar" [ref=f33e11] [cursor=pointer]
+      - navigation "Surfaces" [ref=f33e15]:
+        - link "Governance" [ref=f33e16] [cursor=pointer]:
+          - /url: /governance
+        - link "Squads" [ref=f33e17] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f33e18] [cursor=pointer]: Actions
+        - link "Settings" [ref=f33e19] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f33e21] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f33e22]: De
+        - generic [ref=f33e23]:
+          - generic [ref=f33e24]: Delivera
+          - generic "No report run yet" [ref=f33e25]
+      - searchbox "Context search" [ref=f33e28]
+      - group "Global actions" [ref=f33e29]:
+        - button "Create" [ref=f33e30] [cursor=pointer]:
+          - generic [ref=f33e31]: +
+        - generic "Slide vision ready (OpenRouter) — narration may use templates" [ref=f33e33]: AI · Slides ready
+        - button "Notifications" [ref=f33e34] [cursor=pointer]
+        - button "Help" [ref=f33e37] [cursor=pointer]
+        - button "Improve Delivera" [ref=f33e40] [cursor=pointer]
+        - link "Settings" [ref=f33e43] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f33e46] [cursor=pointer]: LY
+  - main [ref=f33e47]:
+    - status [ref=f33e48]:
+      - paragraph [ref=f33e67]: Loading action queue…

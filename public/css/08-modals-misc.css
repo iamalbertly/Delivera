@@ -345,6 +345,7 @@ button.attention-queue-item,
 #work-draft-drawer {
   position: fixed;
   right: 0;
+  left: auto; /* never let JS/other rules set left — keeps Close visible (audit: off-screen) */
   top: var(--sticky-offset, var(--top-chrome-height, 56px));
   bottom: 0;
   /* Always fit viewport — never push Close off-screen (audit: close at x>viewport). */

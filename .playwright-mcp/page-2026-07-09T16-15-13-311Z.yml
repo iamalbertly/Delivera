@@ -1,0 +1,165 @@
+- generic [active] [ref=f13e1]:
+  - status [ref=f13e3]
+  - complementary "Primary" [ref=f13e4]:
+    - generic [ref=f13e6]:
+      - heading "Context" [level=3] [ref=f13e7]
+      - generic "Current sprint context" [ref=f13e8]:
+        - generic [ref=f13e9]:
+          - generic [ref=f13e10]: Sprint
+          - generic [ref=f13e11]: FY26DMS24
+        - generic [ref=f13e12]:
+          - generic [ref=f13e13]: Time
+          - generic [ref=f13e14]: Live sprint
+        - generic [ref=f13e15]:
+          - generic [ref=f13e16]: Scope
+          - generic [ref=f13e17]: SD
+    - generic "Data freshness indicator" [ref=f13e18]:
+      - 'button "Logging alerts: 0 | Evidence complete" [ref=f13e19]'
+  - link "Skip to main content" [ref=f13e20] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f13e21]:
+    - generic [ref=f13e22]:
+      - button "Expand or collapse sidebar" [expanded] [ref=f13e24] [cursor=pointer]:
+        - img [ref=f13e25]
+      - navigation "Surfaces" [ref=f13e28]:
+        - link "Portfolio" [ref=f13e29] [cursor=pointer]:
+          - /url: /governance
+        - generic [ref=f13e30] [cursor=pointer]: Squads
+        - link "Actions" [ref=f13e31] [cursor=pointer]:
+          - /url: /actions
+        - link "Settings" [ref=f13e32] [cursor=pointer]:
+          - /url: /settings
+      - link "Delivera No report run yet" [ref=f13e34] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f13e35]: De
+        - generic [ref=f13e36]:
+          - generic [ref=f13e37]: Delivera
+          - generic "No report run yet" [ref=f13e38]
+      - generic [ref=f13e40]:
+        - img
+        - searchbox "Context search" [ref=f13e41]
+      - group "Global actions" [ref=f13e42]:
+        - button "Create" [ref=f13e43] [cursor=pointer]:
+          - generic [ref=f13e44]: +
+          - generic [ref=f13e45]: Create
+        - generic "Checking AI status" [ref=f13e46]: AI · …
+        - button "Actions" [ref=f13e47] [cursor=pointer]
+        - button "Notifications" [ref=f13e48] [cursor=pointer]:
+          - img [ref=f13e49]
+        - button "Help" [ref=f13e51] [cursor=pointer]:
+          - img [ref=f13e52]
+        - button "Improve Delivera" [ref=f13e54] [cursor=pointer]:
+          - img [ref=f13e55]
+        - link "Settings" [ref=f13e57] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=f13e58]
+        - button "Account menu" [ref=f13e60] [cursor=pointer]: LY
+  - generic [ref=f13e61]:
+    - banner [ref=f13e62]:
+      - heading "Current Sprint - FY26DMS24" [level=1] [ref=f13e63]
+    - main [ref=f13e64]:
+      - generic [ref=f13e65]:
+        - generic [ref=f13e66]:
+          - generic "Sprint scope" [ref=f13e67]
+          - generic [ref=f13e69]:
+            - generic "FY26DMS24 | Jun 12, 2026 - Jun 26, 2026 | Historical snapshot" [ref=f13e70] [cursor=pointer]: FY26DMS24
+            - generic "Jun 12, 2026 - Jun 26, 2026 | Historical snapshot" [ref=f13e71]
+            - generic "Snapshot · closed Jun 26, 2026 · No exportable rows": Snapshot
+            - paragraph [ref=f13e72]: At Risk · 100% done · 0 items · Ended · FY26DMS24 ended 13d ago
+          - generic [ref=f13e73]:
+            - generic [ref=f13e75]:
+              - button "Copy sprint summary" [ref=f13e76] [cursor=pointer]: Copy
+              - button "More export options" [ref=f13e77] [cursor=pointer]: ▾
+            - group [ref=f13e78]:
+              - generic "Context All work" [ref=f13e79] [cursor=pointer]:
+                - generic [ref=f13e81]: Context
+                - generic [ref=f13e82]: All work
+          - generic "Top sprint summary" [ref=f13e83]:
+            - link "Open report" [ref=f13e84] [cursor=pointer]:
+              - /url: /report?boardId=1&sprintId=7757&projects=SD
+            - generic "Snapshot · closed Jun 26, 2026 · No exportable rows" [ref=f13e85]:
+              - generic [ref=f13e86]: No exportable rows
+              - generic [ref=f13e87]: "|"
+              - generic [ref=f13e88]: Squad idle — start or plan the next sprint
+              - generic [ref=f13e89]: "|"
+              - generic [ref=f13e90]: No urgent intervention
+        - region "Next sprint" [ref=f13e91]:
+          - paragraph [ref=f13e92]: What is next
+          - strong [ref=f13e93]: FY27DMS04
+          - paragraph [ref=f13e94]: FY26DMS24 ended 13d ago
+        - group "Switch sprint" [ref=f13e95]:
+          - generic "Past sprints" [ref=f13e96] [cursor=pointer]
+        - generic [ref=f13e97]:
+          - generic [ref=f13e98]: ⚡
+          - generic [ref=f13e99]:
+            - strong [ref=f13e100]: Sprint not started — FY27DMS04
+            - paragraph [ref=f13e101]: No active sprint — showing last completed. "FY27DMS04" is planned but not yet started.
+            - paragraph [ref=f13e102]:
+              - text: "In Jira: open"
+              - strong [ref=f13e103]: FY27DMS04
+              - text: on your board and click
+              - strong [ref=f13e104]: Start sprint
+              - text: to activate it.
+        - status [ref=f13e105]:
+          - generic [ref=f13e106]: "Data availability:"
+          - generic "No sprint issues returned for this board." [ref=f13e107]: Work items hidden
+          - text: — No sprint issues returned for this board. ·
+          - generic "No completed items in this sprint window yet." [ref=f13e108]: Daily completion hidden
+          - text: — No completed items in this sprint window yet.
+          - button "+1 more" [ref=f13e109] [cursor=pointer]
+          - link "[Why?]" [ref=f13e110] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=f13e111]:
+          - paragraph [ref=f13e112]:
+            - strong [ref=f13e113]: No issues for this context
+          - paragraph [ref=f13e114]: No issues were returned for the current sprint context.
+          - paragraph [ref=f13e115]: Add stories in Jira or pick a different board.
+          - paragraph [ref=f13e116]:
+            - button "Pick a board" [ref=f13e117] [cursor=pointer]
+        - generic [ref=f13e118]:
+          - region "Sprint today" [ref=f13e119]:
+            - heading "Sprint today" [level=2] [ref=f13e120]
+            - paragraph [ref=f13e121]:
+              - strong [ref=f13e122]: ON TRACK
+            - paragraph [ref=f13e123]: Good sprint momentum with no dominant execution risk.
+            - paragraph [ref=f13e124]:
+              - strong [ref=f13e125]: "Next move:"
+              - text: Review Work
+          - generic [ref=f13e126]:
+            - region "Sprint value summary" [ref=f13e127]:
+              - generic [ref=f13e128]:
+                - generic [ref=f13e129]: Value answer
+                - strong [ref=f13e130]: FY26DMS24
+                - paragraph [ref=f13e131]: Keep DMS board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=f13e132]:
+                - generic [ref=f13e133]: Done
+                - strong [ref=f13e134]: 100% complete
+                - paragraph [ref=f13e135]: 0% may spill over
+              - generic [ref=f13e136]:
+                - generic [ref=f13e137]: Customer impact
+                - generic [ref=f13e139]: Keep DMS board delivery aligned to customer value, simplicity, and growth outcomes.
+              - generic [ref=f13e140]:
+                - generic [ref=f13e141]: Risk
+                - strong [ref=f13e142]: On Track
+                - paragraph [ref=f13e143]: Are we delivering value this sprint?
+            - group [ref=f13e144]:
+              - generic "On Track — Good sprint momentum with no dominant execution risk." [ref=f13e145] [cursor=pointer]
+  - dialog "Create work draft" [ref=f13e147]:
+    - generic [ref=f13e148]:
+      - button "Project ▾" [ref=f13e150] [cursor=pointer]:
+        - generic [ref=f13e151]: Project
+        - text: ▾
+      - generic [ref=f13e152]: Create work
+      - button "AI provider settings" [ref=f13e153] [cursor=pointer]: ⚙
+      - button "Close" [ref=f13e154] [cursor=pointer]: ✕
+    - generic [ref=f13e156]:
+      - textbox "Narrative source text" [ref=f13e158]:
+        - /placeholder: Paste goals or notes — AI structures them into Jira tasks based on project history…
+      - generic [ref=f13e160]: ✓
+      - list "Work items" [ref=f13e161]
+    - generic [ref=f13e162]:
+      - generic "Set estimate for all items" [ref=f13e163]:
+        - generic [ref=f13e164]: "All:"
+        - slider "Set estimate for all items" [ref=f13e165] [cursor=pointer]: "0"
+        - generic [ref=f13e166]: —
+      - button "Create 0 issues" [disabled] [ref=f13e168]

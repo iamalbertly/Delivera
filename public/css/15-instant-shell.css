@@ -6,15 +6,41 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* Never leave main as an empty white void during module boot / refresh. */
+html,
+body {
+  background: var(--surface-page, #f5f6f8);
+}
 body.gov-brief-loading #main-content,
 body.delivera-instant-shell-active #main-content,
 body.gov-scope-refreshing #main-content,
 #main-content[data-gov-brief-state="loading"],
 #main-content[data-current-sprint-state="welcome"],
 #main-content[data-delivera-data-state="loading"],
+body[data-delivera-data-state="loading"],
 .actions-shell:has([data-testid="instant-shell"]) {
   background: var(--surface-page, #f5f6f8);
   min-height: 68vh;
+}
+[data-instant-shell-mount][aria-busy="true"] {
+  min-height: 52vh;
+  background: var(--surface-page, #f5f6f8);
+  display: block;
+}
+[data-instant-shell-mount]:empty,
+[data-instant-shell-mount].instant-shell-mount--reserve {
+  min-height: 40vh;
+  background: var(--surface-page, #f5f6f8);
+}
+.portfolio-decision-mount:empty,
+.portfolio-rail-commitments-mount:empty,
+.portfolio-decision-mount[aria-busy="true"],
+.portfolio-rail-commitments-mount[aria-busy="true"] {
+  min-height: 10rem;
+  background: var(--surface-page, #f5f6f8);
+}
+@keyframes dlvr-shim {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 #gov-loading:empty,
 #gov-loading[hidden] {

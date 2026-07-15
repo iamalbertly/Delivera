@@ -14,7 +14,7 @@ import { shouldHidePreparedActionsSection, applyHonestTrustClamp, enrichComparis
 import { renderPortfolioCarousel, bindPortfolioCarousel } from './Delivera-App-Portfolio-Comparison-01Carousel-UI.js';
 import { renderGovernancePrioritySurface, bindGovernancePrioritySurface } from './Delivera-App-Governance-PrioritySurface-01Render-UI.js';
 import { bindHoverProofCards } from './Delivera-App-Governance-Brief-22Render-HoverProofCards-UI.js';
-import { rememberSurfaceHtml, clearInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { rememberSurfaceHtml, clearInstantShell, renderSquadCompareSkeletonHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
 import {
   gradateCardStatus,
   isAttentionStatus,
@@ -35,12 +35,12 @@ import { mountPortfolioAiAgentBadge } from './Delivera-App-Portfolio-AI-Agent-01
 import { govPage, $ } from './Delivera-Governance-Brief-Page-01Context.js';
 
 import {
-
   readPortfolioAnchor,
-
   readPortfolioBaselineMode,
-
+  isPortfolioAllAnchor,
+  readScopeProjects,
 } from './Delivera-App-Governance-Brief-ScopeBar-03Shared-Kernel-SSOT.js';
+import { resolveEffectiveSquad, isPortfolioAllKey } from './Delivera-Governance-EffectiveSquad-01Resolve-SSOT.js';
 
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
@@ -54,13 +54,10 @@ import { mountPiFocusStrip } from './Delivera-App-Governance-PIFocus-01Strip-Ren
 import { openPiBaselineWizard } from './Delivera-Governance-Brief-Page-01Context.js';
 
 function readCompareProjects(anchor = '') {
-
   const projects = readSharedProjectsCsv();
-
   const A = String(anchor || '').toUpperCase();
-
+  if (isPortfolioAllAnchor(A)) return projects.filter((p) => !isPortfolioAllAnchor(p));
   return projects.filter((p) => String(p).toUpperCase() !== A);
-
 }
 
 async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) {
@@ -87,13 +84,14 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
           baselineMissing: opts.baselineMissing ?? baselineMissing,
           partialSquads: opts.partialSquads ?? partialSquads,
           cases: opts.cases ?? cases,
+          portfolioGeneral: isPortfolioAllAnchor(opts.anchor ?? anchor),
           refresh: opts.refresh ? '1' : undefined,
         }),
       }, 'portfolio-decision');
     } catch (err) {
       return {
         decision: {
-          headline: anchor ? `${anchor} needs scope and proof confirmation` : 'Portfolio signal',
+          headline: isPortfolioAllAnchor(anchor) ? 'Portfolio overview' : `${anchor} needs scope and proof confirmation`,
           summary: 'Portfolio comparison is loading — refresh if this persists.',
           metrics: {
             delivery: { value: 0, peerMedian: 0 },
@@ -106,8 +104,9 @@ async function fetchPortfolioPayload(brief, cases = [], { force = false } = {}) 
           preparedActions: { groups: [], items: [] },
           decisionOptions: [{ id: 'keep-funding', label: 'Keep funding', useWhen: 'Scope is confirmed', effect: 'No change', impactPreview: 'Confirm scope first.' }],
           anchorProject: anchor,
+          portfolioGeneral: isPortfolioAllAnchor(anchor),
           periodKey,
-          monitoring: { squadCount: compare.length + 1, commitmentCount: 0, exposedCommitmentCount: 0 },
+          monitoring: { squadCount: compare.length + (isPortfolioAllAnchor(anchor) ? 0 : 1), commitmentCount: 0, exposedCommitmentCount: 0 },
           recommendation: { label: 'Confirm scope and proof before investment review' },
           narrative: { headline: 'Confirm scope and proof', mainIssue: 'Data loading' },
           aboveFold: { exposedCommitments: 0, actionsReady: 0, poResponsesRequired: 0 },
@@ -154,7 +153,7 @@ async function handlePortfolioDelegatedClick(ev) {
     }
   }
 
-  const btn = ev.target.closest('[data-portfolio-action], [data-portfolio-restore-comparison]');
+  const btn = ev.target.closest('[data-portfolio-action], [data-portfolio-restore-comparison], [data-governance-action]');
 
   if (!btn || btn.tagName === 'A') return;
 
@@ -167,15 +166,28 @@ async function handlePortfolioDelegatedClick(ev) {
     return;
   }
 
-  const action = btn.getAttribute('data-portfolio-action');
+  const action = btn.getAttribute('data-portfolio-action')
+    || btn.getAttribute('data-governance-action');
+  if (!action) return;
+
+  // Only handle journey / portfolio actions here — leave commitment row binders alone.
+  const handled = new Set([
+    'review-actions', 'view-prepared-items', 'check-jira-connection', 'view-governance-evidence',
+    'calibration-defense', 'copy-calibration-defense', 'copy-evidence-summary', 'how-ai-decides',
+    'open-alignment-studio', 'upload-baseline-slide', 'align-board', 'nudge-plan-stories',
+    'review-prepared', 'record-decision', 'refresh-brief', 'share-sponsor-brief',
+    'open-baseline-image', 'expand-commitments',
+  ]);
+  if (!handled.has(action)) return;
+  ev.preventDefault();
 
   const decision = govPage.lastPortfolioDecision || {};
 
   const cases = govPage.lastPortfolioCases || [];
 
-  if (action === 'review-actions' || action === 'view-prepared-items') {
+  if (action === 'review-actions' || action === 'view-prepared-items' || action === 'review-prepared' || action === 'record-decision') {
     openPortfolioCalibrationDrawer(decision, cases);
-  } else if (action === 'check-jira-connection') {
+  } else if (action === 'check-jira-connection' || action === 'align-board-settings') {
     showInlineToast(document.body, 'Open Settings → Integrations to verify Jira board sync for stalled squads.', 'info');
     window.location.href = '/settings#integrations';
   } else if (action === 'view-governance-evidence') {
@@ -201,7 +213,120 @@ async function handlePortfolioDelegatedClick(ev) {
       openPortfolioCalibrationDrawer(decision, cases);
     });
   } else if (action === 'how-ai-decides') openPortfolioTrustDrawer(decision);
-  else if (action === 'expand-commitments') {
+  else if (action === 'open-alignment-studio' || action === 'upload-baseline-slide' || action === 'align-board') {
+    try {
+      const rawSquad = btn.getAttribute('data-squad-key') || readPortfolioAnchor(readScopeProjects());
+      const squadKey = resolveEffectiveSquad({
+        anchor: rawSquad,
+        projects: readScopeProjects(),
+        brief: govPage.lastBrief,
+      });
+      const wizardMode = btn.getAttribute('data-wizard-mode')
+        || (action === 'align-board' ? 'board' : 'slide');
+      if (isPortfolioAllKey(rawSquad) && !squadKey) {
+        showInlineToast(document.getElementById('main-content'), 'Pick a squad first, then upload its PI slide.', 'info');
+        return;
+      }
+      if (squadKey && govPage.scopeBarApi?.setAnchor) {
+        try { govPage.scopeBarApi.setAnchor(squadKey); } catch (_) { /* non-fatal */ }
+      }
+      if (action === 'align-board' && wizardMode === 'settings') {
+        window.location.href = `/settings#integrations&project=${encodeURIComponent(squadKey || '')}`;
+        return;
+      }
+      openPiBaselineWizard({
+        initialMode: wizardMode === 'create-epics' ? 'slide' : (wizardMode || 'slide'),
+        focusCreateEpics: wizardMode === 'create-epics',
+        projectKey: squadKey || undefined,
+      });
+    } catch (err) {
+      console.warn('[governance] alignment studio open failed', err);
+      showInlineToast(document.getElementById('main-content'), err?.message || 'Could not open Alignment Studio', 'error');
+    }
+  } else if (action === 'nudge-plan-stories') {
+    try {
+      const rawSquad = btn.getAttribute('data-squad-key') || readPortfolioAnchor(readScopeProjects());
+      const squadKey = resolveEffectiveSquad({
+        anchor: rawSquad,
+        projects: readScopeProjects(),
+        brief: govPage.lastBrief,
+      });
+      const pb = decision.priorityBrief || {};
+      const pack = pb.evidenceCopyPack || {};
+      const keys = pack.keys?.length
+        ? pack.keys
+        : ((decision.comparison?.cards || [])
+          .find((c) => String(c.projectKey).toUpperCase() === String(squadKey).toUpperCase())
+          ?.readiness?.notPlannedKeys || []);
+      const msg = pack.text
+        || (keys.length
+          ? `Please plan stories under ${keys.join(', ')} — these epics are on the PI slide and in Jira but have no board stories yet.${pack.jql ? `\n\nJQL: ${pack.jql}` : ''}`
+          : 'Please plan stories under the committed PI epics that still have no board stories.');
+      writeTextToClipboardWithFallback(msg).then(() => {
+        showInlineToast(document.getElementById('main-content'), 'Planning nudge copied — paste to PO/SM', 'info');
+      }).catch(() => {
+        showInlineToast(document.getElementById('main-content'), msg, 'info');
+      });
+    } catch (err) {
+      console.warn('[governance] plan-stories nudge failed', err);
+      showInlineToast(document.getElementById('main-content'), 'Could not build planning nudge', 'error');
+    }
+  } else if (action === 'copy-evidence-pack') {
+    try {
+      let pack = { text: '', jql: '' };
+      const raw = btn.getAttribute('data-evidence-pack') || '';
+      if (raw) {
+        try { pack = JSON.parse(raw); } catch (_) { /* ignore */ }
+      }
+      if (!pack.text) pack = decision.priorityBrief?.evidenceCopyPack || {};
+      const body = [pack.text, pack.jql ? `\nJQL: ${pack.jql}` : ''].filter(Boolean).join('\n');
+      if (!body) {
+        showInlineToast(document.getElementById('main-content'), 'No evidence keys to copy yet', 'info');
+        return;
+      }
+      writeTextToClipboardWithFallback(body).then(() => {
+        showInlineToast(document.getElementById('main-content'), 'Evidence keys + links copied', 'info');
+      }).catch(() => {
+        showInlineToast(document.getElementById('main-content'), body.slice(0, 200), 'info');
+      });
+    } catch (err) {
+      console.warn('[governance] copy evidence failed', err);
+    }
+  } else if (action === 'expand-evidence') {
+    const panel = document.querySelector('[data-testid="governance-attention-evidence"]');
+    panel?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  } else if (action === 'refresh-brief') {
+    govPage._portfolioBriefToken = null;
+    refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases);
+    showInlineToast(document.getElementById('main-content'), 'Refreshing portfolio brief…', 'info');
+  } else if (action === 'share-sponsor-brief') {
+    const preview = document.querySelector('[data-testid="governance-sponsor-brief-preview"]');
+    const md = decision.sponsorBriefMarkdown
+      || preview?.querySelector('pre')?.textContent
+      || '';
+    if (preview) preview.hidden = false;
+    if (md) {
+      writeTextToClipboardWithFallback(md).then(() => {
+        showInlineToast(document.getElementById('main-content'), 'Sponsor brief copied', 'info');
+      }).catch(() => {
+        showInlineToast(document.getElementById('main-content'), 'Sponsor brief shown below', 'info');
+      });
+    } else {
+      showInlineToast(document.getElementById('main-content'), 'No sponsor brief available yet', 'info');
+    }
+  } else if (action === 'open-baseline-image') {
+    const brief = govPage.lastBrief || {};
+    const url = brief.meta?.baselineImageUrl
+      || brief.meta?.baselineSourceImageUrl
+      || brief.baselineComparison?.sourceImageUrl
+      || '';
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      openPiBaselineWizard({ initialMode: 'slide' });
+      showInlineToast(document.getElementById('main-content'), 'Open Alignment Studio to view or upload the PI slide', 'info');
+    }
+  } else if (action === 'expand-commitments') {
     const overflow = btn.closest('.portfolio-commitments-more')?.querySelector('.portfolio-commitments-overflow');
     if (overflow) {
       overflow.hidden = false;
@@ -239,19 +364,29 @@ function paintPortfolioMounts(decision, brief, meta = {}, opts = {}) {
     prioritySurfaceMount.setAttribute('data-gov-priority-rendered', '1');
     if (mode === 'cache') prioritySurfaceMount.setAttribute('data-gov-priority-cached', '1');
     else prioritySurfaceMount.removeAttribute('data-gov-priority-cached');
-    const bindOpts = mode === 'live'
-      ? {
-          brief,
-          onInspectEvidence: (b) => {
-            openEvidenceDrawer(b || brief || govPage.lastBrief || {}, (b || brief || govPage.lastBrief)?.evidencePack?.rows || [], {
-              skipLegacyFlag: true,
-              docked: true,
-            });
-          },
-        }
-      : undefined;
+    const bindOpts = {
+      brief,
+      onSelectSquad: async (projectKey) => {
+        if (!projectKey) return;
+        govPage.scopeBarApi?.setAnchor?.(projectKey);
+        govPage._portfolioBriefToken = null;
+        await refreshPortfolioSurface(brief, govPage.lastPortfolioCases);
+      },
+      ...(mode === 'live'
+        ? {
+            onInspectEvidence: (b) => {
+              openEvidenceDrawer(b || brief || govPage.lastBrief || {}, (b || brief || govPage.lastBrief)?.evidencePack?.rows || [], {
+                skipLegacyFlag: true,
+                docked: true,
+              });
+            },
+          }
+        : {}),
+    };
     bindGovernancePrioritySurface(prioritySurfaceMount, bindOpts);
     clearInstantShell();
+    prioritySurfaceMount.removeAttribute('aria-busy');
+    prioritySurfaceMount.setAttribute('aria-busy', 'false');
     rememberSurfaceHtml('governance', prioritySurfaceMount.innerHTML, {
       scopeLabel: decision.anchorProject || brief?.projects?.[0] || '',
     });
@@ -304,7 +439,7 @@ function paintPortfolioMounts(decision, brief, meta = {}, opts = {}) {
       }),
     };
     const carouselHtml = (enrichedComparison.cards || []).length
-      ? renderPortfolioCarousel(enrichedComparison, { commitmentRows })
+      ? renderPortfolioCarousel(enrichedComparison, { commitmentRows, isDrill: !isPortfolioAllAnchor(decision.anchorProject || brief?.projects?.[0]) })
       : '';
 
     const atRiskCount = (comparison.cards || []).filter((c) => {
@@ -312,8 +447,25 @@ function paintPortfolioMounts(decision, brief, meta = {}, opts = {}) {
       return isAttentionStatus(g.statusClass);
     }).length;
     const zeroDeliveredCount = (comparison.cards || []).filter((c) => (Number(c.metrics?.delivered) || 0) === 0).length;
+    // Split "0% delivered" into two honest groups: squads with no baseline
+    // (cannot score) vs squads actually blocked. Conflating them misleads the
+    // PMO/Sponsor. (Audit 2026-07-15: "5 squads at 0%" conflated no-data with
+    // failed delivery.)
+    const noBaselineCount = (comparison.cards || []).filter((c) =>
+      (Number(c.metrics?.delivered) || 0) === 0
+      && (c.readiness?.gated || c.dataTrust === 'cannot-judge' || c.baselineMissing),
+    ).length;
+    const blockedCount = Math.max(0, zeroDeliveredCount - noBaselineCount);
     const systemicBanner = (atRiskCount >= 3 || zeroDeliveredCount >= 2)
-      ? `<div class="portfolio-systemic-risk-banner" role="alert" data-testid="portfolio-systemic-risk-banner">⚠️ <strong>${zeroDeliveredCount >= 2 ? `${zeroDeliveredCount} squads at 0% delivered` : `${atRiskCount} squads at risk`}</strong> — possible shared root cause. Consider escalating to leadership instead of fixing each squad individually.</div>`
+      ? `<div class="portfolio-systemic-risk-banner" role="alert" data-testid="portfolio-systemic-risk-banner">⚠️ <strong>${
+        blockedCount > 0
+          ? `${blockedCount} squad${blockedCount === 1 ? '' : 's'} at 0% delivered (blocked)`
+          : `${noBaselineCount} squad${noBaselineCount === 1 ? '' : 's'} need PI slides (cannot score)`
+      }</strong>${
+        noBaselineCount > 0 && blockedCount > 0
+          ? ` · ${noBaselineCount} more cannot be scored without PI slides`
+          : ''
+      } — ${blockedCount > 0 ? 'possible shared root cause. Consider escalating to leadership.' : 'upload PI slides in Alignment Studio to score delivery.'}</div>`
       : '';
     const staleBanner = (meta.cachedAt && Date.now() - new Date(meta.cachedAt).getTime() > 24 * 60 * 60 * 1000)
       ? `<div class="portfolio-stale-data-banner" role="alert" data-testid="portfolio-stale-data-banner">📊 <strong>Data stale</strong> — last sync was over 24h ago. Decisions may be based on outdated information.</div>`
@@ -352,16 +504,35 @@ function paintPortfolioMounts(decision, brief, meta = {}, opts = {}) {
     const banners = systemicBanner + staleBanner + singleSquadBanner;
     const priorityCarouselSlot = prioritySurfaceMount?.querySelector('[data-priority-carousel-slot]');
     if (priorityCarouselSlot && carouselHtml) {
+      priorityCarouselSlot.removeAttribute('data-compare-pending');
       priorityCarouselSlot.innerHTML = banners + carouselHtml;
       bindCarousel(priorityCarouselSlot);
+    } else if (priorityCarouselSlot && !carouselHtml) {
+      priorityCarouselSlot.setAttribute('data-compare-pending', '1');
+      priorityCarouselSlot.innerHTML = emptyOnboarding
+        || renderSquadCompareSkeletonHtml({ sub: 'Comparison refreshing…' });
     } else if (carouselMount) {
       carouselMount.hidden = false;
       carouselMount.innerHTML = carouselHtml ? banners + carouselHtml : emptyOnboarding;
       if (carouselHtml) bindCarousel(carouselMount);
     }
+  } else if (prioritySurfaceMount?.querySelector('[data-priority-carousel-slot]')) {
+    const slot = prioritySurfaceMount.querySelector('[data-priority-carousel-slot]');
+    if (slot && !slot.querySelector('[data-portfolio-carousel], [data-testid="portfolio-carousel-cache-placeholder"]')) {
+      const remembered = comparison?.cards?.length
+        ? renderPortfolioCarousel(comparison, { commitmentRows: decision.priorityBrief?.detailRows || [] })
+        : '';
+      if (remembered) {
+        slot.removeAttribute('data-compare-pending');
+        slot.innerHTML = remembered;
+      } else {
+        slot.setAttribute('data-compare-pending', '1');
+        slot.innerHTML = renderSquadCompareSkeletonHtml({ sub: 'Refreshing squad comparison…' });
+      }
+    }
   } else if (!priorityBriefOnly && carouselMount && !carouselMount.querySelector('[data-portfolio-carousel-ready]')) {
     carouselMount.hidden = false;
-    carouselMount.innerHTML = '<div class="portfolio-carousel-cache-placeholder" data-testid="portfolio-carousel-cache-placeholder" aria-label="Comparison refreshing">Refreshing squad comparison…</div>';
+    carouselMount.innerHTML = renderSquadCompareSkeletonHtml({ sub: 'Refreshing squad comparison…' });
   }
 
   if (decisionMount && !priorityBriefOnly) {
@@ -373,6 +544,8 @@ function paintPortfolioMounts(decision, brief, meta = {}, opts = {}) {
     if (mode === 'live') {
       decisionMount.insertAdjacentHTML('beforeend', renderPortfolioDataTrust(decision, freshness));
     }
+    decisionMount.removeAttribute('aria-busy');
+    decisionMount.setAttribute('aria-busy', 'false');
     if (bindDecisionConfirm) {
       bindPortfolioDecisionPanel(decisionMount, async (decisionId) => {
         try {
@@ -392,6 +565,18 @@ function paintPortfolioMounts(decision, brief, meta = {}, opts = {}) {
         }
       });
     }
+  } else if (decisionMount && priorityBriefOnly) {
+    // Priority brief host carries the agentic rail — drop cold shimmer so aside is not a white/pulse void.
+    decisionMount.innerHTML = '';
+    decisionMount.hidden = true;
+    decisionMount.removeAttribute('aria-busy');
+    decisionMount.setAttribute('aria-busy', 'false');
+  }
+
+  if (railCommitmentsMount && priorityBriefOnly) {
+    railCommitmentsMount.innerHTML = '';
+    railCommitmentsMount.hidden = true;
+    railCommitmentsMount.removeAttribute('aria-busy');
   }
 
   if (footerMount) {
