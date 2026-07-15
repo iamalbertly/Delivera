@@ -49,3 +49,18 @@ test('governance never converts inaccessible Jira evidence into a delivery verdi
   assert.match(brief.leadershipNarrative.meetingAnswer, /CANNOT VERIFY/);
   assert.doesNotMatch(JSON.stringify(brief), /credential-bearing diagnostic/);
 });
+
+test('governance revalidates cached decisions and removes inaccessible evidence from client cache', async () => {
+  const bridgeSource = await import('node:fs/promises').then((fs) => fs.readFile(
+    new URL('../public/Delivera-Shared-Brief-Client-Cache-01Bridge.js', import.meta.url),
+    'utf8',
+  ));
+  const loadSource = await import('node:fs/promises').then((fs) => fs.readFile(
+    new URL('../public/Delivera-Governance-Brief-Page-03Load-Controller.js', import.meta.url),
+    'utf8',
+  ));
+
+  assert.match(loadSource, /revalidate:\s*true/);
+  assert.match(bridgeSource, /brief\?\.meta\?\.evidenceUnavailable/);
+  assert.match(bridgeSource, /invalidateBriefCacheEntry\(pk, quarter, periodKey\)/);
+});

@@ -87,15 +87,15 @@ export function invalidateBriefCacheEntry(projects, quarter = '', periodWindow =
 }
 
 /**
- * @param {{ projects: string, quarter?: string, force?: boolean }} opts
+ * @param {{ projects: string, quarter?: string, force?: boolean, revalidate?: boolean }} opts
  * @returns {Promise<object|null>}
  */
-export async function fetchGovernanceBriefCached({ projects, quarter = '', periodWindow = '', force = false } = {}) {
+export async function fetchGovernanceBriefCached({ projects, quarter = '', periodWindow = '', force = false, revalidate = false } = {}) {
   const pk = String(projects || '').trim();
   if (!pk) return null;
   const periodKey = String(periodWindow || '').toLowerCase();
   if (force) invalidateBriefCacheEntry(pk, quarter, periodKey);
-  if (!force) {
+  if (!force && !revalidate) {
     const hit = readEntry(pk, quarter, periodKey);
     if (hit?.brief && briefMatchesProjects(hit.brief, pk)) {
       return hit.brief;
@@ -112,7 +112,11 @@ export async function fetchGovernanceBriefCached({ projects, quarter = '', perio
     throw error;
   }
   const brief = await res.json();
-  writeEntry(pk, quarter, brief, DEFAULT_TTL_MS, periodKey);
+  if (brief?.meta?.evidenceUnavailable) {
+    invalidateBriefCacheEntry(pk, quarter, periodKey);
+  } else {
+    writeEntry(pk, quarter, brief, DEFAULT_TTL_MS, periodKey);
+  }
   return brief;
 }
 

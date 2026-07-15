@@ -660,7 +660,12 @@ export async function loadBrief(options = {}) {
     const feedbackPromise = fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`)
       .then((res) => (res.ok ? res.json() : null))
       .catch(() => null);
-    const brief = await fetchGovernanceBriefCached({ projects: requested, quarter, periodWindow, force });
+    // Governance decisions always revalidate the evidence-access contract. The
+    // cached brief can paint immediately above, but it must never suppress a
+    // live authorization or scope failure.
+    const brief = await fetchGovernanceBriefCached({
+      projects: requested, quarter, periodWindow, force, revalidate: true,
+    });
     if (seq !== loadBriefSeq) return;
     if (!brief) {
       if (!govPage.lastBrief) showError('Could not load the brief for selected scope.');
@@ -684,16 +689,11 @@ export async function loadBrief(options = {}) {
       const evidenceError = new Error('Jira evidence is unavailable for the selected scope. No delivery-health verdict was inferred.');
       const failureCode = String(brief.meta.evidenceFailureCode || '');
       evidenceError.status = failureCode === 'JIRA_FORBIDDEN' ? 403 : failureCode === 'JIRA_RATE_LIMIT' ? 429 : 401;
-      if (!govPage.lastBrief || govPage.lastBrief?.meta?.evidenceUnavailable) {
-        govPage.lastBrief = null;
-        showError('Could not verify the selected portfolio scope.', evidenceError);
-      } else if (isPortfolioPage) {
-        await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases || []);
-        try {
-          const { showInlineToast } = await import('./Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js');
-          showInlineToast(document.getElementById('main-content'), 'Showing the last verified view — Jira access is unavailable. No new verdict was inferred.', 'warning');
-        } catch (_) { /* toast is best-effort */ }
-      }
+      // A prior delivery verdict is unsafe once source access is known to be
+      // unavailable. Replace it with the persistent recovery state instead of
+      // relying on a fleeting toast or a deceptively current-looking cache.
+      govPage.lastBrief = null;
+      showError('Could not verify the selected portfolio scope.', evidenceError);
       govPage.scopeBarApi?.setCacheUxState?.({ fresh: false, updating: false });
       return;
     }
