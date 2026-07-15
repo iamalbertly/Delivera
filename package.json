@@ -35,6 +35,8 @@
     "test:all:stop": "node scripts/Delivera-Test-Orchestration-Stop.js",
     "test:pw": "playwright test --max-failures=1 --reporter=list",
     "test:focused": "npm run build:css && node scripts/Delivera-Dev-Port-Guard-01Check.js && npx playwright test --grep @focused --max-failures=1 --workers=1 --reporter=list",
+    "test:parity:focused": "node scripts/Delivera-Test-Focused-Parity-01Runner.js",
+    "test:parity:focused:vercel": "node scripts/Delivera-Test-Focused-Parity-01Runner.js --vercel",
     "test:smoke": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.ux-core -- --grep \"stories card is first content\"",
     "test:journey:current-sprint": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.current-sprint",
     "test:journey:leadership": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.leadership",

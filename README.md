@@ -57,6 +57,7 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - Client-side brief cache (`Delivera-Shared-Brief-Client-Cache-01Bridge.js`) keys on `periodWindow` as well as projects/quarter — period chip invalidates cache before reload; deduped quarters fetch (`Delivera-Shared-Quarters-List-01Fetch-Memo.js`) cut repeat network round-trips
 - **Server cache (age-tier TTL):** `lib/Delivera-Cache-AgeTier-01TTL-SSOT.js` drives `governanceBrief` and `portfolioDecision` namespaces in `lib/cache.js` (fresher data → shorter TTL; stale serve on Jira outage via `getWithStaleFallback`). Set `CACHE_BACKEND=redis` + `REDIS_URL` for shared cache across Node instances.
 - **Client portfolio-decision cache:** `Delivera-Shared-Portfolio-Decision-Client-Cache-01Bridge.js` — peek + background revalidate on scope refresh (3m cap, respects server `meta.cacheTtlMs`).
+- **Governance parity contract (2026-07-15):** `/governance` separates scoreable delivery squads from operational guilds, keeps ASG out of scoreable counts, and splits attention into delivery risk, missing PI baseline, missing Jira story evidence, and cannot-judge-yet. Portfolio decision cache keys include app version, quarter, scoreable squad scope, and baseline readiness. Stored compare peers do not contaminate the anchor brief; only explicit add-compare actions include peer squads in the live brief fetch. The portfolio scope bar owns trust/status/readiness, and visible setup actions appear only when setup gaps exist.
 - Brief load runs inbox + brief in parallel; scorecard defers until evidence `<details>` opens
 - **Intervention stream:** `#gov-intervention-case-mount` appears only when the Brief has Jira-backed cases needing a human decision. It seeds/dedupes intervention cases from existing risks, reviews Teams/email-ready nudges, blocks unresolved recipients or changed issues, and keeps `/api/governance/intervention-shortlist.json` compatible.
 - **Above-fold order (single squad):** squad hero card (`#gov-verdict-mount[data-hero-squad]`) first — portfolio banner, compare tray, sprint pulse, cause/action, open sprint/evidence — then compact copy/overflow actions → owner clusters → setup debt → proof preview; **right rail** holds agent queue + PI strip only (desktop sticky column 2). Duplicate lead-blocker strip and command visual blocks hide when hero is active (`governance-shell--hero-squad`). Multi-squad: heat tiles in hero mount; supporting evidence `<details>` stays collapsed when owner clusters exist; feedback in collapsed `<details>`
@@ -124,6 +125,8 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:journey:churn-trust-repair` | Same as `test:journey:core` |
 | `npm run test:all:priority` | Tier 0–2 gate: CSS sync, churn-trust-repair, layout-overlap, brief-ssot, sprint dedupe-fold |
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
+| `npm run test:parity:focused` | **Recommended parity gate** — UTF-8, CSS, focused governance/portfolio units, portfolio journey, governance click-friction, current-sprint chrome smoke, fast click audit |
+| `npm run test:parity:focused:vercel` | Same as parity gate plus local `npx vercel build` |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan (Round 9 canonical — supersedes Rounds 4–8 which are deprecated) |
 | `npm run test:journey:settings-masterplan` | Settings hub, display names, integrations deep links |
@@ -159,9 +162,11 @@ Ownership: [`public/css/README.md`](public/css/README.md)
 - **Render:** [`render.yaml`](render.yaml) — always-on Node, background workers
 - **Vercel:** root `index.js` + `vercel.json` — zero-config Express; workers disabled
 
-Pre-deploy: `npm run build:css`, `npm run check:css`, then your chosen test gate.
+Pre-deploy: `npm run test:parity:focused:vercel` for governance/scope/chrome changes. Use the broader journey bundles only when touching their owned surface or shared data contracts.
 
 **Vercel note:** `vercel.json` bundles `public/**` into the serverless function for HTML routes (`/governance`, etc.). If deploy fails on `includeFiles`, clear conflicting **Functions** overrides in the Vercel project dashboard.
+
+**Production identity:** `/version` must show the same branch and commit as the pushed `autohacker-20260615_093142` head. If the alias still reports an older commit after push, run a manual production deploy (`npx vercel deploy --prod`) and verify `https://vodaagileboard.vercel.app/version`.
 
 Full guide: [`docs/deployment.md`](docs/deployment.md)
 
