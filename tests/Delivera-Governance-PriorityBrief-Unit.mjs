@@ -361,7 +361,7 @@ test('readiness gate stage 0 for squad without baseline', async () => {
   assert.ok(comparison.readinessSummary?.line);
 });
 
-test('commitment detail renders before exception rail in priority surface', async () => {
+test('priority surface keeps commitment detail and folds exceptions into squad comparison', async () => {
   const { renderGovernancePrioritySurface } = await import('../public/Delivera-App-Governance-PrioritySurface-01Render-UI.js');
   const html = renderGovernancePrioritySurface({
     anchorProject: 'SD',
@@ -396,7 +396,7 @@ test('commitment detail renders before exception rail in priority surface', asyn
   assert.ok(mainIdx > 0 && railIdx > 0, 'main|rail layout required');
   assert.ok(carouselIdx > 0);
   assert.ok(commitmentIdx > 0);
-  assert.ok(exceptionIdx > 0);
+  assert.equal(exceptionIdx, -1, 'duplicate exception rail stays removed');
   assert.ok(heroIdx >= 0 && carouselIdx > heroIdx, 'carousel must render after hero');
   assert.ok(carouselIdx < commitmentIdx, 'carousel must render before commitment table');
   assert.ok(carouselIdx < railIdx || html.indexOf('governance-priority-main') < railIdx, 'compare lives in main column');

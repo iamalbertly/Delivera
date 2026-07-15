@@ -29,21 +29,28 @@ jobs:
           npm run build:css
           npm run check:css
           node -e "import('./lib/currentSprint.js').then(()=>import('./lib/snapshot-worker.js'))"
-      - name: Require Vercel deployment credentials
+      - name: Detect Vercel deployment credentials
+        id: vercel-credentials
         run: |
-          test -n "$VERCEL_TOKEN"
-          test -n "$VERCEL_ORG_ID"
-          test -n "$VERCEL_PROJECT_ID"
+          if test -n "$VERCEL_TOKEN" && test -n "$VERCEL_ORG_ID" && test -n "$VERCEL_PROJECT_ID"; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel Git integration will provide the deployment; validating commit provenance below."
+          fi
       - name: Build production artifact
+        if: steps.vercel-credentials.outputs.available == 'true'
         run: |
           npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           npx vercel build --prod --token "$VERCEL_TOKEN"
       - name: Deploy production artifact
+        if: steps.vercel-credentials.outputs.available == 'true'
         run: npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
       - name: Verify production routes
         env:
           PRODUCTION_URL: https://vodaagileboard.vercel.app
         run: |
           curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/healthz"
-          curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/version"
+          curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/version" > version-response.json
+          node -e "const v=require('./version-response.json'); const expected=process.env.GITHUB_SHA.slice(0,7); if(v.commit!==expected) throw new Error('Production commit '+v.commit+' does not match '+expected); if(v.version!=='0.0.0.2') throw new Error('Unexpected production version '+v.version)"
           curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/governance" > /dev/null
