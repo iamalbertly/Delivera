@@ -25,6 +25,8 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 export function renderSurfaceState(host, opts = {}) {
   if (!host) return;
   const { variant = 'loading' } = opts;
+  host.setAttribute('data-delivera-data-state', variant);
+  host.setAttribute('aria-busy', variant === 'loading' || variant === 'skeleton' ? 'true' : 'false');
   host.innerHTML = renderSurfaceStateHtml(opts);
   bindSurfaceStateActions(host, opts);
 }
@@ -43,9 +45,52 @@ export function renderSurfaceStateHtml(opts = {}) {
       return renderErrorHtml(opts);
     case 'empty':
       return renderEmptyHtml(opts);
+    case 'stale':
+    case 'partial':
+    case 'blocked':
+    case 'unavailable':
+      return renderContextStateHtml(opts);
     default:
       return renderLoadingHtml(opts);
   }
+}
+
+const CONTEXT_STATE_COPY = Object.freeze({
+  stale: {
+    label: 'Last verified view',
+    defaultMessage: 'Live refresh is still running. Values remain visible but may have changed.',
+    next: 'Refreshing automatically',
+  },
+  partial: {
+    label: 'Limited evidence',
+    defaultMessage: 'Some sources are unavailable, so conclusions are intentionally conservative.',
+    next: 'Use visible facts; missing evidence is never scored as failure',
+  },
+  blocked: {
+    label: 'Action required',
+    defaultMessage: 'Progress cannot continue until the named owner resolves the highlighted dependency.',
+    next: 'Review the prepared next action',
+  },
+  unavailable: {
+    label: 'Cannot verify yet',
+    defaultMessage: 'There is not enough current evidence to make a trustworthy judgment.',
+    next: 'Add or reconnect the missing evidence source',
+  },
+});
+
+function renderContextStateHtml({ variant, title = '', message = '', hint = '', compact = false } = {}) {
+  const meta = CONTEXT_STATE_COPY[variant] || CONTEXT_STATE_COPY.partial;
+  const cls = [
+    'delivera-surface-state',
+    `delivera-surface-state--${variant}`,
+    compact ? 'delivera-surface-state--compact' : '',
+  ].filter(Boolean).join(' ');
+  return `
+    <div class="${escapeHtml(cls)}" role="status" data-delivera-surface-state="${escapeHtml(variant)}">
+      <span class="delivera-surface-state-badge">${escapeHtml(title || meta.label)}</span>
+      <p>${escapeHtml(message || meta.defaultMessage)}</p>
+      <p class="delivera-surface-state-next"><strong>Next:</strong> ${escapeHtml(hint || meta.next)}</p>
+    </div>`;
 }
 
 /**

@@ -5,7 +5,7 @@
     { "key": "MAS", "label": "Mini - Apps Squad", "shortLabel": "MAS", "defaultSelected": true },
     { "key": "RPA", "label": "Robotics Process Automation (RPA)", "shortLabel": "RPA", "defaultSelected": false },
     { "key": "MVA", "label": "Digital Squad", "shortLabel": "Digital", "defaultSelected": false },
-    { "key": "ASG", "label": "Agile and Security Guild", "shortLabel": "ASG", "defaultSelected": false },
+    { "key": "ASG", "label": "Agile and Security Guild", "shortLabel": "ASG", "entityType": "operational-guild", "scoreable": false, "defaultSelected": false },
     { "key": "FIN", "label": "Finance Squad", "shortLabel": "Finance", "defaultSelected": false },
     { "key": "SD", "label": "DMS Squad", "shortLabel": "DMS", "subtitle": "Kilimanjaro Legends", "defaultSelected": false },
     { "key": "MPSA2", "label": "TRANSFORMERS", "shortLabel": "TRANSFORMERS", "defaultSelected": false },

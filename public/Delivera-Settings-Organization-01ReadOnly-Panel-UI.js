@@ -32,14 +32,15 @@ function renderCatalogTable(catalog, accessSummary) {
   for (const row of accessSummary || []) accessByKey[row.key] = row;
   if (!catalog?.length) return '<p class="gov-ai-helper-note">No projects in catalog.</p>';
   let html = '<table class="settings-org-table"><thead><tr>';
-  html += '<th scope="col">Jira key</th><th scope="col">Display name</th><th scope="col">Short</th><th scope="col">Default</th><th scope="col">Access</th>';
+  html += '<th scope="col">Jira key</th><th scope="col">Display name</th><th scope="col">Entity</th><th scope="col">Portfolio scoring</th><th scope="col">Default</th><th scope="col">Access</th>';
   html += '</tr></thead><tbody>';
   for (const row of catalog) {
     const acc = accessByKey[row.key] || row;
     html += '<tr>';
     html += `<td><code>${escapeHtml(row.key)}</code></td>`;
     html += `<td>${escapeHtml(row.label || row.key)}</td>`;
-    html += `<td>${escapeHtml(row.shortLabel || '—')}</td>`;
+    html += `<td>${row.entityType === 'operational-guild' ? 'Operational guild' : 'Delivery squad'}</td>`;
+    html += `<td>${row.scoreable === false ? '<span class="settings-access-unknown">Excluded</span>' : '<span class="settings-access-ok">Included</span>'}</td>`;
     html += `<td>${row.defaultSelected ? 'Yes' : '—'}</td>`;
     html += `<td>${accessBadge(acc.accessible, acc.lastChecked)}</td>`;
     html += '</tr>';

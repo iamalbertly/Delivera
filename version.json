@@ -1,5 +1,5 @@
 {
-  "version": "0.0.0.1",
+  "version": "0.0.0.2",
   "codename": "delivera-uat",
   "releasedAt": "2026-07-15T00:00:00.000Z",
   "environments": {
@@ -14,12 +14,25 @@
       "autoDeploy": true
     },
     "production": {
-      "url": "https://delivera.vercel.app",
-      "branch": "production",
+      "url": "https://vodaagileboard.vercel.app",
+      "branch": "autohacker-20260615_093142",
       "autoDeploy": true
     }
   },
   "changelog": [
+    {
+      "version": "0.0.0.2",
+      "date": "2026-07-15",
+      "changes": [
+        "Replaced blank first paint with layout-shaped, value-bearing loading states across Governance, Current Sprint, Actions, and Settings",
+        "Separated 11 delivery squads from the ASG operational guild in governance scoring",
+        "Quarantined PI evidence uploaded for a quarter other than the selected quarter",
+        "Deduplicated equivalent action cases and made review-before-send explicit",
+        "Added visible version, commit, environment, evidence confidence, and data-continuity states",
+        "Aligned Current Sprint blocker counts and removed redundant click-gated detail",
+        "Moved production builds to Node 24 and added post-deployment route verification"
+      ]
+    },
     {
       "version": "0.0.0.1",
       "date": "2026-07-15",

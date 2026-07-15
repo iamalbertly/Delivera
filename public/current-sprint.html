@@ -51,12 +51,24 @@
         <div class="instant-shell" data-testid="instant-shell" data-instant-shell-cold="1" aria-busy="true" role="status" style="padding:1rem">
           <div class="instant-shell-state-strip" data-testid="instant-shell-state-strip">
             <span class="instant-shell-state-surface">Today</span>
-            <span class="instant-shell-state-scope">Loading scope…</span>
-            <span class="instant-shell-state-sub">Loading sprint health…</span>
+            <span class="instant-shell-state-scope">Restoring your squad and active sprint</span>
+            <span class="instant-shell-state-sub">Checking progress, blockers, scope change, and owners</span>
           </div>
-          <div class="instant-shimmer" style="width:55%"></div>
-          <div class="instant-shimmer" style="width:85%"></div>
-          <div class="instant-shimmer" style="width:40%"></div>
+          <p class="instant-shell-value-line">The current health verdict and strongest intervention will appear first.</p>
+          <div class="instant-shell-header-bar"><div class="instant-shimmer" style="width:24%"></div><div class="instant-shimmer" style="width:48%"></div></div>
+          <div class="instant-shell-sprint-grid">
+            <div class="instant-shell-signal-row">
+              <div class="instant-shell-signal-card"><div class="instant-shimmer" style="width:40%"></div><div class="instant-shimmer" style="width:72%"></div></div>
+              <div class="instant-shell-signal-card"><div class="instant-shimmer" style="width:42%"></div><div class="instant-shimmer" style="width:68%"></div></div>
+              <div class="instant-shell-signal-card"><div class="instant-shimmer" style="width:38%"></div><div class="instant-shimmer" style="width:75%"></div></div>
+            </div>
+            <div class="instant-shell-blockers"><div class="instant-shimmer" style="width:34%"></div><div class="instant-shimmer" style="width:88%"></div><div class="instant-shimmer" style="width:64%"></div></div>
+            <div class="instant-shell-stories">
+              <div class="instant-shell-story-row"><div class="instant-shimmer" style="width:15%"></div><div class="instant-shimmer" style="width:62%"></div><div class="instant-shimmer" style="width:12%"></div></div>
+              <div class="instant-shell-story-row"><div class="instant-shimmer" style="width:15%"></div><div class="instant-shimmer" style="width:55%"></div><div class="instant-shimmer" style="width:12%"></div></div>
+            </div>
+          </div>
+          <p class="instant-shell-label">Showing the sprint structure immediately while Jira evidence refreshes…</p>
         </div>
       </div>
       <div id="current-sprint-error" class="alert alert-error" style="display: none;"></div>

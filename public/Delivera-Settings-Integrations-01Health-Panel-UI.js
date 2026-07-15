@@ -35,11 +35,18 @@ export function mountIntegrationsPanel(mount) {
       const failing = projects.filter((p) => p.accessible === false);
       const healthClass = runtime.ok ? 'settings-health-ok' : 'settings-health-warn';
 
+      const authWarning = tokenLen && String(authMode).toLowerCase() === 'disabled'
+        ? '<p class="settings-catalog-banner" role="status"><strong>Jira sign-in is disabled.</strong> The server token can read configured boards, but user-attributed writes and reconnect flows are unavailable.</p>'
+        : '';
+      const cacheLabel = cache === 'memory'
+        ? 'Temporary cache · may reset after deployment'
+        : 'Shared cache · available across instances';
       healthEl.innerHTML = `
         <div class="settings-health-summary ${healthClass}">
-          <p><strong>Jira</strong> ${escapeHtml(jiraHost)} · token ${tokenLen ? 'configured' : 'missing'} · auth ${escapeHtml(authMode)}</p>
-          <p><strong>Cache</strong> ${escapeHtml(cache)}</p>
+          <p><strong>Jira evidence</strong> ${escapeHtml(jiraHost)} · ${tokenLen ? 'connected' : 'connection missing'} · user sign-in ${escapeHtml(authMode)}</p>
+          <p><strong>Data continuity</strong> ${escapeHtml(cacheLabel)}</p>
         </div>
+        ${authWarning}
         <h3 class="gov-ai-helper-sub">Project access</h3>
         <ul class="settings-health-list">${projects.map(jiraHealthRow).join('')}</ul>
         ${failing.length ? `<p class="gov-ai-helper-note">${failing.length} project(s) need Jira access review.</p>` : ''}`;

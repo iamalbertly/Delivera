@@ -420,8 +420,10 @@ function init() {
       mount: ensureSharedStickyScopeMount(document.querySelector('.current-sprint-header')),
       profile: 'compact',
       onRefresh: () => {
-        const csv = readSharedProjectsCsv() || '';
-        const projects = csv.split(',').map((p) => p.trim()).filter(Boolean);
+        const stored = readSharedProjectsCsv();
+        const projects = (Array.isArray(stored) ? stored : String(stored || '').split(','))
+          .map((p) => String(p || '').trim().toUpperCase())
+          .filter(Boolean);
         const pk = resolveEffectiveSquad({
           anchor: projects[0] || '',
           projects,

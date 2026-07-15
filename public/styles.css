@@ -1588,6 +1588,21 @@ button.context-card-segment {
   color: var(--muted);
   font-size: 0.76rem;
 }
+
+.delivera-build-identity {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 1rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-subtle, #e5e7eb);
+  background: var(--surface-page, #f5f6f8);
+  color: var(--text-muted, #64748b);
+  font-size: 0.72rem;
+  text-align: right;
+  letter-spacing: 0.01em;
+}
+@media (max-width: 900px) {
+  .delivera-build-identity { padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px)); }
+}
 .sidebar-data-pulse {
   display: flex;
   align-items: center;
@@ -22229,6 +22244,45 @@ body.governance-page #portfolio-scope-bar-mount.portfolio-scope-bar {
 }
 .delivera-surface-skeleton-line:nth-child(2) { width: 80%; }
 .delivera-surface-skeleton-line:nth-child(3) { width: 60%; }
+
+/* One-second state grammar shared by every surface. */
+.delivera-surface-state--stale,
+.delivera-surface-state--partial,
+.delivera-surface-state--blocked,
+.delivera-surface-state--unavailable {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-subtle, #d8dee8);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+.delivera-surface-state--stale { border-left-color: #d97706; }
+.delivera-surface-state--partial,
+.delivera-surface-state--unavailable { border-left-color: #64748b; }
+.delivera-surface-state--blocked { border-left-color: #c81e1e; }
+.delivera-surface-state-badge {
+  grid-row: 1 / span 2;
+  align-self: start;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #24324a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.delivera-surface-state--blocked .delivera-surface-state-badge { background: #fff1f2; color: #9f1239; }
+.delivera-surface-state--stale .delivera-surface-state-badge { background: #fff7ed; color: #9a3412; }
+.delivera-surface-state--partial p,
+.delivera-surface-state--stale p,
+.delivera-surface-state--blocked p,
+.delivera-surface-state--unavailable p { margin: 0; }
+.delivera-surface-state-next { color: var(--text-muted, #64748b); font-size: 0.82rem; }
 
 /* Unified inline toast (replaces gov-inline-toast) */
 .delivera-surface-toast {

@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, autohacker-20260615_093142]
   pull_request:
     branches: [main, master]
 jobs:

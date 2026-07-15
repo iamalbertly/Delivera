@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "projects": [
+    { "key": "MPSA", "label": "M-SQUAD", "shortLabel": "M-SQUAD", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": true },
+    { "key": "MAS", "label": "Mini - Apps Squad", "shortLabel": "MAS", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": true },
+    { "key": "RPA", "label": "Robotics Process Automation (RPA)", "shortLabel": "RPA", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "MVA", "label": "Digital Squad", "shortLabel": "Digital", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "ASG", "label": "Agile and Security Guild", "shortLabel": "ASG", "entityType": "operational-guild", "scoreable": false, "defaultSelected": false },
+    { "key": "FIN", "label": "Finance Squad", "shortLabel": "Finance", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "SD", "label": "DMS Squad", "shortLabel": "DMS", "subtitle": "Kilimanjaro Legends", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "MPSA2", "label": "TRANSFORMERS", "shortLabel": "TRANSFORMERS", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "TRS", "label": "T-Squad", "shortLabel": "T-Squad", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "VB", "label": "Vodacom Business", "shortLabel": "VB", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "AMS2", "label": "AMS Squad (Tachyons)", "shortLabel": "AMS", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false },
+    { "key": "BIO", "label": "Bio metric KYC & KYA", "shortLabel": "BIO", "entityType": "delivery-squad", "scoreable": true, "defaultSelected": false }
+  ]
+}

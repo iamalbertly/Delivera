@@ -115,7 +115,7 @@ export function renderInterventionCaseCard(row = {}, { surface = 'actions', high
       <div class="actions-case-card-main">
         ${squadLink ? `<p class="actions-case-squad">${squadLink}</p>` : ''}
         <h2>${escapeHtml(String(row.title || compactTitle(row)).replace(/\b(\w+)\s+board\s+board\b/gi, '$1 board'))}</h2>
-        <p>${issueCount} related issues · ${row.needsApproval ? '1+ nudges ready' : 'monitoring'} · Proof: ${escapeHtml(proof)}</p>
+        <p>${issueCount} related issue${issueCount === 1 ? '' : 's'} · ${row.needsApproval ? 'Nudge ready for review' : 'Monitoring'} · ${escapeHtml(proof)} evidence confidence${row.duplicateCount ? ` · ${row.duplicateCount} duplicate${row.duplicateCount === 1 ? '' : 's'} merged` : ''}</p>
         ${governanceChip}
       </div>
       <div class="actions-case-card-actions">

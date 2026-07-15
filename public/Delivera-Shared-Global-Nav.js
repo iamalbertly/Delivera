@@ -456,8 +456,35 @@ function ensureGlobalNav() {
     updateToggleState(topToggle, isMobileViewport() ? sidebar.classList.contains('open') : !document.body.classList.contains('sidebar-collapsed'));
     initDataPulseListener();
     refreshTopChromeBrand();
+    ensureBuildIdentity();
     window.dispatchEvent(new CustomEvent('app:nav-rendered', { detail: { current } }));
   } catch (_) {}
+}
+
+let buildIdentityPromise = null;
+function ensureBuildIdentity() {
+  let footer = document.getElementById('delivera-build-identity');
+  if (!footer) {
+    footer = document.createElement('footer');
+    footer.id = 'delivera-build-identity';
+    footer.className = 'delivera-build-identity';
+    footer.setAttribute('aria-label', 'Application version');
+    footer.textContent = 'Delivera · verifying version…';
+    document.body.appendChild(footer);
+  }
+  if (!buildIdentityPromise) {
+    buildIdentityPromise = fetch('/version', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then((response) => response.ok ? response.json() : null)
+      .catch(() => null);
+  }
+  buildIdentityPromise.then((meta) => {
+    if (!footer?.isConnected) return;
+    const version = meta?.version ? `v${meta.version}` : 'version unavailable';
+    const commit = meta?.commit ? ` · ${meta.commit}` : '';
+    const environment = meta?.environment ? ` · ${meta.environment}` : '';
+    footer.textContent = `Delivera ${version}${commit}${environment}`;
+    footer.title = meta?.releasedAt ? `Released ${meta.releasedAt}` : 'Build identity';
+  });
 }
 
 function updateDataPulse(label, state) {

@@ -1,5 +1,5 @@
 /**
- * Fixed Header Bar Component — filter/session wiring facade.
+ * Fixed Header Bar Component â€” filter/session wiring facade.
  * Markup builders absorbed into Delivera-CurrentSprint-Header-Bar-01Markup-Builders.js.
  */
 

@@ -5,6 +5,7 @@
  */
 export const PORTFOLIO_ALL = '__ALL__';
 export const PORTFOLIO_ALL_LABEL = 'All Projects';
+import { isDeliverySquad } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 /**
  * @param {string[]} catalogKeys
@@ -13,7 +14,7 @@ export const PORTFOLIO_ALL_LABEL = 'All Projects';
 export function rankProjectsByDataDensity(catalogKeys = [], densityByProject = {}) {
   const keys = (catalogKeys || [])
     .map((k) => String(k || '').trim().toUpperCase())
-    .filter((k) => k && k !== PORTFOLIO_ALL);
+    .filter((k) => k && k !== PORTFOLIO_ALL && isDeliverySquad(k));
   const scored = keys.map((key, catalogIndex) => {
     const d = densityByProject[key] || densityByProject[String(key).toLowerCase()] || {};
     const hasBaseline = d.hasBaseline === true || d.hasBaseline === 1 ? 1 : 0;

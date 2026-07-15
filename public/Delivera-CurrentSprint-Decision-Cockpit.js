@@ -274,6 +274,7 @@ export function renderDecisionCockpit(data, options = {}) {
   const valueDoneLabel = totalStories > 0 ? `${doneStories}/${totalStories} value stories` : 'Value stories loading';
   const stuckCount = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates.length : 0;
   const hasBlockers = stuckCount > 0 || topRisks.length > 0;
+  const verifiedBlockerCount = stuckCount;
   const riskQueueTotal = topRisks.length + quickActions.reduce((sum, item) => sum + Number(item?.count || 0), 0);
   const riskQueueLabel = riskQueueTotal > 0 ? `${riskQueueTotal} action${riskQueueTotal === 1 ? '' : 's'} waiting` : 'No hidden blockers';
   const trustLabel = data?.meta?.partialPermissions ? 'Limited' : (metrics?.timeLogged?.ratioPct === 0 ? 'Needs evidence' : 'Usable');
@@ -319,7 +320,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
     + (viewportLean ? buildSummaryStrip(data, cockpit) : buildSummaryStrip(data, cockpit))
-    + '<details class="decision-cockpit-details" open>'
+    + `<details class="decision-cockpit-details"${viewportLean ? '' : ' open'}>`
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'
     + `<p class="decision-cockpit-subtitle">${escapeHtml(dateLabel)} <span>|</span> ${escapeHtml(remainingDaysLabel)}</p>`
@@ -343,7 +344,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + '<p class="decision-card-label">Signals</p>'
     + '<div class="decision-signal-list">'
     + `<div><span class="signal-dot positive"></span><strong>${escapeHtml(completedSignal)}</strong><small>Done now</small></div>`
-    + `<div><span class="signal-dot critical"></span><strong>${escapeHtml(String(keySignals.blockers || 0))}</strong><small>Blockers</small></div>`
+    + `<div><span class="signal-dot critical"></span><strong>${escapeHtml(String(verifiedBlockerCount))}</strong><small>Verified blockers</small></div>`
     + `<div><span class="signal-dot warning"></span><strong>${escapeHtml(String(keySignals.scopeChanges || 0))}</strong><small>Added work</small></div>`
     + `<div><span class="signal-dot ${(keySignals.inactivity ? 'critical' : 'positive')}"></span><strong>${keySignals.inactivity ? 'Inactive' : 'Moving'}</strong><small>Last 24h</small></div>`
     + '</div>'
@@ -364,7 +365,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + '<div class="decision-metrics-row">'
     + renderMetricCard('Value done', valueDoneLabel, `${metrics?.progressPct?.value ?? 0}% complete`, metrics?.progressPct?.value ?? 0)
     + renderMetricCard('Work left', `${metrics?.workItems?.remaining || 0}`, `${metrics?.workItems?.done || 0}/${metrics?.workItems?.total || 0} done`, metrics?.workItems?.total > 0 ? ((metrics.workItems.done / metrics.workItems.total) * 100) : 0)
-    + renderMetricCard('Risk queue', `${riskQueueTotal}`, `${topRisks.length} top risks | ${keySignals.blockers || 0} blockers`, Math.min(100, riskQueueTotal * 12), riskQueueTotal > 0 ? ' is-warning' : '')
+    + renderMetricCard('Risk queue', `${riskQueueTotal}`, `${topRisks.length} top risks | ${verifiedBlockerCount} verified blockers`, Math.min(100, riskQueueTotal * 12), riskQueueTotal > 0 ? ' is-warning' : '')
     + renderMetricCard('Trust', trustLabel, `${metrics?.timeLogged?.ratioPct || 0}% estimate evidence`, metrics?.timeLogged?.ratioPct || 0, data?.meta?.partialPermissions ? ' is-warning' : '')
     + '</div>'
     + '<section class="decision-workmovement-card">'

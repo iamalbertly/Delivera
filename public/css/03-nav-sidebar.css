@@ -359,6 +359,21 @@ button.context-card-segment {
   color: var(--muted);
   font-size: 0.76rem;
 }
+
+.delivera-build-identity {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 1rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-subtle, #e5e7eb);
+  background: var(--surface-page, #f5f6f8);
+  color: var(--text-muted, #64748b);
+  font-size: 0.72rem;
+  text-align: right;
+  letter-spacing: 0.01em;
+}
+@media (max-width: 900px) {
+  .delivera-build-identity { padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px)); }
+}
 .sidebar-data-pulse {
   display: flex;
   align-items: center;

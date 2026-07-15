@@ -145,7 +145,9 @@ router.get('/version', async (req, res) => {
     res.status(200).json({
       ...versionData,
       environment: process.env.NODE_ENV || 'development',
-      deployedAt: new Date().toISOString(),
+      branch: process.env.VERCEL_GIT_COMMIT_REF || process.env.RENDER_GIT_BRANCH || '',
+      commit: String(process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || '').slice(0, 7),
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID || process.env.RENDER_INSTANCE_ID || '',
     });
   } catch (err) {
     res.status(200).json({ version: '0.0.0.0', error: 'version.json not found' });

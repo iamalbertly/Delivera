@@ -105,13 +105,15 @@ function resolveMount(pageType) {
 
 function renderStateStrip(pageType, scopeLabel, subState) {
   const surface = SURFACE_LABELS[pageType] || 'Delivera';
-  const scope = scopeLabel || (pageType === 'governance' || pageType === 'portfolio' ? 'All Projects' : 'Loading scope…');
+  const scope = scopeLabel || (pageType === 'governance' || pageType === 'portfolio'
+    ? '11 delivery squads · operational guild excluded'
+    : 'Restoring saved scope');
   const defaults = {
-    governance: 'Loading portfolio…',
-    portfolio: 'Loading portfolio…',
-    'current-sprint': 'Loading sprint…',
-    actions: 'Loading actions…',
-    settings: 'Loading settings…',
+    governance: 'Checking plans, Jira evidence, cadence, and owners',
+    portfolio: 'Checking plans, Jira evidence, cadence, and owners',
+    'current-sprint': 'Checking progress, blockers, scope change, and owners',
+    actions: 'Checking blockers, decisions, and prepared nudges',
+    settings: 'Loading personal defaults, organization policy, and connection trust',
     report: 'Loading proof…',
     leadership: 'Loading leadership…',
     evidence: 'Loading evidence…',
@@ -392,16 +394,16 @@ export function clearInstantShell() {
     mount.removeAttribute('aria-busy');
     mount.setAttribute('aria-busy', 'false');
   });
+  const realContentSelector = '[data-testid="governance-priority-brief"], [data-portfolio-signal], [data-portfolio-bento-card], [data-testid="portfolio-bento-card"], .actions-case-card, [data-current-sprint-content], .settings-section-card:not(.instant-shell *), [data-delivera-surface-state="empty"], [data-delivera-surface-state="error"], .current-sprint-signal-strip, .gov-priority-surface, .hud-card, .evidence-os-row, .preview-ready, #home-live-surface';
+  const pageHasRealContent = Boolean(main?.querySelector(realContentSelector));
   document.querySelectorAll('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]').forEach((el) => {
     const parent = el.parentElement;
     if (!parent) {
       el.remove();
       return;
     }
-    const hasReal = parent.querySelector(
-      '[data-testid="governance-priority-brief"], [data-portfolio-signal], [data-portfolio-bento-card], [data-testid="portfolio-bento-card"], .actions-case-card, [data-current-sprint-content], .settings-section-card:not(.instant-shell *), .current-sprint-signal-strip, .gov-priority-surface, .hud-card, .evidence-os-row, .preview-ready, #home-live-surface'
-    );
-    if (hasReal || parent.children.length > 1) {
+    const hasReal = parent.querySelector(realContentSelector);
+    if (pageHasRealContent || hasReal || parent.children.length > 1) {
       el.remove();
     }
   });
