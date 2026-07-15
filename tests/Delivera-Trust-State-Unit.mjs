@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { buildLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { explainSurfaceFailure } from '../public/Delivera-Shared-Instant-Shell-01UI.js';
+import { applyEvidenceAccessState } from '../lib/Delivera-Governance-Brief-01Service.js';
 
 test('log context redacts nested credentials and authorization headers', () => {
   const context = buildLogContext({
@@ -26,4 +27,25 @@ test('surface failure copy distinguishes expired evidence access from generic ou
   assert.match(auth.message, /No health judgment has been guessed/);
   assert.equal(outage.title, 'Live evidence service unavailable');
   assert.match(outage.message, /will not present an invented result/);
+});
+
+test('governance never converts inaccessible Jira evidence into a delivery verdict', () => {
+  const brief = applyEvidenceAccessState({
+    freshness: { confidenceLimit: 'live', jiraFetchedAt: '2026-07-15T10:00:00.000Z' },
+    leadershipNarrative: { meetingAnswer: 'NEEDS WATCH. SD: 0 of 0 items delivered' },
+    executiveView: { verdictTier: 'watch' },
+    meta: { evidenceFetched: 0, setupGaps: [] },
+  }, ['SD'], [{
+    projectKey: 'SD',
+    code: 'JIRA_UNAUTHORIZED',
+    message: 'Jira rejected credentials or access for this project.',
+    detail: 'credential-bearing diagnostic must not cross the API',
+  }], []);
+
+  assert.equal(brief.freshness.confidenceLimit, 'unavailable');
+  assert.equal(brief.freshness.jiraFetchedAt, null);
+  assert.equal(brief.meta.evidenceUnavailable, true);
+  assert.equal(brief.executiveView.verdictTier, 'cannot-verify');
+  assert.match(brief.leadershipNarrative.meetingAnswer, /CANNOT VERIFY/);
+  assert.doesNotMatch(JSON.stringify(brief), /credential-bearing diagnostic/);
 });

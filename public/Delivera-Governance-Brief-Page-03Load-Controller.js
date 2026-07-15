@@ -679,6 +679,24 @@ export async function loadBrief(options = {}) {
       showError(`Brief data did not match selected scope (${requested}). Try Refresh.`);
       return;
     }
+    if (brief?.meta?.evidenceUnavailable) {
+      clearScopeStaleOverlay();
+      const evidenceError = new Error('Jira evidence is unavailable for the selected scope. No delivery-health verdict was inferred.');
+      const failureCode = String(brief.meta.evidenceFailureCode || '');
+      evidenceError.status = failureCode === 'JIRA_FORBIDDEN' ? 403 : failureCode === 'JIRA_RATE_LIMIT' ? 429 : 401;
+      if (!govPage.lastBrief || govPage.lastBrief?.meta?.evidenceUnavailable) {
+        govPage.lastBrief = null;
+        showError('Could not verify the selected portfolio scope.', evidenceError);
+      } else if (isPortfolioPage) {
+        await refreshPortfolioSurface(govPage.lastBrief, govPage.lastPortfolioCases || []);
+        try {
+          const { showInlineToast } = await import('./Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js');
+          showInlineToast(document.getElementById('main-content'), 'Showing the last verified view — Jira access is unavailable. No new verdict was inferred.', 'warning');
+        } catch (_) { /* toast is best-effort */ }
+      }
+      govPage.scopeBarApi?.setCacheUxState?.({ fresh: false, updating: false });
+      return;
+    }
     govPage.lastBrief = brief;
     lastLoadedSignature = signature;
     govPage.lastFeedbackSummary = null;
