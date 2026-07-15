@@ -44,6 +44,6 @@ jobs:
         env:
           PRODUCTION_URL: https://vodaagileboard.vercel.app
         run: |
-          curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/api/healthz"
+          curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/healthz"
           curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/version"
           curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/governance" > /dev/null

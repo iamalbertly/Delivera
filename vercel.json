@@ -8,10 +8,10 @@
       "buildCommand": "npm run build:css",
       "functions": {
         "index.js": {
-          "includeFiles": "{public,data}/**"
+          "includeFiles": "{public/**,data/**,version.json}"
         },
         "api/index.js": {
-          "includeFiles": "{public,data}/**"
+          "includeFiles": "{public/**,data/**,version.json}"
         }
       }
     }
