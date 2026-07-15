@@ -51,6 +51,16 @@ jobs:
           PRODUCTION_URL: https://vodaagileboard.vercel.app
         run: |
           curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/healthz"
-          curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/version" > version-response.json
+          for attempt in $(seq 1 18); do
+            curl --fail --silent "$PRODUCTION_URL/version" > version-response.json
+            if node -e "const v=require('./version-response.json'); process.exit(v.commit===process.env.GITHUB_SHA.slice(0,7) ? 0 : 1)"; then
+              break
+            fi
+            if test "$attempt" = "18"; then
+              echo "Production did not reach commit ${GITHUB_SHA:0:7} within three minutes."
+              exit 1
+            fi
+            sleep 10
+          done
           node -e "const v=require('./version-response.json'); const expected=process.env.GITHUB_SHA.slice(0,7); if(v.commit!==expected) throw new Error('Production commit '+v.commit+' does not match '+expected); if(v.version!=='0.0.0.2') throw new Error('Unexpected production version '+v.version)"
           curl --fail --retry 6 --retry-delay 10 "$PRODUCTION_URL/governance" > /dev/null
