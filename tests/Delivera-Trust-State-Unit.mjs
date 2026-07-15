@@ -64,3 +64,14 @@ test('governance revalidates cached decisions and removes inaccessible evidence 
   assert.match(bridgeSource, /brief\?\.meta\?\.evidenceUnavailable/);
   assert.match(bridgeSource, /invalidateBriefCacheEntry\(pk, quarter, periodKey\)/);
 });
+
+test('non-fingerprinted application shells cannot survive across releases', async () => {
+  const appFactorySource = await import('node:fs/promises').then((fs) => fs.readFile(
+    new URL('../lib/Delivera-Express-Core-App-Factory-Handler.js', import.meta.url),
+    'utf8',
+  ));
+
+  assert.match(appFactorySource, /no-cache, no-store, must-revalidate/);
+  assert.match(appFactorySource, /\(html\|js\|css\)/);
+  assert.match(appFactorySource, /lastModified:\s*false/);
+});
