@@ -16,7 +16,9 @@ import { enrichDecisionPayload } from './Delivera-Governance-PriorityBrief-Mock-
 function stubBrief({ baselineMissing = false } = {}) {
   const brief = {
     briefId: 'CTR-SD',
-    projects: ['SD', 'MAS'],
+    // The brief is anchor-squad scoped; comparison squads arrive through the
+    // portfolio decision payload so foreign work cannot leak into DMS detail.
+    projects: ['SD'],
     generatedAt: new Date().toISOString(),
     freshness: { confidenceLimit: 'live' },
     meta: { quarter: 'FY27 Q2', setupGaps: baselineMissing ? [{ action: 'set-baseline' }] : [], timebox: { totalDays: 90, elapsedDays: 12 } },
@@ -105,7 +107,7 @@ test.describe('Churn Trust Repair Master Plan @churn-trust-repair', () => {
     const headline = await page.locator('[data-testid="governance-priority-headline"]').innerText();
     expect(headline).toMatch(/FY27 Q2/i);
     expect(headline).toMatch(/upload/i);
-    await expect(page.locator('.gov-priority-hero-grid .btn-primary')).toHaveCount(1);
+    await expect(page.locator('[data-governance-action="upload-baseline-slide"]')).toHaveCount(1);
     await expect(page.locator('[data-testid="governance-headline-upload-cta"]')).toBeVisible();
     assertTelemetryClean(t);
   });
@@ -120,14 +122,14 @@ test.describe('Churn Trust Repair Master Plan @churn-trust-repair', () => {
     assertTelemetryClean(t);
   });
 
-  test('05 at-risk row scrolls to commitment without squad switcher', async ({ page }) => {
+  test('05 commitment evidence is visible without a duplicate at-risk table or squad switcher', async ({ page }) => {
     const t = captureBrowserTelemetry(page);
     await mockGovernance(page);
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await page.waitForSelector('[data-testid="governance-at-risk-table"]', { timeout: 120000 });
+    await page.waitForSelector('[data-testid="governance-commitment-detail"]', { timeout: 120000 });
+    await expect(page.locator('[data-testid="governance-at-risk-table"]')).toHaveCount(0);
     await expect(page.locator('[data-governance-squad-select]')).toHaveCount(0);
-    await page.locator('.gov-priority-at-risk-row').first().click();
     await expect(page.getByTestId('governance-commitment-detail')).toBeVisible();
     assertTelemetryClean(t);
   });

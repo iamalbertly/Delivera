@@ -62,10 +62,9 @@ export function renderAgenticPanel(priorityBrief = {}, decision = {}, { writesDi
   const evidenceLabel = pb.evidenceAction || 'Inspect promise-to-Jira trace';
 
   const detailCount = (pb.detailRows || []).filter((r) => r.governanceState !== 'linked').length;
-  const ctas = uploadBaseline ? `
-    <div class="gov-agentic-ctas" data-testid="governance-agentic-ctas">
-      <button type="button" class="btn btn-primary gov-primary-cta" data-testid="governance-agentic-upload-link" data-portfolio-action="open-alignment-studio" data-governance-action="upload-baseline-slide">${escapeHtml(primaryLabel)}</button>
-    </div>` : `
+  // Missing-baseline recovery is already the hero's primary action. Repeating
+  // it in the rail creates two visually competing controls for one outcome.
+  const ctas = uploadBaseline ? '' : `
     <div class="gov-agentic-ctas" data-testid="governance-agentic-ctas">
       <button type="button" class="btn btn-primary gov-primary-cta" data-testid="governance-primary-action" data-governance-action="${boardAlign ? 'align-board' : 'record-decision'}"${boardAlign ? ' data-portfolio-action="open-alignment-studio"' : ''}${writesDisabled && !boardAlign ? ' disabled' : ''}>${escapeHtml(primaryLabel)}</button>
       ${detailCount > 0 ? `<button type="button" class="btn btn-secondary btn-compact" data-testid="governance-evidence-action" data-governance-action="inspect-evidence">${escapeHtml(evidenceLabel)}</button>` : ''}
