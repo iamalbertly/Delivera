@@ -45,7 +45,7 @@ import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { installPortfolioSurfaceHook, refreshPortfolioSurface, paintPortfolioFromCache, paintPortfolioBentoSkeleton } from './Delivera-Governance-Brief-Page-06Portfolio-Render-Plugin.js';
-import { updateInstantShellLabel } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { updateInstantShellLabel, showInstantShellFailure, explainSurfaceFailure } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 function resolveBaselineGapFlags(brief = {}) {
   const gaps = brief?.meta?.setupGaps || [];
@@ -275,11 +275,20 @@ export function renderFreshness(brief, confirmCount = 0) {
   });
 }
 
-function showError(message) {
+function showError(message, error = null) {
   hideGovernanceLoading();
+  const failure = error ? explainSurfaceFailure(error) : null;
+  if (!govPage.lastBrief) {
+    if (govPage.els.error) govPage.els.error.hidden = true;
+    showInstantShellFailure('governance', error || new Error(message), {
+      scopeLabel: projectsCsv(),
+    });
+    document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'error');
+    return;
+  }
   if (govPage.els.error) {
     govPage.els.error.removeAttribute('hidden');
-    showErrorView({ errorEl: govPage.els.error, contentEl: document.getElementById('gov-brief-content') }, message);
+    showErrorView({ errorEl: govPage.els.error, contentEl: document.getElementById('gov-brief-content') }, failure ? `${failure.title}. ${failure.message}` : message);
   }
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'error');
 }
@@ -648,10 +657,10 @@ export async function loadBrief(options = {}) {
 
   try {
     void govPage.inboxApi?.refresh?.();
-    const [brief, feedbackRes] = await Promise.all([
-      fetchGovernanceBriefCached({ projects: requested, quarter, periodWindow, force }),
-      fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`),
-    ]);
+    const feedbackPromise = fetch(`/api/governance/feedback-summary.json?projects=${encodeURIComponent(pk)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => null);
+    const brief = await fetchGovernanceBriefCached({ projects: requested, quarter, periodWindow, force });
     if (seq !== loadBriefSeq) return;
     if (!brief) {
       if (!govPage.lastBrief) showError('Could not load the brief for selected scope.');
@@ -672,11 +681,14 @@ export async function loadBrief(options = {}) {
     }
     govPage.lastBrief = brief;
     lastLoadedSignature = signature;
-    govPage.lastFeedbackSummary = feedbackRes.ok ? await feedbackRes.json() : null;
+    govPage.lastFeedbackSummary = null;
     if (seq !== loadBriefSeq) return;
     clearScopeStaleOverlay();
     updateInstantShellLabel('Matching PI baselines…');
     await applyBriefToUi(brief, govPage.lastFeedbackSummary);
+    void feedbackPromise.then((summary) => {
+      if (seq === loadBriefSeq && summary) govPage.lastFeedbackSummary = summary;
+    });
     if (seq !== loadBriefSeq) return;
     if (isPortfolioPage) {
       govPage.scopeBarApi?.setCacheUxState?.({ fresh: true, updating: false });
@@ -687,7 +699,7 @@ export async function loadBrief(options = {}) {
   } catch (err) {
     if (seq !== loadBriefSeq) return;
     clearScopeStaleOverlay();
-    if (!govPage.lastBrief) showError(`Could not load the brief: ${err.message}`);
+    if (!govPage.lastBrief) showError('Could not verify the selected portfolio scope.', err);
     else if (isPortfolioPage) {
       // Bonus edge case: network-failure graceful degradation. Keep showing
       // the last good decision instead of replacing it with an error, and

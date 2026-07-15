@@ -1,7 +1,7 @@
 import { currentSprintDom, currentSprintKeys } from './Delivera-CurrentSprint-Page-Context.js';
 import { showLoading, showError, clearError } from './Delivera-CurrentSprint-Page-Status.js';
 import { loadBoards, loadCurrentSprint } from './Delivera-CurrentSprint-Page-Data-Loaders.js';
-import { paintInstantShell } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { paintInstantShell, explainSurfaceFailure } from './Delivera-Shared-Instant-Shell-01UI.js';
 import { mountSharedStickyScope, ensureSharedStickyScopeMount } from './Delivera-Shared-Sticky-Scope-01Mount-UI.js';
 import { getProjectsParam, getStoredProjects, syncProjectsSelect, persistProjectsSelection, getPreferredBoardId, getPreferredSprintId, persistSelection } from './Delivera-CurrentSprint-Page-Storage.js';
 import { initSharedPageIdentityObserver, initSharedTableScrollIndicators } from './Delivera-Shared-Page-Identity-Scroll-Helpers.js';
@@ -65,12 +65,12 @@ function showBoardsLoadError(message, preferredBoardId = null, preferredSprintId
   if (loadingEl) loadingEl.style.display = 'none';
   if (contentEl) contentEl.style.display = 'none';
   showError({
-    title: 'Could not load boards.',
-    message: String(message || 'Please retry or adjust project filters.'),
+    title: 'Sprint evidence cannot be verified.',
+    message: String(message || 'The selected squad is preserved, but Jira did not return a readable board. No sprint-health verdict has been guessed.'),
     primaryLabel: 'Retry boards',
     primaryAction: 'retry-last-intent',
-    secondaryHref: '/report',
-    secondaryLabel: 'Open report',
+    secondaryHref: '/settings#integrations',
+    secondaryLabel: 'Check Jira connection',
   });
   retryLastIntent = () => refreshBoards(preferredBoardId, preferredSprintId);
 }
@@ -101,14 +101,14 @@ function refreshBoards(preferredId, preferredSprintId) {
         const keys = res.jiraErrors.map((e) => e.projectKey).filter(Boolean).join(', ');
         showRibbon(
           keys
-            ? `Some projects could not load from Jira (${keys}). Deselect them in Report or fix Jira access.`
-            : 'Some projects could not load from Jira. Deselect them in Report or fix Jira access.',
+            ? `Jira could not verify ${keys}. No sprint-health verdict is being shown.`
+            : 'Jira could not verify the selected squad. No sprint-health verdict is being shown.',
           'warning'
         );
       }
       if (!boards.length) {
         setBoardSelectCouldntLoad();
-        showBoardsLoadError('No boards found for selected projects. Check project filters or run Report preview.', preferredId, preferredSprintId);
+        showBoardsLoadError('No readable Scrum board was found for this squad. Check Jira access or board mapping; the selected scope is preserved.', preferredId, preferredSprintId);
         return null;
       }
       const boardSelectEl = document.getElementById('board-select');
@@ -370,6 +370,7 @@ function loadAndRenderSprint({
     })
     .catch((err) => {
       const msg = err.message || 'Failed to load sprint.';
+      const failure = explainSurfaceFailure(err);
       if (err?.code === 'SESSION_EXPIRED' || err?.code === 'AUTH_REQUIRED') {
         showRibbon('Session expired. Sign in again to restore this sprint context.', 'warning');
       } else if (err?.code === 'JIRA_RECONNECT_REQUIRED' || err?.code === 'JIRA_ACCESS_DENIED') {
@@ -378,10 +379,12 @@ function loadAndRenderSprint({
         showRibbon('Jira is rate limiting requests. Retry in a moment.', 'closest');
       }
       showError({
-        title: errorTitle,
-        message: msg,
+        title: failure.title || errorTitle,
+        message: `${failure.message} ${failure.next}`,
         primaryLabel: errorPrimaryLabel,
         primaryAction: 'retry-last-intent',
+        secondaryHref: '/settings#integrations',
+        secondaryLabel: 'Check Jira connection',
       });
       if ((msg || '').includes('Session expired')) appendCurrentSprintLoginLink(currentSprintDom.errorEl);
       return null;
@@ -415,6 +418,10 @@ function init() {
   // P0 FIX: Paint instant skeleton shell — no blank white page.
   const scopeHint = (new URLSearchParams(window.location.search).get('projects') || '').split(',')[0] || '';
   paintInstantShell('current-sprint', { scopeLabel: scopeHint });
+  window.addEventListener('delivera:surface-retry', (event) => {
+    if (event.detail?.surface !== 'current-sprint') return;
+    void initHandlers.refreshBoards(getPreferredBoardId(), getPreferredSprintId());
+  });
   try {
     mountSharedStickyScope({
       mount: ensureSharedStickyScopeMount(document.querySelector('.current-sprint-header')),

@@ -131,8 +131,11 @@ export function bindGovernancePrioritySurface(root, {
       if (btn.getAttribute('data-nudge-plan') === '1') {
         const key = btn.getAttribute('data-commitment-issue') || '';
         const title = btn.getAttribute('data-commitment-title') || key;
-        const owner = btn.getAttribute('data-commitment-owner') || 'PO/SM';
-        const msg = `${owner}: please plan stories under ${key}${title && title !== key ? ` (${title})` : ''} — this epic is on the PI plan and in Jira but has no stories on the selected boards yet.`;
+        const owner = btn.getAttribute('data-commitment-owner') || '';
+        const scope = btn.getAttribute('data-squad-key') || 'selected squad';
+        const epic = `${key}${title && title !== key ? ` (${title})` : ''}`;
+        const recipient = owner || 'Ownership missing — assign the accountable Scrum Master or Product Owner before sending';
+        const msg = `${recipient}\n\nScope: ${scope}\nEvidence gap: ${epic} is committed in the PI plan but has no supporting stories on the selected Jira board.\nRequired next step: create or link refined stories with acceptance criteria, estimates, and a target sprint before the next planning checkpoint.\nComplete when: Jira shows planned story evidence under this epic and Delivera can verify it on refresh.\nConsequence if unresolved: this commitment remains unverified and should not be reported as delivery-ready.`;
         const toast = (text, tone = 'info') => {
           import('./Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js')
             .then((m) => m.showInlineToast?.(document.getElementById('main-content'), text, tone))
@@ -140,7 +143,7 @@ export function bindGovernancePrioritySurface(root, {
         };
         import('./Delivera-Shared-Clipboard-01Bridge.js')
           .then((m) => m.writeTextToClipboardWithFallback?.(msg))
-          .then(() => toast('Planning nudge copied — paste to PO/SM'))
+          .then(() => toast(owner ? `Accountable request copied for ${owner}` : 'Request copied, but an accountable owner must be assigned before sending', owner ? 'success' : 'warning'))
           .catch(() => toast(msg));
         return;
       }

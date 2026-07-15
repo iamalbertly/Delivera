@@ -3,6 +3,24 @@
  */
 const SESSION_KEY = 'delivera:brief:cache:v1';
 const DEFAULT_TTL_MS = 3 * 60 * 1000;
+const BRIEF_TIMEOUT_MS = 15000;
+
+async function fetchBriefWithDeadline(url) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), BRIEF_TIMEOUT_MS);
+  try {
+    return await fetch(url, { credentials: 'same-origin', signal: controller.signal });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error('Evidence request timed out');
+      timeoutError.code = 'REQUEST_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
 
 function cacheKey(projects, quarter = '', periodWindow = '') {
   const periodKey = String(periodWindow || '').toLowerCase();
@@ -87,8 +105,12 @@ export async function fetchGovernanceBriefCached({ projects, quarter = '', perio
   if (quarter) qs.set('quarter', quarter);
   if (periodKey) qs.set('periodWindow', periodKey);
   if (force) qs.set('refresh', '1');
-  const res = await fetch(`/api/governance-brief.json?${qs.toString()}`, { credentials: 'same-origin' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const res = await fetchBriefWithDeadline(`/api/governance-brief.json?${qs.toString()}`);
+  if (!res.ok) {
+    const error = new Error(`HTTP ${res.status}`);
+    error.status = res.status;
+    throw error;
+  }
   const brief = await res.json();
   writeEntry(pk, quarter, brief, DEFAULT_TTL_MS, periodKey);
   return brief;

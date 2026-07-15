@@ -10,14 +10,14 @@ import { ensureProjectCatalogLoaded } from './Delivera-Shared-Project-Display-01
 import { getSurfaceQuickLinks, PAGE_REPORT } from './Delivera-Shared-Page-Route-01Resolve-SSOT.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { paintInstantShell, clearInstantShell, rememberSurfaceHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { paintInstantShell, clearInstantShell, forgetRememberedSurface, setDeliveraSurfaceState } from './Delivera-Shared-Instant-Shell-01UI.js';
 
 const SECTIONS = [
-  { id: 'my-workspace', label: 'My workspace' },
-  { id: 'organization', label: 'Organization' },
-  { id: 'settings-epic-format', label: 'Epic format' },
-  { id: 'integrations', label: 'Integrations' },
-  { id: 'jira-activity', label: 'Activity' },
+  { id: 'my-workspace', mountId: 'settings-my-workspace', label: 'My workspace' },
+  { id: 'organization', mountId: 'settings-organization', label: 'Organization' },
+  { id: 'settings-epic-format', mountId: 'settings-epic-format', label: 'Epic format' },
+  { id: 'integrations', mountId: 'settings-integrations', label: 'Integrations' },
+  { id: 'jira-activity', mountId: 'jira-activity', label: 'Activity' },
 ];
 
 const SURFACE_QUICK_LINKS = getSurfaceQuickLinks([PAGE_REPORT]);
@@ -45,6 +45,16 @@ function setActiveNav(navEl, sectionId) {
   });
 }
 
+function setActivePanel(sectionId) {
+  SECTIONS.forEach((section) => {
+    const mount = document.getElementById(section.mountId);
+    if (!mount) return;
+    const active = section.id === sectionId;
+    mount.hidden = !active;
+    mount.toggleAttribute('data-settings-active-panel', active);
+  });
+}
+
 function scrollToSection(sectionId) {
   const el = document.getElementById(sectionId);
   if (!el) return;
@@ -69,6 +79,9 @@ function renderReturnBanner() {
 
 export function initSettingsHub() {
   // P0 FIX: Paint instant skeleton shell — no blank white page.
+  // Raw settings HTML contains stable IDs and event-bound controls. Restoring it
+  // inside the shell would duplicate IDs and can make the real panels disappear.
+  forgetRememberedSurface('settings');
   paintInstantShell('settings');
   const navEl = document.getElementById('settings-nav-rail');
   const hash = (window.location.hash || '').replace('#', '') || 'my-workspace';
@@ -85,6 +98,7 @@ export function initSettingsHub() {
     if (id) {
       history.replaceState(null, '', `#${id}`);
       setActiveNav(navEl, id);
+      setActivePanel(id);
       scrollToSection(id);
     }
   });
@@ -93,6 +107,7 @@ export function initSettingsHub() {
     const next = (window.location.hash || '').replace('#', '');
     if (SECTIONS.some((s) => s.id === next)) {
       setActiveNav(navEl, next);
+      setActivePanel(next);
       scrollToSection(next);
     }
   });
@@ -104,13 +119,11 @@ export function initSettingsHub() {
   mountIntegrationsPanel(document.getElementById('settings-integrations'));
   initSettingsJiraActivityPanel();
 
-  const panels = document.querySelector('.settings-hub-panels');
-  if (panels && panels.innerHTML.length > 80) {
-    rememberSurfaceHtml('settings', panels.innerHTML);
-  }
+  setDeliveraSurfaceState('settings', 'live', { scopeLabel: 'Workspace' });
   clearInstantShell();
   const jiraActivity = document.getElementById('jira-activity');
-  if (jiraActivity) jiraActivity.hidden = false;
+  if (jiraActivity) jiraActivity.hidden = activeId !== 'jira-activity';
+  setActivePanel(activeId);
 
   if (hash && hash !== 'my-workspace') {
     requestAnimationFrame(() => scrollToSection(hash));

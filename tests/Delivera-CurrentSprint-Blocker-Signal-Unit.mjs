@@ -86,10 +86,10 @@ describe('fetchSprintBlockerSignal', () => {
     assert.equal(signal.items[0].source, 'cache');
   });
 
-  it('returns honest none when live and cache are empty', async () => {
+  it('returns honest unavailable when live and cache are empty', async () => {
     global.fetch = async () => ({ ok: false });
     const signal = await fetchSprintBlockerSignal();
-    assert.equal(signal.source, 'none');
+    assert.equal(signal.source, 'unavailable');
     assert.equal(signal.hasBlockers, false);
     assert.deepEqual(signal.items, []);
   });

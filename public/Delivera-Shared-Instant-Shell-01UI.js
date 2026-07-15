@@ -9,6 +9,8 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { GOVERNANCE_DISPLACEMENT_LINE_SHORT } from './Delivera-App-Portfolio-CardStatus-01Gradation-SSOT.js';
 
 const CACHE_PREFIX = 'delivera:last-shell:v1:';
+const lifecycleTimers = new Map();
+let retryBridgeInstalled = false;
 
 const SURFACE_LABELS = Object.freeze({
   governance: 'Portfolio Brief',
@@ -21,6 +23,83 @@ const SURFACE_LABELS = Object.freeze({
   evidence: 'Evidence',
   home: 'Dashboard',
 });
+
+const SURFACE_PROMISES = Object.freeze({
+  governance: { value: 'Top portfolio risk, proof, and accountable intervention', stages: ['Scope ready', 'Verifying evidence', 'Decision next'] },
+  portfolio: { value: 'Top portfolio risk, proof, and accountable intervention', stages: ['Scope ready', 'Verifying evidence', 'Decision next'] },
+  'current-sprint': { value: 'Sprint health, strongest blocker, and owner', stages: ['Squad restored', 'Checking sprint', 'Intervention next'] },
+  actions: { value: 'Highest-impact action, named owner, and completion proof', stages: ['Scope restored', 'Prioritizing actions', 'Review next'] },
+  settings: { value: 'Workspace defaults and live connection trust', stages: ['Preferences restored', 'Checking access', 'Trust state next'] },
+  report: { value: 'Decision-ready delivery proof', stages: ['Scope ready', 'Building evidence', 'Preview next'] },
+  leadership: { value: 'Portfolio outcomes and decisions', stages: ['Scope ready', 'Checking outcomes', 'Decision next'] },
+  evidence: { value: 'Traceable evidence and freshness', stages: ['Scope ready', 'Checking sources', 'Proof next'] },
+  home: { value: 'Today\'s delivery priorities', stages: ['Workspace ready', 'Checking priorities', 'Value next'] },
+});
+
+function clearLifecycle(pageType) {
+  const timers = lifecycleTimers.get(pageType) || [];
+  timers.forEach((timer) => window.clearTimeout(timer));
+  lifecycleTimers.delete(pageType);
+}
+
+function shellFor(pageType) {
+  return document.querySelector(`[data-instant-shell-page="${pageType}"]`)
+    || document.querySelector('[data-testid="instant-shell"], [data-testid="instant-shell-stale"]');
+}
+
+function setShellStage(pageType, stage, message) {
+  const shell = shellFor(pageType);
+  if (!shell || shell.getAttribute('aria-busy') !== 'true') return;
+  shell.setAttribute('data-instant-shell-stage', stage);
+  const badge = shell.querySelector('.instant-shell-state-badge');
+  if (badge) badge.textContent = stage === 'slow' ? 'Still verifying' : 'Live evidence delayed';
+  const sub = shell.querySelector('.instant-shell-state-sub');
+  if (sub) sub.textContent = message;
+  if (stage === 'delayed' && !shell.querySelector('[data-instant-shell-delay]')) {
+    const offline = navigator.onLine === false;
+    const note = document.createElement('div');
+    note.className = 'instant-shell-delay-notice';
+    note.setAttribute('data-instant-shell-delay', '1');
+    note.setAttribute('role', 'status');
+    note.innerHTML = `
+      <strong>${offline ? 'You are offline' : 'Live evidence is delayed'}</strong>
+      <span>${offline
+        ? 'The last safe view stays visible. Delivera will retry when your connection returns.'
+        : 'Your scope is safe. Delivera is still checking the source and will not invent a result.'}</span>
+      <button type="button" class="btn btn-secondary btn-compact" data-instant-shell-retry>Retry now</button>`;
+    shell.querySelector('.instant-shell-state-strip')?.insertAdjacentElement('afterend', note);
+    note.querySelector('[data-instant-shell-retry]')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('delivera:surface-retry', { detail: { surface: pageType } }));
+      setShellStage(pageType, 'slow', 'Retrying live evidence now');
+    });
+  }
+}
+
+function installRetryBridge() {
+  if (retryBridgeInstalled) return;
+  retryBridgeInstalled = true;
+  let lastAutoRetryAt = 0;
+  const retryDelayedSurface = () => {
+    const shell = document.querySelector('[data-instant-shell-stage="delayed"]');
+    if (!shell || document.visibilityState === 'hidden' || navigator.onLine === false) return;
+    if (Date.now() - lastAutoRetryAt < 15000) return;
+    lastAutoRetryAt = Date.now();
+    const surface = shell.getAttribute('data-instant-shell-page') || document.body?.getAttribute('data-delivera-surface') || '';
+    window.dispatchEvent(new CustomEvent('delivera:surface-retry', { detail: { surface } }));
+    setShellStage(surface, 'slow', 'Connection restored; retrying live evidence');
+  };
+  window.addEventListener('online', retryDelayedSurface);
+  window.addEventListener('focus', retryDelayedSurface);
+}
+
+function armLifecycle(pageType) {
+  clearLifecycle(pageType);
+  installRetryBridge();
+  lifecycleTimers.set(pageType, [
+    window.setTimeout(() => setShellStage(pageType, 'slow', 'Still verifying the source; your selected scope is preserved'), 1000),
+    window.setTimeout(() => setShellStage(pageType, 'delayed', 'Live evidence is taking longer than expected; no result will be guessed'), 5000),
+  ]);
+}
 
 function cacheKey(pageType, scopeLabel = '') {
   return `${CACHE_PREFIX}${pageType}:${String(scopeLabel || '').toUpperCase()}`;
@@ -76,6 +155,15 @@ export function setDeliveraSurfaceState(surface, dataState, opts = {}) {
       main.setAttribute('data-delivera-scope-label', String(opts.scopeLabel));
     }
   }
+  if (surface && ['live', 'stale', 'error', 'empty', 'partial', 'unavailable'].includes(dataState)) {
+    clearLifecycle(surface);
+  }
+}
+
+export function forgetRememberedSurface(pageType, opts = {}) {
+  try {
+    sessionStorage.removeItem(cacheKey(pageType, opts.scopeLabel || ''));
+  } catch (_) { /* storage unavailable */ }
 }
 
 function resolveMount(pageType) {
@@ -122,9 +210,21 @@ function renderStateStrip(pageType, scopeLabel, subState) {
   const sub = subState || defaults[pageType] || 'Reading live data…';
   return `
     <div class="instant-shell-state-strip" data-testid="instant-shell-state-strip">
+      <span class="instant-shell-state-badge">Preparing</span>
       <span class="instant-shell-state-surface">${escapeHtml(surface)}</span>
       <span class="instant-shell-state-scope">${escapeHtml(scope)}</span>
       <span class="instant-shell-state-sub">${escapeHtml(sub)}</span>
+    </div>`;
+}
+
+function renderProgressContract(pageType) {
+  const promise = SURFACE_PROMISES[pageType] || SURFACE_PROMISES.home;
+  return `
+    <div class="instant-shell-value-contract" data-testid="instant-shell-value-contract">
+      <strong>${escapeHtml(promise.value)}</strong>
+      <div class="instant-shell-progress" aria-label="Loading progress">
+        ${promise.stages.map((stage, index) => `<span class="instant-shell-progress-step${index === 0 ? ' is-done' : index === 1 ? ' is-active' : ''}">${escapeHtml(stage)}</span>`).join('')}
+      </div>
     </div>`;
 }
 
@@ -160,14 +260,16 @@ export function paintInstantShell(pageType, opts = {}) {
     const ageMin = Math.max(1, Math.round((Date.now() - remembered.savedAt) / 60000));
     setDeliveraSurfaceState(pageType === 'portfolio' ? 'governance' : pageType, 'stale', { scopeLabel });
     targetMount.innerHTML = `
-      <div class="instant-shell instant-shell--stale" data-testid="instant-shell-stale" aria-busy="true" role="status">
+      <div class="instant-shell instant-shell--stale" data-testid="instant-shell-stale" data-instant-shell-page="${escapeHtml(pageType)}" aria-busy="true" role="status">
         ${renderStateStrip(pageType, scopeLabel || remembered.scopeLabel, `Showing last view · refreshing`)}
+        ${renderProgressContract(pageType)}
         <p class="instant-shell-stale-banner" data-testid="instant-shell-refresh-chip">
           Showing last view · ${ageMin}m ago · <strong>Refreshing…</strong>
         </p>
         <div class="instant-shell-stale-body" data-scope-stale="true">${remembered.html}</div>
       </div>`;
     document.body?.classList?.add('delivera-instant-shell-active');
+    armLifecycle(pageType);
     return;
   }
 
@@ -178,11 +280,17 @@ export function paintInstantShell(pageType, opts = {}) {
     if (opts.message) updateInstantShellLabel(opts.message);
     const scopeEl = cold.querySelector('.instant-shell-state-scope');
     if (scopeEl && scopeLabel) scopeEl.textContent = scopeLabel;
+    cold.setAttribute('data-instant-shell-page', pageType);
+    if (!cold.querySelector('[data-testid="instant-shell-value-contract"]')) {
+      cold.querySelector('.instant-shell-state-strip')?.insertAdjacentHTML('afterend', renderProgressContract(pageType));
+    }
+    armLifecycle(pageType);
     return;
   }
 
   targetMount.innerHTML = renderShell(pageType, scopeLabel, opts.message);
   document.body?.classList?.add('delivera-instant-shell-active');
+  armLifecycle(pageType);
 }
 
 /**
@@ -193,6 +301,56 @@ export function updateInstantShellLabel(message) {
   if (label && message) label.textContent = message;
   const sub = document.querySelector('[data-testid="instant-shell"] .instant-shell-state-sub');
   if (sub && message) sub.textContent = message;
+}
+
+export function explainSurfaceFailure(error) {
+  const status = Number(error?.status) || Number(String(error?.message || '').match(/HTTP\s+(\d{3})/)?.[1]) || 0;
+  if (/did not match selected scope|scope mismatch/i.test(String(error?.message || ''))) {
+    return { title: 'Scope evidence mismatch', message: 'The returned evidence belonged to a different squad or portfolio scope, so Delivera ignored it.', next: 'Refresh the preserved scope; no cross-squad result will be shown.' };
+  }
+  if (navigator.onLine === false) {
+    return { title: 'You are offline', message: 'Live evidence is unavailable. Your selected scope is preserved.', next: 'Delivera retries automatically when the connection returns.' };
+  }
+  if (status === 401 || status === 403) {
+    return { title: 'Evidence access expired', message: 'Jira could not verify the selected scope. No health judgment has been guessed.', next: 'Reconnect Jira in Settings, then retry.' };
+  }
+  if (status === 404) {
+    return { title: 'Evidence source not found', message: 'The selected board or evidence source is no longer available.', next: 'Review the squad mapping in Settings.' };
+  }
+  if (status === 429) {
+    return { title: 'Jira is rate limiting requests', message: 'The last safe context remains valid, but live verification is paused.', next: 'Delivera will retry after the rate limit clears.' };
+  }
+  if (status >= 500) {
+    return { title: 'Live evidence service unavailable', message: 'Delivera could not verify current Jira evidence and will not present an invented result.', next: 'Retry now or continue with a clearly marked last verified view.' };
+  }
+  if (error?.name === 'AbortError' || error?.code === 'REQUEST_TIMEOUT') {
+    return { title: 'Evidence check timed out', message: 'The source did not respond quickly enough. Your scope and last safe view are preserved.', next: 'Retry without reselecting the squad.' };
+  }
+  return { title: 'Live evidence could not be verified', message: 'No current result is being shown as fact.', next: 'Retry now; your selected scope is preserved.' };
+}
+
+export function showInstantShellFailure(pageType, error, opts = {}) {
+  clearLifecycle(pageType);
+  setDeliveraSurfaceState(pageType === 'portfolio' ? 'governance' : pageType, 'error', { scopeLabel: opts.scopeLabel || '' });
+  const targetMount = resolveMount(pageType);
+  if (!targetMount) return;
+  targetMount.hidden = false;
+  const copy = explainSurfaceFailure(error);
+  targetMount.setAttribute('aria-busy', 'false');
+  targetMount.innerHTML = `
+    <section class="instant-shell-failure" data-testid="instant-shell-failure" role="alert">
+      <span class="instant-shell-state-badge instant-shell-state-badge--error">Cannot verify</span>
+      <h2>${escapeHtml(copy.title)}</h2>
+      <p>${escapeHtml(copy.message)}</p>
+      <p class="instant-shell-failure-next"><strong>Next:</strong> ${escapeHtml(copy.next)}</p>
+      <div class="instant-shell-failure-actions">
+        <button type="button" class="btn btn-primary btn-compact" data-instant-shell-retry>Retry live evidence</button>
+        ${pageType === 'settings' ? '' : '<a class="btn btn-secondary btn-compact" href="/settings#integrations">Check connection</a>'}
+      </div>
+    </section>`;
+  targetMount.querySelector('[data-instant-shell-retry]')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('delivera:surface-retry', { detail: { surface: pageType } }));
+  });
 }
 
 function renderShell(pageType, scopeLabel, message) {
@@ -235,8 +393,9 @@ function shimmerRows(count = 3, widths = ['100%', '80%', '60%']) {
 function renderGovernanceShell(scopeChip, scopeLabel, message) {
   const label = message || 'Loading portfolio signal…';
   return `
-    <div class="instant-shell instant-shell--governance" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--governance" data-testid="instant-shell" data-instant-shell-page="governance" aria-busy="true" role="status">
       ${renderStateStrip('governance', scopeLabel, label)}
+      ${renderProgressContract('governance')}
       <p class="instant-shell-value-line">${escapeHtml(GOVERNANCE_DISPLACEMENT_LINE_SHORT)}</p>
       <div class="instant-shell-scope-bar">${scopeChip}${shimmerRow('40%')}</div>
       <div class="instant-shell-layout gov-priority-layout">
@@ -264,8 +423,9 @@ function renderGovernanceShell(scopeChip, scopeLabel, message) {
 function renderCurrentSprintShell(scopeChip, scopeLabel, message) {
   const label = message || 'Loading sprint health…';
   return `
-    <div class="instant-shell instant-shell--current-sprint" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--current-sprint" data-testid="instant-shell" data-instant-shell-page="current-sprint" aria-busy="true" role="status">
       ${renderStateStrip('current-sprint', scopeLabel, label)}
+      ${renderProgressContract('current-sprint')}
       <div class="instant-shell-header-bar">
         ${scopeChip}
         ${shimmerRow('30%')}
@@ -289,8 +449,9 @@ function renderCurrentSprintShell(scopeChip, scopeLabel, message) {
 function renderActionsShell(scopeChip, scopeLabel, message) {
   const label = message || 'Loading action queue…';
   return `
-    <div class="instant-shell instant-shell--actions" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--actions" data-testid="instant-shell" data-instant-shell-page="actions" aria-busy="true" role="status">
       ${renderStateStrip('actions', scopeLabel, label)}
+      ${renderProgressContract('actions')}
       <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('30%')}</div>
       <div class="instant-shell-tabs">${shimmerRow('20%')}${shimmerRow('20%')}</div>
       <div class="instant-shell-cases">
@@ -303,8 +464,9 @@ function renderActionsShell(scopeChip, scopeLabel, message) {
 function renderSettingsShell(scopeLabel, message) {
   const label = message || 'Loading workspace settings…';
   return `
-    <div class="instant-shell instant-shell--settings" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--settings" data-testid="instant-shell" data-instant-shell-page="settings" aria-busy="true" role="status">
       ${renderStateStrip('settings', scopeLabel, label)}
+      ${renderProgressContract('settings')}
       <div class="instant-shell-settings-grid">
         <div class="instant-shell-settings-nav">${shimmerRows(4, ['90%', '80%', '85%', '70%'])}</div>
         <div class="instant-shell-settings-content">
@@ -318,8 +480,9 @@ function renderSettingsShell(scopeLabel, message) {
 function renderReportShell(scopeChip, scopeLabel, message) {
   const label = message || 'Loading proof preview…';
   return `
-    <div class="instant-shell instant-shell--report" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--report" data-testid="instant-shell" data-instant-shell-page="report" aria-busy="true" role="status">
       ${renderStateStrip('report', scopeLabel, label)}
+      ${renderProgressContract('report')}
       <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('40%')}</div>
       <div class="instant-shell-preview-grid">
         ${shimmerRows(6, ['100%', '95%', '100%', '80%', '100%', '70%'])}
@@ -331,8 +494,9 @@ function renderReportShell(scopeChip, scopeLabel, message) {
 function renderLeadershipShell(scopeChip, scopeLabel, message) {
   const label = message || 'Loading portfolio story…';
   return `
-    <div class="instant-shell instant-shell--leadership" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--leadership" data-testid="instant-shell" data-instant-shell-page="leadership" aria-busy="true" role="status">
       ${renderStateStrip('leadership', scopeLabel, label)}
+      ${renderProgressContract('leadership')}
       <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('35%')}</div>
       <div class="instant-shell-hud-grid">
         <div class="instant-shell-hud-card">${shimmerRows(3, ['50%', '90%', '60%'])}</div>
@@ -346,8 +510,9 @@ function renderLeadershipShell(scopeChip, scopeLabel, message) {
 function renderEvidenceShell(scopeChip, scopeLabel, message) {
   const label = message || 'Loading evidence timeline…';
   return `
-    <div class="instant-shell instant-shell--evidence" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--evidence" data-testid="instant-shell" data-instant-shell-page="evidence" aria-busy="true" role="status">
       ${renderStateStrip('evidence', scopeLabel, label)}
+      ${renderProgressContract('evidence')}
       <div class="instant-shell-header-bar">${scopeChip}${shimmerRow('30%')}</div>
       <div class="instant-shell-timeline">
         ${Array.from({ length: 5 }, () => `<div class="instant-shell-story-row">${shimmerRow('20%')}${shimmerRow('70%')}</div>`).join('')}
@@ -359,8 +524,9 @@ function renderEvidenceShell(scopeChip, scopeLabel, message) {
 function renderGenericShell(scopeLabel, message, pageType = 'home') {
   const label = message || 'Loading…';
   return `
-    <div class="instant-shell instant-shell--generic" data-testid="instant-shell" aria-busy="true" role="status">
+    <div class="instant-shell instant-shell--generic" data-testid="instant-shell" data-instant-shell-page="${escapeHtml(pageType)}" aria-busy="true" role="status">
       ${renderStateStrip(pageType, scopeLabel, label)}
+      ${renderProgressContract(pageType)}
       ${shimmerRows(5, ['60%', '90%', '70%', '50%', '80%'])}
       <p class="instant-shell-label">${escapeHtml(label)}</p>
     </div>`;
@@ -389,6 +555,7 @@ export function clearInstantShell() {
     main.removeAttribute('data-instant-shell');
   }
   document.body?.classList?.remove('delivera-instant-shell-active');
+  lifecycleTimers.forEach((_timers, pageType) => clearLifecycle(pageType));
   // Drop 52vh loading void — mount must not stay aria-busy after live content.
   document.querySelectorAll('[data-instant-shell-mount][aria-busy="true"]').forEach((mount) => {
     mount.removeAttribute('aria-busy');
@@ -407,9 +574,20 @@ export function clearInstantShell() {
       el.remove();
     }
   });
-  // Bonus: never leave a cleared mount as an empty white rectangle.
+  // Empty loading mounts must collapse after value/error/empty content resolves.
+  // Reserving 40vh after clear was the source of large white gaps on Settings
+  // and other surfaces where the real content lives in sibling mounts.
+  const stillLoading = document.body?.getAttribute('data-delivera-data-state') === 'loading';
   document.querySelectorAll('[data-instant-shell-mount]').forEach((mount) => {
-    if (mount.children.length) mount.classList.remove('instant-shell-mount--reserve');
-    else mount.classList.add('instant-shell-mount--reserve');
+    if (mount.children.length) {
+      mount.classList.remove('instant-shell-mount--reserve');
+      mount.hidden = false;
+    } else if (stillLoading) {
+      mount.classList.add('instant-shell-mount--reserve');
+      mount.hidden = false;
+    } else {
+      mount.classList.remove('instant-shell-mount--reserve');
+      mount.hidden = true;
+    }
   });
 }

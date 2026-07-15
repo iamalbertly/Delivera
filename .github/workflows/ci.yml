@@ -24,6 +24,7 @@ jobs:
       - name: Verify trust, speed, and governance continuity contracts
         run: |
           node --test tests/Delivera-Trust-Speed-State-Unit.mjs
+          node --test tests/Delivera-Trust-State-Unit.mjs
           npm run test:journey:churn-trust-repair
         env:
           CI: true

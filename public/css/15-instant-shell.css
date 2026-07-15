@@ -110,6 +110,109 @@ body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
   font-size: 0.8rem;
   color: var(--text-muted, #6b7280);
 }
+.instant-shell-state-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #e8f0fe;
+  color: #174ea6;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.instant-shell-state-badge--error { background: #fff1f2; color: #9f1239; }
+.instant-shell-value-contract {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #dfe5ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+}
+.instant-shell-value-contract > strong {
+  max-width: 34rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+.instant-shell-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.instant-shell-progress-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.instant-shell-progress-step::before {
+  width: 0.48rem;
+  height: 0.48rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  content: '';
+}
+.instant-shell-progress-step.is-done { color: #166534; }
+.instant-shell-progress-step.is-done::before { border-color: #16a34a; background: #16a34a; }
+.instant-shell-progress-step.is-active { color: #1d4ed8; }
+.instant-shell-progress-step.is-active::before {
+  border-color: #2563eb;
+  animation: delivera-progress-pulse 1s ease-in-out infinite;
+}
+.instant-shell-progress-step + .instant-shell-progress-step::after {
+  width: 0.7rem;
+  height: 1px;
+  margin-right: 0.1rem;
+  background: #d7dee8;
+  content: '';
+  order: -1;
+}
+@keyframes delivera-progress-pulse { 50% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); } }
+.instant-shell-delay-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem 0.9rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #f4c56a;
+  border-left: 4px solid #d97706;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #713f12;
+  font-size: 0.8rem;
+}
+.instant-shell-delay-notice span { color: #854d0e; }
+.instant-shell-failure {
+  max-width: 56rem;
+  margin: 1rem auto;
+  padding: 1.15rem;
+  border: 1px solid #fecdd3;
+  border-left: 5px solid #be123c;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+.instant-shell-failure h2 { margin: 0.7rem 0 0.35rem; font-size: 1.12rem; color: #172033; }
+.instant-shell-failure p { margin: 0.25rem 0; color: #475569; }
+.instant-shell-failure-next { padding-top: 0.35rem; }
+.instant-shell-failure-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+
+@media (max-width: 760px) {
+  .instant-shell-value-contract { align-items: flex-start; flex-direction: column; }
+  .instant-shell-progress { width: 100%; overflow-x: auto; padding-bottom: 0.2rem; }
+  .instant-shell-delay-notice { grid-template-columns: 1fr; }
+}
 .instant-shell-state-surface {
   font-weight: 700;
   color: #24324a;
@@ -228,4 +331,10 @@ body.gov-scope-refreshing [data-testid="portfolio-bento-card"] {
   .instant-shell-signal-row { grid-template-columns: 1fr; }
   .instant-shell-metrics-row { grid-template-columns: 1fr; }
   .instant-shell-hud-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .instant-shimmer,
+  .instant-shell-progress-step.is-active::before,
+  .instant-shell-label { animation: none !important; }
 }

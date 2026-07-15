@@ -258,12 +258,28 @@ async function handlePortfolioDelegatedClick(ev) {
         : ((decision.comparison?.cards || [])
           .find((c) => String(c.projectKey).toUpperCase() === String(squadKey).toUpperCase())
           ?.readiness?.notPlannedKeys || []);
-      const msg = pack.text
-        || (keys.length
-          ? `Please plan stories under ${keys.join(', ')} — these epics are on the PI slide and in Jira but have no board stories yet.${pack.jql ? `\n\nJQL: ${pack.jql}` : ''}`
-          : 'Please plan stories under the committed PI epics that still have no board stories.');
+      const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || 'current quarter';
+      const owner = pack.ownerName || pack.owner || pb.ownerName || decision.recommendation?.ownerName || '';
+      const recipient = owner || 'Ownership missing — assign the accountable Scrum Master or Product Owner before sending';
+      const evidenceGap = keys.length
+        ? `${keys.length} committed epic${keys.length === 1 ? '' : 's'} (${keys.join(', ')}) have no supporting stories on the selected Jira board.`
+        : 'Committed PI work has no supporting story evidence on the selected Jira board.';
+      const msg = pack.text || [
+        recipient,
+        '',
+        `Scope: ${squadKey} · ${quarter}`,
+        `Evidence gap: ${evidenceGap}`,
+        'Required next step: create or link refined stories with acceptance criteria, estimates, and a target sprint before the next planning checkpoint.',
+        'Complete when: every listed commitment has verifiable planned story evidence in Jira and Delivera confirms it on refresh.',
+        'Consequence if unresolved: these commitments remain unverified and must not be reported as delivery-ready.',
+        pack.jql ? `JQL: ${pack.jql}` : '',
+      ].filter(Boolean).join('\n');
       writeTextToClipboardWithFallback(msg).then(() => {
-        showInlineToast(document.getElementById('main-content'), 'Planning nudge copied — paste to PO/SM', 'info');
+        showInlineToast(
+          document.getElementById('main-content'),
+          owner ? `Accountable request copied for ${owner}` : 'Request copied, but an accountable owner must be assigned before sending',
+          owner ? 'success' : 'warning',
+        );
       }).catch(() => {
         showInlineToast(document.getElementById('main-content'), msg, 'info');
       });

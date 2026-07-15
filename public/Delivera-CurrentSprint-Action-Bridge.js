@@ -513,5 +513,12 @@ export async function fetchSprintBlockerSignal() {
       }
     }
   } catch (_) { /* ignore */ }
-  return { hasBlockers: false, stuckCount: 0, primaryKey: '', items: [], source: 'none' };
+  return {
+    hasBlockers: false,
+    stuckCount: 0,
+    primaryKey: '',
+    items: [],
+    source: 'unavailable',
+    verificationMessage: 'Live sprint blockers could not be verified and no safe cached evidence was available.',
+  };
 }

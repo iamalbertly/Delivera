@@ -94,6 +94,11 @@ function init() {
   paintInstantShell('governance', {
     scopeLabel: govPage.scopeBarApi?.getAnchor?.() || projectsCsv().split(',')[0] || '',
   });
+  window.addEventListener('delivera:surface-retry', (event) => {
+    if (event.detail?.surface !== 'governance') return;
+    setLoadBriefForce(true);
+    void loadBrief({ force: true });
+  });
   loadBrief();
 }
 

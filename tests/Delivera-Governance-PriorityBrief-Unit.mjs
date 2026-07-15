@@ -188,7 +188,7 @@ test('MPSA2 without own baseline is cannot-verify not off-plan', () => {
   assert.equal(mpsa2.attentionState, ATTENTION_STATES.CANNOT_VERIFY);
   assert.notEqual(mpsa2.attentionState, ATTENTION_STATES.OFF_PLAN);
   assert.equal(mpsa2.dataTrust, 'board-health-only');
-  assert.ok(mpsa2.meaning.includes('plan not uploaded'));
+  assert.ok(mpsa2.meaning.includes('PI commitments are not uploaded'));
   assert.equal(buildCommitmentRealityRows({ brief: mixedBrief, anchorKey: 'MPSA2', baselineMissing: true }).length, 0);
 });
 

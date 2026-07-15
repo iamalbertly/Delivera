@@ -32,24 +32,36 @@ export function mountIntegrationsPanel(mount) {
       const cache = summary.redisBackend || 'memory';
       const authMode = summary.authMode || '—';
       const projects = catalog.projects || [];
-      const failing = projects.filter((p) => p.accessible === false);
-      const healthClass = runtime.ok ? 'settings-health-ok' : 'settings-health-warn';
+      const deliveryProjects = projects.filter((p) => p.scoreable !== false && p.entityType !== 'operational-guild');
+      const failing = deliveryProjects.filter((p) => p.accessible === false);
+      const verified = deliveryProjects.filter((p) => p.accessible === true);
+      const checked = deliveryProjects.filter((p) => typeof p.accessible === 'boolean');
+      const accessFailed = Boolean(tokenLen && checked.length && verified.length === 0);
+      const partialAccess = verified.length > 0 && failing.length > 0;
+      const connectionLabel = !tokenLen ? 'connection missing'
+        : accessFailed ? 'authentication or access failed'
+          : partialAccess ? `partial access · ${verified.length} of ${deliveryProjects.length} squads verified`
+            : verified.length ? `verified · ${verified.length} delivery squads readable`
+              : 'configured · verification pending';
+      const healthClass = runtime.ok && !accessFailed && !partialAccess ? 'settings-health-ok' : 'settings-health-warn';
 
-      const authWarning = tokenLen && String(authMode).toLowerCase() === 'disabled'
-        ? '<p class="settings-catalog-banner" role="status"><strong>Jira sign-in is disabled.</strong> The server token can read configured boards, but user-attributed writes and reconnect flows are unavailable.</p>'
-        : '';
+      const authWarning = accessFailed
+        ? '<p class="settings-catalog-banner" role="alert"><strong>Jira evidence cannot be verified.</strong> The configured credential could not read any delivery squad. Governance conclusions remain unavailable until access is restored.</p>'
+        : tokenLen && String(authMode).toLowerCase() === 'disabled'
+          ? '<p class="settings-catalog-banner" role="status"><strong>User-attributed Jira actions are unavailable.</strong> Read access is verified separately below; reconnect and person-attributed writes require sign-in.</p>'
+          : '';
       const cacheLabel = cache === 'memory'
         ? 'Temporary cache · may reset after deployment'
         : 'Shared cache · available across instances';
       healthEl.innerHTML = `
         <div class="settings-health-summary ${healthClass}">
-          <p><strong>Jira evidence</strong> ${escapeHtml(jiraHost)} · ${tokenLen ? 'connected' : 'connection missing'} · user sign-in ${escapeHtml(authMode)}</p>
+          <p><strong>Jira evidence</strong> ${escapeHtml(jiraHost)} · ${escapeHtml(connectionLabel)} · user sign-in ${escapeHtml(authMode)}</p>
           <p><strong>Data continuity</strong> ${escapeHtml(cacheLabel)}</p>
         </div>
         ${authWarning}
         <h3 class="gov-ai-helper-sub">Project access</h3>
         <ul class="settings-health-list">${projects.map(jiraHealthRow).join('')}</ul>
-        ${failing.length ? `<p class="gov-ai-helper-note">${failing.length} project(s) need Jira access review.</p>` : ''}`;
+        ${failing.length ? `<p class="gov-ai-helper-note">${failing.length} of ${deliveryProjects.length} delivery squads need Jira access review. Operational groups are excluded.</p>` : ''}`;
     } catch (err) {
       healthEl.innerHTML = `<p class="jira-activity-error" role="alert">Health check failed — ${escapeHtml(err.message)}</p>`;
     }

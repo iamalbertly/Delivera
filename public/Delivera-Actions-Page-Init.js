@@ -1,7 +1,7 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { addTitleForTruncatedCells } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { COPY, formatHumanAge } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { showSurfaceError, showSurfaceEmpty } from './Delivera-Shared-Surface-State-01SSOT.js';
+import { showSurfaceError, showSurfaceEmpty, renderSurfaceState } from './Delivera-Shared-Surface-State-01SSOT.js';
 import {
   listCases,
   loadCase,
@@ -13,7 +13,7 @@ import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02R
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { resolveProjectDisplay } from './Delivera-Shared-Project-Display-01Resolve-SSOT.js';
 import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
-import { paintInstantShell, clearInstantShell, rememberSurfaceHtml } from './Delivera-Shared-Instant-Shell-01UI.js';
+import { paintInstantShell, clearInstantShell, rememberSurfaceHtml, setDeliveraSurfaceState } from './Delivera-Shared-Instant-Shell-01UI.js';
 import { mountSharedStickyScope, ensureSharedStickyScopeMount } from './Delivera-Shared-Sticky-Scope-01Mount-UI.js';
 import {
   filterCasesByTab,
@@ -269,6 +269,7 @@ async function paint(tab = activeTab()) {
     } catch (_) { /* ignore */ }
   }
   let cases = [];
+  const blockerSignalPromise = fetchSprintBlockerSignal().catch(() => ({ hasBlockers: false, items: [], source: 'unavailable' }));
   try {
     cases = await listCases({ project, status: 'open' });
   } catch (err) {
@@ -283,10 +284,11 @@ async function paint(tab = activeTab()) {
     }
     document.getElementById('actions-preview-rail')?.setAttribute('hidden', '');
     renderTabs(tab, {});
+    setDeliveraSurfaceState('actions', 'error', { scopeLabel: project });
     return;
   }
   const counts = tabCounts(cases, project);
-  const signal = await applyBlockerUx(counts.ready || 0);
+  const signal = await applyBlockerUx(counts.ready || 0, await blockerSignalPromise);
   const blockerCount = (signal.items || []).length;
   renderActionsH1(counts.ready || 0, blockerCount);
   renderActionsSubtitle(counts.ready || 0, blockerCount);
@@ -307,16 +309,26 @@ async function paint(tab = activeTab()) {
     const inner = `${blockerHtml}${caseHtml}` || '';
     list.innerHTML = `${project ? renderProjectChip(project) : ''}<section class="actions-do-now-stream" data-testid="actions-do-now-stream">${inner}</section>`;
     if (!inner) {
-      showSurfaceEmpty(list.querySelector('.actions-do-now-stream'), {
-        title: 'No action needed now',
-        message: 'All clear — no nudges, decisions, or escalations pending.',
-        whyMatters: 'When issues arise, they appear here so you can act before they escalate.',
-        compact: true,
-        actions: [
-          { label: 'Portfolio decision', href: '/governance', primary: true },
-          { label: 'View squad sprint', href: '/current-sprint' },
-        ],
-      });
+      if (signal.source === 'unavailable') {
+        renderSurfaceState(list.querySelector('.actions-do-now-stream'), {
+          variant: 'unavailable',
+          title: 'Sprint blockers cannot be verified',
+          message: 'The action queue loaded, but Jira blocker evidence is unavailable. Delivera will not call this squad all clear.',
+          hint: 'Check Jira connection; the selected squad and quarter are preserved.',
+          compact: true,
+        });
+      } else {
+        showSurfaceEmpty(list.querySelector('.actions-do-now-stream'), {
+          title: 'No action needed now',
+          message: 'All clear — no nudges, decisions, or escalations pending.',
+          whyMatters: 'When issues arise, they appear here so you can act before they escalate.',
+          compact: true,
+          actions: [
+            { label: 'Portfolio decision', href: '/governance', primary: true },
+            { label: 'View squad sprint', href: '/current-sprint' },
+          ],
+        });
+      }
       await showCasePreview('', cases);
     } else if (defaultId) {
       await showCasePreview(defaultId, cases);
@@ -335,6 +347,10 @@ async function paint(tab = activeTab()) {
     }
     addTitleForTruncatedCells('.actions-blocker-summary, .actions-case-card h2, .actions-preview-panel h2');
   }
+  const actionState = signal.source === 'unavailable'
+    ? (visible.length ? 'partial' : 'unavailable')
+    : (visible.length || signal.hasBlockers ? 'live' : 'empty');
+  setDeliveraSurfaceState('actions', actionState, { scopeLabel: project });
 }
 
 async function openCaseReview(caseId) {
@@ -351,6 +367,9 @@ async function init() {
   document.title = 'Actions | Delivera';
   // P0 FIX: Paint instant skeleton shell — no blank white page.
   paintInstantShell('actions', { scopeLabel: resolveActionsProject() });
+  window.addEventListener('delivera:surface-retry', (event) => {
+    if (event.detail?.surface === 'actions') void paint();
+  });
   try {
     mountSharedStickyScope({
       mount: ensureSharedStickyScopeMount(document.querySelector('.actions-header')),
