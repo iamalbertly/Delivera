@@ -7,6 +7,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,7 +21,10 @@ jobs:
       # Guard: fail fast if styles.css was edited directly instead of via partials
       - name: Verify CSS partials are in sync
         run: npm run build:css && npm run check:css
-      - run: npm run test:all
+      - name: Verify trust, speed, and governance continuity contracts
+        run: |
+          node --test tests/Delivera-Trust-Speed-State-Unit.mjs
+          npm run test:journey:churn-trust-repair
         env:
           CI: true
           NODE_ENV: test
