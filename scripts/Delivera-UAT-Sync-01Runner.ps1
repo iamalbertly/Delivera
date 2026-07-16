@@ -34,13 +34,18 @@ Invoke-Checked git @('-C', $TargetRoot, 'merge', '--ff-only', "origin/$Branch")
 Push-Location $TargetRoot
 try {
   Invoke-Checked npm.cmd @('install', '--no-audit', '--no-fund')
-  Invoke-Checked npm.cmd @('run', 'build:css')
+  Invoke-Checked npm.cmd @('run', 'check:css')
 } finally {
   Pop-Location
 }
 
 $expectedCommit = (& git -C $TargetRoot rev-parse --short=7 HEAD).Trim()
 $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+if ($listener) {
+  # Nodemon ignores documentation-only releases. Touching the watched entrypoint
+  # forces a clean reload without changing tracked content.
+  (Get-Item -LiteralPath (Join-Path $TargetRoot 'server.js')).LastWriteTime = Get-Date
+}
 if (-not $listener) {
   Write-Host "[uat-sync] Starting managed UAT on port $Port"
   $previousPort = $env:PORT

@@ -22,7 +22,7 @@ Never assume a pushed development checkout automatically changes the running UAT
 npm run uat:sync
 ```
 
-The command refuses tracked UAT changes, fast-forwards only, installs dependencies, rebuilds CSS, starts UAT when needed, and succeeds only when `/version` reports the expected commit.
+The command refuses tracked UAT changes, fast-forwards only, installs dependencies, validates committed CSS, reloads the managed server even for documentation-only releases, and succeeds only when `/version` reports the expected commit.
 
 ## Render
 
