@@ -79,7 +79,7 @@ test('evidence rows match claim count and carry browse URLs', () => {
   assert.ok(pack.jql.includes('DMS-1'));
 });
 
-test('All Projects headline uses board-gap not risk list', () => {
+test('All Projects headline uses Jira story evidence gap, not a generic risk list', () => {
   const brief = {
     meta: {
       quarter: 'FY27 Q2',
@@ -124,7 +124,7 @@ test('All Projects headline uses board-gap not risk list', () => {
     cases: [],
   });
   assert.ok(!/risk list/i.test(pb.headline));
-  assert.ok(/board-gap|need attention|zero stories/i.test(pb.headline));
+  assert.ok(/missing Jira story evidence|board-gap|need attention|zero stories/i.test(pb.headline));
 });
 
 test('resolveEffectiveSquad never returns __ALL__ by default', () => {
