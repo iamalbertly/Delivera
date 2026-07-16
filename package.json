@@ -24,6 +24,7 @@
     "dev:hot": "node scripts/Delivera-Dev-HotReload-01Orchestrator.js",
     "dev:safe": "node scripts/Delivera-Dev-Port-Guard-01Check.js && node scripts/Delivera-Dev-HotReload-01Orchestrator.js",
     "dev:safe:force": "node scripts/Delivera-Dev-Port-Guard-01Check.js --force && node scripts/Delivera-Dev-HotReload-01Orchestrator.js",
+    "uat:sync": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Delivera-UAT-Sync-01Runner.ps1",
     "prestart": "npm run build:css",
     "start": "node server.js",
     "auth:supertokens:up": "docker compose -f docker-compose.supertokens.yml up -d",

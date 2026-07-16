@@ -8,6 +8,22 @@ This page contains deployment-specific guidance. Keep `README.md` lean and link 
 - Start command: `npm start`
 - Build/install: `npm install` (or `npm ci`)
 
+## Local UAT ownership
+
+- Development workspace: `C:\Users\Hermes\Documents\Delivera\Delivera-src`
+- Managed UAT checkout: `C:\Shared\Projects\Delivera`
+- UAT URL: `http://localhost:3001`
+- UAT branch: `autohacker-20260615_093142`
+- UAT credentials remain in the ignored `C:\Shared\Projects\Delivera\.env` file.
+
+Never assume a pushed development checkout automatically changes the running UAT process. Synchronize and verify it with:
+
+```powershell
+npm run uat:sync
+```
+
+The command refuses tracked UAT changes, fast-forwards only, installs dependencies, rebuilds CSS, starts UAT when needed, and succeeds only when `/version` reports the expected commit.
+
 ## Render
 
 The repository includes `render.yaml` with:
@@ -70,3 +86,5 @@ npm run test:all
 - Open `/current-sprint`
 - Open `/leadership`
 - Verify preview can run and no auth loops occur for your chosen auth mode
+- Verify `/version` reports the same commit in UAT and production.
+- Verify `/api/governance-brief.json?projects=SD` is `live`; a `cannot-verify` response must fail the release gate.
