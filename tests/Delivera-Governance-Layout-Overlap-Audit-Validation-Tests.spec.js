@@ -113,12 +113,13 @@ test.describe('Governance layout overlap audit', () => {
         document.querySelector('.gov-owner-cluster')
         || document.querySelector('.gov-visual-answer-blocks')
         || document.querySelector('.gov-command-answer')
+        || document.querySelector('[data-testid="governance-active-loop"]')
       ), { timeout: 15000 });
       const hasOwnerCluster = await page.locator('.gov-owner-cluster').count() > 0;
       if (hasOwnerCluster && vp.width <= 768) {
         await expect(page.locator('.gov-owner-cluster').first()).toBeVisible();
       } else {
-        await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible();
+        await expect(page.locator('[data-testid="governance-active-loop"], .gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible();
       }
 
       const clipping = await getViewportClippingReport(page, {
@@ -194,7 +195,7 @@ test.describe('Governance layout overlap audit', () => {
     await page.goto('/governance');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#gov-loading')).toBeVisible({ timeout: 2000 });
-    await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="governance-active-loop"], [data-gov-brief-state="content"], .gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible({ timeout: 15000 });
     await expect(page.locator('#gov-loading')).toBeHidden();
     assertTelemetryClean(telemetry);
   });

@@ -1,0 +1,102 @@
+import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
+import { buildDoingInstead, calculateWorkSplit, classifyStoryFreshness } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
+import { projectActiveLoopCases } from '../lib/Delivera-Governance-ActiveLoop-02Store-IO.js';
+import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
+
+const NOW = new Date('2026-07-17T10:32:00.000Z');
+const baseline = (type, label) => ({ state: type === 'missing' ? 'missing' : 'verified', sourceType: type, sourceLabel: label, copy: type === 'missing' ? 'Cannot verify · baseline missing · save baseline to compare.' : `${label} verified 12 Jul.` });
+const squad = (key, sourceType, sourceLabel, overrides = {}) => ({
+  squad: key, promiseCount: 1, attentionCount: key === 'AMS' ? 0 : 1, piPct: sourceType === 'missing' ? null : (key === 'DMS' ? 31 : 78), topState: sourceType === 'missing' ? 'cannot verify' : (key === 'AMS' ? 'aligned' : '1 no-proof promise'), proofState: key === 'AMS' ? 'fresh proof' : 'stale proof',
+  baselineCoverage: baseline(sourceType, sourceLabel), sprintReality: { state: 'watch', copy: 'Sprint started 6 days ago. 3 PI-linked items have not moved. 2 items carried over. 1 reopened after Done.' },
+  doingInstead: { major: key === 'DMS' ? { title: 'Legacy Database Migration', percentage: 38 } : null, operationalNoise: { ticketCount: 14 }, copy: key === 'DMS' ? 'Major diversion: Legacy Database Migration. Smaller items grouped as operational noise (14).' : 'Operational noise, 14 low-priority tickets.' },
+  workSplit: { method: 'ticket-count', piPct: 31, unplannedPct: 38, unknownPct: 31, explanation: 'Calculated by ticket count because time logging is incomplete.', largestUnmappedCluster: key === 'DMS' ? 'Legacy Database Migration' : '' },
+  version: 4, nextAction: sourceType === 'missing' ? { id: 'save-baseline', label: 'Save baseline to compare' } : { id: 'recheck-promise', label: 'Re-check this promise' }, ...overrides,
+});
+
+const promise = {
+  promiseId: 'prm-dms-1', contractId: 'q2-contract', squad: 'DMS', originalText: 'Enable 3-click recharge path', issueKey: 'DMS-42', statusNow: 'In Progress', matchState: 'partly-matched', matchLabel: 'Partly matched', caseState: 'reply-received-ready-to-recheck', version: 4,
+  source: 'DMS baseline image', sourceReference: 'Image captured 12 July', proofAge: { state: 'stale', businessDays: 12, copy: 'This work has not moved in 12 business days. Ask the owner if it is blocked or already done.' },
+  ownerRoute: { role: 'Squad PO', displayName: 'Irene', accountId: 'irene-1', source: 'settings-product-owner', unresolved: false },
+  actionLifecycle: 'Nudge sent 14h ago · reply received 2h ago · owner says links were updated · ready to re-check', nextAction: { id: 'recheck-promise', label: 'Re-check this promise' },
+  amendmentSentence: 'Enable 3-click recharge path → moved to next quarter, approved by Irene on 12 Jul because Lipa M-Pesa launch took priority.',
+  amendmentHistory: [{ type: 'move-to-next-quarter', reason: 'Lipa M-Pesa launch took priority', approvedBy: 'Irene', approvedAt: '2026-07-12T08:00:00Z' }], actionHistory: [{ type: 'owner-replied', replyExcerpt: 'Links were updated.' }],
+  readiness: { copy: 'Ready to promise.' }, tradeOffGuardrail: { copy: 'This request adds 8% more work to the quarter.' },
+  allowedActions: [{ id: 'recheck-promise', allowed: true, reason: 'Re-run deterministic match rules only for this promise.' }, { id: 'send-nudge', allowed: true, reason: 'Will send via Squad PO.' }, { id: 'amend-contract', allowed: true, reason: 'Preserves history.' }],
+};
+
+const STORY = {
+  schemaVersion: 2, compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
+  scope: { mode: 'all-squads', projects: ['DMS', 'RPA', 'AMS', 'TRS'], expectedSquads: 4, verifiedSquads: 4, complete: true, partialProjects: [] },
+  answer: '2 squads are not aligned to PI promises. DMS has 1 no-proof promise. RPA has 1 partial match.', sourceLine: 'Compared with FY27 Q2 PI contract · 4 promises checked · last verified 10:32 UTC', deliveraDid: 'Delivera matched the contract to Jira, checked proof age and work split, and prepared 2 safe owner asks.', verifiedAt: NOW.toISOString(), loopCompletion: 25,
+  squads: [squad('DMS', 'squad-image', 'DMS baseline image'), squad('RPA', 'missing', 'Baseline missing'), squad('AMS', 'full-deck', 'AMS deck source'), squad('TRS', 'manual', 'Transformers manual baseline')],
+  promises: [{ ...promise, allowedActions: undefined, actionHistory: undefined, amendmentHistory: undefined }], nextDecisionPromiseId: 'prm-dms-1',
+};
+
+async function mockMeeting(page, { story = STORY } = {}) {
+  await page.addInitScript(() => localStorage.clear());
+  await routeProjectsCatalog(page);
+  await page.route('**/api/governance/active-loop.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(story) }));
+  await page.route('**/api/governance/squads/DMS/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, squad: STORY.squads[0], promises: [promise], currentWork: [{ title: 'Legacy Database Migration', percentage: 38 }, { title: 'Operational noise', ticketCount: 14 }], sprintReality: STORY.squads[0].sprintReality, workSplit: STORY.squads[0].workSplit }) }));
+  await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
+  await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: STORY.scope.projects, meta: {}, topRisks: [], evidencePack: { rows: [] }, squadInsights: [] }) }));
+  await page.route('**/api/quarters-list**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
+  for (const pattern of ['**/api/governance/adoption-metrics.json**', '**/api/governance/inbox.json**', '**/api/governance/feedback-summary.json**', '**/api/governance/scope-intelligence.json**']) await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+}
+
+test.describe('Meeting-ready governance deterministic policy', () => {
+  test('Doing Instead promotes structural demand and groups operational noise', () => {
+    const items = [...Array.from({ length: 6 }, (_, i) => ({ id: `pi-${i}`, category: 'pi', summary: 'PI work' })), ...Array.from({ length: 5 }, (_, i) => ({ id: `div-${i}`, category: 'unplanned', epicTitle: 'Legacy Database Migration' })), ...Array.from({ length: 4 }, (_, i) => ({ id: `noise-${i}`, category: 'unplanned', summary: 'Password cleanup task' }))];
+    const split = calculateWorkSplit({ activeItems: items }); const result = buildDoingInstead({ activeItems: items, workSplit: split });
+    expect(result.major?.title).toBe('Legacy Database Migration'); expect(result.major?.percentage).toBeGreaterThanOrEqual(15); expect(result.operationalNoise.ticketCount).toBe(4);
+    const tiny = buildDoingInstead({ activeItems: [{ category: 'unplanned', epicTitle: 'Tiny diversion' }, { category: 'pi' }] }); expect(tiny.major).toBeNull();
+  });
+
+  test('freshness and action states are explicit and deterministic', () => {
+    expect(classifyStoryFreshness({ verifiedAt: '2026-07-17T10:22:00Z', now: NOW }).state).toBe('calm');
+    expect(classifyStoryFreshness({ verifiedAt: '2026-07-17T10:02:00Z', now: NOW }).state).toBe('paused');
+    expect(classifyStoryFreshness({ verifiedAt: '2026-07-17T09:02:00Z', now: NOW }).state).toBe('stale');
+    expect(classifyStoryFreshness({ verifiedAt: NOW, jiraFailed: true, now: NOW }).state).toBe('failed');
+    const cases = projectActiveLoopCases([{ id: 'n1', promiseId: 'p1', type: 'nudge-sent', ts: '2026-07-15T08:00:00Z', nextVersion: 2, payload: { responseDueAt: '2026-07-16T08:00:00Z' } }], { now: NOW });
+    expect(cases.p1.state).toBe('escalation-due');
+  });
+});
+
+test.describe('Meeting-ready governance browser journey @focused', () => {
+  test('Layer 1 owns the first viewport and shows dense per-squad truth', async ({ page }) => {
+    await mockMeeting(page); await page.goto('/governance'); const hero = page.getByTestId('governance-active-loop'); await expect(hero).toBeVisible({ timeout: 15000 });
+    await expect(hero).toContainText('Portfolio mission'); await expect(hero.locator('[data-story-squad]')).toHaveCount(4); await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify'); await expect(hero.locator('[data-story-squad="RPA"]')).not.toContainText('off-plan');
+    await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('DMS baseline image'); await expect(hero.locator('[data-story-squad="AMS"]')).toContainText('AMS deck source'); await expect(hero.locator('[data-story-squad="TRS"]')).toContainText('Transformers manual baseline');
+    await expect(page.locator('.gov-portfolio-grid-wrap:visible')).toHaveCount(0); await expect(hero.locator('[data-loop-primary]')).toHaveCount(1);
+  });
+
+  test('squad spotlight synchronizes the meeting story and history', async ({ page }) => {
+    await mockMeeting(page); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click();
+    await expect(page).toHaveURL(/spotlight=DMS/); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Current Work Reality'); await expect(spot).toContainText('Sprint Reality'); await expect(spot).toContainText('Doing Instead'); await expect(spot).toContainText('Promise Evidence'); await expect(spot).toContainText('Action Trail'); await expect(spot).toContainText('Legacy Database Migration'); await expect(spot).toContainText('Re-check this promise');
+    await page.locator('[data-story-all]').click(); await expect(page).not.toHaveURL(/spotlight=/); await expect(spot).toBeEmpty();
+  });
+
+  test('amendment context is visible without opening audit settings', async ({ page }) => {
+    await mockMeeting(page); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click(); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Enable 3-click recharge path'); await expect(spot).toContainText('approved by Irene'); await expect(spot).toContainText('Lipa M-Pesa launch took priority');
+  });
+
+  test('recipient is explicit and editable before a nudge is queued', async ({ page }) => {
+    let sentBody = null; await mockMeeting(page); await page.route('**/api/governance/cases/prm-dms-1/nudges**', async (route) => { sentBody = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ deliveraRef: 'DLV-2026-MEETING', version: 5 }) }); });
+    await page.goto('/governance'); await page.locator('[data-loop-primary]').click(); const drawer = page.locator('.gov-loop-drawer'); await expect(drawer).toContainText('Nudge will go to Squad PO: Irene'); await drawer.locator('[data-recipient-name]').fill('Asha'); await drawer.locator('[data-recipient-role]').fill('Stream Lead'); await drawer.locator('[data-loop-action="send-nudge"]').click(); await expect(drawer.locator('.gov-loop-action-status')).toContainText('DLV-2026-MEETING'); expect(sentBody.recipient.displayName).toBe('Asha'); expect(sentBody.recipient.role).toBe('Stream Lead'); expect(sentBody.saveAsSquadDefault).not.toBe(true);
+  });
+
+  test('targeted sync carries only the selected squad scope and joins one job', async ({ page }) => {
+    let body = null; await mockMeeting(page); await page.route('**/api/governance/refreshes', async (route) => { body = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ attached: true, jobId: 'shared-job' }) }); });
+    await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click(); await page.locator('[data-force-squad]').click(); expect(body).toMatchObject({ scopeType: 'squad', scopeId: 'DMS' }); expect(body.scopeType).not.toBe('portfolio'); await expect(page.locator('#gov-squad-spotlight')).toContainText('Joined the targeted sync');
+  });
+
+  test('background evidence waits behind the read lock', async ({ page }) => {
+    await mockMeeting(page); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').focus();
+    const before = await page.locator('[data-story-squad]').allTextContents(); const updated = structuredClone(STORY); updated.answerVersion = 5; updated.squads.reverse();
+    await page.evaluate(async (story) => { const mod = await import('/Delivera-App-Governance-ActiveLoop-01UI.js'); mod.renderActiveGovernanceLoop(story); }, updated);
+    await expect(page.locator('.gov-story-update')).toBeVisible(); expect(await page.locator('[data-story-squad]').allTextContents()).toEqual(before); await page.locator('[data-story-apply]').click(); await expect(page.locator('[data-story-squad]').first()).toContainText('TRS');
+  });
+
+  test('mobile matrix and actions remain touchable', async ({ page }) => {
+    await mockMeeting(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/governance'); await expect(page.getByTestId('governance-source-line')).toContainText('FY27 Q2'); const rows = page.locator('[data-story-squad]'); await expect(rows).toHaveCount(4); expect((await rows.first().boundingBox()).height).toBeGreaterThanOrEqual(44); await rows.first().click(); const sync = page.locator('[data-force-squad]'); await expect(sync).toBeVisible(); expect((await sync.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  });
+});

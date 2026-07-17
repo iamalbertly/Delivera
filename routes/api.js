@@ -76,10 +76,29 @@ import {
     updateJiraActivityEntry,
 } from '../lib/Delivera-Data-JiraActivity-01AuditLog-IO.js';
 import { undoJiraComment } from '../lib/Delivera-Data-JiraActivity-02CommentUndo-01Service.js';
+import {
+    addBusinessDays,
+    buildActiveGovernanceAnswer,
+    projectActiveGovernanceLayer1,
+    validateAmendment,
+} from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
+import { GOVERNANCE_STORY_DETAIL_NAMESPACE, governanceBriefCacheKey, governanceStoryCacheKey, governanceRefreshScopeKey } from '../lib/Delivera-Governance-Story-Cache-01SSOT.js';
+import {
+    appendActiveLoopEvent,
+    appendVersionedActiveLoopEvent,
+    currentPromiseVersion,
+    projectActiveLoopCases,
+    readActiveLoopEvents,
+} from '../lib/Delivera-Governance-ActiveLoop-02Store-IO.js';
+import {
+    ingestJiraGovernanceWebhook,
+    ingestTeamsGovernanceNotification,
+} from '../lib/Delivera-Governance-ActiveLoop-03Event-Ingestion-Service.js';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mkdir, appendFile } from 'fs/promises';
+import { randomUUID } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -93,6 +112,7 @@ const OUTCOME_CREATE_META_TTL = 20 * 60 * 1000;
 const router = express.Router();
 const serverStartTime = Date.now();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
+const activeRefreshJobs = new Map();
 
 router.get('/healthz', async (req, res) => {
   let redis = null;
@@ -1353,7 +1373,7 @@ function parseGovernanceProjects(req) {
     const raw = req.query.projects;
     return raw != null
         ? Array.from(new Set(String(raw).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)))
-        : ['MPSA', 'MAS'];
+        : readCatalogKeys();
 }
 
 /** Re-stamp a cached brief with cached freshness and clamp confidence accordingly. */
@@ -1369,7 +1389,7 @@ function applyCachedFreshness(brief) {
 }
 
 async function getCachedGovernanceBrief(projects) {
-    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    const cacheKey = governanceBriefCacheKey(projects);
     const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
     const cachedBrief = cached?.value || cached;
     if (!cachedBrief) return null;
@@ -1378,7 +1398,7 @@ async function getCachedGovernanceBrief(projects) {
 
 async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true, includePOReadiness = true }) {
     const periodWindow = String(req.query?.periodWindow || '28d').toLowerCase();
-    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e${includeEvidence ? 1 : 0}:p${includePOReadiness ? 1 : 0}:w${periodWindow}`;
+    const cacheKey = governanceBriefCacheKey(projects, { includeEvidence, includePOReadiness, periodWindow });
     const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
     const cachedBrief = cached?.value || cached;
     if (cachedBrief) return { brief: applyCachedFreshness(cachedBrief), cached: true };
@@ -1423,7 +1443,7 @@ async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true
 }
 
 async function serveStaleBriefOrError(res, projects, err) {
-    const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+    const cacheKey = governanceBriefCacheKey(projects);
     try {
         const staleEntry = await cache.getWithStaleFallback(cacheKey);
         if (staleEntry) {
@@ -1446,7 +1466,7 @@ router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
     const forceRefresh = String(req.query.refresh || '').trim() === '1';
     try {
         if (forceRefresh) {
-            const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+            const cacheKey = governanceBriefCacheKey(projects);
             await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
         }
         const { brief } = await getOrBuildGovernanceBrief({ projects, req });
@@ -1505,6 +1525,413 @@ router.get('/api/governance/pi-baseline', requireAuth, async (req, res) => {
     }
 });
 
+function expectedVersionFromRequest(req) {
+    const header = String(req.headers['if-match'] || '').replace(/^W\//, '').replace(/"/g, '').trim();
+    const candidate = header || req.body?.expectedVersion;
+    const version = Number(candidate);
+    return Number.isFinite(version) && version > 0 ? version : null;
+}
+
+function activeLoopActor(req) {
+    return req.user?.id || req.user?.email || req.session?.user || 'local-pi-team-user';
+}
+
+async function resolveActiveLoopBaseline(projects = [], quarter = '') {
+    const rows = await listPIBaselines();
+    const wantedQuarter = String(quarter || '').trim().toLowerCase();
+    const selected = [];
+    for (const project of projects) {
+        const match = rows.find((row) => {
+            const includesProject = (row.projects || []).includes(project);
+            const quarterMatches = !wantedQuarter || String(row.piName || '').toLowerCase().includes(wantedQuarter);
+            return includesProject && quarterMatches;
+        }) || rows.find((row) => (row.projects || []).includes(project));
+        if (match && !selected.some((row) => row.id === match.id)) selected.push(match);
+    }
+    if (!selected.length) return null;
+    if (selected.length === 1) return selected[0];
+    return {
+        id: `portfolio:${selected.map((row) => row.id).sort().join('+')}`,
+        ts: selected.map((row) => row.ts).filter(Boolean).sort().at(-1) || new Date().toISOString(),
+        piName: quarter || selected.map((row) => row.piName).filter(Boolean).join(' + '),
+        baselineDate: selected.map((row) => row.baselineDate).filter(Boolean).sort().at(-1) || '',
+        approvedBy: [...new Set(selected.map((row) => row.approvedBy).filter(Boolean))].join(', '),
+        source: 'approved-portfolio-baselines',
+        sourceBaselines: selected.map((row) => ({ id: row.id, piName: row.piName, source: row.source, sourceType: row.sourceType, sourceLabel: row.sourceLabel, artifactRef: row.artifactRef, capturedAt: row.capturedAt || row.baselineDate, verifiedAt: row.verifiedAt || row.ts, verifiedBy: row.verifiedBy || row.approvedBy, projects: row.projects || [] })),
+        projects,
+        committedItems: selected.flatMap((row) => row.committedItems || []),
+    };
+}
+
+async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
+    const projects = parseGovernanceProjects(req);
+    if (!projects.length) {
+        const err = new Error('At least one squad is required');
+        err.code = 'NO_PROJECTS';
+        err.httpStatus = 400;
+        throw err;
+    }
+    if (force) {
+        const cacheKey = governanceBriefCacheKey(projects);
+        await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
+    }
+    const [{ brief }, baseline, events] = await Promise.all([
+        getOrBuildGovernanceBrief({ projects, req }),
+        resolveActiveLoopBaseline(projects, req.query?.quarter || req.body?.quarter || ''),
+        readActiveLoopEvents({ limit: 5000 }),
+    ]);
+    const caseState = projectActiveLoopCases(events);
+    const answer = buildActiveGovernanceAnswer({ brief, baseline, caseState });
+    const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || req.body?.quarter || '');
+    await Promise.all([
+        cache.set(storyKey, projectActiveGovernanceLayer1(answer), 60 * 60 * 1000, { namespace: 'governanceStoryV2' }),
+        cache.set(storyKey, answer, 60 * 60 * 1000, { namespace: GOVERNANCE_STORY_DETAIL_NAMESPACE }),
+    ]);
+    return answer;
+}
+
+async function cachedActiveLoopDetailForRequest(req) {
+    const projects = parseGovernanceProjects(req);
+    const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || req.body?.quarter || '');
+    const hit = await cache.get(storyKey, { namespace: GOVERNANCE_STORY_DETAIL_NAMESPACE });
+    return hit?.value || hit || assembleActiveLoopAnswerForRequest(req);
+}
+
+router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => {
+    try {
+        const projects = parseGovernanceProjects(req);
+        const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || '');
+        const hit = await cache.get(storyKey, { namespace: 'governanceStoryV2' });
+        const cachedStory = hit?.value || hit;
+        const answer = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req));
+        res.setHeader('ETag', `"${answer.answerVersion}"`);
+        res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=300');
+        return res.json(answer);
+    } catch (err) {
+        logger.warn('active governance loop read failed', { error: err?.message });
+        return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Active governance answer unavailable', code: err?.code || 'ACTIVE_LOOP_FAILED' });
+    }
+});
+
+router.get('/api/governance/squads/:squadKey/detail.json', requireAuth, async (req, res) => {
+    try {
+        const squadKey = String(req.params.squadKey || '').trim().toUpperCase();
+        const answer = await cachedActiveLoopDetailForRequest(req);
+        const squad = answer.squads.find((item) => item.squad === squadKey);
+        if (!squad) return res.status(404).json({ error: 'Squad not found', code: 'SQUAD_NOT_FOUND' });
+        return res.json({ schemaVersion: 2, storyVersion: answer.answerVersion, squad, promises: answer.promises.filter((item) => item.squad === squadKey), currentWork: squad.doingInstead?.clusters || [], sprintReality: squad.sprintReality, workSplit: squad.workSplit });
+    } catch (err) {
+        return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Squad detail unavailable', code: err?.code || 'SQUAD_DETAIL_FAILED' });
+    }
+});
+
+router.get('/api/governance/cases/:promiseId/detail.json', requireAuth, async (req, res) => {
+    try {
+        const answer = await cachedActiveLoopDetailForRequest(req);
+        const promise = answer.promises.find((item) => item.promiseId === String(req.params.promiseId || '').trim());
+        if (!promise) return res.status(404).json({ error: 'Promise not found', code: 'PROMISE_NOT_FOUND' });
+        const squad = answer.squads.find((item) => item.squad === promise.squad) || null;
+        return res.json({ schemaVersion: 2, storyVersion: answer.answerVersion, promise, squad });
+    } catch (err) {
+        return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Promise detail unavailable', code: err?.code || 'PROMISE_DETAIL_FAILED' });
+    }
+});
+
+router.post('/api/governance/refreshes', requireAuth, async (req, res) => {
+    const scopeType = String(req.body?.scopeType || '').trim().toLowerCase();
+    const scopeId = String(req.body?.scopeId || '').trim();
+    if (!['promise', 'squad'].includes(scopeType) || !scopeId) return res.status(422).json({ error: 'A promise or squad refresh scope is required', code: 'TARGETED_REFRESH_SCOPE_REQUIRED' });
+    let projects = scopeType === 'squad' ? [scopeId.toUpperCase()] : [];
+    if (scopeType === 'promise') {
+        const portfolio = await assembleActiveLoopAnswerForRequest(req);
+        const promise = portfolio.promises.find((item) => item.promiseId === scopeId);
+        if (!promise) return res.status(404).json({ error: 'Promise not found', code: 'PROMISE_NOT_FOUND' });
+        projects = [promise.squad];
+    }
+    const quarter = String(req.body?.quarter || req.query?.quarter || '').trim();
+    const scopeKey = governanceRefreshScopeKey({ scopeType, scopeId, quarter });
+    const existing = activeRefreshJobs.get(scopeKey);
+    if (existing && existing.status === 'running') return res.status(202).json({ attached: true, ...existing.public });
+
+    const lease = await cache.claimLease(`governance-refresh:${scopeKey}`, 120000, { namespace: 'governanceSingleFlight' });
+    if (!lease.acquired) {
+        const shared = await cache.get(`governance-refresh-job:${scopeKey}`, { namespace: 'governanceSingleFlight' });
+        return res.status(202).json({ attached: true, ...(shared?.value || { status: 'running', scopeKey }) });
+    }
+
+    const jobId = randomUUID();
+    const publicJob = { jobId, scopeKey, scopeType, scopeId, projects, quarter, status: 'running', startedAt: new Date().toISOString() };
+    const holder = { status: 'running', public: publicJob };
+    activeRefreshJobs.set(scopeKey, holder);
+    await cache.set(`governance-refresh-job:${scopeKey}`, publicJob, 120000, { namespace: 'governanceSingleFlight' });
+    void (async () => {
+        try {
+            const syntheticReq = Object.assign(Object.create(req), {
+                query: { ...req.query, projects: projects.join(','), quarter },
+                body: { ...req.body, projects, quarter },
+            });
+            const answer = await assembleActiveLoopAnswerForRequest(syntheticReq, { force: true });
+            holder.status = 'completed';
+            const promisePatch = scopeType === 'promise' ? answer.promises.find((item) => item.promiseId === scopeId) || null : null;
+            const squadPatch = answer.squads.find((item) => item.squad === projects[0]) || null;
+            holder.public = { ...publicJob, status: 'completed', completedAt: new Date().toISOString(), answerVersion: answer.answerVersion, promisePatch, squadPatch };
+        } catch (err) {
+            holder.status = 'failed';
+            holder.public = { ...publicJob, status: 'failed', completedAt: new Date().toISOString(), error: err?.message || 'Refresh failed' };
+        } finally {
+            await cache.set(`governance-refresh-job:${scopeKey}`, holder.public, 5 * 60 * 1000, { namespace: 'governanceSingleFlight' });
+            await cache.releaseLease(lease);
+            setTimeout(() => activeRefreshJobs.delete(scopeKey), 5 * 60 * 1000).unref?.();
+        }
+    })();
+    return res.status(202).json({ attached: false, ...publicJob });
+});
+
+router.get('/api/governance/refreshes/:jobId', requireAuth, async (req, res) => {
+    const jobId = String(req.params.jobId || '').trim();
+    const local = [...activeRefreshJobs.values()].find((job) => job.public?.jobId === jobId);
+    if (local) return res.json(local.public);
+    return res.status(404).json({ error: 'Refresh job not found or expired', code: 'REFRESH_JOB_NOT_FOUND' });
+});
+
+async function findActiveLoopPromise(req, promiseId) {
+    const answer = await assembleActiveLoopAnswerForRequest(req);
+    return { answer, promise: answer.promises.find((item) => item.promiseId === promiseId) || null };
+}
+
+router.post('/api/governance/cases/:promiseId/nudges', requireAuth, async (req, res) => {
+    const promiseId = String(req.params.promiseId || '').trim();
+    const expectedVersion = expectedVersionFromRequest(req);
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required for governance decisions', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    try {
+        const { promise } = await findActiveLoopPromise(req, promiseId);
+        if (!promise) return res.status(404).json({ error: 'Promise not found', code: 'PROMISE_NOT_FOUND' });
+        const deliveraRef = `DLV-${new Date().getUTCFullYear()}-${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+        const route = req.body?.channel || (promise.issueKey ? 'jira' : 'pi-team-queue');
+        const reviewedRecipient = req.body?.recipient && typeof req.body.recipient === 'object' ? {
+            displayName: String(req.body.recipient.displayName || '').trim().slice(0, 160),
+            accountId: String(req.body.recipient.accountId || '').trim().slice(0, 180),
+            role: String(req.body.recipient.role || '').trim().slice(0, 120),
+            source: String(req.body.recipient.source || 'case-override').trim().slice(0, 120),
+        } : promise.ownerRoute;
+        if (!reviewedRecipient?.displayName) return res.status(422).json({ error: 'Review or assign the recipient before sending', code: 'RECIPIENT_REVIEW_REQUIRED' });
+        const responseDueAt = addBusinessDays(new Date(), Math.max(1, Number(req.body?.responseBusinessDays) || 1));
+        const baseBody = String(req.body?.message || `Please update the Jira proof for this PI promise: ${promise.originalText}`).trim().slice(0, 1800);
+        const message = `${baseBody}\n\nDelivera reference: ${deliveraRef}`;
+        const queued = await appendVersionedActiveLoopEvent({
+            promiseId,
+            contractId: promise.contractId,
+            type: 'nudge-queued',
+            actorId: activeLoopActor(req),
+            expectedVersion,
+            payload: { deliveraRef, route, issueKey: promise.issueKey, ownerRoute: reviewedRecipient, responseDueAt, messagePreview: baseBody.slice(0, 300) },
+        });
+
+        if (route === 'jira' && promise.issueKey) {
+            void (async () => {
+                try {
+                    const result = await postIssueComment(createVersion3Client(), promise.issueKey, message, { roster: [] });
+                    const version = await currentPromiseVersion(promiseId);
+                    await appendActiveLoopEvent({
+                        promiseId,
+                        contractId: promise.contractId,
+                        type: 'nudge-sent',
+                        actorId: 'delivera-dispatcher',
+                        expectedVersion: version,
+                        nextVersion: version + 1,
+                        payload: { deliveraRef, route, issueKey: promise.issueKey, responseDueAt, ownerRoute: reviewedRecipient, externalId: result?.id || result?.commentId || '' },
+                    });
+                } catch (err) {
+                    const version = await currentPromiseVersion(promiseId);
+                    await appendActiveLoopEvent({
+                        promiseId,
+                        contractId: promise.contractId,
+                        type: 'nudge-failed',
+                        actorId: 'delivera-dispatcher',
+                        expectedVersion: version,
+                        nextVersion: version + 1,
+                        payload: { deliveraRef, route, issueKey: promise.issueKey, error: String(err?.message || 'Send failed').slice(0, 300) },
+                    });
+                }
+            })();
+        }
+        return res.status(202).setHeader('ETag', `"${queued.nextVersion}"`).json({ queued: true, deliveraRef, route, recipient: reviewedRecipient, responseDueAt, version: queued.nextVersion });
+    } catch (err) {
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'NUDGE_QUEUE_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/governance/contracts/:contractId/amendments', requireAuth, async (req, res) => {
+    const expectedVersion = expectedVersionFromRequest(req);
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required for governance decisions', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    const validation = validateAmendment(req.body || {});
+    if (!validation.valid) return res.status(422).json({ error: validation.message, code: validation.code });
+    try {
+        const row = await appendVersionedActiveLoopEvent({
+            promiseId: String(req.body?.promiseId || '').trim(),
+            contractId: String(req.params.contractId || '').trim(),
+            type: 'contract-amended',
+            actorId: activeLoopActor(req),
+            expectedVersion,
+            payload: { ...validation.value, approvalProofRef: String(req.body?.approvalProofRef || '').slice(0, 500) },
+        });
+        return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, version: row.nextVersion, amendmentId: row.id });
+    } catch (err) {
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'AMENDMENT_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/governance/cases/:promiseId/decisions', requireAuth, async (req, res) => {
+    const expectedVersion = expectedVersionFromRequest(req);
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required for governance decisions', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    const decision = String(req.body?.decision || '').trim();
+    const typeByDecision = { 'approve-match': 'match-approved', 'accept-risk': 'risk-accepted', 'assign-owner': 'owner-assigned', 'escalate-owner': 'escalation-sent' };
+    const type = typeByDecision[decision];
+    if (!type) return res.status(422).json({ error: 'Unsupported governance decision', code: 'INVALID_GOVERNANCE_DECISION' });
+    try {
+        const row = await appendVersionedActiveLoopEvent({
+            promiseId: String(req.params.promiseId || '').trim(),
+            contractId: String(req.body?.contractId || '').trim(),
+            type,
+            actorId: activeLoopActor(req),
+            expectedVersion,
+            payload: { reason: String(req.body?.reason || '').slice(0, 1000), assignee: req.body?.assignee || null, recipient: req.body?.recipient || null },
+        });
+        return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, version: row.nextVersion, decisionId: row.id });
+    } catch (err) {
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'DECISION_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/governance/cases/:promiseId/owner-route', requireAuth, async (req, res) => {
+    const expectedVersion = expectedVersionFromRequest(req);
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    const recipient = req.body?.recipient || {};
+    const displayName = String(recipient.displayName || '').trim().slice(0, 160);
+    if (!displayName) return res.status(422).json({ error: 'Choose a recipient', code: 'RECIPIENT_REQUIRED' });
+    try {
+        const { promise } = await findActiveLoopPromise(req, String(req.params.promiseId || '').trim());
+        if (!promise) return res.status(404).json({ error: 'Promise not found', code: 'PROMISE_NOT_FOUND' });
+        const row = await appendVersionedActiveLoopEvent({
+            promiseId: promise.promiseId,
+            contractId: promise.contractId,
+            type: 'owner-route-overridden',
+            actorId: activeLoopActor(req),
+            expectedVersion,
+            payload: { recipient: { displayName, accountId: String(recipient.accountId || '').slice(0, 180), role: String(recipient.role || 'Selected recipient').slice(0, 120), source: 'case-override' }, saveAsSquadDefault: req.body?.saveAsSquadDefault === true },
+        });
+        if (req.body?.saveAsSquadDefault === true) {
+            await saveProfileOverride({ scope: `project:${promise.squad}`, key: 'productOwner', value: displayName, approvedBy: activeLoopActor(req) });
+        }
+        return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, recipient: row.payload.recipient, savedAsSquadDefault: req.body?.saveAsSquadDefault === true, version: row.nextVersion });
+    } catch (err) {
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'OWNER_ROUTE_UPDATE_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/governance/squads/:squadKey/work-themes/:themeId/rename', requireAuth, async (req, res) => {
+    const expectedVersion = expectedVersionFromRequest(req);
+    const name = String(req.body?.name || '').trim().replace(/\s+/g, ' ').slice(0, 180);
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    if (name.length < 3) return res.status(422).json({ error: 'Enter a clear work theme name', code: 'WORK_THEME_NAME_REQUIRED' });
+    try {
+        const syntheticPromiseId = `theme:${String(req.params.squadKey || '').toUpperCase()}:${String(req.params.themeId || '').slice(0, 120)}`;
+        const row = await appendVersionedActiveLoopEvent({ promiseId: syntheticPromiseId, type: 'work-theme-renamed', actorId: activeLoopActor(req), expectedVersion, payload: { squad: String(req.params.squadKey || '').toUpperCase(), themeId: String(req.params.themeId || ''), name } });
+        return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, name, version: row.nextVersion });
+    } catch (err) {
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'WORK_THEME_RENAME_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/governance/cases/:promiseId/recheck', requireAuth, async (req, res) => {
+    const expectedVersion = expectedVersionFromRequest(req);
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required for governance decisions', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    let started = null;
+    let promise = null;
+    try {
+        ({ promise } = await findActiveLoopPromise(req, String(req.params.promiseId || '').trim()));
+        if (!promise) return res.status(404).json({ error: 'Promise not found', code: 'PROMISE_NOT_FOUND' });
+        started = await appendVersionedActiveLoopEvent({
+            promiseId: promise.promiseId,
+            contractId: promise.contractId,
+            type: 'recheck-started',
+            actorId: activeLoopActor(req),
+            expectedVersion,
+            payload: { scopeType: 'promise', scopeId: promise.promiseId, startedAt: new Date().toISOString() },
+        });
+        const syntheticReq = Object.assign(Object.create(req), {
+            query: { ...req.query, projects: promise.squad, quarter: req.body?.quarter || req.query?.quarter || '' },
+            body: { ...req.body, projects: [promise.squad] },
+        });
+        const refreshed = await assembleActiveLoopAnswerForRequest(syntheticReq, { force: true });
+        const refreshedPromise = refreshed.promises.find((item) => item.promiseId === promise.promiseId) || promise;
+        const aligned = ['matched', 'aligned-amended'].includes(refreshedPromise.matchState);
+        const row = await appendVersionedActiveLoopEvent({
+            promiseId: promise.promiseId,
+            contractId: promise.contractId,
+            type: 'recheck-completed',
+            actorId: activeLoopActor(req),
+            expectedVersion: started.nextVersion,
+            payload: { aligned, matchState: refreshedPromise.matchState, missingProof: aligned ? '' : refreshedPromise.proofAge?.copy || 'Required Jira proof is still missing.', checkedAt: new Date().toISOString() },
+        });
+        const finalAnswer = await assembleActiveLoopAnswerForRequest(syntheticReq);
+        return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, transition: aligned ? 'resolved-matched' : 'reply-received-proof-still-missing', aligned, matchState: refreshedPromise.matchState, missingProof: row.payload.missingProof, version: row.nextVersion, storyVersion: finalAnswer.answerVersion, promisePatch: finalAnswer.promises.find((item) => item.promiseId === promise.promiseId) || null, squadPatch: finalAnswer.squads.find((item) => item.squad === promise.squad) || null });
+    } catch (err) {
+        if (started && promise) {
+            try {
+                await appendVersionedActiveLoopEvent({ promiseId: promise.promiseId, contractId: promise.contractId, type: 'recheck-failed', actorId: activeLoopActor(req), expectedVersion: started.nextVersion, payload: { error: String(err?.message || 'Targeted evidence refresh failed').slice(0, 500), failedAt: new Date().toISOString() } });
+            } catch (_) { /* Preserve the original refresh failure and never claim completion. */ }
+        }
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'RECHECK_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/integrations/jira/webhooks', async (req, res) => {
+    const configuredSecret = String(process.env.JIRA_WEBHOOK_SECRET || '').trim();
+    if (configuredSecret && String(req.headers['x-delivera-webhook-secret'] || '') !== configuredSecret) {
+        return res.status(401).json({ error: 'Invalid webhook secret', code: 'INVALID_WEBHOOK_SECRET' });
+    }
+    const webhookId = String(req.headers['x-atlassian-webhook-identifier'] || req.body?.webhookId || '').trim();
+    if (webhookId) {
+        const dedupeKey = `jira-webhook:${webhookId}`;
+        const prior = await cache.get(dedupeKey, { namespace: 'jiraWebhookDedupe' });
+        if (prior) return res.status(202).json({ accepted: true, duplicate: true, webhookId });
+        await cache.set(dedupeKey, { processedAt: new Date().toISOString() }, 24 * 60 * 60 * 1000, { namespace: 'jiraWebhookDedupe' });
+    }
+    try {
+        const result = await ingestJiraGovernanceWebhook(req.body || {}, {
+            webhookId,
+            onDirtyFlush: async ({ scopeKey }) => {
+                const project = String(scopeKey || '').split('|')[0].toUpperCase();
+                if (!project || project === 'UNKNOWN') return;
+                const syntheticReq = Object.assign(Object.create(req), { query: { projects: project }, body: { projects: [project] } });
+                await assembleActiveLoopAnswerForRequest(syntheticReq, { force: true }).catch((error) => logger.warn('targeted governance recompute failed', { project, error: error?.message }));
+            },
+        });
+        return res.status(202).json(result);
+    } catch (err) {
+        logger.warn('Jira governance webhook failed', { webhookId, error: err?.message });
+        return res.status(500).json({ error: 'Webhook processing failed', code: 'JIRA_WEBHOOK_FAILED' });
+    }
+});
+
+router.post('/api/integrations/teams/notifications', async (req, res) => {
+    if (req.query?.validationToken) return res.type('text/plain').send(String(req.query.validationToken));
+    const expectedState = String(process.env.TEAMS_WEBHOOK_CLIENT_STATE || '').trim();
+    const notifications = Array.isArray(req.body?.value) ? req.body.value : [req.body || {}];
+    if (expectedState && notifications.some((item) => String(item.clientState || '') !== expectedState)) {
+        return res.status(401).json({ error: 'Invalid Teams client state', code: 'INVALID_TEAMS_CLIENT_STATE' });
+    }
+    try {
+        const results = [];
+        for (const notification of notifications.slice(0, 100)) results.push(await ingestTeamsGovernanceNotification(notification));
+        return res.status(202).json({ accepted: true, results });
+    } catch (err) {
+        logger.warn('Teams governance notification failed', { error: err?.message });
+        return res.status(500).json({ error: 'Teams notification processing failed', code: 'TEAMS_NOTIFICATION_FAILED' });
+    }
+});
+
 router.post('/api/governance/narration-feedback', requireAuth, async (req, res) => {
     try {
         const body = req.body || {};
@@ -1556,7 +1983,7 @@ router.get('/api/governance/inbox.json', requireAuth, async (req, res) => {
         const project = projects[0] || null;
         let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
         if (!items.length) {
-            const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+            const cacheKey = governanceBriefCacheKey(projects);
             const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
             const cachedBrief = cached?.value || cached;
             if (cachedBrief?.briefId) {
@@ -1718,7 +2145,7 @@ router.get('/api/governance/worker-receipt.json', requireAuth, async (req, res) 
         const jobs = await readRecentJobs({ project, limit: 5 });
         let items = await readPendingInboxItems({ project, maxAgeHours: 168 });
         const grouped = groupInboxByType(items);
-        const cacheKey = `${GOVERNANCE_NS}:${projects.join(',')}:e1:p1`;
+        const cacheKey = governanceBriefCacheKey(projects);
         const cached = await cache.get(cacheKey, { namespace: GOVERNANCE_NS });
         const brief = cached?.value || cached || {};
         const workerReceipt = await buildWorkerReceipt(brief, grouped, jobs);

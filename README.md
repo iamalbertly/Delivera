@@ -91,6 +91,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 |---------|-----|
 | `npm run build:css` | Compile `public/css/*` → `public/styles.css` |
 | `npm run check:css` | Fail if `styles.css` is out of sync |
+| `npm run test:journey:governance-active-loop` | Fail-fast active PI contract loop: cache, evidence, actions, concurrency, logs, accessibility |
 | `npm run validate:jira-env` | Probe Jira `/myself` with `.env` |
 | `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |

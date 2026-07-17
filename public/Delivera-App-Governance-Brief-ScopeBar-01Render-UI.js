@@ -7,7 +7,7 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { govPage } from './Delivera-Governance-Brief-Page-01Context.js';
 import { setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js';
 import { invalidateBriefCacheEntry, normalizeProjectsCsv } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
-import { defaultSelectedKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
+import { defaultSelectedKeys, readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';
 import { COPY, isSimpleMode, simpleStatusLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
@@ -30,6 +30,11 @@ const PERIOD_OPTIONS = [
 ];
 
 function readProjects() {
+  try {
+    const direct = new URLSearchParams(window.location.search).get('projects');
+    if (direct) return direct.split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
+    if (document.body?.classList?.contains('governance-page')) return readCatalogKeys();
+  } catch (_) { /* server/tests */ }
   try {
     if (localStorage.getItem(PROJECTS_SSOT_KEY) === '') return [];
   } catch (_) { /* ignore */ }

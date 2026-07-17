@@ -42,6 +42,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
+import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js';
 
 const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
@@ -300,6 +301,9 @@ export async function loadBrief(options = {}) {
   const requested = projectsCsv();
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
   const periodWindow = govPage.scopeBarApi?.getPeriodWindow?.() || '28d';
+  // The active PI answer is an independent, cache-first read model. It must
+  // paint even when the heavier legacy brief is unavailable or scope-limited.
+  void loadActiveGovernanceLoop({ projects: requested, quarter, force });
   const pk = requested.split(',')[0] || 'MPSA';
   const preserve = hasGovernanceBriefContent();
   const switchingScope = preserve && govPage.lastBrief && !briefMatchesProjects(govPage.lastBrief, requested);
