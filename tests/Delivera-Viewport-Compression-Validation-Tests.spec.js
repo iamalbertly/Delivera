@@ -2,6 +2,7 @@ import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validat
 import {
   assertTelemetryClean,
   captureBrowserTelemetry,
+  routeDeterministicCurrentSprint,
   runDefaultPreview,
   skipIfRedirectedToLogin,
 } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
@@ -97,8 +98,9 @@ test.describe('Viewport compression and layering', () => {
   test('current sprint top area compresses actions and collapses sprint switching', async ({ page }) => {
     test.setTimeout(120000);
     const telemetry = captureBrowserTelemetry(page);
+    await routeDeterministicCurrentSprint(page);
     await page.setViewportSize({ width: 1600, height: 900 });
-    await page.goto('/current-sprint');
+    await page.goto('/current-sprint?projects=SD&boardId=1');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await page.waitForSelector('#board-select', { state: 'visible', timeout: 15000 }).catch(() => null);
@@ -170,7 +172,8 @@ test.describe('Viewport compression and layering', () => {
 
   test('current sprint scope keeps jump box merged into the same compact control row', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    await page.goto('/current-sprint');
+    await routeDeterministicCurrentSprint(page);
+    await page.goto('/current-sprint?projects=SD&boardId=1');
     if (await skipIfRedirectedToLogin(page, test, { currentSprint: true })) return;
 
     await page.waitForSelector('#current-sprint-projects', { timeout: 15000 }).catch(() => null);
