@@ -94,7 +94,11 @@ test.describe('Value retention master plan realtime validation', () => {
   test('@focused value-retention master plan contracts', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.addInitScript((projectsKey) => {
-      try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
+      try {
+        localStorage.setItem(projectsKey, 'SD,DMS');
+        localStorage.setItem('delivera.boardId.v1', '1');
+        localStorage.setItem('delivera.report.context.v1', JSON.stringify({ projects: ['SD'], boardId: 1, boardName: 'SD board' }));
+      } catch (_) {}
     }, PROJECTS_SSOT_KEY);
 
     await page.route(/\/api\/governance-brief\.json/, async (route) => {
@@ -357,7 +361,7 @@ test.describe('Value retention master plan realtime validation', () => {
 
     await test.step('17 desktop 1024 sprint stories and cockpit side by side', async () => {
       await page.setViewportSize({ width: 1024, height: 768 });
-      await page.goto('/current-sprint');
+      await page.goto('/current-sprint?projects=SD&boardId=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       const sideBySide = await page.evaluate(() => {
         const stories = document.querySelector('.sprint-cards-column');
