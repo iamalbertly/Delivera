@@ -78,7 +78,7 @@ async function stubGovernanceBrief(page, overrides = {}) {
   });
 }
 
-async function gotoGovernanceFresh(page, path = '/governance?refresh=1') {
+async function gotoGovernanceFresh(page, path = '/governance?projects=SD,DMS&refresh=1') {
   await clearBriefClientCache(page);
   const briefWait = page.waitForResponse(
     (res) => res.url().includes('/api/governance-brief.json') && res.ok(),
@@ -99,6 +99,12 @@ test.describe('Value retention master plan realtime validation', () => {
 
     await page.route(/\/api\/governance-brief\.json/, async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: stubRetentionBrief() });
+    });
+    // This suite validates the one-release legacy retention adapter. The v2
+    // meeting journey has its own priority-zero contract and must not mask the
+    // legacy surfaces under test with a live, unrelated portfolio projection.
+    await page.route(/\/api\/governance\/active-loop\.json/, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     });
     await page.route(/\/api\/governance\/inbox\.json/, async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ nudges: [], confirm: [], briefs: [], piDrift: [], impact: [], poReadiness: [] }) });
@@ -138,7 +144,7 @@ test.describe('Value retention master plan realtime validation', () => {
     });
 
     await test.step('01 improve delivera button in top chrome', async () => {
-      await page.goto('/governance');
+      await gotoGovernanceFresh(page, '/governance?projects=SD,DMS&refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-top-action="improve-delivera"]')).toHaveCount(1);
       assertTelemetryClean(telemetry);
@@ -154,7 +160,7 @@ test.describe('Value retention master plan realtime validation', () => {
     });
 
     await test.step('03 portfolio banner shows behind count', async () => {
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD,DMS');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-portfolio-banner]')).toContainText(/behind PI/i);
       assertTelemetryClean(telemetry);
@@ -180,10 +186,14 @@ test.describe('Value retention master plan realtime validation', () => {
     });
 
     await test.step('07 period chip persists after reload', async () => {
-      await page.locator('[data-period-chip="14d"]').click({ force: true });
+      const periodChip = page.locator('[data-period-chip="14d"]');
+      if (!await periodChip.isVisible()) await page.locator('#gov-scope-change').click();
+      await expect(periodChip).toBeVisible();
+      await periodChip.click();
       await page.reload();
       if (await skipIfRedirectedToLogin(page, test)) return;
-      await expect(page.locator('[data-period-chip="14d"]')).toHaveClass(/is-on/);
+      if (!await periodChip.isVisible()) await page.locator('#gov-scope-change').click();
+      await expect(periodChip).toHaveClass(/is-on/);
       assertTelemetryClean(telemetry);
     });
 
@@ -212,7 +222,7 @@ test.describe('Value retention master plan realtime validation', () => {
           }),
         });
       });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-tile-detail="SD"]')).toBeVisible({ timeout: 20000 });
       await expect(page.locator('.gov-comparison-refine')).toHaveCount(0);
@@ -238,13 +248,15 @@ test.describe('Value retention master plan realtime validation', () => {
           }),
         });
       });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD,DMS');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      if (!await page.locator('[data-investment-open]').isVisible()) await page.locator('#gov-scope-change').click();
       await page.locator('[data-investment-open]').click();
       await expect(page.locator('[data-drawer-tab="investment"]')).toBeVisible({ timeout: 10000 });
       await page.locator('[data-drawer-tab="investment"]').click();
       await expect(page.locator('[data-investment-row="pi"]')).toBeVisible();
-      await expect(page.locator('[data-investment-row="pi"] strong')).toContainText(/partial/i);
+      await expect(page.locator('[data-investment-row="pi"] strong')).toHaveText(/^\d+h$/);
+      await expect(page.locator('[data-drawer-panel="investment"]')).toContainText(/not payroll/i);
       assertTelemetryClean(telemetry);
     });
 
@@ -254,6 +266,7 @@ test.describe('Value retention master plan realtime validation', () => {
       });
       await page.reload();
       if (await skipIfRedirectedToLogin(page, test)) return;
+      if (!await page.locator('[data-investment-open]').isVisible()) await page.locator('#gov-scope-change').click();
       await page.locator('[data-investment-open]').click();
       await expect(page.locator('[data-drawer-tab="investment"]')).toHaveClass(/is-active/);
       await expect(page.locator('[data-drawer-panel="investment"]')).toHaveClass(/is-active/);
@@ -271,9 +284,10 @@ test.describe('Value retention master plan realtime validation', () => {
           }),
         });
       });
-      await page.goto('/governance');
+      await gotoGovernanceFresh(page, '/governance?projects=SD,DMS&refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-portfolio-banner]')).toContainText(/stale/i);
+      if (!await page.locator('.gov-period-chip.is-on').isVisible()) await page.locator('#gov-scope-change').click();
       await expect(page.locator('.gov-period-chip.is-on')).toBeVisible();
       await page.locator('[data-heat-tile="SD"]').click();
       await page.locator('[data-squad-nudge="SD"]').click({ force: true });
@@ -319,7 +333,7 @@ test.describe('Value retention master plan realtime validation', () => {
         try { localStorage.setItem(projectsKey, 'SD,DMS'); } catch (_) {}
       }, PROJECTS_SSOT_KEY);
       await stubGovernanceBrief(page);
-      await gotoGovernanceFresh(page, '/governance?refresh=1');
+      await gotoGovernanceFresh(page, '/governance?projects=SD,DMS&refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
       const gridActive = await page.evaluate(() => {
@@ -393,10 +407,11 @@ test.describe('Value retention master plan realtime validation', () => {
           sessionStorage.removeItem('delivera:brief:cache:v1');
         } catch (_) {}
       });
-      await page.goto('/governance?refresh=1');
+      await page.goto('/governance?projects=SD,DMS&refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      if (!await page.locator('[data-period-chip="14d"]').isVisible()) await page.locator('#gov-scope-change').click();
       await expect(page.locator('.gov-period-chip.is-on')).toContainText(/28d/i);
-      await page.locator('[data-period-chip="14d"]').click({ force: true });
+      await page.locator('[data-period-chip="14d"]').click();
       await expect(page.locator('.gov-period-chip.is-on')).toContainText(/14d/i, { timeout: 15000 });
       assertTelemetryClean(telemetry);
     });
@@ -415,7 +430,7 @@ test.describe('Value retention master plan realtime validation', () => {
       await page.evaluate(() => {
         try { sessionStorage.removeItem('delivera:brief:cache:v1'); } catch (_) {}
       });
-      await page.goto('/governance?refresh=1');
+      await page.goto('/governance?projects=SD,DMS&refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await page.evaluate(() => { try { window.__deliveraCurrentSprintPayload = null; } catch (_) {} });
       await page.locator('[data-heat-tile="SD"]').click();
@@ -435,7 +450,7 @@ test.describe('Value retention master plan realtime validation', () => {
           status: 200,
           contentType: 'application/json',
           body: stubRetentionBrief({
-            projects: ['SD'],
+            projects: ['SD', 'DMS'],
             portfolioRollup: { summaryLine: 'Out of 1 squads · on track', behindPiCount: 0 },
             squadInsights: [
               {
@@ -459,8 +474,9 @@ test.describe('Value retention master plan realtime validation', () => {
       await page.evaluate(() => {
         try { sessionStorage.removeItem('delivera:brief:cache:v1'); } catch (_) {}
       });
-      await page.goto('/governance?refresh=1');
+      await page.goto('/governance?projects=SD,DMS&refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
+      if (!await page.locator('[data-investment-open]').isVisible()) await page.locator('#gov-scope-change').click();
       await page.locator('[data-investment-open]').click();
       await page.locator('[data-drawer-tab="investment"]').click();
       await expect(page.locator('[data-investment-row="pi"] strong')).toContainText(/0h/);
@@ -492,7 +508,7 @@ test.describe('Value retention master plan realtime validation', () => {
       await page.route(/\/api\/governance-brief\.json/, async (route) => {
         await route.fulfill({ status: 200, contentType: 'application/json', body: stubRetentionBrief() });
       });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD,DMS');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await page.locator('[data-heat-tile="SD"]').click();
       await page.locator('[data-proof-squad="SD"]').click();
@@ -503,7 +519,7 @@ test.describe('Value retention master plan realtime validation', () => {
 
     await test.step('23 sidebar open keeps desktop two-column grid E6', async () => {
       await page.setViewportSize({ width: 1280, height: 768 });
-      await gotoGovernanceFresh(page, '/governance');
+      await gotoGovernanceFresh(page, '/governance?projects=SD,DMS&refresh=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
       await page.evaluate(() => document.body.classList.add('sidebar-open'));
