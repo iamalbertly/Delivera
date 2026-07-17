@@ -16,6 +16,23 @@ export const PROJECT_CATALOG = [
   { key: 'BIO', label: 'Bio metric KYC & KYA', defaultSelected: false },
 ];
 
+let catalogRequest = null;
+
+export async function loadProjectCatalog() {
+  if (!catalogRequest) {
+    catalogRequest = fetch('/api/projects-catalog.json', { credentials: 'same-origin' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((body) => Array.isArray(body?.projects) && body.projects.length ? body.projects : PROJECT_CATALOG)
+      .catch(() => PROJECT_CATALOG);
+  }
+  return catalogRequest;
+}
+
+export function projectDisplayName(key, catalog = PROJECT_CATALOG) {
+  const normalized = String(key || '').trim().toUpperCase();
+  return catalog.find((entry) => entry.key === normalized)?.label || normalized;
+}
+
 export function readCatalogKeys() {
   return PROJECT_CATALOG.map((p) => p.key);
 }

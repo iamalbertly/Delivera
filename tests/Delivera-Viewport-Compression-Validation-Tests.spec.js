@@ -122,6 +122,7 @@ test.describe('Viewport compression and layering', () => {
     await expect(page.locator('#stories-card')).toBeVisible();
     const sprintChrome = page.locator('.current-sprint-advanced-controls, .sprint-switcher-card-inline').first();
     await expect(sprintChrome).toBeVisible();
+    await expect(page.locator('.sprint-switcher-card-inline')).not.toHaveAttribute('open', /./);
     const advancedControls = page.locator('.current-sprint-advanced-controls');
     if (await advancedControls.count()) {
       await expect(advancedControls).not.toHaveAttribute('open', /./);

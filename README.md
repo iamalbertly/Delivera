@@ -59,6 +59,9 @@ Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **A
 - **Server-prepared truth:** `/api/governance/active-loop.json` serves Layer 1; squad and promise detail routes serve Layer 2. The browser renders, filters, and reveals the story but does not calculate Promise Match, Work Split, Proof Age, ranking, ownership, rework, or action eligibility.
 - **Five bands:** Portfolio Answer → Squad Comparison → Synchronized Squad Spotlight → Resolution Drawer → Action Trail. Schema v2 suppresses the legacy comparison-card wall and duplicate action rails.
 - **Deterministic evidence:** Promise Match, Work Split, Proof Age, Possible Rework, Unknown clustering, baseline coverage, owner routing, and stable risk order are rule-based. AI may simplify wording only.
+- **Layered truth:** each squad row separates PI contract coverage, sprint cadence, Doing Instead, proof freshness, next action, and a plain trust factor. Missing evidence lowers trust; it never becomes a delivery accusation.
+- **Board identity:** governed board aliases are resolved once and reused by Governance, Current Sprint, Report, catalog selectors, Spotlight, drawers, and previews. Raw Jira keys remain evidence identifiers, not the primary meeting label.
+- **Operating-model firewall:** deterministic evidence can keep operational groups out of PI risk totals while leaving them reviewable. A PI-governed squad with heavy support demand remains in the contract totals and shows that load separately.
 - **Conservative rework:** “Possible rework” requires at least two strong evidence paths. Weak reopenings, title similarity, minor corrections, and epic splits stay out of risk totals.
 - **Source-safe writes:** local receipt → queued → source pending → source confirmed or failed → projection reconciled. Jira-dependent decisions never turn green before Jira confirms them. All writes carry optimistic version, squad hash, actor, target, idempotency key, retry state, audit evidence, and correction path.
 - **Meeting continuity:** spotlight, lens, drawer draft, focus/popover, and scroll anchor remain stable during refresh. Same-item changes require review; unrelated squad changes do not replace active work.
@@ -66,7 +69,7 @@ Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **A
 - **Durability:** Redis is mandatory for production ledgers, hashes, streams, leases, and idempotency. JSONL/memory are local-development fallbacks only; production writes fail closed.
 - **Diagnostics:** normal users see only a subdued UAT version control. Authorized UAT diagnostics open by double-click/double-tap, keyboard activation, or `Alt+Shift+D`; `/healthz` remains the deploy probe.
 
-Primary validation: `npm run test:journey:governance-active-loop`. Tests fail fast on browser exceptions, console/API/server errors, false source confirmation, stale writes, duplicate jobs, accessibility regressions, and meeting-state discontinuity.
+Primary release validation: `npm run test:governance:release`. It runs exactly five risk-ranked, fail-fast scenarios: source-write truth, Layer 1 value, synchronized Spotlight, refresh continuity, and the previously failed sprint-fold viewport contract. The broader journey remains available as `npm run test:journey:governance-active-loop`; pull requests use the five-scenario gate and protected-branch integration retains the full regression.
 
 ## Quickstart
 
@@ -108,6 +111,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run build:css` | Compile `public/css/*` → `public/styles.css` |
 | `npm run check:css` | Fail if `styles.css` is out of sync |
 | `npm run test:journey:governance-active-loop` | Fail-fast active PI contract loop: cache, evidence, actions, concurrency, logs, accessibility |
+| `npm run test:governance:release` | Five risk-ranked meeting-safe release scenarios, fail-fast |
 | `npm run validate:jira-env` | Probe Jira `/myself` with `.env` |
 | `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |

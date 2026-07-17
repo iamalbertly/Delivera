@@ -904,10 +904,12 @@ router.get('/api/default-window', requireAuth, (req, res) => {
 router.get('/api/projects-catalog.json', requireAuth, async (req, res) => {
     try {
         const accessMap = await getAccessMap();
-        const projects = PROJECT_CATALOG.map((entry) => {
+        const profiles = await Promise.all(PROJECT_CATALOG.map((entry) => resolveEffectiveGovernanceProfile({ project: entry.key, userId: req.session?.user || null })));
+        const projects = PROJECT_CATALOG.map((entry, index) => {
             const row = accessMap.get(entry.key);
             return {
                 ...entry,
+                label: profiles[index]?.boardAliases?.[entry.key] || entry.label,
                 accessible: row?.accessible ?? null,
                 lastChecked: row?.lastChecked ?? null,
             };
@@ -1575,11 +1577,18 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
         const cacheKey = governanceBriefCacheKey(projects);
         await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
     }
-    const [{ brief }, baseline, events] = await Promise.all([
+    const [{ brief: rawBrief }, baseline, events, profiles] = await Promise.all([
         getOrBuildGovernanceBrief({ projects, req }),
         resolveActiveLoopBaseline(projects, req.query?.quarter || req.body?.quarter || ''),
         readActiveLoopEvents({ limit: 5000 }),
+        Promise.all(projects.map((project) => resolveEffectiveGovernanceProfile({ project, portfolioKey: projects.join('+'), userId: req.session?.user || null }))),
     ]);
+    const boardAliases = Object.fromEntries(projects.map((project, index) => [
+        project,
+        profiles[index]?.boardAliases?.[project] || PROJECT_CATALOG.find((entry) => entry.key === project)?.label || project,
+    ]));
+    const operatingModels = Object.fromEntries(projects.map((project, index) => [project, profiles[index]?.operatingModels?.[project] || '']).filter(([, value]) => value));
+    const brief = { ...rawBrief, meta: { ...(rawBrief?.meta || {}), boardAliases, operatingModels } };
     const caseState = projectActiveLoopCases(events);
     const answer = buildActiveGovernanceAnswer({ brief, baseline, caseState });
     const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || req.body?.quarter || '');
@@ -1605,7 +1614,11 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
         const warmStory = readWarmGovernanceStory(storyKey);
         const hit = warmStory ? null : await cache.get(storyKey, { namespace: 'governanceStoryV2' });
         const candidateStory = warmStory || hit?.value || hit;
-        const cachedStory = candidateStory?.lensSummaries && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash) ? candidateStory : null;
+        const cachedStory = candidateStory?.lensSummaries
+            && Array.isArray(candidateStory?.excludedOperationalGroups)
+            && candidateStory?.decisionCoverage
+            && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash && squad.displayName && squad.contractState && squad.trustFactor)
+            ? candidateStory : null;
         const answer = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req));
         rememberWarmGovernanceStory(storyKey, answer);
         res.setHeader('ETag', `"${answer.answerVersion}"`);
@@ -1642,7 +1655,7 @@ router.get('/api/governance/squads/:squadKey/detail.json', requireAuth, async (r
     try {
         const squadKey = String(req.params.squadKey || '').trim().toUpperCase();
         const answer = await cachedActiveLoopDetailForRequest(req);
-        const squad = answer.squads.find((item) => item.squad === squadKey);
+        const squad = [...(answer.squads || []), ...(answer.excludedOperationalGroups || [])].find((item) => item.squad === squadKey);
         if (!squad) return res.status(404).json({ error: 'Squad not found', code: 'SQUAD_NOT_FOUND' });
         return res.json({ schemaVersion: 2, storyVersion: answer.answerVersion, squadPayloadHash: squad.payloadHash, squad, promises: answer.promises.filter((item) => item.squad === squadKey), currentWork: squad.doingInstead?.clusters || [], unknownWork: squad.unknownWork, possibleRework: squad.possibleRework, sprintReality: squad.sprintReality, workSplit: squad.workSplit });
     } catch (err) {

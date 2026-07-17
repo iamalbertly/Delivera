@@ -232,7 +232,7 @@ test.describe('Active PI governance realtime value journey @focused', () => {
     await test.step('06 every squad remains visible and calm', async () => expect(hero.locator('[data-loop-squad]')).toHaveCount(4));
     await test.step('07 risk squad exposes baseline variance', async () => expect(hero.locator('[data-loop-squad="DMS"]')).toContainText('2 no-proof promises'));
     await test.step('08 aligned squad remains present', async () => expect(hero.locator('[data-loop-squad="AMS"]')).toContainText('aligned'));
-    await test.step('09 loop coverage rewards explicit decisions without ranking squads', async () => expect(hero.locator('.gov-loop-progress')).toContainText('Loop coverage'));
+    await test.step('09 decision coverage rewards explicit closure without ranking squads', async () => expect(hero.locator('.gov-loop-progress')).toContainText('Decision coverage'));
     await test.step('10 duplicate legacy hero is removed from the visible journey', async () => expect(page.locator('#gov-verdict-mount')).toBeHidden());
     await test.step('11 duplicate owner/action rails are removed', async () => expect(page.locator('#gov-action-clusters-mount')).toBeHidden());
     await test.step('12 heavy proof remains progressively disclosed', async () => expect(page.locator('#gov-supporting-evidence')).not.toHaveAttribute('open', ''));
