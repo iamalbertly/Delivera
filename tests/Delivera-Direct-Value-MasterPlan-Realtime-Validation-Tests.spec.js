@@ -70,6 +70,16 @@ test.describe('Direct value master plan realtime validation', () => {
     await page.route(/\/api\/governance\/feedback-summary\.json/, async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     });
+    await page.route(/\/api\/boards\.json/, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD', projectKeys: ['SD'] }], projectErrors: [] }) });
+    });
+    await page.route(/\/api\/current-sprint\.json/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ board: { id: 1, name: 'SD board', projectKeys: ['SD'] }, sprint: { id: 1, name: 'Sprint 1', state: 'active' }, summary: { totalStories: 1, doneStories: 0 }, stories: [{ issueKey: 'SD-1', summary: 'Stuck item', status: 'In Progress' }], stuckCandidates: [] }),
+      });
+    });
 
     await test.step('01 governance answer surface loads', async () => {
       await page.goto('/governance?projects=SD');
