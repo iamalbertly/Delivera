@@ -510,6 +510,12 @@ export async function routeDeterministicCurrentSprint(page, overrides = {}) {
       state: 'closed',
       startDate: '2026-06-29T00:00:00.000Z',
       endDate: '2026-07-10T00:00:00.000Z',
+    }, {
+      id: 4,
+      name: 'Sprint -1',
+      state: 'closed',
+      startDate: '2026-06-15T00:00:00.000Z',
+      endDate: '2026-06-26T00:00:00.000Z',
     }],
     nextSprint: {
       id: 3,
