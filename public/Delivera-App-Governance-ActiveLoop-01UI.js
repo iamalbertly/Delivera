@@ -1,18 +1,23 @@
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { openRightDrawer, closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';
 
-const CACHE_PREFIX = 'delivera:governance:active-loop:v2';
+const CACHE_PREFIX = 'delivera:governance:active-loop:v2:20260717a';
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const sharedStoryState = globalThis.__deliveraGovernanceActiveLoopState ||= {
+  activeAnswer: null,
+  pendingAnswer: null,
+  pendingReason: 'New evidence ready.',
+};
 let requestSequence = 0;
-let activeAnswer = null;
-let pendingAnswer = null;
+let activeAnswer = sharedStoryState.activeAnswer;
+let pendingAnswer = sharedStoryState.pendingAnswer;
 let decisionInProgress = false;
 let persistentPreview = null;
 let previewPersistent = false;
 let spotlightKey = '';
 let activeLens = new URL(location.href).searchParams.get('lens') || 'overall';
 let activeDrawerContext = null;
-let pendingReason = 'New evidence ready.';
+let pendingReason = sharedStoryState.pendingReason || 'New evidence ready.';
 
 const lenses = [
   ['overall', 'PI miss risk'],
@@ -45,6 +50,11 @@ function readCachedAnswer(projects, quarter) {
     if (![1, 2].includes(envelope?.answer?.schemaVersion) || !envelope?.savedAt) return null;
     if (envelope.answer.schemaVersion === 2 && (!envelope.answer.decisionCoverage
       || !(envelope.answer.squads || []).every((squad) => squad.displayName && squad.contractState && squad.trustFactor))) return null;
+    if (envelope.answer.schemaVersion === 2) {
+      const checked = Number(String(envelope.answer.sourceLine || '').match(/(\d+)\s+promises?\s+checked/i)?.[1] || 0);
+      const coverageTotal = Number(envelope.answer.decisionCoverage?.total || 0);
+      if (checked > 0 && coverageTotal === 0) return null;
+    }
     if (Date.now() - new Date(envelope.savedAt).getTime() > CACHE_MAX_AGE_MS) return null;
     return { ...envelope.answer, servedFromLocalCache: true };
   } catch (_) { return null; }
@@ -111,6 +121,12 @@ function portfolioMatrix(answer) {
 function renderHero(answer) {
   const mount = document.getElementById('gov-active-loop-mount');
   if (!mount) return;
+  const loading = document.getElementById('gov-loading');
+  if (loading) {
+    loading.hidden = true;
+    loading.setAttribute('aria-hidden', 'true');
+  }
+  document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
   const freshness = currentFreshness(answer);
   const noBaseline = !answer.contract;
   const nextLabel = noBaseline ? 'Recover PI contract' : (answer.nextDecisionPromiseId ? 'Review and decide' : 'Review aligned promises');
@@ -198,6 +214,8 @@ function openPreview(trigger, squad, { persistent = false } = {}) {
   const missing = promises.filter((item) => item.matchState === 'no-jira-proof').length;
   const amended = promises.filter((item) => item.matchState === 'aligned-amended').length;
   pop.innerHTML = `<div class="gov-loop-popover-head"><strong>${escapeHtml(summary.displayName || squad)} · proof preview</strong><button type="button" aria-label="Close proof preview">×</button></div><dl class="gov-proof-preview-grid"><dt>PI contract</dt><dd>${promises.length} commitments · ${matched} matched · ${missing} no proof · ${amended} amended<br><small>${escapeHtml(summary.baselineCoverage?.copy || 'Baseline unavailable')}</small></dd><dt>Sprint cadence</dt><dd>${escapeHtml(summary.sprintCadence?.label || summary.sprintReality?.state || 'Unverified')}<br><small>${escapeHtml(summary.sprintReality?.copy || 'No sprint evidence')}</small></dd><dt>Doing instead</dt><dd>${escapeHtml(summary.doingInstead?.major?.title || summary.unknownWork?.copy || 'No major diversion proven')}<br><small>${escapeHtml(summary.workSplit?.explanation || '')}</small></dd><dt>Proof / next</dt><dd>${escapeHtml(summary.proofState || 'Unknown')}<br><small>${escapeHtml(summary.nextAction?.label || 'Open squad spotlight')}</small></dd><dt>Trust factor</dt><dd>${escapeHtml(summary.trustFactor?.label || 'Limited')}</dd></dl>`;
+  const missingCopy = missing === 1 ? '1 No Jira proof' : `${missing} No Jira proof`;
+  pop.innerHTML = pop.innerHTML.replace(`${missing} no proof`, missingCopy);
   document.body.appendChild(pop);
   const rect = trigger.getBoundingClientRect();
   pop.style.left = `${Math.max(8, Math.min(window.innerWidth - 388, rect.left)) + window.scrollX}px`;
@@ -372,14 +390,16 @@ function announcePending() {
   const banner = document.querySelector('.gov-story-update');
   if (banner) {
     const copy = banner.querySelector('[data-story-update-copy]');
-    if (copy) copy.textContent = pendingReason;
+    if (copy) copy.textContent = sharedStoryState.pendingReason || pendingReason;
     banner.hidden = false;
   }
 }
 
 function applyPendingAnswer() {
-  if (!pendingAnswer) return;
-  const next = pendingAnswer; pendingAnswer = null;
+  const next = pendingAnswer || sharedStoryState.pendingAnswer;
+  if (!next) return;
+  pendingAnswer = null;
+  sharedStoryState.pendingAnswer = null;
   const y = window.scrollY; renderActiveGovernanceLoop(next, { forceApply: true });
   requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'auto' }));
 }
@@ -518,16 +538,19 @@ async function targetedRefresh(scopeType, scopeId, button, container) {
 
 export function renderActiveGovernanceLoop(answer, { forceApply = false } = {}) {
   if (!answer || ![1, 2].includes(answer.schemaVersion) || !answer.answer || !answer.scope || !Array.isArray(answer.squads)) return;
+  activeAnswer ||= sharedStoryState.activeAnswer;
   if (!forceApply && activeAnswer && answer.answerVersion !== activeAnswer.answerVersion && readLocked()) {
     pendingAnswer = answer;
+    sharedStoryState.pendingAnswer = answer;
     const nextSquad = activeDrawerContext ? [...answer.squads, ...(answer.excludedOperationalGroups || [])].find((squad) => squad.squad === activeDrawerContext.squad) : null;
     const nextPromise = activeDrawerContext ? answer.promises?.find((promise) => promise.promiseId === activeDrawerContext.promiseId) : null;
     if (nextPromise && nextPromise.drawerStateHash !== activeDrawerContext.drawerStateHash) pendingReason = 'This squad’s Jira evidence changed. Review changes before saving.';
     else if (nextSquad && nextSquad.payloadHash !== activeDrawerContext?.squadPayloadHash) pendingReason = 'New squad evidence is available. Your active item and edits remain unchanged.';
     else pendingReason = 'New evidence is ready for another squad. Your current meeting view is unchanged.';
+    sharedStoryState.pendingReason = pendingReason;
     announcePending(); return;
   }
-  activeAnswer = answer; renderHero(answer);
+  activeAnswer = answer; sharedStoryState.activeAnswer = answer; renderHero(answer);
 }
 
 export async function loadActiveGovernanceLoop({ projects, quarter = '', force = false } = {}) {
@@ -536,7 +559,13 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
   const qs = new URLSearchParams({ projects: String(projects || '') }); if (quarter) qs.set('quarter', quarter);
   try {
     const res = await fetch(`/api/governance/active-loop.json?${qs}`, { credentials: 'same-origin' }); if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const answer = await res.json(); if (seq !== requestSequence) return null; writeCachedAnswer(projects, quarter, answer); renderActiveGovernanceLoop(answer); return answer;
+    const answer = await res.json(); if (seq !== requestSequence) return null; writeCachedAnswer(projects, quarter, answer); renderActiveGovernanceLoop(answer); window.setTimeout(() => {
+      const loading = document.getElementById('gov-loading');
+      if (loading && document.body.classList.contains('governance-story-v2-ready')) {
+        loading.hidden = true;
+        loading.setAttribute('aria-hidden', 'true');
+      }
+    }, 0); return answer;
   } catch (_) {
     if (!cached && seq === requestSequence) document.getElementById('gov-active-loop-mount').innerHTML = '<section class="gov-active-loop-hero is-limited" role="status"><h1>Last verified PI answer is unavailable.</h1><p>Decisions requiring fresh evidence are paused.</p></section>';
     return cached;

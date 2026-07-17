@@ -140,6 +140,12 @@ router.get('/settings', requireAuth, (req, res) => {
     res.sendFile('settings.html', { root: PUBLIC_ROOT });
 });
 
+// Actions are resolved inside the Governance decision cockpit; keep old/direct links useful without
+// creating a second intervention surface.
+router.get('/actions', requireAuth, (req, res) => {
+    res.redirect(302, '/governance#gov-action-clusters-mount');
+});
+
 /**
  * GET /reports - backward-compatible alias for report page
  */

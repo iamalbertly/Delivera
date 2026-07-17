@@ -42,7 +42,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
-import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js';
+import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260717a';
 
 const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 

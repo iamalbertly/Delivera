@@ -430,7 +430,13 @@ function bindTopChromeInteractions(chrome, current) {
         || document.getElementById('gov-sticky-answer-mount')?.scrollIntoView?.({ behavior: 'smooth' });
       return;
     }
-    window.location.href = '/settings#gov-ai-helper';
+    const actionTarget = document.querySelector('[data-send-top-nudge], [data-action="send-top-nudge-to-jira"], .cs-cockpit-quick-create, .gov-cluster-nudge-primary, #stories-card, #jira-activity');
+    if (actionTarget) {
+      actionTarget.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      actionTarget.focus?.({ preventScroll: true });
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('delivera-gov-scroll-first-action'));
   });
 
   document.addEventListener('click', (e) => {

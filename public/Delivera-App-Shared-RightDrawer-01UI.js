@@ -40,10 +40,12 @@ function bindEscapeOnce() {
 }
 
 export function closeWddModalIfOpen() {
-  const wdd = document.querySelector('.work-draft-drawer:not([hidden]), dialog[data-outcome-modal]:not([hidden])');
-  if (wdd) {
-    wdd.querySelector('[data-close-outcome], [data-wdd-close], button[aria-label="Close"]')?.click?.();
-  }
+  const wdd = document.querySelector('#work-draft-drawer.is-open, .work-draft-drawer:not([hidden]), dialog[data-outcome-modal]:not([hidden])');
+  if (wdd) wdd.querySelector('[data-close-outcome], [data-wdd-close], #wdd-close-btn, button[aria-label="Close"]')?.click?.();
+  document.getElementById('work-draft-drawer')?.classList.remove('is-open');
+  document.getElementById('work-draft-backdrop')?.classList.remove('is-visible');
+  document.body.classList.remove('wdd-panel-open');
+  if (!document.body.classList.contains('gov-right-drawer-open')) document.body.style.overflow = '';
 }
 
 export function closeAllGovernanceOverlays() {

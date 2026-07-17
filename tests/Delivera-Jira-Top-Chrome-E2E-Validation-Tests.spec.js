@@ -51,7 +51,17 @@ test.describe('Jira-style top chrome E2E', () => {
         await page.goto(path);
         if (await skipIfLogin(page)) return;
         await expect(page.locator('#app-top-chrome')).toHaveCount(1);
-        await expect(page.locator('[data-top-action="create-work"]')).toBeVisible();
+        if (path === '/governance') {
+          await expect(page.locator('body')).toHaveClass(/chrome-suppress-page-create/);
+          const bodyClass = await page.locator('body').getAttribute('class');
+          if (String(bodyClass || '').includes('governance-story-v2-ready')) {
+            await expect(page.locator('[data-top-action="create-work"]')).toBeHidden();
+          } else {
+            await expect(page.locator('[data-top-action="create-work"]')).toBeVisible();
+          }
+        } else {
+          await expect(page.locator('[data-top-action="create-work"]')).toBeVisible();
+        }
         await expect(page.locator('[data-top-action="settings"]')).toBeVisible();
       });
     }
@@ -169,10 +179,9 @@ test.describe('Jira-style top chrome E2E', () => {
     expect(overlap.overlaps, JSON.stringify(overlap.overlaps)).toEqual([]);
 
     await page.locator('#app-top-search').focus();
-    await expect(searchWrap).not.toHaveClass(/is-collapsed/);
-    await expect(page.locator('body')).toHaveClass(/top-search-active/);
+    await expect(searchWrap).toHaveClass(/is-collapsed/);
 
-    const expandedOverlap = await getLayoutOverlapReport(page, {
+    const focusedOverlap = await getLayoutOverlapReport(page, {
       selectors: [
         '#app-top-chrome .app-top-search-wrap',
         '#gov-scope-bar-mount',
@@ -180,8 +189,8 @@ test.describe('Jira-style top chrome E2E', () => {
       ],
       maxPairs: 16,
     });
-    expect(expandedOverlap.truncated).toBeFalsy();
-    expect(expandedOverlap.overlaps, JSON.stringify(expandedOverlap.overlaps)).toEqual([]);
+    expect(focusedOverlap.truncated).toBeFalsy();
+    expect(focusedOverlap.overlaps, JSON.stringify(focusedOverlap.overlaps)).toEqual([]);
 
     assertTelemetryClean(telemetry);
   });
