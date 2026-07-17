@@ -504,8 +504,20 @@ export async function routeDeterministicCurrentSprint(page, overrides = {}) {
     scopeChanges: [],
     dailyCompletions: { stories: [], subtasks: [] },
     subtaskTracking: { rows: [], subtasks: [] },
-    recentSprints: [],
-    nextSprint: null,
+    recentSprints: [{
+      id: 2,
+      name: 'Sprint 0',
+      state: 'closed',
+      startDate: '2026-06-29T00:00:00.000Z',
+      endDate: '2026-07-10T00:00:00.000Z',
+    }],
+    nextSprint: {
+      id: 3,
+      name: 'Sprint 2',
+      state: 'future',
+      startDate: '2026-07-27T00:00:00.000Z',
+      endDate: '2026-08-07T00:00:00.000Z',
+    },
     ...overrides,
   };
 
@@ -527,7 +539,7 @@ export async function routeDeterministicCurrentSprint(page, overrides = {}) {
   await page.route('**/api/sprints**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ sprints: [] }),
+    body: JSON.stringify({ sprints: [payload.sprint, ...payload.recentSprints, payload.nextSprint].filter(Boolean) }),
   }));
 }
 
