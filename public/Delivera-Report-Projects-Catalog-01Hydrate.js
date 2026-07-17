@@ -1,16 +1,17 @@
 /**
  * Hydrate Report project checkboxes from shared catalog SSOT.
  */
-import { PROJECT_CATALOG } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
+import { loadProjectCatalog } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 function slugKey(key) {
   return String(key || '').trim().toLowerCase();
 }
 
-export function hydrateReportProjectCheckboxes() {
+export async function hydrateReportProjectCheckboxes() {
   const host = document.querySelector('.filter-group-who');
   if (!host) return;
+  const catalog = await loadProjectCatalog();
   const tools = host.querySelector('.project-tools');
   const labelEl = host.querySelector('.project-group-label');
   let stored = [];
@@ -27,7 +28,7 @@ export function hydrateReportProjectCheckboxes() {
   } else {
     mount.innerHTML = '';
   }
-  for (const entry of PROJECT_CATALOG) {
+  for (const entry of catalog) {
     const pk = entry.key;
     const checked = stored.length
       ? stored.includes(pk)
@@ -36,7 +37,7 @@ export function hydrateReportProjectCheckboxes() {
     row.className = 'checkbox-label';
     row.innerHTML = `
       <input type="checkbox" id="project-${slugKey(pk)}" class="project-checkbox" data-project="${pk}"${checked ? ' checked' : ''} />
-      <span class="project-code">${pk}</span>
+      <span class="project-code sr-only" aria-hidden="true">${pk}</span>
       <span class="project-desc">${entry.label}</span>`;
     mount.appendChild(row);
   }

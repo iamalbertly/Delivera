@@ -62,6 +62,9 @@ async function mockLayoutGovernancePage(page) {
     sessionStorage.setItem('gov-pi-auto-open-dismissed', '1');
   });
   await routeProjectsCatalog(page);
+  // This layout bundle owns the one-release legacy adapter. Schema-v2 layout
+  // and density are covered by the Active Governance priority-zero journey.
+  await page.route('**/api/governance/active-loop.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
   await page.route('**/api/governance-brief.json**', (r) => r.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(LAYOUT_BRIEF),
   }));
@@ -106,19 +109,20 @@ test.describe('Governance layout overlap audit', () => {
       const telemetry = captureBrowserTelemetry(page);
       await mockLayoutGovernancePage(page);
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
 
       await page.waitForFunction(() => (
         document.querySelector('.gov-owner-cluster')
         || document.querySelector('.gov-visual-answer-blocks')
         || document.querySelector('.gov-command-answer')
+        || document.querySelector('[data-testid="governance-active-loop"]')
       ), { timeout: 15000 });
       const hasOwnerCluster = await page.locator('.gov-owner-cluster').count() > 0;
       if (hasOwnerCluster && vp.width <= 768) {
         await expect(page.locator('.gov-owner-cluster').first()).toBeVisible();
       } else {
-        await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible();
+        await expect(page.locator('[data-testid="governance-active-loop"], .gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible();
       }
 
       const clipping = await getViewportClippingReport(page, {
@@ -191,10 +195,10 @@ test.describe('Governance layout overlap audit', () => {
       body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD' }], projectErrors: [] }),
     }));
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#gov-loading')).toBeVisible({ timeout: 2000 });
-    await expect(page.locator('.gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="governance-active-loop"], [data-gov-brief-state="content"], .gov-command-answer, .gov-visual-answer-blocks').first()).toBeVisible({ timeout: 15000 });
     await expect(page.locator('#gov-loading')).toBeHidden();
     assertTelemetryClean(telemetry);
   });
@@ -203,7 +207,7 @@ test.describe('Governance layout overlap audit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 1280, height: 1024 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -220,7 +224,7 @@ test.describe('Governance layout overlap audit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await expect(page.locator('#gov-right-rail-mount[data-right-rail-has-queue="true"]')).toBeVisible();
@@ -234,7 +238,7 @@ test.describe('Governance layout overlap audit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#main-content[data-gov-brief-state="content"]')).toBeVisible({ timeout: 20000 });
 
@@ -254,7 +258,7 @@ test.describe('Governance layout overlap audit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await openGovernanceDetailsPanel(page, 'gov-secondary-chrome');
@@ -276,7 +280,7 @@ test.describe('Governance layout overlap audit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     const cluster = page.locator('.gov-owner-cluster').first();
@@ -309,7 +313,7 @@ test.describe('Governance layout overlap audit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await expect(page.locator('.gov-owner-cluster')).toBeVisible({ timeout: 15000 });
@@ -333,7 +337,7 @@ test.describe('Governance layout overlap audit', () => {
     });
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await expect(page.locator('#gov-scope-refresh')).toBeVisible({ timeout: 15000 });
@@ -351,7 +355,7 @@ test.describe('Governance layout overlap audit', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockLayoutGovernancePage(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
 
     await expect(page.locator('#gov-right-rail-mount [data-queue-open]')).toBeVisible();

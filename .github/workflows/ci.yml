@@ -20,7 +20,15 @@ jobs:
       # Guard: fail fast if styles.css was edited directly instead of via partials
       - name: Verify CSS partials are in sync
         run: npm run build:css && npm run check:css
-      - run: npm run test:all
+      - name: Run five risk-ranked release scenarios
+        if: github.event_name == 'pull_request'
+        run: npm run test:governance:release
+        env:
+          CI: true
+          NODE_ENV: test
+      - name: Run full regression after protected-branch integration
+        if: github.event_name == 'push'
+        run: npm run test:all
         env:
           CI: true
           NODE_ENV: test

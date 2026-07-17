@@ -44,6 +44,18 @@ export function getSteps(projectRoot) {
       cwd: projectRoot,
     },
     {
+      name: 'Run Recently Changed Active Governance Contracts',
+      command: 'npx',
+      args: pwJourneyArgs('journey.governance-active-loop', ['--workers=1']),
+      cwd: projectRoot,
+    },
+    {
+      name: 'Run Last-Failed Churn Retention Compatibility Journey',
+      command: 'npm',
+      args: ['run', 'test:journey:churn-retention-masterplan'],
+      cwd: projectRoot,
+    },
+    {
       name: 'Run Value Retention Master Plan Journey',
       command: 'npm',
       args: ['run', 'test:journey:value-retention'],
@@ -53,12 +65,6 @@ export function getSteps(projectRoot) {
       name: 'Run Direct Value Master Plan Journey',
       command: 'npm',
       args: ['run', 'test:journey:direct-value-masterplan'],
-      cwd: projectRoot,
-    },
-    {
-      name: 'Run Focused Playwright Contracts',
-      command: 'npm',
-      args: ['run', 'test:focused'],
       cwd: projectRoot,
     },
     {

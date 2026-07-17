@@ -487,6 +487,68 @@ export async function skipIfRedirectedToLogin(page, test, options = {}) {
   return false;
 }
 
+export async function routeDeterministicCurrentSprint(page, overrides = {}) {
+  const board = { id: 1, name: 'SD Board', projectKey: 'SD', projectKeys: ['SD'] };
+  const payload = {
+    board,
+    sprint: {
+      id: 1,
+      name: 'Sprint 1',
+      state: 'active',
+      startDate: '2026-07-13T00:00:00.000Z',
+      endDate: '2026-07-24T00:00:00.000Z',
+    },
+    summary: { totalStories: 1, doneStories: 0, totalSP: 3, percentDone: 0 },
+    stories: [{ issueKey: 'SD-1', summary: 'Customer recharge proof', status: 'In Progress', storyPoints: 3, subtasks: [] }],
+    stuckCandidates: [],
+    scopeChanges: [],
+    dailyCompletions: { stories: [], subtasks: [] },
+    subtaskTracking: { rows: [], subtasks: [] },
+    recentSprints: [{
+      id: 2,
+      name: 'Sprint 0',
+      state: 'closed',
+      startDate: '2026-06-29T00:00:00.000Z',
+      endDate: '2026-07-10T00:00:00.000Z',
+    }, {
+      id: 4,
+      name: 'Sprint -1',
+      state: 'closed',
+      startDate: '2026-06-15T00:00:00.000Z',
+      endDate: '2026-06-26T00:00:00.000Z',
+    }],
+    nextSprint: {
+      id: 3,
+      name: 'Sprint 2',
+      state: 'future',
+      startDate: '2026-07-27T00:00:00.000Z',
+      endDate: '2026-08-07T00:00:00.000Z',
+    },
+    ...overrides,
+  };
+
+  await page.addInitScript(() => {
+    localStorage.setItem('delivera.projects.ssot.v1', JSON.stringify(['SD']));
+    localStorage.setItem('delivera.boardId.v1', '1');
+    localStorage.setItem('delivera.report.context.v1', JSON.stringify({ projects: ['SD'], boardId: 1, boardName: 'SD Board' }));
+  });
+  await page.route('**/api/boards.json**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ projects: ['SD'], boards: [board], projectErrors: [] }),
+  }));
+  await page.route('**/api/current-sprint.json**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(payload),
+  }));
+  await page.route('**/api/sprints**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ sprints: [payload.sprint, ...payload.recentSprints, payload.nextSprint].filter(Boolean) }),
+  }));
+}
+
 /**
  * Wait for board selector to have options, then select the first board. Skips if no board option found.
  * @param {import('@playwright/test').Page} page

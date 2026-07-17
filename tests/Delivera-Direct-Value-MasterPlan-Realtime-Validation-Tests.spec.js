@@ -55,6 +55,11 @@ test.describe('Direct value master plan realtime validation', () => {
     await page.route(/\/api\/governance-brief\.json/, async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: stubBriefBody() });
     });
+    // Validate the compatibility surface independently from the v2 meeting
+    // story, whose direct-value contract is covered by the active-loop bucket.
+    await page.route(/\/api\/governance\/active-loop\.json/, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
     await page.route(/\/api\/governance\/inbox\.json/, async (route) => {
       await route.fulfill({
         status: 200,
@@ -65,9 +70,19 @@ test.describe('Direct value master plan realtime validation', () => {
     await page.route(/\/api\/governance\/feedback-summary\.json/, async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     });
+    await page.route(/\/api\/boards\.json/, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD', projectKeys: ['SD'] }], projectErrors: [] }) });
+    });
+    await page.route(/\/api\/current-sprint\.json/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ board: { id: 1, name: 'SD board', projectKeys: ['SD'] }, sprint: { id: 1, name: 'Sprint 1', state: 'active' }, summary: { totalStories: 1, doneStories: 0 }, stories: [{ issueKey: 'SD-1', summary: 'Stuck item', status: 'In Progress' }], stuckCandidates: [] }),
+      });
+    });
 
     await test.step('01 governance answer surface loads', async () => {
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#gov-answer-mount .gov-command-answer')).toBeVisible({ timeout: 20000 });
       assertTelemetryClean(telemetry);
@@ -125,7 +140,7 @@ test.describe('Direct value master plan realtime validation', () => {
 
     await test.step('09 PI compact badge visible when owner clusters exist', async () => {
       await page.setViewportSize({ width: 1400, height: 900 });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-pi-compact-badge]')).toBeVisible({ timeout: 20000 });
       await expect(page.locator('.gov-owner-cluster')).toHaveCount(1, { timeout: 20000 });
@@ -133,7 +148,7 @@ test.describe('Direct value master plan realtime validation', () => {
     });
 
     await test.step('10 governance nudge shows @mention chips from teamRoster', async () => {
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       const nudgeBtn = page.locator('[data-grouped-nudge="0"]');
       await expect(nudgeBtn).toBeVisible({ timeout: 20000 });
@@ -144,7 +159,7 @@ test.describe('Direct value master plan realtime validation', () => {
     });
 
     await test.step('11 evidence tab restores Plan after reload', async () => {
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       const evidence = page.locator('#gov-supporting-evidence');
       await evidence.locator('summary').click();

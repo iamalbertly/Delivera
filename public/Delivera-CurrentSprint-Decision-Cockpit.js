@@ -271,8 +271,6 @@ export function renderDecisionCockpit(data, options = {}) {
   const totalStories = Number(data?.summary?.totalStories || 0);
   const doneStories = Number(data?.summary?.doneStories || 0);
   const valueDoneLabel = totalStories > 0 ? `${doneStories}/${totalStories} value stories` : 'Value stories loading';
-  const stuckCount = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates.length : 0;
-  const hasBlockers = stuckCount > 0 || topRisks.length > 0;
   const riskQueueTotal = topRisks.length + quickActions.reduce((sum, item) => sum + Number(item?.count || 0), 0);
   const riskQueueLabel = riskQueueTotal > 0 ? `${riskQueueTotal} action${riskQueueTotal === 1 ? '' : 's'} waiting` : 'No hidden blockers';
   const trustLabel = data?.meta?.partialPermissions ? 'Limited' : (metrics?.timeLogged?.ratioPct === 0 ? 'Needs evidence' : 'Usable');
@@ -311,7 +309,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
     + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))
-    + '<details class="decision-cockpit-details"' + (viewportLean && hasBlockers ? '' : ' open') + '>'
+    + '<details class="decision-cockpit-details">'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'
     + `<p class="decision-cockpit-subtitle">${escapeHtml(dateLabel)} <span>|</span> ${escapeHtml(remainingDaysLabel)}</p>`

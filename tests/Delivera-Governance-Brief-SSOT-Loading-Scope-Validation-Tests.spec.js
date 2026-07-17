@@ -9,6 +9,7 @@ import {
 
 async function clickScopeProject(page, pk) {
   const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`);
+  if (!await chip.isVisible()) await page.locator('#gov-scope-change').click();
   await expect(chip).toBeVisible({ timeout: 10000 });
   await chip.click();
 }
@@ -67,6 +68,14 @@ async function mockGovernanceApis(page, brief = SD_BRIEF, delayMs = 0) {
     sessionStorage.removeItem('delivera:brief:cache:v1');
   });
   await routeProjectsCatalog(page);
+  // Keep these legacy Brief tests deterministic. The active-loop journey has
+  // its own fail-fast suite; an empty projection deliberately falls back to
+  // the legacy Brief surface exercised here.
+  await page.route('**/api/governance/active-loop.json**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({}),
+  }));
   await page.route('**/api/governance-brief.json**', async (route) => {
     if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
     const url = route.request().url();
@@ -105,7 +114,7 @@ test.describe('Governance Brief SSOT loading and scope', () => {
   test('shows loading shell before brief resolves', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page, SD_BRIEF, 400);
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     const loading = page.locator('#gov-loading');
     await expect(loading).toBeVisible({ timeout: 2000 });
@@ -117,7 +126,7 @@ test.describe('Governance Brief SSOT loading and scope', () => {
   test('owner block shows SD scope not foreign KK board', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page);
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.gov-answer-block--owner')).toContainText('SD', { timeout: 15000 });
     await expect(page.locator('.gov-answer-block--owner')).not.toContainText('KK');
@@ -126,7 +135,7 @@ test.describe('Governance Brief SSOT loading and scope', () => {
 
   test('single scope bar mount (no duplicate)', async ({ page }) => {
     await mockGovernanceApis(page);
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#gov-scope-bar-mount')).toHaveCount(1);
   });
@@ -134,14 +143,14 @@ test.describe('Governance Brief SSOT loading and scope', () => {
   test('scope change updates sidebar Projects segment', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page);
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
     let scopeChanged = false;
     await page.evaluate(() => {
       window.addEventListener('delivera:scope-changed', () => { window.__scopeChanged = true; });
     });
-    await page.locator('#gov-scope-expanded [data-project="BIO"]').click();
+    await clickScopeProject(page, 'BIO');
     await page.waitForTimeout(300);
     scopeChanged = await page.evaluate(() => Boolean(window.__scopeChanged));
     expect(scopeChanged).toBe(true);
@@ -162,7 +171,7 @@ test.describe('Governance Brief SSOT loading and scope', () => {
         body: JSON.stringify(SD_BRIEF),
       });
     });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
     await page.locator('#gov-scope-refresh').click();
@@ -171,13 +180,25 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('cache peek paints answer before slow network completes', async ({ page }) => {
+  test('verified active-loop cache paints the contract answer before slow network completes', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await page.addInitScript((brief) => {
       localStorage.setItem('delivera_selectedProjects', 'SD');
-      const map = {};
-      map['SD||28d'] = { brief, at: Date.now(), ttlMs: 180000 };
-      sessionStorage.setItem('delivera:brief:cache:v1', JSON.stringify(map));
+      localStorage.setItem('delivera:governance:active-loop:v1:SD:current', JSON.stringify({
+        schemaVersion: 1,
+        savedAt: new Date().toISOString(),
+        answer: {
+          schemaVersion: 1,
+          answerVersion: 2,
+          answer: 'SD has one PI promise requiring proof.',
+          sourceLine: 'Compared with FY27 Q2 PI contract · 1 promise checked · last verified 10:32 UTC',
+          deliveraDid: 'Delivera checked the saved promise before contacting Jira.',
+          scope: { mode: 'all-squads', projects: ['SD'], complete: true },
+          squads: [{ squad: 'SD', attentionCount: 1, topState: '1 no-proof promise', proofState: 'stale proof', piPct: 0 }],
+          promises: [],
+          loopCompletion: 0,
+        },
+      }));
     }, SD_BRIEF);
     await routeProjectsCatalog(page);
     await page.route('**/api/governance-brief.json**', async (route) => {
@@ -186,16 +207,17 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     });
     await page.route('**/api/quarters-list**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"quarters":[]}' }));
     await page.route('**/api/governance/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
-    await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByTestId('governance-active-loop')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByTestId('governance-active-loop')).toContainText('SD has one PI promise requiring proof');
     assertTelemetryClean(telemetry);
   });
 
   test('scope switch shows stale overlay while brief loads', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page, SD_BRIEF, 500);
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
     await clickScopeProject(page, 'BIO');
@@ -209,7 +231,7 @@ test.describe('Governance Brief SSOT loading and scope', () => {
     const telemetry = captureBrowserTelemetry(page);
     await mockGovernanceApis(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/governance');
+    await page.goto('/governance?projects=SD');
     if (await skipIfRedirectedToLogin(page, test)) return;
     await expect(page.locator('#app-top-chrome')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.app-top-search-wrap')).toHaveClass(/is-collapsed/);

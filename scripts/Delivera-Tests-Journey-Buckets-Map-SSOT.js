@@ -3,6 +3,18 @@
 // npm scripts, orchestration steps, and documentation can all share the same view.
 
 export const specMetadata = {
+  'tests/Delivera-Governance-PI-Meeting-State-Transition-Realtime-Validation-Tests.spec.js': {
+    journey: 'journey.governance-active-loop',
+    layer: 'page-ux',
+    page: '/governance,/api/governance/active-loop.json,/api/governance/squads,/api/governance/cases,/api/governance/refreshes',
+    priority: 0,
+  },
+  'tests/Delivera-Governance-Active-PI-Loop-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.governance-active-loop',
+    layer: 'page-ux',
+    page: '/governance,/api/governance/active-loop.json,/api/governance/refreshes,/api/governance/cases',
+    priority: 0,
+  },
   // Current Sprint – core UX, risks, health, leadership bridge
   'tests/Delivera-Current-Sprint-UX-SSOT-Validation-Tests.spec.js': {
     journey: 'journey.current-sprint',
@@ -574,6 +586,13 @@ export const specMetadata = {
 };
 
 export const journeyBuckets = {
+  'journey.governance-active-loop': {
+    id: 'journey.governance-active-loop',
+    label: 'Governance Active Loop – Meeting state, source writes, continuity',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-active-loop',
+    ),
+  },
   'journey.governance': {
     id: 'journey.governance',
     label: 'Governance – Decision cockpit root and brief',
