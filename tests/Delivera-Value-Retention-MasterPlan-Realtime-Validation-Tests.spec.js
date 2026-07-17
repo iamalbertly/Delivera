@@ -142,6 +142,13 @@ test.describe('Value retention master plan realtime validation', () => {
         }),
       });
     });
+    await page.route(/\/api\/boards\.json/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ projects: ['SD'], boards: [{ id: 1, name: 'SD board', projectKey: 'SD', projectKeys: ['SD'] }], projectErrors: [] }),
+      });
+    });
 
     await test.step('01 improve delivera button in top chrome', async () => {
       await gotoGovernanceFresh(page, '/governance?projects=SD,DMS&refresh=1');
