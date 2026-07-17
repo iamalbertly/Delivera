@@ -13,6 +13,7 @@ function resolveTestBaseUrl() {
 }
 
 const testBaseUrl = resolveTestBaseUrl();
+const testServerPort = new URL(testBaseUrl).port || (testBaseUrl.startsWith('https:') ? '443' : '80');
 
 export default defineConfig({
   testDir: './tests',
@@ -38,8 +39,9 @@ export default defineConfig({
   ],
 
   webServer: process.env.SKIP_WEBSERVER !== 'true' ? {
-    command: 'node scripts/Delivera-Dev-Port-Guard-01Check.js && npm run start',
+    command: process.env.CI ? 'npm run start' : 'node scripts/Delivera-Dev-Port-Guard-01Check.js && npm run start',
     url: `${testBaseUrl}/healthz`,
+    env: { ...process.env, PORT: testServerPort },
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   } : undefined,
