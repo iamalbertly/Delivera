@@ -5,11 +5,13 @@ import {
   buildActiveGovernanceAnswer,
   businessDaysBetween,
   calculateWorkSplit,
+  clusterUnknownWork,
   chooseWorkSplitMethod,
   classifyProofAge,
   diffRelevantJiraState,
   relevantJiraStateHash,
   resolveOwnerRoute,
+  scorePossibleRework,
   stablePromiseId,
   validateAmendment,
 } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
@@ -84,6 +86,7 @@ async function mockGovernanceJourney(page, { answer = ACTIVE_ANSWER, decisionSta
   await page.route('**/api/governance/inbox.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs: [], nudges: [], piDrift: [], confirm: [], impact: [], poReadiness: [], total: 0 }) }));
   await page.route('**/api/governance/feedback-summary.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0 }) }));
   await page.route('**/api/governance/adoption-metrics.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ total: 0, byMetric: {} }) }));
+  await page.route('**/api/governance/diagnostics.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: '0.0.0.1', environment: 'uat', buildSha: 'fixture-sha', cacheBackend: 'redis', queueDepth: 0 }) }));
   await page.route('**/api/governance/refreshes', (route) => route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ jobId: 'refresh-1', status: 'running', attached: true }) }));
   await page.route('**/api/governance/cases/*/nudges**', (route) => route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ queued: true, deliveraRef: 'DLV-2026-A1B2C3D4', route: 'jira', version: 8 }) }));
   await page.route('**/api/governance/contracts/*/amendments', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, version: 8, amendmentId: 'amd-1' }) }));
@@ -131,6 +134,32 @@ test.describe('Active PI governance deterministic domain', () => {
     expect(split.method).toBe('ticket-count');
     expect(split.percentages.unknown).toBe(33);
     expect(split.percentages.pi + split.percentages.support + split.percentages.unknown).toBe(100);
+  });
+
+  test('Possible Rework requires two strong evidence paths and keeps weak reopenings quiet', () => {
+    const weak = scorePossibleRework({ items: [{ issueKey: 'DMS-1', summary: 'Minor edge case', reopened: true, reopenedAt: '2026-07-15', acceptedAt: '2026-07-01' }], now: NOW });
+    expect(weak.promoted).toBeNull();
+    expect(weak.copy).not.toContain('Possible rework:');
+    const splitContinuation = scorePossibleRework({ items: [{ issueKey: 'DMS-2', summary: 'Split epic continuation', createdAfterClosure: true, sameCapability: true }], now: NOW });
+    expect(splitContinuation.promoted).toBeNull();
+    const proven = scorePossibleRework({ items: [{ issueKey: 'DMS-3', summary: 'Regression fix after rejected UAT', piLinked: true, acceptedAt: '2026-06-20', reopenedAt: '2026-07-10', uatRejected: true, sameAcceptanceCriteria: true, worklogSeconds: 8 * 3600 }], now: NOW });
+    expect(proven.promoted.confidence).toBe('high');
+    expect(proven.promoted.strongPathCount).toBeGreaterThanOrEqual(2);
+  });
+
+  test('Unknown work clusters into group decisions and stays quiet below threshold', () => {
+    const items = [
+      ...Array.from({ length: 6 }, (_, index) => ({ issueKey: `DMS-U${index}`, summary: 'Database migration sync', components: ['Database'] })),
+      ...Array.from({ length: 14 }, (_, index) => ({ issueKey: `DMS-P${index}`, summary: 'PI work', category: 'pi' })),
+    ];
+    const split = calculateWorkSplit({ activeItems: items });
+    const grouped = clusterUnknownWork({ activeItems: items, workSplit: split });
+    expect(grouped.promoted).toBe(true);
+    expect(grouped.topCluster.ticketCount).toBe(6);
+    expect(grouped.topCluster.sharedEvidence).toContain('shared component');
+    const quiet = clusterUnknownWork({ activeItems: [...Array.from({ length: 9 }, () => ({ category: 'pi' })), { summary: 'one unknown' }] });
+    expect(quiet.promoted).toBe(false);
+    expect(quiet.clusters).toHaveLength(1);
   });
 
   test('owner cascade handles active owner, inactive owner, PO fallback, lead fallback, and PI queue', () => {
@@ -225,6 +254,18 @@ test.describe('Active PI governance realtime value journey @focused', () => {
     await expect(popover).toContainText('No Jira proof');
     await page.keyboard.press('Escape');
     await expect(popover).toHaveCount(0);
+  });
+
+  test('lenses emphasize evidence without reordering squads and diagnostics stay concealed', async ({ page }) => {
+    await mockGovernanceJourney(page);
+    await page.goto('/governance');
+    const order = async () => page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')));
+    const original = await order();
+    await page.locator('[data-story-lens="rework"]').click();
+    expect(await order()).toEqual(original);
+    await expect(page.locator('.gov-diagnostics-drawer')).toHaveCount(0);
+    await page.locator('[data-governance-diagnostics]').dblclick();
+    await expect(page.locator('.gov-diagnostics-drawer')).toContainText('fixture-sha');
   });
 
   test('proof drawer exposes source, proof, work split, owner path, history, and only valid actions', async ({ page }) => {

@@ -59,6 +59,19 @@ test.describe('Meeting-ready governance deterministic policy', () => {
     const cases = projectActiveLoopCases([{ id: 'n1', promiseId: 'p1', type: 'nudge-sent', ts: '2026-07-15T08:00:00Z', nextVersion: 2, payload: { responseDueAt: '2026-07-16T08:00:00Z' } }], { now: NOW });
     expect(cases.p1.state).toBe('escalation-due');
   });
+
+  test('source writes remain pending until source confirmation and retain failure correction', () => {
+    const pending = projectActiveLoopCases([{ id: 'w1', promiseId: 'p1', type: 'source-write-queued', ts: NOW.toISOString(), nextVersion: 2, payload: { receiptId: 'r1', idempotencyKey: 'k1', targetSystem: 'jira', targetObject: 'DMS-1' } }], { now: NOW });
+    expect(pending.p1.sourceWrites[0].state).toBe('queued');
+    expect(pending.p1.state).toBe('needs-attention');
+    const failed = projectActiveLoopCases([
+      { id: 'w1', promiseId: 'p1', type: 'source-write-queued', ts: NOW.toISOString(), nextVersion: 2, payload: { receiptId: 'r1', idempotencyKey: 'k1', targetSystem: 'jira', targetObject: 'DMS-1' } },
+      { id: 'w2', promiseId: 'p1', type: 'source-write-failed', ts: NOW.toISOString(), nextVersion: 3, payload: { receiptId: 'r1', failureReason: 'Required Components field is missing', correctionPath: 'Fix Components and retry.' } },
+    ], { now: NOW });
+    expect(failed.p1.sourceWrites).toHaveLength(1);
+    expect(failed.p1.sourceWrites[0].state).toBe('source-failed');
+    expect(failed.p1.sourceWrites[0].correctionPath).toContain('retry');
+  });
 });
 
 test.describe('Meeting-ready governance browser journey @focused', () => {

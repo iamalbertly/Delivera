@@ -8,7 +8,7 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 
 | Route | Surface | Purpose |
 |-------|---------|---------|
-| `/governance` | **Brief** | Delivery answer, owner actions, PI confidence, agent queue |
+| `/governance` | **Governance** | PI contract variance, squad evidence, and the next safe governance transition |
 | `/current-sprint` | **Sprint** | What must move today (blockers, owners, nudges) |
 | `/report` | **Proof** | Evidence and drill-down for the current Brief |
 
@@ -51,6 +51,22 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - Inbox drawer with icon tabs; guided nudge review (not silent approve)
 
 Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brief-ssot`. Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
+
+## Active PI Governance contract
+
+Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **All Squads**, paints the last verified schema-v2 projection from local cache, refreshes quietly, and keeps the first viewport to one contract answer, source/freshness, completed-work line, decision CTA, and stable squad matrix.
+
+- **Server-prepared truth:** `/api/governance/active-loop.json` serves Layer 1; squad and promise detail routes serve Layer 2. The browser renders, filters, and reveals the story but does not calculate Promise Match, Work Split, Proof Age, ranking, ownership, rework, or action eligibility.
+- **Five bands:** Portfolio Answer → Squad Comparison → Synchronized Squad Spotlight → Resolution Drawer → Action Trail. Schema v2 suppresses the legacy comparison-card wall and duplicate action rails.
+- **Deterministic evidence:** Promise Match, Work Split, Proof Age, Possible Rework, Unknown clustering, baseline coverage, owner routing, and stable risk order are rule-based. AI may simplify wording only.
+- **Conservative rework:** “Possible rework” requires at least two strong evidence paths. Weak reopenings, title similarity, minor corrections, and epic splits stay out of risk totals.
+- **Source-safe writes:** local receipt → queued → source pending → source confirmed or failed → projection reconciled. Jira-dependent decisions never turn green before Jira confirms them. All writes carry optimistic version, squad hash, actor, target, idempotency key, retry state, audit evidence, and correction path.
+- **Meeting continuity:** spotlight, lens, drawer draft, focus/popover, and scroll anchor remain stable during refresh. Same-item changes require review; unrelated squad changes do not replace active work.
+- **Targeted freshness:** meeting users can refresh one promise or one squad and concurrent callers join the same job. Portfolio refresh remains worker/admin-owned.
+- **Durability:** Redis is mandatory for production ledgers, hashes, streams, leases, and idempotency. JSONL/memory are local-development fallbacks only; production writes fail closed.
+- **Diagnostics:** normal users see only a subdued UAT version control. Authorized UAT diagnostics open by double-click/double-tap, keyboard activation, or `Alt+Shift+D`; `/healthz` remains the deploy probe.
+
+Primary validation: `npm run test:journey:governance-active-loop`. Tests fail fast on browser exceptions, console/API/server errors, false source confirmation, stale writes, duplicate jobs, accessibility regressions, and meeting-state discontinuity.
 
 ## Quickstart
 
@@ -105,7 +121,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
 | `npm run test:journey:governance` | Brief / governance Playwright bundle |
 | `npm run test:journey:ux-core` | Cross-surface UX gate |
-| `npm run vercel:deploy` | Manual Vercel deploy after `vercel login` |
+| Official Vercel Git integration | Authenticated preview/production deployment SSOT |
 
 Orchestration, journeys, and `SKIP_WEBSERVER`: [`TESTING.md`](TESTING.md)
 
@@ -125,7 +141,7 @@ Ownership: [`public/css/README.md`](public/css/README.md)
 ## Deployment
 
 - **Render:** [`render.yaml`](render.yaml) — always-on Node, background workers
-- **Vercel:** root `index.js` + `vercel.json` — zero-config Express; workers disabled
+- **Vercel:** root `index.js` + `vercel.json` with the official Git integration; workers disabled
 
 Pre-deploy: `npm run build:css`, `npm run check:css`, then your chosen test gate.
 

@@ -82,7 +82,7 @@ import {
     projectActiveGovernanceLayer1,
     validateAmendment,
 } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
-import { GOVERNANCE_STORY_DETAIL_NAMESPACE, governanceBriefCacheKey, governanceStoryCacheKey, governanceRefreshScopeKey } from '../lib/Delivera-Governance-Story-Cache-01SSOT.js';
+import { GOVERNANCE_STORY_DETAIL_NAMESPACE, governanceBriefCacheKey, governanceStoryCacheKey, governanceRefreshScopeKey, readWarmGovernanceStory, rememberWarmGovernanceStory } from '../lib/Delivera-Governance-Story-Cache-01SSOT.js';
 import {
     appendActiveLoopEvent,
     appendVersionedActiveLoopEvent,
@@ -1587,6 +1587,7 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
         cache.set(storyKey, projectActiveGovernanceLayer1(answer), 60 * 60 * 1000, { namespace: 'governanceStoryV2' }),
         cache.set(storyKey, answer, 60 * 60 * 1000, { namespace: GOVERNANCE_STORY_DETAIL_NAMESPACE }),
     ]);
+    rememberWarmGovernanceStory(storyKey, projectActiveGovernanceLayer1(answer));
     return answer;
 }
 
@@ -1601,9 +1602,12 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
     try {
         const projects = parseGovernanceProjects(req);
         const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || '');
-        const hit = await cache.get(storyKey, { namespace: 'governanceStoryV2' });
-        const cachedStory = hit?.value || hit;
+        const warmStory = readWarmGovernanceStory(storyKey);
+        const hit = warmStory ? null : await cache.get(storyKey, { namespace: 'governanceStoryV2' });
+        const candidateStory = warmStory || hit?.value || hit;
+        const cachedStory = candidateStory?.lensSummaries && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash) ? candidateStory : null;
         const answer = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req));
+        rememberWarmGovernanceStory(storyKey, answer);
         res.setHeader('ETag', `"${answer.answerVersion}"`);
         res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=300');
         return res.json(answer);
@@ -1613,13 +1617,34 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
     }
 });
 
+router.get('/api/governance/diagnostics.json', requireAuth, async (req, res) => {
+    const enabled = process.env.NODE_ENV !== 'production' || String(process.env.GOVERNANCE_DIAGNOSTICS_ENABLED || '').toLowerCase() === 'true';
+    if (!enabled) return res.status(403).json({ error: 'Governance diagnostics are restricted', code: 'GOVERNANCE_DIAGNOSTICS_FORBIDDEN' });
+    let redis = false;
+    try { redis = await cache.pingRedis(); } catch (_) { redis = false; }
+    const runningJobs = [...activeRefreshJobs.values()].filter((job) => job.status === 'running').map((job) => job.public);
+    return res.json({
+        version: process.env.npm_package_version || '0.0.0.1',
+        environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
+        buildSha: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || process.env.RENDER_GIT_COMMIT || '',
+        buildTime: process.env.BUILD_TIME || '',
+        cacheBackend: redis ? 'redis' : (process.env.NODE_ENV === 'production' ? 'unavailable' : 'local-development fallback'),
+        jiraSyncStatus: resolvedJiraHost() ? 'configured' : 'not configured',
+        queueDepth: runningJobs.length,
+        activeRefreshJobs: runningJobs,
+        workerLeaderState: process.env.WORKER_LEADER_LOCK === '1' ? 'leader lock enabled' : 'single instance or external worker',
+        featureFlags: { governanceStoryV2: process.env.GOVERNANCE_STORY_V2 !== '0' },
+        uptimeSeconds: Math.floor((Date.now() - serverStartTime) / 1000),
+    });
+});
+
 router.get('/api/governance/squads/:squadKey/detail.json', requireAuth, async (req, res) => {
     try {
         const squadKey = String(req.params.squadKey || '').trim().toUpperCase();
         const answer = await cachedActiveLoopDetailForRequest(req);
         const squad = answer.squads.find((item) => item.squad === squadKey);
         if (!squad) return res.status(404).json({ error: 'Squad not found', code: 'SQUAD_NOT_FOUND' });
-        return res.json({ schemaVersion: 2, storyVersion: answer.answerVersion, squad, promises: answer.promises.filter((item) => item.squad === squadKey), currentWork: squad.doingInstead?.clusters || [], sprintReality: squad.sprintReality, workSplit: squad.workSplit });
+        return res.json({ schemaVersion: 2, storyVersion: answer.answerVersion, squadPayloadHash: squad.payloadHash, squad, promises: answer.promises.filter((item) => item.squad === squadKey), currentWork: squad.doingInstead?.clusters || [], unknownWork: squad.unknownWork, possibleRework: squad.possibleRework, sprintReality: squad.sprintReality, workSplit: squad.workSplit });
     } catch (err) {
         return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Squad detail unavailable', code: err?.code || 'SQUAD_DETAIL_FAILED' });
     }
@@ -1707,6 +1732,10 @@ router.post('/api/governance/cases/:promiseId/nudges', requireAuth, async (req, 
         const { promise } = await findActiveLoopPromise(req, promiseId);
         if (!promise) return res.status(404).json({ error: 'Promise not found', code: 'PROMISE_NOT_FOUND' });
         const deliveraRef = `DLV-${new Date().getUTCFullYear()}-${randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+        const receiptId = `gwr_${randomUUID()}`;
+        const idempotencyKey = String(req.headers['idempotency-key'] || req.body?.idempotencyKey || `nudge:${promiseId}:${expectedVersion}`).trim().slice(0, 240);
+        const priorReceipt = await cache.get(`governance-write:${idempotencyKey}`, { namespace: 'governanceWriteIdempotency' });
+        if (priorReceipt?.value) return res.status(202).json({ ...priorReceipt.value, duplicate: true });
         const route = req.body?.channel || (promise.issueKey ? 'jira' : 'pi-team-queue');
         const reviewedRecipient = req.body?.recipient && typeof req.body.recipient === 'object' ? {
             displayName: String(req.body.recipient.displayName || '').trim().slice(0, 160),
@@ -1724,8 +1753,11 @@ router.post('/api/governance/cases/:promiseId/nudges', requireAuth, async (req, 
             type: 'nudge-queued',
             actorId: activeLoopActor(req),
             expectedVersion,
-            payload: { deliveraRef, route, issueKey: promise.issueKey, ownerRoute: reviewedRecipient, responseDueAt, messagePreview: baseBody.slice(0, 300) },
+            payload: { receiptId, deliveraRef, idempotencyKey, targetSystem: route, targetObject: promise.issueKey || promiseId, sourceStateVersion: expectedVersion, squadPayloadHash: req.body?.squadPayloadHash || '', retryState: 'not-started', deliveraRef, route, issueKey: promise.issueKey, ownerRoute: reviewedRecipient, responseDueAt, messagePreview: baseBody.slice(0, 300), correctionPath: promise.issueKey ? 'Open Jira issue and correct the failed field, then retry.' : 'Assign a recipient from the PI Team queue.' },
         });
+
+        const receipt = { queued: true, writeState: 'queued', receiptId, idempotencyKey, deliveraRef, route, recipient: reviewedRecipient, responseDueAt, version: queued.nextVersion };
+        await cache.set(`governance-write:${idempotencyKey}`, receipt, 24 * 60 * 60 * 1000, { namespace: 'governanceWriteIdempotency' });
 
         if (route === 'jira' && promise.issueKey) {
             void (async () => {
@@ -1739,7 +1771,7 @@ router.post('/api/governance/cases/:promiseId/nudges', requireAuth, async (req, 
                         actorId: 'delivera-dispatcher',
                         expectedVersion: version,
                         nextVersion: version + 1,
-                        payload: { deliveraRef, route, issueKey: promise.issueKey, responseDueAt, ownerRoute: reviewedRecipient, externalId: result?.id || result?.commentId || '' },
+                        payload: { receiptId, idempotencyKey, targetSystem: 'jira', targetObject: promise.issueKey, sourceStateVersion: expectedVersion, squadPayloadHash: req.body?.squadPayloadHash || '', retryState: 'complete', deliveraRef, route, issueKey: promise.issueKey, responseDueAt, ownerRoute: reviewedRecipient, externalId: result?.id || result?.commentId || '' },
                     });
                 } catch (err) {
                     const version = await currentPromiseVersion(promiseId);
@@ -1750,12 +1782,12 @@ router.post('/api/governance/cases/:promiseId/nudges', requireAuth, async (req, 
                         actorId: 'delivera-dispatcher',
                         expectedVersion: version,
                         nextVersion: version + 1,
-                        payload: { deliveraRef, route, issueKey: promise.issueKey, error: String(err?.message || 'Send failed').slice(0, 300) },
+                        payload: { receiptId, idempotencyKey, targetSystem: 'jira', targetObject: promise.issueKey, sourceStateVersion: expectedVersion, squadPayloadHash: req.body?.squadPayloadHash || '', retryState: 'retryable', deliveraRef, route, issueKey: promise.issueKey, error: String(err?.message || 'Send failed').slice(0, 300), failureReason: String(err?.message || 'Send failed').slice(0, 300), correctionPath: 'Open Jira, correct the required field or route, then retry from Delivera.' },
                     });
                 }
             })();
         }
-        return res.status(202).setHeader('ETag', `"${queued.nextVersion}"`).json({ queued: true, deliveraRef, route, recipient: reviewedRecipient, responseDueAt, version: queued.nextVersion });
+        return res.status(202).setHeader('ETag', `"${queued.nextVersion}"`).json(receipt);
     } catch (err) {
         return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'NUDGE_QUEUE_FAILED', latestVersion: err?.latestVersion });
     }
@@ -1840,6 +1872,70 @@ router.post('/api/governance/squads/:squadKey/work-themes/:themeId/rename', requ
         return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, name, version: row.nextVersion });
     } catch (err) {
         return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'WORK_THEME_RENAME_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/governance/squads/:squadKey/unknown-clusters/:clusterId/classification', requireAuth, async (req, res) => {
+    const expectedVersion = expectedVersionFromRequest(req);
+    const squad = String(req.params.squadKey || '').trim().toUpperCase();
+    const clusterId = String(req.params.clusterId || '').trim().slice(0, 120);
+    const classification = String(req.body?.classification || '').trim().toLowerCase();
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    if (!['operational', 'operational-group-candidate', 'ad-hoc-feature', 'unclear'].includes(classification)) return res.status(422).json({ error: 'Choose a supported grouped classification', code: 'UNKNOWN_CLASSIFICATION_INVALID' });
+    const idempotencyKey = String(req.headers['idempotency-key'] || req.body?.idempotencyKey || `classify:${squad}:${clusterId}:${expectedVersion}`).trim().slice(0, 240);
+    const cached = await cache.get(`governance-write:${idempotencyKey}`, { namespace: 'governanceWriteIdempotency' });
+    if (cached?.value) return res.status(202).json({ ...cached.value, duplicate: true });
+    try {
+        const receiptId = `gwr_${randomUUID()}`;
+        const syntheticPromiseId = `classification:${squad}:${clusterId}`;
+        const row = await appendVersionedActiveLoopEvent({
+            promiseId: syntheticPromiseId,
+            type: 'source-write-queued',
+            actorId: activeLoopActor(req),
+            expectedVersion,
+            payload: {
+                receiptId, idempotencyKey, targetSystem: 'jira', targetObject: `cluster:${squad}:${clusterId}`,
+                sourceStateVersion: expectedVersion, squadPayloadHash: String(req.body?.squadPayloadHash || '').slice(0, 128),
+                classification, retryState: 'not-started', correctionPath: 'Review the grouped issues or correct their Jira labels/components, then retry.',
+            },
+        });
+        const receipt = { receiptId, idempotencyKey, writeState: 'queued', classification, squad, clusterId, version: row.nextVersion };
+        await cache.set(`governance-write:${idempotencyKey}`, receipt, 24 * 60 * 60 * 1000, { namespace: 'governanceWriteIdempotency' });
+        return res.status(202).setHeader('ETag', `"${row.nextVersion}"`).json(receipt);
+    } catch (err) {
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'UNKNOWN_CLASSIFICATION_QUEUE_FAILED', latestVersion: err?.latestVersion });
+    }
+});
+
+router.post('/api/governance/source-writes/:receiptId/result', requireAuth, async (req, res) => {
+    const expectedVersion = expectedVersionFromRequest(req);
+    const receiptId = String(req.params.receiptId || '').trim().slice(0, 180);
+    const promiseId = String(req.body?.promiseId || '').trim().slice(0, 240);
+    const succeeded = req.body?.succeeded === true;
+    if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required', code: 'GOVERNANCE_VERSION_REQUIRED' });
+    if (!receiptId || !promiseId) return res.status(422).json({ error: 'Receipt and governance target are required', code: 'SOURCE_WRITE_RESULT_TARGET_REQUIRED' });
+    try {
+        const row = await appendVersionedActiveLoopEvent({
+            promiseId,
+            type: succeeded ? 'source-write-confirmed' : 'source-write-failed',
+            actorId: activeLoopActor(req),
+            expectedVersion,
+            payload: {
+                receiptId,
+                idempotencyKey: String(req.body?.idempotencyKey || '').slice(0, 240),
+                targetSystem: String(req.body?.targetSystem || 'jira').slice(0, 80),
+                targetObject: String(req.body?.targetObject || '').slice(0, 240),
+                sourceStateVersion: Number(req.body?.sourceStateVersion) || expectedVersion,
+                squadPayloadHash: String(req.body?.squadPayloadHash || '').slice(0, 128),
+                retryState: succeeded ? 'complete' : 'retryable',
+                failureReason: succeeded ? '' : String(req.body?.failureReason || 'Source write failed').slice(0, 500),
+                correctionPath: succeeded ? 'Projection reconciliation queued.' : String(req.body?.correctionPath || 'Correct the source data and retry.').slice(0, 500),
+                sourceReceipt: String(req.body?.sourceReceipt || '').slice(0, 240),
+            },
+        });
+        return res.setHeader('ETag', `"${row.nextVersion}"`).json({ receiptId, writeState: succeeded ? 'source-confirmed' : 'source-failed', version: row.nextVersion });
+    } catch (err) {
+        return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'SOURCE_WRITE_RESULT_FAILED', latestVersion: err?.latestVersion });
     }
 });
 

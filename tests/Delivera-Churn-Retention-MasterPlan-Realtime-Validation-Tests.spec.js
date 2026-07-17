@@ -67,6 +67,9 @@ async function mockChurnGovernance(page, opts = {}) {
     try { sessionStorage.setItem('gov-pi-auto-open-dismissed', '1'); } catch (_) {}
   }, { key: PROJECTS_SSOT_KEY, pk: projects });
   await routeProjectsCatalog(page);
+  // This master-plan suite exercises the one-release comparison adapter; the
+  // active-loop meeting story is validated independently at priority zero.
+  await page.route('**/api/governance/active-loop.json**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
   await page.route('**/api/governance-brief.json**', async (route) => {
     if (briefDelayMs > 0) await new Promise((r) => setTimeout(r, briefDelayMs));
     const url = route.request().url();
@@ -131,6 +134,7 @@ async function mockChurnGovernance(page, opts = {}) {
 
 async function clickScopeProject(page, pk) {
   const chip = page.locator(`#gov-scope-expanded [data-project="${pk}"]`);
+  if (!await chip.isVisible()) await page.locator('#gov-scope-change').click();
   await expect(chip).toBeVisible({ timeout: 10000 });
   await chip.click();
 }
@@ -144,7 +148,7 @@ test.describe('Churn retention master plan realtime validation', () => {
 
     await test.step('01 governance loads hero without console errors', async () => {
       await mockChurnGovernance(page);
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
       assertTelemetryClean(telemetry);
@@ -152,7 +156,7 @@ test.describe('Churn retention master plan realtime validation', () => {
 
     await test.step('02 project switch SD to BIO sets data-scope-stale then resolves', async () => {
       await mockChurnGovernance(page, { projects: 'SD', briefDelayMs: 600 });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
       await clickScopeProject(page, 'BIO');
@@ -164,7 +168,7 @@ test.describe('Churn retention master plan realtime validation', () => {
 
     await test.step('03 mismatched API response shows error banner', async () => {
       await mockChurnGovernance(page, { projects: 'BIO', mismatch: true });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=BIO');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#gov-error')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('#gov-error')).not.toBeEmpty();
@@ -177,7 +181,7 @@ test.describe('Churn retention master plan realtime validation', () => {
         localStorage.setItem(key, 'SD');
         sessionStorage.removeItem('delivera:brief:cache:v1');
       }, PROJECTS_SSOT_KEY);
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
       if (!(await page.locator('.gov-scope-capsule-text').textContent())?.includes('1 squad')) {
@@ -230,7 +234,7 @@ test.describe('Churn retention master plan realtime validation', () => {
         localStorage.setItem(key, 'SD');
         sessionStorage.removeItem('delivera:brief:cache:v1');
       }, PROJECTS_SSOT_KEY);
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await clickScopeProject(page, 'SD');
       await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 15000 });
@@ -259,7 +263,7 @@ test.describe('Churn retention master plan realtime validation', () => {
         localStorage.setItem(key, 'SD');
         sessionStorage.removeItem('delivera:brief:cache:v1');
       }, PROJECTS_SSOT_KEY);
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await clickScopeProject(page, 'SD');
       await expect(page.locator('#main-content')).toContainText('PERIOD-28D', { timeout: 15000 });
@@ -271,7 +275,7 @@ test.describe('Churn retention master plan realtime validation', () => {
 
     await test.step('09 right rail shows proof preview without opening supporting evidence', async () => {
       await mockChurnGovernance(page);
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#gov-right-rail-proof-mount .gov-evidence-preview')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('#gov-supporting-evidence')).toHaveJSProperty('open', false);
@@ -285,7 +289,7 @@ test.describe('Churn retention master plan realtime validation', () => {
 
     await test.step('11 scope bar queue count deduped — no pending in status chip', async () => {
       await mockChurnGovernance(page, { projects: 'SD' });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#gov-right-rail-mount [data-inbox-inline="1"]')).toBeVisible({ timeout: 15000 });
       const statusChip = page.locator('#gov-scope-bar-mount .gov-scope-status-chip');
@@ -315,7 +319,7 @@ test.describe('Churn retention master plan realtime validation', () => {
 
     await test.step('14 full click-through scope compare inbox — telemetry clean', async () => {
       await mockChurnGovernance(page, { projects: 'SD' });
-      await page.goto('/governance');
+      await page.goto('/governance?projects=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('.gov-command-answer')).toBeVisible({ timeout: 20000 });
       const addSecond = page.locator('[data-compare-add="MPSA"]');
