@@ -54,6 +54,16 @@ Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brie
 
 ## Active PI Governance contract
 
+### Direct-to-value release contract
+
+- Governance, Current Sprint, Actions, and Settings keep separate route ownership while sharing sprint truth, case lifecycle, display names, versions, and owner routes.
+- Schema-v2 Layer 1 carries presentation contract version `3`; incompatible browser cache is rejected without replacing the last compatible story.
+- Governance and Current Sprint use `Delivera-Governance-Sprint-Reality-01SSOT.js` for concrete `active`, `ended-no-successor`, `planned-not-started`, `closed`, `partial`, and `unverified` facts.
+- Evidence-dependent actions are server-authorized. Jira failure or evidence older than 60 minutes disables send, approval, escalation, and re-check while preserving safe owner correction and drafts.
+- `/actions` is the visible shared intervention queue and reuses the Governance resolution drawer; hidden legacy action mounts are never a data source.
+- Settings owns the versioned organization registry. Participation is `pi-governed`, `pending-consent`, or `operational-exception`; production writes require Redis and fail closed.
+- Release CI runs exactly five fail-fast Governance scenarios. Render deploy validation keeps exactly three production smoke scenarios.
+
 Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **All Squads**, paints the last verified schema-v2 projection from local cache, refreshes quietly, and keeps the first viewport to one contract answer, source/freshness, completed-work line, decision CTA, and stable squad matrix.
 
 - **Server-prepared truth:** `/api/governance/active-loop.json` serves Layer 1; squad and promise detail routes serve Layer 2. The browser renders, filters, and reveals the story but does not calculate Promise Match, Work Split, Proof Age, ranking, ownership, rework, or action eligibility.

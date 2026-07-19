@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings - Delivera</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260719e">
 </head>
 <body class="executive-surface-page settings-page" data-surface-name="Settings">
   <div class="container">
@@ -16,6 +16,7 @@
         <div id="surface-context-bar"></div>
         <p id="surface-summary-line" class="surface-summary-line"></p>
       </section>
+      <section id="gov-settings-registry-mount" class="surface-card governance-registry-card" aria-labelledby="governance-registry-title"></section>
       <div id="gov-settings-ai-mount"></div>
       <section id="jira-activity" class="surface-card jira-activity-section">
         <h2>Jira activity</h2>
@@ -29,6 +30,7 @@
   <script type="module" src="Delivera-Shared-UI-Header-Nav-Renderer.js"></script>
   <script type="module" src="Delivera-Executive-Surface-Init.js"></script>
   <script type="module" src="Delivera-Settings-JiraActivity-01Page-01Controller.js"></script>
+  <script type="module" src="Delivera-Settings-Governance-Registry-01UI.js?v=20260719e"></script>
   <script type="module">
     import { mountGovernanceAiHelper } from './Delivera-Settings-Governance-AI-01Helper-UI.js';
     mountGovernanceAiHelper(document.getElementById('gov-settings-ai-mount'));

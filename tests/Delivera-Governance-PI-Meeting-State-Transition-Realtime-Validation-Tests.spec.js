@@ -1,5 +1,6 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
-import { buildDoingInstead, calculateWorkSplit, classifyStoryFreshness } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
+import { allowedActionsForPromise, buildDoingInstead, calculateWorkSplit, classifyStoryFreshness } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
+import { projectSquadSprintTruth } from '../lib/Delivera-Governance-Sprint-Reality-01SSOT.js';
 import { projectActiveLoopCases } from '../lib/Delivera-Governance-ActiveLoop-02Store-IO.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 
@@ -29,7 +30,7 @@ const promise = {
 };
 
 const STORY = {
-  schemaVersion: 2, compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
+  schemaVersion: 2, presentationContractVersion: 3, buildSha: 'test', compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
   scope: { mode: 'all-squads', projects: ['DMS', 'RPA', 'AMS', 'TRS', 'OPS'], expectedSquads: 5, verifiedSquads: 5, piGovernedSquads: 4, excludedOperationalGroups: 1, complete: true, partialProjects: [] },
   answer: '2 squads are not aligned to PI promises. DMS has 1 no-proof promise. RPA has 1 partial match.', sourceLine: 'Compared with FY27 Q2 PI contract · 4 promises checked · last verified 10:32 UTC', deliveraDid: 'Delivera matched the contract to Jira, checked proof age and work split, and prepared 2 safe owner asks.', verifiedAt: NOW.toISOString(), loopCompletion: 25,
   decisionCoverage: { closed: 1, total: 4, preparedOwnerAsks: 2, copy: 'Decision coverage: 1 of 4 gaps closed' },
@@ -86,9 +87,9 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await mockMeeting(page, { story: { ...STORY, decisionCoverage: { closed: 0, total: 0, preparedOwnerAsks: 2 } } }); await page.goto('/governance'); const hero = page.getByTestId('governance-active-loop'); await expect(hero).toBeVisible({ timeout: 15000 });
     await expect(hero).toContainText('Portfolio mission'); await expect(hero.locator('[data-story-squad]')).toHaveCount(4); await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify'); await expect(hero.locator('[data-story-squad="RPA"]')).not.toContainText('off-plan');
     await expect(hero.locator('.gov-loop-decision-count')).toContainText('of 4');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Sprint reality');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Proof age / action');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Trust basis');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Sprint');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Proof and next move');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Based on');
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Proof / next');
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Trust factor');
     await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('M-Pesa Delivery'); await expect(hero.locator('[data-story-squad="DMS"]')).not.toContainText('DMS Squad');
@@ -129,5 +130,80 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
 
   test('mobile matrix and actions remain touchable', async ({ page }) => {
     await mockMeeting(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/governance'); await expect(page.getByTestId('governance-source-line')).toContainText('FY27 Q2'); const rows = page.locator('[data-story-squad]'); await expect(rows).toHaveCount(4); expect((await rows.first().boundingBox()).height).toBeGreaterThanOrEqual(44); await rows.first().click(); const sync = page.locator('[data-force-squad]'); await expect(sync).toBeVisible(); expect((await sync.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+test.describe('Direct-to-value governance release — exactly five fail-fast scenarios', () => {
+  test.describe.configure({ retries: 0, mode: 'serial' });
+
+  test('release 1 governance truth and first value', async ({ page }) => {
+    await mockMeeting(page);
+    const started = Date.now();
+    await page.goto('/governance');
+    const hero = page.getByTestId('governance-active-loop');
+    await expect(hero).toBeVisible({ timeout: 2000 });
+    expect(Date.now() - started).toBeLessThan(2000);
+    await expect(hero).toContainText('2 squads are not aligned');
+    await expect(hero.locator('[data-story-squad]')).toHaveCount(4);
+    await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Proof and next move');
+    await expect(page.locator('#gov-action-clusters-mount:visible')).toHaveCount(0);
+  });
+
+  test('release 2 sprint SSOT and safe action eligibility', () => {
+    const payload = { sprint: { id: 77, name: 'DMS Sprint 14', state: 'active', startDate: '2026-07-17T00:00:00Z', endDate: '2026-07-31T00:00:00Z' }, meta: { generatedAt: NOW.toISOString() }, sprintPulse: { stalled: 3, carryover: 2, reopened: 1 } };
+    const currentSprintTruth = projectSquadSprintTruth(payload, { now: NOW });
+    const governanceTruth = projectSquadSprintTruth(payload, { now: NOW });
+    expect(governanceTruth).toEqual(currentSprintTruth);
+    expect(governanceTruth.state).toBe('active');
+    expect(governanceTruth.copy).toContain('DMS Sprint 14 is active');
+    const actions = allowedActionsForPromise({ matchState: 'partly-matched', issueKey: 'DMS-42', caseState: 'reply-received-ready-to-recheck', proofAge: { state: 'stale' }, ownerRoute: promise.ownerRoute }, { hasBaseline: true, jiraAvailable: false, restrictFreshActions: true });
+    expect(actions.find((item) => item.id === 'send-nudge').allowed).toBe(false);
+    expect(actions.find((item) => item.id === 'recheck-promise').allowed).toBe(false);
+    expect(actions.find((item) => item.id === 'assign-owner').allowed).toBe(false);
+  });
+
+  test('release 3 Actions renders the shared visible queue', async ({ page }) => {
+    await page.route('**/api/governance/actions.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, cases: [{ promiseId: promise.promiseId, squad: promise.squad, squadDisplayName: promise.squadDisplayName, title: promise.originalText, state: promise.caseState, lifecycle: promise.actionLifecycle, ownerRoute: promise.ownerRoute, nextAction: promise.nextAction, version: 4 }] }) }));
+    await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
+    await page.goto('/actions');
+    await expect(page).toHaveURL(/\/actions$/);
+    await expect(page.locator('[data-action-case="prm-dms-1"]')).toContainText('ready to re-check');
+    await expect(page.locator('[data-action-case="prm-dms-1"] button')).toHaveText('Re-check this promise');
+  });
+
+  test('release 4 Settings persists versioned organization truth and preserves conflict drafts', async ({ page }, testInfo) => {
+    testInfo.annotations.push({ type: 'allow-http-status-console', description: '412' });
+    const registry = { version: 7, squads: [{ squadKey: 'SD', friendlyName: 'DMS Squad', participationState: 'pi-governed', boardMapping: [12], productOwner: { displayName: 'Irene' }, scrumMaster: null, streamLead: null }] };
+    let patchBody = null;
+    await page.route('**/api/governance/registry.json', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(registry) }));
+    await page.route('**/api/governance/registry/SD', async (route) => { patchBody = route.request().postDataJSON(); await route.fulfill({ status: 412, contentType: 'application/json', body: JSON.stringify({ error: 'Organization settings changed while you were editing.' }) }); });
+    await page.route('**/api/settings/ai-usage.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ totalCalls: 0, fallbackCalls: 0 }) }));
+    await page.route('**/api/jira-activity**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: [] }) }));
+    await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: ['SD'], squadInsights: [], meta: {} }) }));
+    await page.route('**/api/leadership-summary.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    await page.goto('/settings');
+    const row = page.locator('[data-registry-squad="SD"]');
+    await expect(row).toBeVisible();
+    await row.locator('[name="participationState"]').selectOption('pending-consent');
+    await row.locator('[name="reason"]').fill('Squad onboarding consent is pending');
+    await row.locator('button').click();
+    await expect(row.locator('[data-registry-status]')).toContainText('changed while you were editing');
+    await expect(row.locator('[name="reason"]')).toHaveValue('Squad onboarding consent is pending');
+    expect(patchBody.participationState).toBe('pending-consent');
+  });
+
+  test('release 5 continuity degradation and realtime safety', async ({ page }) => {
+    await mockMeeting(page);
+    await page.goto('/governance?lens=rework&spotlight=DMS');
+    await expect(page.locator('#gov-squad-spotlight')).toContainText('M-Pesa Delivery');
+    await page.locator('[data-story-squad="DMS"]').focus();
+    const before = await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')));
+    const updated = structuredClone(STORY); updated.answerVersion = 5; updated.squads.reverse();
+    await page.evaluate(async (story) => { const module = await import('/Delivera-App-Governance-ActiveLoop-01UI.js'); module.renderActiveGovernanceLoop(story); }, updated);
+    await expect(page.locator('.gov-story-update')).toBeVisible();
+    expect(await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')))).toEqual(before);
+    await expect(page).toHaveURL(/lens=rework/);
+    await expect(page).toHaveURL(/spotlight=DMS/);
   });
 });

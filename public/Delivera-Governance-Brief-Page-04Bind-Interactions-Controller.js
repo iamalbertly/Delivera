@@ -476,7 +476,7 @@ export function bindGovernancePageInteractions() {
     document.body.dataset.govActionEventsBound = '1';
     document.addEventListener('delivera-gov-scroll-first-action', () => executeFirstClusterNudge());
     document.addEventListener('delivera-gov-copy-answer', () => {
-      import('./Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260717a').then(async (m) => {
+      import('./Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260719e').then(async (m) => {
         await m.copyBrief({ triggerEl: document.getElementById('gov-copy-answer-scope'), sentenceOnly: true });
         await recordNarrationIfAdvisor();
       });

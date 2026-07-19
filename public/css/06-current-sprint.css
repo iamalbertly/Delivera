@@ -6755,3 +6755,12 @@ body.jira-nudge-review-open { overflow: hidden; }
 .work-alignment-chip--offPi { background: #fffbeb; color: #92400e; }
 .work-alignment-chip--adHoc { background: #fef2f2; color: #991b1b; }
 .sprint-blocker-root-cause { margin: 4px 0; font-size: 0.82rem; color: #4b5563; }
+/* Direct-to-value release: touch-safe controls and one-column mobile evidence. */
+@media (max-width: 600px) {
+  .current-sprint-page button,.current-sprint-page select,.current-sprint-page summary,.current-sprint-page input { min-height: 44px; }
+  .current-sprint-grid-layout,.sprint-cards-row,.secondary-row,.risks-row { grid-template-columns: 1fr !important; }
+  #stories-table { display: none !important; }
+  #stories-mobile-card-list { display: grid !important; grid-template-columns: 1fr; gap: 8px; }
+  .story-mobile-card { max-width: 100%; overflow-wrap: anywhere; }
+  .sprint-section-links { overflow: visible; flex-wrap: wrap; }
+}

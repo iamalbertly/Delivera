@@ -5,7 +5,7 @@ import { PROJECTS_SSOT_KEY, GOVERNANCE_QUARTER_KEY, readSharedProjectsCsv } from
 import { notifyScopeChanged } from './Delivera-Shared-Scope-Notify-01Bridge.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { govPage } from './Delivera-Governance-Brief-Page-01Context.js';
-import { setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260717a';
+import { setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260719e';
 import { invalidateBriefCacheEntry, normalizeProjectsCsv } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import { defaultSelectedKeys, readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { mountPIBaselineWizard } from './Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js';

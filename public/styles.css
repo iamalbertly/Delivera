@@ -13101,6 +13101,15 @@ body.jira-nudge-review-open { overflow: hidden; }
 .work-alignment-chip--offPi { background: #fffbeb; color: #92400e; }
 .work-alignment-chip--adHoc { background: #fef2f2; color: #991b1b; }
 .sprint-blocker-root-cause { margin: 4px 0; font-size: 0.82rem; color: #4b5563; }
+/* Direct-to-value release: touch-safe controls and one-column mobile evidence. */
+@media (max-width: 600px) {
+  .current-sprint-page button,.current-sprint-page select,.current-sprint-page summary,.current-sprint-page input { min-height: 44px; }
+  .current-sprint-grid-layout,.sprint-cards-row,.secondary-row,.risks-row { grid-template-columns: 1fr !important; }
+  #stories-table { display: none !important; }
+  #stories-mobile-card-list { display: grid !important; grid-template-columns: 1fr; gap: 8px; }
+  .story-mobile-card { max-width: 100%; overflow-wrap: anywhere; }
+  .sprint-section-links { overflow: visible; flex-wrap: wrap; }
+}
 
 /* todo-copy-map-and-tokens: align HUD header title with Current Sprint tokens */
 :root {
@@ -17719,6 +17728,43 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .gov-worker-receipt--clickable { cursor: pointer; }
 .governance-shell:has(.gov-scope-stale-overlay) .gov-action-clusters { pointer-events: none; opacity: 0.55; }
 .gov-proof-rail-highlight { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; border-radius: 8px; }
+
+/* Direct-to-value release: dense story, shared actions, and organization truth. */
+.gov-story-lens-select { display: none; }
+.gov-loop-action-wrap { display: grid; gap: 3px; flex: 1 1 180px; }
+.gov-loop-action-wrap small { color: #64748b; line-height: 1.25; }
+.gov-loop-actions button:disabled { opacity: .52; cursor: not-allowed; }
+.actions-queue-head,.registry-head { display: flex; justify-content: space-between; gap: 18px; align-items: end; }
+.actions-queue-head label { min-width: 210px; }
+.actions-queue { display: grid; gap: 8px; margin-top: 14px; }
+.action-case-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 16px; padding: 14px 16px; border: 1px solid #dbe3ef; border-radius: 14px; background: #fff; }
+.action-case-row h3,.action-case-row p { margin: 3px 0 0; }
+.action-case-row > div > span,.action-case-next small { color: #64748b; font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+.action-case-next { display: grid; justify-items: end; gap: 6px; }
+.registry-head { align-items: start; }
+.registry-list { display: grid; gap: 7px; margin-top: 14px; }
+.registry-row { display: grid; grid-template-columns: minmax(190px,1.25fr) repeat(4,minmax(130px,1fr)) minmax(190px,1.15fr); gap: 10px; align-items: end; padding: 12px; border: 1px solid #dbe3ef; border-radius: 12px; }
+.registry-row label,.registry-save { display: grid; gap: 4px; }
+.registry-row label > span { color: #64748b; font-size: .72rem; font-weight: 700; }
+.registry-identity { display: grid; gap: 4px; align-self: center; }
+.registry-identity small,.registry-save small { color: #64748b; }
+.registry-save { grid-template-columns: minmax(110px,1fr) auto; }
+.registry-save small { grid-column: 1/-1; }
+@media (max-width: 760px) {
+  .gov-story-lenses { display: none; }
+  .gov-story-lens-select { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; padding: 0 8px 8px; font-weight: 700; }
+  .gov-story-table { grid-template-columns: 1fr; max-height: none; }
+  .gov-story-row { min-height: 0; }
+  .gov-story-row:nth-of-type(n+4) { display: none; }
+  .gov-story-matrix:focus-within .gov-story-row:nth-of-type(n+4),.gov-story-matrix.is-expanded .gov-story-row:nth-of-type(n+4) { display: grid; }
+  .action-case-row { grid-template-columns: 1fr; }
+  .action-case-next { justify-items: stretch; }
+  .action-case-next .btn { min-height: 44px; }
+  .actions-queue-head,.registry-head { display: grid; align-items: start; }
+  .registry-row { grid-template-columns: 1fr 1fr; }
+  .registry-identity,.registry-save { grid-column: 1/-1; }
+  .registry-row input,.registry-row select,.registry-row button { min-height: 44px; }
+}
 /* Meeting-first product surfaces — light, high-contrast, red as signal only */
 
 body.executive-surface-page,

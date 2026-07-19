@@ -1,7 +1,8 @@
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { openRightDrawer, closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';
 
-const CACHE_PREFIX = 'delivera:governance:active-loop:v2:20260717a';
+const CACHE_PREFIX = 'delivera:governance:active-loop:v2:20260719b';
+const PRESENTATION_CONTRACT_VERSION = 3;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const sharedStoryState = globalThis.__deliveraGovernanceActiveLoopState ||= {
   activeAnswer: null,
@@ -49,6 +50,7 @@ function readCachedAnswer(projects, quarter) {
     const legacyKey = `delivera:governance:active-loop:v1:${String(projects || '').toUpperCase()}:${String(quarter || 'current')}`;
     const envelope = JSON.parse(localStorage.getItem(scopeKey(projects, quarter)) || localStorage.getItem(legacyKey) || 'null');
     if (![1, 2].includes(envelope?.answer?.schemaVersion) || !envelope?.savedAt) return null;
+    if (envelope.answer.schemaVersion === 2 && Number(envelope.answer.presentationContractVersion) !== PRESENTATION_CONTRACT_VERSION) return null;
     if (envelope.answer.schemaVersion === 2 && (!envelope.answer.decisionCoverage
       || !(envelope.answer.squads || []).every((squad) => squad.displayName && squad.contractState && squad.trustFactor))) return null;
     if (envelope.answer.schemaVersion === 2) {
@@ -103,7 +105,7 @@ function matrixRow(squad) {
   const baseline = squad.baselineCoverage || (activeAnswer?.contract ? { state: 'verified', sourceLabel: activeAnswer.contract.source || 'Approved PI contract', copy: 'Contract source confirmed.' } : { state: 'missing', copy: 'Baseline missing.' });
   const split = squad.workSplit || {};
   const contract = squad.contractState || { label: baseline.state === 'missing' ? 'Cannot verify' : squad.topState || 'Unknown', detail: baseline.copy || '' };
-  const sprint = squad.sprintCadence || { label: squad.sprintReality?.state || 'Unverified', detail: squad.sprintReality?.copy || '' };
+  const sprint = squad.sprintReality || {};
   const trust = squad.trustFactor || { label: 'Limited, evidence incomplete', level: 'limited' };
   const action = squad.nextAction?.label || (baseline.state === 'missing' ? 'Save baseline to compare' : 'Review evidence');
   const rework = squad.possibleRework?.promoted;
@@ -111,7 +113,7 @@ function matrixRow(squad) {
   return `<button type="button" role="row" class="gov-story-row gov-story-row--${tone(baseline.state === 'missing' ? 'missing' : squad.topState)}" data-story-squad="${escapeHtml(squad.squad)}" data-loop-squad="${escapeHtml(squad.squad)}" data-has-rollover="${Number(squad.sprintReality?.carryoverCount) > 0}" data-sprint-risk="${Boolean(squad.sprintReality?.endedWithoutReplacement || squad.sprintReality?.state === 'watch' || sprint.state === 'unverified')}" data-operational-risk="${Boolean(squad.doingInstead?.major)}" data-unknown-risk="${Boolean(squad.unknownWork?.promoted)}" data-rework-risk="${Boolean(rework)}" data-trust="${escapeHtml(trust.level || 'limited')}" aria-label="Open ${escapeHtml(squad.displayName || squad.squad)} spotlight" aria-current="${spotlightKey === squad.squad ? 'true' : 'false'}">
     <span role="cell" class="gov-story-squad"><strong>${escapeHtml(squad.displayName || squad.squad)}</strong><small>${escapeHtml(squad.attentionCount ? `${squad.attentionCount} need attention` : 'No contract variance proven')}</small></span>
     <span role="cell"><strong>${escapeHtml(contract.label)}</strong><small>${escapeHtml(contract.detail || '')}</small></span>
-    <span role="cell"><strong>${escapeHtml(sprint.label)}</strong><small>${escapeHtml(sprint.detail || '')}</small></span>
+    <span role="cell"><strong>${escapeHtml(sprint.state === 'active' ? `Active${sprint.daysRemaining != null ? `, ${sprint.daysRemaining} days` : ''}` : String(sprint.state || 'Unverified').replace(/-/g, ' '))}</strong><small>${escapeHtml(sprint.copy || '')}</small></span>
     <span role="cell"><strong>${escapeHtml(diversion)}</strong><small>${escapeHtml(rework ? squad.possibleRework.copy : squad.doingInstead?.copy || split.explanation || '')}</small></span>
     <span role="cell"><strong>${escapeHtml(squad.proofState || 'unknown')}</strong><small>${escapeHtml(action)}</small></span>
     <span role="cell"><strong>${escapeHtml(trust.label)}</strong><small>${escapeHtml(baseline.sourceLabel || 'Baseline missing')}</small></span>
@@ -127,9 +129,9 @@ function excludedOperationalGroups(answer) {
 function portfolioMatrix(answer) {
   return `<section class="gov-story-matrix" aria-labelledby="gov-story-matrix-title">
     <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">Squad Comparison</span><h2 id="gov-story-matrix-title">Stable PI miss-risk order</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(answer.lensSummaries?.[activeLens] || '')}</p></div><button type="button" class="btn btn-link btn-compact" data-story-all aria-current="${spotlightKey ? 'false' : 'true'}">All Squads</button></div>
-    <div class="gov-story-lenses" role="toolbar" aria-label="Emphasize a governance signal">${lenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>
+    <label class="gov-story-lens-select">Emphasize<select data-story-lens-select>${lenses.map(([id, label]) => `<option value="${id}" ${id === activeLens ? 'selected' : ''}>${label}</option>`).join('')}</select></label><div class="gov-story-lenses" role="toolbar" aria-label="Emphasize a governance signal">${lenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
-      <div class="gov-story-columns" role="row"><span>Squad</span><span>PI contract</span><span>Sprint reality</span><span>Work diversion</span><span>Proof age / action</span><span>Trust basis</span></div>
+      <div class="gov-story-columns" role="row"><span>Squad</span><span>PI contract</span><span>Sprint</span><span>Doing instead</span><span>Proof and next move</span><span>Based on</span></div>
       ${(answer.squads || []).map(matrixRow).join('')}
     </div>
     ${excludedOperationalGroups(answer)}
@@ -152,7 +154,7 @@ function renderHero(answer) {
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
     <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong><small>${escapeHtml(freshness.copy)}</small></div>
     <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>PI contract answer</span><span class="gov-loop-cache-badge${answer.servedFromLocalCache ? '' : ' gov-loop-cache-badge--live'}">${answer.servedFromLocalCache ? 'Last verified answer' : 'Quietly refreshed'}</span></div><h1 id="gov-loop-answer">${escapeHtml(answer.answer)}</h1><p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(answer.sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
-    <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.preparedOwnerAsks} owner asks prepared - ${coverage.closed} decided</small></span></div><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button><p>Next safe step - no silent writes.</p></div>
+    <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.preparedOwnerAsks} owner asks prepared · ${coverage.closed} decided</small></span></div><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button></div>
     ${portfolioMatrix(answer)}
     <div class="gov-story-update" role="status" hidden><span data-story-update-copy>New evidence ready.</span> <button type="button" class="btn btn-link btn-compact" data-story-apply>Review changes</button><button type="button" class="btn btn-link btn-compact" data-story-keep-draft>Keep my edits as a new decision draft</button></div>
     <div id="gov-squad-spotlight" class="gov-squad-spotlight" aria-live="polite"></div>
@@ -180,6 +182,7 @@ function bindStory(answer, mount) {
   mount.querySelector('[data-story-apply]')?.addEventListener('click', applyPendingAnswer);
   mount.querySelector('[data-story-keep-draft]')?.addEventListener('click', keepDecisionDraft);
   mount.querySelectorAll('[data-story-lens]').forEach((button) => button.addEventListener('click', () => selectLens(button.dataset.storyLens, answer, mount)));
+  mount.querySelector('[data-story-lens-select]')?.addEventListener('change', (event) => selectLens(event.target.value, answer, mount));
   const diagnosticTrigger = mount.querySelector('[data-governance-diagnostics]');
   diagnosticTrigger?.addEventListener('dblclick', openDiagnostics);
   let lastDiagnosticTap = 0;
@@ -204,6 +207,8 @@ function selectLens(lens, answer, mount) {
   });
   const summary = mount.querySelector('[data-lens-summary]');
   if (summary) summary.textContent = answer.lensSummaries?.[lens] || '';
+  const mobileSelect = mount.querySelector('[data-story-lens-select]');
+  if (mobileSelect) mobileSelect.value = lens;
   const url = new URL(location.href); url.searchParams.set('lens', lens); history.replaceState({ ...(history.state || {}), spotlight: spotlightKey, lens }, '', url);
 }
 
@@ -469,27 +474,28 @@ function recipientEditor(promise) {
 }
 
 function drawerHtml(promise, squad) {
-  const actions = (promise.allowedActions || []).filter((action) => action.allowed);
+  const actions = promise.allowedActions || [];
   return `<div class="gov-loop-drawer" data-loop-promise-version="${Number(promise.version) || 1}"><section class="gov-loop-drawer-verdict gov-loop-tone-${tone(promise.matchState)}"><span>${escapeHtml(promise.matchLabel)}</span><strong>${escapeHtml(promise.originalText)}</strong><p>${escapeHtml(promise.proofAge?.copy || '')}</p>${promise.amendmentSentence ? `<p class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</p>` : ''}</section>
   <div class="gov-loop-drawer-grid"><section><h3>PI promise source</h3><p>${escapeHtml(promise.source || promise.baselineCoverage?.sourceLabel || 'Approved PI baseline')}</p><p>${escapeHtml(promise.sourceReference || promise.quarter || '')}</p></section><section><h3>Matched Jira work</h3><p><strong>${escapeHtml(promise.issueKey || 'No Jira proof')}</strong> · ${escapeHtml(promise.statusNow || '')}</p></section><section><h3>Proof age</h3><p>${escapeHtml(promise.proofAge?.state || 'unknown')} · ${escapeHtml(promise.proofAge?.copy || '')}</p></section><section><h3>Work Split</h3><p>${squad?.workSplit?.unplannedPct == null ? 'Unplanned work unknown' : `${squad.workSplit.unplannedPct}% unplanned work`}</p><p>${escapeHtml(squad?.workSplit?.largestUnmappedCluster ? `Largest unmapped cluster: ${squad.workSplit.largestUnmappedCluster}.` : '')}</p><p>${escapeHtml(squad?.workSplit?.explanation || '')}</p><p>Unknown: ${squad?.workSplit?.unknownPct == null ? 'not calculated' : `${squad.workSplit.unknownPct}%`}</p></section><section><h3>Action state</h3><p>${escapeHtml(promise.actionLifecycle || '')}</p></section><section><h3>Owner path</h3>${recipientEditor(promise)}</section><section><h3>Ready to Promise</h3><p>${escapeHtml(promise.readiness?.copy || 'Readiness was not captured in the original baseline.')}</p></section><section><h3>Trade-off Guardrail</h3><p>${escapeHtml(promise.tradeOffGuardrail?.copy || 'No trustworthy percentage is available.')}</p></section></div>
   <details class="gov-loop-history" open><summary>Nudge and reaction history (${promise.actionHistory?.length || 0})</summary><ol>${(promise.actionHistory || []).map((item) => `<li><strong>${escapeHtml(String(item.type || '').replace(/-/g, ' '))}</strong><small>${escapeHtml(item.replyExcerpt || item.messagePreview || '')}</small></li>`).join('') || '<li>No action has been sent yet.</li>'}</ol></details>
   ${(promise.sourceWrites || []).length ? `<details class="gov-loop-history"><summary>Source write status (${promise.sourceWrites.length})</summary><ol>${promise.sourceWrites.map((write) => `<li><strong>${escapeHtml(sourceWriteLabel(write.state))}</strong><small>${escapeHtml(write.failureReason || write.correctionPath || `${write.targetSystem || 'source'} · ${write.targetObject || ''}`)}</small></li>`).join('')}</ol></details>` : ''}
-  <div class="gov-loop-stale-warning" hidden role="alert"></div><div class="gov-loop-action-status" aria-live="polite"></div><div class="gov-loop-actions">${actions.map((action) => `<button type="button" class="btn ${action.id === 'send-nudge' || action.id === 'recheck-promise' ? 'btn-primary' : 'btn-secondary'} btn-compact" data-loop-action="${escapeHtml(action.id)}">${escapeHtml(action.id === 'send-nudge' && promise.ownerRoute?.displayName ? `Nudge ${promise.ownerRoute.role}: ${promise.ownerRoute.displayName}` : actionLabels[action.id] || action.id)}</button>`).join('')}</div></div>`;
+  <div class="gov-loop-stale-warning" hidden role="alert"></div><div class="gov-loop-action-status" aria-live="polite"></div><div class="gov-loop-actions">${actions.map((action) => `<span class="gov-loop-action-wrap"><button type="button" class="btn ${action.id === 'send-nudge' || action.id === 'recheck-promise' ? 'btn-primary' : 'btn-secondary'} btn-compact" data-loop-action="${escapeHtml(action.id)}" ${action.allowed ? '' : 'disabled aria-disabled="true"'} title="${escapeHtml(action.reason || '')}">${escapeHtml(action.id === 'send-nudge' && promise.ownerRoute?.displayName ? `Nudge ${promise.ownerRoute.role}: ${promise.ownerRoute.displayName}` : actionLabels[action.id] || action.id)}</button>${action.allowed ? '' : `<small>${escapeHtml(action.reason || 'This action is not currently safe.')}</small>`}</span>`).join('')}</div></div>`;
 }
 
-async function fetchPromiseDetail(promiseId) {
+async function fetchPromiseDetail(promiseId, detailHref = '') {
   const projects = activeAnswer?.scope?.projects || [];
-  const res = await fetch(`/api/governance/cases/${encodeURIComponent(promiseId)}/detail.json?projects=${encodeURIComponent(projects.join(','))}`, { credentials: 'same-origin' });
+  const url = detailHref || `/api/governance/cases/${encodeURIComponent(promiseId)}/detail.json?projects=${encodeURIComponent(projects.join(','))}`;
+  const res = await fetch(url, { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`Promise detail unavailable (${res.status})`);
   return res.json();
 }
 
-export async function openPromiseDrawer(promiseId) {
+export async function openPromiseDrawer(promiseId, { detailHref = '' } = {}) {
   closePreview(); closeAllGovernanceOverlays();
   let detail;
   const localPromise = activeAnswer?.promises?.find((item) => item.promiseId === promiseId);
   if (localPromise?.allowedActions) detail = { promise: localPromise, squad: activeAnswer?.squads?.find((item) => item.squad === localPromise.squad) || null };
-  else try { detail = await fetchPromiseDetail(promiseId); } catch (err) { return; }
+  else try { detail = await fetchPromiseDetail(promiseId, detailHref); } catch (err) { return; }
   const promise = detail.promise; const squad = detail.squad;
   const { el } = openRightDrawer({ title: `${promise.squadDisplayName || squad?.displayName || promise.squad} · ${promise.matchLabel}`, bodyHtml: drawerHtml(promise, squad), panelClass: 'active-loop' });
   const drawer = el?.querySelector('.gov-loop-drawer');
@@ -596,23 +602,32 @@ export function renderActiveGovernanceLoop(answer, { forceApply = false } = {}) 
 export async function loadActiveGovernanceLoop({ projects, quarter = '', force = false } = {}) {
   const seq = ++requestSequence; spotlightKey = new URL(location.href).searchParams.get('spotlight') || '';
   const cached = force ? null : readCachedAnswer(projects, quarter); if (cached) renderActiveGovernanceLoop(cached);
-  const qs = new URLSearchParams({ projects: String(projects || '') }); if (quarter) qs.set('quarter', quarter);
+  const qs = new URLSearchParams({
+    projects: String(projects || ''),
+    presentationContractVersion: String(PRESENTATION_CONTRACT_VERSION),
+  }); if (quarter) qs.set('quarter', quarter);
+  const activeMount = document.getElementById('gov-active-loop-mount');
+  if (activeMount) activeMount.dataset.activeLoopRequest = qs.toString();
   const loadKey = `${String(projects || '').toUpperCase()}|${quarter || 'current'}|${force ? 'force' : 'normal'}`;
   try {
     if (!activeLoopLoads.has(loadKey)) {
-      activeLoopLoads.set(loadKey, fetch(`/api/governance/active-loop.json?${qs}`, { credentials: 'same-origin' })
+      activeLoopLoads.set(loadKey, fetch(`/api/governance/active-loop.json?${qs}`, { credentials: 'same-origin', cache: 'no-store' })
         .then(async (res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
         .finally(() => activeLoopLoads.delete(loadKey)));
     }
-    const answer = await activeLoopLoads.get(loadKey); if (seq !== requestSequence) return null; writeCachedAnswer(projects, quarter, answer); renderActiveGovernanceLoop(answer); window.setTimeout(() => {
+    const answer = await activeLoopLoads.get(loadKey); if (seq !== requestSequence) return null;
+    if (Number(answer?.presentationContractVersion) !== PRESENTATION_CONTRACT_VERSION) throw new Error(`Presentation contract mismatch (${String(answer?.presentationContractVersion || 'missing')})`);
+    writeCachedAnswer(projects, quarter, answer); renderActiveGovernanceLoop(answer); window.setTimeout(() => {
       const loading = document.getElementById('gov-loading');
       if (loading && document.body.classList.contains('governance-story-v2-ready')) {
         loading.hidden = true;
         loading.setAttribute('aria-hidden', 'true');
       }
     }, 0); return answer;
-  } catch (_) {
-    if (!cached && seq === requestSequence) document.getElementById('gov-active-loop-mount').innerHTML = '<section class="gov-active-loop-hero is-limited" role="status"><h1>Last verified PI answer is unavailable.</h1><p>Decisions requiring fresh evidence are paused.</p></section>';
+  } catch (error) {
+    const mount = document.getElementById('gov-active-loop-mount');
+    if (mount) mount.dataset.activeLoopError = String(error?.message || error || 'Unknown active-loop error').slice(0, 240);
+    if (!cached && seq === requestSequence) mount.innerHTML = '<section class="gov-active-loop-hero is-limited" role="status"><h1>Last verified PI answer is unavailable.</h1><p>Decisions requiring fresh evidence are paused.</p></section>';
     return cached;
   }
 }

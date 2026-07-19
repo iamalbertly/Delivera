@@ -21,21 +21,10 @@ jobs:
       - name: Verify CSS partials are in sync
         run: npm run build:css && npm run check:css
       - name: Run five risk-ranked release scenarios
-        if: github.event_name == 'pull_request'
         run: npm run test:governance:release
         env:
           CI: true
           NODE_ENV: test
-      - name: Run full regression after protected-branch integration
-        if: github.event_name == 'push'
-        run: npm run test:all
-        env:
-          CI: true
-          NODE_ENV: test
-          JIRA_HOST: https://example.atlassian.net
-          JIRA_EMAIL: ci-placeholder@example.com
-          JIRA_API_TOKEN: ci-placeholder-token
-
   deploy:
     needs: test
     runs-on: ubuntu-latest

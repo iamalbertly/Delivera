@@ -13,6 +13,7 @@ function ensureHost() {
   host.id = 'delivera-gov-right-drawer';
   host.className = 'gov-right-drawer-host';
   host.hidden = true;
+  host.inert = true;
   document.body.appendChild(host);
   return host;
 }
@@ -74,9 +75,12 @@ export function openRightDrawer({ title = 'Details', bodyHtml = '', onClose, pan
       <div class="gov-right-drawer-body">${bodyHtml}</div>
     </aside>`;
   el.hidden = false;
+  el.inert = false;
   document.body.classList.add('gov-right-drawer-open');
   const close = () => {
     el.hidden = true;
+    el.inert = true;
+    el.innerHTML = '';
     document.body.classList.remove('gov-right-drawer-open');
     drawerCloseFn = null;
     onClose?.();
@@ -93,5 +97,6 @@ export function closeRightDrawer() {
   }
   if (!host) return;
   host.hidden = true;
+  host.inert = true;
   document.body.classList.remove('gov-right-drawer-open');
 }
