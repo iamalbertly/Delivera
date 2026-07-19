@@ -14,6 +14,9 @@ import {
   getRuntimeAlertCount,
   refreshNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
+import { initContextualHelp } from './Delivera-Shared-Contextual-Help-01UI.js';
+
+initContextualHelp();
 
 const PAGE_DASHBOARD = 'dashboard';
 const PAGE_PI = 'program-increment';

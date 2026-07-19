@@ -540,6 +540,7 @@ export function renderHeaderBar(data, options = {}) {
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
     html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
+      + ' data-issue-key="' + escapeHtml(topBlockerKey) + '"'
       + (sendAllowed ? '' : ' disabled aria-disabled="true"')
       + ' title="' + escapeHtml(takeActionTitle) + '">' + escapeHtml(takeActionLabel) + '</button>';
     if (primaryTags) {
@@ -722,7 +723,11 @@ export function wireHeaderBarHandlers() {
         return true;
       }
       try {
-        const row = document.querySelector('#work-risks-table tbody .work-risk-parent-row, #stories-table tbody tr[data-issue-key], #stuck-card tbody tr[data-issue-key]');
+        const boundIssueKey = String(focusRemediation.getAttribute('data-issue-key') || '').trim();
+        const escapedIssueKey = globalThis.CSS?.escape ? CSS.escape(boundIssueKey) : boundIssueKey.replace(/[^A-Za-z0-9_-]/g, '');
+        const row = boundIssueKey
+          ? document.querySelector(`#work-risks-table tbody [data-issue-key="${escapedIssueKey}"], #stories-table tbody tr[data-issue-key="${escapedIssueKey}"], #stuck-card tbody tr[data-issue-key="${escapedIssueKey}"]`)
+          : document.querySelector('#work-risks-table tbody .work-risk-parent-row, #stories-table tbody tr[data-issue-key], #stuck-card tbody tr[data-issue-key]');
         if (row) {
           const link = row.querySelector('a[href*="/browse/"]');
           const key = link ? (link.textContent || '').trim() : (row.getAttribute('data-issue-key') || '');

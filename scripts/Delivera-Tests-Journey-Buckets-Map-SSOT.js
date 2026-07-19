@@ -3,6 +3,12 @@
 // npm scripts, orchestration steps, and documentation can all share the same view.
 
 export const specMetadata = {
+  'tests/Delivera-Governance-Trust-Recovery-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.governance-active-loop',
+    layer: 'page-ux',
+    page: '/governance,/current-sprint,/actions,/settings,/api/governance/active-loop.json,/api/governance/registry,/api/governance/actions.json',
+    priority: 0,
+  },
   'tests/Delivera-Governance-PI-Meeting-State-Transition-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-active-loop',
     layer: 'page-ux',

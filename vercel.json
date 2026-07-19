@@ -1,19 +1,20 @@
 {
-  "version": 2,
-  "installCommand": "npm install",
-  "buildCommand": "npm run build:css",
-  "functions": {
-    "index.js": {
-      "includeFiles": "{public,data}/**"
-    },
-    "api/index.js": {
-      "includeFiles": "{public,data}/**"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "delivera": {
+      "root": ".",
+      "entrypoint": "index.js",
+      "framework": "express",
+      "installCommand": "npm install",
+      "buildCommand": "npm run build:css"
     }
   },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index"
+      "destination": {
+        "service": "delivera"
+      }
     }
   ]
 }

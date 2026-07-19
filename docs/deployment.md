@@ -30,6 +30,9 @@ Recommended production env:
 - Optional shared cache:
   - `CACHE_BACKEND=redis`
   - `REDIS_URL`
+  - `DELIVERA_SUPER_ADMIN_USERS` — comma-separated authenticated user IDs/emails allowed to publish organization-wide governance registry changes.
+
+Production registry writes fail closed unless Redis is available and the authenticated user is listed in `DELIVERA_SUPER_ADMIN_USERS`. This keeps atomic receipts, squad revisions, idempotency, and cache invalidation durable across Render instances.
 
 ## Vercel (serverless Express mode)
 

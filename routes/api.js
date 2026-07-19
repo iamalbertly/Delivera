@@ -1,7 +1,7 @@
 // SIZE-EXEMPT: Central API surface keeps route handlers co-located for auth, caching, and
 // error-contract consistency across report/current-sprint/outcome flows.
 import express from 'express';
-import { requireAuth } from '../lib/middleware.js';
+import { requireAuth, requireSuperAdmin } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
@@ -9,7 +9,8 @@ import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
 import { projectSquadSprintTruth } from '../lib/Delivera-Governance-Sprint-Reality-01SSOT.js';
 import { readSquadSprintTruthBatch, writeSquadSprintTruth } from '../lib/Delivera-Governance-Squad-Sprint-Truth-02Store-IO.js';
-import { readGovernanceRegistry, updateGovernanceRegistrySquad } from '../lib/Delivera-Governance-Registry-01Store-IO.js';
+import { readGovernanceRegistry, updateGovernanceRegistryBatch, updateGovernanceRegistrySquad } from '../lib/Delivera-Governance-Registry-01Store-IO.js';
+import { assertTruthConsistency, buildDeliveryTruthContext } from '../lib/Delivera-Governance-Delivery-Truth-01SSOT.js';
 import { streamCSV, CSV_COLUMNS } from '../lib/csv.js';
 import { generateExcelWorkbook, generateExcelFilename, formatDateRangeForFilename } from '../lib/excel.js';
 import { getQuarterLabelAndPeriod, getQuartersUpToCurrent } from '../lib/Delivera-Data-VodacomQuarters-01Bounds.js';
@@ -86,7 +87,7 @@ import {
     projectActiveGovernanceLayer1,
     validateAmendment,
 } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
-import { GOVERNANCE_STORY_DETAIL_NAMESPACE, governanceBriefCacheKey, governanceStoryCacheKey, governanceRefreshScopeKey, readWarmGovernanceStory, rememberWarmGovernanceStory } from '../lib/Delivera-Governance-Story-Cache-01SSOT.js';
+import { GOVERNANCE_STORY_DETAIL_NAMESPACE, governanceBriefCacheKey, governanceStoryCacheKey, governanceRefreshScopeKey, clearWarmGovernanceStory, readWarmGovernanceStory, rememberWarmGovernanceStory } from '../lib/Delivera-Governance-Story-Cache-01SSOT.js';
 import {
     appendActiveLoopEvent,
     appendVersionedActiveLoopEvent,
@@ -117,6 +118,38 @@ const router = express.Router();
 const serverStartTime = Date.now();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
 const activeRefreshJobs = new Map();
+
+async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
+    if (!payload || typeof payload !== 'object') return payload;
+    const registry = await readGovernanceRegistry();
+    const keys = [...new Set(projectKeys.map((key) => String(key || '').trim().toUpperCase()).filter(Boolean))].sort();
+    const contexts = keys.map((squadId) => buildDeliveryTruthContext({
+        squad: {
+            squad: squadId,
+            sprintReality: payload.meta?.sprintReality || projectSquadSprintTruth(payload),
+            workSplit: payload.meta?.workSplit || {},
+        },
+        registry,
+        projectKeys: [squadId],
+        dataAsOf: payload.meta?.snapshotAt || payload.meta?.generatedAt || new Date().toISOString(),
+        source: payload.meta?.stale ? 'Last verified Jira sprint snapshot' : 'Jira active sprint',
+        confidence: payload.meta?.stale ? 'stale' : (payload.meta?.partialPermissions ? 'limited' : 'high'),
+    }));
+    assertTruthConsistency(contexts);
+    payload.contexts = contexts;
+    payload.context = contexts.length === 1 ? contexts[0] : null;
+    payload.meta = { ...(payload.meta || {}), registryVersion: registry.version, truthHashes: Object.fromEntries(contexts.map((item) => [item.squadId, item.truthHash])) };
+    return payload;
+}
+
+async function invalidateDeliveryTruthCaches() {
+    clearWarmGovernanceStory();
+    await Promise.all([
+        cache.invalidateByPrefix('governanceBrief:'),
+        cache.invalidateByPrefix('governanceStoryV2:'),
+        cache.invalidateCurrentSprintSnapshot({}),
+    ]);
+}
 
 router.get('/healthz', async (req, res) => {
   let redis = null;
@@ -1090,6 +1123,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                 out.meta.sprintTruthVersion = out.meta.sprintReality.version;
                 out.meta.sprintTruthHash = out.meta.sprintReality.payloadHash;
                 void Promise.all(projectKeys.map((squadKey) => writeSquadSprintTruth({ squadKey, payload: out, checkedBoards: [{ id: board.id, name: board.name, verified: true }] }))).catch(() => {});
+                await attachCurrentSprintTruthContext(out, projectKeys);
                 return res.json(out);
             }
         }
@@ -1162,6 +1196,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         } catch (e) {
             logger.warn('Failed to cache current-sprint snapshot', buildRequestLogContext(req, { boardId, error: e.message }));
         }
+        await attachCurrentSprintTruthContext(payload, projectKeys);
         res.json(payload);
     } catch (error) {
         const boardId = req.query?.boardId != null ? Number(req.query.boardId) : null;
@@ -1184,6 +1219,8 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                     out.meta.sprintTruthVersion = out.meta.sprintReality.version;
                     out.meta.sprintTruthHash = out.meta.sprintReality.payloadHash;
                     logger.warn('Serving stale current-sprint during Jira outage', buildRequestLogContext(req, { boardId, staleAgeMs: staleEntry.staleAgeMs }));
+                    const staleProjects = String(out.meta?.projects || req.query?.projects || '').split(',').filter(Boolean);
+                    await attachCurrentSprintTruthContext(out, staleProjects);
                     return res.json(out);
                 }
             }
@@ -1636,6 +1673,22 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
     const caseState = projectActiveLoopCases(events);
     const answer = buildActiveGovernanceAnswer({ brief, baseline, caseState });
     answer.registryVersion = registry.version;
+    answer.contexts = assertTruthConsistency((answer.squads || []).map((squad) => buildDeliveryTruthContext({
+        squad,
+        registry,
+        projectKeys: [squad.squad],
+        dataAsOf: answer.evidenceObservedAt || answer.verifiedAt || brief.generatedAt,
+        source: 'Jira + approved PI contract + organization registry',
+        confidence: answer.freshness?.state === 'stale' ? 'stale' : (answer.scope?.complete === false ? 'limited' : 'high'),
+    })));
+    const contextBySquad = new Map(answer.contexts.map((context) => [context.squadId, context]));
+    answer.squads = (answer.squads || []).map((squad) => ({ ...squad, context: contextBySquad.get(String(squad.squad || '').toUpperCase()) || null }));
+    answer.promises = (answer.promises || []).map((promise) => ({
+        ...promise,
+        squadId: String(promise.squad || '').toUpperCase(),
+        issueKey: String(promise.issueKey || ''),
+        context: contextBySquad.get(String(promise.squad || '').toUpperCase()) || null,
+    }));
     answer.buildSha = process.env.RENDER_GIT_COMMIT || process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'local';
     const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || req.body?.quarter || '');
     await Promise.all([
@@ -1650,7 +1703,22 @@ async function cachedActiveLoopDetailForRequest(req) {
     const projects = parseGovernanceProjects(req);
     const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || req.body?.quarter || '');
     const hit = await cache.get(storyKey, { namespace: GOVERNANCE_STORY_DETAIL_NAMESPACE });
-    return hit?.value || hit || assembleActiveLoopAnswerForRequest(req);
+    const answer = hit?.value || hit || await assembleActiveLoopAnswerForRequest(req);
+    const projectsForTruth = projects.length ? projects : (answer.scope?.projects || []);
+    const registry = await readGovernanceRegistry();
+    const patched = await patchLayer1WithCanonicalSprintTruth(answer, projectsForTruth, req.query?.quarter || req.body?.quarter || 'current');
+    patched.contexts = assertTruthConsistency((patched.squads || []).map((squad) => buildDeliveryTruthContext({
+        squad,
+        registry,
+        projectKeys: [squad.squad],
+        dataAsOf: patched.evidenceObservedAt || patched.verifiedAt,
+        source: 'Jira + approved PI contract + organization registry',
+        confidence: patched.freshness?.state === 'stale' ? 'stale' : (patched.scope?.complete === false ? 'limited' : 'high'),
+    })));
+    const contextBySquad = new Map(patched.contexts.map((context) => [context.squadId, context]));
+    patched.squads = (patched.squads || []).map((squad) => ({ ...squad, context: contextBySquad.get(String(squad.squad || '').toUpperCase()) || null }));
+    patched.promises = (patched.promises || []).map((promise) => ({ ...promise, squadId: String(promise.squad || '').toUpperCase(), context: contextBySquad.get(String(promise.squad || '').toUpperCase()) || null }));
+    return patched;
 }
 
 async function patchLayer1WithCanonicalSprintTruth(story, projects, quarter = 'current') {
@@ -1685,6 +1753,14 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
             ? candidateStory : null;
         const prepared = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req));
         const answer = await patchLayer1WithCanonicalSprintTruth(prepared, projects, req.query?.quarter || 'current');
+        const registry = await readGovernanceRegistry();
+        answer.contexts = assertTruthConsistency((answer.squads || []).map((squad) => buildDeliveryTruthContext({
+            squad, registry, projectKeys: [squad.squad], dataAsOf: answer.evidenceObservedAt || answer.verifiedAt,
+            source: 'Jira + approved PI contract + organization registry',
+            confidence: answer.freshness?.state === 'stale' ? 'stale' : (answer.scope?.complete === false ? 'limited' : 'high'),
+        })));
+        const contextBySquad = new Map(answer.contexts.map((context) => [context.squadId, context]));
+        answer.squads = (answer.squads || []).map((squad) => ({ ...squad, context: contextBySquad.get(String(squad.squad || '').toUpperCase()) || null }));
         rememberWarmGovernanceStory(storyKey, answer);
         res.setHeader('ETag', `"${answer.answerVersion}"`);
         res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=300');
@@ -1697,7 +1773,11 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
 
 router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
     try {
-        const answer = await cachedActiveLoopDetailForRequest(req);
+        const requestedSquad = String(req.query.squad || '').trim().toUpperCase();
+        const scopedRequest = requestedSquad && !req.query.projects
+            ? Object.assign(Object.create(req), { query: { ...req.query, projects: requestedSquad } })
+            : req;
+        const answer = await cachedActiveLoopDetailForRequest(scopedRequest);
         const liveCases = projectActiveLoopCases(await readActiveLoopEvents({ limit: 5000 }));
         const freshnessRestricted = ['stale', 'failed'].includes(answer.freshness?.state);
         const promises = (answer.promises || []).map((promise) => {
@@ -1712,8 +1792,23 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
         const cases = promises.filter((promise) => promise.nextAction || promise.caseState !== 'aligned')
             .filter((promise) => !state || promise.caseState === state)
             .filter((promise) => !owner || String(promise.ownerRoute?.displayName || promise.ownerRoute?.role || '').toLowerCase().includes(owner))
-            .map((promise) => ({ promiseId: promise.promiseId, squad: promise.squad, squadDisplayName: promise.squadDisplayName, title: promise.originalText, state: promise.caseState, lifecycle: promise.actionLifecycle, ownerRoute: promise.ownerRoute, nextAction: promise.nextAction, version: promise.version, detailHref: `/api/governance/cases/${encodeURIComponent(promise.promiseId)}/detail.json?projects=${encodeURIComponent((answer.scope?.projects || []).join(','))}` }));
-        return res.json({ schemaVersion: 2, storyVersion: answer.answerVersion, cases });
+            .filter((promise) => !requestedSquad || String(promise.squad || '').toUpperCase() === requestedSquad)
+            .map((promise) => {
+                const squadId = String(promise.squad || '').toUpperCase();
+                const issueKey = String(promise.issueKey || '');
+                const dueState = String(promise.nextAction?.dueState || promise.caseState || 'open');
+                const actionType = String(promise.nextAction?.id || promise.nextAction?.label || 'review');
+                const sourceEntityId = issueKey || promise.promiseId;
+                const returnContext = { sourcePage: 'actions', squadId, sprintId: promise.context?.sprintId || null };
+                return {
+                    promiseId: promise.promiseId, issueKey, squadId, squad: squadId, squadDisplayName: promise.squadDisplayName || promise.context?.squadName,
+                    title: promise.originalText, state: promise.caseState, lifecycle: promise.actionLifecycle, ownerRoute: promise.ownerRoute,
+                    nextAction: promise.nextAction, version: promise.version, dueState, actionType, sourceEntityId, returnContext,
+                    groupKey: `${squadId}|${actionType}|${sourceEntityId}|${dueState}`,
+                    detailHref: `/api/governance/cases/${encodeURIComponent(promise.promiseId)}/detail.json?projects=${encodeURIComponent(squadId)}&squad=${encodeURIComponent(squadId)}&returnTo=${encodeURIComponent('/actions')}`,
+                };
+            });
+        return res.json({ schemaVersion: 3, storyVersion: answer.answerVersion, contexts: answer.contexts || [], cases });
     } catch (err) {
         return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Actions queue unavailable', code: err?.code || 'ACTIONS_QUEUE_FAILED' });
     }
@@ -1727,7 +1822,9 @@ router.get('/api/governance/registry.json', requireAuth, async (_req, res) => {
         squads: registry.squads.map((item) => {
             const truth = sprintTruth.get(item.squadKey);
             const boardCandidates = (truth?.checkedBoards || []).filter((board) => board?.id).map((board) => ({ id: board.id, name: board.name || `Board ${board.id}`, confidence: board.verified === false ? 'limited' : 'high', evidence: 'Verified Current Sprint snapshot' }));
-            const people = [item.productOwner, item.scrumMaster, item.streamLead].filter((person) => person?.displayName).map((person) => ({ displayName: person.displayName, confidence: 'confirmed', evidence: 'Existing organization registry' }));
+            const storedPeople = [item.productOwner, item.scrumMaster, item.streamLead].filter((person) => person?.displayName).map((person) => ({ displayName: person.displayName, confidence: 'confirmed', evidence: 'Existing organization registry' }));
+            const jiraPeople = (truth?.currentWork || []).flatMap((work) => [work.assignee, work.owner, work.reporter]).map((person) => typeof person === 'string' ? person : person?.displayName || person?.name || '').filter(Boolean).map((displayName) => ({ displayName, confidence: 'observed', evidence: 'Observed in the latest Jira sprint snapshot' }));
+            const people = [...new Map([...storedPeople, ...jiraPeople].map((person) => [person.displayName.toLowerCase(), person])).values()];
             return { ...item, suggestions: { boardMapping: boardCandidates, people } };
         }),
     };
@@ -1735,12 +1832,30 @@ router.get('/api/governance/registry.json', requireAuth, async (_req, res) => {
     return res.json(enriched);
 });
 
-router.patch('/api/governance/registry/:squadKey', requireAuth, async (req, res) => {
+router.patch('/api/governance/registry', requireAuth, requireSuperAdmin, async (req, res) => {
+    try {
+        const idempotencyKey = String(req.headers['idempotency-key'] || req.body?.idempotencyKey || randomUUID());
+        const registry = await updateGovernanceRegistryBatch({
+            changes: req.body?.changes,
+            reason: req.body?.reason,
+            actor: req.authUser?.id || req.session?.user || 'authorized-user',
+            idempotencyKey,
+        });
+        await invalidateDeliveryTruthCaches();
+        res.setHeader('ETag', `"${registry.version}"`);
+        return res.json({ ...registry, receipt: { id: idempotencyKey, changedSquadKeys: registry.changedSquadKeys || [] } });
+    } catch (err) {
+        return res.status(err?.httpStatus || 500).json({ error: err?.message || 'Registry update failed', code: err?.code || 'REGISTRY_UPDATE_FAILED', squadKey: err?.squadKey, currentRevision: err?.currentRevision });
+    }
+});
+
+router.patch('/api/governance/registry/:squadKey', requireAuth, requireSuperAdmin, async (req, res) => {
     const expectedVersion = Number(String(req.headers['if-match'] || '').replace(/\D/g, ''));
     if (!expectedVersion) return res.status(428).json({ error: 'If-Match is required for organization settings', code: 'REGISTRY_VERSION_REQUIRED' });
     if (!String(req.body?.reason || '').trim()) return res.status(422).json({ error: 'A reason is required for organization changes', code: 'REGISTRY_REASON_REQUIRED' });
     try {
-        const registry = await updateGovernanceRegistrySquad({ squadKey: req.params.squadKey, expectedVersion, patch: req.body, actor: req.session?.user || 'authorized-user' });
+        const registry = await updateGovernanceRegistrySquad({ squadKey: req.params.squadKey, expectedVersion, patch: req.body, actor: req.authUser?.id || req.session?.user || 'authorized-user' });
+        await invalidateDeliveryTruthCaches();
         res.setHeader('ETag', `"${registry.version}"`);
         return res.json(registry);
     } catch (err) {
@@ -1775,7 +1890,7 @@ router.get('/api/governance/squads/:squadKey/detail.json', requireAuth, async (r
         const answer = await cachedActiveLoopDetailForRequest(req);
         const squad = [...(answer.squads || []), ...(answer.excludedOperationalGroups || [])].find((item) => item.squad === squadKey);
         if (!squad) return res.status(404).json({ error: 'Squad not found', code: 'SQUAD_NOT_FOUND' });
-        return res.json({ schemaVersion: 2, storyVersion: answer.answerVersion, squadPayloadHash: squad.payloadHash, squad, promises: answer.promises.filter((item) => item.squad === squadKey), currentWork: squad.currentWork || squad.doingInstead?.clusters || [], unknownWork: squad.unknownWork, possibleRework: squad.possibleRework, sprintReality: squad.sprintReality, workSplit: squad.workSplit });
+        return res.json({ schemaVersion: 3, storyVersion: answer.answerVersion, context: squad.context, squadPayloadHash: squad.payloadHash, squad, promises: answer.promises.filter((item) => item.squad === squadKey), currentWork: squad.currentWork || squad.doingInstead?.clusters || [], unknownWork: squad.unknownWork, possibleRework: squad.possibleRework, sprintReality: squad.sprintReality, workSplit: squad.workSplit });
     } catch (err) {
         return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Squad detail unavailable', code: err?.code || 'SQUAD_DETAIL_FAILED' });
     }

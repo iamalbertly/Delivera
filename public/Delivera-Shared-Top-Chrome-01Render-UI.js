@@ -44,6 +44,23 @@ const SURFACE_SWITCHER = [
   { key: PAGE_REPORT, label: 'Proof', href: '/report' },
 ];
 
+function contextualSurfaceHref(item) {
+  if (typeof window === 'undefined') return item.href;
+  const current = new URL(window.location.href);
+  const squad = current.searchParams.get('squad') || current.searchParams.get('spotlight');
+  const sprintId = current.searchParams.get('sprintId');
+  if (!squad && !sprintId) return item.href;
+  const target = new URL(item.href, window.location.origin);
+  if (item.key === PAGE_GOVERNANCE && squad) {
+    target.searchParams.set('spotlight', squad);
+    target.searchParams.set('view', 'squad');
+  } else {
+    if (squad) target.searchParams.set('squad', squad);
+    if (sprintId) target.searchParams.set('sprintId', sprintId);
+  }
+  return `${target.pathname}${target.search}${target.hash}`;
+}
+
 function getPathState() {
   const path = typeof window !== 'undefined' && window.location ? window.location.pathname || '' : '';
   const hash = typeof window !== 'undefined' && window.location ? window.location.hash || '' : '';
@@ -155,7 +172,7 @@ function buildSwitcherHTML(current) {
     if (active) {
       html += `<span class="${cls}" aria-current="page" data-top-surface="${item.key}">${item.label}</span>`;
     } else {
-      html += `<a class="${cls}" href="${item.href}" data-top-surface="${item.key}">${item.label}</a>`;
+      html += `<a class="${cls}" href="${contextualSurfaceHref(item)}" data-top-surface="${item.key}">${item.label}</a>`;
     }
   }
   html += '</div>';
@@ -189,7 +206,7 @@ function buildTopChromeHTML(current) {
     + `<button type="button" class="app-top-create" data-top-action="create-work" data-open-outcome-modal data-outcome-context="Create work from global chrome." data-outcome-projects="${escapeAttr(projects)}">`
     + '<span aria-hidden="true">+</span><span class="app-top-create-label">Create</span></button>'
     + buildAiTrustPillHTML()
-    + (current === PAGE_GOVERNANCE ? '' : `<button type="button" class="app-top-agent-pill is-visible" data-top-action="agent">Actions</button>`)
+    + `<button type="button" class="app-top-agent-pill app-top-actions-link is-visible" data-top-action="agent">Actions</button>`
     + `<button type="button" class="app-top-btn app-top-icon-btn" data-top-action="notifications" id="app-top-notifications-btn" aria-label="Notifications" title="Notifications">`
     + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"/></svg>'
     + '<span class="app-top-notify-badge" id="app-top-notify-badge" hidden></span></button>'
@@ -425,18 +442,14 @@ function bindTopChromeInteractions(chrome, current) {
   });
 
   chrome.querySelector('[data-top-action="agent"]')?.addEventListener('click', () => {
-    if (current === PAGE_GOVERNANCE) {
-      document.querySelector('[data-gov-inbox-open], [data-action="open-inbox"], #gov-inbox-chip')?.click?.()
-        || document.getElementById('gov-sticky-answer-mount')?.scrollIntoView?.({ behavior: 'smooth' });
-      return;
-    }
-    const actionTarget = document.querySelector('[data-send-top-nudge], [data-action="send-top-nudge-to-jira"], .cs-cockpit-quick-create, .gov-cluster-nudge-primary, #stories-card, #jira-activity');
-    if (actionTarget) {
-      actionTarget.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-      actionTarget.focus?.({ preventScroll: true });
-      return;
-    }
-    window.dispatchEvent(new CustomEvent('delivera-gov-scroll-first-action'));
+    const currentUrl = new URL(window.location.href);
+    const target = new URL('/actions', window.location.origin);
+    const squad = currentUrl.searchParams.get('spotlight') || currentUrl.searchParams.get('squad') || '';
+    const sprint = currentUrl.searchParams.get('sprintId') || '';
+    if (squad) target.searchParams.set('squad', squad);
+    if (sprint) target.searchParams.set('sprintId', sprint);
+    target.searchParams.set('source', current || 'app');
+    window.location.assign(`${target.pathname}${target.search}`);
   });
 
   document.addEventListener('click', (e) => {

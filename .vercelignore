@@ -1,0 +1,13 @@
+.git
+.env
+.autohacker
+.playwright_tmp
+.playwright-mcp
+node_modules
+output
+test-results
+tests
+docs
+*.log
+.tmp-*
+temp_*
