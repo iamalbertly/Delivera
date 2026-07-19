@@ -47,6 +47,7 @@ async function mockMeeting(page, { story = STORY, detailPromises = [promise] } =
   await page.route('**/api/governance/squads/DMS/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, squad: STORY.squads[0], promises: detailPromises, currentWork: [{ title: 'Legacy Database Migration', percentage: 38 }, { title: 'Operational noise', ticketCount: 14 }], sprintReality: STORY.squads[0].sprintReality, workSplit: STORY.squads[0].workSplit }) }));
   await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
   await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: STORY.scope.projects, meta: {}, topRisks: [], evidencePack: { rows: [] }, squadInsights: [] }) }));
+  await page.route('**/api/boards.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ boards: [], projectErrors: [] }) }));
   await page.route('**/api/quarters-list**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
   for (const pattern of ['**/api/governance/adoption-metrics.json**', '**/api/governance/inbox.json**', '**/api/governance/feedback-summary.json**', '**/api/governance/scope-intelligence.json**']) await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
 }
@@ -135,6 +136,10 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
 
 test.describe('Direct-to-value governance release — exactly five fail-fast scenarios', () => {
   test.describe.configure({ retries: 0, mode: 'serial' });
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/api/governance/pi-confidence.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ piConfidence: null, piForumAnswer: '', protectMeAnswer: '', cached: true }) }));
+    await page.route('**/api/boards.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ boards: [], projectErrors: [] }) }));
+  });
 
   test('release 1 governance truth and first value', async ({ page }) => {
     await mockMeeting(page);
