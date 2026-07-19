@@ -39,13 +39,23 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Verify Render deployment credentials
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          DELIVERA_PROD_BASE_URL: ${{ secrets.DELIVERA_PROD_BASE_URL != '' && secrets.DELIVERA_PROD_BASE_URL || secrets.VODAAGILEBOARD_PROD_BASE_URL }}
+        run: |
+          test -n "$RENDER_API_KEY" || { echo "Missing RENDER_API_KEY"; exit 1; }
+          test -n "$RENDER_SERVICE_ID" || { echo "Missing RENDER_SERVICE_ID"; exit 1; }
+          test -n "$DELIVERA_PROD_BASE_URL" || { echo "Missing DELIVERA_PROD_BASE_URL"; exit 1; }
       - run: npx playwright install --with-deps chromium
-      # Install Render CLI (Linux) - keep version pinned for stability
+      # Blueprint validation requires Render CLI v2.7.0 or later. Keep a known release pinned.
       - name: Install Render CLI
         run: |
-          curl -L https://github.com/render-oss/cli/releases/download/v1.1.0/cli_1.1.0_linux_amd64.zip -o render.zip
-          unzip -q -o render.zip cli_v1.1.0
-          sudo mv cli_v1.1.0 /usr/local/bin/render
+          curl -L https://github.com/render-oss/cli/releases/download/v2.19.0/cli_2.19.0_linux_amd64.zip -o render.zip
+          unzip -q -o render.zip cli_v2.19.0
+          sudo mv cli_v2.19.0 /usr/local/bin/render
+          render --version
       - name: Validate render.yaml blueprint
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
