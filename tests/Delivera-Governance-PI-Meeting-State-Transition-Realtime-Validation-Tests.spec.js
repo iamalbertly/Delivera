@@ -88,9 +88,10 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await mockMeeting(page, { story: { ...STORY, decisionCoverage: { closed: 0, total: 0, preparedOwnerAsks: 2 } } }); await page.goto('/governance'); const hero = page.getByTestId('governance-active-loop'); await expect(hero).toBeVisible({ timeout: 15000 });
     await expect(hero).toContainText('Portfolio mission'); await expect(hero.locator('[data-story-squad]')).toHaveCount(4); await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify'); await expect(hero.locator('[data-story-squad="RPA"]')).not.toContainText('off-plan');
     await expect(hero.locator('.gov-loop-decision-count')).toContainText('of 4');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Sprint');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Proof and next move');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Based on');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Squad');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Current reality');
+    await expect(hero.locator('.gov-story-columns')).toContainText('PI impact');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Next move');
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Proof / next');
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Trust factor');
     await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('M-Pesa Delivery'); await expect(hero.locator('[data-story-squad="DMS"]')).not.toContainText('DMS Squad');
@@ -153,7 +154,9 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(hero).toContainText('2 squads are not aligned');
     await expect(hero.locator('[data-story-squad]')).toHaveCount(4);
     await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Proof and next move');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Current reality');
+    await expect(hero.locator('.gov-story-columns')).toContainText('PI impact');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Next move');
     await expect(page.locator('#gov-action-clusters-mount:visible')).toHaveCount(0);
     await expect(page.locator('#work-draft-drawer')).toBeHidden();
     await expect(page.locator('#work-draft-drawer')).toHaveAttribute('inert', '');
@@ -194,7 +197,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     const registry = { version: 7, squads: [{ squadKey: 'SD', friendlyName: 'DMS Squad', participationState: 'pi-governed', boardMapping: [12], productOwner: { displayName: 'Irene' }, scrumMaster: null, streamLead: null }] };
     let patchBody = null;
     await page.route('**/api/governance/registry.json', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(registry) }));
-    await page.route('**/api/governance/registry/SD', async (route) => { patchBody = route.request().postDataJSON(); await route.fulfill({ status: 412, contentType: 'application/json', body: JSON.stringify({ error: 'Organization settings changed while you were editing.' }) }); });
+    await page.route('**/api/governance/registry', async (route) => { patchBody = route.request().postDataJSON(); await route.fulfill({ status: 412, contentType: 'application/json', body: JSON.stringify({ error: 'Organization settings changed while you were editing.' }) }); });
     await page.route('**/api/settings/ai-usage.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ totalCalls: 0, fallbackCalls: 0 }) }));
     await page.route('**/api/jira-activity**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: [] }) }));
     await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: ['SD'], squadInsights: [], meta: {} }) }));
@@ -209,12 +212,13 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await row.locator('[type="submit"]').click();
     await expect(row.locator('[data-registry-status]')).toContainText('changed while you were editing');
     await expect(row.locator('[name="reason"]')).toHaveValue('Squad onboarding consent is pending');
-    expect(patchBody.participationState).toBe('pending-consent');
+    expect(patchBody.reason).toBe('Squad onboarding consent is pending');
+    expect(patchBody.changes[0]).toMatchObject({ squadKey: 'SD', patch: { participationState: 'pending-consent' } });
   });
 
   test('release 5 continuity degradation and realtime safety', async ({ page }) => {
     await mockMeeting(page);
-    await page.goto('/governance?lens=rework&spotlight=DMS');
+    await page.goto('/governance?view=evidence&spotlight=DMS');
     await expect(page.locator('#gov-squad-spotlight')).toContainText('M-Pesa Delivery');
     await page.locator('[data-story-squad="DMS"]').focus();
     const before = await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')));
@@ -222,7 +226,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await page.evaluate(async (story) => { const module = await import('/Delivera-App-Governance-ActiveLoop-01UI.js'); module.renderActiveGovernanceLoop(story); }, updated);
     await expect(page.locator('.gov-story-update')).toBeVisible();
     expect(await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')))).toEqual(before);
-    await expect(page).toHaveURL(/lens=rework/);
+    await expect(page).toHaveURL(/view=evidence/);
     await expect(page).toHaveURL(/spotlight=DMS/);
   });
 });

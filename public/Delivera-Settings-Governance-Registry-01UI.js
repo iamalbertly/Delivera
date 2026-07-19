@@ -146,8 +146,8 @@ async function saveOne(event) {
     registry = await requestBatch([{ squadKey: form.dataset.registrySquad, expectedRevision: Number(form.dataset.registryRevision) || 1, patch: patchFromValues(formValues(form)) }], reason);
     drafts.delete(form.dataset.registrySquad); render();
   } catch (error) {
-    status.textContent = error.status === 412 ? `${error.message} Your draft is preserved.` : error.message;
     updateRowState(form);
+    status.textContent = error.status === 412 ? `${error.message} Your draft is preserved.` : error.message;
   }
 }
 
