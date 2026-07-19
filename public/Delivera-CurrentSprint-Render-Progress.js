@@ -1037,9 +1037,15 @@ export function wireDailyCompletionTimelineHandlers() {
           ? detail.riskTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
           : [];
         storyFilterState.activeRiskTags = activeTags;
+        document.querySelectorAll('[data-work-risk-shortcut], .stories-risk-chip').forEach((button) => {
+          const tags = String(button.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
+          const selected = activeTags.length === tags.length && activeTags.every((tag) => tags.includes(tag));
+          button.setAttribute('aria-pressed', String(selected));
+        });
         getRows().forEach((row) => {
           if (!activeTags.length) {
             row.removeAttribute('data-role-filter-hidden');
+            row.hidden = false;
             row.style.opacity = '';
             return;
           }
@@ -1051,19 +1057,28 @@ export function wireDailyCompletionTimelineHandlers() {
           } else {
             row.toggleAttribute('data-role-filter-hidden', !matches);
           }
-          row.style.opacity = matches ? '' : '0.35';
+          row.hidden = !matches;
+          row.style.opacity = '';
         });
         getMobileCards().forEach((cardEl) => {
           if (!activeTags.length) {
             cardEl.removeAttribute('data-role-filter-hidden');
+            cardEl.hidden = false;
             cardEl.style.opacity = '';
             return;
           }
           const tags = (cardEl.getAttribute('data-risk-tags') || '').toLowerCase().split(/\s+/).filter(Boolean);
           const matches = activeTags.some((tag) => tags.includes(tag));
           cardEl.toggleAttribute('data-role-filter-hidden', !matches);
-          cardEl.style.opacity = matches ? '' : '0.35';
+          cardEl.hidden = !matches;
+          cardEl.style.opacity = '';
         });
+        const url = new URL(window.location.href);
+        if (activeTags.length) url.searchParams.set('risk', activeTags.join(',')); else url.searchParams.delete('risk');
+        history.replaceState(history.state, '', url);
+        const count = getRows().filter((row) => !row.hidden && row.style.display !== 'none' && row.classList.contains('story-parent-row')).length;
+        const announcement = document.getElementById('current-sprint-single-project-hint');
+        if (announcement) announcement.textContent = `${count} work item${count === 1 ? '' : 's'} in the selected sprint view.`;
         initializeStoryHierarchy();
         initializeMobileCards();
       });

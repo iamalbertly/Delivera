@@ -4,13 +4,27 @@ import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js?
 const mount = document.getElementById('actions-queue-mount');
 const summary = document.getElementById('actions-queue-summary');
 const stateFilter = document.getElementById('actions-state-filter');
+const ownerFilter = document.getElementById('actions-owner-filter');
 let cases = [];
 
 function render() {
   const state = stateFilter?.value || '';
-  const visible = cases.filter((item) => !state || item.state === state);
+  const owner = ownerFilter?.value || '';
+  const visible = cases.filter((item) => !state || item.state === state)
+    .filter((item) => !owner || (owner === 'unresolved' ? item.ownerRoute?.unresolved || !item.ownerRoute?.displayName : item.ownerRoute?.displayName && !item.ownerRoute?.unresolved));
   summary.textContent = `${visible.length} action${visible.length === 1 ? '' : 's'} ready from the shared governance ledger.`;
-  mount.innerHTML = visible.length ? visible.map((item) => `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}"><div><span>${escapeHtml(item.squadDisplayName || item.squad)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.lifecycle || 'Needs governance attention.')}</p></div><div class="action-case-next"><small>${escapeHtml(item.ownerRoute?.displayName || item.ownerRoute?.role || 'PI Team queue')}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(item.nextAction?.label || 'Review missing proof')}</button></div></article>`).join('') : '<div class="empty-state"><h3>No actions match this view</h3><p>Change the state filter or return to Governance for the portfolio answer.</p></div>';
+  const grouped = new Map();
+  visible.forEach((item) => {
+    const key = `${item.state}|${item.lifecycle}|${item.ownerRoute?.displayName || item.ownerRoute?.role || 'unresolved'}|${item.nextAction?.label || ''}`;
+    const group = grouped.get(key) || [];
+    group.push(item); grouped.set(key, group);
+  });
+  mount.innerHTML = visible.length ? [...grouped.values()].map((group) => {
+    const item = group[0];
+    const title = group.length > 1 ? `${group.length} promises share this correction` : item.title;
+    const affected = group.length > 1 ? `<small>${escapeHtml(group.map((entry) => entry.title).slice(0, 3).join(' · '))}</small>` : '';
+    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}"><div><span>${escapeHtml(item.squadDisplayName || item.squad)}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.lifecycle || 'Needs governance attention.')}</p>${affected}</div><div class="action-case-next"><small>${escapeHtml(item.ownerRoute?.displayName || item.ownerRoute?.role || 'PI Team queue')}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(item.nextAction?.label || 'Review missing proof')}</button></div></article>`;
+  }).join('') : '<div class="empty-state"><h3>No actions match this view</h3><p>Change the state filter or return to Governance for the portfolio answer.</p></div>';
   mount.querySelectorAll('[data-action-case] button').forEach((button) => button.addEventListener('click', () => {
     const row = button.closest('[data-action-case]');
     return openPromiseDrawer(row.dataset.actionCase, { detailHref: row.dataset.actionDetail });
@@ -30,4 +44,5 @@ async function load() {
 }
 
 stateFilter?.addEventListener('change', render);
+ownerFilter?.addEventListener('change', render);
 void load();

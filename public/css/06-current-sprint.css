@@ -6383,7 +6383,7 @@ body.jira-nudge-review-open { overflow: hidden; }
   background: var(--surface, #fff);
   border-radius: 16px 16px 0 0;
   padding: 16px 18px 20px;
-  z-index: 1201;
+  z-index: 1701;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
 }
 .jira-nudge-review-textarea {
@@ -6763,4 +6763,30 @@ body.jira-nudge-review-open { overflow: hidden; }
   #stories-mobile-card-list { display: grid !important; grid-template-columns: 1fr; gap: 8px; }
   .story-mobile-card { max-width: 100%; overflow-wrap: anywhere; }
   .sprint-section-links { overflow: visible; flex-wrap: wrap; }
+}
+
+.current-sprint-prepared-mission {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 42rem;
+  margin: 1rem auto;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border-subtle, #d9e0ea);
+  border-radius: 0.9rem;
+  background: var(--surface, #fff);
+  text-align: left;
+}
+
+.current-sprint-prepared-mission > span,
+.current-sprint-prepared-mission > small {
+  color: var(--text-muted, #5f6b7a);
+  font-size: 0.82rem;
+}
+
+.current-sprint-prepared-mission > strong {
+  font-size: 1.15rem;
+}
+
+.current-sprint-prepared-mission > p {
+  margin: 0;
 }

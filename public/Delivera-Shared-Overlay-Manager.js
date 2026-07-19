@@ -23,12 +23,18 @@ function findFocusable(root) {
   return root.querySelector('[autofocus], button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
 }
 
+function focusableElements(root) {
+  return [...(root?.querySelectorAll?.('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') || [])]
+    .filter((node) => !node.hidden && node.getAttribute('aria-hidden') !== 'true');
+}
+
 function closeActiveOverlay({ returnFocus = true } = {}) {
   if (!activeOverlayId) return;
   const overlay = document.getElementById(activeOverlayId);
   if (overlay) {
     overlay.classList.remove('is-open');
     overlay.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('inert', '');
     if (overlay.dataset.overlayMode === 'drawer') overlay.hidden = true;
   }
   const backdrop = ensureBackdrop();
@@ -49,6 +55,7 @@ function openOverlay(overlay, { mode = 'modal', returnFocusEl = null } = {}) {
   const backdrop = ensureBackdrop();
   overlay.dataset.overlayMode = mode;
   overlay.hidden = false;
+  overlay.removeAttribute('inert');
   overlay.classList.add('is-open');
   overlay.setAttribute('aria-hidden', 'false');
   backdrop.hidden = false;
@@ -71,6 +78,16 @@ function wireGlobalHandlers() {
     if (event.key === 'Escape' && activeOverlayId) {
       event.preventDefault();
       closeActiveOverlay();
+      return;
+    }
+    if (event.key === 'Tab' && activeOverlayId) {
+      const overlay = document.getElementById(activeOverlayId);
+      const items = focusableElements(overlay);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
   });
   document.addEventListener('click', (event) => {
@@ -110,6 +127,7 @@ export function createOverlayController(overlaySelector, options = {}) {
     } else {
       overlay.classList.remove('is-open');
       overlay.setAttribute('aria-hidden', 'true');
+      overlay.setAttribute('inert', '');
       if (mode === 'drawer') overlay.hidden = true;
     }
     if (typeof options.onClose === 'function') options.onClose();
@@ -124,6 +142,7 @@ export function createOverlayController(overlaySelector, options = {}) {
   overlay.addEventListener('click', clickHandler);
   overlay.dataset.overlayMode = mode;
   overlay.setAttribute('aria-hidden', overlay.classList.contains('is-open') ? 'false' : 'true');
+  if (!overlay.classList.contains('is-open')) overlay.setAttribute('inert', '');
 
   return {
     open,

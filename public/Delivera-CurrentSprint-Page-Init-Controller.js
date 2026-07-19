@@ -36,6 +36,34 @@ function buildLoadingContext(boardLabel = '', sprintLabel = '') {
   return parts.join(' | ');
 }
 
+async function revealPreparedSprintTruth(projects) {
+  try {
+    const response = await fetch(`/api/current-sprint/truth.json?projects=${encodeURIComponent(projects)}`, { credentials: 'same-origin' });
+    if (!response.ok || projects !== getProjectsParam()) return;
+    const body = await response.json();
+    const truth = body?.records?.[0];
+    const loadingEl = currentSprintDom.loadingEl;
+    if (!truth || !loadingEl || currentSprintDom.contentEl?.style.display === 'block') return;
+    loadingEl.innerHTML = '';
+    const mission = document.createElement('section');
+    mission.className = 'current-sprint-prepared-mission';
+    mission.setAttribute('aria-live', 'polite');
+    const label = document.createElement('span');
+    label.textContent = 'Last verified sprint';
+    const title = document.createElement('strong');
+    title.textContent = truth.sprintName || truth.state || 'Sprint evidence';
+    const copy = document.createElement('p');
+    copy.textContent = truth.copy || 'Refreshing the selected board quietly.';
+    const status = document.createElement('small');
+    status.textContent = 'Refreshing Jira details quietly…';
+    mission.append(label, title, copy, status);
+    loadingEl.appendChild(mission);
+    loadingEl.classList.remove('current-sprint-loading-with-spinner');
+  } catch (_) {
+    // The standard honest loading/recovery state remains visible.
+  }
+}
+
 function loadCurrentSprintWithGuard(boardId, sprintId, onStale) {
   const requestId = ++currentSprintLoadRequestId;
   return loadCurrentSprint(boardId, sprintId).then((data) => {
@@ -78,6 +106,7 @@ function refreshBoards(preferredId, preferredSprintId) {
   const { boardSelect } = currentSprintDom;
   showRibbon('', 'fresh');
   showLoading('Loading boards for ' + getProjectsParam() + '...');
+  void revealPreparedSprintTruth(getProjectsParam());
   return loadBoards()
     .then((res) => {
       if (requestId !== lastBoardsRefreshRequestId) return null;

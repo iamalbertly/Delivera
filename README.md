@@ -58,7 +58,7 @@ Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brie
 
 - Governance, Current Sprint, Actions, and Settings keep separate route ownership while sharing sprint truth, case lifecycle, display names, versions, and owner routes.
 - Schema-v2 Layer 1 carries presentation contract version `3`; incompatible browser cache is rejected without replacing the last compatible story.
-- Governance and Current Sprint use `Delivera-Governance-Sprint-Reality-01SSOT.js` for concrete `active`, `ended-no-successor`, `planned-not-started`, `closed`, `partial`, and `unverified` facts.
+- Current Sprint writes a versioned per-squad sprint truth record and Governance reads that same cached record. Both expose the same truth version/hash and concrete `active`, `active-dates-expired`, `ended-no-successor`, `planned-not-started`, `closed`, `partial`, or `unverified` fact.
 - Evidence-dependent actions are server-authorized. Jira failure or evidence older than 60 minutes disables send, approval, escalation, and re-check while preserving safe owner correction and drafts.
 - `/actions` is the visible shared intervention queue and reuses the Governance resolution drawer; hidden legacy action mounts are never a data source.
 - Settings owns the versioned organization registry. Participation is `pi-governed`, `pending-consent`, or `operational-exception`; production writes require Redis and fail closed.
@@ -81,13 +81,13 @@ Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **A
 
 Primary release validation: `npm run test:governance:release`. It runs exactly five risk-ranked, fail-fast scenarios: source-write truth, Layer 1 value, synchronized Spotlight, refresh continuity, and the previously failed sprint-fold viewport contract. The broader journey remains available as `npm run test:journey:governance-active-loop`; pull requests use the five-scenario gate and protected-branch integration retains the full regression.
 
-## Governance master plan
+## Governance implementation record
 
-This is the SSOT for the next Governance hardening pass. The product direction is a meeting-safe PI operating loop: fast portfolio answer first, deterministic proof second, and the next safe transition always available without leaving Governance. Every item below must reduce clicks, reduce duplicate surfaces, or make the evidence more defensible.
+This is the SSOT for the meeting-safe Governance implementation. Completed items remain here as durable product invariants: fast portfolio answer first, deterministic proof second, and the next safe transition available without leaving Governance. Future changes must reduce clicks, reduce duplicate surfaces, or make evidence more defensible.
 
 **Priority codebase improvements**
 
-1. **Sprint truth SSOT:** make Governance, Current Sprint, and Report consume the same server sprint projection. Rationale: DMS cannot be "no sprint verified" in Governance while Current Sprint shows a recently closed sprint; trust collapses when surfaces disagree.
+1. **Sprint truth SSOT:** Current Sprint snapshot processing writes the canonical squad record; Governance consumes it rather than rebuilding from weaker portfolio inputs. Rationale: DMS cannot be "no sprint verified" in Governance while Current Sprint shows an active sprint.
 2. **Warm Layer 1 only on first paint:** serve `active-loop.json` from the last verified story and defer legacy `governance-brief.json`, boards, feedback, inbox, and scorecard calls until v2 fallback or below-fold detail needs them. Rationale: the PI Team needs the answer in under two seconds, not an invisible legacy bill.
 3. **Browser single-flight for active-loop reads:** coalesce duplicate first-load calls by scope/quarter/force in the frontend as well as the backend. Rationale: protects 90 concurrent viewers from multiplying identical reads.
 4. **Decision coverage guard:** derive visible totals from schema total, checked promises, or Layer 1 promises so the hero never says `0 of 0` when the source line says promises were checked. Rationale: visible arithmetic must never contradict itself.

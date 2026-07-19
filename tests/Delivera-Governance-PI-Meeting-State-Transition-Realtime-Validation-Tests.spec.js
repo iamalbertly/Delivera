@@ -118,8 +118,10 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
   });
 
   test('targeted sync carries only the selected squad scope and joins one job', async ({ page }) => {
-    let body = null; await mockMeeting(page); await page.route('**/api/governance/refreshes', async (route) => { body = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ attached: true, jobId: 'shared-job' }) }); });
-    await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click(); await page.locator('[data-force-squad]').click(); expect(body).toMatchObject({ scopeType: 'squad', scopeId: 'DMS' }); expect(body.scopeType).not.toBe('portfolio'); await expect(page.locator('#gov-squad-spotlight')).toContainText('Joined the targeted sync');
+    let body = null; await mockMeeting(page);
+    await page.route('**/api/governance/refreshes/shared-job', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'completed', jobId: 'shared-job', answerVersion: 5, squadPatch: { ...STORY.squads[0], sprintReality: { state: 'active', sprintName: 'FY27DMS06', copy: 'FY27DMS06 is active, 12 days remaining.' } } }) }));
+    await page.route('**/api/governance/refreshes', async (route) => { body = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ attached: true, jobId: 'shared-job' }) }); });
+    await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click(); await page.locator('[data-force-squad]').click(); expect(body).toMatchObject({ scopeType: 'squad', scopeId: 'DMS' }); expect(body.scopeType).not.toBe('portfolio'); await expect(page.locator('#gov-squad-spotlight')).toContainText('FY27DMS06 is active');
   });
 
   test('background evidence waits behind the read lock', async ({ page }) => {
@@ -153,6 +155,12 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify');
     await expect(hero.locator('.gov-story-columns')).toContainText('Proof and next move');
     await expect(page.locator('#gov-action-clusters-mount:visible')).toHaveCount(0);
+    await expect(page.locator('#work-draft-drawer')).toBeHidden();
+    await expect(page.locator('#work-draft-drawer')).toHaveAttribute('inert', '');
+    await expect(hero.locator('[data-hero-squad="DMS"]')).toBeVisible();
+    await hero.locator('[data-hero-squad="DMS"]').click();
+    await expect(page).toHaveURL(/spotlight=DMS/);
+    await expect(page.locator('#gov-squad-spotlight')).toContainText('Legacy Database Migration');
   });
 
   test('release 2 sprint SSOT and safe action eligibility', () => {
@@ -162,10 +170,14 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     expect(governanceTruth).toEqual(currentSprintTruth);
     expect(governanceTruth.state).toBe('active');
     expect(governanceTruth.copy).toContain('DMS Sprint 14 is active');
+    expect(governanceTruth.payloadHash).toBe(currentSprintTruth.payloadHash);
+    expect(governanceTruth.version).toBe(currentSprintTruth.version);
     const actions = allowedActionsForPromise({ matchState: 'partly-matched', issueKey: 'DMS-42', caseState: 'reply-received-ready-to-recheck', proofAge: { state: 'stale' }, ownerRoute: promise.ownerRoute }, { hasBaseline: true, jiraAvailable: false, restrictFreshActions: true });
     expect(actions.find((item) => item.id === 'send-nudge').allowed).toBe(false);
     expect(actions.find((item) => item.id === 'recheck-promise').allowed).toBe(false);
     expect(actions.find((item) => item.id === 'assign-owner').allowed).toBe(false);
+    const overdue = projectActiveLoopCases([{ id: 'legacy-nudge', promiseId: 'prm-overdue', type: 'nudge-sent', ts: '2026-07-15T08:00:00.000Z', payload: {} }], { now: NOW });
+    expect(overdue['prm-overdue'].state).toBe('escalation-due');
   });
 
   test('release 3 Actions renders the shared visible queue', async ({ page }) => {
@@ -190,9 +202,11 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await page.goto('/settings');
     const row = page.locator('[data-registry-squad="SD"]');
     await expect(row).toBeVisible();
+    await expect(row.locator('[type="submit"]')).toBeDisabled();
+    await row.locator('[data-registry-edit]').click();
     await row.locator('[name="participationState"]').selectOption('pending-consent');
     await row.locator('[name="reason"]').fill('Squad onboarding consent is pending');
-    await row.locator('button').click();
+    await row.locator('[type="submit"]').click();
     await expect(row.locator('[data-registry-status]')).toContainText('changed while you were editing');
     await expect(row.locator('[name="reason"]')).toHaveValue('Squad onboarding consent is pending');
     expect(patchBody.participationState).toBe('pending-consent');

@@ -152,7 +152,7 @@ function renderHero(answer) {
   const coverage = normalizedDecisionCoverage(answer);
   const nextLabel = noBaseline ? 'Recover PI contract' : (answer.nextDecisionPromiseId ? 'Review and decide' : 'Review aligned promises');
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
-    <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong><small>${escapeHtml(freshness.copy)}</small></div>
+    <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong><button type="button" class="gov-hero-evidence-link" data-hero-freshness>${escapeHtml(freshness.copy)}</button></div>
     <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>PI contract answer</span><span class="gov-loop-cache-badge${answer.servedFromLocalCache ? '' : ' gov-loop-cache-badge--live'}">${answer.servedFromLocalCache ? 'Last verified answer' : 'Quietly refreshed'}</span></div><h1 id="gov-loop-answer">${escapeHtml(answer.answer)}</h1><p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(answer.sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
     <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.preparedOwnerAsks} owner asks prepared · ${coverage.closed} decided</small></span></div><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button></div>
     ${portfolioMatrix(answer)}
@@ -161,6 +161,14 @@ function renderHero(answer) {
     <footer class="gov-story-footer"><button type="button" class="gov-diagnostics-trigger" data-governance-diagnostics aria-label="Open UAT diagnostics">0.0.0.1 UAT</button></footer>
   </section>`;
   document.body.classList.add('governance-active-loop-ready', 'governance-story-v2-ready');
+  ['gov-action-clusters-mount', 'gov-compare-rail-mount', 'gov-sticky-answer-mount'].forEach((id) => {
+    const legacy = document.getElementById(id);
+    if (!legacy || legacy === mount) return;
+    legacy.replaceChildren();
+    legacy.hidden = true;
+    legacy.setAttribute('aria-hidden', 'true');
+    legacy.setAttribute('inert', '');
+  });
   bindStory(answer, mount);
   if (spotlightKey) void showSpotlight(spotlightKey, { pushHistory: false });
 }
@@ -171,6 +179,25 @@ function bindStory(answer, mount) {
     if (answer.nextDecisionPromiseId) void openPromiseDrawer(answer.nextDecisionPromiseId);
   });
   mount.querySelector('[data-story-all]')?.addEventListener('click', () => clearSpotlight(true));
+  const source = mount.querySelector('.gov-loop-source');
+  if (source) {
+    source.setAttribute('role', 'button');
+    source.setAttribute('tabindex', '0');
+    source.setAttribute('aria-label', 'Open PI contract source evidence');
+    source.addEventListener('click', () => openContractSourceDrawer(answer));
+    source.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openContractSourceDrawer(answer); } });
+    const evidenceLinks = document.createElement('div');
+    evidenceLinks.className = 'gov-hero-evidence-links';
+    evidenceLinks.setAttribute('aria-label', 'Open portfolio evidence');
+    evidenceLinks.innerHTML = (answer.squads || []).filter((squad) => Number(squad.attentionCount) > 0).slice(0, 3)
+      .map((squad) => `<button type="button" class="gov-hero-evidence-link" data-hero-squad="${escapeHtml(squad.squad)}">${escapeHtml(squad.displayName || squad.squad)} evidence</button>`).join('');
+    source.insertAdjacentElement('afterend', evidenceLinks);
+    evidenceLinks.querySelectorAll('[data-hero-squad]').forEach((button) => button.addEventListener('click', () => {
+      void showSpotlight(button.dataset.heroSquad, { pushHistory: true });
+      document.getElementById('gov-squad-spotlight')?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }));
+  }
+  mount.querySelector('[data-hero-freshness]')?.addEventListener('click', () => openFreshnessDrawer(answer));
   mount.querySelectorAll('[data-story-squad]').forEach((row) => {
     const squad = row.getAttribute('data-story-squad');
     row.addEventListener('focus', () => openPreview(row, squad, { persistent: true }));
@@ -221,8 +248,23 @@ async function openDiagnostics() {
     openRightDrawer({ title: 'Governance diagnostics', bodyHtml: `<section class="gov-diagnostics-drawer"><p>Hidden operational detail for UAT and authorized support.</p><dl>${rows}</dl></section>`, panelClass: 'governance-diagnostics' });
   } catch (error) {
     const trigger = document.querySelector('[data-governance-diagnostics]');
-    if (trigger) trigger.setAttribute('title', error.message || 'Diagnostics unavailable');
+    if (trigger) {
+      trigger.setAttribute('title', error.message || 'Diagnostics unavailable');
+      trigger.setAttribute('aria-label', error.message || 'Diagnostics unavailable');
+      trigger.textContent = 'Diagnostics restricted';
+      window.setTimeout(() => { trigger.textContent = '0.0.0.1 UAT'; trigger.setAttribute('aria-label', 'Open UAT diagnostics'); }, 2400);
+    }
   }
+}
+
+function openContractSourceDrawer(answer) {
+  const rows = (answer.squads || []).map((squad) => `<li><strong>${escapeHtml(squad.displayName || squad.squad)}</strong> — ${escapeHtml(squad.baselineCoverage?.copy || 'Baseline missing.')}</li>`).join('');
+  openRightDrawer({ title: 'PI contract comparison source', panelClass: 'active-loop', bodyHtml: `<section class="gov-resolution-sheet"><p>${escapeHtml(answer.sourceLine || 'Source unavailable.')}</p><ul>${rows}</ul><p>The promise drawer contains the immutable artifact reference used for each decision.</p></section>` });
+}
+
+function openFreshnessDrawer(answer) {
+  const freshness = currentFreshness(answer);
+  openRightDrawer({ title: 'Evidence freshness', panelClass: 'active-loop', bodyHtml: `<section class="gov-resolution-sheet"><p><strong>${escapeHtml(freshness.copy)}</strong></p><p>Verified at ${escapeHtml(answer.verifiedAt || 'unknown')}. Delivera serves the last compatible projection first and refreshes affected squads in the background.</p>${freshness.state === 'stale' || freshness.state === 'failed' ? '<p>Evidence-dependent decisions remain disabled until targeted proof refresh succeeds.</p>' : ''}</section>` });
 }
 
 function closePreview() { persistentPreview?.remove(); persistentPreview = null; previewPersistent = false; }
@@ -242,8 +284,12 @@ function openPreview(trigger, squad, { persistent = false } = {}) {
   pop.innerHTML = pop.innerHTML.replace(`${missing} no proof`, missingCopy);
   document.body.appendChild(pop);
   const rect = trigger.getBoundingClientRect();
-  pop.style.left = `${Math.max(8, Math.min(window.innerWidth - 388, rect.left)) + window.scrollX}px`;
-  pop.style.top = `${rect.bottom + window.scrollY + 6}px`;
+  const popRect = pop.getBoundingClientRect();
+  const left = Math.max(8, Math.min(window.innerWidth - popRect.width - 8, rect.left));
+  const below = rect.bottom + 6;
+  const top = below + popRect.height <= window.innerHeight - 8 ? below : Math.max(64, rect.top - popRect.height - 6);
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
   persistentPreview = pop;
   previewPersistent = persistent;
   pop.querySelector('button')?.addEventListener('click', () => { closePreview(); trigger.focus(); });
@@ -579,7 +625,41 @@ async function targetedRefresh(scopeType, scopeId, button, container) {
     const res = await fetch('/api/governance/refreshes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scopeType, scopeId, quarter: activeAnswer?.contract?.piName || '', expectedStoryVersion: activeAnswer?.answerVersion }) });
     const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || `Refresh failed (${res.status})`);
     status.textContent = data.attached ? 'Joined the targeted sync already in progress.' : `Targeted ${scopeType} sync started.`;
+    if (!data.jobId) return;
+    const completed = await waitForTargetedRefresh(data.jobId);
+    if (completed.status === 'failed') throw new Error(completed.error || 'Targeted sync failed.');
+    applyTargetedRefreshPatch(completed);
+    const refreshedStatus = document.querySelector('.gov-loop-action-status');
+    if (refreshedStatus) refreshedStatus.textContent = completed.squadPatch?.sprintReality?.copy || `Targeted ${scopeType} evidence is verified.`;
   } catch (err) { status.textContent = err.message || 'Targeted sync failed.'; } finally { if (button) button.disabled = false; }
+}
+
+async function waitForTargetedRefresh(jobId) {
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
+    const res = await fetch(`/api/governance/refreshes/${encodeURIComponent(jobId)}`, { credentials: 'same-origin', cache: 'no-store' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Targeted sync status failed (${res.status})`);
+    if (data.status !== 'running') return data;
+  }
+  throw new Error('Targeted sync is still running. Delivera kept the existing verified view; try again shortly.');
+}
+
+function applyTargetedRefreshPatch(result) {
+  if (!activeAnswer || !result) return;
+  const next = { ...activeAnswer, answerVersion: result.answerVersion || activeAnswer.answerVersion };
+  if (result.squadPatch?.squad) {
+    const patchList = (rows = []) => rows.map((row) => row.squad === result.squadPatch.squad ? result.squadPatch : row);
+    const inGoverned = (next.squads || []).some((row) => row.squad === result.squadPatch.squad);
+    next.squads = inGoverned ? patchList(next.squads) : next.squads;
+    next.excludedOperationalGroups = inGoverned ? next.excludedOperationalGroups : patchList(next.excludedOperationalGroups);
+  }
+  if (result.promisePatch?.promiseId && Array.isArray(next.promises)) {
+    next.promises = next.promises.map((row) => row.promiseId === result.promisePatch.promiseId ? result.promisePatch : row);
+  }
+  renderActiveGovernanceLoop(next, { forceApply: true });
+  if (spotlightKey) void showSpotlight(spotlightKey, { pushHistory: false });
 }
 
 export function renderActiveGovernanceLoop(answer, { forceApply = false } = {}) {

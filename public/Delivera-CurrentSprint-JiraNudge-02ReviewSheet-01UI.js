@@ -6,6 +6,9 @@ import {
   showSprintActionToast,
 } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { showJiraNudgeSendReceipt, markIssueNudged } from './Delivera-CurrentSprint-JiraNudge-03SendReceipt-01UI.js';
+import { createOverlayController } from './Delivera-Shared-Overlay-Manager.js';
+
+let sheetController = null;
 
 function asText(v) {
   return String(v == null ? '' : v).trim();
@@ -13,7 +16,10 @@ function asText(v) {
 
 function ensureSheet() {
   let sheet = document.getElementById('delivera-jira-nudge-review-sheet');
-  if (sheet) return sheet;
+  if (sheet) {
+    sheetController ||= createOverlayController(sheet, { mode: 'drawer' });
+    return sheet;
+  }
   sheet = document.createElement('div');
   sheet.id = 'delivera-jira-nudge-review-sheet';
   sheet.className = 'jira-nudge-review-sheet';
@@ -22,11 +28,12 @@ function ensureSheet() {
   sheet.setAttribute('aria-labelledby', 'jira-nudge-review-title');
   sheet.hidden = true;
   document.body.appendChild(sheet);
+  sheetController = createOverlayController(sheet, { mode: 'drawer' });
   return sheet;
 }
 
 function closeSheet(sheet) {
-  sheet.hidden = true;
+  sheetController?.close();
   sheet.innerHTML = '';
   document.body.classList.remove('jira-nudge-review-open');
 }
@@ -71,8 +78,7 @@ export function openJiraNudgeReviewSheet({
     staleHours,
   });
   const url = asText(issueUrl);
-  let html = '<div class="jira-nudge-review-backdrop" data-review-close tabindex="-1"></div>';
-  html += '<div class="jira-nudge-review-panel">';
+  let html = '<div class="jira-nudge-review-panel">';
   html += '<h2 id="jira-nudge-review-title" class="jira-nudge-review-title"><span aria-hidden="true">✏️</span> Review message</h2>';
   if (contextHeader) {
     html += '<p class="jira-nudge-review-context">' + escapeHtml(contextHeader) + '</p>';
@@ -112,7 +118,8 @@ export function openJiraNudgeReviewSheet({
     + ' aria-label="Send comment to Jira">✉️ Send</button>';
   html += '</div></div>';
   sheet.innerHTML = html;
-  sheet.hidden = false;
+  sheetController ||= createOverlayController(sheet, { mode: 'drawer' });
+  sheetController.open({ triggerEl: document.activeElement });
   document.body.classList.add('jira-nudge-review-open');
   const textarea = sheet.querySelector('#jira-nudge-review-text');
   const countEl = sheet.querySelector('[data-char-count]');
@@ -153,13 +160,6 @@ export function openJiraNudgeReviewSheet({
   textarea?.focus();
   const onClose = () => closeSheet(sheet);
   sheet.querySelector('[data-review-cancel]')?.addEventListener('click', onClose);
-  sheet.querySelector('[data-review-close]')?.addEventListener('click', onClose);
-  document.addEventListener('keydown', function esc(e) {
-    if (e.key === 'Escape') {
-      document.removeEventListener('keydown', esc);
-      onClose();
-    }
-  });
   sendBtn?.addEventListener('click', async () => {
     const body = asText(textarea?.value);
     if (!body || body.length < 8) {

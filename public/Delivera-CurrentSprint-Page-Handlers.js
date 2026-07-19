@@ -70,9 +70,13 @@ function bindIssueJump() {
       row.style.display = show ? '' : 'none';
       if (show && !firstMatch) firstMatch = row;
     });
+    const visibleCount = rows.filter((row) => row.style.display !== 'none').length;
+    const url = new URL(window.location.href);
+    if (normalized) url.searchParams.set('q', normalized); else url.searchParams.delete('q');
+    history.replaceState(history.state, '', url);
     if (normalized && firstMatch) {
       focusRow(firstMatch);
-      if (status) status.textContent = 'Filtered to matching work items.';
+      if (status) status.textContent = `${visibleCount} matching work item${visibleCount === 1 ? '' : 's'}.`;
     } else if (normalized && status) {
       status.textContent = 'No matching work item in this sprint.';
     } else if (status) {
