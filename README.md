@@ -71,6 +71,61 @@ Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **A
 
 Primary release validation: `npm run test:governance:release`. It runs exactly five risk-ranked, fail-fast scenarios: source-write truth, Layer 1 value, synchronized Spotlight, refresh continuity, and the previously failed sprint-fold viewport contract. The broader journey remains available as `npm run test:journey:governance-active-loop`; pull requests use the five-scenario gate and protected-branch integration retains the full regression.
 
+## Governance master plan
+
+This is the SSOT for the next Governance hardening pass. The product direction is a meeting-safe PI operating loop: fast portfolio answer first, deterministic proof second, and the next safe transition always available without leaving Governance. Every item below must reduce clicks, reduce duplicate surfaces, or make the evidence more defensible.
+
+**Priority codebase improvements**
+
+1. **Sprint truth SSOT:** make Governance, Current Sprint, and Report consume the same server sprint projection. Rationale: DMS cannot be "no sprint verified" in Governance while Current Sprint shows a recently closed sprint; trust collapses when surfaces disagree.
+2. **Warm Layer 1 only on first paint:** serve `active-loop.json` from the last verified story and defer legacy `governance-brief.json`, boards, feedback, inbox, and scorecard calls until v2 fallback or below-fold detail needs them. Rationale: the PI Team needs the answer in under two seconds, not an invisible legacy bill.
+3. **Browser single-flight for active-loop reads:** coalesce duplicate first-load calls by scope/quarter/force in the frontend as well as the backend. Rationale: protects 90 concurrent viewers from multiplying identical reads.
+4. **Decision coverage guard:** derive visible totals from schema total, checked promises, or Layer 1 promises so the hero never says `0 of 0` when the source line says promises were checked. Rationale: visible arithmetic must never contradict itself.
+5. **Matrix copy simplification:** replace ambiguous headers (`Sprint cadence`, `Proof / next`, `Trust factor`) with `Sprint reality`, `Proof age / action`, and `Trust basis`. Rationale: brand-new users should understand each column without training.
+6. **Stable lens emphasis:** lenses may dim or highlight columns and update one summary, but never reorder rows. Rationale: meeting participants keep spatial memory while discussing squads.
+7. **Action trail grouping:** group identical empty or waiting states into one row with a promise count, while preserving a single next action. Rationale: removes repeated absence and makes real state changes stand out.
+8. **Owner participation settings:** expose governed/excluded toggles for each catalog squad in Settings, backed by durable profile overrides and role checks. Rationale: squads such as Vodacom Business, M-SQUAD, Digital, Mini Apps, T-Squad, AMS, and Biometric KYC can remain exceptions until consent/onboarding.
+9. **Source-safe write lifecycle everywhere:** link, classify, amend, operational-status, nudge, escalation, and callback writes stay receipt/queued/pending until Jira or Teams confirms. Rationale: no fake green states.
+10. **Unknown cluster decisions:** promote grouped Unknown work only above threshold and offer cluster-level classification. Rationale: a 30-second cleanup decision beats a raw issue dump.
+11. **Conservative Possible Rework:** require two strong evidence paths, confidence, and explanation before promoting. Rationale: the product must never accuse a squad from weak reopen/title similarity.
+12. **Drawer state hash handshake:** compare story version, squad hash, and drawer hash before allowing saves. Rationale: open edits survive background refresh without silent overwrite.
+13. **Global accessible help primitive:** consolidate native titles, hover cards, and one-off popovers into one persistent tooltip/popover pattern. Rationale: Jira keys, trust basis, and proof age help should be readable, copyable, keyboard reachable, and dismissible.
+14. **Actions route boundary:** `/actions` should render the intervention case queue or redirect to a visible anchored Governance section; never land on a hidden empty mount. Rationale: dead navigation teaches users the app is unreliable.
+15. **Current Sprint search truth:** search must filter visible work or be removed from the fold. Rationale: a control that accepts text and changes nothing burns user trust.
+16. **Settings below-fold restructure:** keep AI provider health available, but move organization registry, squad participation, owner routes, and durability status into the first useful Settings band. Rationale: Governance corrections currently need Settings, but Settings hides those levers.
+17. **Mobile first-viewport compression:** reduce hero/matrix vertical height, keep 44px targets, and show the first two squad states without horizontal lens sliding. Rationale: mobile PI review needs immediate value, not scroll debt.
+18. **Diagnostics concealment:** keep build SHA, cache backend, flags, queue depth, and failed write reasons behind the UAT version trigger and authorized Settings entry. Rationale: diagnostics help UAT without polluting executive meetings.
+19. **Friendly work-name SSOT:** render M-Pesa Recharge Trends style names before Jira keys across Governance, Current Sprint, and drawer evidence. Rationale: humans discuss work names; Jira keys are proof links.
+20. **Route-boundary data contracts:** Governance owns portfolio variance, Current Sprint owns today's movement, Actions owns cases, Report owns proof, Settings owns registry/audit. Rationale: fewer surfaces, fewer repeated concepts, less churn.
+
+**Bonus prerequisite improvements**
+
+- Add a small server projection health object to Layer 1: `projectionAge`, `sourceBackend`, `detailAvailable`, `lastFailedWrite`, and `queueDepth`, hidden from normal UI but used by tests and diagnostics.
+- Add a stable alias registry helper so display names are not re-derived in UI components.
+- Move duplicate "stale proof" wording into one copy SSOT used by matrix, preview, drawer, and Current Sprint.
+- Cache squad detail payloads by squad hash so Spotlight can reopen instantly in the same meeting.
+- Add one participation override reducer that both Settings and the operating-model drawer call, with optional registry persistence only for authorized users.
+- Add route-boundary tests that fail if Governance renders raw Jira tables above the fold or Actions routes to hidden empty content.
+- Add an API budget counter to test fixtures so no first viewport path can accidentally call Jira or AI directly.
+- Keep release validation to five fail-fast browser scenarios plus table-driven domain tests; broad regression remains protected-branch work, not local churn.
+
+**Realistic edge cases**
+
+- Operational group with one PI-looking epic: keep excluded, show "review classification," and never add the full group to PI totals until authorized.
+- PI-governed squad with heavy support demand: keep in PI totals, show operational load separately, and offer amendment/risk decisions instead of hiding drift.
+- Recently closed sprint with no next sprint: show "last sprint closed X days ago; no replacement detected," not "cadence okay" or generic missing sprint.
+- Minor reopened issue: keep as follow-up or operational support unless Possible Rework reaches the multi-factor threshold.
+- Epic split after acceptance: treat as continuation until acceptance reversal, linked defects, or same-criteria evidence proves possible rework.
+- Stale callback after amendment: reject with a version conflict and preserve the user's draft.
+- Jira write-back failure: keep the case attention-needed, show failure/correction path, and never mark the source confirmed.
+- Layer 2 outage: keep Layer 1 useful, disable drawer write actions that require fresh detail, and show honest detail-unavailable copy.
+- Corrupt or expired cache: show baseline recovery/no verified answer, not old conclusions.
+- Concurrent targeted refresh: join the same promise/squad job and expose shared receipt; never start a portfolio scan from the meeting UI.
+
+**Focused validation gate**
+
+The local release gate remains intentionally small: `npm run test:governance:release`. It builds CSS and runs five fail-fast browser scenarios that validate source-safe writes, Layer 1 first value, synchronized Spotlight, read-lock continuity, and current sprint fold density. New governance validation belongs in `tests/Delivera-Governance-PI-Meeting-State-Transition-Realtime-Validation-Tests.spec.js` unless the behavior is truly outside the active PI loop.
+
 ## Quickstart
 
 **Prerequisites:** Node.js `>=20`, Jira credentials.

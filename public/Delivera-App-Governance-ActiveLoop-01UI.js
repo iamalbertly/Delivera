@@ -18,6 +18,7 @@ let spotlightKey = '';
 let activeLens = new URL(location.href).searchParams.get('lens') || 'overall';
 let activeDrawerContext = null;
 let pendingReason = sharedStoryState.pendingReason || 'New evidence ready.';
+const activeLoopLoads = new Map();
 
 const lenses = [
   ['overall', 'PI miss risk'],
@@ -81,6 +82,23 @@ function currentFreshness(answer) {
   return { state: 'calm', copy: `Last verified ${verified.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.` };
 }
 
+function promisesChecked(answer) {
+  return Number(String(answer?.sourceLine || '').match(/(\d+)\s+promises?\s+checked/i)?.[1] || 0);
+}
+
+function normalizedDecisionCoverage(answer) {
+  const supplied = answer?.decisionCoverage || {};
+  const total = Number(supplied.total) || promisesChecked(answer) || (answer?.promises || []).length || 0;
+  const closed = Math.min(total, Number(supplied.closed) || 0);
+  const preparedOwnerAsks = Math.max(0, Number(supplied.preparedOwnerAsks) || 0);
+  return {
+    closed,
+    total,
+    preparedOwnerAsks,
+    copy: supplied.copy || `Decision coverage: ${closed} of ${total} gaps closed`,
+  };
+}
+
 function matrixRow(squad) {
   const baseline = squad.baselineCoverage || (activeAnswer?.contract ? { state: 'verified', sourceLabel: activeAnswer.contract.source || 'Approved PI contract', copy: 'Contract source confirmed.' } : { state: 'missing', copy: 'Baseline missing.' });
   const split = squad.workSplit || {};
@@ -111,7 +129,7 @@ function portfolioMatrix(answer) {
     <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">Squad Comparison</span><h2 id="gov-story-matrix-title">Stable PI miss-risk order</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(answer.lensSummaries?.[activeLens] || '')}</p></div><button type="button" class="btn btn-link btn-compact" data-story-all aria-current="${spotlightKey ? 'false' : 'true'}">All Squads</button></div>
     <div class="gov-story-lenses" role="toolbar" aria-label="Emphasize a governance signal">${lenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
-      <div class="gov-story-columns" role="row"><span>Squad</span><span>PI contract</span><span>Sprint cadence</span><span>Doing instead</span><span>Proof / next</span><span>Trust factor</span></div>
+      <div class="gov-story-columns" role="row"><span>Squad</span><span>PI contract</span><span>Sprint reality</span><span>Work diversion</span><span>Proof age / action</span><span>Trust basis</span></div>
       ${(answer.squads || []).map(matrixRow).join('')}
     </div>
     ${excludedOperationalGroups(answer)}
@@ -129,11 +147,12 @@ function renderHero(answer) {
   document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
   const freshness = currentFreshness(answer);
   const noBaseline = !answer.contract;
+  const coverage = normalizedDecisionCoverage(answer);
   const nextLabel = noBaseline ? 'Recover PI contract' : (answer.nextDecisionPromiseId ? 'Review and decide' : 'Review aligned promises');
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
     <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong><small>${escapeHtml(freshness.copy)}</small></div>
     <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>PI contract answer</span><span class="gov-loop-cache-badge${answer.servedFromLocalCache ? '' : ' gov-loop-cache-badge--live'}">${answer.servedFromLocalCache ? 'Last verified answer' : 'Quietly refreshed'}</span></div><h1 id="gov-loop-answer">${escapeHtml(answer.answer)}</h1><p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(answer.sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
-    <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(answer.decisionCoverage?.copy || 'Decision coverage unavailable')}"><span class="gov-loop-decision-count"><strong>${Number(answer.decisionCoverage?.closed) || 0}</strong><small>of ${Number(answer.decisionCoverage?.total) || 0}</small></span><span><strong>Decision coverage</strong><small>${Number(answer.decisionCoverage?.preparedOwnerAsks) || 0} owner asks prepared · ${Number(answer.decisionCoverage?.closed) || 0} decided</small></span></div><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)} →</button><p>Next safe step · no silent writes.</p></div>
+    <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.preparedOwnerAsks} owner asks prepared - ${coverage.closed} decided</small></span></div><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button><p>Next safe step - no silent writes.</p></div>
     ${portfolioMatrix(answer)}
     <div class="gov-story-update" role="status" hidden><span data-story-update-copy>New evidence ready.</span> <button type="button" class="btn btn-link btn-compact" data-story-apply>Review changes</button><button type="button" class="btn btn-link btn-compact" data-story-keep-draft>Keep my edits as a new decision draft</button></div>
     <div id="gov-squad-spotlight" class="gov-squad-spotlight" aria-live="polite"></div>
@@ -213,7 +232,7 @@ function openPreview(trigger, squad, { persistent = false } = {}) {
   const matched = promises.filter((item) => ['matched', 'aligned-amended'].includes(item.matchState)).length;
   const missing = promises.filter((item) => item.matchState === 'no-jira-proof').length;
   const amended = promises.filter((item) => item.matchState === 'aligned-amended').length;
-  pop.innerHTML = `<div class="gov-loop-popover-head"><strong>${escapeHtml(summary.displayName || squad)} · proof preview</strong><button type="button" aria-label="Close proof preview">×</button></div><dl class="gov-proof-preview-grid"><dt>PI contract</dt><dd>${promises.length} commitments · ${matched} matched · ${missing} no proof · ${amended} amended<br><small>${escapeHtml(summary.baselineCoverage?.copy || 'Baseline unavailable')}</small></dd><dt>Sprint cadence</dt><dd>${escapeHtml(summary.sprintCadence?.label || summary.sprintReality?.state || 'Unverified')}<br><small>${escapeHtml(summary.sprintReality?.copy || 'No sprint evidence')}</small></dd><dt>Doing instead</dt><dd>${escapeHtml(summary.doingInstead?.major?.title || summary.unknownWork?.copy || 'No major diversion proven')}<br><small>${escapeHtml(summary.workSplit?.explanation || '')}</small></dd><dt>Proof / next</dt><dd>${escapeHtml(summary.proofState || 'Unknown')}<br><small>${escapeHtml(summary.nextAction?.label || 'Open squad spotlight')}</small></dd><dt>Trust factor</dt><dd>${escapeHtml(summary.trustFactor?.label || 'Limited')}</dd></dl>`;
+  pop.innerHTML = `<div class="gov-loop-popover-head"><strong>${escapeHtml(summary.displayName || squad)} · proof preview</strong><button type="button" aria-label="Close proof preview">×</button></div><dl class="gov-proof-preview-grid"><dt>PI contract</dt><dd>${promises.length} commitments · ${matched} matched · ${missing} no proof · ${amended} amended<br><small>${escapeHtml(summary.baselineCoverage?.copy || 'Baseline unavailable')}</small></dd><dt>Sprint reality</dt><dd>${escapeHtml(summary.sprintCadence?.label || summary.sprintReality?.state || 'Unverified')}<br><small>${escapeHtml(summary.sprintReality?.copy || 'No sprint evidence')}</small></dd><dt>Work diversion</dt><dd>${escapeHtml(summary.doingInstead?.major?.title || summary.unknownWork?.copy || 'No major diversion proven')}<br><small>${escapeHtml(summary.workSplit?.explanation || '')}</small></dd><dt>Proof age / action</dt><dd>${escapeHtml(summary.proofState || 'Unknown')}<br><small>${escapeHtml(summary.nextAction?.label || 'Open squad spotlight')}</small></dd><dt>Trust basis</dt><dd>${escapeHtml(summary.trustFactor?.label || 'Limited')}</dd></dl>`;
   const missingCopy = missing === 1 ? '1 No Jira proof' : `${missing} No Jira proof`;
   pop.innerHTML = pop.innerHTML.replace(`${missing} no proof`, missingCopy);
   document.body.appendChild(pop);
@@ -296,14 +315,14 @@ function spotlightHtml(detail) {
   const rework = detail.possibleRework || squad.possibleRework || {};
   const displayName = squad.displayName || squad.squad;
   return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Synchronized Squad Spotlight</span><h2>${escapeHtml(displayName)}</h2></div><div class="gov-spotlight-head-actions"><button type="button" class="btn btn-link btn-compact" data-edit-alias>Edit squad name</button><button type="button" class="btn btn-secondary btn-compact" data-force-squad>Force ${escapeHtml(displayName)} sync</button></div></div>
-  <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.label || squad.topState || 'Cannot verify')}</strong></span><span><small>Sprint cadence</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust factor</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${escapeHtml(squad.nextAction?.label || 'Review evidence')}</strong></span></div>
+  <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.label || squad.topState || 'Cannot verify')}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${escapeHtml(squad.nextAction?.label || 'Review evidence')}</strong></span></div>
   <div class="gov-spotlight-grid">
     <section><h3>Current Work Reality</h3>${work.length ? work.slice(0, 5).map((item) => `<p class="gov-work-theme"><span><strong>${escapeHtml(item.title)}</strong>${item.systemDerived ? ' <small>system-derived label</small>' : ''}</span>${item.systemDerived || item.title === 'Unclear work theme' ? `<button type="button" class="btn btn-secondary btn-compact" data-theme-rename data-theme-id="${escapeHtml(item.themeId || item.title)}" data-theme-version="${Number(item.version) || 1}">Rename theme</button>` : ''}</p>`).join('') : '<p>No current work themes are available.</p>'}</section>
     <section><h3>Sprint Reality</h3><p>${escapeHtml(detail.sprintReality?.copy || 'Sprint reality unavailable.')}</p></section>
     <section><h3>Evidence Signals</h3><p>${escapeHtml(rework.copy || 'No evidence-backed rework signal is promoted.')}</p>${rework.promoted ? `<details><summary>Why Delivera raised this</summary><ul>${(rework.promoted.paths || []).map((path) => `<li>${escapeHtml(path.label)}</li>`).join('')}</ul></details>` : '<p class="gov-calm-note">Low-confidence follow-up work stays out of risk totals.</p>'}${unknown.promoted ? `<div class="gov-unknown-clusters"><p><strong>${escapeHtml(unknown.copy)}</strong></p>${(unknown.clusters || []).slice(0, 3).map((cluster) => `<article><strong>${escapeHtml(cluster.title)}</strong><small>${cluster.ticketCount} issues · ${cluster.percentage}% · ${escapeHtml(cluster.sharedEvidence?.join(', ') || 'shared work evidence')}</small><button type="button" class="btn btn-secondary btn-compact" data-classify-cluster="${escapeHtml(cluster.id)}" data-cluster-version="${Number(cluster.version) || 1}" data-classification="${escapeHtml(cluster.recommendation)}">${escapeHtml(cluster.recommendation === 'ad-hoc-feature' ? 'Mark as Ad Hoc Feature Work' : cluster.recommendation === 'operational-group-candidate' ? 'Mark as Operational Group candidate' : 'Mark cluster as Operational')}</button></article>`).join('')}</div>` : ''}</section>
     <section><h3>Doing Instead &amp; Work Split</h3><p>${escapeHtml(squad.doingInstead?.copy || 'No major diversion is proven.')}</p><p>${escapeHtml(squad.workSplit?.explanation || '')}</p><p>Unknown: ${squad.workSplit?.unknownPct == null ? 'not calculated' : `${squad.workSplit.unknownPct}%`}</p></section>
     <section><h3>Promise Evidence</h3>${promises.length ? promises.map((promise) => `<button type="button" class="gov-spotlight-promise" data-loop-promise="${escapeHtml(promise.promiseId)}"><strong>${escapeHtml(promise.originalText)}</strong><small>${escapeHtml(promise.matchLabel)} · ${escapeHtml(promise.proofAge?.copy || '')}</small>${promise.amendmentSentence ? `<span class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</span>` : ''}</button>`).join('') : '<p>Cannot verify, baseline missing. Save baseline to compare.</p>'}</section>
-    <section class="gov-spotlight-actions"><h3>Action Trail</h3>${promises.length ? promises.map((promise) => `<div class="gov-action-lifecycle"><p>${escapeHtml(promise.actionLifecycle)}</p>${promise.nextAction ? `<button type="button" class="btn btn-secondary btn-compact" data-loop-promise="${escapeHtml(promise.promiseId)}">${escapeHtml(promise.nextAction.label)}</button>` : ''}</div>`).join('') : '<p>No action trail exists.</p>'}</section>
+    <section class="gov-spotlight-actions"><h3>Action Trail</h3>${actionTrailHtml(promises)}</section>
   </div><div class="gov-loop-action-status" aria-live="polite"></div>`;
 }
 
@@ -380,6 +399,27 @@ function beginThemeRename(button, squad, container) {
       form.remove(); button.hidden = false; button.textContent = 'Rename theme';
     } catch (err) { status.textContent = err.message || 'Rename failed. Nothing changed.'; }
   });
+}
+
+function actionTrailHtml(promises = []) {
+  if (!promises.length) return '<p>No action trail exists.</p>';
+  const groups = new Map();
+  for (const promise of promises) {
+    const lifecycle = promise.actionLifecycle || 'No governance action has been sent yet.';
+    const actionLabel = promise.nextAction?.label || '';
+    const key = `${lifecycle}::${actionLabel}`;
+    const group = groups.get(key) || { lifecycle, actionLabel, promises: [] };
+    group.promises.push(promise);
+    groups.set(key, group);
+  }
+  return [...groups.values()].map((group) => {
+    const first = group.promises[0];
+    const scope = group.promises.length > 1 ? `<small>${group.promises.length} promises share this state.</small>` : '';
+    const button = group.actionLabel
+      ? `<button type="button" class="btn btn-secondary btn-compact" data-loop-promise="${escapeHtml(first.promiseId)}">${escapeHtml(group.actionLabel)}</button>`
+      : '';
+    return `<div class="gov-action-lifecycle"><p>${escapeHtml(group.lifecycle)}</p>${scope}${button}</div>`;
+  }).join('');
 }
 
 function readLocked() {
@@ -557,9 +597,14 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
   const seq = ++requestSequence; spotlightKey = new URL(location.href).searchParams.get('spotlight') || '';
   const cached = force ? null : readCachedAnswer(projects, quarter); if (cached) renderActiveGovernanceLoop(cached);
   const qs = new URLSearchParams({ projects: String(projects || '') }); if (quarter) qs.set('quarter', quarter);
+  const loadKey = `${String(projects || '').toUpperCase()}|${quarter || 'current'}|${force ? 'force' : 'normal'}`;
   try {
-    const res = await fetch(`/api/governance/active-loop.json?${qs}`, { credentials: 'same-origin' }); if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const answer = await res.json(); if (seq !== requestSequence) return null; writeCachedAnswer(projects, quarter, answer); renderActiveGovernanceLoop(answer); window.setTimeout(() => {
+    if (!activeLoopLoads.has(loadKey)) {
+      activeLoopLoads.set(loadKey, fetch(`/api/governance/active-loop.json?${qs}`, { credentials: 'same-origin' })
+        .then(async (res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+        .finally(() => activeLoopLoads.delete(loadKey)));
+    }
+    const answer = await activeLoopLoads.get(loadKey); if (seq !== requestSequence) return null; writeCachedAnswer(projects, quarter, answer); renderActiveGovernanceLoop(answer); window.setTimeout(() => {
       const loading = document.getElementById('gov-loading');
       if (loading && document.body.classList.contains('governance-story-v2-ready')) {
         loading.hidden = true;

@@ -39,11 +39,11 @@ const STORY = {
   promises: [{ ...promise, allowedActions: undefined, actionHistory: undefined, amendmentHistory: undefined }], nextDecisionPromiseId: 'prm-dms-1',
 };
 
-async function mockMeeting(page, { story = STORY } = {}) {
+async function mockMeeting(page, { story = STORY, detailPromises = [promise] } = {}) {
   await page.addInitScript(() => localStorage.clear());
   await routeProjectsCatalog(page);
   await page.route('**/api/governance/active-loop.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(story) }));
-  await page.route('**/api/governance/squads/DMS/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, squad: STORY.squads[0], promises: [promise], currentWork: [{ title: 'Legacy Database Migration', percentage: 38 }, { title: 'Operational noise', ticketCount: 14 }], sprintReality: STORY.squads[0].sprintReality, workSplit: STORY.squads[0].workSplit }) }));
+  await page.route('**/api/governance/squads/DMS/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, squad: STORY.squads[0], promises: detailPromises, currentWork: [{ title: 'Legacy Database Migration', percentage: 38 }, { title: 'Operational noise', ticketCount: 14 }], sprintReality: STORY.squads[0].sprintReality, workSplit: STORY.squads[0].workSplit }) }));
   await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
   await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: STORY.scope.projects, meta: {}, topRisks: [], evidencePack: { rows: [] }, squadInsights: [] }) }));
   await page.route('**/api/quarters-list**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
@@ -83,8 +83,14 @@ test.describe('Meeting-ready governance deterministic policy', () => {
 
 test.describe('Meeting-ready governance browser journey @focused', () => {
   test('Layer 1 owns the first viewport and shows dense per-squad truth', async ({ page }) => {
-    await mockMeeting(page); await page.goto('/governance'); const hero = page.getByTestId('governance-active-loop'); await expect(hero).toBeVisible({ timeout: 15000 });
+    await mockMeeting(page, { story: { ...STORY, decisionCoverage: { closed: 0, total: 0, preparedOwnerAsks: 2 } } }); await page.goto('/governance'); const hero = page.getByTestId('governance-active-loop'); await expect(hero).toBeVisible({ timeout: 15000 });
     await expect(hero).toContainText('Portfolio mission'); await expect(hero.locator('[data-story-squad]')).toHaveCount(4); await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify'); await expect(hero.locator('[data-story-squad="RPA"]')).not.toContainText('off-plan');
+    await expect(hero.locator('.gov-loop-decision-count')).toContainText('of 4');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Sprint reality');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Proof age / action');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Trust basis');
+    await expect(hero.locator('.gov-story-columns')).not.toContainText('Proof / next');
+    await expect(hero.locator('.gov-story-columns')).not.toContainText('Trust factor');
     await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('M-Pesa Delivery'); await expect(hero.locator('[data-story-squad="DMS"]')).not.toContainText('DMS Squad');
     await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('DMS baseline image'); await expect(hero.locator('[data-story-squad="AMS"]')).toContainText('AMS deck source'); await expect(hero.locator('[data-story-squad="TRS"]')).toContainText('Transformers manual baseline');
     await expect(hero.locator('[data-operating-firewall]')).toContainText('Operations Support');
@@ -92,8 +98,11 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
   });
 
   test('squad spotlight synchronizes the meeting story and history', async ({ page }) => {
-    await mockMeeting(page); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click();
+    const repeatedPromise = { ...promise, promiseId: 'prm-dms-2', originalText: 'Confirm recharge receipt copy' };
+    await mockMeeting(page, { detailPromises: [promise, repeatedPromise] }); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click();
     await expect(page).toHaveURL(/spotlight=DMS/); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Current Work Reality'); await expect(spot).toContainText('Sprint Reality'); await expect(spot).toContainText('Doing Instead'); await expect(spot).toContainText('Promise Evidence'); await expect(spot).toContainText('Action Trail'); await expect(spot).toContainText('Legacy Database Migration'); await expect(spot).toContainText('Re-check this promise');
+    await expect(spot.locator('.gov-action-lifecycle')).toHaveCount(1);
+    await expect(spot.locator('.gov-action-lifecycle')).toContainText('2 promises share this state');
     await page.locator('[data-story-all]').click(); await expect(page).not.toHaveURL(/spotlight=/); await expect(spot).toBeEmpty();
   });
 
