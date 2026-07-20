@@ -48,9 +48,26 @@ const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
 let loadBriefSeq = 0;
 let loadBriefForce = false;
+let registrySyncBound = false;
 
 export function setLoadBriefForce(force = true) {
   loadBriefForce = Boolean(force);
+}
+
+/**
+ * Listen for registry version changes from other tabs (Settings page saves).
+ * When the version changes, force a brief re-fetch to pick up new participation states.
+ */
+export function bindRegistrySyncListener() {
+  if (registrySyncBound) return;
+  registrySyncBound = true;
+  window.addEventListener('storage', (event) => {
+    if (event.key !== 'delivera:registry-version') return;
+    if (!event.newValue || event.newValue === event.oldValue) return;
+    // Force a fresh brief fetch (bypasses cache) to pick up the new registry state
+    setLoadBriefForce(true);
+    void loadBrief({ force: true });
+  });
 }
 
 export function renderFreshness(brief, confirmCount = 0) {
@@ -288,6 +305,7 @@ function renderNeedsScopePicker() {
 export async function loadBrief(options = {}) {
   const force = options.force === true || loadBriefForce;
   loadBriefForce = false;
+  bindRegistrySyncListener();
   govPage.els.error.hidden = true;
   if (!readSharedProjectsCsv().length) {
     try {

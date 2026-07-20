@@ -20,12 +20,12 @@ let activeSpotlightDetail = null;
 let activeLens = new URL(location.href).searchParams.get('view') || 'overall';
 let activeDrawerContext = null;
 let pendingReason = sharedStoryState.pendingReason || 'New evidence ready.';
+let quarterPulseTimer = null;
 const activeLoopLoads = new Map();
 
 const lenses = [
   ['overall', 'Portfolio'],
   ['squad', 'Selected squad'],
-  ['evidence', 'Evidence'],
 ];
 
 const actionLabels = {
@@ -82,6 +82,47 @@ function currentFreshness(answer) {
   return { state: 'calm', copy: `Last verified ${verified.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.` };
 }
 
+/**
+ * Compute working hours elapsed in the current Vodacom quarter (client-side, zero API calls).
+ * Excludes weekends. Holiday exclusion is best-effort (reads from a global if available).
+ * Returns a label like "⏱ 312 working hours elapsed in Q2".
+ */
+function quarterPulseLabel() {
+  try {
+    const now = new Date();
+    const m = now.getUTCMonth();
+    let qNum, qYear;
+    if (m <= 2) { qNum = 4; qYear = now.getUTCFullYear(); }
+    else if (m <= 5) { qNum = 1; qYear = now.getUTCFullYear(); }
+    else if (m <= 8) { qNum = 2; qYear = now.getUTCFullYear(); }
+    else { qNum = 3; qYear = now.getUTCFullYear(); }
+    const startMonth = { 1: 3, 2: 6, 3: 9, 4: 0 }[qNum];
+    const startDay = 1;
+    const start = new Date(Date.UTC(qYear, startMonth, startDay, 0, 0, 0, 0));
+    if (now < start) return '';
+    // Count working days from quarter start to now (inclusive of today)
+    let workingDays = 0;
+    const cursor = new Date(start);
+    const end = new Date(now);
+    // Best-effort holiday set (populated by Delivera-Data-TanzaniaHolidays client bridge if loaded)
+    const holidaySet = (globalThis.__DELIVERA_TZ_HOLIDAYS && Array.isArray(globalThis.__DELIVERA_TZ_HOLIDAYS))
+      ? new Set(globalThis.__DELIVERA_TZ_HOLIDAYS.map((d) => String(d).slice(0, 10)))
+      : null;
+    while (cursor <= end) {
+      const dow = cursor.getUTCDay();
+      if (dow !== 0 && dow !== 6) {
+        const iso = cursor.toISOString().slice(0, 10);
+        if (!holidaySet || !holidaySet.has(iso)) workingDays++;
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    const hours = workingDays * 8;
+    return `⏱ ${hours} working hours elapsed in Q${qNum}`;
+  } catch (_) {
+    return '';
+  }
+}
+
 function promisesChecked(answer) {
   return Number(String(answer?.sourceLine || '').match(/(\d+)\s+promises?\s+checked/i)?.[1] || 0);
 }
@@ -127,12 +168,18 @@ function excludedOperationalGroups(answer) {
 }
 
 function portfolioMatrix(answer) {
-  return `<section class="gov-story-matrix" aria-labelledby="gov-story-matrix-title">
-    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">Portfolio comparison</span><h2 id="gov-story-matrix-title">Squads ordered by decision urgency</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(answer.lensSummaries?.overall || 'Select a squad to keep its Jira work, sprint, promises and actions isolated.')}</p></div><button type="button" class="btn btn-link btn-compact" data-story-all aria-current="${spotlightKey ? 'false' : 'true'}">Clear squad</button></div>
+  const isSquadView = activeLens === 'squad' && spotlightKey;
+  const visibleSquads = isSquadView
+    ? (answer.squads || []).filter((squad) => squad.squad === spotlightKey)
+    : (answer.squads || []);
+  const matrixHeadTitle = isSquadView ? 'Squad deep dive' : 'Squads ordered by decision urgency';
+  const matrixHeadKicker = isSquadView ? 'Squad focus' : 'Portfolio comparison';
+  return `<section class="gov-story-matrix${isSquadView ? ' gov-story-matrix--squad-focus' : ''}" aria-labelledby="gov-story-matrix-title">
+    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(answer.lensSummaries?.overall || 'Select a squad to keep its Jira work, sprint, promises and actions isolated.')}</p></div><button type="button" class="btn btn-link btn-compact" data-story-all aria-current="${spotlightKey ? 'false' : 'true'}">Clear squad</button></div>
     <div class="gov-story-lenses" role="toolbar" aria-label="Governance view">${lenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
       <div class="gov-story-columns" role="row"><span>Squad</span><span>Current reality</span><span>PI impact</span><span>Next move</span></div>
-      ${(answer.squads || []).map(matrixRow).join('')}
+      ${visibleSquads.map(matrixRow).join('')}
     </div>
     ${excludedOperationalGroups(answer)}
   </section>`;
@@ -153,7 +200,7 @@ function renderHero(answer) {
   const selectedPromise = decisionPromiseForAnswer(answer);
   const nextLabel = noBaseline ? 'Recover PI contract' : (selectedPromise ? `Review ${selectedPromise.squadDisplayName || selectedPromise.squad}` : 'Review aligned promises');
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
-    <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong><button type="button" class="gov-hero-evidence-link" data-hero-freshness>${escapeHtml(freshness.copy)}</button></div>
+    <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong><span class="gov-quarter-pulse" data-quarter-pulse aria-label="Working hours elapsed in the current quarter">${quarterPulseLabel()}</span><button type="button" class="gov-hero-evidence-link" data-hero-freshness>${escapeHtml(freshness.copy)}</button></div>
     <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>PI contract answer</span><span class="gov-loop-cache-badge${answer.servedFromLocalCache ? '' : ' gov-loop-cache-badge--live'}">${answer.servedFromLocalCache ? 'Last verified answer' : 'Quietly refreshed'}</span></div><h1 id="gov-loop-answer">${escapeHtml(answer.answer)}</h1><p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(answer.sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
     <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.preparedOwnerAsks} owner asks prepared · ${coverage.closed} decided</small></span></div><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button></div>
     ${portfolioMatrix(answer)}
@@ -171,6 +218,12 @@ function renderHero(answer) {
     legacy.setAttribute('inert', '');
   });
   bindStory(answer, mount);
+  // Live-update the quarter pulse every 60 seconds (zero API cost, client-side math)
+  if (quarterPulseTimer) clearInterval(quarterPulseTimer);
+  quarterPulseTimer = setInterval(() => {
+    const el = document.querySelector('[data-quarter-pulse]');
+    if (el) el.textContent = quarterPulseLabel();
+  }, 60000);
   if (spotlightKey) void showSpotlight(spotlightKey, { pushHistory: false });
 }
 
@@ -381,14 +434,17 @@ function spotlightHtml(detail) {
   const unknown = detail.unknownWork || squad.unknownWork || {};
   const rework = detail.possibleRework || squad.possibleRework || {};
   const displayName = squad.displayName || squad.squad;
+  const nextActionHtml = squad.nextAction?.action === 'set-baseline'
+    ? `<button type="button" class="btn btn-link btn-compact gov-spotlight-action-btn" data-setup-baseline-ssot="1">${escapeHtml(squad.nextAction?.label || 'Save baseline to compare')}</button>`
+    : escapeHtml(squad.nextAction?.label || 'Review evidence');
   return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Synchronized Squad Spotlight</span><h2>${escapeHtml(displayName)}</h2></div><div class="gov-spotlight-head-actions"><button type="button" class="btn btn-link btn-compact" data-edit-alias>Edit squad name</button><button type="button" class="btn btn-secondary btn-compact" data-force-squad>Force ${escapeHtml(displayName)} sync</button></div></div>
-  <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.label || squad.topState || 'Cannot verify')}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${escapeHtml(squad.nextAction?.label || 'Review evidence')}</strong></span></div>
+  <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.label || squad.topState || 'Cannot verify')}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${nextActionHtml}</strong></span></div>
   <div class="gov-spotlight-grid">
     <section><h3>Current Work Reality</h3>${work.length ? work.slice(0, 5).map((item) => `<p class="gov-work-theme"><span><strong>${escapeHtml(item.title)}</strong>${item.systemDerived ? ' <small>system-derived label</small>' : ''}</span>${item.systemDerived || item.title === 'Unclear work theme' ? `<button type="button" class="btn btn-secondary btn-compact" data-theme-rename data-theme-id="${escapeHtml(item.themeId || item.title)}" data-theme-version="${Number(item.version) || 1}">Rename theme</button>` : ''}</p>`).join('') : '<p>No current work themes are available.</p>'}</section>
     <section><h3>Sprint Reality</h3><p>${escapeHtml(detail.sprintReality?.copy || 'Sprint reality unavailable.')}</p></section>
     <section><h3>Evidence Signals</h3><p>${escapeHtml(rework.copy || 'No evidence-backed rework signal is promoted.')}</p>${rework.promoted ? `<details><summary>Why Delivera raised this</summary><ul>${(rework.promoted.paths || []).map((path) => `<li>${escapeHtml(path.label)}</li>`).join('')}</ul></details>` : '<p class="gov-calm-note">Low-confidence follow-up work stays out of risk totals.</p>'}${unknown.promoted ? `<div class="gov-unknown-clusters"><p><strong>${escapeHtml(unknown.copy)}</strong></p>${(unknown.clusters || []).slice(0, 3).map((cluster) => `<article><strong>${escapeHtml(cluster.title)}</strong><small>${cluster.ticketCount} issues · ${cluster.percentage}% · ${escapeHtml(cluster.sharedEvidence?.join(', ') || 'shared work evidence')}</small><button type="button" class="btn btn-secondary btn-compact" data-classify-cluster="${escapeHtml(cluster.id)}" data-cluster-version="${Number(cluster.version) || 1}" data-classification="${escapeHtml(cluster.recommendation)}">${escapeHtml(cluster.recommendation === 'ad-hoc-feature' ? 'Mark as Ad Hoc Feature Work' : cluster.recommendation === 'operational-group-candidate' ? 'Mark as Operational Group candidate' : 'Mark cluster as Operational')}</button></article>`).join('')}</div>` : ''}</section>
     <section><h3>Doing Instead &amp; Work Split</h3><p>${escapeHtml(squad.doingInstead?.copy || 'No major diversion is proven.')}</p><p>${escapeHtml(squad.workSplit?.explanation || '')}</p><p>Unknown: ${squad.workSplit?.unknownPct == null ? 'not calculated' : `${squad.workSplit.unknownPct}%`}</p></section>
-    <section><h3>Promise Evidence</h3>${promises.length ? promises.map((promise) => `<button type="button" class="gov-spotlight-promise" data-loop-promise="${escapeHtml(promise.promiseId)}"><strong>${escapeHtml(promise.originalText)}</strong><small>${escapeHtml(promise.matchLabel)} · ${escapeHtml(promise.proofAge?.copy || '')}</small>${promise.amendmentSentence ? `<span class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</span>` : ''}</button>`).join('') : '<p>Cannot verify, baseline missing. Save baseline to compare.</p>'}</section>
+    <section><h3>Promise Evidence</h3>${promises.length ? promises.map((promise) => `<button type="button" class="gov-spotlight-promise" data-loop-promise="${escapeHtml(promise.promiseId)}"><strong>${escapeHtml(promise.originalText)}</strong><small>${escapeHtml(promise.matchLabel)} · ${escapeHtml(promise.proofAge?.copy || '')}</small>${promise.amendmentSentence ? `<span class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</span>` : ''}</button>`).join('') : '<button type="button" class="btn btn-link gov-spotlight-baseline-cta" data-setup-baseline-ssot="1">Cannot verify, baseline missing. Save baseline to compare.</button>'}</section>
     <section class="gov-spotlight-actions"><h3>Action Trail</h3>${actionTrailHtml(promises)}</section>
   </div><div class="gov-loop-action-status" aria-live="polite"></div>`;
 }
@@ -407,7 +463,18 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
   document.querySelector('[data-story-all]')?.setAttribute('aria-current', 'false');
   const mount = document.getElementById('gov-squad-spotlight');
   if (!mount) return;
-  mount.innerHTML = '<p aria-busy="true">Loading squad story…</p>';
+  // Instant render from cached brief data (kills the "Loading squad story…" state)
+  const cachedSquad = (activeAnswer?.squads || []).find((s) => s.squad === squad);
+  if (cachedSquad) {
+    const cachedDetail = { squad: cachedSquad, promises: [], currentWork: [], unknownWork: cachedSquad.unknownWork, possibleRework: cachedSquad.possibleRework, sprintReality: cachedSquad.sprintReality };
+    mount.innerHTML = spotlightHtml(cachedDetail);
+    mount.querySelectorAll('[data-loop-promise]').forEach((button) => button.addEventListener('click', () => void openPromiseDrawer(button.getAttribute('data-loop-promise'))));
+    mount.querySelectorAll('[data-theme-rename]').forEach((button) => button.addEventListener('click', () => beginThemeRename(button, squad, mount)));
+    mount.querySelectorAll('[data-force-squad]').forEach((button) => button.addEventListener('click', () => forceSquadSync(squad, button)));
+    mount.querySelectorAll('[data-edit-alias]').forEach((button) => button.addEventListener('click', () => openAliasEditor(squad, mount)));
+    mount.querySelectorAll('[data-classify-cluster]').forEach((button) => button.addEventListener('click', () => classifyCluster(button, squad, mount)));
+  }
+  // Fetch full detail in the background to enrich the cached render
   try {
     const res = await fetch(`/api/governance/squads/${encodeURIComponent(squad)}/detail.json?projects=${encodeURIComponent(squad)}&squad=${encodeURIComponent(squad)}`, { credentials: 'same-origin' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -425,7 +492,10 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
     mount.querySelectorAll('[data-classify-cluster]').forEach((button) => button.addEventListener('click', () => classifyUnknownCluster(button, detail, mount)));
     mount.querySelector('[data-force-squad]')?.addEventListener('click', (event) => targetedRefresh('squad', squad, event.currentTarget, mount));
     mount.querySelector('[data-edit-alias]')?.addEventListener('click', () => openBoardAliasDrawer(detail.squad));
-  } catch (_) { mount.innerHTML = '<p role="status">Squad details are unavailable. The portfolio answer remains valid.</p>'; }
+  } catch (_) {
+    // Keep the cached render if the fetch fails — only show error if no cached render exists
+    if (!cachedSquad) mount.innerHTML = '<p role="status">Squad details are unavailable. The portfolio answer remains valid.</p>';
+  }
 }
 
 async function classifyUnknownCluster(button, detail, container) {

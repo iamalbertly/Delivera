@@ -429,9 +429,13 @@ function handlePortfolioHeatClick(event) {
 
 export function ensurePortfolioHeatDelegation() {
   const root = document.getElementById('gov-verdict-mount');
-  if (!root || root.dataset.heatDelegationBound === '1') return;
-  root.dataset.heatDelegationBound = '1';
-  root.addEventListener('click', handlePortfolioHeatClick);
+  if (root && root.dataset.heatDelegationBound === '1') return;
+  if (root) root.dataset.heatDelegationBound = '1';
+  // Delegate at document level so spotlight + any dynamically rendered
+  // [data-setup-baseline-ssot] buttons (outside #gov-verdict-mount) are caught.
+  if (document.body.dataset.heatDelegationBound === '1') return;
+  document.body.dataset.heatDelegationBound = '1';
+  document.body.addEventListener('click', handlePortfolioHeatClick);
 }
 
 export function bindPortfolioHeatMap(root, brief) {

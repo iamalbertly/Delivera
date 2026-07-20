@@ -463,6 +463,19 @@ function init() {
   });
   if (boardSelect) boardSelect.addEventListener('change', initHandlers.onBoardChange);
   if (contentEl) contentEl.addEventListener('click', initHandlers.onSprintTabClick);
+  // Squad selector: switch board (focused squad) from the current-sprint header
+  document.addEventListener('change', (event) => {
+    const squadSelect = event.target?.closest?.('[data-squad-select]');
+    if (!squadSelect) return;
+    const boardId = squadSelect.value;
+    if (!boardId) return;
+    persistSelection(boardId, null);
+    const url = new URL(window.location.href);
+    url.searchParams.set('boardId', boardId);
+    url.searchParams.delete('sprintId');
+    window.history.replaceState({}, '', url.toString());
+    initHandlers.refreshBoards(boardId, null);
+  });
   if (errorEl) {
     errorEl.addEventListener('click', (event) => {
       const target = event.target?.closest?.('[data-action]');

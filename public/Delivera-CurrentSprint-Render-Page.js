@@ -9,13 +9,33 @@ import { renderDecisionCockpit } from './Delivera-CurrentSprint-Decision-Cockpit
 import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js';
 
 function renderSprintSwitcher(data) {
-  if (!Array.isArray(data.recentSprints) || data.recentSprints.length <= 1) return '';
-  return ''
+  // Squad selector: allows switching the focused squad (board) directly from current-sprint
+  const squadSelectorHtml = renderSquadSelector(data);
+  if (!Array.isArray(data.recentSprints) || data.recentSprints.length <= 1) return squadSelectorHtml;
+  return squadSelectorHtml
     + '<details class="sprint-switcher-card sprint-switcher-card-inline" aria-label="Switch sprint">'
     + '<summary>Switch sprint</summary>'
     + '<div class="header-drawer-section-label">Switch sprint</div>'
     + renderSprintCarousel(data)
     + '</details>';
+}
+
+/**
+ * Render a squad selector dropdown that switches the board (and thus the focused squad).
+ * Reads from the governance registry cached in localStorage (populated by Settings page).
+ */
+function renderSquadSelector(data) {
+  const currentBoardId = String(data?.board?.id || data?.meta?.boardId || '');
+  const currentProject = String(data?.meta?.projects || '').split(',')[0]?.trim() || '';
+  // Build options from the board list if available, or from the current project
+  const boards = Array.isArray(data?.availableBoards) ? data.availableBoards : [];
+  const options = boards.length
+    ? boards.map((b) => `<option value="${String(b.id || '').replace(/"/g, '')}" ${String(b.id) === currentBoardId ? 'selected' : ''}>${String(b.name || b.id || '').replace(/</g, '&lt;')}</option>`).join('')
+    : `<option value="${currentBoardId.replace(/"/g, '')}" selected>${currentProject || currentBoardId || 'Current board'}</option>`;
+  return `<div class="squad-selector-card" aria-label="Switch squad">
+    <label class="squad-selector-label">Squad focus</label>
+    <select class="squad-selector-dropdown" data-squad-select>${options}</select>
+  </div>`;
 }
 
 export function renderCurrentSprintPage(data) {

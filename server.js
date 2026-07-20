@@ -12,6 +12,7 @@ import {
   registerGracefulShutdown,
   registerFatalHandlers,
 } from './lib/Delivera-Server-Lifecycle-01Graceful.js';
+import { preloadTanzaniaHolidays } from './lib/Delivera-Data-TanzaniaHolidays-01SSOT.js';
 
 dotenv.config();
 // Note: Delivera-Config-Env-Services-Core-SSOT already loads `<repo>/.env` from disk before reading vars.
@@ -24,6 +25,9 @@ let gracefulShutdown = () => {};
 
 async function boot() {
   try {
+    // Preload Tanzanian holidays for holiday-aware working-day calculations (best-effort, non-blocking)
+    preloadTanzaniaHolidays().catch((err) => logger.warn('Holiday preload failed', { error: err?.message }));
+
     server = await listenWithRetry(app, PORT);
 
     gracefulShutdown = registerGracefulShutdown(server, {

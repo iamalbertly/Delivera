@@ -101,6 +101,25 @@ function updateBulkState() {
   const reason = normalized(mount.querySelector('[data-bulk-reason]')?.value);
   const participation = normalized(mount.querySelector('[data-bulk-participation]')?.value);
   mount.querySelector('[data-selected-count]').textContent = `${selected.length} squad${selected.length === 1 ? '' : 's'} selected`;
+  // Auto-suggest: if squads are selected but participation not yet chosen, default to 'pi-governed'
+  if (selected.length && !participation) {
+    const select = mount.querySelector('[data-bulk-participation]');
+    if (select && select.value !== 'pi-governed') {
+      select.value = 'pi-governed';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return; // re-run updateBulkState via the change listener
+    }
+  }
+  // Auto-suggest: if squads are selected but reason is empty, pre-fill a default reason
+  if (selected.length && !reason) {
+    const reasonInput = mount.querySelector('[data-bulk-reason]');
+    if (reasonInput && !reasonInput.dataset.autoFilled) {
+      reasonInput.value = 'Onboarding into PI governance';
+      reasonInput.dataset.autoFilled = '1';
+      reasonInput.dispatchEvent(new Event('input', { bubbles: true }));
+      return; // re-run updateBulkState via the input listener
+    }
+  }
   mount.querySelector('[data-bulk-preview]').disabled = !selected.length || !reason || !participation;
 }
 
@@ -158,17 +177,59 @@ async function saveBulk() {
   const status = mount.querySelector('[data-bulk-status]');
   const button = mount.querySelector('[data-bulk-preview]');
   const names = forms.map((form) => registry.squads.find((item) => item.squadKey === form.dataset.registrySquad)?.friendlyName || form.dataset.registrySquad);
-  if (!globalThis.confirm(`Apply “${participationState.replace(/-/g, ' ')}” to ${names.join(', ')}?\n\nReason: ${reason}`)) return;
+  // In-app preview drawer (replaces native confirm() for consistent UX)
+  const confirmed = await showBulkPreviewDrawer({ participationState, names, reason });
+  if (!confirmed) return;
   button.disabled = true; status.textContent = 'Publishing one atomic organization change…';
   try {
     const changes = forms.map((form) => ({ squadKey: form.dataset.registrySquad, expectedRevision: Number(form.dataset.registryRevision) || 1, patch: { participationState } }));
     registry = await requestBatch(changes, reason);
     drafts.clear(); render();
     mount.querySelector('[data-bulk-status]').textContent = `${names.length} squads updated across Delivera. Receipt ${registry.receipt?.id || 'recorded'}.`;
+    // Broadcast to other tabs via storage event
+    try { localStorage.setItem('delivera:registry-version', String(registry.version || Date.now())); } catch (_) {}
   } catch (error) {
     status.textContent = error.status === 412 ? `${error.message} No squad was changed.` : error.message;
     updateBulkState();
   }
+}
+
+/**
+ * In-app preview drawer replacing the native confirm() dialog.
+ * Returns a Promise<boolean> — true if user clicks Apply, false on Cancel/close.
+ */
+function showBulkPreviewDrawer({ participationState, names, reason }) {
+  return new Promise((resolve) => {
+    const host = document.createElement('div');
+    host.className = 'gov-right-drawer-host';
+    host.innerHTML = `
+      <div class="gov-right-drawer-backdrop" data-drawer-close></div>
+      <aside class="gov-right-drawer-panel" role="dialog" aria-labelledby="bulk-preview-title">
+        <header class="gov-right-drawer-head">
+          <h2 id="bulk-preview-title" class="gov-right-drawer-title">Preview organization change</h2>
+          <button type="button" class="btn btn-link btn-compact" data-drawer-close aria-label="Close">Close</button>
+        </header>
+        <div class="gov-right-drawer-body">
+          <p><strong>${escapeHtml(names.length)} squad${names.length === 1 ? '' : 's'}</strong> will move to <strong>${escapeHtml(participationState.replace(/-/g, ' '))}</strong>.</p>
+          <ul class="gov-bulk-preview-list">${names.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>
+          <p><small>Reason: ${escapeHtml(reason)}</small></p>
+          <div class="gov-bulk-preview-actions">
+            <button type="button" class="btn btn-primary" data-bulk-apply>Apply</button>
+            <button type="button" class="btn btn-link" data-drawer-close>Cancel</button>
+          </div>
+        </div>
+      </aside>`;
+    document.body.appendChild(host);
+    document.body.classList.add('gov-right-drawer-open');
+    const cleanup = (result) => {
+      host.remove();
+      document.body.classList.remove('gov-right-drawer-open');
+      resolve(result);
+    };
+    host.querySelector('[data-bulk-apply]')?.addEventListener('click', () => cleanup(true));
+    host.querySelectorAll('[data-drawer-close]').forEach((btn) => btn.addEventListener('click', () => cleanup(false)));
+    host.querySelector('[data-bulk-apply]')?.focus();
+  });
 }
 
 async function load() {
