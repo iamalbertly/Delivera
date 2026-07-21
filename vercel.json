@@ -6,7 +6,11 @@
       "entrypoint": "index.js",
       "framework": "express",
       "installCommand": "npm install",
-      "buildCommand": "npm run build:css"
+      "buildCommand": "npm run build:css",
+      "includeFiles": [
+        "public/**",
+        "data/**"
+      ]
     }
   },
   "rewrites": [
