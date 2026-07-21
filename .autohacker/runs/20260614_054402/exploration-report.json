@@ -1,0 +1,119 @@
+{
+  "capturedAt": "2026-06-14T02:44:05.916Z",
+  "target": "governance",
+  "url": "http://127.0.0.1:3001/governance",
+  "viewports": {
+    "desktop": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 0,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2407
+      },
+      "interactivesFound": 50,
+      "clicksTested": 3,
+      "clickResults": [
+        {
+          "viewport": "desktop",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        }
+      ]
+    },
+    "mobile": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 56,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2626
+      },
+      "interactivesFound": 17,
+      "clicksTested": 3,
+      "clickResults": [
+        {
+          "viewport": "mobile",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        }
+      ]
+    }
+  },
+  "brokenInteractions": [
+    {
+      "viewport": "desktop",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+    },
+    {
+      "viewport": "mobile",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+    }
+  ],
+  "consoleIssues": [],
+  "clickReductionIdeas": [
+    "Repair broken click on desktop: Skip to main content",
+    "Reduce page height on desktop (2407px) - inline queue and evidence",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"Today\"",
+    "Reduce clicks on desktop: inline outcome for \"Proof\"",
+    "Reduce clicks on desktop: inline outcome for \"DeDeliveraProjects: SD\"",
+    "Reduce clicks on desktop: inline outcome for \"+Create\"",
+    "Reduce clicks on desktop: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"LY\"",
+    "Repair broken click on mobile: Skip to main content",
+    "Reduce page height on mobile (2626px) - inline queue and evidence",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"Today\"",
+    "Reduce clicks on mobile: inline outcome for \"Proof\"",
+    "Reduce clicks on mobile: inline outcome for \"+Create\"",
+    "Reduce clicks on mobile: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"control\""
+  ],
+  "visualUxIssues": [],
+  "screenshots": [
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_054402\\screenshots\\desktop-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_054402\\screenshots\\desktop-scroll.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_054402\\screenshots\\mobile-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_054402\\screenshots\\mobile-scroll.png"
+  ],
+  "summary": {
+    "brokenCount": 2,
+    "consoleIssueCount": 0,
+    "visualIssueCount": 0,
+    "ideaCount": 21,
+    "realIdeaCount": 21,
+    "paddedToTwenty": false,
+    "qualityPass": true
+  }
+}

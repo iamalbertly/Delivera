@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-06-15T07:25:55.001Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "hiddenValueCount": 2,
+  "byKind": {
+    "setup-gap-click": 1,
+    "below-fold-action": 1
+  },
+  "findings": [
+    {
+      "kind": "setup-gap-click",
+      "label": "Fix: Confirm promised work",
+      "selector": "[data-setup-baseline-ssot]"
+    },
+    {
+      "kind": "below-fold-action",
+      "label": "\n        \n          \n            Amani · 3 actions\n         ",
+      "selector": null
+    }
+  ]
+}

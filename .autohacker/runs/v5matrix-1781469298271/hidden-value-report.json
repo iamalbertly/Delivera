@@ -1,0 +1,15 @@
+{
+  "capturedAt": "2026-06-14T20:35:22.333Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "hiddenValueCount": 1,
+  "byKind": {
+    "below-fold-action": 1
+  },
+  "findings": [
+    {
+      "kind": "below-fold-action",
+      "label": "\n        \n          \n            Amani · 3 actions\n         ",
+      "selector": null
+    }
+  ]
+}

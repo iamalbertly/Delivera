@@ -1,0 +1,51 @@
+{
+  "capturedAt": "2026-06-14T08:40:39.454Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxFoldClippedCount": 3,
+  "foldViewportPx": 900,
+  "foldLinePx": 738,
+  "clippedCount": 5,
+  "clipped": [
+    {
+      "selector": ".gov-owner-cluster",
+      "topPx": 595,
+      "bottomPx": 1036,
+      "foldY": 738,
+      "belowFold": false,
+      "label": "Amani · 3 actions\n            Leadership · no progress for 1"
+    },
+    {
+      "selector": ".governance-evidence-table",
+      "topPx": 848,
+      "bottomPx": 969,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "IssueStatusWhy\n        \n    \n      SD-5184\n      In Progress"
+    },
+    {
+      "selector": ".governance-evidence-table",
+      "topPx": 1310,
+      "bottomPx": 1620,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "IssueStatusLast weekWhy\n    \n      SD-5184\n      In Progress"
+    },
+    {
+      "selector": ".governance-evidence-table",
+      "topPx": 2016,
+      "bottomPx": 2119,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "IssueStatusWhy\n    \n      SD-5184\n      In Progress\n      st"
+    },
+    {
+      "selector": "#gov-supporting-evidence",
+      "topPx": 1218,
+      "bottomPx": 1922,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "Supporting evidence (5 rows)\n          \n          \n         "
+    }
+  ],
+  "pass": false
+}

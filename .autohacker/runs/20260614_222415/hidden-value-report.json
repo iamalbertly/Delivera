@@ -1,0 +1,54 @@
+{
+  "capturedAt": "2026-06-14T19:25:17.066Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "hiddenValueCount": 8,
+  "byKind": {
+    "aria-collapsed": 3,
+    "collapsed-details": 1,
+    "setup-gap-click": 2,
+    "below-fold-action": 1,
+    "truncated-copy": 1
+  },
+  "findings": [
+    {
+      "kind": "aria-collapsed",
+      "label": "Expand or collapse sidebar",
+      "selector": null
+    },
+    {
+      "kind": "aria-collapsed",
+      "label": "More",
+      "selector": "#gov-overflow-toggle"
+    },
+    {
+      "kind": "aria-collapsed",
+      "label": "Project ▾",
+      "selector": "#wdd-project-chip"
+    },
+    {
+      "kind": "collapsed-details",
+      "label": "+6 more squads",
+      "selector": "details:not([open])"
+    },
+    {
+      "kind": "setup-gap-click",
+      "label": "PI baseline not saved — Fix in 1 click",
+      "selector": "[data-setup-baseline-ssot]"
+    },
+    {
+      "kind": "setup-gap-click",
+      "label": "Fix: Confirm promised work",
+      "selector": "[data-setup-baseline-ssot]"
+    },
+    {
+      "kind": "below-fold-action",
+      "label": "\n        \n          \n            Amani · 3 actions\n         ",
+      "selector": null
+    },
+    {
+      "kind": "truncated-copy",
+      "label": "MPSA-8174: MPSA-8174 looks blocked (17 days with no update). Who owns the next s",
+      "selector": "gov-inbox-inline-summary"
+    }
+  ]
+}

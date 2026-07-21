@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-06-14T19:25:54.075Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxFoldClippedCount": 3,
+  "foldViewportPx": 900,
+  "foldLinePx": 738,
+  "clippedCount": 3,
+  "clipped": [
+    {
+      "selector": "[data-direct-value=\"evidence\"]",
+      "topPx": 817,
+      "bottomPx": 882,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "Top risks"
+    },
+    {
+      "selector": "[data-direct-value=\"squad-detail\"]",
+      "topPx": 785,
+      "bottomPx": 922,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "PI baseline not saved — Fix in 1 click\n      TM should be no"
+    },
+    {
+      "selector": "[data-direct-value=\"sprint-link\"]",
+      "topPx": 890,
+      "bottomPx": 911,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "View sprint"
+    }
+  ],
+  "pass": true
+}

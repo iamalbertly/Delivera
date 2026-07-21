@@ -52,9 +52,9 @@ export function refreshScopeBarCounts() {
 }
 
 /** Single entry — opens promised-work wizard without expanding scope panel. */
-export function openPiBaselineWizard() {
-  govPage.scopeBarApi?.openPiBaselineWizard?.()
-    || govPage.scopeBarApi?.openBaselineWizard?.();
+export function openPiBaselineWizard(squad = '') {
+  govPage.scopeBarApi?.openPiBaselineWizard?.(squad)
+    || govPage.scopeBarApi?.openBaselineWizard?.(squad);
 }
 
 export function whyItMatters(risk) {

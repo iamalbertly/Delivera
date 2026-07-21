@@ -1,0 +1,156 @@
+{
+  "capturedAt": "2026-06-14T19:25:49.768Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxContentOverlapPx": 500,
+  "maxObscuredValueCount": 0,
+  "byState": [
+    {
+      "stateId": "sd-collapsed",
+      "overlapPxTotal": 179463,
+      "obscuredValueCount": 5,
+      "pairs": [
+        {
+          "value": "gov-command-answer gov-command-answer--c",
+          "blocker": "gov-scope-bar-mount",
+          "overlapPx": 3148
+        },
+        {
+          "value": "gov-command-answer gov-command-answer--c",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 10188
+        },
+        {
+          "value": "gov-answer-mount",
+          "blocker": "gov-scope-bar-mount",
+          "overlapPx": 3148
+        },
+        {
+          "value": "gov-answer-mount",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 114084
+        },
+        {
+          "value": "gov-owner-cluster",
+          "blocker": "gov-owner-cluster-head",
+          "overlapPx": 48895
+        }
+      ]
+    },
+    {
+      "stateId": "mpsa-mas-blocked",
+      "overlapPxTotal": 330045,
+      "obscuredValueCount": 4,
+      "pairs": [
+        {
+          "value": "gov-command-answer gov-command-answer--c",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 56936
+        },
+        {
+          "value": "gov-answer-mount",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 175319
+        },
+        {
+          "value": "gov-owner-cluster",
+          "blocker": "gov-owner-cluster-head",
+          "overlapPx": 48895
+        },
+        {
+          "value": "gov-owner-cluster",
+          "blocker": "gov-owner-cluster-head",
+          "overlapPx": 48895
+        }
+      ]
+    },
+    {
+      "stateId": "sidebar-expanded",
+      "overlapPxTotal": 179463,
+      "obscuredValueCount": 5,
+      "pairs": [
+        {
+          "value": "gov-command-answer gov-command-answer--c",
+          "blocker": "gov-scope-bar-mount",
+          "overlapPx": 3148
+        },
+        {
+          "value": "gov-command-answer gov-command-answer--c",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 10188
+        },
+        {
+          "value": "gov-answer-mount",
+          "blocker": "gov-scope-bar-mount",
+          "overlapPx": 3148
+        },
+        {
+          "value": "gov-answer-mount",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 114084
+        },
+        {
+          "value": "gov-owner-cluster",
+          "blocker": "gov-owner-cluster-head",
+          "overlapPx": 48895
+        }
+      ]
+    },
+    {
+      "stateId": "first-load-modals",
+      "overlapPxTotal": 179463,
+      "obscuredValueCount": 5,
+      "pairs": [
+        {
+          "value": "gov-command-answer gov-command-answer--c",
+          "blocker": "gov-scope-bar-mount",
+          "overlapPx": 3148
+        },
+        {
+          "value": "gov-command-answer gov-command-answer--c",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 10188
+        },
+        {
+          "value": "gov-answer-mount",
+          "blocker": "gov-scope-bar-mount",
+          "overlapPx": 3148
+        },
+        {
+          "value": "gov-answer-mount",
+          "blocker": "governance-header gov-header-compact",
+          "overlapPx": 114084
+        },
+        {
+          "value": "gov-owner-cluster",
+          "blocker": "gov-owner-cluster-head",
+          "overlapPx": 48895
+        }
+      ]
+    }
+  ],
+  "overlapPxTotal": 330045,
+  "obscuredValueCount": 4,
+  "pairs": [
+    {
+      "value": "gov-command-answer gov-command-answer--c",
+      "blocker": "governance-header gov-header-compact",
+      "overlapPx": 56936
+    },
+    {
+      "value": "gov-answer-mount",
+      "blocker": "governance-header gov-header-compact",
+      "overlapPx": 175319
+    },
+    {
+      "value": "gov-owner-cluster",
+      "blocker": "gov-owner-cluster-head",
+      "overlapPx": 48895
+    },
+    {
+      "value": "gov-owner-cluster",
+      "blocker": "gov-owner-cluster-head",
+      "overlapPx": 48895
+    }
+  ],
+  "pass": false
+}

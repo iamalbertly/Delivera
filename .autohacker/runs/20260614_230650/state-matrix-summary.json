@@ -1,0 +1,22 @@
+{
+  "capturedAt": "2026-06-14T20:18:07.477Z",
+  "worst": {
+    "horizontalVoidRatio": 0.254,
+    "overlapPxTotal": 0,
+    "stackingDetected": false,
+    "mainColumnVoidPx": 222,
+    "hiddenValueCount": 0,
+    "stickyChromeRatio": 0.356,
+    "leftWhitespaceRatio": 0.059
+  },
+  "pass": true,
+  "reportsPresent": {
+    "horizontalVoid": true,
+    "contentOverlap": true,
+    "negativeVoid": true,
+    "mainColumnVoid": true,
+    "hiddenValue": true,
+    "metrics": true,
+    "screenshotDensity": true
+  }
+}

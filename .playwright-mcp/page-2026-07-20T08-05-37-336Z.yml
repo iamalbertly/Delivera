@@ -1,0 +1,223 @@
+- generic [active] [ref=f3e1]:
+  - status [ref=f3e3]:
+    - generic [ref=f3e61]: "Brief queue: 5984"
+    - generic [ref=f3e62]: Gaps 0
+    - generic [ref=f3e63]: "PI Confidence: Not trusted yet"
+  - link "Skip to main content" [ref=f3e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=f3e5]:
+    - generic [ref=f3e6]:
+      - button "Expand or collapse sidebar" [ref=f3e8] [cursor=pointer]
+      - navigation "Surfaces" [ref=f3e12]:
+        - link "Answer" [ref=f3e13] [cursor=pointer]:
+          - /url: /governance
+        - link "Today" [ref=f3e14] [cursor=pointer]:
+          - /url: /current-sprint
+        - generic [ref=f3e15] [cursor=pointer]: Proof
+      - link "Delivera No report run yet" [ref=f3e17] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=f3e18]: De
+        - generic [ref=f3e19]:
+          - generic [ref=f3e20]: Delivera
+          - generic "No report run yet" [ref=f3e21]
+      - searchbox "Context search" [ref=f3e24]
+      - group "Global actions" [ref=f3e25]:
+        - button "Create" [ref=f3e26] [cursor=pointer]:
+          - generic [ref=f3e27]: +
+        - generic "Server AI (OpenRouter) — high template fallback" [ref=f3e64]: AI · templates (server busy)
+        - button "Actions" [ref=f3e30] [cursor=pointer]
+        - 'button "Notifications: 9 alerts" [ref=f3e31] [cursor=pointer]':
+          - generic [ref=f3e34]: "9"
+        - button "Help" [ref=f3e35] [cursor=pointer]
+        - button "Improve Delivera" [ref=f3e38] [cursor=pointer]
+        - link "Settings" [ref=f3e41] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=f3e44] [cursor=pointer]: LY
+  - main [ref=f3e46]:
+    - generic [ref=f3e47]:
+      - paragraph [ref=f3e48]: Shared intervention queue
+      - heading "Move the next PI decision forward" [level=1] [ref=f3e49]
+      - paragraph [ref=f3e50]: One queue for owner replies, re-checks, escalations, amendments, and proof gaps. Governance keeps the portfolio view.
+    - region [ref=f3e51]:
+      - generic [ref=f3e52]:
+        - generic [ref=f3e53]:
+          - heading "Open governance actions" [level=2] [ref=f3e54]
+          - paragraph [ref=f3e55]: 18 actions ready from the shared governance ledger.
+        - generic [ref=f3e56]:
+          - generic [ref=f3e57]:
+            - text: State
+            - combobox "State" [ref=f3e58]:
+              - option "All open states" [selected]
+              - option "Ready to re-check"
+              - option "Escalation due"
+              - option "Awaiting owner"
+              - option "Needs attention"
+          - generic [ref=f3e59]:
+            - text: Owner route
+            - combobox "Owner route" [ref=f3e60]:
+              - option "All owner routes" [selected]
+              - option "Owner unresolved"
+              - option "Owner resolved"
+      - generic [ref=f3e65]:
+        - article [ref=f3e66]:
+          - generic [ref=f3e67]:
+            - text: Finance Squad · FIN-1075
+            - heading "FY27 Q2 – FIN – TOWERCO – Contract Management – Base Rate Management" [level=3] [ref=f3e68]
+            - paragraph [ref=f3e69]: Nudge sent 75h ago · escalation due
+            - link "Open squad evidence" [ref=f3e70] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e71]:
+            - generic [ref=f3e72]: PI Team queue
+            - button "Review escalation route" [ref=f3e73] [cursor=pointer]
+        - article [ref=f3e74]:
+          - generic [ref=f3e75]:
+            - text: Finance Squad · FIN-1076
+            - heading "FY27 Q2 – FIN – TOWERCO – Contract Management – Allowances Input" [level=3] [ref=f3e76]
+            - paragraph [ref=f3e77]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e78] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e79]:
+            - generic [ref=f3e80]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e81] [cursor=pointer]
+        - article [ref=f3e82]:
+          - generic [ref=f3e83]:
+            - text: Finance Squad · FIN-1077
+            - heading "FY27 Q2 – FIN – TOWERCO – Contract Management – Excess Computation" [level=3] [ref=f3e84]
+            - paragraph [ref=f3e85]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e86] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e87]:
+            - generic [ref=f3e88]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e89] [cursor=pointer]
+        - article [ref=f3e90]:
+          - generic [ref=f3e91]:
+            - text: Finance Squad · FIN-1078
+            - heading "FY27 Q2 – FIN – TOWERCO – Contract Management – Escalation Computation" [level=3] [ref=f3e92]
+            - paragraph [ref=f3e93]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e94] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e95]:
+            - generic [ref=f3e96]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e97] [cursor=pointer]
+        - article [ref=f3e98]:
+          - generic [ref=f3e99]:
+            - text: Finance Squad · FIN-1079
+            - heading "FY27 Q2 – FIN – TOWERCO – Contract Management – Milestone Computation" [level=3] [ref=f3e100]
+            - paragraph [ref=f3e101]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e102] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e103]:
+            - generic [ref=f3e104]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e105] [cursor=pointer]
+        - article [ref=f3e106]:
+          - generic [ref=f3e107]:
+            - text: Finance Squad · FIN-55
+            - heading "2 promises share this correction" [level=3] [ref=f3e108]
+            - paragraph [ref=f3e109]: No governance action has been sent yet.
+            - text: FY27 Q2 – FIN – TOWERCO – ITP & Change Management – Site Creation Using ITP And RFI · FY27 Q2 – FIN – TOWERCO – ITP & Change Management – Linking ITP Changes To Specific Site Records
+            - link "Open squad evidence" [ref=f3e110] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e111]:
+            - generic [ref=f3e112]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e113] [cursor=pointer]
+        - article [ref=f3e114]:
+          - generic [ref=f3e115]:
+            - text: Finance Squad · FIN-1080
+            - heading "FY27 Q2 – FIN – TOWERCO – ITP & Change Management – Configuration Of Approval Hierarchy" [level=3] [ref=f3e116]
+            - paragraph [ref=f3e117]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e118] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e119]:
+            - generic [ref=f3e120]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e121] [cursor=pointer]
+        - article [ref=f3e122]:
+          - generic [ref=f3e123]:
+            - text: Finance Squad · FIN-1081
+            - heading "FY27 Q2 – FIN – TOWERCO – ITP & Change Management – Dashboards For Monitoring Changes" [level=3] [ref=f3e124]
+            - paragraph [ref=f3e125]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e126] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e127]:
+            - generic [ref=f3e128]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e129] [cursor=pointer]
+        - article [ref=f3e130]:
+          - generic [ref=f3e131]:
+            - text: Finance Squad · FIN-1026
+            - heading "2 promises share this correction" [level=3] [ref=f3e132]
+            - paragraph [ref=f3e133]: No governance action has been sent yet.
+            - text: FY27 Q2 – FIN – TOWERCO – Billing Reconciliation – Define Billing Logic · FY27 Q2 – FIN – TOWERCO – Billing Reconciliation – Invoice Reconciliation With 3rd Party
+            - link "Open squad evidence" [ref=f3e134] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e135]:
+            - generic [ref=f3e136]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e137] [cursor=pointer]
+        - article [ref=f3e138]:
+          - generic [ref=f3e139]:
+            - text: Finance Squad · FIN-1082
+            - heading "FY27 Q2 – FIN – TOWERCO – Billing Reconciliation – Generate Expected Costs" [level=3] [ref=f3e140]
+            - paragraph [ref=f3e141]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e142] [cursor=pointer]:
+              - /url: /governance?spotlight=FIN&view=squad
+          - generic [ref=f3e143]:
+            - generic [ref=f3e144]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e145] [cursor=pointer]
+        - article [ref=f3e146]:
+          - generic [ref=f3e147]:
+            - text: DMS Squad (Kilimanjaro Legends) · SD-5314
+            - heading "FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns" [level=3] [ref=f3e148]
+            - paragraph [ref=f3e149]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e150] [cursor=pointer]:
+              - /url: /governance?spotlight=SD&view=squad
+          - generic [ref=f3e151]:
+            - generic [ref=f3e152]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e153] [cursor=pointer]
+        - article [ref=f3e154]:
+          - generic [ref=f3e155]:
+            - text: DMS Squad (Kilimanjaro Legends) · SD-5309
+            - heading "FY27 Q2 – DMS – NBA – EVOD Upgrade" [level=3] [ref=f3e156]
+            - paragraph [ref=f3e157]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e158] [cursor=pointer]:
+              - /url: /governance?spotlight=SD&view=squad
+          - generic [ref=f3e159]:
+            - generic [ref=f3e160]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e161] [cursor=pointer]
+        - article [ref=f3e162]:
+          - generic [ref=f3e163]:
+            - text: DMS Squad (Kilimanjaro Legends) · SD-5315
+            - heading "FY27 Q2 – DMS – NBA – Enhancements" [level=3] [ref=f3e164]
+            - paragraph [ref=f3e165]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e166] [cursor=pointer]:
+              - /url: /governance?spotlight=SD&view=squad
+          - generic [ref=f3e167]:
+            - generic [ref=f3e168]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e169] [cursor=pointer]
+        - article [ref=f3e170]:
+          - generic [ref=f3e171]:
+            - text: DMS Squad (Kilimanjaro Legends) · SD-5316
+            - heading "FY27 Q2 – DMS – NBA – E-HOD Regional Profile" [level=3] [ref=f3e172]
+            - paragraph [ref=f3e173]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e174] [cursor=pointer]:
+              - /url: /governance?spotlight=SD&view=squad
+          - generic [ref=f3e175]:
+            - generic [ref=f3e176]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e177] [cursor=pointer]
+        - article [ref=f3e178]:
+          - generic [ref=f3e179]:
+            - text: DMS Squad (Kilimanjaro Legends) · SD-5317
+            - heading "FY27 Q2 – DMS – DMS Capability Merging" [level=3] [ref=f3e180]
+            - paragraph [ref=f3e181]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e182] [cursor=pointer]:
+              - /url: /governance?spotlight=SD&view=squad
+          - generic [ref=f3e183]:
+            - generic [ref=f3e184]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e185] [cursor=pointer]
+        - article [ref=f3e186]:
+          - generic [ref=f3e187]:
+            - text: DMS Squad (Kilimanjaro Legends) · SD-5311
+            - heading "FY27 Q2 – DMS – VOP Upgrade" [level=3] [ref=f3e188]
+            - paragraph [ref=f3e189]: No governance action has been sent yet.
+            - link "Open squad evidence" [ref=f3e190] [cursor=pointer]:
+              - /url: /governance?spotlight=SD&view=squad
+          - generic [ref=f3e191]:
+            - generic [ref=f3e192]: PI Team queue
+            - button "Owner route missing · resolve in drawer" [ref=f3e193] [cursor=pointer]

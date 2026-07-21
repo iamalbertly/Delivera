@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-06-14T09:06:26.932Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "catalogProfile": "full",
+  "duplicateCount": 1,
+  "totalRepeatedInstances": 12,
+  "duplicates": [
+    {
+      "text": "pi baseline not saved — fix in 1 click",
+      "count": 12,
+      "hits": [
+        {
+          "tag": "P",
+          "class": "gov-compare-rail-pi gov-pi-empty-cta",
+          "sel": "gov-compare-rail-pi gov-"
+        },
+        {
+          "tag": "P",
+          "class": "gov-compare-rail-pi gov-pi-empty-cta",
+          "sel": "gov-compare-rail-pi gov-"
+        },
+        {
+          "tag": "P",
+          "class": "gov-compare-rail-pi gov-pi-empty-cta",
+          "sel": "gov-compare-rail-pi gov-"
+        },
+        {
+          "tag": "P",
+          "class": "gov-compare-rail-pi gov-pi-empty-cta",
+          "sel": "gov-compare-rail-pi gov-"
+        }
+      ]
+    }
+  ]
+}

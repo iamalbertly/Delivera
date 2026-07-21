@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-06-14T20:31:59.617Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxMainColumnVoidPx": 180,
+  "scopeBottomPx": 458,
+  "firstValueSelector": ".gov-command-answer",
+  "mainColumnVoidPx": 2,
+  "stackingDetected": false,
+  "gridScopeToVerdictPx": 227,
+  "mainContentHeightPx": 2257,
+  "actionMountTopPx": 953,
+  "pass": true
+}

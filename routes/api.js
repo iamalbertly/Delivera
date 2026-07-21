@@ -2585,6 +2585,7 @@ router.post('/api/governance/pi-baseline/propose-from-image', requireAuth, async
                 ? String(req.body.projectsCsv).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)
                 : parseGovernanceProjects(req));
         const quarter = String(req.body?.quarter || '').trim();
+        const squad = String(req.body?.squad || '').trim().toUpperCase();
         if (!imageBase64) {
             return res.status(400).json({ error: 'imageBase64 is required', code: 'MISSING_IMAGE' });
         }
@@ -2611,6 +2612,7 @@ router.post('/api/governance/pi-baseline/propose-from-image', requireAuth, async
             quarter,
             providerConfig,
             boardEpics,
+            squad,
         });
         let activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
         let version3Client = null;

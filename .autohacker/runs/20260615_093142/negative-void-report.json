@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-06-15T06:55:58.347Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "scopeBottomPx": 294,
+  "firstValueSelector": "[data-direct-value]",
+  "firstValueTopPx": 295,
+  "mainColumnVoidPx": 1,
+  "stackingDetected": false,
+  "pass": true
+}

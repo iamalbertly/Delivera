@@ -1,0 +1,323 @@
+﻿{
+    "url":  "http://127.0.0.1:3001/governance",
+    "runId":  "20260614_233816",
+    "capturedAt":  "2026-06-14T23:42:12.7736160+03:00",
+    "trustHints":  {
+                       "explorationQuality":  true,
+                       "mcpEnrichment":  true,
+                       "evidenceComplete":  true
+                   },
+    "artifacts":  [
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\exploration-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\exploration-report.md",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\metrics-snapshot.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\hidden-value-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\intra-card-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\main-column-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\negative-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\horizontal-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\content-overlap-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\fold-clipping-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\screenshot-density-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\state-matrix-summary.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-click-audit-fast.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-rects-audit.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-overlap-plan.md",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\duplicate-text-full-catalog-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-full-clickmap.json"
+                  ],
+    "target":  "governance",
+    "baseUrl":  "http://127.0.0.1:3001",
+    "tier":  3,
+    "metrics":  {
+                    "layoutRects":  {
+                                        "scopeBarWidthRatio":  0.966,
+                                        "scopeBarWidthPx":  1236,
+                                        "viewportW":  1280
+                                    },
+                    "negativeVoid":  {
+                                         "capturedAt":  "2026-06-14T20:40:04.028Z",
+                                         "url":  "http://127.0.0.1:3001/governance",
+                                         "scopeBottomPx":  458,
+                                         "firstValueSelector":  ".gov-command-answer",
+                                         "firstValueTopPx":  461,
+                                         "mainColumnVoidPx":  2,
+                                         "stackingDetected":  false,
+                                         "pass":  true
+                                     },
+                    "exploration":  {
+                                        "brokenCount":  24,
+                                        "consoleIssueCount":  0,
+                                        "visualIssueCount":  2,
+                                        "ideaCount":  46,
+                                        "realIdeaCount":  46,
+                                        "paddedToTwenty":  false,
+                                        "qualityPass":  true
+                                    },
+                    "screenshotDensity":  {
+                                              "capturedAt":  "2026-06-14T20:40:25.777Z",
+                                              "url":  "http://127.0.0.1:3001/governance",
+                                              "screenshotPath":  "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_233816\\screenshots\\desktop-fold.png",
+                                              "maxLeftWhitespaceRatio":  0.55,
+                                              "leftWhitespaceRatio":  0.059,
+                                              "rightContentRatio":  0.941,
+                                              "pass":  true
+                                          },
+                    "foldClipping":  {
+                                         "capturedAt":  "2026-06-14T20:40:21.220Z",
+                                         "url":  "http://127.0.0.1:3001/governance",
+                                         "maxFoldClippedCount":  3,
+                                         "foldViewportPx":  900,
+                                         "foldLinePx":  738,
+                                         "clippedCount":  3,
+                                         "clipped":  [
+                                                         {
+                                                             "selector":  "[data-direct-value=\"evidence\"]",
+                                                             "topPx":  825,
+                                                             "bottomPx":  890,
+                                                             "foldY":  738,
+                                                             "belowFold":  true,
+                                                             "label":  "Top risks"
+                                                         },
+                                                         {
+                                                             "selector":  "[data-direct-value=\"squad-detail\"]",
+                                                             "topPx":  793,
+                                                             "bottomPx":  930,
+                                                             "foldY":  738,
+                                                             "belowFold":  true,
+                                                             "label":  "Not saved yet\n      TM should be notified when there is low "
+                                                         },
+                                                         {
+                                                             "selector":  "[data-direct-value=\"sprint-link\"]",
+                                                             "topPx":  898,
+                                                             "bottomPx":  919,
+                                                             "foldY":  738,
+                                                             "belowFold":  true,
+                                                             "label":  "View sprint"
+                                                         }
+                                                     ],
+                                         "pass":  true
+                                     },
+                    "hiddenValue":  {
+                                        "capturedAt":  "2026-06-14T20:39:51.485Z",
+                                        "url":  "http://127.0.0.1:3001/governance",
+                                        "hiddenValueCount":  1,
+                                        "byKind":  {
+                                                       "below-fold-action":  1
+                                                   },
+                                        "findings":  [
+                                                         {
+                                                             "kind":  "below-fold-action",
+                                                             "label":  "\n        \n          \n            Amani Â· 3 actions\n         ",
+                                                             "selector":  null
+                                                         }
+                                                     ]
+                                    },
+                    "mainColumnVoid":  {
+                                           "capturedAt":  "2026-06-14T20:40:00.607Z",
+                                           "url":  "http://127.0.0.1:3001/governance",
+                                           "maxMainColumnVoidPx":  240,
+                                           "scopeBottomPx":  458,
+                                           "firstValueSelector":  ".gov-command-answer",
+                                           "mainColumnVoidPx":  2,
+                                           "stackingDetected":  false,
+                                           "gridScopeToVerdictPx":  227,
+                                           "mainContentHeightPx":  2257,
+                                           "actionMountTopPx":  953,
+                                           "pass":  true
+                                       },
+                    "horizontalVoid":  {
+                                           "capturedAt":  "2026-06-14T20:40:10.502Z",
+                                           "url":  "http://127.0.0.1:3001/governance",
+                                           "maxHorizontalVoidRatio":  0.35,
+                                           "minLeftBandContentRatio":  0.08,
+                                           "byState":  [
+                                                           {
+                                                               "stateId":  "sd-collapsed",
+                                                               "label":  "SD sidebar collapsed",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.956,
+                                                               "horizontalVoidRatio":  0.044,
+                                                               "contentCentroidX":  324,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  7
+                                                           },
+                                                           {
+                                                               "stateId":  "mpsa-mas-blocked",
+                                                               "label":  "MPSA+MAS blocked scope",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.742,
+                                                               "horizontalVoidRatio":  0.258,
+                                                               "contentCentroidX":  324,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  5
+                                                           },
+                                                           {
+                                                               "stateId":  "sidebar-expanded",
+                                                               "label":  "Sidebar expanded",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.956,
+                                                               "horizontalVoidRatio":  0.044,
+                                                               "contentCentroidX":  324,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  7
+                                                           },
+                                                           {
+                                                               "stateId":  "first-load-modals",
+                                                               "label":  "First load modals may open",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.956,
+                                                               "horizontalVoidRatio":  0.044,
+                                                               "contentCentroidX":  324,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  7
+                                                           }
+                                                       ],
+                                           "horizontalVoidRatio":  0.258,
+                                           "leftBandContentRatio":  0.742,
+                                           "contentCentroidX":  324,
+                                           "scopeBarWidthPx":  1236,
+                                           "pass":  true
+                                       },
+                    "ux":  {
+                               "capturedAt":  "2026-06-14T20:39:46.518Z",
+                               "target":  "governance",
+                               "url":  "http://127.0.0.1:3001/governance",
+                               "viewports":  {
+                                                 "desktop":  {
+                                                                 "pageTitle":  "Brief | Delivera",
+                                                                 "briefState":  "content",
+                                                                 "docScrollHeight":  2340,
+                                                                 "viewportH":  900,
+                                                                 "valueAnchor":  "gov-answer-mount",
+                                                                 "valueTopPx":  461,
+                                                                 "chromeBottomPx":  458,
+                                                                 "foldDeadBandPx":  2,
+                                                                 "scrollToPrimaryValuePx":  0,
+                                                                 "stickyChromePx":  402,
+                                                                 "stickyChromeRatio":  0.447,
+                                                                 "overlapPxTotal":  0,
+                                                                 "clickableCount":  127,
+                                                                 "telemetry":  {
+                                                                                   "consoleErrors":  [
+
+                                                                                                     ],
+                                                                                   "pageErrors":  [
+
+                                                                                                  ]
+                                                                               }
+                                                             },
+                                                 "mobile":  {
+                                                                "pageTitle":  "Brief | Delivera",
+                                                                "briefState":  "content",
+                                                                "docScrollHeight":  2929,
+                                                                "viewportH":  844,
+                                                                "valueAnchor":  "gov-answer-mount",
+                                                                "valueTopPx":  548,
+                                                                "chromeBottomPx":  241,
+                                                                "foldDeadBandPx":  307,
+                                                                "scrollToPrimaryValuePx":  0,
+                                                                "stickyChromePx":  181,
+                                                                "stickyChromeRatio":  0.215,
+                                                                "overlapPxTotal":  0,
+                                                                "clickableCount":  118,
+                                                                "telemetry":  {
+                                                                                  "consoleErrors":  [
+
+                                                                                                    ],
+                                                                                  "pageErrors":  [
+
+                                                                                                 ]
+                                                                              }
+                                                            }
+                                             },
+                               "scrollToPrimaryValuePx":  0,
+                               "foldDeadBandPx":  2,
+                               "stickyChromeRatio":  0.447,
+                               "overlapPxTotal":  0,
+                               "brokenClickCount":  0
+                           },
+                    "contentOverlap":  {
+                                           "capturedAt":  "2026-06-14T20:40:17.553Z",
+                                           "url":  "http://127.0.0.1:3001/governance",
+                                           "maxContentOverlapPx":  500,
+                                           "maxObscuredValueCount":  0,
+                                           "byState":  [
+                                                           {
+                                                               "stateId":  "sd-collapsed",
+                                                               "overlapPxTotal":  0,
+                                                               "obscuredValueCount":  0,
+                                                               "pairs":  [
+
+                                                                         ]
+                                                           },
+                                                           {
+                                                               "stateId":  "mpsa-mas-blocked",
+                                                               "overlapPxTotal":  0,
+                                                               "obscuredValueCount":  0,
+                                                               "pairs":  [
+
+                                                                         ]
+                                                           },
+                                                           {
+                                                               "stateId":  "sidebar-expanded",
+                                                               "overlapPxTotal":  0,
+                                                               "obscuredValueCount":  0,
+                                                               "pairs":  [
+
+                                                                         ]
+                                                           },
+                                                           {
+                                                               "stateId":  "first-load-modals",
+                                                               "overlapPxTotal":  0,
+                                                               "obscuredValueCount":  0,
+                                                               "pairs":  [
+
+                                                                         ]
+                                                           }
+                                                       ],
+                                           "overlapPxTotal":  0,
+                                           "obscuredValueCount":  0,
+                                           "pairs":  [
+
+                                                     ],
+                                           "pass":  true
+                                       },
+                    "stateMatrix":  {
+                                        "capturedAt":  "2026-06-14T20:40:26.764Z",
+                                        "worst":  {
+                                                      "horizontalVoidRatio":  0.258,
+                                                      "overlapPxTotal":  0,
+                                                      "stackingDetected":  false,
+                                                      "mainColumnVoidPx":  2,
+                                                      "hiddenValueCount":  1,
+                                                      "stickyChromeRatio":  0.447,
+                                                      "leftWhitespaceRatio":  0.059
+                                                  },
+                                        "pass":  true,
+                                        "reportsPresent":  {
+                                                               "horizontalVoid":  true,
+                                                               "contentOverlap":  true,
+                                                               "negativeVoid":  true,
+                                                               "mainColumnVoid":  true,
+                                                               "hiddenValue":  true,
+                                                               "metrics":  true,
+                                                               "screenshotDensity":  true
+                                                           }
+                                    },
+                    "intraCardVoid":  {
+                                          "capturedAt":  "2026-06-14T20:39:54.750Z",
+                                          "url":  "http://127.0.0.1:3001/governance",
+                                          "maxVoidPxThreshold":  120,
+                                          "voidCount":  0,
+                                          "maxVoidPx":  0,
+                                          "voids":  [
+
+                                                    ]
+                                      }
+                }
+}

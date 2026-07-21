@@ -1,0 +1,512 @@
+﻿{
+    "url":  "http://127.0.0.1:3001/governance",
+    "runId":  "20260614_052327",
+    "capturedAt":  "2026-06-14T06:18:21.2582233+03:00",
+    "exploration":  {
+                        "capturedAt":  "2026-06-14T03:15:29.693Z",
+                        "target":  "governance",
+                        "url":  "http://127.0.0.1:3001/governance",
+                        "viewports":  {
+                                          "desktop":  {
+                                                          "layout":  {
+                                                                         "briefState":  "content",
+                                                                         "foldDeadBandPx":  0,
+                                                                         "valueAnchor":  "gov-answer-mount",
+                                                                         "docScrollHeight":  2776
+                                                                     },
+                                                          "interactivesFound":  57,
+                                                          "clicksTested":  25,
+                                                          "clickResults":  [
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "app-top-btn app-top-sidebar-toggle",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "Today",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "Proof",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "DeDeliveraProjects: SD",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "+Create",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "app-top-notifications-btn",
+                                                                                   "ok":  false,
+                                                                                   "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#app-top-notifications-btn\u0027).first()\u001b[22m"
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "app-top-btn app-top-icon-btn",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "app-top-btn app-top-icon-btn",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "app-top-btn app-top-icon-btn",
+                                                                                   "ok":  false,
+                                                                                   "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027a.app-top-btn\u0027).first()\u001b[22m\n\u001b[2m    - lo"
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "LY",
+                                                                                   "ok":  false,
+                                                                                   "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.app-top-avatar\u0027).first()\u001b[22m\n\u001b[2m"
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "âš—\n    Improve brief\n    3",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "âœ• Blocked",
+                                                                                   "ok":  false,
+                                                                                   "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-status-chip\u0027).first()\u001b[2"
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "Copy answer",
+                                                                                   "ok":  false,
+                                                                                   "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-copy-answer-scope\u0027).first()\u001b[22m\n\u001b[2"
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "Refresh",
+                                                                                   "ok":  false,
+                                                                                   "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-scope-refresh\u0027).first()\u001b[22m\n\u001b[2m   "
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "AMS2",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "ASG",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "BIO",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "FIN",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "MAS",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "MPSA",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "MPSA2",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "MVA",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "RPA",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "SD",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               },
+                                                                               {
+                                                                                   "viewport":  "desktop",
+                                                                                   "label":  "TRS",
+                                                                                   "ok":  true,
+                                                                                   "error":  null
+                                                                               }
+                                                                           ]
+                                                      },
+                                          "mobile":  {
+                                                         "layout":  {
+                                                                        "briefState":  "content",
+                                                                        "foldDeadBandPx":  56,
+                                                                        "valueAnchor":  "gov-answer-mount",
+                                                                        "docScrollHeight":  2886
+                                                                    },
+                                                         "interactivesFound":  16,
+                                                         "clicksTested":  16,
+                                                         "clickResults":  [
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "app-top-btn app-top-sidebar-toggle",
+                                                                                  "ok":  true,
+                                                                                  "error":  null
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "Today",
+                                                                                  "ok":  true,
+                                                                                  "error":  null
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "Proof",
+                                                                                  "ok":  true,
+                                                                                  "error":  null
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "+Create",
+                                                                                  "ok":  true,
+                                                                                  "error":  null
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "app-top-notifications-btn",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#app-top-notifications-btn\u0027).first()\u001b[22m"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "app-top-btn app-top-icon-btn",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.app-top-btn\u0027).first()\u001b[22m\n\u001b[2m   "
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "app-top-btn app-top-icon-btn",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027a.app-top-btn\u0027).first()\u001b[22m\n\u001b[2m    - lo"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "âœ• Blocked",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-status-chip\u0027).first()\u001b[2"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "Change scope",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-scope-toggle\u0027).first()\u001b[22m\n\u001b[2m    "
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "Copy answer",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-copy-answer-scope\u0027).first()\u001b[22m\n\u001b[2"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "Refresh",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-scope-refresh\u0027).first()\u001b[22m\n\u001b[2m   "
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "+ MPSA",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-chip\u0027).first()\u001b[22m\n\u001b[2m"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "+ MAS",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-chip\u0027).first()\u001b[22m\n\u001b[2m"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "+ RPA",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-chip\u0027).first()\u001b[22m\n\u001b[2m"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "Set baseline",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.btn\u0027).first()\u001b[22m\n\u001b[2m    - locat"
+                                                                              },
+                                                                              {
+                                                                                  "viewport":  "mobile",
+                                                                                  "label":  "View sprint",
+                                                                                  "ok":  false,
+                                                                                  "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027a.gov-squad-sprint-link\u0027).first()\u001b[22m\n\u001b["
+                                                                              }
+                                                                          ]
+                                                     }
+                                      },
+                        "brokenInteractions":  [
+                                                   {
+                                                       "viewport":  "desktop",
+                                                       "control":  "app-top-notifications-btn",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#app-top-notifications-btn\u0027).first()\u001b[22m"
+                                                   },
+                                                   {
+                                                       "viewport":  "desktop",
+                                                       "control":  null,
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027a.app-top-btn\u0027).first()\u001b[22m\n\u001b[2m    - lo"
+                                                   },
+                                                   {
+                                                       "viewport":  "desktop",
+                                                       "control":  "LY",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.app-top-avatar\u0027).first()\u001b[22m\n\u001b[2m"
+                                                   },
+                                                   {
+                                                       "viewport":  "desktop",
+                                                       "control":  "âœ• Blocked",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-status-chip\u0027).first()\u001b[2"
+                                                   },
+                                                   {
+                                                       "viewport":  "desktop",
+                                                       "control":  "Copy answer",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-copy-answer-scope\u0027).first()\u001b[22m\n\u001b[2"
+                                                   },
+                                                   {
+                                                       "viewport":  "desktop",
+                                                       "control":  "Refresh",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-scope-refresh\u0027).first()\u001b[22m\n\u001b[2m   "
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "app-top-notifications-btn",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#app-top-notifications-btn\u0027).first()\u001b[22m"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  null,
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.app-top-btn\u0027).first()\u001b[22m\n\u001b[2m   "
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  null,
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027a.app-top-btn\u0027).first()\u001b[22m\n\u001b[2m    - lo"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "âœ• Blocked",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-status-chip\u0027).first()\u001b[2"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "Change scope",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-scope-toggle\u0027).first()\u001b[22m\n\u001b[2m    "
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "Copy answer",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-copy-answer-scope\u0027).first()\u001b[22m\n\u001b[2"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "Refresh",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027#gov-scope-refresh\u0027).first()\u001b[22m\n\u001b[2m   "
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "+ MPSA",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-chip\u0027).first()\u001b[22m\n\u001b[2m"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "+ MAS",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-chip\u0027).first()\u001b[22m\n\u001b[2m"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "+ RPA",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.gov-scope-chip\u0027).first()\u001b[22m\n\u001b[2m"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "Set baseline",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027button.btn\u0027).first()\u001b[22m\n\u001b[2m    - locat"
+                                                   },
+                                                   {
+                                                       "viewport":  "mobile",
+                                                       "control":  "View sprint",
+                                                       "error":  "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(\u0027a.gov-squad-sprint-link\u0027).first()\u001b[22m\n\u001b["
+                                                   }
+                                               ],
+                        "consoleIssues":  [
+
+                                          ],
+                        "clickReductionIdeas":  [
+                                                    "Repair broken click on desktop: app-top-notifications-btn",
+                                                    "Repair broken click on desktop: app-top-btn app-top-icon-btn",
+                                                    "Repair broken click on desktop: LY",
+                                                    "Repair broken click on desktop: âœ• Blocked",
+                                                    "Repair broken click on desktop: Copy answer",
+                                                    "Repair broken click on desktop: Refresh",
+                                                    "Reduce page height on desktop (2776px) - inline queue and evidence",
+                                                    "Reduce clicks on desktop: inline outcome for \"control\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"Today\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"Proof\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"DeDeliveraProjects: SD\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"+Create\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"app-top-notifications-btn\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"control\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"control\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"control\"",
+                                                    "Reduce clicks on desktop: inline outcome for \"LY\"",
+                                                    "Collapse 21 scope chips on desktop into selected + overflow menu",
+                                                    "Repair broken click on mobile: app-top-notifications-btn",
+                                                    "Repair broken click on mobile: app-top-btn app-top-icon-btn",
+                                                    "Repair broken click on mobile: app-top-btn app-top-icon-btn",
+                                                    "Repair broken click on mobile: âœ• Blocked",
+                                                    "Repair broken click on mobile: Change scope",
+                                                    "Repair broken click on mobile: Copy answer",
+                                                    "Repair broken click on mobile: Refresh",
+                                                    "Repair broken click on mobile: + MPSA",
+                                                    "Repair broken click on mobile: + MAS",
+                                                    "Repair broken click on mobile: + RPA",
+                                                    "Repair broken click on mobile: Set baseline",
+                                                    "Repair broken click on mobile: View sprint",
+                                                    "Reduce page height on mobile (2886px) - inline queue and evidence",
+                                                    "Reduce clicks on mobile: inline outcome for \"control\"",
+                                                    "Reduce clicks on mobile: inline outcome for \"Today\"",
+                                                    "Reduce clicks on mobile: inline outcome for \"Proof\"",
+                                                    "Reduce clicks on mobile: inline outcome for \"+Create\"",
+                                                    "Reduce clicks on mobile: inline outcome for \"app-top-notifications-btn\"",
+                                                    "Reduce clicks on mobile: inline outcome for \"control\"",
+                                                    "Reduce clicks on mobile: inline outcome for \"control\"",
+                                                    "Collapse 21 scope chips on mobile into selected + overflow menu"
+                                                ],
+                        "visualUxIssues":  [
+
+                                           ],
+                        "screenshots":  [
+                                            "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_052327\\screenshots\\desktop-fold.png",
+                                            "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_052327\\screenshots\\desktop-scroll.png",
+                                            "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_052327\\screenshots\\mobile-fold.png",
+                                            "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_052327\\screenshots\\mobile-scroll.png"
+                                        ],
+                        "summary":  {
+                                        "brokenCount":  18,
+                                        "consoleIssueCount":  0,
+                                        "visualIssueCount":  0,
+                                        "ideaCount":  39,
+                                        "realIdeaCount":  39,
+                                        "paddedToTwenty":  false,
+                                        "qualityPass":  true
+                                    }
+                    },
+    "artifacts":  [
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_052327\\exploration-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_052327\\exploration-report.md",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_052327\\metrics-snapshot.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-click-audit-fast.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-rects-audit.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-overlap-plan.md",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-full-clickmap.json"
+                  ],
+    "target":  "governance",
+    "baseUrl":  "http://127.0.0.1:3001",
+    "tier":  3,
+    "trustHints":  {
+                       "explorationComplete":  true,
+                       "evidenceComplete":  true
+                   },
+    "metrics":  {
+                    "ux":  {
+                               "capturedAt":  "2026-06-14T03:16:34.295Z",
+                               "target":  "governance",
+                               "url":  "http://127.0.0.1:3001/governance",
+                               "viewports":  {
+                                                 "desktop":  {
+                                                                 "pageTitle":  "Brief | Delivera",
+                                                                 "briefState":  "content",
+                                                                 "docScrollHeight":  2776,
+                                                                 "viewportH":  900,
+                                                                 "valueAnchor":  "gov-answer-mount",
+                                                                 "valueTopPx":  296,
+                                                                 "chromeBottomPx":  718,
+                                                                 "foldDeadBandPx":  0,
+                                                                 "scrollToPrimaryValuePx":  0,
+                                                                 "stickyChromePx":  479,
+                                                                 "stickyChromeRatio":  0.532,
+                                                                 "overlapPxTotal":  0,
+                                                                 "clickableCount":  119,
+                                                                 "telemetry":  {
+                                                                                   "consoleErrors":  [
+
+                                                                                                     ],
+                                                                                   "pageErrors":  [
+
+                                                                                                  ]
+                                                                               }
+                                                             },
+                                                 "mobile":  {
+                                                                "pageTitle":  "Brief | Delivera",
+                                                                "briefState":  "content",
+                                                                "docScrollHeight":  2886,
+                                                                "viewportH":  844,
+                                                                "valueAnchor":  "gov-answer-mount",
+                                                                "valueTopPx":  612,
+                                                                "chromeBottomPx":  241,
+                                                                "foldDeadBandPx":  371,
+                                                                "scrollToPrimaryValuePx":  0,
+                                                                "stickyChromePx":  181,
+                                                                "stickyChromeRatio":  0.215,
+                                                                "overlapPxTotal":  0,
+                                                                "clickableCount":  115,
+                                                                "telemetry":  {
+                                                                                  "consoleErrors":  [
+
+                                                                                                    ],
+                                                                                  "pageErrors":  [
+
+                                                                                                 ]
+                                                                              }
+                                                            }
+                                             },
+                               "scrollToPrimaryValuePx":  0,
+                               "foldDeadBandPx":  0,
+                               "stickyChromeRatio":  0.532,
+                               "overlapPxTotal":  0,
+                               "brokenClickCount":  0
+                           }
+                }
+}

@@ -1,0 +1,19 @@
+﻿{
+    "items":  [
+                  {
+                      "runId":  "20260614_052327",
+                      "text":  "Loop 2 rollback",
+                      "at":  "2026-06-14T05:55:59.4604627+03:00"
+                  },
+                  {
+                      "runId":  "20260614_052327",
+                      "text":  "Loop 3 rollback",
+                      "at":  "2026-06-14T06:18:21.3043030+03:00"
+                  },
+                  {
+                      "runId":  "20260615_093142",
+                      "text":  "Phase 0 MCP enrichment thin - need 5 findings in exploration MD",
+                      "at":  "2026-06-15T09:52:33.5283588+03:00"
+                  }
+              ]
+}

@@ -60,9 +60,9 @@ function slideUploadInner(serverAiStatus = null) {
     ? `<p class="gov-inbox-hint gov-baseline-ai-hint gov-baseline-ai-hint--ready" data-ai-server-ready="1">${escapeHtml(COPY.aiSlideServerReady.replace('{label}', serverAiStatus?.label || 'server'))}</p>`
     : '';
   return `
-    <label class="gov-baseline-slide-drop" id="gov-baseline-slide-drop">
+    <label class="gov-baseline-slide-drop" id="gov-baseline-slide-drop" tabindex="0">
       <span>${escapeHtml(COPY.baselineSlideUpload)}</span>
-      <span class="gov-baseline-slide-hint">Drag &amp; drop or click</span>
+      <span class="gov-baseline-slide-hint">Drag &amp; drop, click, or paste (Ctrl+V)</span>
       <input type="file" id="gov-baseline-slide-input" accept="image/png,image/jpeg,image/webp" />
     </label>
     ${serverHint}${keyHint}`;
@@ -144,11 +144,12 @@ function resolveHint(data, partial = false) {
  * @param {() => string} [opts.getQuarterLabel]
  * @param {() => void} [opts.onSaved]
  */
-export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved }) {
+export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved, getSquad }) {
   let drawerClose = null;
   let unbindSlide = null;
   let jiraHost = null;
   let serverAiStatus = null;
+  let activeSquad = '';
 
   function close() {
     unbindSlide?.();
@@ -279,7 +280,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     if (!file || !bodyEl) return;
     bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}</p>`;
     try {
-      const data = await postSlidePropose({ file, projects, projectsCsv: csv });
+      const data = await postSlidePropose({ file, projects, projectsCsv: csv, squad: activeSquad });
       const confirmable = (data.candidates || []).filter((c) => c.issueKey);
       if (!confirmable.length && !(data.extracted || []).length) {
         const jiraUrl = await resolveJiraBoardUrl(projects);
@@ -290,11 +291,12 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       bodyEl.innerHTML = renderSlideReview(data, csv, quarterLabel);
       bindPanel(bodyEl, data, projects, csv, quarterLabel);
     } catch (err) {
-      showInlineToast(bodyEl, err?.message || COPY.baselineProposeFailed, 'error');
+      // Render candidates FIRST, then show toast — otherwise innerHTML wipe destroys the toast
       if (priorData?.candidates?.length) {
         bodyEl.innerHTML = renderCandidates(priorData, csv, quarterLabel);
         bindPanel(bodyEl, priorData, projects, csv, quarterLabel);
       }
+      showInlineToast(bodyEl, err?.message || COPY.baselineProposeFailed, 'error');
     }
   }
 
@@ -365,13 +367,17 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     });
   }
 
-  async function open(forceRefresh = false) {
+  async function open(forceRefresh = false, squad = '') {
     close();
+    activeSquad = squad || getSquad?.() || '';
     serverAiStatus = await fetchAiProviderStatus(forceRefresh);
-    const csv = getProjectsCsv?.() || 'MPSA,MAS';
+    const fullCsv = getProjectsCsv?.() || 'MPSA,MAS';
+    // If a specific squad is provided, scope the wizard to that single squad's project
+    const csv = activeSquad ? activeSquad : fullCsv;
     const projects = csv.split(',').map((p) => p.trim()).filter(Boolean);
     const quarterLabel = getQuarterLabel?.() || readGovernanceQuarter();
     const quarterQs = quarterLabel ? `&quarter=${encodeURIComponent(quarterLabel)}` : '';
+    const squadQs = activeSquad ? `&squad=${encodeURIComponent(activeSquad)}` : '';
 
     jiraHost = await resolveJiraBrowseHost(projects);
 
@@ -388,7 +394,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
     const proposeQs = `${forceRefresh ? '&refresh=1' : ''}${quarterQs}`;
     try {
       data = await fetchJson(
-        `/api/governance/pi-baseline/propose?projects=${encodeURIComponent(csv)}${proposeQs}`,
+        `/api/governance/pi-baseline/propose?projects=${encodeURIComponent(csv)}${proposeQs}${squadQs}`,
         { headers: aiProviderRequestHeaders() },
         'pi-baseline-propose',
       );

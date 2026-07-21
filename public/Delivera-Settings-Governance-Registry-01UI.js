@@ -186,8 +186,17 @@ async function saveBulk() {
     registry = await requestBatch(changes, reason);
     drafts.clear(); render();
     mount.querySelector('[data-bulk-status]').textContent = `${names.length} squads updated across Delivera. Receipt ${registry.receipt?.id || 'recorded'}.`;
-    // Broadcast to other tabs via storage event
-    try { localStorage.setItem('delivera:registry-version', String(registry.version || Date.now())); } catch (_) {}
+    // Broadcast to other tabs via storage event + same-tab refresh
+    try {
+      const version = String(registry.version || Date.now());
+      localStorage.setItem('delivera:registry-version', version);
+      // storage event doesn't fire in the same tab — dispatch manually
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'delivera:registry-version',
+        newValue: version,
+        oldValue: null,
+      }));
+    } catch (_) {}
   } catch (error) {
     status.textContent = error.status === 412 ? `${error.message} No squad was changed.` : error.message;
     updateBulkState();

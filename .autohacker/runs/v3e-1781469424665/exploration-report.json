@@ -1,0 +1,383 @@
+{
+  "capturedAt": "2026-06-14T20:37:06.483Z",
+  "target": "governance",
+  "url": "http://127.0.0.1:3001/governance",
+  "viewports": {
+    "desktop": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 0,
+        "rawFoldGapPx": -95,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2340
+      },
+      "interactivesFound": 55,
+      "clicksTested": 25,
+      "clickResults": [
+        {
+          "viewport": "desktop",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Proof",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "DeDeliveraProjects: SD",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Feedback and survey",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "⚗\n    Improve brief\n    3",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "✕ Blocked",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-status-chip').first()\u001b[2"
+        },
+        {
+          "viewport": "desktop",
+          "label": "Copy answer",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#gov-copy-answer-scope').first()\u001b[22m\n\u001b[2"
+        },
+        {
+          "viewport": "desktop",
+          "label": "Refresh",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#gov-scope-refresh').first()\u001b[22m\n\u001b[2m   "
+        },
+        {
+          "viewport": "desktop",
+          "label": "SD",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "AMS2",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "ASG",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "BIO",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "FIN",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "MAS",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "MPSA",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "MPSA2",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "MVA",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "RPA",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "TRS",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "VB",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "PI · FY27 Q1",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-period-chip').first()\u001b[22m\n\u001b[2"
+        },
+        {
+          "viewport": "desktop",
+          "label": "14d",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-period-chip').first()\u001b[22m\n\u001b[2"
+        },
+        {
+          "viewport": "desktop",
+          "label": "28d",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-period-chip').first()\u001b[22m\n\u001b[2"
+        }
+      ]
+    },
+    "mobile": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 0,
+        "rawFoldGapPx": -8,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2895
+      },
+      "interactivesFound": 16,
+      "clicksTested": 4,
+      "clickResults": [
+        {
+          "viewport": "mobile",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Proof",
+          "ok": true,
+          "error": null
+        }
+      ]
+    }
+  },
+  "brokenInteractions": [
+    {
+      "viewport": "desktop",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+    },
+    {
+      "viewport": "desktop",
+      "control": "✕ Blocked",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-status-chip').first()\u001b[2"
+    },
+    {
+      "viewport": "desktop",
+      "control": "Copy answer",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#gov-copy-answer-scope').first()\u001b[22m\n\u001b[2"
+    },
+    {
+      "viewport": "desktop",
+      "control": "Refresh",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#gov-scope-refresh').first()\u001b[22m\n\u001b[2m   "
+    },
+    {
+      "viewport": "desktop",
+      "control": "SD",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "AMS2",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "ASG",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "BIO",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "FIN",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "MAS",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "MPSA",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "MPSA2",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "MVA",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "RPA",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "TRS",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "VB",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-scope-chip').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "desktop",
+      "control": "PI · FY27 Q1",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-period-chip').first()\u001b[22m\n\u001b[2"
+    },
+    {
+      "viewport": "desktop",
+      "control": "14d",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-period-chip').first()\u001b[22m\n\u001b[2"
+    },
+    {
+      "viewport": "desktop",
+      "control": "28d",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.gov-period-chip').first()\u001b[22m\n\u001b[2"
+    },
+    {
+      "viewport": "mobile",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+    }
+  ],
+  "consoleIssues": [],
+  "clickReductionIdeas": [
+    "Fix stacking overlap on desktop: rawFoldGapPx=-95px — elevate grid or collapse scope",
+    "Repair broken click on desktop: Skip to main content",
+    "Repair broken click on desktop: ✕ Blocked",
+    "Repair broken click on desktop: Copy answer",
+    "Repair broken click on desktop: Refresh",
+    "Repair broken click on desktop: SD",
+    "Repair broken click on desktop: AMS2",
+    "Repair broken click on desktop: ASG",
+    "Repair broken click on desktop: BIO",
+    "Repair broken click on desktop: FIN",
+    "Repair broken click on desktop: MAS",
+    "Repair broken click on desktop: MPSA",
+    "Repair broken click on desktop: MPSA2",
+    "Repair broken click on desktop: MVA",
+    "Repair broken click on desktop: RPA",
+    "Repair broken click on desktop: TRS",
+    "Repair broken click on desktop: VB",
+    "Repair broken click on desktop: PI · FY27 Q1",
+    "Repair broken click on desktop: 14d",
+    "Repair broken click on desktop: 28d",
+    "Reduce page height on desktop (2340px) - inline queue and evidence",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"Today\"",
+    "Reduce clicks on desktop: inline outcome for \"Proof\"",
+    "Reduce clicks on desktop: inline outcome for \"DeDeliveraProjects: SD\"",
+    "Reduce clicks on desktop: inline outcome for \"+Create\"",
+    "Reduce clicks on desktop: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"LY\"",
+    "Collapse 21 scope chips on desktop into selected + overflow menu",
+    "Fix stacking overlap on mobile: rawFoldGapPx=-8px — elevate grid or collapse scope",
+    "Repair broken click on mobile: Skip to main content",
+    "Reduce page height on mobile (2895px) - inline queue and evidence",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"Today\"",
+    "Reduce clicks on mobile: inline outcome for \"Proof\"",
+    "Reduce clicks on mobile: inline outcome for \"+Create\"",
+    "Reduce clicks on mobile: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"control\""
+  ],
+  "visualUxIssues": [
+    {
+      "viewport": "desktop",
+      "issue": "negative_void_stacking",
+      "rawFoldGapPx": -95,
+      "rationale": "Primary value overlaps scope chrome — fix z-index/grid stacking"
+    },
+    {
+      "viewport": "mobile",
+      "issue": "negative_void_stacking",
+      "rawFoldGapPx": -8,
+      "rationale": "Primary value overlaps scope chrome — fix z-index/grid stacking"
+    }
+  ],
+  "screenshots": [
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781469424665\\screenshots\\desktop-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781469424665\\screenshots\\desktop-scroll.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781469424665\\screenshots\\mobile-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781469424665\\screenshots\\mobile-scroll.png"
+  ],
+  "summary": {
+    "brokenCount": 20,
+    "consoleIssueCount": 0,
+    "visualIssueCount": 2,
+    "ideaCount": 42,
+    "realIdeaCount": 42,
+    "paddedToTwenty": false,
+    "qualityPass": true
+  }
+}

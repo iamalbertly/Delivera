@@ -1,0 +1,171 @@
+﻿{
+    "url":  "http://127.0.0.1:3001/governance",
+    "runId":  "20260614_114312",
+    "capturedAt":  "2026-06-14T11:46:38.3583895+03:00",
+    "trustHints":  {
+                       "explorationQuality":  true,
+                       "evidenceComplete":  true
+                   },
+    "artifacts":  [
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\exploration-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\exploration-report.md",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\metrics-snapshot.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\hidden-value-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\intra-card-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\duplicate-text-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\main-column-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\fold-clipping-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-click-audit-fast.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-rects-audit.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-overlap-plan.md",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_114312\\duplicate-text-full-catalog-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-full-clickmap.json"
+                  ],
+    "target":  "governance",
+    "baseUrl":  "http://127.0.0.1:3001",
+    "tier":  3,
+    "metrics":  {
+                    "exploration":  {
+                                        "brokenCount":  21,
+                                        "consoleIssueCount":  0,
+                                        "visualIssueCount":  0,
+                                        "ideaCount":  41,
+                                        "realIdeaCount":  41,
+                                        "paddedToTwenty":  false,
+                                        "qualityPass":  true
+                                    },
+                    "foldClipping":  {
+                                         "capturedAt":  "2026-06-14T08:44:44.933Z",
+                                         "url":  "http://127.0.0.1:3001/governance",
+                                         "maxFoldClippedCount":  3,
+                                         "foldViewportPx":  900,
+                                         "foldLinePx":  738,
+                                         "clippedCount":  0,
+                                         "clipped":  [
+
+                                                     ],
+                                         "pass":  true
+                                     },
+                    "duplicateText":  {
+                                          "capturedAt":  "2026-06-14T08:44:38.343Z",
+                                          "url":  "http://127.0.0.1:3001/governance",
+                                          "catalogProfile":  "sd-only",
+                                          "duplicateCount":  0,
+                                          "totalRepeatedInstances":  0,
+                                          "duplicates":  [
+
+                                                         ]
+                                      },
+                    "hiddenValue":  {
+                                        "capturedAt":  "2026-06-14T08:44:32.278Z",
+                                        "url":  "http://127.0.0.1:3001/governance",
+                                        "hiddenValueCount":  4,
+                                        "byKind":  {
+                                                       "setup-gap-click":  2,
+                                                       "truncated-copy":  2
+                                                   },
+                                        "findings":  [
+                                                         {
+                                                             "kind":  "setup-gap-click",
+                                                             "label":  "PI baseline not saved â€” Fix in 1 click",
+                                                             "selector":  "[data-setup-baseline-ssot]"
+                                                         },
+                                                         {
+                                                             "kind":  "setup-gap-click",
+                                                             "label":  "Fix: Confirm promised work",
+                                                             "selector":  "[data-setup-baseline-ssot]"
+                                                         },
+                                                         {
+                                                             "kind":  "truncated-copy",
+                                                             "label":  "1 squad Â· SD Â· FY27 Q1 Â· 28d Â· 1 available Â· 0 no sprint Â· 1 with epics",
+                                                             "selector":  "gov-scope-capsule-text"
+                                                         },
+                                                         {
+                                                             "kind":  "truncated-copy",
+                                                             "label":  "MPSA-8174: MPSA-8174 looks blocked (17 days with no update). Who owns the next s",
+                                                             "selector":  "gov-inbox-inline-summary"
+                                                         }
+                                                     ]
+                                    },
+                    "mainColumnVoid":  {
+                                           "capturedAt":  "2026-06-14T08:44:41.651Z",
+                                           "url":  "http://127.0.0.1:3001/governance",
+                                           "maxMainColumnVoidPx":  180,
+                                           "scopeBottomPx":  529,
+                                           "firstValueSelector":  ".gov-command-answer",
+                                           "mainColumnVoidPx":  -439,
+                                           "gridScopeToVerdictPx":  -214,
+                                           "mainContentHeightPx":  2450,
+                                           "actionMountTopPx":  583,
+                                           "pass":  true
+                                       },
+                    "ux":  {
+                               "capturedAt":  "2026-06-14T08:44:27.448Z",
+                               "target":  "governance",
+                               "url":  "http://127.0.0.1:3001/governance",
+                               "viewports":  {
+                                                 "desktop":  {
+                                                                 "pageTitle":  "Brief | Delivera",
+                                                                 "briefState":  "content",
+                                                                 "docScrollHeight":  2534,
+                                                                 "viewportH":  900,
+                                                                 "valueAnchor":  "gov-answer-mount",
+                                                                 "valueTopPx":  90,
+                                                                 "chromeBottomPx":  529,
+                                                                 "foldDeadBandPx":  0,
+                                                                 "scrollToPrimaryValuePx":  0,
+                                                                 "stickyChromePx":  473,
+                                                                 "stickyChromeRatio":  0.526,
+                                                                 "overlapPxTotal":  0,
+                                                                 "clickableCount":  127,
+                                                                 "telemetry":  {
+                                                                                   "consoleErrors":  [
+
+                                                                                                     ],
+                                                                                   "pageErrors":  [
+
+                                                                                                  ]
+                                                                               }
+                                                             },
+                                                 "mobile":  {
+                                                                "pageTitle":  "Brief | Delivera",
+                                                                "briefState":  "content",
+                                                                "docScrollHeight":  2828,
+                                                                "viewportH":  844,
+                                                                "valueAnchor":  "gov-answer-mount",
+                                                                "valueTopPx":  548,
+                                                                "chromeBottomPx":  241,
+                                                                "foldDeadBandPx":  307,
+                                                                "scrollToPrimaryValuePx":  0,
+                                                                "stickyChromePx":  181,
+                                                                "stickyChromeRatio":  0.215,
+                                                                "overlapPxTotal":  0,
+                                                                "clickableCount":  118,
+                                                                "telemetry":  {
+                                                                                  "consoleErrors":  [
+
+                                                                                                    ],
+                                                                                  "pageErrors":  [
+
+                                                                                                 ]
+                                                                              }
+                                                            }
+                                             },
+                               "scrollToPrimaryValuePx":  0,
+                               "foldDeadBandPx":  0,
+                               "stickyChromeRatio":  0.526,
+                               "overlapPxTotal":  0,
+                               "brokenClickCount":  0
+                           },
+                    "intraCardVoid":  {
+                                          "capturedAt":  "2026-06-14T08:44:35.403Z",
+                                          "url":  "http://127.0.0.1:3001/governance",
+                                          "maxVoidPxThreshold":  120,
+                                          "voidCount":  0,
+                                          "maxVoidPx":  0,
+                                          "voids":  [
+
+                                                    ]
+                                      }
+                }
+}

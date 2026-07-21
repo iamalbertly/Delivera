@@ -1,0 +1,424 @@
+﻿{
+    "url":  "http://127.0.0.1:3001/governance",
+    "runId":  "20260614_222415",
+    "capturedAt":  "2026-06-14T22:27:55.7049713+03:00",
+    "trustHints":  {
+                       "explorationQuality":  true,
+                       "mcpEnrichment":  true,
+                       "evidenceComplete":  true
+                   },
+    "artifacts":  [
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\exploration-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\exploration-report.md",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\hidden-value-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\intra-card-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\duplicate-text-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\main-column-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\negative-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\horizontal-void-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\content-overlap-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\fold-clipping-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\screenshot-density-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\state-matrix-summary.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-click-audit-fast.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-rects-audit.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-layout-overlap-plan.md",
+                      "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\duplicate-text-full-catalog-report.json",
+                      "C:\\Shared\\Projects\\Delivera\\test-results\\governance-full-clickmap.json"
+                  ],
+    "target":  "governance",
+    "baseUrl":  "http://127.0.0.1:3001",
+    "tier":  3,
+    "metrics":  {
+                    "layoutRects":  {
+                                        "scopeBarWidthRatio":  0.966,
+                                        "scopeBarWidthPx":  1236,
+                                        "viewportW":  1280
+                                    },
+                    "negativeVoid":  {
+                                         "capturedAt":  "2026-06-14T19:25:33.087Z",
+                                         "url":  "http://127.0.0.1:3001/governance",
+                                         "scopeBottomPx":  458,
+                                         "firstValueSelector":  ".gov-command-answer",
+                                         "firstValueTopPx":  453,
+                                         "mainColumnVoidPx":  -6,
+                                         "stackingDetected":  true,
+                                         "pass":  false
+                                     },
+                    "screenshotDensity":  {
+                                              "capturedAt":  "2026-06-14T19:25:57.647Z",
+                                              "url":  "http://127.0.0.1:3001/governance",
+                                              "screenshotPath":  "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_222415\\screenshots\\desktop-fold.png",
+                                              "maxLeftWhitespaceRatio":  0.55,
+                                              "leftWhitespaceRatio":  0.059,
+                                              "rightContentRatio":  0.529,
+                                              "pass":  true
+                                          },
+                    "foldClipping":  {
+                                         "capturedAt":  "2026-06-14T19:25:54.075Z",
+                                         "url":  "http://127.0.0.1:3001/governance",
+                                         "maxFoldClippedCount":  3,
+                                         "foldViewportPx":  900,
+                                         "foldLinePx":  738,
+                                         "clippedCount":  3,
+                                         "clipped":  [
+                                                         {
+                                                             "selector":  "[data-direct-value=\"evidence\"]",
+                                                             "topPx":  817,
+                                                             "bottomPx":  882,
+                                                             "foldY":  738,
+                                                             "belowFold":  true,
+                                                             "label":  "Top risks"
+                                                         },
+                                                         {
+                                                             "selector":  "[data-direct-value=\"squad-detail\"]",
+                                                             "topPx":  785,
+                                                             "bottomPx":  922,
+                                                             "foldY":  738,
+                                                             "belowFold":  true,
+                                                             "label":  "PI baseline not saved â€” Fix in 1 click\n      TM should be no"
+                                                         },
+                                                         {
+                                                             "selector":  "[data-direct-value=\"sprint-link\"]",
+                                                             "topPx":  890,
+                                                             "bottomPx":  911,
+                                                             "foldY":  738,
+                                                             "belowFold":  true,
+                                                             "label":  "View sprint"
+                                                         }
+                                                     ],
+                                         "pass":  true
+                                     },
+                    "duplicateText":  {
+                                          "capturedAt":  "2026-06-14T19:25:25.211Z",
+                                          "url":  "http://127.0.0.1:3001/governance",
+                                          "catalogProfile":  "sd-only",
+                                          "duplicateCount":  0,
+                                          "totalRepeatedInstances":  0,
+                                          "duplicates":  [
+
+                                                         ]
+                                      },
+                    "hiddenValue":  {
+                                        "capturedAt":  "2026-06-14T19:25:17.066Z",
+                                        "url":  "http://127.0.0.1:3001/governance",
+                                        "hiddenValueCount":  8,
+                                        "byKind":  {
+                                                       "aria-collapsed":  3,
+                                                       "collapsed-details":  1,
+                                                       "setup-gap-click":  2,
+                                                       "below-fold-action":  1,
+                                                       "truncated-copy":  1
+                                                   },
+                                        "findings":  [
+                                                         {
+                                                             "kind":  "aria-collapsed",
+                                                             "label":  "Expand or collapse sidebar",
+                                                             "selector":  null
+                                                         },
+                                                         {
+                                                             "kind":  "aria-collapsed",
+                                                             "label":  "More",
+                                                             "selector":  "#gov-overflow-toggle"
+                                                         },
+                                                         {
+                                                             "kind":  "aria-collapsed",
+                                                             "label":  "Project â–¾",
+                                                             "selector":  "#wdd-project-chip"
+                                                         },
+                                                         {
+                                                             "kind":  "collapsed-details",
+                                                             "label":  "+6 more squads",
+                                                             "selector":  "details:not([open])"
+                                                         },
+                                                         {
+                                                             "kind":  "setup-gap-click",
+                                                             "label":  "PI baseline not saved â€” Fix in 1 click",
+                                                             "selector":  "[data-setup-baseline-ssot]"
+                                                         },
+                                                         {
+                                                             "kind":  "setup-gap-click",
+                                                             "label":  "Fix: Confirm promised work",
+                                                             "selector":  "[data-setup-baseline-ssot]"
+                                                         },
+                                                         {
+                                                             "kind":  "below-fold-action",
+                                                             "label":  "\n        \n          \n            Amani Â· 3 actions\n         ",
+                                                             "selector":  null
+                                                         },
+                                                         {
+                                                             "kind":  "truncated-copy",
+                                                             "label":  "MPSA-8174: MPSA-8174 looks blocked (17 days with no update). Who owns the next s",
+                                                             "selector":  "gov-inbox-inline-summary"
+                                                         }
+                                                     ]
+                                    },
+                    "mainColumnVoid":  {
+                                           "capturedAt":  "2026-06-14T19:25:28.672Z",
+                                           "url":  "http://127.0.0.1:3001/governance",
+                                           "maxMainColumnVoidPx":  180,
+                                           "scopeBottomPx":  458,
+                                           "firstValueSelector":  ".gov-command-answer",
+                                           "mainColumnVoidPx":  -6,
+                                           "stackingDetected":  true,
+                                           "gridScopeToVerdictPx":  219,
+                                           "mainContentHeightPx":  2812,
+                                           "actionMountTopPx":  945,
+                                           "pass":  false
+                                       },
+                    "horizontalVoid":  {
+                                           "capturedAt":  "2026-06-14T19:25:41.570Z",
+                                           "url":  "http://127.0.0.1:3001/governance",
+                                           "maxHorizontalVoidRatio":  0.35,
+                                           "minLeftBandContentRatio":  0.08,
+                                           "byState":  [
+                                                           {
+                                                               "stateId":  "sd-collapsed",
+                                                               "label":  "SD sidebar collapsed",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.437,
+                                                               "horizontalVoidRatio":  0.563,
+                                                               "contentCentroidX":  289,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  7
+                                                           },
+                                                           {
+                                                               "stateId":  "mpsa-mas-blocked",
+                                                               "label":  "MPSA+MAS blocked scope",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.423,
+                                                               "horizontalVoidRatio":  0.577,
+                                                               "contentCentroidX":  324,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  5
+                                                           },
+                                                           {
+                                                               "stateId":  "sidebar-expanded",
+                                                               "label":  "Sidebar expanded",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.437,
+                                                               "horizontalVoidRatio":  0.563,
+                                                               "contentCentroidX":  289,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  7
+                                                           },
+                                                           {
+                                                               "stateId":  "first-load-modals",
+                                                               "label":  "First load modals may open",
+                                                               "viewportW":  1280,
+                                                               "leftBandContentRatio":  0.437,
+                                                               "horizontalVoidRatio":  0.563,
+                                                               "contentCentroidX":  289,
+                                                               "scopeBarWidthPx":  1236,
+                                                               "scopeBarRightPx":  1256,
+                                                               "valueBlockCount":  7
+                                                           }
+                                                       ],
+                                           "horizontalVoidRatio":  0.577,
+                                           "leftBandContentRatio":  0.423,
+                                           "contentCentroidX":  324,
+                                           "scopeBarWidthPx":  1236,
+                                           "pass":  false
+                                       },
+                    "exploration":  {
+                                        "brokenCount":  14,
+                                        "consoleIssueCount":  0,
+                                        "visualIssueCount":  2,
+                                        "ideaCount":  36,
+                                        "realIdeaCount":  36,
+                                        "paddedToTwenty":  false,
+                                        "qualityPass":  true
+                                    },
+                    "contentOverlap":  {
+                                           "capturedAt":  "2026-06-14T19:25:49.768Z",
+                                           "url":  "http://127.0.0.1:3001/governance",
+                                           "maxContentOverlapPx":  500,
+                                           "maxObscuredValueCount":  0,
+                                           "byState":  [
+                                                           {
+                                                               "stateId":  "sd-collapsed",
+                                                               "overlapPxTotal":  179463,
+                                                               "obscuredValueCount":  5,
+                                                               "pairs":  [
+                                                                             {
+                                                                                 "value":  "gov-command-answer gov-command-answer--c",
+                                                                                 "blocker":  "gov-scope-bar-mount",
+                                                                                 "overlapPx":  3148
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-command-answer gov-command-answer--c",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  10188
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-answer-mount",
+                                                                                 "blocker":  "gov-scope-bar-mount",
+                                                                                 "overlapPx":  3148
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-answer-mount",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  114084
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-owner-cluster",
+                                                                                 "blocker":  "gov-owner-cluster-head",
+                                                                                 "overlapPx":  48895
+                                                                             }
+                                                                         ]
+                                                           },
+                                                           {
+                                                               "stateId":  "mpsa-mas-blocked",
+                                                               "overlapPxTotal":  330045,
+                                                               "obscuredValueCount":  4,
+                                                               "pairs":  [
+                                                                             {
+                                                                                 "value":  "gov-command-answer gov-command-answer--c",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  56936
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-answer-mount",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  175319
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-owner-cluster",
+                                                                                 "blocker":  "gov-owner-cluster-head",
+                                                                                 "overlapPx":  48895
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-owner-cluster",
+                                                                                 "blocker":  "gov-owner-cluster-head",
+                                                                                 "overlapPx":  48895
+                                                                             }
+                                                                         ]
+                                                           },
+                                                           {
+                                                               "stateId":  "sidebar-expanded",
+                                                               "overlapPxTotal":  179463,
+                                                               "obscuredValueCount":  5,
+                                                               "pairs":  [
+                                                                             {
+                                                                                 "value":  "gov-command-answer gov-command-answer--c",
+                                                                                 "blocker":  "gov-scope-bar-mount",
+                                                                                 "overlapPx":  3148
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-command-answer gov-command-answer--c",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  10188
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-answer-mount",
+                                                                                 "blocker":  "gov-scope-bar-mount",
+                                                                                 "overlapPx":  3148
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-answer-mount",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  114084
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-owner-cluster",
+                                                                                 "blocker":  "gov-owner-cluster-head",
+                                                                                 "overlapPx":  48895
+                                                                             }
+                                                                         ]
+                                                           },
+                                                           {
+                                                               "stateId":  "first-load-modals",
+                                                               "overlapPxTotal":  179463,
+                                                               "obscuredValueCount":  5,
+                                                               "pairs":  [
+                                                                             {
+                                                                                 "value":  "gov-command-answer gov-command-answer--c",
+                                                                                 "blocker":  "gov-scope-bar-mount",
+                                                                                 "overlapPx":  3148
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-command-answer gov-command-answer--c",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  10188
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-answer-mount",
+                                                                                 "blocker":  "gov-scope-bar-mount",
+                                                                                 "overlapPx":  3148
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-answer-mount",
+                                                                                 "blocker":  "governance-header gov-header-compact",
+                                                                                 "overlapPx":  114084
+                                                                             },
+                                                                             {
+                                                                                 "value":  "gov-owner-cluster",
+                                                                                 "blocker":  "gov-owner-cluster-head",
+                                                                                 "overlapPx":  48895
+                                                                             }
+                                                                         ]
+                                                           }
+                                                       ],
+                                           "overlapPxTotal":  330045,
+                                           "obscuredValueCount":  4,
+                                           "pairs":  [
+                                                         {
+                                                             "value":  "gov-command-answer gov-command-answer--c",
+                                                             "blocker":  "governance-header gov-header-compact",
+                                                             "overlapPx":  56936
+                                                         },
+                                                         {
+                                                             "value":  "gov-answer-mount",
+                                                             "blocker":  "governance-header gov-header-compact",
+                                                             "overlapPx":  175319
+                                                         },
+                                                         {
+                                                             "value":  "gov-owner-cluster",
+                                                             "blocker":  "gov-owner-cluster-head",
+                                                             "overlapPx":  48895
+                                                         },
+                                                         {
+                                                             "value":  "gov-owner-cluster",
+                                                             "blocker":  "gov-owner-cluster-head",
+                                                             "overlapPx":  48895
+                                                         }
+                                                     ],
+                                           "pass":  false
+                                       },
+                    "stateMatrix":  {
+                                        "capturedAt":  "2026-06-14T19:25:58.719Z",
+                                        "worst":  {
+                                                      "horizontalVoidRatio":  0.577,
+                                                      "overlapPxTotal":  330045,
+                                                      "stackingDetected":  true,
+                                                      "mainColumnVoidPx":  -6,
+                                                      "hiddenValueCount":  8,
+                                                      "stickyChromeRatio":  null,
+                                                      "leftWhitespaceRatio":  0.059
+                                                  },
+                                        "pass":  false,
+                                        "reportsPresent":  {
+                                                               "horizontalVoid":  true,
+                                                               "contentOverlap":  true,
+                                                               "negativeVoid":  true,
+                                                               "mainColumnVoid":  true,
+                                                               "hiddenValue":  true,
+                                                               "metrics":  false,
+                                                               "screenshotDensity":  true
+                                                           }
+                                    },
+                    "intraCardVoid":  {
+                                          "capturedAt":  "2026-06-14T19:25:21.876Z",
+                                          "url":  "http://127.0.0.1:3001/governance",
+                                          "maxVoidPxThreshold":  120,
+                                          "voidCount":  0,
+                                          "maxVoidPx":  0,
+                                          "voids":  [
+
+                                                    ]
+                                      }
+                }
+}

@@ -90,10 +90,23 @@ export function bindSlideDropZone(zoneEl, onFile) {
     if (f) onPick(f);
   };
 
+  // Paste-to-upload: Ctrl+V any image from clipboard
+  const onPaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { prevent(e); onPick(file); return; }
+      }
+    }
+  };
+
   zoneEl.addEventListener('dragenter', onEnter);
   zoneEl.addEventListener('dragover', onEnter);
   zoneEl.addEventListener('dragleave', onLeave);
   zoneEl.addEventListener('drop', onDrop);
+  zoneEl.addEventListener('paste', onPaste);
 
   return () => {
     zoneEl.classList.remove('is-dragover');
@@ -101,5 +114,6 @@ export function bindSlideDropZone(zoneEl, onFile) {
     zoneEl.removeEventListener('dragover', onEnter);
     zoneEl.removeEventListener('dragleave', onLeave);
     zoneEl.removeEventListener('drop', onDrop);
+    zoneEl.removeEventListener('paste', onPaste);
   };
 }

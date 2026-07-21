@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-06-14T20:49:48.192Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxFoldClippedCount": 3,
+  "foldViewportPx": 900,
+  "foldLinePx": 738,
+  "clippedCount": 3,
+  "clipped": [
+    {
+      "selector": "[data-direct-value=\"evidence\"]",
+      "topPx": 825,
+      "bottomPx": 890,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "Top risks"
+    },
+    {
+      "selector": "[data-direct-value=\"squad-detail\"]",
+      "topPx": 793,
+      "bottomPx": 930,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "Not saved yet\n      TM should be notified when there is low "
+    },
+    {
+      "selector": "[data-direct-value=\"sprint-link\"]",
+      "topPx": 898,
+      "bottomPx": 919,
+      "foldY": 738,
+      "belowFold": true,
+      "label": "View sprint"
+    }
+  ],
+  "pass": true
+}

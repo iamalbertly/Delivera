@@ -1,0 +1,57 @@
+{
+  "capturedAt": "2026-06-15T06:59:03.344Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxHorizontalVoidRatio": 0.35,
+  "minLeftBandContentRatio": 0.08,
+  "byState": [
+    {
+      "stateId": "sd-collapsed",
+      "label": "SD sidebar collapsed",
+      "viewportW": 1280,
+      "leftBandContentRatio": 1.551,
+      "horizontalVoidRatio": 0,
+      "contentCentroidX": 952,
+      "scopeBarWidthPx": 608,
+      "scopeBarRightPx": 628,
+      "valueBlockCount": 7
+    },
+    {
+      "stateId": "mpsa-mas-blocked",
+      "label": "MPSA+MAS blocked scope",
+      "viewportW": 1280,
+      "leftBandContentRatio": 1.381,
+      "horizontalVoidRatio": 0,
+      "contentCentroidX": 952,
+      "scopeBarWidthPx": 608,
+      "scopeBarRightPx": 628,
+      "valueBlockCount": 5
+    },
+    {
+      "stateId": "sidebar-expanded",
+      "label": "Sidebar expanded",
+      "viewportW": 1280,
+      "leftBandContentRatio": 1.551,
+      "horizontalVoidRatio": 0,
+      "contentCentroidX": 952,
+      "scopeBarWidthPx": 608,
+      "scopeBarRightPx": 628,
+      "valueBlockCount": 7
+    },
+    {
+      "stateId": "first-load-modals",
+      "label": "First load modals may open",
+      "viewportW": 1280,
+      "leftBandContentRatio": 1.551,
+      "horizontalVoidRatio": 0,
+      "contentCentroidX": 952,
+      "scopeBarWidthPx": 608,
+      "scopeBarRightPx": 628,
+      "valueBlockCount": 7
+    }
+  ],
+  "horizontalVoidRatio": 0,
+  "leftBandContentRatio": 1.551,
+  "contentCentroidX": 952,
+  "scopeBarWidthPx": 608,
+  "pass": true
+}

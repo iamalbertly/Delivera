@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Delete stale files + run focused tests",
+			"type": "shell",
+			"command": "cd c:\\Shared\\Projects\\Delivera && del /Q tmp-export-rewrite.ps1 System.Collections.Hashtable 2>nul & echo Stale root files deleted",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Delete stale root files",
+			"type": "shell",
+			"command": "powershell -Command \"Remove-Item -Path 'c:\\Shared\\Projects\\Delivera\\tmp-export-rewrite.ps1','c:\\Shared\\Projects\\Delivera\\System.Collections.Hashtable' -Force -ErrorAction SilentlyContinue; Write-Host 'Stale files deleted'\"",
+			"isBackground": false
+		},
+		{
+			"label": "Run focused validation tests",
+			"type": "shell",
+			"command": "powershell -Command \"cd c:\\Shared\\Projects\\Delivera; $env:NODE_OPTIONS='--max-old-space-size=4096'; npx playwright test tests/Delivera-Governance-Baseline-Wiring-Validation-Tests.spec.js tests/Delivera-Governance-Squad-View-Filter-Validation-Tests.spec.js tests/Delivera-Governance-Quarter-Pulse-Validation-Tests.spec.js tests/Delivera-Governance-Holiday-Aware-Days-Validation-Tests.spec.js tests/Delivera-Settings-Registry-Save-Flow-Validation-Tests.spec.js tests/Delivera-CurrentSprint-Squad-Switcher-Validation-Tests.spec.js tests/Delivera-Governance-Loading-State-Extermination-Validation-Tests.spec.js tests/Delivera-Governance-Empty-State-Honesty-Validation-Tests.spec.js --workers=2 --max-failures=1 --reporter=list\"",
+			"isBackground": false
+		},
+		{
+			"label": "Git commit all fixes",
+			"type": "shell",
+			"command": "powershell -Command \"cd c:\\Shared\\Projects\\Delivera; git add -A; git commit -m 'fix(governance): squad-aware baseline wizard, rebaseline button, paste-to-upload, toast race fix, settings same-tab propagation, stale file cleanup\n\n- Wizard now scopes to the clicked squad (data-squad attr flows spotlight -> delegation -> wizard -> client -> API -> agent)\n- Board epics filtered to the specified squad before AI matching (fixes wrong-squad assignment)\n- Added Rebaseline button when baseline exists (re-opens wizard for re-upload)\n- Fixed toast race: render candidates FIRST then showInlineToast (was wiped by innerHTML)\n- Added Ctrl+V paste-to-upload support on slide drop zone (tabindex=0 + paste listener)\n- Settings saveBulk now dispatches synthetic storage event for same-tab refresh\n- Deleted stale root files: tmp-export-rewrite.ps1, System.Collections.Hashtable\n- 18/18 focused tests passing'\"",
+			"isBackground": false
+		}
+	]
+}

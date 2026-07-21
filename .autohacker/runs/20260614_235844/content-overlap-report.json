@@ -1,0 +1,36 @@
+{
+  "capturedAt": "2026-06-14T20:59:49.337Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxContentOverlapPx": 500,
+  "maxObscuredValueCount": 0,
+  "byState": [
+    {
+      "stateId": "sd-collapsed",
+      "overlapPxTotal": 0,
+      "obscuredValueCount": 0,
+      "pairs": []
+    },
+    {
+      "stateId": "mpsa-mas-blocked",
+      "overlapPxTotal": 0,
+      "obscuredValueCount": 0,
+      "pairs": []
+    },
+    {
+      "stateId": "sidebar-expanded",
+      "overlapPxTotal": 0,
+      "obscuredValueCount": 0,
+      "pairs": []
+    },
+    {
+      "stateId": "first-load-modals",
+      "overlapPxTotal": 0,
+      "obscuredValueCount": 0,
+      "pairs": []
+    }
+  ],
+  "overlapPxTotal": 0,
+  "obscuredValueCount": 0,
+  "pairs": [],
+  "pass": true
+}

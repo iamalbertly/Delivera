@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-06-14T19:52:25.139Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "scopeBottomPx": 376,
+  "firstValueSelector": ".gov-owner-cluster",
+  "firstValueTopPx": 598,
+  "mainColumnVoidPx": 222,
+  "stackingDetected": false,
+  "pass": true
+}

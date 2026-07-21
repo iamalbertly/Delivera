@@ -1,0 +1,57 @@
+{
+  "capturedAt": "2026-06-14T19:34:43.883Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxHorizontalVoidRatio": 0.35,
+  "minLeftBandContentRatio": 0.08,
+  "byState": [
+    {
+      "stateId": "sd-collapsed",
+      "label": "SD sidebar collapsed",
+      "viewportW": 1280,
+      "leftBandContentRatio": 0.817,
+      "horizontalVoidRatio": 0.183,
+      "contentCentroidX": 324,
+      "scopeBarWidthPx": 1236,
+      "scopeBarRightPx": 1256,
+      "valueBlockCount": 3
+    },
+    {
+      "stateId": "mpsa-mas-blocked",
+      "label": "MPSA+MAS blocked scope",
+      "viewportW": 1280,
+      "leftBandContentRatio": 0.996,
+      "horizontalVoidRatio": 0.004,
+      "contentCentroidX": 324,
+      "scopeBarWidthPx": 1236,
+      "scopeBarRightPx": 1256,
+      "valueBlockCount": 4
+    },
+    {
+      "stateId": "sidebar-expanded",
+      "label": "Sidebar expanded",
+      "viewportW": 1280,
+      "leftBandContentRatio": 0.817,
+      "horizontalVoidRatio": 0.183,
+      "contentCentroidX": 324,
+      "scopeBarWidthPx": 1236,
+      "scopeBarRightPx": 1256,
+      "valueBlockCount": 3
+    },
+    {
+      "stateId": "first-load-modals",
+      "label": "First load modals may open",
+      "viewportW": 1280,
+      "leftBandContentRatio": 0.817,
+      "horizontalVoidRatio": 0.183,
+      "contentCentroidX": 324,
+      "scopeBarWidthPx": 1236,
+      "scopeBarRightPx": 1256,
+      "valueBlockCount": 3
+    }
+  ],
+  "horizontalVoidRatio": 0.183,
+  "leftBandContentRatio": 0.817,
+  "contentCentroidX": 324,
+  "scopeBarWidthPx": 1236,
+  "pass": true
+}

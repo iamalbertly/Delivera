@@ -1,0 +1,238 @@
+{
+  "capturedAt": "2026-06-14T20:28:28.838Z",
+  "target": "governance",
+  "url": "http://127.0.0.1:3001/governance",
+  "viewports": {
+    "desktop": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 0,
+        "rawFoldGapPx": -95,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2340
+      },
+      "interactivesFound": 55,
+      "clicksTested": 9,
+      "clickResults": [
+        {
+          "viewport": "desktop",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "+Create",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-notifications-btn",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#app-top-notifications-btn').first()\u001b[22m"
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.app-top-btn').first()\u001b[22m\n\u001b[2m    - lo"
+        },
+        {
+          "viewport": "desktop",
+          "label": "LY",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.app-top-avatar').first()\u001b[22m\n\u001b[2m"
+        }
+      ]
+    },
+    "mobile": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 457,
+        "rawFoldGapPx": 457,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2895
+      },
+      "interactivesFound": 21,
+      "clicksTested": 8,
+      "clickResults": [
+        {
+          "viewport": "mobile",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-notifications-btn",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.app-top-btn').first()\u001b[22m\n\u001b[2m    - lo"
+        },
+        {
+          "viewport": "mobile",
+          "label": "Proof: 3 keys · 3 changelog checks · cached 19m",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.btn').first()\u001b[22m\n\u001b[2m    - locat"
+        },
+        {
+          "viewport": "mobile",
+          "label": "✉ Draft nudge",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.btn').first()\u001b[22m\n\u001b[2m    - locat"
+        }
+      ]
+    }
+  },
+  "brokenInteractions": [
+    {
+      "viewport": "desktop",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+    },
+    {
+      "viewport": "desktop",
+      "control": "app-top-notifications-btn",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#app-top-notifications-btn').first()\u001b[22m"
+    },
+    {
+      "viewport": "desktop",
+      "control": null,
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.app-top-btn').first()\u001b[22m\n\u001b[2m    - lo"
+    },
+    {
+      "viewport": "desktop",
+      "control": "LY",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.app-top-avatar').first()\u001b[22m\n\u001b[2m"
+    },
+    {
+      "viewport": "mobile",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+    },
+    {
+      "viewport": "mobile",
+      "control": null,
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.app-top-btn').first()\u001b[22m\n\u001b[2m    - lo"
+    },
+    {
+      "viewport": "mobile",
+      "control": "Proof: 3 keys · 3 changelog checks · cached 19m",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.btn').first()\u001b[22m\n\u001b[2m    - locat"
+    },
+    {
+      "viewport": "mobile",
+      "control": "✉ Draft nudge",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button.btn').first()\u001b[22m\n\u001b[2m    - locat"
+    }
+  ],
+  "consoleIssues": [],
+  "clickReductionIdeas": [
+    "Fix stacking overlap on desktop: rawFoldGapPx=-95px — elevate grid or collapse scope",
+    "Repair broken click on desktop: Skip to main content",
+    "Repair broken click on desktop: app-top-notifications-btn",
+    "Repair broken click on desktop: app-top-btn app-top-icon-btn",
+    "Repair broken click on desktop: LY",
+    "Reduce page height on desktop (2340px) - inline queue and evidence",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"Today\"",
+    "Reduce clicks on desktop: inline outcome for \"Proof\"",
+    "Reduce clicks on desktop: inline outcome for \"DeDeliveraProjects: SD\"",
+    "Reduce clicks on desktop: inline outcome for \"+Create\"",
+    "Reduce clicks on desktop: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"LY\"",
+    "Elevate primary value above fold on mobile: foldDeadBandPx=457px - collapse scope chrome or merge hero card",
+    "Repair broken click on mobile: Skip to main content",
+    "Repair broken click on mobile: app-top-btn app-top-icon-btn",
+    "Repair broken click on mobile: Proof: 3 keys · 3 changelog checks · cached 19m",
+    "Repair broken click on mobile: ✉ Draft nudge",
+    "Reduce page height on mobile (2895px) - inline queue and evidence",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"Today\"",
+    "Reduce clicks on mobile: inline outcome for \"Proof\"",
+    "Reduce clicks on mobile: inline outcome for \"+Create\"",
+    "Reduce clicks on mobile: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"control\""
+  ],
+  "visualUxIssues": [
+    {
+      "viewport": "desktop",
+      "issue": "negative_void_stacking",
+      "rawFoldGapPx": -95,
+      "rationale": "Primary value overlaps scope chrome — fix z-index/grid stacking"
+    },
+    {
+      "viewport": "mobile",
+      "issue": "large_fold_dead_band",
+      "foldDeadBandPx": 457,
+      "rationale": "Excess vertical gap before primary value block - merge chrome or elevate answer"
+    }
+  ],
+  "screenshots": [
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781468907348\\screenshots\\desktop-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781468907348\\screenshots\\desktop-scroll.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781468907348\\screenshots\\mobile-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\v3e-1781468907348\\screenshots\\mobile-scroll.png"
+  ],
+  "summary": {
+    "brokenCount": 8,
+    "consoleIssueCount": 0,
+    "visualIssueCount": 2,
+    "ideaCount": 29,
+    "realIdeaCount": 29,
+    "paddedToTwenty": false,
+    "qualityPass": true
+  }
+}

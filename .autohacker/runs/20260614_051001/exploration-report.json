@@ -1,0 +1,122 @@
+{
+  "capturedAt": "2026-06-14T02:10:04.560Z",
+  "target": "governance",
+  "url": "http://127.0.0.1:3001/governance",
+  "viewports": {
+    "desktop": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 194,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2717
+      },
+      "interactivesFound": 56,
+      "clicksTested": 3,
+      "clickResults": [
+        {
+          "viewport": "desktop",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        }
+      ]
+    },
+    "mobile": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 298,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 3137
+      },
+      "interactivesFound": 31,
+      "clicksTested": 3,
+      "clickResults": [
+        {
+          "viewport": "mobile",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        }
+      ]
+    }
+  },
+  "brokenInteractions": [
+    {
+      "viewport": "desktop",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+    },
+    {
+      "viewport": "mobile",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+    }
+  ],
+  "consoleIssues": [],
+  "clickReductionIdeas": [
+    "Reduce foldDeadBandPx (298px on mobile) by collapsing scope chrome or surfacing verdict inline",
+    "Idea 2: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 3: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 4: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 5: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 6: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 7: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 8: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 9: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 10: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 11: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 12: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 13: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 14: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 15: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 16: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 17: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 18: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 19: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)",
+    "Idea 20: surface direct-value fields without drawer/modal (see exploration 2026-06-14T02:10:04.560Z)"
+  ],
+  "visualUxIssues": [
+    {
+      "viewport": "mobile",
+      "issue": "large_fold_dead_band",
+      "foldDeadBandPx": 298,
+      "rationale": "Excess vertical gap before primary value block — merge chrome or elevate answer"
+    }
+  ],
+  "screenshots": [
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_051001\\screenshots\\desktop-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_051001\\screenshots\\desktop-scroll.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_051001\\screenshots\\mobile-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_051001\\screenshots\\mobile-scroll.png"
+  ],
+  "summary": {
+    "brokenCount": 2,
+    "consoleIssueCount": 0,
+    "visualIssueCount": 1,
+    "ideaCount": 20
+  }
+}

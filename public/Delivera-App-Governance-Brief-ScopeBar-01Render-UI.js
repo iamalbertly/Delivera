@@ -524,8 +524,8 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     getQuarterLabel: () => activeQuarter,
     getPeriodWindow: () => periodWindow,
     refreshCapsule: () => render(),
-    openBaselineWizard: () => baselineWizard?.open(),
-    openPiBaselineWizard: () => baselineWizard?.open(),
+    openBaselineWizard: (squad = '') => baselineWizard?.open(false, squad),
+    openPiBaselineWizard: (squad = '') => baselineWizard?.open(false, squad),
     expandScopePanel: () => {
       scopeExpandedOpen = true;
       const panel = mount.querySelector('#gov-scope-expanded');

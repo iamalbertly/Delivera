@@ -1,0 +1,127 @@
+{
+  "capturedAt": "2026-06-15T07:42:29.209Z",
+  "target": "governance",
+  "url": "http://127.0.0.1:3001/governance",
+  "viewports": {
+    "desktop": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 17,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2988
+      },
+      "interactivesFound": 57,
+      "clicksTested": 3,
+      "clickResults": [
+        {
+          "viewport": "desktop",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        }
+      ]
+    },
+    "mobile": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 0,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2961
+      },
+      "interactivesFound": 16,
+      "clicksTested": 4,
+      "clickResults": [
+        {
+          "viewport": "mobile",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Proof",
+          "ok": true,
+          "error": null
+        }
+      ]
+    }
+  },
+  "brokenInteractions": [
+    {
+      "viewport": "desktop",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+    },
+    {
+      "viewport": "mobile",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n  - waiting for locator('a.skip-to-content').first()\n    - locator res"
+    }
+  ],
+  "consoleIssues": [],
+  "clickReductionIdeas": [
+    "Repair broken click on desktop: Skip to main content",
+    "Reduce page height on desktop (2988px) - inline queue and evidence",
+    "Reduce clicks on desktop: inline outcome for \"Skip to main content\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"Today\"",
+    "Reduce clicks on desktop: inline outcome for \"Proof\"",
+    "Reduce clicks on desktop: inline outcome for \"DeDeliveraProjects: SD\"",
+    "Reduce clicks on desktop: inline outcome for \"+Create\"",
+    "Reduce clicks on desktop: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"LY\"",
+    "Repair broken click on mobile: Skip to main content",
+    "Reduce page height on mobile (2961px) - inline queue and evidence",
+    "Reduce clicks on mobile: inline outcome for \"Skip to main content\"",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"Today\"",
+    "Reduce clicks on mobile: inline outcome for \"Proof\"",
+    "Reduce clicks on mobile: inline outcome for \"+Create\"",
+    "Reduce clicks on mobile: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"control\""
+  ],
+  "visualUxIssues": [],
+  "screenshots": [
+    ".autohacker\\runs\\v6matrix-final\\screenshots\\desktop-fold.png",
+    ".autohacker\\runs\\v6matrix-final\\screenshots\\desktop-scroll.png",
+    ".autohacker\\runs\\v6matrix-final\\screenshots\\mobile-fold.png",
+    ".autohacker\\runs\\v6matrix-final\\screenshots\\mobile-scroll.png"
+  ],
+  "summary": {
+    "brokenCount": 2,
+    "consoleIssueCount": 0,
+    "visualIssueCount": 0,
+    "ideaCount": 23,
+    "realIdeaCount": 23,
+    "paddedToTwenty": false,
+    "qualityPass": true
+  }
+}

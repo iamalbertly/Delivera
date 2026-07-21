@@ -1,0 +1,50 @@
+{
+  "capturedAt": "2026-06-15T07:25:55.946Z",
+  "target": "governance",
+  "url": "http://127.0.0.1:3001/governance",
+  "viewports": {
+    "desktop": {
+      "pageTitle": "Brief | Delivera",
+      "briefState": "content",
+      "docScrollHeight": 3069,
+      "viewportH": 900,
+      "valueAnchor": "gov-answer-mount",
+      "valueTopPx": 627,
+      "chromeBottomPx": 610,
+      "foldDeadBandPx": 17,
+      "scrollToPrimaryValuePx": 0,
+      "stickyChromePx": 396,
+      "stickyChromeRatio": 0.441,
+      "overlapPxTotal": 0,
+      "clickableCount": 117,
+      "telemetry": {
+        "consoleErrors": [],
+        "pageErrors": []
+      }
+    },
+    "mobile": {
+      "pageTitle": "Brief | Delivera",
+      "briefState": "content",
+      "docScrollHeight": 3019,
+      "viewportH": 844,
+      "valueAnchor": "gov-answer-mount",
+      "valueTopPx": 227,
+      "chromeBottomPx": 210,
+      "foldDeadBandPx": 17,
+      "scrollToPrimaryValuePx": 0,
+      "stickyChromePx": 150,
+      "stickyChromeRatio": 0.178,
+      "overlapPxTotal": 0,
+      "clickableCount": 113,
+      "telemetry": {
+        "consoleErrors": [],
+        "pageErrors": []
+      }
+    }
+  },
+  "scrollToPrimaryValuePx": 0,
+  "foldDeadBandPx": 17,
+  "stickyChromeRatio": 0.441,
+  "overlapPxTotal": 0,
+  "brokenClickCount": 0
+}

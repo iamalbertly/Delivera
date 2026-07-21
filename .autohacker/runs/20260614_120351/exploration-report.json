@@ -1,0 +1,162 @@
+{
+  "capturedAt": "2026-06-14T09:03:53.950Z",
+  "target": "governance",
+  "url": "http://127.0.0.1:3001/governance",
+  "viewports": {
+    "desktop": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 0,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2534
+      },
+      "interactivesFound": 55,
+      "clicksTested": 9,
+      "clickResults": [
+        {
+          "viewport": "desktop",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "Proof",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "DeDeliveraProjects: SD",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "app-top-btn app-top-icon-btn",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "desktop",
+          "label": "LY",
+          "ok": true,
+          "error": null
+        }
+      ]
+    },
+    "mobile": {
+      "layout": {
+        "briefState": "content",
+        "foldDeadBandPx": 0,
+        "valueAnchor": "gov-answer-mount",
+        "docScrollHeight": 2828
+      },
+      "interactivesFound": 17,
+      "clicksTested": 4,
+      "clickResults": [
+        {
+          "viewport": "mobile",
+          "label": "Skip to main content",
+          "ok": false,
+          "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+        },
+        {
+          "viewport": "mobile",
+          "label": "app-top-btn app-top-sidebar-toggle",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Today",
+          "ok": true,
+          "error": null
+        },
+        {
+          "viewport": "mobile",
+          "label": "Proof",
+          "ok": true,
+          "error": null
+        }
+      ]
+    }
+  },
+  "brokenInteractions": [
+    {
+      "viewport": "desktop",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+    },
+    {
+      "viewport": "mobile",
+      "control": "Skip to main content",
+      "error": "locator.click: Timeout 3000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a.skip-to-content').first()\u001b[22m\n\u001b[2m    "
+    }
+  ],
+  "consoleIssues": [],
+  "clickReductionIdeas": [
+    "Repair broken click on desktop: Skip to main content",
+    "Reduce page height on desktop (2534px) - inline queue and evidence",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"Today\"",
+    "Reduce clicks on desktop: inline outcome for \"Proof\"",
+    "Reduce clicks on desktop: inline outcome for \"DeDeliveraProjects: SD\"",
+    "Reduce clicks on desktop: inline outcome for \"+Create\"",
+    "Reduce clicks on desktop: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"control\"",
+    "Reduce clicks on desktop: inline outcome for \"LY\"",
+    "Repair broken click on mobile: Skip to main content",
+    "Reduce page height on mobile (2828px) - inline queue and evidence",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"Today\"",
+    "Reduce clicks on mobile: inline outcome for \"Proof\"",
+    "Reduce clicks on mobile: inline outcome for \"+Create\"",
+    "Reduce clicks on mobile: inline outcome for \"app-top-notifications-btn\"",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Reduce clicks on mobile: inline outcome for \"control\"",
+    "Collapse 18 scope chips on mobile into selected + overflow menu"
+  ],
+  "visualUxIssues": [],
+  "screenshots": [
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_120351\\screenshots\\desktop-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_120351\\screenshots\\desktop-scroll.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_120351\\screenshots\\mobile-fold.png",
+    "C:\\Shared\\Projects\\Delivera\\.autohacker\\runs\\20260614_120351\\screenshots\\mobile-scroll.png"
+  ],
+  "summary": {
+    "brokenCount": 2,
+    "consoleIssueCount": 0,
+    "visualIssueCount": 0,
+    "ideaCount": 22,
+    "realIdeaCount": 22,
+    "paddedToTwenty": false,
+    "qualityPass": true
+  }
+}

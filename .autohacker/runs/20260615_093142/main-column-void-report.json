@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-06-15T06:55:10.625Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "maxMainColumnVoidPx": 240,
+  "scopeBottomPx": 294,
+  "firstValueSelector": "[data-direct-value]",
+  "mainColumnVoidPx": 1,
+  "stackingDetected": false,
+  "gridScopeToVerdictPx": -107,
+  "mainContentHeightPx": 2323,
+  "actionMountTopPx": 498,
+  "pass": true
+}

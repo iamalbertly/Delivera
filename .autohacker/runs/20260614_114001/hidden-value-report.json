@@ -1,0 +1,52 @@
+{
+  "capturedAt": "2026-06-14T08:40:27.274Z",
+  "url": "http://127.0.0.1:3001/governance",
+  "hiddenValueCount": 8,
+  "byKind": {
+    "collapsed-details": 4,
+    "setup-gap-click": 2,
+    "truncated-copy": 2
+  },
+  "findings": [
+    {
+      "kind": "collapsed-details",
+      "label": "Feedback and survey",
+      "selector": "details:not([open])"
+    },
+    {
+      "kind": "collapsed-details",
+      "label": "Advanced scope (1)",
+      "selector": "details:not([open])"
+    },
+    {
+      "kind": "collapsed-details",
+      "label": "Advanced scope (1)",
+      "selector": "details:not([open])"
+    },
+    {
+      "kind": "collapsed-details",
+      "label": "Agent\n        Last run: just now · Checked: Jira, sprint, evidence · Prepared: 2",
+      "selector": "details:not([open])"
+    },
+    {
+      "kind": "setup-gap-click",
+      "label": "PI baseline not saved — Fix in 1 click",
+      "selector": "[data-setup-baseline-ssot]"
+    },
+    {
+      "kind": "setup-gap-click",
+      "label": "Fix: Confirm promised work",
+      "selector": "[data-setup-baseline-ssot]"
+    },
+    {
+      "kind": "truncated-copy",
+      "label": "1 squad · SD · FY27 Q1 · 28d · 1 available · 0 no sprint · 1 with epics",
+      "selector": "gov-scope-capsule-text"
+    },
+    {
+      "kind": "truncated-copy",
+      "label": "MPSA-8174: MPSA-8174 looks blocked (17 days with no update). Who owns the next s",
+      "selector": "gov-inbox-inline-summary"
+    }
+  ]
+}

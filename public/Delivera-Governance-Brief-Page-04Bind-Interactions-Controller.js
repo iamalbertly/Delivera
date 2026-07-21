@@ -423,7 +423,8 @@ function handlePortfolioHeatClick(event) {
   const baselineBtn = event.target.closest('[data-setup-baseline-ssot]');
   if (baselineBtn) {
     event.preventDefault();
-    openPiBaselineWizard();
+    const squad = baselineBtn.getAttribute('data-squad') || '';
+    openPiBaselineWizard(squad);
   }
 }
 

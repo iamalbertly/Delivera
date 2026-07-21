@@ -1,0 +1,332 @@
+- generic [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Expand or collapse sidebar" [ref=e6] [cursor=pointer]
+      - navigation "Surfaces" [ref=e10]:
+        - generic [ref=e11] [cursor=pointer]: Answer
+        - link "Today" [ref=e12] [cursor=pointer]:
+          - /url: /current-sprint
+        - link "Proof" [ref=e13] [cursor=pointer]:
+          - /url: /report
+      - link "Delivera" [ref=e15] [cursor=pointer]:
+        - /url: /governance
+        - generic [ref=e16]: De
+      - group "Global actions" [ref=e19]:
+        - button "Actions" [ref=e20] [cursor=pointer]
+        - 'button "Notifications: 9 alerts" [ref=e21] [cursor=pointer]':
+          - generic [ref=e24]: "9"
+        - link "Settings" [ref=e25] [cursor=pointer]:
+          - /url: /settings
+        - button "Account menu" [ref=e28] [cursor=pointer]: LY
+  - main [ref=e29]:
+    - generic [ref=e31]:
+      - region [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]: Portfolio mission
+          - strong [ref=e36]: FIN:FY26 Q2 + SD:FY27 Q2 PI contract governance
+          - button "Last verified 10:37 AM." [ref=e37] [cursor=pointer]
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: PI contract answer
+            - generic [ref=e41]: Quietly refreshed
+          - heading "2 squads are not aligned to PI promises. Finance Squad has 12 no-proof promises. DMS Squad (Kilimanjaro Legends) has 6 no-proof promises." [level=1] [ref=e42]
+          - button "Open PI contract source evidence" [ref=e43] [cursor=pointer]: Compared with FIN:FY26 Q2 + SD:FY27 Q2 PI contract · 18 promises checked · last verified 07:37 UTC
+          - generic "Open portfolio evidence" [ref=e44]:
+            - button "Finance Squad evidence" [ref=e45] [cursor=pointer]
+            - button "DMS Squad (Kilimanjaro Legends) evidence" [active] [ref=e46] [cursor=pointer]
+          - paragraph [ref=e47]:
+            - generic [ref=e48]: ✓
+            - text: Delivera matched the contract to Jira, checked proof age and work split, and prepared 18 safe owner asks.
+        - generic [ref=e49]:
+          - 'generic "Decision coverage: 0 of 18 gaps closed" [ref=e50]':
+            - generic [ref=e51]:
+              - strong [ref=e52]: "0"
+              - generic [ref=e53]: of 18
+            - generic [ref=e54]:
+              - strong [ref=e55]: Decision coverage
+              - generic [ref=e56]: 18 owner asks prepared · 0 decided
+          - button "Review DMS Squad (Kilimanjaro Legends)" [ref=e383] [cursor=pointer]
+        - region [ref=e58]:
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61]: Portfolio comparison
+              - heading "Squads ordered by decision urgency" [level=2] [ref=e62]
+              - paragraph
+            - button "Clear squad" [ref=e64] [cursor=pointer]
+          - toolbar "Governance view" [ref=e65]:
+            - button "Portfolio" [ref=e66] [cursor=pointer]
+            - button "Selected squad" [ref=e67] [cursor=pointer]
+            - button "Evidence" [pressed] [ref=e68] [cursor=pointer]
+          - table "PI governance by squad" [ref=e69]:
+            - row "Squad Current reality PI impact Next move" [ref=e70]:
+              - generic [ref=e71]: Squad
+              - generic [ref=e72]: Current reality
+              - generic [ref=e73]: PI impact
+              - generic [ref=e74]: Next move
+            - row "Open Finance Squad spotlight" [ref=e75] [cursor=pointer]:
+              - cell "Finance Squad 12 need attention" [ref=e76]:
+                - strong [ref=e77]: Finance Squad
+                - generic [ref=e78]: 12 need attention
+              - cell "No proof for 12 commitments · unverified No active sprint could be verified after checking mapped boards." [ref=e79]:
+                - strong [ref=e80]: No proof for 12 commitments · unverified
+                - generic [ref=e81]: No active sprint could be verified after checking mapped boards.
+              - cell "No material PI diversion proven Calculated by ticket count because time logging is incomplete." [ref=e82]:
+                - strong [ref=e83]: No material PI diversion proven
+                - generic [ref=e84]: Calculated by ticket count because time logging is incomplete.
+              - cell "Review escalation route stale proof · Baseline image" [ref=e85]:
+                - strong [ref=e86]: Review escalation route
+                - generic [ref=e87]: stale proof · Baseline image
+            - row "Open DMS Squad (Kilimanjaro Legends) spotlight" [ref=e88] [cursor=pointer]:
+              - cell "DMS Squad (Kilimanjaro Legends) 6 need attention" [ref=e89]:
+                - strong [ref=e90]: DMS Squad (Kilimanjaro Legends)
+                - generic [ref=e91]: 6 need attention
+              - cell "No proof for 6 commitments · FY27DMS06 · 12 days FY27DMS06 is active, 12 days remaining." [ref=e92]:
+                - strong [ref=e93]: No proof for 6 commitments · FY27DMS06 · 12 days
+                - generic [ref=e94]: FY27DMS06 is active, 12 days remaining.
+              - cell "No material PI diversion proven Calculated by ticket count because time logging is incomplete." [ref=e95]:
+                - strong [ref=e96]: No material PI diversion proven
+                - generic [ref=e97]: Calculated by ticket count because time logging is incomplete.
+              - cell "Owner route missing · resolve in drawer stale proof · Baseline image" [ref=e98]:
+                - strong [ref=e99]: Owner route missing · resolve in drawer
+                - generic [ref=e100]: stale proof · Baseline image
+            - row "Open AMS Squad (Tachyons) spotlight" [ref=e101] [cursor=pointer]:
+              - cell "AMS Squad (Tachyons) No contract variance proven" [ref=e102]:
+                - strong [ref=e103]: AMS Squad (Tachyons)
+                - generic [ref=e104]: No contract variance proven
+              - cell "Cannot verify · unverified No active sprint could be verified after checking mapped boards." [ref=e105]:
+                - strong [ref=e106]: Cannot verify · unverified
+                - generic [ref=e107]: No active sprint could be verified after checking mapped boards.
+              - cell "No material PI diversion proven Delivera cannot classify the squad work split safely from the available evidence." [ref=e108]:
+                - strong [ref=e109]: No material PI diversion proven
+                - generic [ref=e110]: Delivera cannot classify the squad work split safely from the available evidence.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e111]:
+                - strong [ref=e112]: Review evidence
+                - generic [ref=e113]: fresh proof · Manual baseline
+            - row "Open Bio metric KYC & KYA spotlight" [ref=e114] [cursor=pointer]:
+              - cell "Bio metric KYC & KYA No contract variance proven" [ref=e115]:
+                - strong [ref=e116]: Bio metric KYC & KYA
+                - generic [ref=e117]: No contract variance proven
+              - cell "Cannot verify · unverified No active sprint could be verified after checking mapped boards." [ref=e118]:
+                - strong [ref=e119]: Cannot verify · unverified
+                - generic [ref=e120]: No active sprint could be verified after checking mapped boards.
+              - cell "No material PI diversion proven Delivera cannot classify the squad work split safely from the available evidence." [ref=e121]:
+                - strong [ref=e122]: No material PI diversion proven
+                - generic [ref=e123]: Delivera cannot classify the squad work split safely from the available evidence.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e124]:
+                - strong [ref=e125]: Review evidence
+                - generic [ref=e126]: fresh proof · Manual baseline
+            - row "Open TRANSFORMERS spotlight" [ref=e127] [cursor=pointer]:
+              - cell "TRANSFORMERS No contract variance proven" [ref=e128]:
+                - strong [ref=e129]: TRANSFORMERS
+                - generic [ref=e130]: No contract variance proven
+              - cell "Cannot verify · unverified No active sprint could be verified after checking mapped boards." [ref=e131]:
+                - strong [ref=e132]: Cannot verify · unverified
+                - generic [ref=e133]: No active sprint could be verified after checking mapped boards.
+              - cell "No material PI diversion proven Delivera cannot classify the squad work split safely from the available evidence." [ref=e134]:
+                - strong [ref=e135]: No material PI diversion proven
+                - generic [ref=e136]: Delivera cannot classify the squad work split safely from the available evidence.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e137]:
+                - strong [ref=e138]: Review evidence
+                - generic [ref=e139]: fresh proof · Manual baseline
+            - row "Open Robotics Process Automation (RPA) spotlight" [ref=e140] [cursor=pointer]:
+              - cell "Robotics Process Automation (RPA) No contract variance proven" [ref=e141]:
+                - strong [ref=e142]: Robotics Process Automation (RPA)
+                - generic [ref=e143]: No contract variance proven
+              - cell "Cannot verify · unverified No active sprint could be verified after checking mapped boards." [ref=e144]:
+                - strong [ref=e145]: Cannot verify · unverified
+                - generic [ref=e146]: No active sprint could be verified after checking mapped boards.
+              - cell "No material PI diversion proven Delivera cannot classify the squad work split safely from the available evidence." [ref=e147]:
+                - strong [ref=e148]: No material PI diversion proven
+                - generic [ref=e149]: Delivera cannot classify the squad work split safely from the available evidence.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e150]:
+                - strong [ref=e151]: Review evidence
+                - generic [ref=e152]: fresh proof · Manual baseline
+            - row "Open T-Squad spotlight" [ref=e153] [cursor=pointer]:
+              - cell "T-Squad No contract variance proven" [ref=e154]:
+                - strong [ref=e155]: T-Squad
+                - generic [ref=e156]: No contract variance proven
+              - cell "Cannot verify · unverified No active sprint could be verified after checking mapped boards." [ref=e157]:
+                - strong [ref=e158]: Cannot verify · unverified
+                - generic [ref=e159]: No active sprint could be verified after checking mapped boards.
+              - cell "No material PI diversion proven Delivera cannot classify the squad work split safely from the available evidence." [ref=e160]:
+                - strong [ref=e161]: No material PI diversion proven
+                - generic [ref=e162]: Delivera cannot classify the squad work split safely from the available evidence.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e163]:
+                - strong [ref=e164]: Review evidence
+                - generic [ref=e165]: fresh proof · Manual baseline
+            - row "Open Vodacom Business spotlight" [ref=e166] [cursor=pointer]:
+              - cell "Vodacom Business No contract variance proven" [ref=e167]:
+                - strong [ref=e168]: Vodacom Business
+                - generic [ref=e169]: No contract variance proven
+              - cell "Cannot verify · unverified No active sprint could be verified after checking mapped boards." [ref=e170]:
+                - strong [ref=e171]: Cannot verify · unverified
+                - generic [ref=e172]: No active sprint could be verified after checking mapped boards.
+              - cell "No material PI diversion proven Delivera cannot classify the squad work split safely from the available evidence." [ref=e173]:
+                - strong [ref=e174]: No material PI diversion proven
+                - generic [ref=e175]: Delivera cannot classify the squad work split safely from the available evidence.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e176]:
+                - strong [ref=e177]: Review evidence
+                - generic [ref=e178]: fresh proof · Manual baseline
+            - row "Open M-SQUAD spotlight" [ref=e179] [cursor=pointer]:
+              - cell "M-SQUAD No contract variance proven" [ref=e180]:
+                - strong [ref=e181]: M-SQUAD
+                - generic [ref=e182]: No contract variance proven
+              - cell "Cannot verify · FY27Q2 MPSA1 · 2 days FY27Q2 MPSA1 is active, 2 days remaining." [ref=e183]:
+                - strong [ref=e184]: Cannot verify · FY27Q2 MPSA1 · 2 days
+                - generic [ref=e185]: FY27Q2 MPSA1 is active, 2 days remaining.
+              - cell "[Vodabima Miniapp IPF Motor] As a user I want to view loan history summary Calculated by ticket count because time logging is incomplete." [ref=e186]:
+                - strong [ref=e187]: "[Vodabima Miniapp IPF Motor] As a user I want to view loan history summary"
+                - generic [ref=e188]: Calculated by ticket count because time logging is incomplete.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e189]:
+                - strong [ref=e190]: Review evidence
+                - generic [ref=e191]: fresh proof · Manual baseline
+            - row "Open Digital Squad spotlight" [ref=e192] [cursor=pointer]:
+              - cell "Digital Squad No contract variance proven" [ref=e193]:
+                - strong [ref=e194]: Digital Squad
+                - generic [ref=e195]: No contract variance proven
+              - cell "Cannot verify · unverified No active sprint could be verified after checking mapped boards." [ref=e196]:
+                - strong [ref=e197]: Cannot verify · unverified
+                - generic [ref=e198]: No active sprint could be verified after checking mapped boards.
+              - cell "As a user i should be able to see expired activities Calculated by ticket count because time logging is incomplete." [ref=e199]:
+                - strong [ref=e200]: As a user i should be able to see expired activities
+                - generic [ref=e201]: Calculated by ticket count because time logging is incomplete.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e202]:
+                - strong [ref=e203]: Review evidence
+                - generic [ref=e204]: fresh proof · Manual baseline
+            - row "Open Mini - Apps Squad spotlight" [ref=e205] [cursor=pointer]:
+              - cell "Mini - Apps Squad No contract variance proven" [ref=e206]:
+                - strong [ref=e207]: Mini - Apps Squad
+                - generic [ref=e208]: No contract variance proven
+              - cell "Cannot verify · FY27 Q1MAS 56 · 2 days FY27 Q1MAS 56 is active, 2 days remaining." [ref=e209]:
+                - strong [ref=e210]: Cannot verify · FY27 Q1MAS 56 · 2 days
+                - generic [ref=e211]: FY27 Q1MAS 56 is active, 2 days remaining.
+              - cell "No material PI diversion proven Calculated by ticket count because time logging is incomplete." [ref=e212]:
+                - strong [ref=e213]: No material PI diversion proven
+                - generic [ref=e214]: Calculated by ticket count because time logging is incomplete.
+              - cell "Review evidence fresh proof · Manual baseline" [ref=e215]:
+                - strong [ref=e216]: Review evidence
+                - generic [ref=e217]: fresh proof · Manual baseline
+          - group [ref=e218]:
+            - generic "Excluded operational usage 1" [ref=e219] [cursor=pointer]:
+              - text: Excluded operational usage
+              - generic [ref=e220]: "1"
+            - button "Agile and Security Guild Operational Jira Group · 83% confidence operational group naming · 0 PI-linked commitments · no PI sprint cadence. Excluded from PI risk totals." [ref=e379]:
+              - strong [ref=e380]: Agile and Security Guild
+              - generic [ref=e381]: Operational Jira Group · 83% confidence
+              - generic [ref=e382]: operational group naming · 0 PI-linked commitments · no PI sprint cadence. Excluded from PI risk totals.
+        - generic [ref=e228]:
+          - generic [ref=e384]:
+            - generic [ref=e385]:
+              - generic [ref=e386]: Synchronized Squad Spotlight
+              - heading "DMS Squad (Kilimanjaro Legends)" [level=2] [ref=e387]
+            - generic [ref=e388]:
+              - button "Edit squad name" [ref=e389] [cursor=pointer]
+              - button "Force DMS Squad (Kilimanjaro Legends) sync" [ref=e390] [cursor=pointer]
+          - generic [ref=e391]:
+            - generic [ref=e392]:
+              - generic [ref=e393]: PI contract
+              - strong [ref=e394]: No proof for 2 commitments
+            - generic [ref=e395]:
+              - generic [ref=e396]: Sprint reality
+              - strong [ref=e397]: FY27DMS06 is active, 12 days remaining.
+            - generic [ref=e398]:
+              - generic [ref=e399]: Trust basis
+              - strong [ref=e400]: Low, owner route missing and proof gap
+            - generic [ref=e401]:
+              - generic [ref=e402]: Next safe action
+              - strong [ref=e403]: Owner route missing · resolve in drawer
+          - generic [ref=e404]:
+            - generic [ref=e405]:
+              - heading "Current Work Reality" [level=3] [ref=e406]
+              - paragraph [ref=e407]:
+                - generic [ref=e408]:
+                  - strong [ref=e409]: As a TM & CSS, I want to receive notifications of SOGA focus campaign so In order to quickly know what sites to focus on
+                  - text: system-derived label
+                - button "Rename theme" [ref=e410] [cursor=pointer]
+              - paragraph [ref=e411]:
+                - generic [ref=e412]:
+                  - strong [ref=e413]: "BLOCKED: Pricing user to see competitor bundle gaps without manual review"
+                  - text: system-derived label
+                - button "Rename theme" [ref=e414] [cursor=pointer]
+              - paragraph [ref=e415]:
+                - generic [ref=e416]:
+                  - strong [ref=e417]: AS EVOD Admin, I want to upgrade EVOD MENU Generation logic to the new Architecture to be able to accomodate the growing
+                  - text: system-derived label
+                - button "Rename theme" [ref=e418] [cursor=pointer]
+              - paragraph [ref=e419]:
+                - generic [ref=e420]:
+                  - strong [ref=e421]: "URGENT: VOP and SAGE Q2 performance upgrade to improve system stability"
+                  - text: system-derived label
+                - button "Rename theme" [ref=e422] [cursor=pointer]
+              - paragraph [ref=e423]:
+                - generic [ref=e424]:
+                  - strong [ref=e425]: "DEVSECOPS-FY27DMS06 carryover: close checklist and SMS vulnerability items"
+                  - text: system-derived label
+                - button "Rename theme" [ref=e426] [cursor=pointer]
+            - generic [ref=e427]:
+              - heading "Sprint Reality" [level=3] [ref=e428]
+              - paragraph [ref=e429]: FY27DMS06 is active, 12 days remaining.
+            - generic [ref=e430]:
+              - heading "Evidence Signals" [level=3] [ref=e431]
+              - paragraph [ref=e432]: No evidence-backed rework signal is promoted.
+              - paragraph [ref=e433]: Low-confidence follow-up work stays out of risk totals.
+              - generic [ref=e434]:
+                - paragraph [ref=e435]:
+                  - strong [ref=e436]: "Unknown work is 100%. Classify top cluster: Unclear work theme."
+                - article [ref=e437]:
+                  - strong [ref=e438]: Unclear work theme
+                  - generic [ref=e439]: 8 issues · 100% · shared work evidence
+                  - button "Mark cluster as Operational" [ref=e440] [cursor=pointer]
+            - generic [ref=e441]:
+              - heading "Doing Instead & Work Split" [level=3] [ref=e442]
+              - paragraph [ref=e443]: Operational noise, 8 low-priority tickets.
+              - paragraph [ref=e444]: Calculated by ticket count because time logging is incomplete.
+              - paragraph [ref=e445]: "Unknown: 100%"
+            - generic [ref=e446]:
+              - heading "Promise Evidence" [level=3] [ref=e447]
+              - button "FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns Matched · Evidence moved 0 business days ago." [ref=e448]:
+                - strong [ref=e449]: FY27 Q2 – DMS – NBA – Integration of CVM for Channel Productivity Campaigns
+                - generic [ref=e450]: Matched · Evidence moved 0 business days ago.
+              - button "FY27 Q2 – DMS – NBA – EVOD Upgrade Matched · Evidence moved 0 business days ago." [ref=e451]:
+                - strong [ref=e452]: FY27 Q2 – DMS – NBA – EVOD Upgrade
+                - generic [ref=e453]: Matched · Evidence moved 0 business days ago.
+              - button "FY27 Q2 – DMS – NBA – Enhancements Matched · Evidence moved 0 business days ago." [ref=e454]:
+                - strong [ref=e455]: FY27 Q2 – DMS – NBA – Enhancements
+                - generic [ref=e456]: Matched · Evidence moved 0 business days ago.
+              - button "FY27 Q2 – DMS – NBA – E-HOD Regional Profile No Jira proof · Evidence is expired or no longer available in Jira." [ref=e457]:
+                - strong [ref=e458]: FY27 Q2 – DMS – NBA – E-HOD Regional Profile
+                - generic [ref=e459]: No Jira proof · Evidence is expired or no longer available in Jira.
+              - button "FY27 Q2 – DMS – DMS Capability Merging No Jira proof · Evidence is expired or no longer available in Jira." [ref=e460]:
+                - strong [ref=e461]: FY27 Q2 – DMS – DMS Capability Merging
+                - generic [ref=e462]: No Jira proof · Evidence is expired or no longer available in Jira.
+              - button "FY27 Q2 – DMS – VOP Upgrade Matched · Evidence moved 0 business days ago." [ref=e463]:
+                - strong [ref=e464]: FY27 Q2 – DMS – VOP Upgrade
+                - generic [ref=e465]: Matched · Evidence moved 0 business days ago.
+            - generic [ref=e466]:
+              - heading "Action Trail" [level=3] [ref=e467]
+              - generic [ref=e468]:
+                - paragraph [ref=e469]: No governance action has been sent yet.
+                - generic [ref=e470]: 6 promises share this state.
+                - button "Owner route missing · resolve in drawer" [ref=e471] [cursor=pointer]
+        - button "Open authorized diagnostics" [ref=e222]: Diagnostics
+      - group [ref=e223]:
+        - generic "Supporting evidence (5 rows)" [ref=e227] [cursor=pointer]
+    - button [ref=e226]: Create work
+  - text: ✓
+  - dialog "DMS Squad (Kilimanjaro Legends) proof preview" [ref=e472]:
+    - generic [ref=e473]:
+      - strong [ref=e474]: DMS Squad (Kilimanjaro Legends) · proof preview
+      - button "Close proof preview" [ref=e475]: ×
+    - generic [ref=e476]:
+      - term [ref=e477]: PI contract
+      - definition [ref=e478]: 6 commitments · 0 matched · 6 No Jira proof · 0 amendedBaseline image verified 12 Jul.
+      - term [ref=e479]: Sprint reality
+      - definition [ref=e480]: No active sprint could be verified after checking mapped boards.FY27DMS06 is active, 12 days remaining.
+      - term [ref=e481]: Work diversion
+      - definition [ref=e482]: No Unknown work is present.Calculated by ticket count because time logging is incomplete.
+      - term [ref=e483]: Proof age / action
+      - definition [ref=e484]: stale proofOwner route missing · resolve in drawer
+      - term [ref=e485]: Trust basis
+      - definition [ref=e486]: Low, sprint setup gap and owner route missing and proof gap
