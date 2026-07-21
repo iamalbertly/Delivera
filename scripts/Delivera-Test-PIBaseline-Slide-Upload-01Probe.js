@@ -11,7 +11,9 @@ import { proposeFromSlideImage } from '../lib/Delivera-Governance-PIBaseline-03P
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');
-const IMAGE_PATH = join(ROOT, 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg');
+const IMAGE_PATH = process.env.DELIVERA_PI_SLIDE_PATH
+  || process.argv[2]
+  || join(ROOT, 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg');
 
 function pickProviderConfig() {
   const openai = resolveProviderConfig({ 'x-ai-provider': 'openai' });

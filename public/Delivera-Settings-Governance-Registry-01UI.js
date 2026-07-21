@@ -59,12 +59,20 @@ function auditHistory() {
 }
 
 function render() {
-  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Select squads once, preview one reasoned change, and publish it across Delivera.</p></div><span>Registry v${Number(registry.version) || 1}</span></div>
+  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Select squads once, preview one reasoned change, and publish it across Delivera.</p></div><label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label><span>Registry v${Number(registry.version) || 1}</span></div>
     <section class="registry-bulk" aria-labelledby="registry-bulk-title"><div><h3 id="registry-bulk-title">Bulk participation change</h3><p><span data-selected-count>0 squads selected</span> · updates are atomic and auditable.</p></div><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></section>
     <div class="registry-list">${(registry.squads || []).map(row).join('')}</div>
     <details class="registry-audit"><summary>Recent organization changes</summary>${auditHistory()}</details>`;
   wireRows();
   wireBulk();
+  mount.querySelector('[data-registry-filter]')?.addEventListener('input', filterRows);
+}
+
+function filterRows(event) {
+  const query = normalized(event.currentTarget.value).toLowerCase();
+  mount.querySelectorAll('[data-registry-squad]').forEach((form) => {
+    form.hidden = Boolean(query) && !form.textContent.toLowerCase().includes(query);
+  });
 }
 
 function updateRowState(form) {

@@ -48,7 +48,7 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = fa
     ? ` ${renderAlignmentChip(driftAlignment)}`
     : '';
   const piRow = piCommitted === 0
-    ? `<p data-squad-pi-row="1" class="gov-pi-empty-cta"><button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1">${escapeHtml(COPY.piBaselineNotSavedCta)}</button></p>`
+    ? `<p data-squad-pi-row="1" class="gov-pi-empty-cta"><button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squad.projectKey)}">${escapeHtml(COPY.piBaselineNotSavedCta)}</button></p>`
     : `<p data-squad-pi-row="1"><strong>PI:</strong> ${piDone}/${piCommitted} committed · ${piPct}% delivered</p>`;
   const detailRows = collapseHeroDedupe
     ? `${pulseHtml}${piRow}${rolesHtml}${partial ? '<p class="gov-partial-warn">Partial data — squad may be unavailable.</p>' : ''}${riskLines ? `<ul class="gov-risk-tile-risks">${riskLines}</ul>` : ''}`

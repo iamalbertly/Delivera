@@ -47,7 +47,8 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - Responsive layout: scope capsule, answer blocks, PI counters, and tables use auto-fit grids + `data-table-scroll-wrap` (no horizontal bleed on mobile)
 - **Above-fold declutter:** duplicate status in command answer hides when scope chip is SSOT; send badge hides when owner clusters exist; agent queue mount and secondary chrome stay collapsed until they have content; governance brand context in top chrome hides (scope capsule is SSOT)
 - Page-level **Export brief** hides when top chrome is present — **Export brief** moves to command overflow (`#gov-export-overflow`)
-- PI baseline wizard with optional slide upload; AI keys live in **Settings** (`/settings#gov-ai-helper`) or `.env` — providers: OpenAI, Claude, **OpenRouter** (`OPENROUTER_API_KEY`). Work-draft canvas links to Settings (no duplicate key UI).
+- PI baseline wizard with optional slide upload; rebaseline always preserves the selected squad/project key through the CTA, wizard, API, and matching agent. AI keys live in **Settings** (`/settings#gov-ai-helper`) or `.env` — providers: OpenAI, Claude, **OpenRouter** (`OPENROUTER_API_KEY`). Work-draft canvas links to Settings (no duplicate key UI).
+- **Slide-reader failure contract:** provider quota/auth failures return typed `429`/`503` responses (`AI_PROVIDER_LIMIT_REACHED`, `AI_PROVIDER_AUTH_FAILED`) without leaking provider URLs or key material. The wizard restores the upload controls, keeps the squad/quarter context, focuses a persistent recovery message, and links provider failures to Settings. A successful provider response with no readable commitments returns `AI_SLIDE_CONTENT_NOT_FOUND` instead of silently claiming a successful empty baseline.
 - Inbox drawer with icon tabs; guided nudge review (not silent approve)
 
 Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brief-ssot`. Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
@@ -177,6 +178,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run check:css` | Fail if `styles.css` is out of sync |
 | `npm run test:journey:governance-active-loop` | Fail-fast active PI contract loop: cache, evidence, actions, concurrency, logs, accessibility |
 | `npm run test:governance:release` | Five risk-ranked meeting-safe release scenarios, fail-fast |
+| `BASE_URL=http://localhost:3012 SKIP_WEBSERVER=true npx playwright test tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js tests/Delivera-Governance-PI-Meeting-State-Transition-Realtime-Validation-Tests.spec.js --workers=1` | Focused slide upload, rebaseline, refresh projection, Actions, and Settings contract gate |
 | `npm run validate:jira-env` | Probe Jira `/myself` with `.env` |
 | `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
@@ -236,7 +238,7 @@ Full guide: [`docs/deployment.md`](docs/deployment.md)
 - Lifecycle: [`lib/Delivera-Server-Lifecycle-01Graceful.js`](lib/Delivera-Server-Lifecycle-01Graceful.js)
 - Worker leader lock (multi-instance): [`lib/Delivera-Worker-Leader-01Lock.js`](lib/Delivera-Worker-Leader-01Lock.js) when `WORKER_LEADER_LOCK=1` or `INSTANCE_COUNT>1`
 - App factory: [`lib/Delivera-Express-Core-App-Factory-Handler.js`](lib/Delivera-Express-Core-App-Factory-Handler.js)
-- Routes: [`routes/views.js`](routes/views.js), [`routes/api.js`](routes/api.js) (`GET /healthz`)
+- Routes: [`routes/views.js`](routes/views.js), [`routes/api.js`](routes/api.js) (`GET /healthz`); PI slide validation/provider/enrichment ownership lives in [`routes/Delivera-Governance-PIBaseline-Slide-Upload-01Route.js`](routes/Delivera-Governance-PIBaseline-Slide-Upload-01Route.js)
 - UI: `public/*.html`, `public/Delivera-*.js`, compiled `public/styles.css`
 - Fetch retry on 502/503: [`public/Delivera-Shared-Runtime-Notification-Bridge.js`](public/Delivera-Shared-Runtime-Notification-Bridge.js)
 

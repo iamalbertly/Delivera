@@ -482,8 +482,16 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
   try {
     const res = await fetch(`/api/governance/squads/${encodeURIComponent(squad)}/detail.json?projects=${encodeURIComponent(squad)}&squad=${encodeURIComponent(squad)}`, { credentials: 'same-origin' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const detail = await res.json();
+    const fetchedDetail = await res.json();
     if (spotlightKey !== squad) return;
+    // The targeted-refresh projection can be newer than the independently cached
+    // detail endpoint. Keep the verified story patch authoritative while the
+    // detail projection catches up.
+    const projectedSquad = [...(activeAnswer?.squads || []), ...(activeAnswer?.excludedOperationalGroups || [])]
+      .find((item) => item.squad === squad);
+    const detail = projectedSquad
+      ? { ...fetchedDetail, squad: { ...(fetchedDetail.squad || {}), ...projectedSquad }, sprintReality: projectedSquad.sprintReality || fetchedDetail.sprintReality }
+      : fetchedDetail;
     activeSpotlightDetail = detail;
     const currentDecision = decisionPromiseForAnswer(activeAnswer);
     if (primary && currentDecision) {

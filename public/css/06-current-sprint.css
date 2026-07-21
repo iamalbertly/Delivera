@@ -4524,7 +4524,8 @@ body.current-sprint-page #current-sprint-loading {
 body.current-sprint-page .current-sprint-header-bar {
   gap: 4px;
   padding: 6px 10px;
-  top: var(--sticky-global-nav-top, 56px);
+  position: static;
+  top: auto;
   background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(246,250,255,0.84));
   border-color: var(--glass-border);
   box-shadow: var(--shadow-soft);

@@ -17,7 +17,11 @@ function render() {
   summary.textContent = `${visible.length} action${visible.length === 1 ? '' : 's'} ready from the shared governance ledger.`;
   const grouped = new Map();
   visible.forEach((item) => {
-    const key = item.groupKey || `${item.squadId || item.squad}|${item.actionType || 'review'}|${item.sourceEntityId || item.promiseId}|${item.dueState || item.state}`;
+    const squad = item.squadId || item.squad;
+    const ownerUnresolved = item.ownerRoute?.unresolved || !item.ownerRoute?.displayName;
+    const key = ownerUnresolved
+      ? `${squad}|owner-route|${item.dueState || item.state}`
+      : item.groupKey || `${squad}|${item.actionType || 'review'}|${item.sourceEntityId || item.promiseId}|${item.dueState || item.state}`;
     const group = grouped.get(key) || [];
     group.push(item); grouped.set(key, group);
   });

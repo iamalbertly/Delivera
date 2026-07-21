@@ -89,12 +89,12 @@ test.describe('Governance trust recovery master plan @focused', () => {
     expect(governanceStoryCacheKey(['RPA', 'SD'], 'FY27 Q2')).toBe(governanceStoryCacheKey(['SD', 'RPA'], 'FY27 Q2'));
   });
 
-  test('2 governance first viewport has four truth columns and three views', async ({ page }) => {
+  test('2 governance first viewport has four truth columns and two distinct views', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page); await mockGovernance(page);
     await page.goto('/governance?projects=SD,RPA');
     await expect(page.getByTestId('governance-active-loop')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('.gov-story-columns > span')).toHaveCount(4);
-    await expect(page.locator('[data-story-lens]')).toHaveCount(3);
+    await expect(page.locator('[data-story-lens]')).toHaveCount(2);
     await expect(page.locator('.gov-story-columns')).not.toContainText(/Proof Age|Trust Basis/i);
     await expect(page.locator('[data-governance-diagnostics]')).toHaveText('Diagnostics');
     assertTelemetryClean(telemetry);
@@ -152,12 +152,13 @@ test.describe('Governance trust recovery master plan @focused', () => {
       const body = url.pathname === '/api/governance/registry.json' ? { version: 1, squads, auditHistory: [] } : {};
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
     });
-    page.on('dialog', (dialog) => dialog.accept());
     await page.goto('/settings');
     await page.locator('[data-select-pending]').click();
     await page.locator('[data-bulk-participation]').selectOption('pi-governed');
     await page.locator('[data-bulk-reason]').fill('Consent confirmed by portfolio governance.');
     await page.locator('[data-bulk-preview]').click();
+    await expect(page.locator('.gov-right-drawer-panel')).toContainText('2 squads');
+    await page.locator('[data-bulk-apply]').click();
     await expect.poll(() => submitted?.changes?.length || 0).toBe(2);
     expect(submitted.reason).toContain('Consent confirmed');
     await expect(page.locator('[data-bulk-status]')).toContainText('2 squads updated');

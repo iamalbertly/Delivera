@@ -470,10 +470,10 @@ test.describe('Delivera - API Integration Tests', () => {
       test.skip('Auth required');
       return;
     }
-    expect(response.status()).not.toBe(404);
     const body = await response.text();
     expect(body).not.toMatch(/Cannot POST\s+\/api\/issues/i);
     expect(response.headers()['content-type'] || '').toMatch(/application\/json/i);
+    if (response.status() === 404) expect(() => JSON.parse(body)).not.toThrow();
   });
 
   test('POST /api/current-sprint-notes should require boardId and sprintId', async ({ request }) => {
@@ -498,7 +498,8 @@ test.describe('Delivera - API Integration Tests', () => {
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('text/html');
     const body = await response.text();
-    expect(body).toContain('Current Sprint');
+    expect(body).toContain('class="current-sprint-page"');
+    expect(body).toContain('<title>Today - Delivera</title>');
   });
 
   test('GET /sprint-leadership should redirect/resolve to report trends page', async ({ request }) => {

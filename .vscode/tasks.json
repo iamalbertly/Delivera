@@ -25,6 +25,12 @@
 			"type": "shell",
 			"command": "powershell -Command \"cd c:\\Shared\\Projects\\Delivera; git add -A; git commit -m 'fix(governance): squad-aware baseline wizard, rebaseline button, paste-to-upload, toast race fix, settings same-tab propagation, stale file cleanup\n\n- Wizard now scopes to the clicked squad (data-squad attr flows spotlight -> delegation -> wizard -> client -> API -> agent)\n- Board epics filtered to the specified squad before AI matching (fixes wrong-squad assignment)\n- Added Rebaseline button when baseline exists (re-opens wizard for re-upload)\n- Fixed toast race: render candidates FIRST then showInlineToast (was wiped by innerHTML)\n- Added Ctrl+V paste-to-upload support on slide drop zone (tabindex=0 + paste listener)\n- Settings saveBulk now dispatches synthetic storage event for same-tab refresh\n- Deleted stale root files: tmp-export-rewrite.ps1, System.Collections.Hashtable\n- 18/18 focused tests passing'\"",
 			"isBackground": false
+		},
+		{
+			"label": "Git push to remote",
+			"type": "shell",
+			"command": "powershell -Command \"cd c:\\Shared\\Projects\\Delivera; git push origin master 2>&1 | Select-Object -Last 5\"",
+			"isBackground": false
 		}
 	]
 }

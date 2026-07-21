@@ -35,14 +35,8 @@ import { assembleGovernanceBrief } from '../lib/Delivera-Governance-Brief-03Asse
 import { savePIBaseline, getLatestPIBaseline, listPIBaselines } from '../lib/Delivera-Governance-PIBaseline-01Store-IO.js';
 import {
     runProposePipeline,
-    proposeFromSlideImage,
-    proposeFromBoardCache,
 } from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
-import {
-    loadEpicActivityFromBriefCache,
-    enrichCandidatesWithEpicActivity,
-    enrichActivityFromJiraExistence,
-} from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
+import { createPiBaselineSlideUploadHandler } from './Delivera-Governance-PIBaseline-Slide-Upload-01Route.js';
 import { recordNarrationPattern } from '../lib/Delivera-Governance-Narration-Knowledge-IO.js';
 import { recordAdoptionMetric, summarizeAdoptionMetrics } from '../lib/Delivera-Governance-Adoption-Metrics-IO.js';
 import {
@@ -2575,61 +2569,7 @@ router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) 
     }
 });
 
-router.post('/api/governance/pi-baseline/propose-from-image', requireAuth, async (req, res) => {
-    try {
-        const imageBase64 = String(req.body?.imageBase64 || '').trim();
-        const mimeType = String(req.body?.mimeType || 'image/png').trim();
-        const projects = Array.isArray(req.body?.projects) && req.body.projects.length
-            ? req.body.projects.map((p) => String(p).trim().toUpperCase()).filter(Boolean)
-            : (req.body?.projectsCsv
-                ? String(req.body.projectsCsv).split(',').map((p) => p.trim().toUpperCase()).filter(Boolean)
-                : parseGovernanceProjects(req));
-        const quarter = String(req.body?.quarter || '').trim();
-        const squad = String(req.body?.squad || '').trim().toUpperCase();
-        if (!imageBase64) {
-            return res.status(400).json({ error: 'imageBase64 is required', code: 'MISSING_IMAGE' });
-        }
-        if (imageBase64.length > 6_000_000) {
-            return res.status(400).json({ error: 'Image too large (max ~4MB)', code: 'IMAGE_TOO_LARGE' });
-        }
-        const providerConfig = resolveProviderConfig(req.headers || {});
-        if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
-            return res.status(400).json({
-                error: 'AI provider key required for slide reading. Add OpenAI or Claude key in Settings.',
-                code: 'AI_KEY_REQUIRED',
-            });
-        }
-        const board = await proposeFromBoardCache({ projects, cache, quarter });
-        const boardEpics = (board.candidates || []).map((c) => ({
-            issueKey: c.issueKey,
-            title: c.title,
-            summary: c.title,
-        }));
-        let result = await proposeFromSlideImage({
-            imageBase64,
-            mimeType,
-            projects,
-            quarter,
-            providerConfig,
-            boardEpics,
-            squad,
-        });
-        let activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NS });
-        let version3Client = null;
-        try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
-        if (version3Client) {
-            activity = await enrichActivityFromJiraExistence(result.candidates || [], activity, version3Client, 10);
-        }
-        result = {
-            ...result,
-            candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),
-        };
-        return res.json({ ...result, cached: false });
-    } catch (err) {
-        logger.warn('pi-baseline propose-from-image failed', { error: err?.message });
-        return res.status(500).json({ error: String(err?.message || 'Slide propose failed') });
-    }
-});
+router.post('/api/governance/pi-baseline/propose-from-image', requireAuth, createPiBaselineSlideUploadHandler({ parseGovernanceProjects }));
 
 router.get('/api/governance/impact-pack.json', requireAuth, async (req, res) => {
     try {

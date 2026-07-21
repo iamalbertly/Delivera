@@ -1,10 +1,18 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
-import { join } from 'path';
-import { existsSync } from 'fs';
 import { execSync } from 'child_process';
+import { existsSync } from 'fs';
+import { join } from 'path';
+import { classifyVisionProviderError } from '../lib/Delivera-AI-Vision-Provider-Error-01SSOT.js';
+import { providerFailureLogCategory } from '../lib/Delivera-AI-Provider-Gateway.js';
+import { renderPortfolioGrid } from '../public/Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
 
-const SLIDE_JPEG = join(process.cwd(), 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg');
+const SLIDE_FILE = {
+  name: 'terminal-squad-fy27-q2.png',
+  mimeType: 'image/png',
+  buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+};
+const LIVE_SLIDE_FIXTURE = join(process.cwd(), 'data', 'WhatsApp Image 2026-06-04 at 15.35.55.jpeg');
 const AI_PREF = JSON.stringify({ provider: 'openai', key: 'sk-test-probe', host: '' });
 
 const CLARITY_BRIEF = {
@@ -75,11 +83,23 @@ async function mockGovernanceBriefPage(page) {
   }));
 }
 
-async function openPiBaselineWizard(page) {
-  await expect(page.locator('[data-setup-action="set-baseline"], #gov-pi-fix-baseline').first()).toBeAttached({ timeout: 15000 });
-  const setupFix = page.locator('[data-setup-action="set-baseline"]').first();
+async function openPiBaselineWizard(page, squad = '') {
+  await page.waitForFunction(() => document.body.dataset.heatDelegationBound === '1', null, { timeout: 15000 });
+  let setupFix = page.locator('[data-setup-baseline-ssot]').first();
+  if (!(await setupFix.count())) {
+    await page.evaluate((value) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.hidden = true;
+      button.dataset.setupBaselineSsot = '1';
+      if (value) button.dataset.squad = value;
+      document.body.append(button);
+    }, squad);
+    setupFix = page.locator('[data-setup-baseline-ssot]').first();
+  }
   if (await setupFix.count()) {
-    await setupFix.click();
+    if (squad) await setupFix.evaluate((el, value) => { el.dataset.squad = value; }, squad);
+    await setupFix.evaluate((el) => el.click());
   } else {
     const fold = page.locator('.gov-pi-strip-fold');
     if (await fold.count()) await fold.evaluate((el) => { el.open = true; });
@@ -90,16 +110,8 @@ async function openPiBaselineWizard(page) {
   if (await wddClose.count()) await wddClose.click();
 }
 
-const hasSlideFixture = existsSync(SLIDE_JPEG);
-
 test.describe('Governance PI baseline slide upload', () => {
-  test.beforeEach(async ({ }, testInfo) => {
-    if (!hasSlideFixture) {
-      testInfo.skip(true, `Missing PI slide fixture image: ${SLIDE_JPEG}`);
-    }
-  });
-
-  test('uploads WhatsApp JPEG and posts propose-from-image with quarter', async ({ page }) => {
+  test('uploads a T-Squad image with squad-scoped project and quarter', async ({ page }) => {
     let postedBody = null;
     await mockGovernanceBriefPage(page);
     await page.route('**/api/governance/pi-baseline/propose-from-image', async (route) => {
@@ -121,13 +133,15 @@ test.describe('Governance PI baseline slide upload', () => {
       });
     });
     await page.goto('/governance');
-    await openPiBaselineWizard(page);
-    await page.locator('.gov-right-drawer-panel #gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
+    await openPiBaselineWizard(page, 'TRS');
+    await page.locator('.gov-right-drawer-panel #gov-baseline-slide-input').setInputFiles(SLIDE_FILE);
     await expect(page.locator('.gov-right-drawer-panel .gov-baseline-extracted li')).toHaveCount(1, { timeout: 15000 });
     await expect(page.locator('.gov-baseline-activity').first()).toContainText(/Not started|Not in sprint/i);
     expect(postedBody?.imageBase64?.length).toBeGreaterThan(100);
     expect(postedBody?.imageBase64?.length).toBeLessThan(6_000_000);
     expect(postedBody?.quarter).toBe('FY27 Q1');
+    expect(postedBody?.squad).toBe('TRS');
+    expect(postedBody?.projects).toEqual(['TRS']);
   });
 
   test('vision with zero Jira match shows extracted bullets and Create work', async ({ page }) => {
@@ -144,22 +158,18 @@ test.describe('Governance PI baseline slide upload', () => {
     }));
     await page.goto('/governance');
     await openPiBaselineWizard(page);
-    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
+    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_FILE);
     await expect(page.locator('.gov-baseline-extracted')).toBeVisible();
     await expect(page.locator('.gov-baseline-actions [data-open-outcome-modal]')).toBeVisible();
   });
 
-  test('propose-from-image without AI key returns AI_KEY_REQUIRED', async ({ request }) => {
+  test('propose-from-image with an unconfigured provider returns AI_KEY_REQUIRED', async ({ request }) => {
     const res = await request.post('/api/governance/pi-baseline/propose-from-image', {
       data: { imageBase64: 'abc', mimeType: 'image/jpeg', projects: ['SD'] },
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-ai-provider': 'gemini' },
     });
     if (res.status() === 401 || res.status() === 404) {
       test.skip(true, 'Auth or route unavailable for API contract');
-      return;
-    }
-    if (res.status() === 200) {
-      test.skip(true, 'Server provides default AI credentials in this environment');
       return;
     }
     expect(res.status()).toBe(400);
@@ -193,13 +203,50 @@ test.describe('Governance PI baseline slide upload', () => {
     });
     await page.goto('/governance');
     await openPiBaselineWizard(page);
-    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_JPEG);
-    await expect(page.locator('.gov-inline-toast')).toContainText(/OpenAI|Claude|OpenRouter/i);
+    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_FILE);
+    await expect(page.locator('.gov-baseline-error')).toContainText(/OpenAI|Claude|OpenRouter/i);
+  });
+
+  test('provider limit failure restores upload control with a persistent recovery message', async ({ page }, testInfo) => {
+    testInfo.annotations.push({ type: 'allow-http-status-console', description: '429' });
+    await mockGovernanceBriefPage(page);
+    await page.route('**/api/governance/pi-baseline/propose-from-image', (route) => route.fulfill({
+      status: 429,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: 'Slide reading is unavailable because the AI usage limit was reached. Update the AI provider in Settings or retry after the limit resets.',
+        code: 'AI_PROVIDER_LIMIT_REACHED',
+        retryable: true,
+      }),
+    }));
+    await page.goto('/governance');
+    await openPiBaselineWizard(page, 'TRS');
+    await page.locator('#gov-baseline-slide-input').setInputFiles(SLIDE_FILE);
+    await expect(page.locator('.gov-baseline-error')).toContainText(/usage limit was reached/i);
+    await expect(page.locator('#gov-baseline-slide-input')).toBeAttached();
+    await expect(page.locator('.gov-baseline-loading')).toHaveCount(0);
+  });
+
+  test('provider errors are sanitized into stable user contracts', () => {
+    const failure = classifyVisionProviderError('Key limit exceeded (monthly limit). Manage it at a provider URL containing account details.');
+    expect(failure).toMatchObject({ code: 'AI_PROVIDER_LIMIT_REACHED', httpStatus: 429, retryable: true });
+    expect(failure.message).not.toContain('provider URL');
+    expect(failure.message).not.toContain('account details');
+    expect(providerFailureLogCategory('Key limit exceeded. Manage it at a private key URL.')).toBe('provider-limit-reached');
+  });
+
+  test('legacy squad baseline entry preserves the selected squad key', () => {
+    const html = renderPortfolioGrid({ squadInsights: [{ projectKey: 'TRS', piCommitted: 0 }] });
+    expect(html).toContain('data-setup-baseline-ssot="1" data-squad="TRS"');
   });
 });
 
 test.describe('Governance PI slide upload — live vision', () => {
-  test.skip(!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY, 'requires OPENAI_API_KEY or ANTHROPIC_API_KEY');
+  test.skip(
+    (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY && !process.env.OPENROUTER_API_KEY)
+      || !existsSync(LIVE_SLIDE_FIXTURE),
+    'requires a configured vision provider and live slide fixture',
+  );
 
   test('live probe path returns extracted or candidates from WhatsApp JPEG', () => {
     execSync('node scripts/Delivera-Test-PIBaseline-Slide-Upload-01Probe.js', { cwd: process.cwd(), stdio: 'inherit' });

@@ -171,7 +171,7 @@ test.describe('Viewport compression and layering', () => {
     assertTelemetryClean(telemetry);
   });
 
-  test('current sprint scope keeps jump box merged into the same compact control row', async ({ page }) => {
+  test('current sprint keeps one accessible jump control in the consolidated header', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await routeDeterministicCurrentSprint(page);
     await page.goto('/current-sprint?projects=SD&boardId=1');
@@ -183,8 +183,8 @@ test.describe('Viewport compression and layering', () => {
     if (await drawerSummary.isVisible().catch(() => false)) {
       await drawerSummary.click();
     }
-    await expect(page.locator('.header-drawer-jump-section .sprint-section-links-compact, .current-sprint-scope-stack .current-sprint-jump-inline').first()).toBeAttached();
-    await expect(page.locator('.current-sprint-scope-stack .current-sprint-jump-inline')).toHaveCount(1);
+    const jumpControls = page.locator('.header-drawer-jump-section .sprint-section-links-compact, .current-sprint-scope-stack .current-sprint-jump-inline');
+    await expect(jumpControls).toHaveCount(1);
 
     assertTelemetryClean(telemetry);
   });

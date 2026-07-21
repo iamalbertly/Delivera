@@ -109,6 +109,19 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await page.locator('[data-story-all]').click(); await expect(page).not.toHaveURL(/spotlight=/); await expect(spot).toBeEmpty();
   });
 
+  test('verified squad can rebaseline without losing squad scope', async ({ page }) => {
+    await mockMeeting(page);
+    await page.route('**/api/ai-provider-status.json**', (route) => route.fulfill({ json: { slideVisionReady: true, label: 'server' } }));
+    await page.route('**/api/governance/pi-baseline/propose**', (route) => route.fulfill({ json: { method: 'manual', candidates: [] } }));
+    await page.goto('/governance');
+    await page.locator('[data-story-squad="DMS"]').click();
+    const rebaseline = page.locator('[data-rebaseline="1"]');
+    await expect(rebaseline).toBeVisible();
+    await expect(rebaseline).toHaveAttribute('data-squad', 'DMS');
+    await rebaseline.click();
+    await expect(page.getByTestId('gov-baseline-context')).toContainText('DMS');
+  });
+
   test('amendment context is visible without opening audit settings', async ({ page }) => {
     await mockMeeting(page); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click(); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Enable 3-click recharge path'); await expect(spot).toContainText('approved by Irene'); await expect(spot).toContainText('Lipa M-Pesa launch took priority');
   });
@@ -192,9 +205,25 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(page.locator('[data-action-case="prm-dms-1"] button')).toHaveText('Re-check this promise');
   });
 
+  test('Actions groups repeated unresolved owner corrections by squad', async ({ page }) => {
+    const unresolved = { role: 'PI Team queue', displayName: '', unresolved: true };
+    const cases = ['prm-dms-1', 'prm-dms-2'].map((promiseId, index) => ({
+      promiseId, squad: 'DMS', squadDisplayName: 'M-Pesa Delivery', title: `Promise ${index + 1}`,
+      state: 'needs-attention', lifecycle: 'No governance action has been sent yet.', ownerRoute: unresolved,
+      nextAction: { label: 'Owner route missing · resolve in drawer' },
+    }));
+    await page.route('**/api/governance/actions.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ cases }) }));
+    await page.goto('/actions');
+    await expect(page.locator('[data-action-case]')).toHaveCount(1);
+    await expect(page.locator('[data-action-case]')).toContainText('2 promises share this correction');
+  });
+
   test('release 4 Settings persists versioned organization truth and preserves conflict drafts', async ({ page }, testInfo) => {
     testInfo.annotations.push({ type: 'allow-http-status-console', description: '412' });
-    const registry = { version: 7, squads: [{ squadKey: 'SD', friendlyName: 'DMS Squad', participationState: 'pi-governed', boardMapping: [12], productOwner: { displayName: 'Irene' }, scrumMaster: null, streamLead: null }] };
+    const registry = { version: 7, squads: [
+      { squadKey: 'SD', friendlyName: 'DMS Squad', participationState: 'pi-governed', boardMapping: [12], productOwner: { displayName: 'Irene' }, scrumMaster: null, streamLead: null },
+      { squadKey: 'RPA', friendlyName: 'Robotics Process Automation', participationState: 'pending-consent', boardMapping: [], productOwner: null, scrumMaster: null, streamLead: null },
+    ] };
     let patchBody = null;
     await page.route('**/api/governance/registry.json', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(registry) }));
     await page.route('**/api/governance/registry', async (route) => { patchBody = route.request().postDataJSON(); await route.fulfill({ status: 412, contentType: 'application/json', body: JSON.stringify({ error: 'Organization settings changed while you were editing.' }) }); });
@@ -205,6 +234,10 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await page.goto('/settings');
     const row = page.locator('[data-registry-squad="SD"]');
     await expect(row).toBeVisible();
+    await page.locator('[data-registry-filter]').fill('Robotics');
+    await expect(row).toBeHidden();
+    await expect(page.locator('[data-registry-squad="RPA"]')).toBeVisible();
+    await page.locator('[data-registry-filter]').fill('');
     await expect(row.locator('[type="submit"]')).toBeDisabled();
     await row.locator('[data-registry-edit]').click();
     await row.locator('[name="participationState"]').selectOption('pending-consent');

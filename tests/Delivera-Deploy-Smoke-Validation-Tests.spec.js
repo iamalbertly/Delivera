@@ -116,7 +116,7 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
     }
 
     await expect(page.locator('body.governance-page')).toBeVisible({ timeout: 20000 });
-    await expect(page.locator('h1.governance-title')).toContainText(/delivery answer/i);
+    await expect(page.locator('#gov-loading, #gov-active-loop-mount')).toHaveCount(2);
     await expect(page.locator('#gov-answer-mount')).toBeAttached();
 
     const briefApi = await page.request.get(`${prodBaseUrl}/api/governance-brief.json?projects=MPSA`);
