@@ -25,6 +25,7 @@
 | `11-executive-pulse.css` | Executive verdict zone, portfolio heat tiles, pulse bars |
 | `12-top-chrome.css` | Global top chrome, Improve Delivera modal |
 | `13-sub-chrome.css` | Sub-chrome and secondary header strips |
+| `14-speed-simplicity-trust.css` | Direct-value import, organization health, and accessible disclosure overrides |
 
 ## CI guard
 

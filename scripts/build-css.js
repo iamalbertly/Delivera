@@ -7,27 +7,12 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { CSS_PARTIALS as PARTIALS } from './Delivera-CSS-Partial-Order-01SSOT.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, '..');
 const cssDir = path.join(projectRoot, 'public', 'css');
 const outPath = path.join(projectRoot, 'public', 'styles.css');
-
-const PARTIALS = [
-  '01-reset-vars.css',
-  '02-layout-container.css',
-  '03-nav-sidebar.css',
-  '12-top-chrome.css',
-  '13-sub-chrome.css',
-  '04-filters-report.css',
-  '05-tables-export.css',
-  '06-current-sprint.css',
-  '07-leadership.css',
-  '08-modals-misc.css',
-  '09-governance.css',
-  '10-meeting-first-surfaces.css',
-  '11-executive-pulse.css',
-];
 
 const BUILD_COMMENT = `/* ═══════════════════════════════════════════════════════════════
    GENERATED FILE — DO NOT EDIT

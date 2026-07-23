@@ -365,6 +365,8 @@ export function renderHeaderBar(data, options = {}) {
       ]
     : headerRoleViews;
   const hasPriorityInterventions = compactStripInterventions.length > 0;
+  const cockpitAction = data?.decisionCockpit?.nextBestAction || {};
+  const quietActionLabel = String(cockpitAction.summary || SPRINT_COPY.noUrgentIntervention).trim();
   const defaultRiskTags = hasPriorityInterventions ? (compactStripInterventions[0].riskTags || []) : [];
   const compactSummaryBits = [
     `${donePercentage}% done`,
@@ -551,7 +553,7 @@ export function renderHeaderBar(data, options = {}) {
     }
     html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span>' + (viewportLean ? '' : ('<span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span>')) + '</span>';
   } else {
-    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(SPRINT_COPY.noUrgentIntervention) + '</span></span>';
+    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(quietActionLabel) + '</span></span>';
   }
   html += '</div>';
   if (hasPriorityInterventions && !viewportLean) {

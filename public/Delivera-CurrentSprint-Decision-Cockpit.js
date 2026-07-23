@@ -285,7 +285,7 @@ export function renderDecisionCockpit(data, options = {}) {
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
   const quickCreateChip = '<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context." style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>';
   const blocker = topRisks[0] || {};
-  const verdictLabel = health.tone === 'critical'
+  const verdictLabel = health.tone === 'critical' && Number(keySignals.blockers || 0) > 0
     ? COPY.verdictBlocked
     : health.tone === 'warning'
       ? COPY.verdictWatch

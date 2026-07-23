@@ -70,7 +70,11 @@ export function bindSlideDropZone(zoneEl, onFile) {
   }
 
   const onPick = (file) => {
-    if (!file || !String(file.type || '').startsWith('image/')) return;
+    const type = String(file?.type || '');
+    const supported = type.startsWith('image/')
+      || type === 'application/pdf'
+      || type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    if (!file || !supported) return;
     void onFile(file);
   };
 

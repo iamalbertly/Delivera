@@ -427,9 +427,10 @@ export function renderStories(data) {
     const remainingDaysBrief = data?.daysMeta?.daysRemainingWorking ?? data?.daysMeta?.daysRemainingCalendar;
     const total = stories.length;
     const daysStr = remainingDaysBrief != null ? remainingDaysBrief + 'd remaining' : '';
-    const confidence = (activeBlockers > 0 && remainingDaysBrief != null && remainingDaysBrief <= 2)
-      ? 'Low'
-      : (activeBlockers > 0 ? 'Medium' : 'Healthy');
+    const confidence = String(data?.decisionCockpit?.health?.status || '').trim()
+      || ((activeBlockers > 0 && remainingDaysBrief != null && remainingDaysBrief <= 2)
+        ? 'Needs Attention'
+        : (activeBlockers > 0 ? 'Watch Closely' : 'On Track'));
     const parts = [];
     if (inProgressCount > 0) parts.push(inProgressCount + ' of ' + total + ' items in active development');
     if (activeBlockers > 0) parts.push(activeBlockers + ' blocker' + (activeBlockers > 1 ? 's' : '') + ' unresolved');
@@ -465,7 +466,10 @@ export function renderStories(data) {
     cardHtml += '<dl class="story-value-details">';
     cardHtml += '<div><dt>Business outcome</dt><dd>' + escapeHtml(deriveBusinessOutcome(story)) + '</dd></div>';
     cardHtml += '<div><dt>Linked KPI</dt><dd>' + escapeHtml(deriveLinkedKpi(story)) + '</dd></div>';
-    cardHtml += '<div><dt>Owner</dt><dd>' + escapeHtml(story.assignee || story.reporter || 'Owner needed') + '</dd></div>';
+    const ownerTruth = story.assignee
+      ? story.assignee
+      : (story.reporter ? `Unassigned · reporter ${story.reporter}` : 'Owner needed');
+    cardHtml += '<div><dt>Owner</dt><dd>' + escapeHtml(ownerTruth) + '</dd></div>';
     cardHtml += '<div><dt>Status</dt><dd>' + escapeHtml(story.status || '-') + '</dd></div>';
     cardHtml += '<div><dt>Blockers</dt><dd>' + escapeHtml(riskSummary) + '</dd></div>';
     cardHtml += '</dl>';

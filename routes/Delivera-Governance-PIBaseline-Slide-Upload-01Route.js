@@ -1,8 +1,8 @@
 import { cache } from '../lib/cache.js';
 import { createVersion3Client } from '../lib/jiraClients.js';
-import { resolveProviderConfig } from '../lib/Delivera-AI-Provider-Gateway.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
-import { proposeFromBoardCache, proposeFromSlideImage } from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
+import { proposeFromBoardCache } from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
+import { processPIArtifactImport } from '../lib/Delivera-Governance-PIArtifact-Import-06Service.js';
 import {
     loadEpicActivityFromBriefCache,
     enrichCandidatesWithEpicActivity,
@@ -21,12 +21,6 @@ function requestProjects(req, parseGovernanceProjects) {
     return parseGovernanceProjects(req);
 }
 
-function errorAction(code) {
-    return code === 'AI_PROVIDER_LIMIT_REACHED' || code === 'AI_PROVIDER_AUTH_FAILED'
-        ? { href: '/settings', label: 'Check AI provider' }
-        : { label: 'Retry upload' };
-}
-
 export function createPiBaselineSlideUploadHandler({ parseGovernanceProjects }) {
     return async function piBaselineSlideUpload(req, res) {
         try {
@@ -36,20 +30,37 @@ export function createPiBaselineSlideUploadHandler({ parseGovernanceProjects }) 
             const quarter = String(req.body?.quarter || '').trim();
             const squad = String(req.body?.squad || '').trim().toUpperCase();
             if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required', code: 'MISSING_IMAGE' });
-            if (imageBase64.length > 6_000_000) return res.status(400).json({ error: 'Image too large (max ~4MB)', code: 'IMAGE_TOO_LARGE' });
-
-            const providerConfig = resolveProviderConfig(req.headers || {});
-            if (!providerConfig.apiKey || providerConfig.provider === 'built-in') {
-                return res.status(400).json({ error: 'AI provider key required for slide reading. Add OpenAI or Claude key in Settings.', code: 'AI_KEY_REQUIRED' });
-            }
+            const buffer = Buffer.from(imageBase64, 'base64');
             const board = await proposeFromBoardCache({ projects, cache, quarter });
             const boardEpics = (board.candidates || []).map((candidate) => ({ issueKey: candidate.issueKey, title: candidate.title, summary: candidate.title }));
-            const result = await proposeFromSlideImage({ imageBase64, mimeType, projects, quarter, providerConfig, boardEpics, squad });
+            const imported = await processPIArtifactImport({
+                organizationId: process.env.DELIVERA_ORGANIZATION_ID || 'delivera',
+                actor: req.authUser?.id || req.session?.user || 'authorized-user',
+                buffer,
+                meta: { filename: req.body?.filename || 'PI slide image', mimeType, size: buffer.length },
+                requestedSquad: squad,
+                requestedQuarter: quarter,
+                boardEpics,
+            });
+            if (imported.joined && !imported.result) {
+                return res.status(202).json({
+                    method: 'shared-import',
+                    jobId: imported.job?.jobId,
+                    processing: true,
+                    message: imported.job?.message || 'Joined an existing secure import.',
+                });
+            }
+            const result = imported.result;
             let activity = await loadEpicActivityFromBriefCache({ projects, cache, namespace: GOVERNANCE_NAMESPACE });
             let version3Client = null;
             try { version3Client = createVersion3Client(); } catch (_) { version3Client = null; }
             if (version3Client) activity = await enrichActivityFromJiraExistence(result.candidates || [], activity, version3Client, 10);
-            return res.json({ ...result, candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity), cached: false });
+            return res.json({
+                ...result,
+                candidates: enrichCandidatesWithEpicActivity(result.candidates || [], activity),
+                cached: result.cacheStatus === 'exact-hit',
+                jobId: imported.job?.jobId || null,
+            });
         } catch (err) {
             const httpStatus = Number(err?.httpStatus) || 500;
             const code = String(err?.code || 'AI_SLIDE_PROPOSE_FAILED');
@@ -63,7 +74,9 @@ export function createPiBaselineSlideUploadHandler({ parseGovernanceProjects }) 
                 : 'Slide reading failed. Your file was not saved. Retry the upload.';
             return res.status(httpStatus).json({
                 error: publicMessage,
-                code, retryable: err?.retryable !== false, action: errorAction(code),
+                code,
+                retryable: err?.retryable === true,
+                action: err?.action || { label: err?.retryable ? 'Retry upload' : 'Choose another file' },
             });
         }
     };

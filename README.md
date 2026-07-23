@@ -55,6 +55,15 @@ Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brie
 
 ## Active PI Governance contract
 
+### Native-first PI artifact intelligence
+
+- Governance accepts image, PDF, and PPTX evidence through `POST /api/governance/pi-imports/prepare`, a one-use signed multipart upload, and a durable status receipt. Browser SHA-256 preflight returns an organization-scoped exact cache hit or joins the existing producer before bytes are uploaded.
+- PPTX OOXML and PDF text/layout are extracted locally first. Images use CPU OCR. Only unresolved evidence may progress sequentially through Qianfan OCR Fast, Qwen visual structure, then Gemma reconciliation; the exact model, method, quota use, source span, confidence, and cache savings remain visible.
+- Every external artifact call requires ZDR, schema validation, provenance, a Redis quota reservation, and a closed shared circuit. No external key is required for native or local processing, no dynamic free-router output can approve a baseline, and every baseline save remains a human-approved append-only revision.
+- Vercel owns authenticated prepare/status APIs. `PI_IMPORT_WORKER_URL`, when set, receives the signed upload directly on Render; without a worker, bounded image/native-text work remains available and long multi-page visual processing fails explicitly instead of continuing after the response.
+- Source files are temporary; Redis stores compressed normalized evidence, durable job state, hashes, quotas, circuits, and baseline history—not full decks. Cross-tenant hashes are namespaced by organization.
+- Focused release validation is `npm run test:pi-release`: twelve fail-fast scenarios covering the supplied 48-page FY27 Q2 pack, T-Squad/TRS evidence, duplicate reuse, single-flight, model order, privacy, quota controls, state recovery, and direct-value UI contracts.
+
 ### Direct-to-value release contract
 
 - Governance, Current Sprint, Actions, and Settings keep separate route ownership while sharing sprint truth, case lifecycle, display names, versions, and owner routes.

@@ -105,8 +105,8 @@ function initAdvancedOptionsToggle() {
   }
 }
 
-export function initProjectSelection() {
-  hydrateReportProjectCheckboxes();
+export async function initProjectSelection() {
+  await hydrateReportProjectCheckboxes();
   try {
     const stored = localStorage.getItem(PROJECTS_SSOT_KEY);
     if (stored && typeof stored === 'string') {

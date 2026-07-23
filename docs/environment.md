@@ -74,6 +74,21 @@ JIRA_API_TOKEN=your_jira_api_token
 - `CACHE_ENABLE_REMOTE_SCAN` (`1` default)
 - `ALLOW_TEST_CACHE_CLEAR` (enables `/api/test/clear-cache` outside test mode)
 
+### PI artifact intelligence
+
+- `PI_IMPORT_WORKER_URL` (optional Render worker origin; omit for bounded local mode)
+- `PI_IMPORT_ALLOWED_ORIGIN` (exact Vercel/browser origin allowed to upload to the worker)
+- `PI_IMPORT_SIGNING_SECRET` (required in production unless `SESSION_SECRET` is set)
+- `DELIVERA_ORGANIZATION_ID` (cache and quota namespace; default `delivera`)
+- `DELIVERA_LOCAL_OCR_ENABLED` (`false` disables CPU OCR)
+- `DELIVERA_OCR_CACHE_PATH` (optional temporary Tesseract language cache)
+- `OPENROUTER_API_KEY` (optional; native parsing and local OCR do not require it)
+- `OPENROUTER_MODEL_PI_OCR` (default `baidu/qianfan-ocr-fast:free`)
+- `OPENROUTER_MODEL_PI_VISION` (default `qwen/qwen2.5-vl-32b-instruct:free`)
+- `OPENROUTER_MODEL_PI_RECONCILE` (default `google/gemma-4-31b-it:free`)
+- `OPENROUTER_MODEL_PI_EMERGENCY` (default `openrouter/free`, read-only suggestions only)
+- `OPENROUTER_RESPONSE_CACHE_ENABLED` (`true` only after organizational approval)
+
 ## Validation command
 
 To verify Jira credentials without using the browser:

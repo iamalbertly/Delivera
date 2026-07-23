@@ -40,7 +40,7 @@ function row(item) {
     <label class="registry-select" title="Select for one atomic organization change"><input type="checkbox" data-registry-select aria-label="Select ${escapeHtml(item.friendlyName)}"></label>
     <div class="registry-identity"><strong>${escapeHtml(item.friendlyName)}</strong><small>${escapeHtml(item.squadKey)} · ${escapeHtml(item.participationState.replace(/-/g, ' '))} · ${escapeHtml(boardCopy)}</small></div>
     <div class="registry-route-summary"><span>${escapeHtml(personName(item.productOwner) || 'PO unresolved')}</span><span>${escapeHtml(personName(item.scrumMaster) || 'SM unresolved')}</span></div>
-    <button class="btn btn-secondary btn-compact" type="button" data-registry-edit aria-expanded="false">Review squad</button>
+    <button class="registry-disclosure" type="button" data-registry-edit aria-expanded="false" aria-label="Edit ${escapeHtml(item.friendlyName)}" title="Edit ${escapeHtml(item.friendlyName)}"><span aria-hidden="true">›</span></button>
     <div class="registry-editor" hidden>
       <label><span>Participation</span><select name="participationState"><option value="pi-governed" ${item.participationState === 'pi-governed' ? 'selected' : ''}>PI-governed</option><option value="pending-consent" ${item.participationState === 'pending-consent' ? 'selected' : ''}>Pending consent</option><option value="operational-exception" ${item.participationState === 'operational-exception' ? 'selected' : ''}>Operational exception</option></select></label>
       <label><span>Product Owner</span><input name="productOwner" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.productOwner))}" placeholder="Not assigned"></label>

@@ -24,6 +24,8 @@ function getRiskCounts(data) {
  */
 export function deriveSprintVerdict(data) {
   const counts = getRiskCounts(data);
+  const cockpit = data?.decisionCockpit || {};
+  const cockpitRisks = Array.isArray(cockpit.topRisks) ? cockpit.topRisks : [];
   const donePct = counts.totalStories > 0
     ? Math.round((counts.doneStories / counts.totalStories) * 100)
     : 0;
@@ -35,15 +37,15 @@ export function deriveSprintVerdict(data) {
     + counts.unassignedParents
     + (donePct < 45 && counts.totalStories > 0 ? 3 : 0);
 
-  let verdict = 'Healthy';
-  let color = 'green';
-  if (riskScore >= 14) {
+  let verdict = cockpit.health?.status || 'Healthy';
+  let color = cockpit.health?.tone === 'critical' ? 'red' : cockpit.health?.tone === 'warning' ? 'yellow' : 'green';
+  if (!cockpit.health && riskScore >= 14) {
     verdict = 'Critical';
     color = 'red';
-  } else if (riskScore >= 8) {
+  } else if (!cockpit.health && riskScore >= 8) {
     verdict = 'At Risk';
     color = 'orange';
-  } else if (riskScore >= 3) {
+  } else if (!cockpit.health && riskScore >= 3) {
     verdict = 'Caution';
     color = 'yellow';
   }
@@ -65,6 +67,10 @@ export function deriveSprintVerdict(data) {
   } else if (counts.missingEstimate > 0) {
     topRemediation = `Add estimates on ${counts.missingEstimate} work item${counts.missingEstimate === 1 ? '' : 's'} missing a baseline.`;
   }
+  if (cockpit.nextBestAction?.reason) {
+    topRemediation = cockpit.nextBestAction.reason;
+    trackingReasons = cockpit.nextBestAction.reason;
+  }
 
   const trustLabel = counts.totalStories > 0 ? 'Signals from live sprint data' : 'Waiting for sprint stories';
 
@@ -73,7 +79,7 @@ export function deriveSprintVerdict(data) {
     && counts.missingEstimate === 0
     && counts.missingLogged === 0
     && counts.unassignedParents === 0;
-  const justStarted = noRiskSignals && counts.totalStories > 0 && donePct === 0;
+  const justStarted = noRiskSignals && cockpitRisks.length === 0 && counts.totalStories > 0 && donePct === 0;
 
   return {
     verdict,

@@ -37,6 +37,7 @@ import {
     runProposePipeline,
 } from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
 import { createPiBaselineSlideUploadHandler } from './Delivera-Governance-PIBaseline-Slide-Upload-01Route.js';
+import { createPIArtifactImportRouter } from './Delivera-Governance-PIArtifact-Import-01Route.js';
 import { recordNarrationPattern } from '../lib/Delivera-Governance-Narration-Knowledge-IO.js';
 import { recordAdoptionMetric, summarizeAdoptionMetrics } from '../lib/Delivera-Governance-Adoption-Metrics-IO.js';
 import {
@@ -109,6 +110,7 @@ const LEGACY_OUTCOME_INTAKE_LOG_FILE = join(FEEDBACK_DIR, 'JiraReporting-Outcome
 const OUTCOME_CREATE_META_TTL = 20 * 60 * 1000;
 
 const router = express.Router();
+router.use(createPIArtifactImportRouter());
 const serverStartTime = Date.now();
 const resolvedJiraHost = () => resolveJiraHostFromEnv();
 const activeRefreshJobs = new Map();
@@ -1564,10 +1566,10 @@ router.post('/api/governance/pi-baseline', requireAuth, async (req, res) => {
             : ['MPSA', 'MAS'];
         const piName = String(body.piName || `${projects.join('+')}`).trim();
         const row = await savePIBaseline({ ...body, piName, projects });
-        return res.json({ success: true, baseline: { id: row.id, piName: row.piName, committed: row.committedItems.length } });
+        return res.json({ success: true, baseline: { id: row.id, contractId: row.contractId, revision: row.revision, supersedesId: row.supersedesId, piName: row.piName, committed: row.committedItems.length, diffSummary: row.diffSummary } });
     } catch (err) {
         logger.warn('pi-baseline save failed', { error: err?.message });
-        return res.status(400).json({ error: String(err?.message || 'Baseline save failed'), code: 'PI_BASELINE_FAILED' });
+        return res.status(err?.httpStatus || 400).json({ error: String(err?.message || 'Baseline save failed'), code: err?.code || 'PI_BASELINE_FAILED', latestVersion: err?.latestVersion });
     }
 });
 

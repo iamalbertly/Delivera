@@ -35,7 +35,7 @@ import { wireLeadershipContentInteractions } from './Delivera-Leadership-Shared-
 
 const LEADERSHIP_HASH = '#trends';
 
-function initReportPage() {
+async function initReportPage() {
   try { document.body.classList.add('report-page'); } catch (_) {}
   try {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -391,7 +391,7 @@ function initReportPage() {
       previewBtnInitial.style.visibility = 'visible';
     }
   } catch (_) {}
-  initProjectSelection();
+  await initProjectSelection();
   initDateRangeControls(() => {
     if (!getCurrentSelectionComplexity().isHeavy) scheduleAutoPreview(AUTO_PREVIEW_DELAY_MS);
   }, () => { refreshPreviewButtonLabel(); });
@@ -668,7 +668,7 @@ function initReportPage() {
 // M2: Scroll-aware page identity — inject compact page name into sticky header when H1 scrolls away (X.com pattern)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    initReportPage();
+    void initReportPage();
     initSharedPageIdentityObserver({
       titleSelector: 'main h1, .page-title, h1',
       headerSelector: 'header .header-row',
@@ -678,7 +678,7 @@ if (document.readyState === 'loading') {
     initSharedTableScrollIndicators();
   });
 } else {
-  initReportPage();
+  void initReportPage();
   initSharedPageIdentityObserver({
     titleSelector: 'main h1, .page-title, h1',
     headerSelector: 'header .header-row',

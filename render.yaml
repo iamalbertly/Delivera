@@ -28,3 +28,15 @@ services:
         value: redis
       - key: REDIS_URL
         sync: false
+      - key: PI_IMPORT_ALLOWED_ORIGIN
+        sync: false
+      - key: PI_IMPORT_SIGNING_SECRET
+        sync: false
+      - key: DELIVERA_ORGANIZATION_ID
+        value: delivera
+      - key: DELIVERA_LOCAL_OCR_ENABLED
+        value: "true"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_RESPONSE_CACHE_ENABLED
+        value: "false"

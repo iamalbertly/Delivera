@@ -33,6 +33,8 @@
     "test:journey:governance-active-loop": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.governance-active-loop -- --workers=1",
     "test:journey:trust-recovery": "npm run build:css && node scripts/Delivera-Dev-Port-Guard-01Check.js && npx playwright test tests/Delivera-Governance-Trust-Recovery-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
     "test:governance:release": "npm run build:css && npx playwright test tests/Delivera-Governance-PI-Meeting-State-Transition-Realtime-Validation-Tests.spec.js --grep \"release [1-5] \" --max-failures=1 --workers=1 --reporter=list",
+    "test:pi-release": "node --test --test-concurrency=1 scripts/Delivera-PIArtifact-Focused-Release-01Test.js",
+    "audit:pi-release": "node scripts/Delivera-PIArtifact-Source-Audit-01Check.js",
     "test:journey:outcome-intake": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.outcome-intake",
     "test:outcome-intake": "npm run test:journey:outcome-intake",
     "test:journey:ux-core": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.ux-core",
@@ -91,13 +93,19 @@
   "license": "MIT",
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
+    "@napi-rs/canvas": "^1.0.2",
+    "busboy": "^1.6.0",
     "dotenv": "^16.3.1",
     "exceljs": "^4.4.0",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "fast-xml-parser": "^5.10.1",
+    "fflate": "^0.8.3",
     "jira.js": "^5.3.0",
+    "pdfjs-dist": "^6.1.200",
     "redis": "^4.7.0",
     "supertokens-node": "^24.0.1",
+    "tesseract.js": "^7.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

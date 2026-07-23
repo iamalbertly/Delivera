@@ -1,0 +1,16 @@
+export const CSS_PARTIALS = Object.freeze([
+  '01-reset-vars.css',
+  '02-layout-container.css',
+  '03-nav-sidebar.css',
+  '12-top-chrome.css',
+  '13-sub-chrome.css',
+  '04-filters-report.css',
+  '05-tables-export.css',
+  '06-current-sprint.css',
+  '07-leadership.css',
+  '08-modals-misc.css',
+  '09-governance.css',
+  '10-meeting-first-surfaces.css',
+  '11-executive-pulse.css',
+  '14-speed-simplicity-trust.css',
+]);

@@ -31,17 +31,33 @@ export function mountGovernanceAiHelper(mount) {
   async function render() {
     const ai = readAiProviderPref();
     const hasKey = Boolean(ai.key && ai.provider && ai.provider !== 'built-in');
-    const trust = await resolveAiTrustDisplay({ forceStatus: true });
+    const [trust, intelligence] = await Promise.all([
+      resolveAiTrustDisplay({ forceStatus: true }),
+      fetch('/api/governance/intelligence/health', { headers: { Accept: 'application/json' } })
+        .then((response) => response.ok ? response.json() : null)
+        .catch(() => null),
+    ]);
+    const quota = intelligence?.quota || {};
+    const circuits = Array.isArray(intelligence?.circuits) ? intelligence.circuits : [];
+    const openCircuits = circuits.filter((item) => item.state === 'open').length;
+    const cacheNamespaces = Number(intelligence?.cache?.namespaceCount || 0);
 
     mount.innerHTML = `
       <section id="gov-ai-helper" class="surface-card gov-ai-helper-card">
-        <h2>Connections</h2>
-        <p class="gov-ai-helper-lead">Browser keys stay local. Server AI is configured by your administrator in <code>.env</code>. Jira uses your login session.</p>
+        <h2>Processing intelligence</h2>
+        <p class="gov-ai-helper-lead">Local extraction and the shared cache protect speed and quota. External models receive only unresolved evidence.</p>
+        <div class="gov-baseline-trust-strip" aria-label="Processing intelligence health">
+          <span><strong>Worker</strong><br>${escapeHtml(intelligence?.worker || 'Unavailable')}</span>
+          <span><strong>Daily allowance</strong><br>${Number(quota.remaining || 0)} of ${Number(quota.ceiling || 0)} left</span>
+          <span><strong>Shared cache</strong><br>${cacheNamespaces} active namespaces</span>
+          <span><strong>Provider circuits</strong><br>${openCircuits ? `${openCircuits} open` : 'All closed'}</span>
+        </div>
+        <p class="gov-ai-helper-note">Roles: ${escapeHtml(intelligence?.modelRoles?.ocr || 'local OCR')} → ${escapeHtml(intelligence?.modelRoles?.visualStructure || 'visual review')} → ${escapeHtml(intelligence?.modelRoles?.reconciliation || 'human review')}. Reset ${escapeHtml(quota.resetAt ? new Date(quota.resetAt).toLocaleString() : 'when provider capacity returns')}.</p>
 
         <h3 class="gov-ai-helper-sub">AI reasoning layer</h3>
         ${trust.statusLineHtml}
         ${trust.usageLineHtml || ''}
-        <div class="gov-ai-helper-lists">
+        <details><summary>Trust boundaries</summary><div class="gov-ai-helper-lists">
           <div>
             <strong>Used for:</strong>
             <ul class="gov-ai-helper-used">${AI_USED_FOR.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>
@@ -50,7 +66,7 @@ export function mountGovernanceAiHelper(mount) {
             <strong>Never used for:</strong>
             <ul class="gov-ai-helper-never">${AI_NEVER_FOR.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>
           </div>
-        </div>
+        </div></details>
 
         <h3 class="gov-ai-helper-sub">Browser override (optional)</h3>
         <label class="gov-ai-helper-field">

@@ -59,9 +59,21 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
 
   async function handleSlideUpload(file, bodyEl, projects, csv, quarterLabel, priorData) {
     if (!file || !bodyEl) return;
-    bodyEl.innerHTML = `<p class="gov-baseline-loading" aria-busy="true">${escapeHtml(COPY.baselineSlideReading)}</p>`;
+    bodyEl.innerHTML = `<div class="gov-baseline-job" role="status" aria-live="polite" aria-busy="true">
+      <p class="gov-baseline-loading">${escapeHtml(COPY.baselineSlideReading)}</p>
+      <progress max="100" value="2"></progress><p class="gov-baseline-job-stage">Secure import accepted.</p></div>`;
     try {
-      const data = await postSlidePropose({ file, projects, projectsCsv: csv, squad: activeSquad });
+      const updateProgress = (job = {}) => {
+        const host = bodyEl.querySelector('.gov-baseline-job');
+        if (!host) return;
+        const progress = host.querySelector('progress');
+        const sentence = host.querySelector('.gov-baseline-job-stage');
+        if (progress) progress.value = Number(job.progress) || 2;
+        if (sentence) sentence.textContent = job.message || job.stage || 'Processing securely…';
+      };
+      const data = await postSlidePropose({
+        file, projects, projectsCsv: csv, squad: activeSquad, onProgress: updateProgress,
+      });
       const confirmable = (data.candidates || []).filter((c) => c.issueKey);
       if (!confirmable.length && !(data.extracted || []).length) {
         const jiraUrl = await resolveJiraBoardUrl(projects);
@@ -113,7 +125,13 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
         return {
           issueKey: c.issueKey,
           title: c.title,
+          originalText: c.slideMatch?.bullet || c.slideMatch?.title || c.title,
           squad: c.squad || projects[0],
+          month: c.slideMatch?.month || '',
+          theme: c.slideMatch?.theme || '',
+          businessValue: c.slideMatch?.businessValue || '',
+          confidence: c.confidence,
+          sourceSpan: c.slideMatch?.sourceSpan,
           ...(act ? {
             epicActivity: {
               lifecycle: act.lifecycle,
@@ -133,6 +151,7 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
       }
       const piName = projects.join('+') || 'MPSA+MAS';
       try {
+        const current = await fetchJson(`/api/governance/pi-baseline?piName=${encodeURIComponent(piName)}`, {}, 'pi-baseline-version');
         await fetchJson('/api/governance/pi-baseline', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -140,6 +159,12 @@ export function mountPIBaselineWizard({ getProjectsCsv, getQuarterLabel, onSaved
             piName,
             projects,
             source: data.method,
+            sourceType: data.pages?.length > 1 ? 'full-deck' : 'squad-image',
+            sourceLabel: data.source?.filename || '',
+            artifactHash: data.artifactHash || '',
+            expectedRevision: Number(current?.baseline?.revision) || 0,
+            supersedesId: current?.baseline?.id || '',
+            modelContribution: data.models || [],
             committedItems: items,
             approvedBy: 'governance-wizard',
           }),

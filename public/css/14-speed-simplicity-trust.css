@@ -1,0 +1,122 @@
+/* Direct-value overrides: speed, simplicity, and trust. */
+.gov-baseline-job {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--border-color, #d8dde7);
+  border-radius: 14px;
+  background: var(--surface-card, #fff);
+}
+
+.gov-baseline-job progress { width: 100%; height: 10px; accent-color: var(--primary-color, #b00020); }
+.gov-baseline-job-stage, .gov-baseline-loading { margin: 0; }
+
+.gov-baseline-trust-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-block: 10px;
+}
+
+.gov-baseline-trust-strip > span {
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--surface-subtle, #f5f7fa);
+  font-size: .8rem;
+}
+
+.registry-disclosure {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border-color, #d8dde7);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.45rem;
+  cursor: pointer;
+}
+
+.registry-disclosure[aria-expanded="true"] span { transform: rotate(90deg); }
+.actions-page .actions-queue-card { margin-top: 12px; }
+.actions-page,
+.actions-page main,
+.actions-page article { min-width: 0; max-width: 100%; }
+.actions-page h1,
+.actions-page h2,
+.actions-page h3,
+.actions-page p,
+.actions-page button { overflow-wrap: anywhere; white-space: normal; }
+
+.settings-health-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: baseline;
+}
+
+.settings-health-hero .surface-eyebrow { grid-column: 1 / -1; }
+.settings-health-hero .surface-lead { max-width: none; }
+.current-sprint-page .story-value-card dd { overflow-wrap: anywhere; }
+
+@media (min-width: 1024px) {
+  body.governance-active-loop-ready .governance-shell {
+    display: block;
+    width: auto;
+    max-width: none;
+    margin-inline: 0;
+    box-sizing: border-box;
+  }
+
+  body.governance-active-loop-ready .gov-brief-layout { display: block; }
+
+  body.governance-active-loop-ready .gov-main-column {
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .gov-baseline-trust-strip { grid-template-columns: 1fr 1fr; }
+  .gov-quarter-pulse {
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .settings-health-hero { display: block; }
+}
+
+@media (max-width: 480px) {
+  body.current-sprint-page .header-band .header-band-actions { display: none; }
+  body.current-sprint-page .header-compact-strip {
+    flex-direction: column;
+    align-items: stretch;
+    overflow: visible;
+  }
+  body.current-sprint-page .header-compact-strip .header-export-readiness {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  body.report-page .report-shell-top-row { flex-wrap: wrap; }
+  body.report-page .report-header-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    flex: 1 0 100%;
+  }
+  body.report-page .report-header-actions > .btn,
+  body.report-page .report-header-actions > details,
+  body.report-page .report-header-more-menu > summary {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registry-disclosure span { transition: none; }
+}
