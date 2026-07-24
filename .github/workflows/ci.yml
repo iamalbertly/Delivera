@@ -52,14 +52,14 @@ jobs:
       # Blueprint validation requires Render CLI v2.7.0 or later. Keep a known release pinned.
       - name: Install Render CLI
         run: |
-          curl -L https://github.com/render-oss/cli/releases/download/v2.19.0/cli_2.19.0_linux_amd64.zip -o render.zip
-          unzip -q -o render.zip cli_v2.19.0
-          sudo mv cli_v2.19.0 /usr/local/bin/render
+          curl -L https://github.com/render-oss/cli/releases/download/v2.22.0/cli_2.22.0_linux_amd64.zip -o render.zip
+          unzip -q -o render.zip cli_v2.22.0
+          sudo mv cli_v2.22.0 /usr/local/bin/render
           render --version
       - name: Validate render.yaml blueprint
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        run: render blueprints validate
+        run: render blueprints validate --workspace "${{ secrets.RENDER_WORKSPACE_ID }}"
       - name: Trigger Render deploy
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}

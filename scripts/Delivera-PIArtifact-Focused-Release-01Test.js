@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import { sha256, detectFiscalPeriod, resolveCanonicalSquad } from '../lib/Delivera-Governance-PIArtifact-Identity-01SSOT.js';
 import { extractPdf } from '../lib/Delivera-Governance-PIArtifact-NativeExtract-02Service.js';
 import { runLocalOcr, extractStructuredLocalCommitments } from '../lib/Delivera-Governance-PIArtifact-LocalOCR-03Service.js';
 import { preparePIArtifactImport, processPIArtifactImport } from '../lib/Delivera-Governance-PIArtifact-Import-06Service.js';
 import { PI_IMPORT_STATES } from '../lib/Delivera-Governance-PIArtifact-Contracts-01SSOT.js';
 import { aiProviderEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
+import { cache } from '../lib/cache.js';
 
 const pdfPath = 'C:/Users/Hermes/Downloads/PI.2.FY27.pdf';
 const imagePath = 'C:/Users/Hermes/Pictures/Screenshots/tsquad fy27 q2.png';
@@ -14,6 +15,10 @@ const org = `pi-release-${Date.now()}`;
 let pdfBuffer;
 let pdfHash;
 let pdf;
+
+after(async () => {
+  await cache.redisClient?.quit?.().catch(() => {});
+});
 
 test('1 golden PDF detects FY27 Q2 without AI', { skip: !existsSync(pdfPath) }, async () => {
   pdfBuffer = readFileSync(pdfPath);
@@ -92,7 +97,7 @@ test('9 provider calls enforce ZDR and stay local without eligibility', () => {
 
 test('10 T-Squad image produces reviewable local commitments and never stalls', { skip: !existsSync(imagePath) }, async () => {
   const buffer = readFileSync(imagePath);
-  const local = await runLocalOcr(buffer);
+  const local = await runLocalOcr(buffer, { enabled: true });
   const commitments = extractStructuredLocalCommitments(local.regions, sha256(buffer));
   assert.equal(commitments.length, 3);
   assert.deepEqual(commitments.map((row) => row.month), ['July', 'August', 'September']);

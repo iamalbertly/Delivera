@@ -174,7 +174,7 @@ BASE_URL=http://localhost:3001 SKIP_WEBSERVER=true npm run test:smoke
 ## Auth modes
 
 - **No auth (local default):** open Brief without login vars
-- **Legacy:** `SESSION_SECRET`, `APP_LOGIN_USER`, `APP_LOGIN_PASSWORD`
+- **Legacy:** `SESSION_SECRET`, `APP_LOGIN_USER`, `APP_LOGIN_PASSWORD`; sessions use the shared Redis SSOT when configured so Vercel instance changes and Render restarts do not sign everyone out
 - **SuperTokens:** `SUPERTOKENS_ENABLED=true` (optional `SUPERTOKENS_HYBRID_MODE=true`)
 
 Full matrix: [`docs/environment.md`](docs/environment.md)
@@ -220,8 +220,11 @@ Ownership: [`public/css/README.md`](public/css/README.md)
 
 ## Deployment
 
-- **Render:** [`render.yaml`](render.yaml) — always-on Node, background workers
-- **Vercel:** root `index.js` + `vercel.json` with the official Git integration; workers disabled
+- **Production UI/API:** `https://vodaagileboard.vercel.app` — root `index.js` + `vercel.json`; workers disabled.
+- **PI intelligence worker:** `https://delivera-pi-intelligence.onrender.com` — [`render.yaml`](render.yaml), local CPU OCR, shared signed upload contract, and background processing.
+- **Durability:** Upstash Redis `delivera-production` stores sessions, import jobs, reusable extraction, leases, quotas, and append-only revisions. Original decks are not stored in Redis.
+- **Zero-cost operating truth:** Render Free can sleep after inactivity and wake on the next request; the UI keeps the durable receipt and reports the wake stage. Free infrastructure is best-effort, has no uptime SLA, and cannot honestly guarantee 90 simultaneous OCR jobs. Cache hits and native extraction remain the scale path; external AI calls stay sequential and quota-capped.
+- **Release automation:** GitHub Actions validates the Blueprint against `RENDER_WORKSPACE_ID`, deploys `RENDER_SERVICE_ID`, then runs the three authenticated production smoke scenarios.
 
 Pre-deploy: `npm run build:css`, `npm run check:css`, then your chosen test gate.
 
