@@ -68,6 +68,7 @@ jobs:
         env:
           CI: true
           BASE_URL: ${{ secrets.DELIVERA_PROD_BASE_URL != '' && secrets.DELIVERA_PROD_BASE_URL || secrets.VODAAGILEBOARD_PROD_BASE_URL }}
+          SKIP_WEBSERVER: true
           TEST_LOGIN_USER: ${{ secrets.APP_LOGIN_USER }}
           TEST_LOGIN_PASSWORD: ${{ secrets.APP_LOGIN_PASSWORD }}
         run: npx playwright test tests/Delivera-Deploy-Smoke-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list
