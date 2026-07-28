@@ -6556,6 +6556,16 @@ body.jira-nudge-review-open { overflow: hidden; }
   margin-bottom: 10px;
   gap: 8px;
 }
+.sprint-lean-next-move {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #dbe4ee);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
 .cs-cockpit-quick-create {
   display: inline-flex;
   align-items: center;

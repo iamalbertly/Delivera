@@ -830,6 +830,14 @@ body.governance-page.governance-story-v2-ready #app-top-chrome [data-top-action=
   font-size: 0.72rem;
   font-weight: 700;
 }
+.action-case-picker {
+  display: block;
+  margin-top: 8px;
+}
+.action-case-picker select {
+  max-width: 100%;
+  min-width: 12rem;
+}
 
 #gov-action-clusters-mount { position: relative; z-index: 1; }
 .gov-action-clusters { display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
@@ -1612,7 +1620,33 @@ body.governance-story-v2-ready #gov-sticky-answer-mount { display: none !importa
 .gov-next-move-rail strong { color: #0f172a; font-size: .92rem; }
 .gov-next-move-rail p { margin: 0; color: #334155; font-size: .82rem; line-height: 1.35; }
 .gov-next-move-rail-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.gov-excluded-admin-hint { margin: 6px 0 0; color: #64748b; font-size: .72rem; }
+.gov-excluded-admin-hint { display: none !important; }
+.gov-hero-freshness-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid #dbe4ee;
+  border-radius: 999px;
+  background: #f0f9ff;
+  color: #475569;
+  font-size: .72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+body.governance-active-loop-ready:not(.governance-squad-selected) .gov-loop-did {
+  display: none;
+}
+body.governance-active-loop-ready #gov-scope-bar-mount.gov-scope-bar-sticky {
+  position: static;
+  box-shadow: none;
+  padding-block: 4px;
+}
+body.governance-active-loop-ready #gov-scope-bar-mount .gov-scope-capsule {
+  padding: 4px 8px;
+  min-height: 0;
+}
 .gov-story-row--grouped .gov-story-squad small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 28ch; }
 .gov-loop-cache-badge { display: none !important; }
 
@@ -1975,7 +2009,16 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .gov-loop-action-wrap small { color: #64748b; line-height: 1.25; }
 .gov-loop-actions button:disabled { opacity: .52; cursor: not-allowed; }
 .actions-queue-head,.registry-head { display: flex; justify-content: space-between; gap: 18px; align-items: end; }
-.actions-queue-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions-queue-filters { display: block; margin-top: 4px; }
+.actions-queue-filters > summary {
+  cursor: pointer;
+  color: #475569;
+  font-size: .78rem;
+  font-weight: 700;
+  list-style: none;
+}
+.actions-queue-filters > summary::-webkit-details-marker { display: none; }
+.actions-queue-filters-body { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .actions-queue-filters label { display: grid; gap: 4px; color: #475569; font-size: .75rem; font-weight: 700; }
 .actions-queue-head label { min-width: 210px; }
 .actions-queue { display: grid; gap: 8px; margin-top: 14px; }
@@ -2007,7 +2050,21 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .registry-identity small,.registry-save small { color: #64748b; }
 .registry-save { grid-template-columns: minmax(110px,1fr) auto; }
 .registry-save small { grid-column: 1/-1; }
-.registry-bulk { position: sticky; z-index: 5; top: calc(var(--top-chrome-height, 56px) + 8px); display: grid; grid-template-columns: minmax(220px,1fr) auto minmax(180px,.7fr) minmax(240px,1fr) auto; gap: 10px; align-items: end; margin-top: 14px; padding: 14px; border: 1px solid #bfdbfe; border-radius: 14px; background: rgb(239 246 255 / 96%); box-shadow: 0 10px 30px rgb(15 23 42 / 9%); backdrop-filter: blur(12px); }
+.registry-bulk { display: block; margin-top: 14px; padding: 10px 14px; border: 1px solid #bfdbfe; border-radius: 14px; background: rgb(239 246 255 / 96%); }
+.registry-bulk > summary {
+  cursor: pointer;
+  font-weight: 750;
+  color: #0f172a;
+  list-style: none;
+}
+.registry-bulk > summary::-webkit-details-marker { display: none; }
+.registry-bulk-body {
+  display: grid;
+  grid-template-columns: minmax(220px,1fr) auto minmax(180px,.7fr) minmax(240px,1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 10px;
+}
 .registry-bulk h3,.registry-bulk p { margin: 0; }
 .registry-bulk label { display: grid; gap: 4px; color: #475569; font-size: .75rem; font-weight: 750; }
 .registry-bulk [data-bulk-status] { grid-column: 1 / -1; min-height: 1.2em; margin: 0; color: #334155; }

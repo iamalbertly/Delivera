@@ -27,7 +27,9 @@ test.describe('Settings registry save flow', () => {
       route.fulfill({ json: MOCK_REGISTRY });
     });
 
-    await loginIfRequired(page, '/settings', { rootSelector: '[data-select-pending]' });
+    await loginIfRequired(page, '/settings', { rootSelector: '#governance-registry-title, .registry-bulk' });
+    await page.locator('.registry-bulk > summary').click();
+    await expect(page.locator('[data-select-pending]')).toBeVisible();
     await page.locator('[data-select-pending]').click();
     await page.waitForTimeout(500);
 
@@ -58,7 +60,9 @@ test.describe('Settings registry save flow', () => {
 
     page.on('dialog', () => { confirmCalled = true; });
 
-    await loginIfRequired(page, '/settings', { rootSelector: '[data-select-pending]' });
+    await loginIfRequired(page, '/settings', { rootSelector: '#governance-registry-title, .registry-bulk' });
+    await page.locator('.registry-bulk > summary').click();
+    await expect(page.locator('[data-select-pending]')).toBeVisible();
     await page.locator('[data-select-pending]').click();
     await page.waitForTimeout(500);
     await page.locator('[data-bulk-preview]').click();

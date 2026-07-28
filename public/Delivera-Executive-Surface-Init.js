@@ -114,6 +114,19 @@ function renderSurfaceContext() {
   if (!contextEl && !summaryEl) return;
   const projects = readSelectedProjects();
   renderDashboardIdentityLinks(projects);
+  const grid = document.querySelector('.surface-grid');
+  if (grid) {
+    // Identity links are the squad-specific exits; keep Evidence only when projects are selected.
+    grid.classList.toggle('surface-grid--evidence-only', projects.length > 0);
+    grid.querySelectorAll('.surface-card--linked').forEach((card) => {
+      const kicker = card.querySelector('.surface-card-kicker')?.textContent?.trim();
+      if (projects.length > 0 && kicker !== 'Evidence') {
+        card.hidden = true;
+      } else {
+        card.hidden = false;
+      }
+    });
+  }
   const segments = getContextPieces({
     projects: projects.join(', '),
     freshness: projects.length ? 'Using shared Delivera context' : 'Choose a report context for sharper decisions',
@@ -189,6 +202,8 @@ async function initHomeDashboardSprintPulse() {
   if (!pulseEl) return;
   const projects = readSelectedProjects();
   if (!projects.length) return;
+  const sprintHref = currentSprintSquadHref(projects[0]);
+  const hasIdentitySprint = Boolean(document.querySelector('#surface-identity-links a[href*="/current-sprint"]'));
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), 5000);
   try {
@@ -214,12 +229,12 @@ async function initHomeDashboardSprintPulse() {
         <div class="home-sprint-pulse-inner home-sprint-pulse-inner--stalled">
           <span class="home-sprint-pulse-name">Team idle</span>
           <span class="home-sprint-pulse-risk">${stalledCount || 1} squad${(stalledCount || 1) > 1 ? 's' : ''} without active sprint</span>
-          <a href="/current-sprint" class="home-sprint-pulse-cta">Open sprint cockpit →</a>
+          ${hasIdentitySprint ? '' : `<a href="${sprintHref}" class="home-sprint-pulse-cta">Open sprint cockpit →</a>`}
         </div>`;
       pulseEl.hidden = false;
       const continueBtn = document.getElementById('surface-primary-cta');
       if (continueBtn) {
-        continueBtn.setAttribute('data-surface-nav', '/current-sprint');
+        continueBtn.setAttribute('data-surface-nav', sprintHref);
         continueBtn.textContent = 'Resolve sprint stall';
         continueBtn.classList.add('btn-primary');
         continueBtn.classList.remove('btn-secondary');
@@ -237,7 +252,7 @@ async function initHomeDashboardSprintPulse() {
         <span class="home-sprint-pulse-pct home-sprint-pulse-pct--${pct >= 70 ? 'good' : pct >= 40 ? 'mid' : 'low'}">${pct}% done</span>
         <span class="home-sprint-pulse-stories">${totalStories} items</span>
         ${blockersOwned > 0 ? `<span class="home-sprint-pulse-risk">${blockersOwned} blockers</span>` : ''}
-        <a href="/current-sprint" class="home-sprint-pulse-cta">Open sprint →</a>
+        ${hasIdentitySprint ? '' : `<a href="${sprintHref}" class="home-sprint-pulse-cta">Open sprint →</a>`}
       </div>`;
     pulseEl.hidden = false;
   } catch (_) {

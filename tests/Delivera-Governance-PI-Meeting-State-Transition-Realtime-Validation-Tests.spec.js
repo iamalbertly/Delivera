@@ -278,6 +278,10 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(page.locator('#work-draft-drawer')).toBeHidden();
     await expect(page.locator('#work-draft-drawer')).toHaveAttribute('inert', '');
     await expect(hero.locator('[data-hero-focus-squad="DMS"]')).toBeVisible();
+    // First-fold continuity: one sprint "today" path (rail), chrome Actions demoted.
+    const todayLinks = hero.locator('a[href*="/current-sprint"]').filter({ hasText: /today/i });
+    await expect(todayLinks).toHaveCount(1);
+    await expect(page.locator('.app-top-chrome [data-top-action="agent"]')).toBeHidden();
     await hero.locator('[data-hero-focus-squad="DMS"]').click();
     await expect(page).toHaveURL(/spotlight=DMS/);
     await expect(page.locator('#gov-squad-spotlight')).toContainText('Legacy Database Migration');
@@ -301,12 +305,42 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
   });
 
   test('release 3 Actions renders the shared visible queue', async ({ page }) => {
-    await page.route('**/api/governance/actions.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, cases: [{ promiseId: promise.promiseId, squad: promise.squad, squadDisplayName: promise.squadDisplayName, title: promise.originalText, state: promise.caseState, lifecycle: promise.actionLifecycle, ownerRoute: promise.ownerRoute, nextAction: promise.nextAction, version: 4 }] }) }));
+    const cases = [
+      {
+        promiseId: 'prm-dms-1', squad: 'DMS', squadDisplayName: 'M-Pesa Delivery', title: 'Enable 3-click recharge path',
+        issueKey: 'DMS-42', state: 'needs-attention', lifecycle: 'No governance action has been sent yet.',
+        ownerRoute: { role: 'PI Team queue', displayName: '', unresolved: true },
+        nextAction: { label: 'Owner route missing · resolve in drawer' },
+      },
+      {
+        promiseId: 'prm-dms-2', squad: 'DMS', squadDisplayName: 'M-Pesa Delivery', title: 'Confirm recharge receipt copy',
+        issueKey: 'DMS-77', state: 'needs-attention', lifecycle: 'No governance action has been sent yet.',
+        ownerRoute: { role: 'PI Team queue', displayName: '', unresolved: true },
+        nextAction: { label: 'Owner route missing · resolve in drawer' },
+      },
+    ];
+    await page.route('**/api/governance/actions.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, cases }) }));
     await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
+    await page.route('**/api/governance/cases/prm-dms-2/detail.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        schemaVersion: 2,
+        storyVersion: 4,
+        promise: { ...promise, promiseId: 'prm-dms-2', originalText: 'Confirm recharge receipt copy', issueKey: 'DMS-77' },
+        squad: STORY.squads[0],
+      }),
+    }));
     await loginIfRequired(page, '/actions');
     await expect(page).toHaveURL(/\/actions$/);
-    await expect(page.locator('[data-action-case="prm-dms-1"]')).toContainText('ready to re-check');
-    await expect(page.locator('[data-action-case="prm-dms-1"] button')).toHaveText('Re-check this promise');
+    await expect(page.locator('[data-action-case]')).toHaveCount(1);
+    await expect(page.locator('[data-action-case]')).toContainText('2 promises share this correction');
+    const picker = page.locator('[data-action-case-picker]');
+    await expect(picker).toBeVisible();
+    await picker.selectOption('prm-dms-2');
+    await page.locator('[data-action-case] button.btn-primary').click();
+    await expect(page.locator('.gov-right-drawer, [data-promise-drawer], .gov-right-drawer-panel').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.gov-right-drawer, [data-promise-drawer], .gov-right-drawer-panel, body').first()).toContainText(/Confirm recharge receipt copy|DMS-77|prm-dms-2|Owner route/i);
   });
 
   test('Actions groups repeated unresolved owner corrections by squad', async ({ page }) => {

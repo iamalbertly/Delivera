@@ -125,12 +125,9 @@ test.describe('Current Sprint focused squad switch contracts', () => {
     await expect(page.locator('.current-sprint-filter-strip')).toContainText('DMS');
     await expect(page.locator('.current-sprint-shell-actions')).toContainText('Open report');
     await expect(page.locator('[data-squad-select]')).toBeVisible();
-    await expect(page.locator('.sprint-today-hero')).toContainText('Sprint today');
-    await expect(page.locator('.sprint-today-hero')).toContainText('NEEDS WATCH');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Main blocker: DMS-42');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Irene');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Next move:');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Recharge flow proof');
+    await expect(page.locator('[data-sprint-lean-next-move]')).toContainText(/Next move:/i);
+    await expect(page.locator('.attention-queue')).toContainText(/DMS-42|Recharge flow proof/i);
+    await expect(page.locator('.sprint-today-hero')).toHaveCount(0);
   });
 
   test('squad switcher changes sprint focus without leaving the route', async ({ page }) => {
@@ -139,37 +136,35 @@ test.describe('Current Sprint focused squad switch contracts', () => {
     await expect(squadSelect.locator('option')).toContainText(['M-Pesa Delivery', 'Transformers']);
     await squadSelect.selectOption('22');
     await expect(page).toHaveURL(/boardId=22/);
-    await expect(page.locator('.sprint-today-hero')).toContainText('Main blocker: TRS-21');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Neo');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Next move:');
+    await expect(page.locator('[data-sprint-lean-next-move]')).toContainText(/Next move:/i);
+    await expect(page.locator('.attention-queue')).toContainText(/TRS-21/);
   });
 
   test('squad query continuity opens the requested squad lane on first load', async ({ page }) => {
-    await loginIfRequired(page, '/current-sprint?squad=TRS', { rootSelector: '.sprint-today-hero' });
+    await loginIfRequired(page, '/current-sprint?squad=TRS', { rootSelector: '.attention-queue, [data-sprint-lean-next-move], .current-sprint-report-shell' });
     await expect(page).toHaveURL(/current-sprint/);
     await expect(page).toHaveURL(/projects=TRS/);
     await expect(page).toHaveURL(/boardId=22/);
     await expect(page.locator('.current-sprint-filter-strip')).toContainText('T-Squad');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Main blocker: TRS-21');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Neo');
+    await expect(page.locator('.attention-queue')).toContainText(/TRS-21/);
   });
 
   test('squad=SD with stale MPSA boardId lands on SD work only', async ({ page }) => {
-    await loginIfRequired(page, '/current-sprint?squad=SD&boardId=9&projects=MPSA', { rootSelector: '.sprint-today-hero' });
+    await loginIfRequired(page, '/current-sprint?squad=SD&boardId=9&projects=MPSA', { rootSelector: '.attention-queue, [data-sprint-lean-next-move], .current-sprint-report-shell' });
     await expect(page).toHaveURL(/squad=SD/);
     await expect(page).toHaveURL(/projects=SD/);
     await expect(page).toHaveURL(/boardId=44/);
     await expect(page.locator('.current-sprint-shell-title-block h2')).toContainText('DMS Squad');
     await expect(page.locator('.current-sprint-filter-strip')).toContainText('DMS Squad');
     await expect(page.locator('.current-sprint-filter-strip')).not.toContainText('Scope M-SQUAD');
-    await expect(page.locator('.sprint-today-hero')).toContainText('Main blocker: SD-42');
-    await expect(page.locator('.sprint-today-hero')).not.toContainText('MPSA-9');
+    await expect(page.locator('.attention-queue')).toContainText(/SD-42/);
+    await expect(page.locator('.attention-queue, [data-sprint-lean-next-move], .current-sprint-report-shell').first()).not.toContainText('MPSA-9');
     await expect(page.locator('[data-squad-select]')).toContainText('DMS Squad');
   });
 
   test('Governance DMS today href includes projects=SD continuity tokens', async ({ page }) => {
     await loginIfRequired(page, '/governance', { rootSelector: '[data-testid="governance-active-loop"], .gov-loop-identity-links, body' });
-    const todayLink = page.locator('a.gov-loop-identity-link-secondary[href*="squad=SD"], a[href*="/current-sprint"][href*="squad=SD"]').first();
+    const todayLink = page.locator('.gov-next-move-rail a[href*="squad=SD"], a.gov-loop-identity-link-secondary[href*="squad=SD"], a[href*="/current-sprint"][href*="squad=SD"]').first();
     if (await todayLink.count()) {
       const href = await todayLink.getAttribute('href');
       expect(href).toMatch(/squad=SD/i);
@@ -184,9 +179,38 @@ test.describe('Current Sprint focused squad switch contracts', () => {
     }
   });
 
+  test('reportSquadHref and chrome Proof carry projects= with squad=', async ({ page }) => {
+    await loginIfRequired(page, '/current-sprint?squad=DMS&projects=DMS', { rootSelector: '.current-sprint-report-shell, .app-top-chrome' });
+    const built = await page.evaluate(async () => {
+      const mod = await import('/Delivera-Shared-Continuity-Link-01Build.js');
+      return mod.reportSquadHref('SD');
+    });
+    expect(built).toMatch(/squad=SD/);
+    expect(built).toMatch(/projects=SD/);
+    const proof = page.locator('.app-top-chrome a[data-top-surface="report"], .app-top-chrome a[href*="/report"]').first();
+    if (await proof.count()) {
+      const href = await proof.getAttribute('href');
+      expect(href).toMatch(/\/report/);
+      if (/squad=/i.test(href || '')) {
+        expect(href).toMatch(/projects=/i);
+      }
+    }
+  });
+
+  test('report?squad=SD selects SD projects SSOT on first load', async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.setItem('delivera_selectedProjects', 'DMS'); } catch (_) {}
+    });
+    await loginIfRequired(page, '/report?squad=SD', { rootSelector: 'body.report-page, #main-content, body' });
+    const stored = await page.evaluate(() => {
+      try { return localStorage.getItem('delivera_selectedProjects') || ''; } catch (_) { return ''; }
+    });
+    expect(stored.toUpperCase()).toMatch(/SD/);
+  });
+
   test('stale boardId falls back to the first available board', async ({ page }) => {
-    await loginIfRequired(page, '/current-sprint?boardId=999999', { rootSelector: '.sprint-today-hero' });
-    await expect(page.locator('.sprint-today-hero')).toContainText('Main blocker: DMS-42');
+    await loginIfRequired(page, '/current-sprint?boardId=999999', { rootSelector: '.attention-queue, [data-sprint-lean-next-move], .current-sprint-report-shell' });
+    await expect(page.locator('.attention-queue')).toContainText(/DMS-42/);
     await expect(page.locator('.current-sprint-filter-strip')).toContainText('DMS');
   });
 
@@ -213,10 +237,11 @@ test.describe('Current Sprint focused squad switch contracts', () => {
         boards: [{ id: 11, projectKey: 'DMS', friendlyName: 'M-Pesa Delivery', globallyExcluded: false }],
       })),
     }));
-    await loginIfRequired(page, '/current-sprint', { rootSelector: '.sprint-today-hero' });
+    await loginIfRequired(page, '/current-sprint', { rootSelector: '.attention-queue, [data-sprint-lean-next-move], .current-sprint-report-shell' });
     await expect(page.locator('.current-sprint-shell-actions')).toContainText('Open report');
     await expect(page.locator('[data-squad-select]')).toBeVisible();
-    await expect(page.locator('.sprint-today-hero')).toContainText('Next move:');
+    await expect(page.locator('[data-sprint-lean-next-move]')).toContainText(/Next move:/i);
+    await expect(page.locator('.attention-queue')).toContainText(/DMS-42/);
   });
 
   test('top chrome stays readable after sprint render settles', async ({ page }) => {

@@ -81,13 +81,48 @@ test.describe('Server stability + self-heal contracts', () => {
     });
 
     await loginIfRequired(page, '/current-sprint?squad=SD&boardId=9&projects=MPSA', {
-      rootSelector: '.sprint-today-hero, .current-sprint-report-shell',
+      rootSelector: '.attention-queue, [data-sprint-lean-next-move], .current-sprint-report-shell',
       timeout: 20000,
     });
     await expect(page).toHaveURL(/squad=SD/i);
     await expect(page).toHaveURL(/projects=SD/i);
     await expect(page.locator('.current-sprint-shell-title-block h2, h2').first()).toContainText(/DMS Squad|SD/i);
-    await expect(page.locator('.sprint-today-hero')).not.toContainText('MPSA-1');
+    await expect(page.locator('.attention-queue, [data-sprint-lean-next-move], .current-sprint-report-shell').first()).not.toContainText('MPSA-1');
+  });
+
+  test('dashboard identity links expose governance and sprint continuity', async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.setItem('delivera_selectedProjects', 'SD,DMS'); } catch (_) {}
+    });
+    await page.route('**/api/current-sprint.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        sprint: { name: 'SD Sprint', state: 'active' },
+        stories: [],
+        meta: {},
+        risks: { blockersOwned: 0 },
+      }),
+    }));
+    await page.route('**/api/leadership-summary.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ squads: [] }),
+    }));
+    await page.route('**/api/boards.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ boards: [{ id: 44, name: 'SD Board', projectKey: 'SD' }], jiraErrors: [] }),
+    }));
+    await loginIfRequired(page, '/home?stay=1', {
+      rootSelector: '#surface-identity-links, .executive-surface-shell',
+      timeout: 20000,
+    });
+    const links = page.locator('#surface-identity-links a');
+    await expect(links.first()).toBeVisible({ timeout: 10000 });
+    const hrefs = await links.evaluateAll((nodes) => nodes.map((n) => n.getAttribute('href') || ''));
+    expect(hrefs.some((href) => /\/governance/.test(href) && /spotlight=/i.test(href))).toBe(true);
+    expect(hrefs.some((href) => /\/current-sprint/.test(href) && /squad=/i.test(href) && /projects=/i.test(href))).toBe(true);
   });
 
   test('healthz survives a short refresh storm', async ({ page, request }) => {

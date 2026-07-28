@@ -65,7 +65,11 @@ export function actionsSquadHref(squadKey, { source = '' } = {}) {
 export function reportSquadHref(squadKey) {
   const squad = normalizeSquadKey(squadKey);
   if (!squad) return '/report';
-  return withParams('/report', { squad });
+  // projects= must match squad so Report cannot hydrate another squad's inventory first.
+  return withParams('/report', {
+    squad,
+    projects: squad,
+  });
 }
 
 export function resolveReturnToHref(returnTo, { squad = '' } = {}) {
@@ -79,7 +83,14 @@ export function resolveReturnToHref(returnTo, { squad = '' } = {}) {
     }
     const squadKey = normalizeSquadKey(squad || target.searchParams.get('squad') || target.searchParams.get('spotlight'));
     if (target.pathname === '/actions' && squadKey) target.searchParams.set('squad', squadKey);
-    if (target.pathname === '/current-sprint' && squadKey) target.searchParams.set('squad', squadKey);
+    if (target.pathname === '/current-sprint' && squadKey) {
+      target.searchParams.set('squad', squadKey);
+      target.searchParams.set('projects', squadKey);
+    }
+    if (target.pathname === '/report' && squadKey) {
+      target.searchParams.set('squad', squadKey);
+      target.searchParams.set('projects', squadKey);
+    }
     if (target.pathname === '/governance' && squadKey) {
       target.searchParams.set('spotlight', squadKey);
       target.searchParams.set('view', 'squad');

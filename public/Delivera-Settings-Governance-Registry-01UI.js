@@ -65,29 +65,16 @@ function renderBand(title, description, items, emptyCopy = 'Nothing to review ri
   return `<section class="registry-band"><header class="registry-band-head"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span>${items.length}</span></header>${items.length ? `<div class="registry-list">${items.map(row).join('')}</div>` : `<p class="governance-empty">${escapeHtml(emptyCopy)}</p>`}</section>`;
 }
 
-function renderHealthStrip() {
-  const squads = registry.squads || [];
-  const unresolved = squads.filter(hasOwnerGap).length;
-  const exceptions = squads.filter(isParticipationException).length;
-  const governed = squads.length - exceptions;
-  return `<section class="registry-health-strip" aria-label="Platform health">
-    <article><small>PI-governed</small><strong>${governed}</strong></article>
-    <article><small>Exceptions</small><strong>${exceptions}</strong></article>
-    <article><small>Owner gaps</small><strong>${unresolved}</strong></article>
-    <article><small>Registry version</small><strong>${Number(registry.version) || 1}</strong></article>
-  </section>`;
-}
-
 function render() {
   const squads = registry.squads || [];
   const participationExceptions = squads.filter(isParticipationException);
   const ownerRouteGaps = squads.filter((item) => !isParticipationException(item) && hasOwnerGap(item));
   const platformHealthy = squads.filter((item) => !isParticipationException(item) && !hasOwnerGap(item));
+  // Band headers carry counts — drop duplicate health-strip KPI tiles. Bulk stays folded.
   mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.</p></div><label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label><span>Registry v${Number(registry.version) || 1}</span></div>
-    ${renderHealthStrip()}
     ${renderBand('Participation exceptions', 'These squads are excluded or pending onboarding, so this band should stay intentionally small.', participationExceptions, 'No participation exceptions are active.')}
     ${renderBand('Owner-route gaps', 'Fix missing PO and SM routes before the full registry list so actions can land on the right people.', ownerRouteGaps, 'All visible squads have PO and SM routes.')}
-    <section class="registry-bulk" aria-labelledby="registry-bulk-title"><div><h3 id="registry-bulk-title">Bulk participation change</h3><p><span data-selected-count>0 squads selected</span> · updates are atomic and auditable.</p></div><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></section>
+    <details class="registry-bulk" aria-labelledby="registry-bulk-title"><summary id="registry-bulk-title">Bulk participation change <span data-selected-count>0 squads selected</span></summary><div class="registry-bulk-body"><p>Updates are atomic and auditable.</p><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></div></details>
     ${renderBand('Platform health / audit', 'Healthy squads remain editable here, but the first attention should go to the exception and owner-gap bands above.', platformHealthy, 'No fully routed PI-governed squads are available yet.')}
     <details class="registry-audit"><summary>Recent organization changes</summary>${auditHistory()}</details>`;
   wireRows();

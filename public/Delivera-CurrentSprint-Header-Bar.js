@@ -34,7 +34,7 @@ import {
   formatSprintRemainingLabel,
   formatFreshnessAgeLabel,
 } from './Delivera-CurrentSprint-Copy.js';
-import { renderShellSummaryChips } from './Delivera-Shared-Continuity-Link-01Build.js';
+import { renderShellSummaryChips, reportSquadHref } from './Delivera-Shared-Continuity-Link-01Build.js';
 import { projectDisplayName } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 const headerFilterUiState = {
@@ -458,9 +458,16 @@ export function renderHeaderBar(data, options = {}) {
       delta: doneDelta,
     });
 
-  const reportHref = boardId
-    ? ('/report?boardId=' + encodeURIComponent(String(boardId)) + (sprintId ? '&sprintId=' + encodeURIComponent(String(sprintId)) : '') + (selectedProject ? '&projects=' + encodeURIComponent(String(selectedProject)) : ''))
-    : '/report';
+  // Continuity SSOT: squad+projects together; boardId/sprintId preserved when known.
+  let reportHref = selectedProject ? reportSquadHref(selectedProject) : '/report';
+  if (boardId || sprintId) {
+    try {
+      const reportUrl = new URL(reportHref, typeof location !== 'undefined' ? location.origin : 'http://localhost');
+      if (boardId) reportUrl.searchParams.set('boardId', String(boardId));
+      if (sprintId) reportUrl.searchParams.set('sprintId', String(sprintId));
+      reportHref = reportUrl.pathname + reportUrl.search;
+    } catch (_) {}
+  }
   const reportLinkHtml = '<a class="header-follow-up-link header-chrome-history-report" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
   const shellSummaryHtml = buildCurrentSprintShellSummary({
     selectedProject,
@@ -644,17 +651,16 @@ export function renderHeaderBar(data, options = {}) {
     html += headerContextStripHtml;
   }
   const roleModesRowHtml = renderHeaderRoleModesRow(effectiveHeaderRoleViews);
+  // Lean: role pills stay inline (low click cost); long mission prose stays folded.
   const missionHtml = (viewportLean && missionBriefing && edgeStateAttr === 'none')
     ? renderMissionBriefingHtml(missionBriefing, escapeHtml)
     : '';
-  if (viewportLean && (missionHtml || roleModesRowHtml)) {
-    html += '<details class="header-mobile-filters-fold"><summary>Briefing &amp; filters</summary><div class="header-mobile-filters-body">';
-    if (missionHtml) html += '<div class="header-mission-briefing-wrap">' + missionHtml + '</div>';
-    if (roleModesRowHtml) {
-      html += '<div class="header-role-modes-row-wrap" aria-label="' + escapeHtml(SPRINT_COPY.ariaViewAsRole) + '">' + roleModesRowHtml + '</div>';
-    }
+  if (viewportLean && missionHtml) {
+    html += '<details class="header-mobile-filters-fold"><summary>Mission briefing</summary><div class="header-mobile-filters-body">';
+    html += '<div class="header-mission-briefing-wrap">' + missionHtml + '</div>';
     html += '</div></details>';
-  } else if (roleModesRowHtml) {
+  }
+  if (roleModesRowHtml) {
     html += roleModesRowHtml;
   }
   /* ALB-30: Mini mode hides the full compact strip; surface History report first so it stays above squad identity. */

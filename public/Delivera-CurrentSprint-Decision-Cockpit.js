@@ -294,7 +294,7 @@ export function renderDecisionCockpit(data, options = {}) {
     : health.tone === 'warning'
       ? COPY.verdictWatch
       : COPY.verdictOnTrack;
-  const sprintTodayHero = ''
+  const sprintTodayHero = viewportLean ? '' : (''
     + '<section class="sprint-today-hero" aria-label="Sprint today">'
     + '<h2>Sprint today</h2>'
     + `<p class="sprint-today-verdict"><strong>${escapeHtml(verdictLabel)}</strong></p>`
@@ -302,14 +302,18 @@ export function renderDecisionCockpit(data, options = {}) {
     + (blocker.issueKey ? `<p><strong>Main blocker:</strong> ${escapeHtml(blocker.issueKey)}</p>` : '')
     + ((nextBestAction.issueKey || blocker.issueKey) ? `<p><strong>Owner:</strong> ${escapeHtml(ownerLabel)}</p>` : '')
     + `<p><strong>Next move:</strong> ${escapeHtml(nextMoveLabel)}</p>`
-    + '</section>';
+    + '</section>');
   const attentionQueueHtml = renderAttentionQueueTable({
     title: COPY.attentionQueue,
     items: cockpitRisksToAttentionItems(topRisks),
-    maxRows: 5,
+    maxRows: viewportLean ? 3 : 5,
   });
+  const leanNextMove = viewportLean
+    ? (`<p class="sprint-lean-next-move" data-sprint-lean-next-move><strong>Next move:</strong> ${escapeHtml(nextMoveLabel)}</p>`)
+    : '';
   return ''
     + sprintTodayHero
+    + leanNextMove
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
     + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))

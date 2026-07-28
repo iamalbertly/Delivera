@@ -312,11 +312,21 @@ async function initReportPage() {
     const params = new URLSearchParams(window.location.search);
     const boardId = params.get('boardId') || '';
     const sprintId = params.get('sprintId') || '';
-    const projects = params.get('projects') || '';
-    if (boardId || sprintId || projects) {
+    const squadParam = String(params.get('squad') || '').trim().toUpperCase();
+    // projects wins when both present; squad alone hydrates projects SSOT for Proof continuity.
+    const projects = params.get('projects') || (squadParam || '');
+    if (boardId || sprintId || projects || squadParam) {
       if (projects) {
         try {
           localStorage.setItem(PROJECTS_SSOT_KEY, projects);
+        } catch (_) {}
+        try {
+          document.querySelectorAll('[data-project]').forEach((input) => {
+            const key = String(input.dataset.project || '').trim().toUpperCase();
+            if (!key) return;
+            const selected = projects.split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
+            input.checked = selected.includes(key);
+          });
         } catch (_) {}
       }
       localStorage.setItem(REPORT_CONTEXT_KEY, JSON.stringify({

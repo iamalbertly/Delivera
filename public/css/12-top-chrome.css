@@ -551,6 +551,13 @@ body.has-top-chrome.governance-page [data-top-action="agent"] {
   display: none !important;
 }
 
+/* Demote Create / help / improve chrome on Governance — Answer first, chrome last */
+body.has-top-chrome.governance-page .app-top-chrome [data-top-action="create-work"],
+body.has-top-chrome.governance-page .app-top-chrome [data-top-action="help"],
+body.has-top-chrome.governance-page .app-top-chrome [data-top-action="improve-delivera"] {
+  display: none !important;
+}
+
 body.governance-page .app-notification-slot {
   position: relative;
   z-index: auto;

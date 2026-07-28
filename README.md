@@ -32,8 +32,8 @@ Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Share
 - **Mobile/tablet (≤768px):** search collapses to a 36px icon (`.is-collapsed`); brand slot hides; focus expands search to a second row (`body.top-search-active`) and grows chrome height to 98px. Help and avatar hide at ≤480px. `Escape` dismisses expanded search.
 - **Brief notifications:** dock stays collapsed until the bell is tapped; on governance mobile it opens as a bottom sheet so it does not cover the scope **Refresh** row.
 - **Brief mobile with owner clusters:** full command card hides; owner action clusters become the primary above-fold surface.
-- **Cross-surface continuity:** spotlight, squad, sprint, and return-route tokens stay meaningful across Governance, Current Sprint, Actions, Report, and Dashboard links via `Delivera-Shared-Continuity-Link-01Build.js`. `/current-sprint?squad=<KEY>` is the sprint-side entry point; Actions → Governance carries `returnTo=/actions`, and Governance shows **Back to Actions** when that token is present.
-- **Local fail-fast gate:** `npm run test:friction:focused` runs the small release bundle (Current Sprint shell → Governance release → Settings registry). Broad current-sprint journeys remain secondary/protected-branch coverage, not the front-line local gate.
+- **Cross-surface continuity:** spotlight, squad, sprint, and return-route tokens stay meaningful across Governance, Current Sprint, Actions, Report, and Dashboard links via `Delivera-Shared-Continuity-Link-01Build.js`. `/current-sprint?squad=<KEY>` also sets `projects=<KEY>` so the sprint board cannot hydrate another squad first. `/report?squad=<KEY>` mirrors that contract (`projects=` + squad hydrate). Actions → Governance carries `returnTo=/actions`, and Governance shows **Back to Actions** when that token is present.
+- **Local fail-fast gates:** prefer `npm run test:friction:focused` then `npm run test:stability:focused`. Fat `test:journey:*` suites stay secondary/protected-branch coverage, not the front-line local gate.
 
 Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Shared-Notifications-Dock-Manager.js`).
 
@@ -202,25 +202,32 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 |---------|-----|
 | `npm run build:css` | Compile `public/css/*` → `public/styles.css` |
 | `npm run check:css` | Fail if `styles.css` is out of sync |
-| `npm run test:current-sprint:shell-release` | Focused Current Sprint fold, squad switch, and chrome readability contract |
-| `npm run test:journey:governance-active-loop` | Fail-fast active PI contract loop: cache, evidence, actions, concurrency, logs, accessibility |
+| `npm run dev:safe` | Port guard + CSS watch + API reload + /healthz self-heal (recommended) |
+| `npm run test:friction:focused` | Small friction-finish release bundle: sprint shell → governance release → settings registry |
+| `npm run test:stability:focused` | Server trust gate: healthz, governance mount, SD continuity, dashboard identity, settings bands |
+| `npm run test:current-sprint:shell-release` | Focused Current Sprint fold, squad switch, Report continuity, and chrome readability |
 | `npm run test:governance:release` | Five risk-ranked meeting-safe release scenarios, fail-fast |
 | `npm run test:settings:registry-release` | Focused Settings registry save, exclusivity, and continuity broadcast contract |
-| `npm run test:friction:focused` | Small friction-finish release bundle: sprint shell → governance release → settings registry |
-| `npm run test:stability:focused` | Server trust gate: healthz, governance mount, SD continuity smoke, refresh storm, settings bands |
-| `npm run dev:safe` | Port guard + CSS watch + API reload + /healthz self-heal (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
-| `npm run test:all` | Full fail-fast orchestration |
-| `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | `npm run test:smoke` | Short UX smoke |
+| `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
+| Official Vercel Git integration | Authenticated preview/production deployment SSOT |
+
+### Broader / protected-branch journeys
+
+Prefer the focused gates above for local verification. These remain available for protected-branch or full orchestration:
+
+| Command | Use |
+|---------|-----|
+| `npm run test:all` | Full fail-fast orchestration |
+| `npm run test:journey:governance-active-loop` | Active PI contract loop (cache, evidence, actions, concurrency) |
 | `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan cross-surface validation |
-| `npm run test:journey:value-retention` | Value retention master plan (27 steps: desktop 1024px density, alignment, investment drawer, period lens, edge cases E2/E6/E8, proof drawer tab) |
+| `npm run test:journey:value-retention` | Value retention master plan (desktop density, drawers, edge cases) |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
-| `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync, Refresh bypass |
-| `npm run test:journey:layout-overlap` | Governance/report/sprint layout overlap + mobile clip gate (fail-fast) |
+| `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync |
+| `npm run test:journey:layout-overlap` | Layout overlap + mobile clip gate |
 | `npm run test:journey:governance` | Brief / governance Playwright bundle |
 | `npm run test:journey:ux-core` | Cross-surface UX gate |
-| Official Vercel Git integration | Authenticated preview/production deployment SSOT |
 
 Orchestration, journeys, and `SKIP_WEBSERVER`: [`TESTING.md`](TESTING.md)
 
