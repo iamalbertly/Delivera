@@ -50,7 +50,7 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
       }
     }
 
-    await expect(page.locator('h1')).toContainText(/Proof|Evidence|Delivery|Delivera|General Performance|Performance History/);
+    await expect(page.locator('h1')).toContainText(/Historical proof & exports|Proof|Evidence|Delivery|Delivera|General Performance|Performance History/i);
     const headerRefresh = page.locator('#report-header-preview-btn');
     const sidebarPreview = page.locator('#preview-btn');
     const hasHeaderRefresh = await headerRefresh.isVisible().catch(() => false);
