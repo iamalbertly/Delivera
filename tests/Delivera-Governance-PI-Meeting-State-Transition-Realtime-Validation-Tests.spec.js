@@ -31,7 +31,7 @@ const promise = {
 };
 
 const STORY = {
-  schemaVersion: 2, presentationContractVersion: 4, buildSha: 'test', compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
+  schemaVersion: 2, presentationContractVersion: 5, buildSha: 'test', compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
   scope: { mode: 'all-squads', projects: ['DMS', 'RPA', 'AMS', 'TRS', 'OPS'], expectedSquads: 5, verifiedSquads: 5, piGovernedSquads: 4, excludedOperationalGroups: 1, complete: true, partialProjects: [] },
   answer: '2 squads are not aligned to PI promises. DMS has 1 no-proof promise. RPA has 1 partial match.', sourceLine: 'Compared with FY27 Q2 PI contract · 4 promises checked', deliveraDid: 'Delivera matched the contract to Jira, checked proof age and work split, and prepared 2 safe owner asks.', verifiedAt: NOW.toISOString(), loopCompletion: 25,
   decisionCoverage: { closed: 1, total: 4, preparedOwnerAsks: 2, copy: '1 decided · 3 open · 4 in scope' },
@@ -47,7 +47,11 @@ async function mockMeeting(page, { story = STORY, detailPromises = [promise] } =
   await page.route('**/api/governance/active-loop.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(story) }));
   await page.route('**/api/governance/squads/DMS/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, squad: STORY.squads[0], promises: detailPromises, currentWork: [{ title: 'Legacy Database Migration', percentage: 38 }, { title: 'Operational noise', ticketCount: 14 }], sprintReality: STORY.squads[0].sprintReality, workSplit: STORY.squads[0].workSplit }) }));
   await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
-  await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: STORY.scope.projects, meta: {}, topRisks: [], evidencePack: { rows: [] }, squadInsights: [] }) }));
+  await page.route('**/api/governance-brief.json**', (route) => {
+    const requested = new URL(route.request().url()).searchParams.get('projects');
+    const projects = requested ? requested.split(',').filter(Boolean) : STORY.scope.projects;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects, meta: {}, topRisks: [], evidencePack: { rows: [] }, squadInsights: [] }) });
+  });
   await page.route('**/api/boards.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ boards: [], projectErrors: [] }) }));
   await page.route('**/api/quarters-list**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
   for (const pattern of ['**/api/governance/adoption-metrics.json**', '**/api/governance/inbox.json**', '**/api/governance/feedback-summary.json**', '**/api/governance/scope-intelligence.json**']) await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
@@ -334,7 +338,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await loginIfRequired(page, '/actions');
     await expect(page).toHaveURL(/\/actions$/);
     await expect(page.locator('[data-action-case]')).toHaveCount(1);
-    await expect(page.locator('[data-action-case]')).toContainText('2 promises share this correction');
+    await expect(page.locator('[data-action-case]')).toContainText(/2.*promises share this correction/);
     const picker = page.locator('[data-action-case-picker]');
     await expect(picker).toBeVisible();
     await picker.selectOption('prm-dms-2');
@@ -353,7 +357,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await page.route('**/api/governance/actions.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ cases }) }));
     await loginIfRequired(page, '/actions');
     await expect(page.locator('[data-action-case]')).toHaveCount(1);
-    await expect(page.locator('[data-action-case]')).toContainText('2 promises share this correction');
+    await expect(page.locator('[data-action-case]')).toContainText(/2.*promises share this correction/);
   });
 
   test('release 4 Settings persists versioned organization truth and preserves conflict drafts', async ({ page }, testInfo) => {

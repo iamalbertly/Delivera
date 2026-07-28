@@ -9,7 +9,7 @@ const testPass = process.env.TEST_LOGIN_PASSWORD || process.env.APP_LOGIN_PASSWO
  * Fail-fast when a post-login root selector is provided and never appears.
  */
 export async function loginIfRequired(page, redirectPath = '/', { rootSelector = '', timeout = 10000 } = {}) {
-  const target = redirectPath.startsWith('http') ? redirectPath : `http://localhost:3001${redirectPath}`;
+  const target = redirectPath.startsWith('http') ? redirectPath : redirectPath;
   await page.goto(target, { waitUntil: 'domcontentloaded' });
   const hasLogin = await page.locator('input[name="username"]').isVisible().catch(() => false);
   if (hasLogin) {
