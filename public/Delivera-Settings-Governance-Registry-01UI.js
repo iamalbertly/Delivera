@@ -6,6 +6,8 @@ const drafts = new Map();
 
 function personName(value) { return typeof value === 'string' ? value : value?.displayName || value?.name || ''; }
 function normalized(value) { return String(value || '').trim(); }
+function hasOwnerGap(item) { return !personName(item.productOwner) || !personName(item.scrumMaster); }
+function isParticipationException(item) { return normalized(item.participationState) !== 'pi-governed'; }
 
 function snapshot(item) {
   return {
@@ -43,11 +45,12 @@ function row(item) {
     <button class="registry-disclosure" type="button" data-registry-edit aria-expanded="false" aria-label="Edit ${escapeHtml(item.friendlyName)}" title="Edit ${escapeHtml(item.friendlyName)}"><span aria-hidden="true">›</span></button>
     <div class="registry-editor" hidden>
       <label><span>Participation</span><select name="participationState"><option value="pi-governed" ${item.participationState === 'pi-governed' ? 'selected' : ''}>PI-governed</option><option value="pending-consent" ${item.participationState === 'pending-consent' ? 'selected' : ''}>Pending consent</option><option value="operational-exception" ${item.participationState === 'operational-exception' ? 'selected' : ''}>Operational exception</option></select></label>
-      <label><span>Product Owner</span><input name="productOwner" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.productOwner))}" placeholder="Not assigned"></label>
-      <label><span>Scrum Master</span><input name="scrumMaster" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.scrumMaster))}" placeholder="Not assigned"></label>
-      <label><span>Stream lead</span><input name="streamLead" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.streamLead))}" placeholder="Not assigned"></label>
+      <label><span>Product Owner</span><input name="productOwner" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.productOwner))}" placeholder="Not assigned"></label>
+      <label><span>Scrum Master</span><input name="scrumMaster" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.scrumMaster))}" placeholder="Not assigned"></label>
+      <label><span>Stream lead</span><input name="streamLead" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.streamLead))}" placeholder="Not assigned"></label>
       <datalist id="people-${escapeHtml(item.squadKey)}">${peopleOptions}</datalist>
-      <div class="registry-save"><input name="reason" placeholder="Reason for change" aria-label="Reason for ${escapeHtml(item.friendlyName)} change"><button class="btn btn-primary btn-compact" type="submit" disabled>Save squad</button><small data-registry-status aria-live="polite">${item.lastVerifiedAt ? `Verified ${new Date(item.lastVerifiedAt).toLocaleDateString()}` : boardCandidates.length ? 'Database suggestions ready for review' : 'Not yet verified'}</small></div>
+      ${people.length ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-accept-suggestion>Accept suggestion</button><small>${escapeHtml(people.slice(0, 2).map((p) => p.displayName).join(' · '))}</small></div>` : ''}
+      <div class="registry-save"><input name="reason" autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Reason for change" aria-label="Reason for ${escapeHtml(item.friendlyName)} change"><button class="btn btn-primary btn-compact" type="submit" disabled>Save squad</button><small data-registry-status aria-live="polite">${item.lastVerifiedAt ? `Verified ${new Date(item.lastVerifiedAt).toLocaleDateString()}` : boardCandidates.length ? 'Database suggestions ready for review' : 'Not yet verified'}</small></div>
     </div>
   </form>`;
 }
@@ -58,10 +61,34 @@ function auditHistory() {
   return `<ol class="registry-audit-list">${entries.map((entry) => `<li><strong>${escapeHtml(entry.squadKeys?.join(', ') || 'Organization')}</strong><span>${escapeHtml(entry.reason || 'Reason unavailable')}</span><small>${escapeHtml(new Date(entry.at).toLocaleString())} · ${escapeHtml(entry.actor || 'authorized admin')}</small></li>`).join('')}</ol>`;
 }
 
+function renderBand(title, description, items, emptyCopy = 'Nothing to review right now.') {
+  return `<section class="registry-band"><header class="registry-band-head"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span>${items.length}</span></header>${items.length ? `<div class="registry-list">${items.map(row).join('')}</div>` : `<p class="governance-empty">${escapeHtml(emptyCopy)}</p>`}</section>`;
+}
+
+function renderHealthStrip() {
+  const squads = registry.squads || [];
+  const unresolved = squads.filter(hasOwnerGap).length;
+  const exceptions = squads.filter(isParticipationException).length;
+  const governed = squads.length - exceptions;
+  return `<section class="registry-health-strip" aria-label="Platform health">
+    <article><small>PI-governed</small><strong>${governed}</strong></article>
+    <article><small>Exceptions</small><strong>${exceptions}</strong></article>
+    <article><small>Owner gaps</small><strong>${unresolved}</strong></article>
+    <article><small>Registry version</small><strong>${Number(registry.version) || 1}</strong></article>
+  </section>`;
+}
+
 function render() {
-  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Select squads once, preview one reasoned change, and publish it across Delivera.</p></div><label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label><span>Registry v${Number(registry.version) || 1}</span></div>
-    <section class="registry-bulk" aria-labelledby="registry-bulk-title"><div><h3 id="registry-bulk-title">Bulk participation change</h3><p><span data-selected-count>0 squads selected</span> · updates are atomic and auditable.</p></div><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></section>
-    <div class="registry-list">${(registry.squads || []).map(row).join('')}</div>
+  const squads = registry.squads || [];
+  const participationExceptions = squads.filter(isParticipationException);
+  const ownerRouteGaps = squads.filter((item) => !isParticipationException(item) && hasOwnerGap(item));
+  const platformHealthy = squads.filter((item) => !isParticipationException(item) && !hasOwnerGap(item));
+  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.</p></div><label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label><span>Registry v${Number(registry.version) || 1}</span></div>
+    ${renderHealthStrip()}
+    ${renderBand('Participation exceptions', 'These squads are excluded or pending onboarding, so this band should stay intentionally small.', participationExceptions, 'No participation exceptions are active.')}
+    ${renderBand('Owner-route gaps', 'Fix missing PO and SM routes before the full registry list so actions can land on the right people.', ownerRouteGaps, 'All visible squads have PO and SM routes.')}
+    <section class="registry-bulk" aria-labelledby="registry-bulk-title"><div><h3 id="registry-bulk-title">Bulk participation change</h3><p><span data-selected-count>0 squads selected</span> · updates are atomic and auditable.</p></div><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></section>
+    ${renderBand('Platform health / audit', 'Healthy squads remain editable here, but the first attention should go to the exception and owner-gap bands above.', platformHealthy, 'No fully routed PI-governed squads are available yet.')}
     <details class="registry-audit"><summary>Recent organization changes</summary>${auditHistory()}</details>`;
   wireRows();
   wireBulk();
@@ -98,6 +125,23 @@ function wireRows() {
     });
     form.addEventListener('input', () => updateRowState(form));
     form.querySelector('[data-registry-select]')?.addEventListener('change', updateBulkState);
+    form.querySelector('[data-accept-suggestion]')?.addEventListener('click', () => {
+      const squad = registry.squads.find((item) => item.squadKey === form.dataset.registrySquad);
+      const people = squad?.suggestions?.people || [];
+      if (!people.length) return;
+      const po = people.find((p) => /product owner|po/i.test(String(p.role || p.evidence || ''))) || people[0];
+      const sm = people.find((p) => /scrum master|sm/i.test(String(p.role || p.evidence || ''))) || people[1] || people[0];
+      if (form.elements.productOwner && !normalized(form.elements.productOwner.value) && po?.displayName) {
+        form.elements.productOwner.value = po.displayName;
+      }
+      if (form.elements.scrumMaster && !normalized(form.elements.scrumMaster.value) && sm?.displayName) {
+        form.elements.scrumMaster.value = sm.displayName;
+      }
+      if (!normalized(form.elements.reason?.value)) form.elements.reason.value = 'Accepted registry people suggestion';
+      updateRowState(form);
+      const status = form.querySelector('[data-registry-status]');
+      if (status) status.textContent = 'Suggestion applied — review and save.';
+    });
     updateRowState(form);
   });
 }
@@ -154,6 +198,19 @@ function patchFromValues(values) {
   };
 }
 
+function broadcastRegistryVersion(version) {
+  try {
+    const nextVersion = String(version || Date.now());
+    localStorage.setItem('delivera:registry-version', nextVersion);
+    // storage events do not fire in the same tab, so notify local listeners too.
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'delivera:registry-version',
+      newValue: nextVersion,
+      oldValue: null,
+    }));
+  } catch (_) {}
+}
+
 async function requestBatch(changes, reason) {
   const idempotencyKey = globalThis.crypto?.randomUUID?.() || `registry-${Date.now()}`;
   const response = await fetch('/api/governance/registry', { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ changes, reason, idempotencyKey }) });
@@ -168,10 +225,27 @@ async function saveOne(event) {
   const status = form.querySelector('[data-registry-status]');
   const reason = normalized(form.elements.reason?.value);
   if (!isDirty(form) || !reason) return updateRowState(form);
-  const button = form.querySelector('[type="submit"]'); button.disabled = true; status.textContent = 'Publishing organization truth…';
+  const button = form.querySelector('[type="submit"]');
+  const values = formValues(form);
+  const squadKey = form.dataset.registrySquad;
+  const previous = registry.squads.find((item) => item.squadKey === squadKey);
+  // Optimistic local paint — keep the registry visible while publishing.
+  if (previous) {
+    Object.assign(previous, values);
+    form.dataset.original = JSON.stringify(snapshot(previous));
+    const summary = form.querySelector('.registry-route-summary');
+    if (summary) summary.innerHTML = `<span>${escapeHtml(values.productOwner || 'PO unresolved')}</span><span>${escapeHtml(values.scrumMaster || 'SM unresolved')}</span>`;
+  }
+  button.disabled = true;
+  status.textContent = 'Publishing organization truth…';
   try {
-    registry = await requestBatch([{ squadKey: form.dataset.registrySquad, expectedRevision: Number(form.dataset.registryRevision) || 1, patch: patchFromValues(formValues(form)) }], reason);
-    drafts.delete(form.dataset.registrySquad); render();
+    registry = await requestBatch([{ squadKey, expectedRevision: Number(form.dataset.registryRevision) || 1, patch: patchFromValues(values) }], reason);
+    broadcastRegistryVersion(registry.version);
+    drafts.delete(squadKey);
+    const receipt = registry.receipt?.id ? ` Receipt ${registry.receipt.id}.` : '';
+    render();
+    const refreshed = mount.querySelector(`[data-registry-squad="${squadKey}"] [data-registry-status]`);
+    if (refreshed) refreshed.textContent = `Saved across Delivera.${receipt}`;
   } catch (error) {
     updateRowState(form);
     status.textContent = error.status === 412 ? `${error.message} Your draft is preserved.` : error.message;
@@ -192,19 +266,9 @@ async function saveBulk() {
   try {
     const changes = forms.map((form) => ({ squadKey: form.dataset.registrySquad, expectedRevision: Number(form.dataset.registryRevision) || 1, patch: { participationState } }));
     registry = await requestBatch(changes, reason);
+    broadcastRegistryVersion(registry.version);
     drafts.clear(); render();
     mount.querySelector('[data-bulk-status]').textContent = `${names.length} squads updated across Delivera. Receipt ${registry.receipt?.id || 'recorded'}.`;
-    // Broadcast to other tabs via storage event + same-tab refresh
-    try {
-      const version = String(registry.version || Date.now());
-      localStorage.setItem('delivera:registry-version', version);
-      // storage event doesn't fire in the same tab — dispatch manually
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'delivera:registry-version',
-        newValue: version,
-        oldValue: null,
-      }));
-    } catch (_) {}
   } catch (error) {
     status.textContent = error.status === 412 ? `${error.message} No squad was changed.` : error.message;
     updateBulkState();

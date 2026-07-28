@@ -36,6 +36,45 @@ function buildLoadingContext(boardLabel = '', sprintLabel = '') {
   return parts.join(' | ');
 }
 
+function getRequestedSquadFromUrl() {
+  try {
+    return String(new URL(window.location.href).searchParams.get('squad') || '').trim().toUpperCase().split(',')[0];
+  } catch (_) {
+    return '';
+  }
+}
+
+function boardProjectKey(board) {
+  return String(board?.projectKey || board?.location?.projectKey || '').trim().toUpperCase();
+}
+
+function findBoardIdForSquad(boards, squadKey) {
+  const key = String(squadKey || '').trim().toUpperCase();
+  if (!key || !Array.isArray(boards)) return '';
+  const match = boards.find((board) => boardProjectKey(board) === key);
+  return match ? String(match.id) : '';
+}
+
+function rewriteContinuityUrl({ squad, boardId, sprintId, projects }) {
+  try {
+    const url = new URL(window.location.href);
+    if (squad) url.searchParams.set('squad', squad);
+    if (projects) url.searchParams.set('projects', projects);
+    if (boardId) url.searchParams.set('boardId', String(boardId));
+    if (sprintId) url.searchParams.set('sprintId', String(sprintId));
+    else url.searchParams.delete('sprintId');
+    window.history.replaceState({}, '', url.toString());
+  } catch (_) {}
+}
+
+function applySquadAuthoritativeScope(requestedSquad) {
+  if (!requestedSquad) return getProjectsParam();
+  syncProjectsSelect(requestedSquad);
+  persistProjectsSelection(requestedSquad);
+  rewriteContinuityUrl({ squad: requestedSquad, projects: requestedSquad });
+  return requestedSquad;
+}
+
 async function revealPreparedSprintTruth(projects) {
   try {
     const response = await fetch(`/api/current-sprint/truth.json?projects=${encodeURIComponent(projects)}`, { credentials: 'same-origin' });
@@ -104,9 +143,13 @@ function refreshBoards(preferredId, preferredSprintId) {
   retryLastIntent = () => refreshBoards(preferredId, preferredSprintId);
   const requestId = ++lastBoardsRefreshRequestId;
   const { boardSelect } = currentSprintDom;
+  const requestedSquad = getRequestedSquadFromUrl();
+  // Squad URL token is authoritative: force project scope before boards load so we never
+  // resolve SD against an MPSA-only board list and silently fall back to the wrong squad.
+  const scopedProjects = applySquadAuthoritativeScope(requestedSquad) || getProjectsParam();
   showRibbon('', 'fresh');
-  showLoading('Loading boards for ' + getProjectsParam() + '...');
-  void revealPreparedSprintTruth(getProjectsParam());
+  showLoading('Loading boards for ' + scopedProjects + '...');
+  void revealPreparedSprintTruth(scopedProjects);
   return loadBoards()
     .then((res) => {
       if (requestId !== lastBoardsRefreshRequestId) return null;
@@ -134,7 +177,13 @@ function refreshBoards(preferredId, preferredSprintId) {
       }
       if (!boards.length) {
         setBoardSelectCouldntLoad();
-        showBoardsLoadError('No boards found for selected projects. Check project filters or run Report preview.', preferredId, preferredSprintId);
+        showBoardsLoadError(
+          requestedSquad
+            ? `No ${requestedSquad} board in scope. Change scope or open Answer to pick another squad.`
+            : 'No boards found for selected projects. Check project filters or run Report preview.',
+          preferredId,
+          preferredSprintId
+        );
         return null;
       }
       const boardSelectEl = document.getElementById('board-select');
@@ -144,40 +193,92 @@ function refreshBoards(preferredId, preferredSprintId) {
         boardSelectEl.parentElement.style.display = '';
       }
       const boardIds = boards.map((b) => String(b.id));
+      const squadBoardId = findBoardIdForSquad(boards, requestedSquad);
+      if (requestedSquad && !squadBoardId) {
+        setBoardSelectCouldntLoad();
+        showBoardsLoadError(
+          `No ${requestedSquad} board in scope — Change scope. Delivera will not show another squad's backlog.`,
+          preferredId,
+          preferredSprintId
+        );
+        return null;
+      }
       const preferredStillExists = preferredId && boardIds.includes(preferredId);
-      const boardId = preferredStillExists ? preferredId : boardIds[0];
+      // When squad is present, ignore stale boardId even if it exists in the list from a prior scope.
+      const boardId = squadBoardId
+        ? squadBoardId
+        : (preferredStillExists ? preferredId : boardIds[0]);
+      const selectedBoard = boards.find((b) => String(b.id) === String(boardId));
+      const selectedProjectKey = boardProjectKey(selectedBoard) || scopedProjects;
       boardSelect.value = boardId;
       currentBoardId = boardId;
+      rewriteContinuityUrl({
+        squad: requestedSquad || selectedProjectKey,
+        projects: selectedProjectKey,
+        boardId,
+        sprintId: preferredSprintId || '',
+      });
+      if (selectedProjectKey) {
+        syncProjectsSelect(selectedProjectKey);
+        persistProjectsSelection(selectedProjectKey);
+      }
       const cachedSnapshot = readCurrentSprintSnapshot(getProjectsParam(), boardId);
-      if (cachedSnapshot?.data) {
+      const snapshotProject = String(cachedSnapshot?.data?.board?.projectKey || cachedSnapshot?.data?.meta?.projects || '')
+        .trim()
+        .toUpperCase()
+        .split(',')[0];
+      const snapshotMatchesSquad = !requestedSquad || !snapshotProject || snapshotProject === requestedSquad;
+      if (cachedSnapshot?.data && snapshotMatchesSquad) {
         currentSprintId = cachedSnapshot.data?.sprint?.id || preferredSprintId || null;
         persistSelection(currentBoardId, currentSprintId);
         showCurrentSprintRenderedContent(cachedSnapshot.data, (sprintId) => initHandlers.selectSprintById(sprintId), { source: 'snapshot' });
       }
-      if (preferredId && !preferredStillExists) {
+      if (preferredId && (!preferredStillExists || (squadBoardId && String(preferredId) !== String(squadBoardId)))) {
         try { localStorage.removeItem(currentSprintKeys.boardKey); } catch (_) {}
         try { localStorage.removeItem(currentSprintKeys.sprintKey); } catch (_) {}
         clearCurrentSprintSnapshot(getProjectsParam(), preferredId);
         preferredSprintId = null;
-        const boardName = boards.find(b => String(b.id) === boardId)?.name || boardId;
+        const boardName = selectedBoard?.name || boardId;
         const hint = document.getElementById('current-sprint-single-project-hint');
         if (hint) hint.textContent = 'Switched to ' + boardName + '.';
       }
-      if (!cachedSnapshot?.data) {
+      if (!(cachedSnapshot?.data && snapshotMatchesSquad)) {
         const loadingContext = buildLoadingContext(boardSelect?.options?.[boardSelect.selectedIndex]?.text || '');
         showLoading(loadingContext ? ('Loading ' + loadingContext) : 'Loading current sprint...');
       }
+      // Drop stale sprintId when squad forced a different board than the URL preferred.
+      const sprintToLoad = (squadBoardId && preferredId && String(squadBoardId) !== String(preferredId))
+        ? null
+        : preferredSprintId;
       const sprintRequestId = ++lastBoardsRefreshRequestId;
-      return loadCurrentSprintWithGuard(boardId, preferredSprintId)
+      return loadCurrentSprintWithGuard(boardId, sprintToLoad)
         .catch((err) => {
-          if (!preferredSprintId) throw err;
+          if (!sprintToLoad) throw err;
           return loadCurrentSprintWithGuard(boardId);
         })
         .then((data) => {
           if (!data) return null;
           if (sprintRequestId !== lastBoardsRefreshRequestId) return null;
+          const loadedProject = String(data?.board?.projectKey || data?.meta?.projects || '')
+            .trim()
+            .toUpperCase()
+            .split(',')[0];
+          if (requestedSquad && loadedProject && loadedProject !== requestedSquad) {
+            showBoardsLoadError(
+              `Requested ${requestedSquad} but loaded ${loadedProject}. Retry boards or change scope.`,
+              boardId,
+              null
+            );
+            return null;
+          }
           currentSprintId = data?.sprint?.id || null;
           persistSelection(currentBoardId, currentSprintId);
+          rewriteContinuityUrl({
+            squad: requestedSquad || loadedProject,
+            projects: loadedProject || getProjectsParam(),
+            boardId: currentBoardId,
+            sprintId: currentSprintId,
+          });
           saveCurrentSprintSnapshot(getProjectsParam(), currentBoardId, data);
           if (data?.meta?.noActiveSprintFallback) {
             showRibbon(data.meta.explanatoryLine || 'No active sprint - showing last completed sprint.', 'closest');
@@ -424,8 +525,19 @@ function init() {
   } catch (_) {}
   const preferredId = getPreferredBoardId();
   const preferredSprintId = getPreferredSprintId();
-  syncProjectsSelect(getStoredProjects());
-  const initialSnapshot = readCurrentSprintSnapshot(getProjectsParam(), preferredId);
+  const requestedSquad = getRequestedSquadFromUrl();
+  if (requestedSquad) {
+    applySquadAuthoritativeScope(requestedSquad);
+  } else {
+    syncProjectsSelect(getStoredProjects());
+  }
+  // Prefer a snapshot that matches the authoritative squad/board, not a stale MPSA cache.
+  const snapshotBoardId = (() => {
+    if (!requestedSquad) return preferredId;
+    // Until boards load we may not know SD's board id; skip cross-squad snapshot paint.
+    return preferredId;
+  })();
+  const initialSnapshot = readCurrentSprintSnapshot(getProjectsParam(), snapshotBoardId);
   // Only show snapshot if it matches the URL-specified sprint (prevents stale data flash
   // when user navigates to /current-sprint?boardId=X&sprintId=Y with explicit params)
   const urlParams = new URLSearchParams(window.location.search);
@@ -433,7 +545,19 @@ function init() {
   const snapshotSprintId = String(initialSnapshot?.data?.sprint?.id || '');
   const snapshotMatchesUrl = !urlHasBoardOrSprint
     || (!preferredSprintId || snapshotSprintId === String(preferredSprintId));
-  if (initialSnapshot?.data && snapshotMatchesUrl) {
+  const snapshotProject = String(initialSnapshot?.data?.board?.projectKey || initialSnapshot?.data?.meta?.projects || '')
+    .trim()
+    .toUpperCase()
+    .split(',')[0];
+  const snapshotMatchesSquad = !requestedSquad || !snapshotProject || snapshotProject === requestedSquad;
+  // When squad disagrees with preferred boardId, never paint the stale board snapshot.
+  const preferredLikelyWrongSquad = Boolean(
+    requestedSquad
+    && preferredId
+    && snapshotProject
+    && snapshotProject !== requestedSquad
+  );
+  if (initialSnapshot?.data && snapshotMatchesUrl && snapshotMatchesSquad && !preferredLikelyWrongSquad) {
     showCurrentSprintRenderedContent(initialSnapshot.data, (sprintId) => initHandlers.selectSprintById(sprintId), { source: 'snapshot' });
   }
   initGlobalOutcomeModal({
@@ -469,11 +593,22 @@ function init() {
     if (!squadSelect) return;
     const boardId = squadSelect.value;
     if (!boardId) return;
+    const selectedOpt = squadSelect.selectedOptions?.[0];
+    const projectKey = String(selectedOpt?.getAttribute('data-project-key') || '').trim().toUpperCase();
+    if (projectKey) {
+      syncProjectsSelect(projectKey);
+      persistProjectsSelection(projectKey);
+      rewriteContinuityUrl({ squad: projectKey, projects: projectKey, boardId });
+    } else {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('boardId', boardId);
+        url.searchParams.delete('sprintId');
+        url.searchParams.delete('squad');
+        window.history.replaceState({}, '', url.toString());
+      } catch (_) {}
+    }
     persistSelection(boardId, null);
-    const url = new URL(window.location.href);
-    url.searchParams.set('boardId', boardId);
-    url.searchParams.delete('sprintId');
-    window.history.replaceState({}, '', url.toString());
     initHandlers.refreshBoards(boardId, null);
   });
   if (errorEl) {
@@ -503,6 +638,11 @@ function init() {
       if ((event.newValue || '') === (projectsSelect?.value || '')) return;
       syncProjectsSelect(event.newValue || '');
       initHandlers.onProjectsChange();
+      return;
+    }
+    if (event.key === 'delivera:registry-version') {
+      showRibbon('Organization settings changed — refreshing sprint truth…', 'info');
+      initHandlers.refreshBoards(getPreferredBoardId(), getPreferredSprintId());
     }
   });
   try {

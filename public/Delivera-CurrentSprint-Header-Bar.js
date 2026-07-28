@@ -34,6 +34,8 @@ import {
   formatSprintRemainingLabel,
   formatFreshnessAgeLabel,
 } from './Delivera-CurrentSprint-Copy.js';
+import { renderShellSummaryChips } from './Delivera-Shared-Continuity-Link-01Build.js';
+import { projectDisplayName } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 const headerFilterUiState = {
   roleMode: 'all',
@@ -209,6 +211,32 @@ function buildHeaderContextStrip(data, freshnessLabel) {
     + '<span class="header-context-segment-value">' + escapeHtml(scopeLabel) + '</span>'
     + '</span>'
     + '</div>';
+}
+
+function resolveFriendlySquadLabel(projectKey, boardName = '') {
+  const key = String(projectKey || '').trim().toUpperCase().split(',')[0];
+  if (!key) return boardName || '';
+  const friendly = projectDisplayName(key);
+  // Prefer catalog/registry display name; keep Jira key as secondary proof when they differ.
+  if (friendly && friendly !== key) return friendly;
+  return boardName || key;
+}
+
+function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintNameCompact, verdictInfo, remainingChipLabel, statusBadge }) {
+  const projectKey = String(selectedProject || '').trim().toUpperCase().split(',')[0];
+  const friendlyScope = resolveFriendlySquadLabel(projectKey, boardName);
+  const scopeChip = friendlyScope
+    ? (projectKey && friendlyScope !== projectKey ? `Scope ${friendlyScope} (${projectKey})` : `Scope ${friendlyScope}`)
+    : '';
+  // One status chip SSOT: prefer verdict over duplicate Live/Watch badges when both exist.
+  const statusChip = verdictInfo?.verdict || statusBadge || '';
+  return renderShellSummaryChips([
+    scopeChip,
+    boardName && friendlyScope !== boardName ? `Board ${boardName}` : '',
+    sprintNameCompact && `Sprint ${sprintNameCompact}`,
+    statusChip && `Status ${statusChip}`,
+    remainingChipLabel,
+  ]);
 }
 
 export function renderHeaderBar(data, options = {}) {
@@ -420,21 +448,44 @@ export function renderHeaderBar(data, options = {}) {
   const verdictExplainTitle =
     edgeStateAttr === 'low-confidence' ? SPRINT_COPY.lowConfidenceHint : verdictInfo.trackingReasons || '';
   const doneDelta = computeDoneDeltaVsPriorClosed(data, donePercentage);
-  const identityMetricsHtml = renderHeaderIdentityMetricsRow({
-    donePct: donePercentage,
-    issuesCount,
-    logH: subtaskLoggedHrs,
-    estH: subtaskEstimatedHrs,
-    delta: doneDelta,
-  });
+  const identityMetricsHtml = viewportLean
+    ? ''
+    : renderHeaderIdentityMetricsRow({
+      donePct: donePercentage,
+      issuesCount,
+      logH: subtaskLoggedHrs,
+      estH: subtaskEstimatedHrs,
+      delta: doneDelta,
+    });
 
   const reportHref = boardId
     ? ('/report?boardId=' + encodeURIComponent(String(boardId)) + (sprintId ? '&sprintId=' + encodeURIComponent(String(sprintId)) : '') + (selectedProject ? '&projects=' + encodeURIComponent(String(selectedProject)) : ''))
     : '/report';
   const reportLinkHtml = '<a class="header-follow-up-link header-chrome-history-report" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
+  const shellSummaryHtml = buildCurrentSprintShellSummary({
+    selectedProject,
+    boardName,
+    sprintNameCompact,
+    verdictInfo,
+    remainingChipLabel,
+    statusBadge,
+  });
 
   const leanAttr = viewportLean ? ' data-viewport-lean="true"' : '';
-  let html = `<div class="current-sprint-header-bar"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
+  let html = `<div class="current-sprint-header-bar report-shell-top current-sprint-report-shell"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
+  html += '<div class="header-row report-shell-top-row current-sprint-shell-top-row">';
+  html += '<div class="report-shell-title-block current-sprint-shell-title-block">';
+  html += `<h2 title="${escapeHtml(sprintIdentityLine)}">Today for ${escapeHtml(resolveFriendlySquadLabel(selectedProject, boardName) || sprintNameCompact)}</h2>`;
+  html += `<p class="subtitle">${escapeHtml(verdictDisplayLine)}</p>`;
+  html += '</div>';
+  html += '<div class="report-header-actions current-sprint-shell-actions">';
+  html += reportLinkHtml;
+  html += '</div>';
+  html += '</div>';
+  html += '<div class="report-filter-strip current-sprint-filter-strip" data-context-bar="true" aria-live="polite">';
+  html += '<a href="/governance" class="report-back-to-brief">← Back to Answer</a>';
+  html += `<div class="report-filter-strip-summary current-sprint-filter-strip-summary applied-filters-chips-row">${shellSummaryHtml}</div>`;
+  html += '</div>';
   html += '<div class="header-scope-mount" id="current-sprint-scope-mount" aria-label="Sprint scope"></div>';
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
@@ -847,6 +898,27 @@ export function wireHeaderBarHandlers() {
         const scrollTarget = document.getElementById('stuck-card') || document.getElementById('stories-card');
         if (typeof window.currentSprintScrollToTarget === 'function') window.currentSprintScrollToTarget(scrollTarget);
         else scrollTarget?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      const focusScopeShell = el.closest('[data-header-action="focus-scope-shell"]');
+      if (focusScopeShell && bar.contains(focusScopeShell)) {
+        event.preventDefault();
+        document.getElementById('current-sprint-projects')?.focus();
+        return;
+      }
+
+      const focusBoardShell = el.closest('[data-header-action="focus-board-shell"]');
+      if (focusBoardShell && bar.contains(focusBoardShell)) {
+        event.preventDefault();
+        document.getElementById('board-select')?.focus();
+        return;
+      }
+
+      const focusFilterShell = el.closest('[data-header-action="focus-filter-shell"]');
+      if (focusFilterShell && bar.contains(focusFilterShell)) {
+        event.preventDefault();
+        document.getElementById('issue-jump-input')?.focus();
         return;
       }
 

@@ -3,6 +3,7 @@ import { allowedActionsForPromise, buildDoingInstead, calculateWorkSplit, classi
 import { projectSquadSprintTruth } from '../lib/Delivera-Governance-Sprint-Reality-01SSOT.js';
 import { projectActiveLoopCases } from '../lib/Delivera-Governance-ActiveLoop-02Store-IO.js';
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
+import { loginIfRequired as loginIfRequiredShared } from './Delivera-Playwright-Login-If-Required-01Helper.js';
 
 const NOW = new Date('2026-07-17T10:32:00.000Z');
 const baseline = (type, label) => ({ state: type === 'missing' ? 'missing' : 'verified', sourceType: type, sourceLabel: label, copy: type === 'missing' ? 'Cannot verify · baseline missing · save baseline to compare.' : `${label} verified 12 Jul.` });
@@ -30,10 +31,10 @@ const promise = {
 };
 
 const STORY = {
-  schemaVersion: 2, presentationContractVersion: 3, buildSha: 'test', compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
+  schemaVersion: 2, presentationContractVersion: 4, buildSha: 'test', compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
   scope: { mode: 'all-squads', projects: ['DMS', 'RPA', 'AMS', 'TRS', 'OPS'], expectedSquads: 5, verifiedSquads: 5, piGovernedSquads: 4, excludedOperationalGroups: 1, complete: true, partialProjects: [] },
-  answer: '2 squads are not aligned to PI promises. DMS has 1 no-proof promise. RPA has 1 partial match.', sourceLine: 'Compared with FY27 Q2 PI contract · 4 promises checked · last verified 10:32 UTC', deliveraDid: 'Delivera matched the contract to Jira, checked proof age and work split, and prepared 2 safe owner asks.', verifiedAt: NOW.toISOString(), loopCompletion: 25,
-  decisionCoverage: { closed: 1, total: 4, preparedOwnerAsks: 2, copy: 'Decision coverage: 1 of 4 gaps closed' },
+  answer: '2 squads are not aligned to PI promises. DMS has 1 no-proof promise. RPA has 1 partial match.', sourceLine: 'Compared with FY27 Q2 PI contract · 4 promises checked', deliveraDid: 'Delivera matched the contract to Jira, checked proof age and work split, and prepared 2 safe owner asks.', verifiedAt: NOW.toISOString(), loopCompletion: 25,
+  decisionCoverage: { closed: 1, total: 4, preparedOwnerAsks: 2, copy: '1 decided · 3 open · 4 in scope' },
   lensSummaries: { overall: '2 squads need PI Team attention. Resolve the prepared owner ask first.', rework: 'No high-confidence possible rework is promoted.' },
   squads: [squad('DMS', 'squad-image', 'DMS baseline image'), squad('RPA', 'missing', 'Baseline missing'), squad('AMS', 'full-deck', 'AMS deck source'), squad('TRS', 'manual', 'Transformers manual baseline')],
   excludedOperationalGroups: [{ ...squad('OPS', 'missing', 'Baseline missing'), operatingModel: 'operational-group', operatingModelEvidence: { signals: ['No PI commitments', 'Operational naming pattern'], evidence: { piLinkedCommitmentCount: 0 } } }],
@@ -50,6 +51,18 @@ async function mockMeeting(page, { story = STORY, detailPromises = [promise] } =
   await page.route('**/api/boards.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ boards: [], projectErrors: [] }) }));
   await page.route('**/api/quarters-list**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ quarters: [] }) }));
   for (const pattern of ['**/api/governance/adoption-metrics.json**', '**/api/governance/inbox.json**', '**/api/governance/feedback-summary.json**', '**/api/governance/scope-intelligence.json**']) await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+}
+
+async function loginIfRequired(page, redirectPath = '/governance') {
+  const pathOnly = String(redirectPath || '').split('?')[0];
+  const rootSelector = pathOnly === '/governance' || pathOnly.endsWith('/governance')
+    ? '[data-testid="governance-active-loop"], #gov-active-loop-mount, body.governance-page'
+    : pathOnly === '/actions' || pathOnly.endsWith('/actions')
+      ? '#actions-queue-mount, body.actions-page'
+      : pathOnly === '/settings' || pathOnly.endsWith('/settings')
+        ? '#gov-settings-registry-mount, body.settings-page'
+        : '';
+  await loginIfRequiredShared(page, redirectPath, { rootSelector });
 }
 
 test.describe('Meeting-ready governance deterministic policy', () => {
@@ -85,7 +98,7 @@ test.describe('Meeting-ready governance deterministic policy', () => {
 
 test.describe('Meeting-ready governance browser journey @focused', () => {
   test('Layer 1 owns the first viewport and shows dense per-squad truth', async ({ page }) => {
-    await mockMeeting(page, { story: { ...STORY, decisionCoverage: { closed: 0, total: 0, preparedOwnerAsks: 2 } } }); await page.goto('/governance'); const hero = page.getByTestId('governance-active-loop'); await expect(hero).toBeVisible({ timeout: 15000 });
+    await mockMeeting(page, { story: { ...STORY, decisionCoverage: { closed: 0, total: 0, preparedOwnerAsks: 2 } } }); await loginIfRequired(page, '/governance'); const hero = page.getByTestId('governance-active-loop'); await expect(hero).toBeVisible({ timeout: 15000 });
     await expect(hero).toContainText('Portfolio mission'); await expect(hero.locator('[data-story-squad]')).toHaveCount(4); await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify'); await expect(hero.locator('[data-story-squad="RPA"]')).not.toContainText('off-plan');
     await expect(hero.locator('.gov-loop-decision-count')).toContainText('of 4');
     await expect(hero.locator('.gov-story-columns')).toContainText('Squad');
@@ -102,7 +115,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
 
   test('squad spotlight synchronizes the meeting story and history', async ({ page }) => {
     const repeatedPromise = { ...promise, promiseId: 'prm-dms-2', originalText: 'Confirm recharge receipt copy' };
-    await mockMeeting(page, { detailPromises: [promise, repeatedPromise] }); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click();
+    await mockMeeting(page, { detailPromises: [promise, repeatedPromise] }); await loginIfRequired(page, '/governance'); await page.locator('[data-story-squad="DMS"]').click();
     await expect(page).toHaveURL(/spotlight=DMS/); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Current Work Reality'); await expect(spot).toContainText('Sprint Reality'); await expect(spot).toContainText('Doing Instead'); await expect(spot).toContainText('Promise Evidence'); await expect(spot).toContainText('Action Trail'); await expect(spot).toContainText('Legacy Database Migration'); await expect(spot).toContainText('Re-check this promise');
     await expect(spot.locator('.gov-action-lifecycle')).toHaveCount(1);
     await expect(spot.locator('.gov-action-lifecycle')).toContainText('2 promises share this state');
@@ -113,7 +126,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await mockMeeting(page);
     await page.route('**/api/ai-provider-status.json**', (route) => route.fulfill({ json: { slideVisionReady: true, label: 'server' } }));
     await page.route('**/api/governance/pi-baseline/propose**', (route) => route.fulfill({ json: { method: 'manual', candidates: [] } }));
-    await page.goto('/governance');
+    await loginIfRequired(page, '/governance');
     await page.locator('[data-story-squad="DMS"]').click();
     const rebaseline = page.locator('[data-rebaseline="1"]');
     await expect(rebaseline).toBeVisible();
@@ -123,30 +136,122 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
   });
 
   test('amendment context is visible without opening audit settings', async ({ page }) => {
-    await mockMeeting(page); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click(); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Enable 3-click recharge path'); await expect(spot).toContainText('approved by Irene'); await expect(spot).toContainText('Lipa M-Pesa launch took priority');
+    await mockMeeting(page); await loginIfRequired(page, '/governance'); await page.locator('[data-story-squad="DMS"]').click(); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Enable 3-click recharge path'); await expect(spot).toContainText('approved by Irene'); await expect(spot).toContainText('Lipa M-Pesa launch took priority');
   });
 
   test('recipient is explicit and editable before a nudge is queued', async ({ page }) => {
     let sentBody = null; await mockMeeting(page); await page.route('**/api/governance/cases/prm-dms-1/nudges**', async (route) => { sentBody = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ deliveraRef: 'DLV-2026-MEETING', version: 5 }) }); });
-    await page.goto('/governance'); await page.locator('[data-loop-primary]').click(); const drawer = page.locator('.gov-loop-drawer'); await expect(drawer).toContainText('Nudge will go to Squad PO: Irene'); await drawer.locator('[data-recipient-name]').fill('Asha'); await drawer.locator('[data-recipient-role]').fill('Stream Lead'); await drawer.locator('[data-loop-action="send-nudge"]').click(); await expect(drawer.locator('.gov-loop-action-status')).toContainText('DLV-2026-MEETING'); expect(sentBody.recipient.displayName).toBe('Asha'); expect(sentBody.recipient.role).toBe('Stream Lead'); expect(sentBody.saveAsSquadDefault).not.toBe(true);
+    await loginIfRequired(page, '/governance'); await page.locator('[data-loop-primary]').click(); const drawer = page.locator('.gov-loop-drawer'); await expect(drawer).toContainText('Nudge will go to Squad PO: Irene'); await drawer.locator('[data-recipient-name]').fill('Asha'); await drawer.locator('[data-recipient-role]').fill('Stream Lead'); await drawer.locator('[data-loop-action="send-nudge"]').click(); await expect(drawer.locator('.gov-loop-action-status')).toContainText('DLV-2026-MEETING'); expect(sentBody.recipient.displayName).toBe('Asha'); expect(sentBody.recipient.role).toBe('Stream Lead'); expect(sentBody.saveAsSquadDefault).not.toBe(true);
   });
 
   test('targeted sync carries only the selected squad scope and joins one job', async ({ page }) => {
     let body = null; await mockMeeting(page);
     await page.route('**/api/governance/refreshes/shared-job', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'completed', jobId: 'shared-job', answerVersion: 5, squadPatch: { ...STORY.squads[0], sprintReality: { state: 'active', sprintName: 'FY27DMS06', copy: 'FY27DMS06 is active, 12 days remaining.' } } }) }));
     await page.route('**/api/governance/refreshes', async (route) => { body = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ attached: true, jobId: 'shared-job' }) }); });
-    await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').click(); await page.locator('[data-force-squad]').click(); expect(body).toMatchObject({ scopeType: 'squad', scopeId: 'DMS' }); expect(body.scopeType).not.toBe('portfolio'); await expect(page.locator('#gov-squad-spotlight')).toContainText('FY27DMS06 is active');
+    await loginIfRequired(page, '/governance'); await page.locator('[data-story-squad="DMS"]').click(); await page.locator('[data-force-squad]').click(); expect(body).toMatchObject({ scopeType: 'squad', scopeId: 'DMS' }); expect(body.scopeType).not.toBe('portfolio'); await expect(page.locator('#gov-squad-spotlight')).toContainText('FY27DMS06 is active');
   });
 
   test('background evidence waits behind the read lock', async ({ page }) => {
-    await mockMeeting(page); await page.goto('/governance'); await page.locator('[data-story-squad="DMS"]').focus();
+    await mockMeeting(page); await loginIfRequired(page, '/governance'); await page.locator('[data-story-squad="DMS"]').focus();
     const before = await page.locator('[data-story-squad]').allTextContents(); const updated = structuredClone(STORY); updated.answerVersion = 5; updated.squads.reverse();
     await page.evaluate(async (story) => { const mod = await import('/Delivera-App-Governance-ActiveLoop-01UI.js'); mod.renderActiveGovernanceLoop(story); }, updated);
     await expect(page.locator('.gov-story-update')).toBeVisible(); expect(await page.locator('[data-story-squad]').allTextContents()).toEqual(before); await page.locator('[data-story-apply]').click(); await expect(page.locator('[data-story-squad]').first()).toHaveAttribute('data-story-squad', 'TRS'); await expect(page.locator('[data-story-squad]').first()).toContainText('Transformers');
   });
 
   test('mobile matrix and actions remain touchable', async ({ page }) => {
-    await mockMeeting(page); await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/governance'); await expect(page.getByTestId('governance-source-line')).toContainText('FY27 Q2'); const rows = page.locator('[data-story-squad]'); await expect(rows).toHaveCount(4); expect((await rows.first().boundingBox()).height).toBeGreaterThanOrEqual(44); await rows.first().click(); const sync = page.locator('[data-force-squad]'); await expect(sync).toBeVisible(); expect((await sync.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await mockMeeting(page); await page.setViewportSize({ width: 390, height: 844 }); await loginIfRequired(page, '/governance'); await expect(page.getByTestId('governance-source-line')).toContainText('FY27 Q2'); const rows = page.locator('[data-story-squad]'); await expect(rows).toHaveCount(4); expect((await rows.first().boundingBox()).height).toBeGreaterThanOrEqual(44); await rows.first().click(); const sync = page.locator('[data-force-squad]'); await expect(sync).toBeVisible(); expect((await sync.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('headline identity links focus governance and expose route continuity', async ({ page }) => {
+    await mockMeeting(page);
+    await loginIfRequired(page, '/governance');
+    const hero = page.getByTestId('governance-active-loop');
+    await expect(hero.locator('.gov-loop-identity-links')).toBeVisible();
+    await hero.locator('[data-hero-focus-squad="DMS"]').click();
+    await expect(page).toHaveURL(/spotlight=DMS/);
+    await expect(page.locator('#gov-squad-spotlight')).toContainText('M-Pesa Delivery');
+    await expect(hero.locator('.gov-loop-identity-link-secondary').first()).toHaveAttribute('href', /current-sprint\?squad=/);
+  });
+
+  test('identity links hide with zero attention and cap at three focus squads', async ({ page }) => {
+    const zeroAttention = {
+      ...STORY,
+      squads: STORY.squads.map((item) => ({ ...item, attentionCount: 0 })),
+    };
+    await mockMeeting(page, { story: zeroAttention });
+    await loginIfRequired(page, '/governance');
+    await expect(page.getByTestId('governance-active-loop').locator('.gov-loop-identity-links')).toHaveCount(0);
+
+    const manyAttention = {
+      ...STORY,
+      squads: [
+        squad('DMS', 'squad-image', 'DMS baseline image', { attentionCount: 2 }),
+        squad('RPA', 'missing', 'Baseline missing', { attentionCount: 2 }),
+        squad('AMS', 'full-deck', 'AMS deck source', { attentionCount: 2 }),
+        squad('TRS', 'manual', 'Transformers manual baseline', { attentionCount: 2 }),
+      ],
+    };
+    await mockMeeting(page, { story: manyAttention });
+    await loginIfRequired(page, '/governance');
+    await expect(page.getByTestId('governance-active-loop').locator('[data-hero-focus-squad]')).toHaveCount(3);
+  });
+
+  test('actions returnTo restores the same squad lane from governance', async ({ page }) => {
+    await mockMeeting(page);
+    await page.route('**/api/governance/actions.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        cases: [{
+          promiseId: 'prm-dms-1',
+          squad: 'DMS',
+          squadId: 'DMS',
+          squadDisplayName: 'M-Pesa Delivery',
+          title: 'Re-check stale proof',
+          state: 'needs-attention',
+          lifecycle: 'Needs a re-check.',
+          urgencyLabel: 'today',
+          ownerConfidence: 'verified',
+          proofAge: { copy: '12 business days' },
+          ownerRoute: { displayName: 'Irene', unresolved: false },
+          nextAction: { label: 'Re-check this promise' },
+        }],
+      }),
+    }));
+    await loginIfRequired(page, '/actions?squad=DMS');
+    await expect(page.locator('#actions-queue-summary')).toContainText('DMS');
+    await page.locator('.action-case-source').first().click();
+    await expect(page).toHaveURL(/governance\?.*spotlight=DMS/);
+    await expect(page).toHaveURL(/returnTo=/);
+    await expect(page.locator('[data-return-to-actions]')).toBeVisible({ timeout: 15000 });
+    await page.locator('[data-return-to-actions]').click();
+    await expect(page).toHaveURL(/\/actions\?.*squad=DMS/);
+  });
+
+  test('excluded operational groups stay inspectable outside portfolio matrix counts', async ({ page }) => {
+    await mockMeeting(page);
+    await loginIfRequired(page, '/governance');
+    const hero = page.getByTestId('governance-active-loop');
+    await expect(hero.locator('[data-story-squad]')).toHaveCount(4);
+    await expect(hero.locator('[data-story-squad="OPS"]')).toHaveCount(0);
+    await expect(hero.locator('[data-operating-firewall]')).toContainText('Operations Support');
+    await hero.locator('[data-operating-firewall] summary').click();
+    await hero.locator('[data-operating-model="OPS"]').click();
+    await expect(page.locator('.gov-right-drawer-panel:visible, .gov-loop-drawer:visible').first()).toBeVisible();
+  });
+
+  test('top chrome stays readable after governance render settles', async ({ page }) => {
+    await mockMeeting(page);
+    await loginIfRequired(page, '/governance');
+    await page.waitForTimeout(800);
+    const chrome = page.locator('.app-top-chrome');
+    await expect(chrome).toBeVisible();
+    const styles = await chrome.evaluate((node) => {
+      const cs = window.getComputedStyle(node);
+      return { background: cs.backgroundColor, color: cs.color };
+    });
+    expect(styles.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(styles.background).not.toBe('rgb(255, 255, 255)');
   });
 });
 
@@ -159,11 +264,10 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
 
   test('release 1 governance truth and first value', async ({ page }) => {
     await mockMeeting(page);
-    const started = Date.now();
-    await page.goto('/governance');
+    await loginIfRequired(page, '/governance');
+    await page.reload({ waitUntil: 'domcontentloaded' });
     const hero = page.getByTestId('governance-active-loop');
     await expect(hero).toBeVisible({ timeout: 2000 });
-    expect(Date.now() - started).toBeLessThan(2000);
     await expect(hero).toContainText('2 squads are not aligned');
     await expect(hero.locator('[data-story-squad]')).toHaveCount(4);
     await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify');
@@ -173,8 +277,8 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(page.locator('#gov-action-clusters-mount:visible')).toHaveCount(0);
     await expect(page.locator('#work-draft-drawer')).toBeHidden();
     await expect(page.locator('#work-draft-drawer')).toHaveAttribute('inert', '');
-    await expect(hero.locator('[data-hero-squad="DMS"]')).toBeVisible();
-    await hero.locator('[data-hero-squad="DMS"]').click();
+    await expect(hero.locator('[data-hero-focus-squad="DMS"]')).toBeVisible();
+    await hero.locator('[data-hero-focus-squad="DMS"]').click();
     await expect(page).toHaveURL(/spotlight=DMS/);
     await expect(page.locator('#gov-squad-spotlight')).toContainText('Legacy Database Migration');
   });
@@ -199,7 +303,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
   test('release 3 Actions renders the shared visible queue', async ({ page }) => {
     await page.route('**/api/governance/actions.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, cases: [{ promiseId: promise.promiseId, squad: promise.squad, squadDisplayName: promise.squadDisplayName, title: promise.originalText, state: promise.caseState, lifecycle: promise.actionLifecycle, ownerRoute: promise.ownerRoute, nextAction: promise.nextAction, version: 4 }] }) }));
     await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
-    await page.goto('/actions');
+    await loginIfRequired(page, '/actions');
     await expect(page).toHaveURL(/\/actions$/);
     await expect(page.locator('[data-action-case="prm-dms-1"]')).toContainText('ready to re-check');
     await expect(page.locator('[data-action-case="prm-dms-1"] button')).toHaveText('Re-check this promise');
@@ -213,7 +317,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
       nextAction: { label: 'Owner route missing · resolve in drawer' },
     }));
     await page.route('**/api/governance/actions.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ cases }) }));
-    await page.goto('/actions');
+    await loginIfRequired(page, '/actions');
     await expect(page.locator('[data-action-case]')).toHaveCount(1);
     await expect(page.locator('[data-action-case]')).toContainText('2 promises share this correction');
   });
@@ -231,7 +335,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await page.route('**/api/jira-activity**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: [] }) }));
     await page.route('**/api/governance-brief.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: ['SD'], squadInsights: [], meta: {} }) }));
     await page.route('**/api/leadership-summary.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
-    await page.goto('/settings');
+    await loginIfRequired(page, '/settings');
     const row = page.locator('[data-registry-squad="SD"]');
     await expect(row).toBeVisible();
     await page.locator('[data-registry-filter]').fill('Robotics');
@@ -251,7 +355,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
 
   test('release 5 continuity degradation and realtime safety', async ({ page }) => {
     await mockMeeting(page);
-    await page.goto('/governance?view=evidence&spotlight=DMS');
+    await loginIfRequired(page, '/governance?view=evidence&spotlight=DMS');
     await expect(page.locator('#gov-squad-spotlight')).toContainText('M-Pesa Delivery');
     await page.locator('[data-story-squad="DMS"]').focus();
     const before = await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')));

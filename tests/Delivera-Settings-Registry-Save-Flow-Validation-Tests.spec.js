@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { loginIfRequired } from './Delivera-Playwright-Login-If-Required-01Helper.js';
 
 /**
- * Validates Fixes 9-13: Settings save flow.
+ * Validates Settings save flow + band exclusivity.
  * - Auto-suggests participation (PI-governed) + pre-fills reason
  * - Uses in-app drawer preview (not native confirm())
  * - Broadcasts registry version via localStorage
+ * - Each squad appears in exactly one band
  */
 
 const MOCK_REGISTRY = {
@@ -14,6 +16,7 @@ const MOCK_REGISTRY = {
     { squadKey: 'MPSA', friendlyName: 'M-SQUAD', participationState: 'pending-consent', productOwner: null, scrumMaster: null, streamLead: null, boardMapping: [], revision: 1, suggestions: { boardMapping: [], people: [] } },
     { squadKey: 'MAS', friendlyName: 'Mini - Apps Squad', participationState: 'pending-consent', productOwner: null, scrumMaster: null, streamLead: null, boardMapping: [], revision: 1, suggestions: { boardMapping: [], people: [] } },
     { squadKey: 'FIN', friendlyName: 'Finance Squad', participationState: 'pi-governed', productOwner: { displayName: 'Jane Doe' }, scrumMaster: { displayName: 'John Smith' }, streamLead: null, boardMapping: [], revision: 1, suggestions: { boardMapping: [], people: [] } },
+    { squadKey: 'DMS', friendlyName: 'DMS Squad', participationState: 'pi-governed', productOwner: { displayName: 'Irene' }, scrumMaster: null, streamLead: null, boardMapping: [], revision: 1, suggestions: { boardMapping: [], people: [] } },
   ],
   auditHistory: [],
 };
@@ -24,24 +27,14 @@ test.describe('Settings registry save flow', () => {
       route.fulfill({ json: MOCK_REGISTRY });
     });
 
-    await page.goto('http://localhost:3001/settings', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('[data-select-pending]', { timeout: 10000 });
-
-    // Click "Select pending consent"
+    await loginIfRequired(page, '/settings', { rootSelector: '[data-select-pending]' });
     await page.locator('[data-select-pending]').click();
-
-    // Wait for auto-suggest to kick in
     await page.waitForTimeout(500);
 
-    // Participation should be auto-suggested to "pi-governed"
     const participationSelect = page.locator('[data-bulk-participation]');
     await expect(participationSelect).toHaveValue('pi-governed');
-
-    // Reason should be pre-filled
     const reasonInput = page.locator('[data-bulk-reason]');
     await expect(reasonInput).toHaveValue('Onboarding into PI governance');
-
-    // Preview button should be enabled
     const previewBtn = page.locator('[data-bulk-preview]');
     await expect(previewBtn).toBeEnabled();
   });
@@ -51,36 +44,86 @@ test.describe('Settings registry save flow', () => {
     await page.route('**/api/governance/registry.json*', (route) => {
       route.fulfill({ json: MOCK_REGISTRY });
     });
-    await page.route('**/api/governance/registry', (route) => {
+    await page.route('**/api/governance/registry', async (route) => {
       if (route.request().method() === 'PATCH') {
-        route.fulfill({ json: { ...MOCK_REGISTRY, version: 4, receipt: { id: 'test-receipt' } } });
-      } else {
-        route.fulfill({ json: MOCK_REGISTRY });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...MOCK_REGISTRY, version: 4, receipt: { id: 'test-receipt' } }),
+        });
+        return;
       }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_REGISTRY) });
     });
 
-    // Intercept native confirm to detect if it's called
     page.on('dialog', () => { confirmCalled = true; });
 
-    await page.goto('http://localhost:3001/settings', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('[data-select-pending]', { timeout: 10000 });
-
+    await loginIfRequired(page, '/settings', { rootSelector: '[data-select-pending]' });
     await page.locator('[data-select-pending]').click();
     await page.waitForTimeout(500);
-
-    // Click "Preview and apply"
     await page.locator('[data-bulk-preview]').click();
 
-    // Should open an in-app drawer (not native confirm)
     const drawer = page.locator('.gov-right-drawer-panel:visible');
     await expect(drawer).toBeVisible({ timeout: 5000 });
     expect(confirmCalled).toBe(false);
 
-    // Click "Apply" in the drawer
     await page.locator('[data-bulk-apply]').click();
+    await expect.poll(async () => page.evaluate(() => localStorage.getItem('delivera:registry-version'))).toBeTruthy();
+  });
 
-    // Should broadcast registry version via localStorage
-    const version = await page.evaluate(() => localStorage.getItem('delivera:registry-version'));
-    expect(version).toBeTruthy();
+  test('single squad save also broadcasts registry version', async ({ page }) => {
+    await page.route('**/api/governance/registry.json*', (route) => {
+      route.fulfill({ json: MOCK_REGISTRY });
+    });
+    await page.route('**/api/governance/registry', (route) => {
+      if (route.request().method() === 'PATCH') {
+        route.fulfill({
+          json: {
+            ...MOCK_REGISTRY,
+            version: 5,
+            squads: MOCK_REGISTRY.squads.map((item) => (
+              item.squadKey === 'FIN'
+                ? {
+                    ...item,
+                    scrumMaster: { displayName: 'John Updated' },
+                    revision: 2,
+                  }
+                : item
+            )),
+            receipt: { id: 'single-save' },
+          },
+        });
+        return;
+      }
+      route.fulfill({ json: MOCK_REGISTRY });
+    });
+
+    await loginIfRequired(page, '/settings', { rootSelector: '[data-registry-squad="FIN"]' });
+    await page.locator('[data-registry-squad="FIN"] [data-registry-edit]').click();
+    await page.locator('[data-registry-squad="FIN"] input[name="scrumMaster"]').fill('John Updated');
+    await page.locator('[data-registry-squad="FIN"] input[name="reason"]').fill('Refresh owner route');
+    await page.locator('[data-registry-squad="FIN"] button[type="submit"]').click();
+    await expect.poll(async () => page.evaluate(() => localStorage.getItem('delivera:registry-version'))).toBe('5');
+  });
+
+  test('registry bands are mutually exclusive and owner gaps appear before healthy rows', async ({ page }) => {
+    await page.route('**/api/governance/registry.json*', (route) => {
+      route.fulfill({ json: MOCK_REGISTRY });
+    });
+    await loginIfRequired(page, '/settings', { rootSelector: '#gov-settings-registry-mount' });
+    const bands = page.locator('.registry-band');
+    await expect(bands).toHaveCount(3);
+    await expect(bands.nth(0)).toContainText('Participation exceptions');
+    await expect(bands.nth(1)).toContainText('Owner-route gaps');
+    await expect(bands.nth(2)).toContainText('Platform health');
+    await expect(bands.nth(0).locator('[data-registry-squad="MPSA"]')).toHaveCount(1);
+    await expect(bands.nth(0).locator('[data-registry-squad="MAS"]')).toHaveCount(1);
+    await expect(bands.nth(1).locator('[data-registry-squad="DMS"]')).toHaveCount(1);
+    await expect(bands.nth(2).locator('[data-registry-squad="FIN"]')).toHaveCount(1);
+    const allKeys = await page.locator('[data-registry-squad]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-registry-squad')));
+    expect(new Set(allKeys).size).toBe(allKeys.length);
+    const bulkBox = await page.locator('.registry-bulk').boundingBox();
+    const ownerGapBox = await bands.nth(1).boundingBox();
+    expect(bulkBox?.y || 0).toBeGreaterThan(ownerGapBox?.y || 0);
   });
 });

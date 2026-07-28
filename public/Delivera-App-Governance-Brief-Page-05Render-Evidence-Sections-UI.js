@@ -12,6 +12,65 @@ import {
   readStoredTab,
 } from './Delivera-Shared-TabStrip-01Activate-Helper.js';
 
+const evidenceFocusState = globalThis.__deliveraGovernanceEvidenceFocus ||= {
+  spotlightKey: new URL(location.href).searchParams.get('spotlight') || '',
+  activeLens: new URL(location.href).searchParams.get('view') || 'overall',
+  scope: new URL(location.href).searchParams.get('evidenceScope') || '',
+};
+
+function effectiveEvidenceScope() {
+  if (evidenceFocusState.scope === 'portfolio') return 'portfolio';
+  if (evidenceFocusState.spotlightKey) return 'spotlight';
+  return 'portfolio';
+}
+
+function evidenceRowsForScope(brief) {
+  const rows = brief?.evidencePack?.rows || [];
+  if (effectiveEvidenceScope() !== 'spotlight' || !evidenceFocusState.spotlightKey) return rows;
+  return rows.filter((row) => String(row.squad || row.projectKey || '').trim().toUpperCase() === evidenceFocusState.spotlightKey);
+}
+
+function renderEvidenceScopeToggle(brief, totalRows, scopedRows) {
+  if (!evidenceFocusState.spotlightKey) return '';
+  const squad = [...(brief?.squadInsights || []), ...(brief?.squads || [])]
+    .find((item) => String(item.projectKey || item.squad || '').trim().toUpperCase() === evidenceFocusState.spotlightKey);
+  const squadLabel = squad?.displayName || squad?.squadName || squad?.friendlyName || evidenceFocusState.spotlightKey;
+  return `<div class="gov-evidence-scope-toggle" data-evidence-scope-toggle>
+    <span class="gov-loop-kicker">Evidence scope</span>
+    <div class="gov-evidence-scope-actions">
+      <button type="button" class="btn btn-compact ${effectiveEvidenceScope() === 'spotlight' ? 'btn-secondary' : 'btn-link'}" data-evidence-scope="spotlight" aria-pressed="${effectiveEvidenceScope() === 'spotlight'}">${escapeHtml(squadLabel)} (${scopedRows})</button>
+      <button type="button" class="btn btn-link btn-compact gov-evidence-scope-secondary ${effectiveEvidenceScope() === 'portfolio' ? 'is-active' : ''}" data-evidence-scope="portfolio" aria-pressed="${effectiveEvidenceScope() === 'portfolio'}">All portfolio (${totalRows})</button>
+    </div>
+  </div>`;
+}
+
+function bindEvidenceScopeToggle() {
+  document.querySelectorAll('[data-evidence-scope]').forEach((button) => {
+    button.addEventListener('click', () => {
+      evidenceFocusState.scope = button.dataset.evidenceScope || '';
+      const url = new URL(location.href);
+      if (evidenceFocusState.scope) url.searchParams.set('evidenceScope', evidenceFocusState.scope);
+      else url.searchParams.delete('evidenceScope');
+      history.replaceState(history.state || {}, '', url);
+      if (govPage.lastBrief) {
+        renderEvidencePreview(govPage.lastBrief);
+        renderEvidenceTable(govPage.lastBrief);
+      }
+    });
+  });
+}
+
+window.addEventListener('delivera:governance-focus', (event) => {
+  evidenceFocusState.spotlightKey = String(event.detail?.spotlightKey || '').trim().toUpperCase();
+  evidenceFocusState.activeLens = String(event.detail?.activeLens || 'overall');
+  if (evidenceFocusState.spotlightKey) evidenceFocusState.scope = 'spotlight';
+  else if (evidenceFocusState.scope === 'spotlight') evidenceFocusState.scope = 'portfolio';
+  if (govPage.lastBrief) {
+    renderEvidencePreview(govPage.lastBrief);
+    renderEvidenceTable(govPage.lastBrief);
+  }
+});
+
 function evidenceRowFor(brief, issueKey) {
   if (!issueKey) return null;
   return (brief?.evidencePack?.rows || []).find(
@@ -64,10 +123,12 @@ export function renderProofRisks(risks, opts = {}) {
 }
 
 export function renderEvidenceTable(brief) {
-  const rows = brief?.evidencePack?.rows || [];
+  const rows = evidenceRowsForScope(brief);
+  const totalRows = brief?.evidencePack?.rows?.length || rows.length;
   if (!rows.length) {
     govPage.els.evidence.classList.remove('data-table-scroll-wrap');
-    govPage.els.evidence.innerHTML = '<p class="governance-empty">No proof rows for flagged items.</p>';
+    govPage.els.evidence.innerHTML = `${renderEvidenceScopeToggle(brief, totalRows, 0)}<p class="governance-empty">No proof rows for this evidence scope.</p>`;
+    bindEvidenceScopeToggle();
     return;
   }
   const body = rows.map((r) => `
@@ -78,7 +139,8 @@ export function renderEvidenceTable(brief) {
       <td>${escapeHtml(r.whyFlagged || '')}</td>
     </tr>`).join('');
   govPage.els.evidence.classList.add('data-table-scroll-wrap');
-  govPage.els.evidence.innerHTML = `<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
+  govPage.els.evidence.innerHTML = `${renderEvidenceScopeToggle(brief, totalRows, rows.length)}<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
+  bindEvidenceScopeToggle();
 }
 
 /** Above-fold proof preview — top rows without opening supporting evidence. */
@@ -86,7 +148,8 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
   const mount = mountEl || document.getElementById('gov-evidence-preview-mount')
     || document.getElementById('gov-right-rail-proof-mount');
   if (!mount) return;
-  const rows = (brief?.evidencePack?.rows || []).slice(0, maxRows);
+  const scopedRows = evidenceRowsForScope(brief);
+  const rows = scopedRows.slice(0, maxRows);
   if (!rows.length) {
     mount.innerHTML = '';
     mount.hidden = true;
@@ -115,10 +178,12 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
         <h3 class="gov-evidence-preview-title">Proof preview</h3>
         <button type="button" class="btn btn-link btn-compact" id="gov-evidence-preview-more">All proof (${total})</button>
       </header>
+      ${renderEvidenceScopeToggle(brief, total, scopedRows.length)}
       <div class="gov-evidence-preview-table data-table-scroll-wrap">
         <table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>
       </div>
     </section>`;
+  bindEvidenceScopeToggle();
   mount.querySelector('#gov-evidence-preview-more')?.addEventListener('click', () => {
     const rail = document.getElementById('gov-right-rail-proof-mount');
     if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {

@@ -150,6 +150,31 @@ function wireAttentionQueueHandlers() {
       }
     });
   });
+  document.querySelectorAll('[data-attention-assign]').forEach((button) => {
+    if (button.dataset.assignWired === '1') return;
+    button.dataset.assignWired = '1';
+    button.addEventListener('click', () => {
+      const issueKey = button.getAttribute('data-attention-assign') || '';
+      if (!issueKey) return;
+      try {
+        window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
+          detail: { riskTags: ['unassigned'], source: 'attention-assign' },
+        }));
+      } catch (_) {}
+      const jump = document.getElementById('issue-jump-input');
+      if (jump) {
+        jump.value = issueKey;
+        jump.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      openJiraNudgeReviewSheet({
+        issueKey,
+        useCase: 'ownership',
+        meta: { teamRoster: window.__deliveraCurrentSprintPayload?.meta?.teamRoster || [], governanceSend: false },
+        sprint: window.__deliveraCurrentSprintPayload?.sprint,
+        initialDraft: `${issueKey}: needs an owner assigned before stand-up.`,
+      });
+    });
+  });
 }
 
 function wireSummaryActionBridge() {
@@ -281,7 +306,33 @@ function wireNoClickJourneys() {
     });
   }
 
+  function applyRiskFilterFromUrl() {
+    try {
+      const raw = String(new URL(window.location.href).searchParams.get('risk') || '').trim().toLowerCase();
+      if (!raw) return;
+      const riskTags = raw.split(/[,\s]+/).map((t) => t.trim()).filter(Boolean);
+      if (!riskTags.length) return;
+      window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
+        detail: { riskTags, source: 'url-risk' },
+      }));
+      const primary = riskTags[0];
+      window.setTimeout(() => {
+        const row = document.querySelector(
+          `.attention-queue-table tbody tr[data-risk-tags*="${primary}"], #work-risks-table tbody tr[data-risk-tags*="${primary}"], #stories-table tbody tr[data-risk-tags*="${primary}"]`,
+        );
+        if (!row) return;
+        row.classList.add('row-attention-pulse', 'issue-preview-source-row');
+        if (typeof window.currentSprintScrollToTarget === 'function') {
+          window.currentSprintScrollToTarget(row);
+        } else {
+          row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        }
+      }, 320);
+    } catch (_) {}
+  }
+
   window.setTimeout(highlightTopBlockerRow, 260);
+  window.setTimeout(applyRiskFilterFromUrl, 180);
   wireMissionBriefingClicks();
   wireKeyboardShortcuts();
 }
@@ -344,16 +395,20 @@ function wireRenderedContent(data, onSelectSprintById) {
 }
 
 export function showCurrentSprintRenderedContent(data, onSelectSprintById, options = {}) {
+  const renderedData = {
+    ...data,
+    meta: { ...(data?.meta || {}), renderSource: options.source || 'live' },
+  };
   const useProgressive = options.progressive === true;
   if (!useProgressive) {
-    showContent(renderCurrentSprintPage(data));
-    wireRenderedContent(data, onSelectSprintById);
+    showContent(renderCurrentSprintPage(renderedData));
+    wireRenderedContent(renderedData, onSelectSprintById);
     markPerf('current-sprint', 'firstValueRendered', { firstValueSource: options.source || 'live' });
     markPerf('current-sprint', 'fullRenderComplete');
     return;
   }
 
-  const parts = renderCurrentSprintPageParts(data);
+  const parts = renderCurrentSprintPageParts(renderedData);
   showContent(parts.initialHtml);
   requestAnimationFrame(() => {
     relocateSprintScopeIntoHeaderBar();
@@ -362,14 +417,14 @@ export function showCurrentSprintRenderedContent(data, onSelectSprintById, optio
   markPerf('current-sprint', 'firstValueRendered', { firstValueSource: options.source || 'live' });
 
   if (!parts.hasDeferredSections) {
-    wireRenderedContent(data, onSelectSprintById);
+    wireRenderedContent(renderedData, onSelectSprintById);
     markPerf('current-sprint', 'fullRenderComplete');
     return;
   }
 
   scheduleRender(() => {
     showContent(parts.fullHtml);
-    wireRenderedContent(data, onSelectSprintById);
+    wireRenderedContent(renderedData, onSelectSprintById);
     const anchor = document.querySelector('.current-sprint-header-bar, .sprint-jump-rail');
     if (anchor && window.scrollY > 120) {
       scrollToCurrentSprintTarget(anchor);

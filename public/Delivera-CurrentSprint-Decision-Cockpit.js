@@ -285,6 +285,10 @@ export function renderDecisionCockpit(data, options = {}) {
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
   const quickCreateChip = '<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context." style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>';
   const blocker = topRisks[0] || {};
+  const ownerLabel = nextBestAction.assignee || blocker.assignee || 'Owner route missing';
+  const nextMoveLabel = ownerLabel === 'Owner route missing' && (nextBestAction.issueKey || blocker.issueKey)
+    ? `Assign owner to ${nextBestAction.issueKey || blocker.issueKey}`
+    : (nextBestAction.summary || nextBestAction.ctaLabel || 'Review the ranked intervention queue');
   const verdictLabel = health.tone === 'critical' && Number(keySignals.blockers || 0) > 0
     ? COPY.verdictBlocked
     : health.tone === 'warning'
@@ -296,8 +300,8 @@ export function renderDecisionCockpit(data, options = {}) {
     + `<p class="sprint-today-verdict"><strong>${escapeHtml(verdictLabel)}</strong></p>`
     + `<p class="sprint-today-answer">${escapeHtml(health.message || 'Review sprint signals.')}</p>`
     + (blocker.issueKey ? `<p><strong>Main blocker:</strong> ${escapeHtml(blocker.issueKey)}</p>` : '')
-    + (nextBestAction.issueKey ? `<p><strong>Who to chase:</strong> ${escapeHtml(nextBestAction.assignee || nextBestAction.issueKey || 'Owner in Jira')}</p>` : '')
-    + `<p><strong>Next move:</strong> ${escapeHtml(nextBestAction.ctaLabel || nextBestAction.summary || 'Review work queue')}</p>`
+    + ((nextBestAction.issueKey || blocker.issueKey) ? `<p><strong>Owner:</strong> ${escapeHtml(ownerLabel)}</p>` : '')
+    + `<p><strong>Next move:</strong> ${escapeHtml(nextMoveLabel)}</p>`
     + '</section>';
   const attentionQueueHtml = renderAttentionQueueTable({
     title: COPY.attentionQueue,

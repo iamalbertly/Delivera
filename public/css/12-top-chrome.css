@@ -54,9 +54,23 @@ body.governance-page .app-top-brand-context {
   align-items: center;
   gap: 10px;
   padding: 0 12px 0 8px;
-  background: var(--top-chrome-bg, var(--primary-strong));
+  background: var(--top-chrome-bg, var(--primary-strong)) !important;
   color: #fff;
+  border-bottom: 1px solid rgb(255 255 255 / 0.12);
   box-shadow: 0 2px 12px rgba(72, 22, 22, 0.22);
+}
+
+#app-top-chrome,
+.app-top-chrome,
+.app-top-chrome a,
+.app-top-chrome button,
+.app-top-chrome input {
+  color: #f8fafc;
+}
+
+.app-top-chrome .app-top-search-input::placeholder,
+#app-top-search::placeholder {
+  color: rgb(248 250 252 / 0.75);
 }
 
 .app-top-chrome-inner {
@@ -144,7 +158,7 @@ body.governance-page .app-top-brand-context {
   align-items: center;
   justify-content: center;
   min-width: 36px;
-  height: 32px;
+  height: 44px;
   padding: 0 8px;
   border: 0;
   border-radius: 6px;
@@ -254,7 +268,7 @@ body.governance-page .app-top-brand-context {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: 44px;
   padding: 0 14px;
   border: 0;
   border-radius: 8px;
@@ -277,8 +291,8 @@ body.governance-page .app-top-brand-context {
 }
 
 .app-top-icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   padding: 0;
 }
 
@@ -308,13 +322,13 @@ body.governance-page .app-top-brand-context {
   display: inline-flex;
 }
 
-.app-top-actions-link.is-visible { display: inline-flex !important; min-height: 36px; align-items: center; }
+.app-top-actions-link.is-visible { display: inline-flex !important; min-height: 44px; align-items: center; }
 
 .app-top-chrome .app-notification-toggle {
   position: static;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   border-radius: 8px;
   border: 0;
   background: transparent;
@@ -684,13 +698,30 @@ body.governance-page.notification-dock-open .gov-scope-capsule {
 
 @media (max-width: 480px) {
   .app-top-chrome [data-top-action="help"],
+  .app-top-chrome [data-top-action="improve-delivera"],
+  .app-top-chrome [data-top-action="create-work"],
   .app-top-chrome [data-top-action="avatar"] {
     display: none;
+  }
+
+  .app-top-chrome-inner {
+    gap: 4px;
+    padding-inline: 6px;
+  }
+
+  .app-top-chrome [data-top-slot="actions"] {
+    gap: 2px;
   }
 }
 
 /* Actions is a direct-to-value surface and remains reachable at every viewport. */
 .app-top-chrome [data-top-slot="actions"] .app-top-actions-link.is-visible { display: inline-flex !important; }
+
+/* Governance keeps one primary journey above the fold; demote chrome Actions here. */
+body.has-top-chrome.governance-page .app-top-chrome [data-top-slot="actions"] .app-top-actions-link[data-top-action="agent"],
+body.has-top-chrome.governance-page .app-top-chrome [data-top-slot="actions"] .app-top-actions-link[data-top-action="agent"].is-visible {
+  display: none !important;
+}
 
 .delivera-improve-modal {
   position: fixed;

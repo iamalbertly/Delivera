@@ -180,6 +180,52 @@ body.governance-page .governance-freshness-pill.is-stale {
   text-transform: uppercase;
 }
 
+@media (max-width: 600px) {
+  .attention-queue-table-wrap.data-table-scroll-wrap {
+    overflow: visible;
+  }
+
+  .attention-queue-table {
+    min-width: 0;
+  }
+
+  .attention-queue-table thead {
+    display: none;
+  }
+
+  .attention-queue-table,
+  .attention-queue-table tbody,
+  .attention-queue-table tr,
+  .attention-queue-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .attention-queue-table tr {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border: 1px solid #dbe3ee;
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .attention-queue-table td {
+    display: grid;
+    grid-template-columns: minmax(84px, 0.38fr) 1fr;
+    gap: 10px;
+    padding: 5px 0;
+    border: 0;
+  }
+
+  .attention-queue-table td::before {
+    content: attr(data-label);
+    color: #536277;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+}
+
 body.report-page .report-proof-hero {
   padding: 12px 0;
   color: #111827;

@@ -13,15 +13,23 @@ function dedupeTableItems(items) {
 
 /** Map sprint cockpit risks to attention queue rows. */
 export function cockpitRisksToAttentionItems(topRisks = []) {
-  return (Array.isArray(topRisks) ? topRisks : []).map((r) => ({
-    issue: r.issueKey || r.label || 'Sprint',
-    reason: r.label || r.reason || 'Needs attention',
-    owner: r.owner || r.decisionNeededFrom || 'Scrum Master',
-    nextMove: r.action || r.recommendedAction || '',
-    proof: r.evidence || r.detail || '',
-    dedupeKey: r.issueKey ? String(r.issueKey).toUpperCase() : `cockpit:${r.label}`,
-    tone: r.tone === 'critical' ? 'critical' : r.tone === 'warning' ? 'warning' : '',
-  }));
+  return (Array.isArray(topRisks) ? topRisks : []).map((r) => {
+    const tags = Array.isArray(r.riskTags) ? r.riskTags : [];
+    const ownerMissing = tags.includes('unassigned')
+      || /unassigned|no owner|owner route missing|unowned/i.test(String(r.assignee || r.owner || r.decisionNeededFrom || ''));
+    return {
+      issue: r.issueKey || r.label || 'Sprint',
+      reason: r.label || r.reason || 'Needs attention',
+      owner: r.owner || r.decisionNeededFrom || r.assignee || 'Scrum Master',
+      nextMove: r.action || r.recommendedAction || '',
+      proof: r.evidence || r.detail || '',
+      dedupeKey: r.issueKey ? String(r.issueKey).toUpperCase() : `cockpit:${r.label}`,
+      tone: r.tone === 'critical' ? 'critical' : r.tone === 'warning' ? 'warning' : '',
+      issueKey: r.issueKey || '',
+      assignInline: ownerMissing && Boolean(r.issueKey),
+      riskTags: tags,
+    };
+  });
 }
 
 /** Map governance brief risks to attention queue rows. */
@@ -53,14 +61,19 @@ export function risksToAttentionItems(brief) {
 export function renderAttentionQueueTable({ title = 'Attention queue', items = [], maxRows = 8 } = {}) {
   const safeItems = dedupeTableItems(items);
   if (!safeItems.length) return '';
-  const body = safeItems.slice(0, maxRows).map((item) => `
-    <tr>
-      <td>${escapeHtml(item.issue)}</td>
-      <td>${escapeHtml(item.reason)}</td>
-      <td>${escapeHtml(item.owner)}</td>
-      <td>${escapeHtml(item.nextMove)}</td>
-      <td>${escapeHtml(item.proof)}</td>
-    </tr>`).join('');
+  const body = safeItems.slice(0, maxRows).map((item) => {
+    const nextMoveCell = item.assignInline
+      ? `<button type="button" class="btn btn-secondary btn-compact" data-attention-assign="${escapeHtml(item.issueKey)}" data-risk-tags="unassigned">Assign</button>`
+      : escapeHtml(item.nextMove);
+    return `
+    <tr data-risk-tags="${escapeHtml((item.riskTags || []).join(' '))}" data-issue-key="${escapeHtml(item.issueKey || item.issue || '')}">
+      <td data-label="Issue">${escapeHtml(item.issue)}</td>
+      <td data-label="Reason">${escapeHtml(item.reason)}</td>
+      <td data-label="Owner">${escapeHtml(item.owner)}</td>
+      <td data-label="Next move">${nextMoveCell}</td>
+      <td data-label="Proof">${escapeHtml(item.proof)}</td>
+    </tr>`;
+  }).join('');
   return `
     <section class="attention-queue attention-queue--table" aria-label="${escapeHtml(title)}">
       <h2 class="governance-section-title">${escapeHtml(title)}</h2>

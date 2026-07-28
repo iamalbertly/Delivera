@@ -7,6 +7,7 @@ import { renderSprintCarousel } from './Delivera-CurrentSprint-Navigation-Carous
 import { renderCountdownTimer } from './Delivera-CurrentSprint-Countdown-Timer.js';
 import { renderDecisionCockpit } from './Delivera-CurrentSprint-Decision-Cockpit.js';
 import { deriveSprintPhase } from './Delivera-CurrentSprint-Summary-01Facts-Verdict-SSOT.js';
+import { projectDisplayName } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 function renderSprintSwitcher(data) {
   // Squad selector: allows switching the focused squad (board) directly from current-sprint
@@ -26,15 +27,20 @@ function renderSprintSwitcher(data) {
  */
 function renderSquadSelector(data) {
   const currentBoardId = String(data?.board?.id || data?.meta?.boardId || '');
-  const currentProject = String(data?.meta?.projects || '').split(',')[0]?.trim() || '';
-  // Build options from the board list if available, or from the current project
+  const currentProject = String(data?.meta?.projects || data?.board?.projectKeys?.[0] || '').split(',')[0]?.trim() || '';
   const boards = Array.isArray(data?.availableBoards) ? data.availableBoards : [];
   const options = boards.length
-    ? boards.map((b) => `<option value="${String(b.id || '').replace(/"/g, '')}" ${String(b.id) === currentBoardId ? 'selected' : ''}>${String(b.name || b.id || '').replace(/</g, '&lt;')}</option>`).join('')
-    : `<option value="${currentBoardId.replace(/"/g, '')}" selected>${currentProject || currentBoardId || 'Current board'}</option>`;
+    ? boards.map((b) => {
+      const key = String(b.projectKey || '').trim().toUpperCase();
+      const label = b.friendlyName || projectDisplayName(key) || b.name || key || b.id || 'Current board';
+      const suffix = b.globallyExcluded ? ' - excluded' : '';
+      return `<option value="${String(b.id || '').replace(/"/g, '')}" data-project-key="${String(key).replace(/"/g, '')}" ${String(b.id) === currentBoardId ? 'selected' : ''}>${String(label).replace(/</g, '&lt;')}${suffix}</option>`;
+    }).join('')
+    : `<option value="${currentBoardId.replace(/"/g, '')}" data-project-key="${String(currentProject).replace(/"/g, '')}" selected>${projectDisplayName(currentProject) || currentProject || currentBoardId || 'Current board'}</option>`;
   return `<div class="squad-selector-card" aria-label="Switch squad">
     <label class="squad-selector-label">Squad focus</label>
     <select class="squad-selector-dropdown" data-squad-select>${options}</select>
+    <small class="squad-selector-hint">Switch squads without leaving sprint context.</small>
   </div>`;
 }
 
@@ -126,15 +132,22 @@ export function renderCurrentSprintPage(data) {
       const isHistoricalSprint = String(data?.sprint?.state || '').toLowerCase() !== 'active';
       const phaseInfo = deriveSprintPhase(data);
       const isJustStartedSprint = phaseInfo.justStarting;
-      const title = isHistoricalSprint
+      const isRefreshingSnapshot = data?.meta?.renderSource === 'snapshot';
+      const title = isRefreshingSnapshot
+        ? 'Refreshing verified sprint evidence'
+        : isHistoricalSprint
         ? 'Historical snapshot with limited trackable signals'
         : (isJustStartedSprint ? 'Early sprint - evidence still forming' : 'No trackable work in this sprint yet');
-      const message = isHistoricalSprint
+      const message = isRefreshingSnapshot
+        ? 'This is the last verified snapshot. Jira detail is refreshing without hiding the sprint answer.'
+        : isHistoricalSprint
         ? 'This sprint snapshot does not include enough trackable time or issue movement to render health sections.'
         : (isJustStartedSprint
           ? 'Stories exist, but logs and movement have not formed enough evidence yet.'
           : 'This sprint has no stories, estimates, or logged work. Add stories in Jira to see health metrics here.');
-      const hint = isHistoricalSprint
+      const hint = isRefreshingSnapshot
+        ? 'You can keep using the verified answer while fresh issue evidence arrives.'
+        : isHistoricalSprint
         ? 'Pick an active sprint from the carousel for live signals.'
         : 'Check the board configuration or select a different sprint from the carousel.';
       html += renderEmptyStateHtml(title, message, hint, isHistoricalSprint ? 'View report' : 'Pick a board', isHistoricalSprint ? { href: '/report' } : {});
@@ -153,15 +166,15 @@ export function renderCurrentSprintPage(data) {
   html += '<div id="sprint-alignment-strip-mount"></div>';
   html += '<div class="current-sprint-grid-layout current-sprint-viewport-lean">';
 
+  html += '<div class="sprint-cockpit-column full-width">';
+  html += renderDecisionCockpit(data, { viewportLean: true });
+  html += '</div>';
+
   if (hasStories) {
     html += '<div class="sprint-cards-column full-width">';
     html += renderStories(data);
     html += '</div>';
   }
-
-  html += '<div class="sprint-cockpit-column full-width">';
-  html += renderDecisionCockpit(data, { viewportLean: true });
-  html += '</div>';
 
   if (hasBurndownData) {
     html += '<div class="sprint-cards-row risks-row">';

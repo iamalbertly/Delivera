@@ -12,6 +12,13 @@ import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { resolveAiTrustDisplay } from './Delivera-AI-Trust-Display-01SSOT.js';
 import { openImproveDeliveraModal } from './Delivera-Shared-ImproveDelivera-01Modal-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import {
+  actionsSquadHref,
+  currentSprintSquadHref,
+  governanceSpotlightHref,
+  readContinuityTokens,
+  reportSquadHref,
+} from './Delivera-Shared-Continuity-Link-01Build.js';
 
 export const TOP_CHROME_ID = 'app-top-chrome';
 export const NOTIFICATION_SLOT_ID = 'app-notification-slot';
@@ -35,6 +42,7 @@ const PAGE_GOVERNANCE = 'governance';
 const PAGE_SPRINTS = 'sprints';
 const PAGE_REPORT = 'report';
 const PAGE_SETTINGS = 'settings';
+const PAGE_ACTIONS = 'actions';
 const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
 const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
 
@@ -46,19 +54,14 @@ const SURFACE_SWITCHER = [
 
 function contextualSurfaceHref(item) {
   if (typeof window === 'undefined') return item.href;
-  const current = new URL(window.location.href);
-  const squad = current.searchParams.get('squad') || current.searchParams.get('spotlight');
-  const sprintId = current.searchParams.get('sprintId');
+  const tokens = readContinuityTokens();
+  const squad = tokens.squad || tokens.spotlight;
+  const sprintId = tokens.sprintId;
   if (!squad && !sprintId) return item.href;
-  const target = new URL(item.href, window.location.origin);
-  if (item.key === PAGE_GOVERNANCE && squad) {
-    target.searchParams.set('spotlight', squad);
-    target.searchParams.set('view', 'squad');
-  } else {
-    if (squad) target.searchParams.set('squad', squad);
-    if (sprintId) target.searchParams.set('sprintId', sprintId);
-  }
-  return `${target.pathname}${target.search}${target.hash}`;
+  if (item.key === PAGE_GOVERNANCE && squad) return governanceSpotlightHref(squad);
+  if (item.key === PAGE_SPRINTS) return currentSprintSquadHref(squad, { sprintId });
+  if (item.key === PAGE_REPORT) return reportSquadHref(squad);
+  return item.href;
 }
 
 function getPathState() {
@@ -73,6 +76,7 @@ export function getCurrentPageForChrome() {
   if (path === '/governance' || path.endsWith('/governance') || path === '/brief' || path.endsWith('/brief')) return PAGE_GOVERNANCE;
   if (path === '/current-sprint' || path.endsWith('/current-sprint') || path === '/sprints' || path.endsWith('/sprints')) return PAGE_SPRINTS;
   if (path === '/settings' || path.endsWith('/settings')) return PAGE_SETTINGS;
+  if (path === '/actions' || path.endsWith('/actions')) return PAGE_ACTIONS;
   if (path === '/report' || path.endsWith('/report')) return PAGE_REPORT;
   return PAGE_REPORT;
 }
@@ -82,6 +86,7 @@ function searchPlaceholder(page) {
   if (page === PAGE_SPRINTS) return 'Jump to issue KEY…';
   if (page === PAGE_REPORT) return 'Filter proof view…';
   if (page === PAGE_SETTINGS) return 'Filter settings…';
+  if (page === PAGE_ACTIONS) return 'Filter action queue…';
   return 'Search…';
 }
 
@@ -295,6 +300,29 @@ function delegateSearch(page, query) {
         break;
       }
     }
+    return;
+  }
+  if (page === PAGE_ACTIONS) {
+    const stateFilter = document.getElementById('actions-state-filter');
+    const ownerFilter = document.getElementById('actions-owner-filter');
+    if (!q) {
+      stateFilter?.focus();
+      return;
+    }
+    const lower = q.toLowerCase();
+    const stateOption = [...(stateFilter?.options || [])].find((option) => String(option.textContent || '').toLowerCase().includes(lower));
+    if (stateOption && stateFilter) {
+      stateFilter.value = stateOption.value;
+      stateFilter.dispatchEvent(new Event('change', { bubbles: true }));
+      stateFilter.focus();
+      return;
+    }
+    const ownerOption = [...(ownerFilter?.options || [])].find((option) => String(option.textContent || '').toLowerCase().includes(lower));
+    if (ownerOption && ownerFilter) {
+      ownerFilter.value = ownerOption.value;
+      ownerFilter.dispatchEvent(new Event('change', { bubbles: true }));
+      ownerFilter.focus();
+    }
   }
 }
 
@@ -442,14 +470,8 @@ function bindTopChromeInteractions(chrome, current) {
   });
 
   chrome.querySelector('[data-top-action="agent"]')?.addEventListener('click', () => {
-    const currentUrl = new URL(window.location.href);
-    const target = new URL('/actions', window.location.origin);
-    const squad = currentUrl.searchParams.get('spotlight') || currentUrl.searchParams.get('squad') || '';
-    const sprint = currentUrl.searchParams.get('sprintId') || '';
-    if (squad) target.searchParams.set('squad', squad);
-    if (sprint) target.searchParams.set('sprintId', sprint);
-    target.searchParams.set('source', current || 'app');
-    window.location.assign(`${target.pathname}${target.search}`);
+    const tokens = readContinuityTokens();
+    window.location.assign(actionsSquadHref(tokens.squad || tokens.spotlight, { source: current || 'app' }));
   });
 
   document.addEventListener('click', (e) => {
@@ -465,9 +487,11 @@ function bindTopChromeInteractions(chrome, current) {
   window.addEventListener('app:notification-summary-updated', updateNotificationBadge);
 
   const createBtn = chrome.querySelector('[data-top-action="create-work"]');
+  const actionsBtn = chrome.querySelector('[data-top-action="agent"]');
   const refreshCreateProjects = () => {
     if (createBtn) createBtn.setAttribute('data-outcome-projects', readProjectsCsvForCreate());
   };
+  actionsBtn?.classList.toggle('is-active', current === PAGE_ACTIONS);
   window.addEventListener('storage', (ev) => {
     if (ev.key === 'delivera_selectedProjects') refreshCreateProjects();
   });

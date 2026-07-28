@@ -1,6 +1,12 @@
 import { buildContextSegmentList, getContextPieces, renderContextPartList } from './Delivera-Shared-Context-From-Storage.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { projectDisplayName } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
+import {
+  currentSprintSquadHref,
+  governanceSpotlightHref,
+  renderIdentityLinkRow,
+} from './Delivera-Shared-Continuity-Link-01Build.js';
 
 const LAST_ROUTE_KEY = 'delivera.lastRoute.v1';
 const ROUTE_LABELS = {
@@ -72,11 +78,42 @@ function buildSurfaceSummary(projects) {
   return `${pageName} aligned to customer outcomes, realistic decision-making, and faster trusted follow-through. Focus: ${projectLabel}.`;
 }
 
+function renderDashboardIdentityLinks(projects) {
+  const linksEl = document.getElementById('surface-identity-links');
+  if (!linksEl) return;
+  if (!projects.length) {
+    linksEl.hidden = true;
+    linksEl.innerHTML = '';
+    return;
+  }
+  const items = [];
+  projects.slice(0, 3).forEach((projectKey) => {
+    const label = projectDisplayName(projectKey);
+    items.push({
+      key: projectKey,
+      label,
+      mode: 'link',
+      href: governanceSpotlightHref(projectKey),
+    });
+    items.push({
+      key: projectKey,
+      label: 'Sprint',
+      secondaryLabel: 'Sprint',
+      mode: 'link',
+      secondary: true,
+      href: currentSprintSquadHref(projectKey),
+    });
+  });
+  linksEl.innerHTML = renderIdentityLinkRow(items, { ariaLabel: 'Dashboard focus links' });
+  linksEl.hidden = !linksEl.innerHTML;
+}
+
 function renderSurfaceContext() {
   const contextEl = document.getElementById('surface-context-bar');
   const summaryEl = document.getElementById('surface-summary-line');
   if (!contextEl && !summaryEl) return;
   const projects = readSelectedProjects();
+  renderDashboardIdentityLinks(projects);
   const segments = getContextPieces({
     projects: projects.join(', '),
     freshness: projects.length ? 'Using shared Delivera context' : 'Choose a report context for sharper decisions',

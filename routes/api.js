@@ -3,13 +3,20 @@
 import express from 'express';
 import { requireAuth, requireSuperAdmin } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
+import { sendJsonOnce, sendErrorOnce } from '../lib/Delivera-Http-SendOnce-01Helper.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
 import { projectSquadSprintTruth } from '../lib/Delivera-Governance-Sprint-Reality-01SSOT.js';
 import { readSquadSprintTruthBatch, writeSquadSprintTruth } from '../lib/Delivera-Governance-Squad-Sprint-Truth-02Store-IO.js';
-import { readGovernanceRegistry, updateGovernanceRegistryBatch, updateGovernanceRegistrySquad } from '../lib/Delivera-Governance-Registry-01Store-IO.js';
+import {
+    partitionSquadsByParticipation,
+    readGovernanceRegistry,
+    resolveRegistryParticipation,
+    updateGovernanceRegistryBatch,
+    updateGovernanceRegistrySquad,
+} from '../lib/Delivera-Governance-Registry-01Store-IO.js';
 import { assertTruthConsistency, buildDeliveryTruthContext } from '../lib/Delivera-Governance-Delivery-Truth-01SSOT.js';
 import { streamCSV, CSV_COLUMNS } from '../lib/csv.js';
 import { generateExcelWorkbook, generateExcelFilename, formatDateRangeForFilename } from '../lib/excel.js';
@@ -126,6 +133,10 @@ async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
             workSplit: payload.meta?.workSplit || {},
         },
         registry,
+        contract: payload.contract || payload.meta?.contract || {
+            fiscalPeriod: payload.meta?.fiscalPeriod || payload.meta?.quarter || '',
+            contractId: payload.meta?.contractId || '',
+        },
         projectKeys: [squadId],
         dataAsOf: payload.meta?.snapshotAt || payload.meta?.generatedAt || new Date().toISOString(),
         source: payload.meta?.stale ? 'Last verified Jira sprint snapshot' : 'Jira active sprint',
@@ -155,7 +166,8 @@ router.get('/healthz', async (req, res) => {
     redis = false;
   }
 
-  res.status(200).json({
+  // Redis is advisory only — ok/ready must stay true while the process is listening.
+  return sendJsonOnce(res, 200, {
     ok: true,
     ready: true,
     instanceId: appEnvConfig.instanceId,
@@ -1003,7 +1015,7 @@ router.get('/api/boards.json', requireAuth, async (req, res) => {
         res.json(payload);
     } catch (error) {
         logger.error('Error fetching boards', error);
-        res.status(500).json({ error: 'Failed to fetch boards', message: error.message });
+        return sendErrorOnce(res, 500, { error: 'Failed to fetch boards', message: error.message });
     }
 });
 
@@ -1062,10 +1074,35 @@ router.get('/api/sprints.json', requireAuth, getSprintsHandler);
 router.get('/api/current-sprint/truth.json', requireAuth, async (req, res) => {
     const projects = String(req.query.projects || '').split(',').map((key) => key.trim().toUpperCase()).filter(Boolean);
     if (!projects.length) return res.status(400).json({ error: 'At least one squad is required', code: 'NO_PROJECTS' });
+    const registry = await readGovernanceRegistry();
+    const participation = partitionSquadsByParticipation(registry, projects);
     const truth = await readSquadSprintTruthBatch({ squadKeys: projects, quarter: String(req.query.quarter || 'current') });
-    const records = projects.map((squadKey) => truth.get(squadKey)).filter(Boolean);
+    const records = projects.map((squadKey) => {
+        const record = truth.get(squadKey);
+        if (!record) return null;
+        const detail = participation.details[squadKey] || resolveRegistryParticipation(registry, squadKey);
+        return {
+            ...record,
+            registryParticipation: {
+                state: detail.state,
+                label: detail.label,
+                includeInPiTotals: detail.includeInPiTotals,
+                globallyExcluded: detail.globallyExcluded,
+                reason: detail.reason,
+            },
+        };
+    }).filter(Boolean);
     res.setHeader('Cache-Control', 'private, max-age=15, stale-while-revalidate=300');
-    return res.json({ schemaVersion: 1, records });
+    return res.json({
+        schemaVersion: 1,
+        records,
+        registryParticipation: {
+            included: participation.included,
+            excluded: participation.excluded,
+            pendingConsent: participation.pendingConsent,
+            operationalException: participation.operationalException,
+        },
+    });
 });
 
 router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
@@ -1094,6 +1131,8 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         if (!board) return res.status(404).json({ error: 'Board not found', code: 'BOARD_NOT_FOUND' });
 
         const projectKeys = board.location?.projectKey ? [board.location.projectKey] : selectedProjects;
+        const registry = await readGovernanceRegistry();
+        const registryParticipation = partitionSquadsByParticipation(registry, selectedProjects);
         const forceLive = req.query.live === 'true' || req.query.refresh === 'true';
         const completionAnchor = (req.query.completionAnchor || 'resolution').toLowerCase();
         const supportedAnchors = ['resolution', 'lastsubtask', 'statusdone'];
@@ -1118,6 +1157,23 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                 out.meta.sprintReality = projectSquadSprintTruth(out);
                 out.meta.sprintTruthVersion = out.meta.sprintReality.version;
                 out.meta.sprintTruthHash = out.meta.sprintReality.payloadHash;
+                out.meta.registryParticipation = registryParticipation.details;
+                out.meta.registryParticipationSummary = {
+                    included: registryParticipation.included,
+                    excluded: registryParticipation.excluded,
+                    pendingConsent: registryParticipation.pendingConsent,
+                    operationalException: registryParticipation.operationalException,
+                };
+                out.availableBoards = boards
+                    .map((candidate) => ({
+                        id: candidate.id,
+                        name: candidate.location?.projectKey || candidate.name || `Board ${candidate.id}`,
+                        projectKey: candidate.location?.projectKey || '',
+                        friendlyName: registryParticipation.details[String(candidate.location?.projectKey || '').toUpperCase()]?.registryEntry?.friendlyName || candidate.name || `Board ${candidate.id}`,
+                        participationState: registryParticipation.details[String(candidate.location?.projectKey || '').toUpperCase()]?.state || 'unknown',
+                        globallyExcluded: Boolean(registryParticipation.details[String(candidate.location?.projectKey || '').toUpperCase()]?.globallyExcluded),
+                    }))
+                    .filter((candidate) => candidate.projectKey && selectedProjects.includes(candidate.projectKey));
                 void Promise.all(projectKeys.map((squadKey) => writeSquadSprintTruth({ squadKey, payload: out, checkedBoards: [{ id: board.id, name: board.name, verified: true }] }))).catch(() => {});
                 await attachCurrentSprintTruthContext(out, projectKeys);
                 return res.json(out);
@@ -1148,6 +1204,23 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         payload.meta.requestId = req.requestId || '';
         payload.meta.projects = projectKeys.join(',');
         payload.meta.partialPermissions = false;
+        payload.meta.registryParticipation = registryParticipation.details;
+        payload.meta.registryParticipationSummary = {
+            included: registryParticipation.included,
+            excluded: registryParticipation.excluded,
+            pendingConsent: registryParticipation.pendingConsent,
+            operationalException: registryParticipation.operationalException,
+        };
+        payload.availableBoards = boards
+            .map((candidate) => ({
+                id: candidate.id,
+                name: candidate.location?.projectKey || candidate.name || `Board ${candidate.id}`,
+                projectKey: candidate.location?.projectKey || '',
+                friendlyName: registryParticipation.details[String(candidate.location?.projectKey || '').toUpperCase()]?.registryEntry?.friendlyName || candidate.name || `Board ${candidate.id}`,
+                participationState: registryParticipation.details[String(candidate.location?.projectKey || '').toUpperCase()]?.state || 'unknown',
+                globallyExcluded: Boolean(registryParticipation.details[String(candidate.location?.projectKey || '').toUpperCase()]?.globallyExcluded),
+            }))
+            .filter((candidate) => candidate.projectKey && selectedProjects.includes(candidate.projectKey));
 
         const selectedSprintState = String(payload?.sprint?.state || '').toLowerCase();
         const activeCount = Number(payload?.meta?.activeSprintCount || 0);
@@ -1193,7 +1266,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
             logger.warn('Failed to cache current-sprint snapshot', buildRequestLogContext(req, { boardId, error: e.message }));
         }
         await attachCurrentSprintTruthContext(payload, projectKeys);
-        res.json(payload);
+        return sendJsonOnce(res, 200, payload);
     } catch (error) {
         const boardId = req.query?.boardId != null ? Number(req.query.boardId) : null;
         const mapped = mapCurrentSprintError(error);
@@ -1217,7 +1290,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                     logger.warn('Serving stale current-sprint during Jira outage', buildRequestLogContext(req, { boardId, staleAgeMs: staleEntry.staleAgeMs }));
                     const staleProjects = String(out.meta?.projects || req.query?.projects || '').split(',').filter(Boolean);
                     await attachCurrentSprintTruthContext(out, staleProjects);
-                    return res.json(out);
+                    return sendJsonOnce(res, 200, out);
                 }
             }
         }
@@ -1225,7 +1298,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
             ...buildRequestLogContext(req, { boardId, status: mapped.httpStatus }),
             error,
         });
-        res.status(mapped.httpStatus).json(mapped.payload);
+        return sendErrorOnce(res, mapped.httpStatus, mapped.payload);
     }
 });
 
@@ -1518,10 +1591,10 @@ async function serveStaleBriefOrError(res, projects, err) {
                 brief.leadershipNarrative.confidence = clampConfidenceToFreshness(brief.leadershipNarrative.confidence, 'stale');
             }
             brief.meta = { ...(brief.meta || {}), servedStale: true, staleReason: err?.code || 'JIRA_UNREACHABLE' };
-            return res.json(brief);
+            return sendJsonOnce(res, 200, brief);
         }
     } catch (_) { /* fall through */ }
-    return res.status(502).json({ error: 'Governance brief unavailable', code: 'GOVERNANCE_BRIEF_FAILED' });
+    return sendErrorOnce(res, 502, { error: 'Governance brief unavailable', code: 'GOVERNANCE_BRIEF_FAILED' });
 }
 
 router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
@@ -1534,7 +1607,7 @@ router.get('/api/governance-brief.json', requireAuth, async (req, res) => {
             await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
         }
         const { brief } = await getOrBuildGovernanceBrief({ projects, req });
-        return res.json(brief);
+        return sendJsonOnce(res, 200, brief);
     } catch (err) {
         logger.error('governance-brief failed', { error: err?.message });
         return serveStaleBriefOrError(res, projects, err);
@@ -1654,8 +1727,8 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
         registryByKey.get(project)?.friendlyName || profiles[index]?.boardAliases?.[project] || PROJECT_CATALOG.find((entry) => entry.key === project)?.label || project,
     ]));
     const operatingModels = Object.fromEntries(projects.map((project, index) => {
-        const participation = registryByKey.get(project)?.participationState;
-        return [project, participation === 'pi-governed' ? 'pi-governed' : participation ? 'operational-group' : profiles[index]?.operatingModels?.[project] || ''];
+        const participation = resolveRegistryParticipation(registry, project);
+        return [project, participation.operatingModel || profiles[index]?.operatingModels?.[project] || ''];
     }).filter(([, value]) => value));
     const squadInsights = (rawBrief?.squadInsights || []).map((insight) => {
         const key = String(insight.projectKey || insight.squad || '').toUpperCase();
@@ -1672,6 +1745,7 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
     answer.contexts = assertTruthConsistency((answer.squads || []).map((squad) => buildDeliveryTruthContext({
         squad,
         registry,
+        contract: answer.contract || {},
         projectKeys: [squad.squad],
         dataAsOf: answer.evidenceObservedAt || answer.verifiedAt || brief.generatedAt,
         source: 'Jira + approved PI contract + organization registry',
@@ -1706,6 +1780,7 @@ async function cachedActiveLoopDetailForRequest(req) {
     patched.contexts = assertTruthConsistency((patched.squads || []).map((squad) => buildDeliveryTruthContext({
         squad,
         registry,
+        contract: patched.contract || {},
         projectKeys: [squad.squad],
         dataAsOf: patched.evidenceObservedAt || patched.verifiedAt,
         source: 'Jira + approved PI contract + organization registry',
@@ -1728,6 +1803,11 @@ async function patchLayer1WithCanonicalSprintTruth(story, projects, quarter = 'c
             return truth ? {
                 ...squad,
                 sprintReality: truth,
+                sprintCadence: {
+                    state: ['missing', 'missing-next-sprint'].includes(truth.state) ? 'unverified' : truth.state,
+                    label: ['missing', 'missing-next-sprint'].includes(truth.state) ? 'No active sprint verified' : truth.copy,
+                    detail: truth.copy,
+                },
                 sprintTruthVersion: truth.version,
                 sprintTruthHash: truth.payloadHash,
             } : squad;
@@ -1742,7 +1822,7 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
         const warmStory = readWarmGovernanceStory(storyKey);
         const hit = warmStory ? null : await cache.get(storyKey, { namespace: 'governanceStoryV2' });
         const candidateStory = warmStory || hit?.value || hit;
-        const cachedStory = Number(candidateStory?.presentationContractVersion) === 3 && candidateStory?.lensSummaries
+        const cachedStory = Number(candidateStory?.presentationContractVersion) === 4 && candidateStory?.lensSummaries
             && Array.isArray(candidateStory?.excludedOperationalGroups)
             && candidateStory?.decisionCoverage
             && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash && squad.displayName && squad.contractState && squad.trustFactor)
@@ -1751,19 +1831,21 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
         const answer = await patchLayer1WithCanonicalSprintTruth(prepared, projects, req.query?.quarter || 'current');
         const registry = await readGovernanceRegistry();
         answer.contexts = assertTruthConsistency((answer.squads || []).map((squad) => buildDeliveryTruthContext({
-            squad, registry, projectKeys: [squad.squad], dataAsOf: answer.evidenceObservedAt || answer.verifiedAt,
+            squad, registry, contract: answer.contract || {}, projectKeys: [squad.squad], dataAsOf: answer.evidenceObservedAt || answer.verifiedAt,
             source: 'Jira + approved PI contract + organization registry',
             confidence: answer.freshness?.state === 'stale' ? 'stale' : (answer.scope?.complete === false ? 'limited' : 'high'),
         })));
         const contextBySquad = new Map(answer.contexts.map((context) => [context.squadId, context]));
         answer.squads = (answer.squads || []).map((squad) => ({ ...squad, context: contextBySquad.get(String(squad.squad || '').toUpperCase()) || null }));
         rememberWarmGovernanceStory(storyKey, answer);
-        res.setHeader('ETag', `"${answer.answerVersion}"`);
-        res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=300');
-        return res.json(answer);
+        if (!res.headersSent) {
+          res.setHeader('ETag', `"${answer.answerVersion}"`);
+          res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=300');
+        }
+        return sendJsonOnce(res, 200, answer);
     } catch (err) {
         logger.warn('active governance loop read failed', { error: err?.message });
-        return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Active governance answer unavailable', code: err?.code || 'ACTIVE_LOOP_FAILED' });
+        return sendErrorOnce(res, err?.httpStatus || 502, { error: err?.message || 'Active governance answer unavailable', code: err?.code || 'ACTIVE_LOOP_FAILED' });
     }
 });
 
@@ -1774,6 +1856,7 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
             ? Object.assign(Object.create(req), { query: { ...req.query, projects: requestedSquad } })
             : req;
         const answer = await cachedActiveLoopDetailForRequest(scopedRequest);
+        const registry = await readGovernanceRegistry();
         const liveCases = projectActiveLoopCases(await readActiveLoopEvents({ limit: 5000 }));
         const freshnessRestricted = ['stale', 'failed'].includes(answer.freshness?.state);
         const promises = (answer.promises || []).map((promise) => {
@@ -1789,6 +1872,7 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
             .filter((promise) => !state || promise.caseState === state)
             .filter((promise) => !owner || String(promise.ownerRoute?.displayName || promise.ownerRoute?.role || '').toLowerCase().includes(owner))
             .filter((promise) => !requestedSquad || String(promise.squad || '').toUpperCase() === requestedSquad)
+            .filter((promise) => requestedSquad || !resolveRegistryParticipation(registry, promise.squad).globallyExcluded)
             .map((promise) => {
                 const squadId = String(promise.squad || '').toUpperCase();
                 const issueKey = String(promise.issueKey || '');
@@ -1800,13 +1884,17 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
                     promiseId: promise.promiseId, issueKey, squadId, squad: squadId, squadDisplayName: promise.squadDisplayName || promise.context?.squadName,
                     title: promise.originalText, state: promise.caseState, lifecycle: promise.actionLifecycle, ownerRoute: promise.ownerRoute,
                     nextAction: promise.nextAction, version: promise.version, dueState, actionType, sourceEntityId, returnContext,
+                    proofAge: promise.proofAge || null,
+                    trustFactor: promise.context || null,
+                    urgencyLabel: promise.nextAction?.dueState || promise.caseState || 'review',
+                    ownerConfidence: promise.ownerRoute?.unresolved ? 'missing-owner-route' : (promise.ownerRoute?.source || 'verified-route'),
                     groupKey: `${squadId}|${actionType}|${sourceEntityId}|${dueState}`,
                     detailHref: `/api/governance/cases/${encodeURIComponent(promise.promiseId)}/detail.json?projects=${encodeURIComponent(squadId)}&squad=${encodeURIComponent(squadId)}&returnTo=${encodeURIComponent('/actions')}`,
                 };
             });
-        return res.json({ schemaVersion: 3, storyVersion: answer.answerVersion, contexts: answer.contexts || [], cases });
+        return sendJsonOnce(res, 200, { schemaVersion: 3, storyVersion: answer.answerVersion, contexts: answer.contexts || [], cases });
     } catch (err) {
-        return res.status(err?.httpStatus || 502).json({ error: err?.message || 'Actions queue unavailable', code: err?.code || 'ACTIONS_QUEUE_FAILED' });
+        return sendErrorOnce(res, err?.httpStatus || 502, { error: err?.message || 'Actions queue unavailable', code: err?.code || 'ACTIONS_QUEUE_FAILED' });
     }
 });
 
@@ -2542,6 +2630,33 @@ router.post('/api/governance/profile', requireAuth, async (req, res) => {
     }
 });
 
+async function seedProposalFromApprovedBaseline(body, projects) {
+    if (body?.candidates?.length || projects.length !== 1) return body;
+    const current = await getLatestPIBaseline(projects[0]);
+    const committed = Array.isArray(current?.committedItems) ? current.committedItems : [];
+    if (!committed.length) return body;
+    return {
+        ...body,
+        method: 'approved-baseline',
+        rebaselineSeed: true,
+        candidates: committed.map((item) => ({
+            issueKey: item.issueKey || '',
+            title: item.title || item.originalText || item.issueKey || 'Promised work',
+            squad: item.squad || projects[0],
+            confidence: Number(item.confidence) || 1,
+            selected: true,
+            slideMatch: {
+                bullet: item.originalText || item.title || '',
+                title: item.title || item.originalText || '',
+                month: item.month || '',
+                theme: item.theme || '',
+                businessValue: item.businessValue || '',
+                sourceSpan: item.sourceSpan || null,
+            },
+        })),
+    };
+}
+
 router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) => {
     try {
         const projects = parseGovernanceProjects(req);
@@ -2551,7 +2666,10 @@ router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) 
         if (!bypassCache) {
             const cached = await cache.get(proposeKey, { namespace: GOVERNANCE_NS });
             const payload = cached?.value || cached;
-            if (payload?.candidates) return res.json({ ...payload, cached: true });
+            if (payload?.candidates) {
+                const seeded = await seedProposalFromApprovedBaseline(payload, projects);
+                return res.json({ ...seeded, cached: true });
+            }
         }
         const providerConfig = resolveProviderConfig(req.headers || {});
         let version3Client = null;
@@ -2563,8 +2681,9 @@ router.get('/api/governance/pi-baseline/propose', requireAuth, async (req, res) 
             quarter,
             providerConfig,
         });
-        await cache.set(proposeKey, body, 20 * 60 * 1000, { namespace: GOVERNANCE_NS });
-        return res.json(body);
+        const seeded = await seedProposalFromApprovedBaseline(body, projects);
+        await cache.set(proposeKey, seeded, 20 * 60 * 1000, { namespace: GOVERNANCE_NS });
+        return res.json(seeded);
     } catch (err) {
         logger.warn('pi-baseline propose failed', { error: err?.message });
         return res.status(500).json({ error: 'Propose failed' });

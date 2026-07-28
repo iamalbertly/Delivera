@@ -68,10 +68,12 @@ export function mountGovernanceAiHelper(mount) {
           </div>
         </div></details>
 
+        <details class="gov-ai-admin-diagnostics">
+        <summary>Super-admin provider diagnostics${hasKey ? ' · override configured' : ''}</summary>
         <h3 class="gov-ai-helper-sub">Browser override (optional)</h3>
         <label class="gov-ai-helper-field">
           <span>Provider</span>
-          <select id="gov-ai-provider" class="gov-ai-helper-select">
+          <select id="gov-ai-provider" class="gov-ai-helper-select" autocomplete="off">
             <option value="built-in" ${ai.provider === 'built-in' || !ai.provider ? 'selected' : ''}>Built-in (no key)</option>
             <option value="openai" ${ai.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
             <option value="claude" ${ai.provider === 'claude' ? 'selected' : ''}>Claude</option>
@@ -81,7 +83,7 @@ export function mountGovernanceAiHelper(mount) {
         </label>
         <label class="gov-ai-helper-field">
           <span>API key</span>
-          <input type="password" id="gov-ai-key" class="gov-ai-helper-input" placeholder="Paste key…" autocomplete="off" value="${hasKey ? '●●●●●●●●' : ''}">
+          <input type="password" id="gov-ai-key" name="delivera-provider-override" class="gov-ai-helper-input" placeholder="${hasKey ? 'Configured · enter a replacement only' : 'Paste key…'}" autocomplete="new-password" data-1p-ignore data-lpignore="true" value="">
         </label>
         <div class="gov-ai-helper-actions">
           <button type="button" class="btn btn-primary btn-compact" id="gov-ai-save">Save in browser</button>
@@ -89,6 +91,7 @@ export function mountGovernanceAiHelper(mount) {
           <button type="button" class="btn btn-link btn-compact" id="gov-ai-clear">Clear</button>
         </div>
         <p id="gov-ai-test-result" class="gov-ai-helper-result" aria-live="polite"></p>
+        </details>
 
         <h3 class="gov-ai-helper-sub">Jira</h3>
         <p class="gov-ai-helper-note">Jira credentials are configured by your administrator in environment variables. If boards look empty, check project access and refresh the Brief.</p>
@@ -98,7 +101,7 @@ export function mountGovernanceAiHelper(mount) {
       const provider = mount.querySelector('#gov-ai-provider')?.value || 'built-in';
       const keyInput = mount.querySelector('#gov-ai-key');
       const raw = keyInput?.value || '';
-      const key = raw.includes('●') ? (readAiProviderPref().key || '') : raw.trim();
+      const key = raw.trim() || (hasKey ? (readAiProviderPref().key || '') : '');
       saveAiProviderPref({ provider, key: provider === 'built-in' ? '' : key });
       render();
     });

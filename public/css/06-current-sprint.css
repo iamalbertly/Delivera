@@ -4533,11 +4533,20 @@ body.current-sprint-page .current-sprint-header-bar {
   backdrop-filter: saturate(1.18) blur(12px);
 }
 
-body.current-sprint-page .header-row,
+body.current-sprint-page .header-row:not(.current-sprint-shell-top-row),
 body.current-sprint-page .header-follow-up-row,
 body.current-sprint-page .header-health-note,
 body.current-sprint-page .header-insight-chip {
   display: none !important;
+}
+
+body.current-sprint-page .current-sprint-shell-top-row {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 
 body.current-sprint-page .header-band {
@@ -5215,6 +5224,57 @@ body.current-sprint-page .squad-selector-card {
   position: relative;
   z-index: 60;
 }
+
+/* Squad switcher is the board control — hide redundant Change board when selector is present. */
+body.current-sprint-page:has([data-squad-select]) .board-select-wrap,
+body.current-sprint-page:has([data-squad-select]) #current-sprint-board-controls {
+  display: none !important;
+}
+
+/* First fold: hero + attention; keep burndown / alignment below the meeting answer. */
+body.current-sprint-page .burndown-column,
+body.current-sprint-page #burndown-card,
+body.current-sprint-page #sprint-alignment-strip-mount,
+body.current-sprint-page .sprint-alignment-strip {
+  margin-top: 28px;
+}
+body.current-sprint-page .current-sprint-shell-top { padding-bottom: 0; }
+body.current-sprint-page .current-sprint-report-shell {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 14px 40px rgb(15 23 42 / 8%);
+}
+body.current-sprint-page .current-sprint-shell-top-row { align-items: start; }
+body.current-sprint-page .current-sprint-shell-title-block { display: grid; gap: 6px; }
+body.current-sprint-page .current-sprint-shell-title-block h2 { margin: 0; font-size: 1.35rem; line-height: 1.2; color: #0f172a; }
+body.current-sprint-page .current-sprint-shell-title-block .subtitle { margin: 0; color: #475569; }
+body.current-sprint-page .current-sprint-shell-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+body.current-sprint-page .current-sprint-shell-actions .btn,
+body.current-sprint-page .current-sprint-shell-actions button { min-height: 44px; }
+body.current-sprint-page .current-sprint-header-bar[data-viewport-lean="true"] .header-identity-metrics { display: none; }
+body.current-sprint-page .current-sprint-filter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+body.current-sprint-page .current-sprint-filter-strip-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+body.current-sprint-page .current-sprint-filter-strip-summary .report-filter-strip-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: .78rem;
+  font-weight: 700;
+}
 body.current-sprint-page .squad-selector-label {
   font-size: .78rem;
   font-weight: 600;
@@ -5232,9 +5292,28 @@ body.current-sprint-page .squad-selector-dropdown {
   font-size: .85rem;
   cursor: pointer;
 }
+body.current-sprint-page .squad-selector-hint {
+  color: #475569;
+  font-size: .76rem;
+}
 body.current-sprint-page .squad-selector-dropdown:focus-visible {
   outline: 3px solid #2563eb;
   outline-offset: 1px;
+}
+body.current-sprint-page #app-top-chrome,
+body.current-sprint-page .app-top-chrome {
+  background: var(--primary-strong) !important;
+  border-bottom: 1px solid rgb(255 255 255 / 0.12);
+}
+body.current-sprint-page .app-top-chrome,
+body.current-sprint-page .app-top-chrome a,
+body.current-sprint-page .app-top-chrome button,
+body.current-sprint-page .app-top-chrome input {
+  color: #f8fafc;
+}
+body.current-sprint-page .app-top-chrome .app-top-search-input::placeholder,
+body.current-sprint-page #app-top-search::placeholder {
+  color: rgb(248 250 252 / 0.75);
 }
 
 body.current-sprint-page .story-parent-row-done td {
@@ -5268,6 +5347,12 @@ body.current-sprint-page .burndown-metric-inline {
 }
 
 @media (max-width: 720px) {
+  body.current-sprint-page .current-sprint-filter-strip,
+  body.current-sprint-page .current-sprint-shell-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
   body.current-sprint-page .header-export-inline .export-dashboard-secondary {
     display: inline-flex;
   }

@@ -502,7 +502,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
 
   baselineWizard = mountPIBaselineWizard({
     getProjectsCsv: () => selected.join(','),
-    getQuarterLabel: () => activeQuarter,
+    getQuarterLabel: () => document.querySelector('[data-testid="governance-active-loop"]')?.getAttribute('data-fiscal-period') || activeQuarter,
     onSaved: () => onRefresh?.(),
   });
 

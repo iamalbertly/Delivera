@@ -8,8 +8,11 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 
 | Route | Surface | Purpose |
 |-------|---------|---------|
+| `/dashboard` | **Today** | Executive entry point with continuity links into the active governance and sprint lanes |
 | `/governance` | **Governance** | PI contract variance, squad evidence, and the next safe governance transition |
-| `/current-sprint` | **Sprint** | What must move today (blockers, owners, nudges) |
+| `/current-sprint` | **Sprint** | What must move today: answer, blocker, owner, and next move before deeper inventory |
+| `/actions` | **Actions** | Shared intervention queue for governance cases that need follow-up now |
+| `/settings` | **Settings** | Organization registry, participation exceptions, owner-route gaps, AI/provider health, and audit status |
 | `/report` | **Proof** | Evidence and drill-down for the current Brief |
 
 **Proof (report) above-fold:** header **Refresh** / **Export** replace duplicate sidebar Preview when top chrome is present; filter summary lives in the mission strip (sidebar summary hidden when chips exist); scorecard and heavy widgets defer until opened; `delivera:scope-changed` remounts proof summary and filter chips when squad changes.
@@ -29,6 +32,8 @@ Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Share
 - **Mobile/tablet (≤768px):** search collapses to a 36px icon (`.is-collapsed`); brand slot hides; focus expands search to a second row (`body.top-search-active`) and grows chrome height to 98px. Help and avatar hide at ≤480px. `Escape` dismisses expanded search.
 - **Brief notifications:** dock stays collapsed until the bell is tapped; on governance mobile it opens as a bottom sheet so it does not cover the scope **Refresh** row.
 - **Brief mobile with owner clusters:** full command card hides; owner action clusters become the primary above-fold surface.
+- **Cross-surface continuity:** spotlight, squad, sprint, and return-route tokens stay meaningful across Governance, Current Sprint, Actions, Report, and Dashboard links via `Delivera-Shared-Continuity-Link-01Build.js`. `/current-sprint?squad=<KEY>` is the sprint-side entry point; Actions → Governance carries `returnTo=/actions`, and Governance shows **Back to Actions** when that token is present.
+- **Local fail-fast gate:** `npm run test:friction:focused` runs the small release bundle (Current Sprint shell → Governance release → Settings registry). Broad current-sprint journeys remain secondary/protected-branch coverage, not the front-line local gate.
 
 Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Shared-Notifications-Dock-Manager.js`).
 
@@ -117,6 +122,7 @@ This is the SSOT for the meeting-safe Governance implementation. Completed items
 18. **Diagnostics concealment:** keep build SHA, cache backend, flags, queue depth, and failed write reasons behind the UAT version trigger and authorized Settings entry. Rationale: diagnostics help UAT without polluting executive meetings.
 19. **Friendly work-name SSOT:** render M-Pesa Recharge Trends style names before Jira keys across Governance, Current Sprint, and drawer evidence. Rationale: humans discuss work names; Jira keys are proof links.
 20. **Route-boundary data contracts:** Governance owns portfolio variance, Current Sprint owns today's movement, Actions owns cases, Report owns proof, Settings owns registry/audit. Rationale: fewer surfaces, fewer repeated concepts, less churn.
+21. **Dashboard continuity links:** the `/dashboard` hero uses the same identity-link shape as Governance so the first click can jump straight into either the selected squad brief lane or that squad's sprint lane.
 
 **Bonus prerequisite improvements**
 
@@ -144,7 +150,7 @@ This is the SSOT for the meeting-safe Governance implementation. Completed items
 
 **Focused validation gate**
 
-The local release gate remains intentionally small: `npm run test:governance:release`. It builds CSS and runs five fail-fast browser scenarios that validate source-safe writes, Layer 1 first value, synchronized Spotlight, read-lock continuity, and current sprint fold density. New governance validation belongs in `tests/Delivera-Governance-PI-Meeting-State-Transition-Realtime-Validation-Tests.spec.js` unless the behavior is truly outside the active PI loop.
+The local friction release gate is intentionally small: `npm run test:friction:focused`. It fail-fast runs Current Sprint shell continuity, the five Governance release scenarios, and Settings registry save/exclusivity contracts. Prefer that over broad current-sprint journeys for local verification. New continuity or above-fold contracts belong in the three friction specs rather than expanding total local suite size.
 
 ## Quickstart
 
@@ -153,23 +159,34 @@ The local release gate remains intentionally small: `npm run test:governance:rel
 ```bash
 npm install
 cp .env.example .env   # set JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN
-npm run dev:safe       # recommended: port guard + CSS watch + API reload (one server per machine)
-npm run dev            # or npm run dev:hot for CSS watch + nodemon
+npm run dev:safe       # SSOT local watcher: port guard + CSS watch + API reload + /healthz self-heal
+# npm run dev          # thinner path (CSS + nodemon only) — prefer dev:safe when the API flaps
 ```
 
 Production-style: `npm start` (runs `build:css` first).
 
+### Local server restart (one SSOT)
+
+| Command | Use |
+|---------|-----|
+| `npm run dev:safe` | **Recommended.** Port guard + CSS watch + nodemon + health self-heal |
+| `npm run dev:safe:force` | Kill preferred-port listener, then start `dev:safe` |
+| `npm run dev:hot` | CSS + API reload without port guard |
+| `npm run dev` | One-shot CSS build + nodemon only (prints tip to use `dev:safe`) |
+
 **Dev port conflicts:** `dev:safe` auto-picks the first free port in `3001–3010` when the preferred port is busy (writes `.delivera-dev-port`). Use `npm run dev:safe:force` to terminate the listener on your preferred port, or set `PORT=3010 npm run dev:safe` to pin a port.
+
+**Self-heal:** If the API process dies on a recoverable request race (or `/healthz` misses 3 polls), `dev:safe`/`dev:hot` respawns nodemon with backoff so Answer/Today do not stay blank until you touch a file.
 
 Playwright against an already-running server:
 
 ```bash
-npm start
+npm run dev:safe
 # another terminal:
-BASE_URL=http://localhost:3001 SKIP_WEBSERVER=true npm run test:smoke
+BASE_URL=http://localhost:3001 SKIP_WEBSERVER=true npm run test:stability:focused
 ```
 
-**Health probe:** `GET /healthz` returns `{ ok: true, ready: true }` when the process is listening (used by Render and deploy smoke tests).
+**Health probe:** `GET /healthz` returns `{ ok: true, ready: true }` when the process is listening (Redis is advisory only). Used by Render, deploy smoke, and the stability gate.
 
 ## Auth modes
 
@@ -185,11 +202,13 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 |---------|-----|
 | `npm run build:css` | Compile `public/css/*` → `public/styles.css` |
 | `npm run check:css` | Fail if `styles.css` is out of sync |
+| `npm run test:current-sprint:shell-release` | Focused Current Sprint fold, squad switch, and chrome readability contract |
 | `npm run test:journey:governance-active-loop` | Fail-fast active PI contract loop: cache, evidence, actions, concurrency, logs, accessibility |
 | `npm run test:governance:release` | Five risk-ranked meeting-safe release scenarios, fail-fast |
-| `BASE_URL=http://localhost:3012 SKIP_WEBSERVER=true npx playwright test tests/Delivera-Governance-PIBaseline-Slide-Upload-Validation-Tests.spec.js tests/Delivera-Governance-PI-Meeting-State-Transition-Realtime-Validation-Tests.spec.js --workers=1` | Focused slide upload, rebaseline, refresh projection, Actions, and Settings contract gate |
-| `npm run validate:jira-env` | Probe Jira `/myself` with `.env` |
-| `npm run dev:safe` | Port guard + CSS watch + API reload (recommended) |
+| `npm run test:settings:registry-release` | Focused Settings registry save, exclusivity, and continuity broadcast contract |
+| `npm run test:friction:focused` | Small friction-finish release bundle: sprint shell → governance release → settings registry |
+| `npm run test:stability:focused` | Server trust gate: healthz, governance mount, SD continuity smoke, refresh storm, settings bands |
+| `npm run dev:safe` | Port guard + CSS watch + API reload + /healthz self-heal (recommended) |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
 | `npm run test:all` | Full fail-fast orchestration |
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
