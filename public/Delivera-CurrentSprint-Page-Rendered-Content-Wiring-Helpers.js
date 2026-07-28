@@ -168,10 +168,14 @@ function wireAttentionQueueHandlers() {
       }
       openJiraNudgeReviewSheet({
         issueKey,
-        useCase: 'ownership',
-        meta: { teamRoster: window.__deliveraCurrentSprintPayload?.meta?.teamRoster || [], governanceSend: false },
+        useCase: 'flow',
+        meta: {
+          teamRoster: window.__deliveraCurrentSprintPayload?.meta?.teamRoster || [],
+          governanceSend: false,
+          interventionHash: window.__deliveraCurrentSprintPayload?.decisionCockpit?.nextBestAction?.interventionHash || '',
+        },
         sprint: window.__deliveraCurrentSprintPayload?.sprint,
-        initialDraft: `${issueKey}: needs an owner assigned before stand-up.`,
+        initialDraft: `${issueKey}: who can help the squad pick up the next ready step before stand-up? Confirm the agreed route in Jira.`,
       });
     });
   });
@@ -384,12 +388,24 @@ function wireRenderedContent(data, onSelectSprintById) {
     const issueKey = btn.getAttribute('data-blocker-nudge') || '';
     if (!issueKey) return;
     const roster = data?.meta?.teamRoster || [];
+    const intervention = [
+      data?.decisionCockpit?.nextBestAction,
+      ...(data?.decisionCockpit?.topRisks || []),
+    ].find((item) => item?.issueKey === issueKey) || null;
+    const servantLeaderDraft = intervention
+      ? [
+          `${issueKey}: ${intervention.businessImpact}`,
+          intervention.reason,
+          intervention.recommendedAction,
+          `Evidence verified ${intervention.sourceFreshness || data?.meta?.generatedAt || 'time unavailable'}.`,
+        ].filter(Boolean).join('\n').slice(0, 280)
+      : `${issueKey}: flow needs review. What can the squad swarm today?`;
     openJiraNudgeReviewSheet({
       issueKey,
       useCase: 'blocker',
-      meta: { teamRoster: roster, governanceSend: false },
+      meta: { teamRoster: roster, governanceSend: false, interventionHash: intervention?.interventionHash || '' },
       sprint: data?.sprint,
-      initialDraft: `${issueKey}: blocked ${Math.round(Number(data?.stuckCandidates?.find((c) => c.issueKey === issueKey)?.hoursInStatus || 0))}h — can we unblock today?`,
+      initialDraft: servantLeaderDraft,
     });
   });
 }

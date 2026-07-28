@@ -2,6 +2,10 @@ import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validat
 import { loginIfRequired } from './Delivera-Playwright-Login-If-Required-01Helper.js';
 import { diagnosePromiseEvidence, PROMISE_DIAGNOSIS_CODES } from '../lib/Delivera-Governance-PIBaseline-02Compare.js';
 import { buildSprintAtAGlanceBriefing } from '../public/Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
+import {
+  buildFlowBaseline,
+  enhanceFlowIntervention,
+} from '../lib/Delivera-CurrentSprint-Flow-Intelligence-SSOT.js';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -38,6 +42,65 @@ test.describe('Delivera customer speed and trust release', () => {
       expect(diagnosis.ownerRoute).toBeTruthy();
     });
     expect(Object.values(PROMISE_DIAGNOSIS_CODES)).toHaveLength(11);
+
+    const sprintSamples = [24, 48, 72].map((hours, index) => ({
+      sprint: { id: index + 1, name: `Closed ${index + 1}` },
+      issues: [{
+        key: `SD-${index + 1}`,
+        fields: {
+          created: '2026-07-01T08:00:00.000Z',
+          resolutiondate: new Date(Date.parse('2026-07-01T08:00:00.000Z') + hours * 3_600_000).toISOString(),
+          issuetype: { name: 'Story' },
+          status: { name: 'Done', statusCategory: { key: 'done' } },
+        },
+      }],
+    }));
+    const flowBaseline = buildFlowBaseline(sprintSamples, '2026-07-28T08:00:00.000Z');
+    expect(flowBaseline).toMatchObject({
+      state: 'ready',
+      sampleSize: 3,
+      medianCycleHours: 48,
+      p85CycleHours: 72,
+      source: 'jira-created-to-resolution',
+    });
+    expect(buildFlowBaseline(sprintSamples.slice(0, 2)).state).toBe('forming');
+
+    const cockpit = enhanceFlowIntervention({
+      cockpit: {},
+      flowBaseline,
+      daysRemaining: 2,
+      observedAt: '2026-07-28T08:00:00.000Z',
+      commitments: [{
+        issueKey: 'SD-5304',
+        commitmentClass: 'must-have',
+        piObjectiveId: 'PI-2',
+        piObjectiveTitle: 'Protect Q2 customer notifications',
+        businessValue: 'Everest milestone remains unblocked.',
+        dependencyIssueKeys: ['EV-42'],
+      }],
+      stuckCandidates: [{ issueKey: 'SD-5304', hoursInStatus: 96 }],
+      stories: [{
+        issueKey: 'SD-5304',
+        summary: 'Customer notifications',
+        issueType: 'Story',
+        status: 'In Progress',
+        statusCategoryKey: 'indeterminate',
+        ageHours: 96,
+        subtasks: [
+          { issueKey: 'SD-5305', summary: 'Backend', status: 'Done', assignee: 'Amina' },
+          { issueKey: 'SD-5306', summary: 'CSS review', status: 'To Do', assignee: '' },
+        ],
+      }],
+    });
+    expect(cockpit.nextBestAction).toMatchObject({
+      issueKey: 'SD-5304',
+      interventionType: 'swarm-blocked-work',
+      requiresHumanConfirmation: true,
+    });
+    expect(cockpit.nextBestAction.recommendedAction).toContain('Who has capacity to swarm SD-5306');
+    expect(cockpit.nextBestAction.dependencyEvidence.issueKeys).toEqual(['EV-42']);
+    expect(cockpit.nextBestAction.interventionHash).toHaveLength(24);
+    expect(JSON.stringify(cockpit)).not.toMatch(/disable new work|automatically assign/i);
   });
 
   test('2 last failed Governance truth uses business days and retains verified promises', async ({ page }) => {
@@ -112,7 +175,21 @@ test.describe('Delivera customer speed and trust release', () => {
       context: { fiscalPeriod: 'FY27 Q2', squadDisplayName: 'DMS', observedAt: '2026-07-28T08:00:00.000Z' },
       daysMeta: { daysRemainingWorking: 3 },
       summary: { percentDone: 60, doneStories: 6, totalStories: 10 },
-      decisionCockpit: { nextBestAction: { issueKey: 'SD-5304', summary: 'Complete customer validation', assignee: 'Amina', hoursInStatus: 72, reason: 'Blocked validation', businessImpact: 'Customer launch evidence is at risk.', riskTags: ['blocker'] } },
+      decisionCockpit: { nextBestAction: {
+        issueKey: 'SD-5304',
+        summary: 'Complete customer validation',
+        assignee: 'Amina',
+        hoursInStatus: 72,
+        reason: 'SD-5304 is above the team P85 flow proxy.',
+        businessImpact: 'Customer launch evidence is at risk.',
+        recommendedAction: 'What can the squad swarm before the next stand-up?',
+        interventionType: 'swarm-blocked-work',
+        riskTags: ['cycle-breach'],
+        flowEvidence: { currentAgeHours: 72, p85CycleHours: 48, baselineState: 'ready' },
+        valueEvidence: { piObjectiveTitle: 'Protect Q2 customer launch' },
+        dependencyEvidence: { issueKeys: ['EV-42'] },
+        requiresHumanConfirmation: true,
+      } },
       stuckCandidates: [{ issueKey: 'SD-5304', status: 'Blocked', assignee: 'Amina', hoursInStatus: 72 }],
       meta: { generatedAt: '2026-07-28T08:00:00.000Z' },
     });
@@ -122,6 +199,10 @@ test.describe('Delivera customer speed and trust release', () => {
       expect(briefing.quickClipboardHtml).toContain(fact.value);
     });
     expect(plain).toContain('Customer launch evidence is at risk');
+    expect(plain).toContain('Protect Q2 customer launch');
+    expect(plain).toContain('72h current age vs 48h team P85');
+    expect(plain).toContain('EV-42');
+    expect(plain).toContain('What can the squad swarm');
     expect(plain).toContain('before the next stand-up');
     expect(briefing.topRisk.key).toBe('SD-5304');
   });

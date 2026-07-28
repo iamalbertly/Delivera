@@ -62,13 +62,13 @@ export function deriveSprintVerdict(data) {
     topRemediation = `Unblock ${counts.stuckCount} stale in-progress item${counts.stuckCount === 1 ? '' : 's'} first.`;
     trackingReasons = `${counts.stuckCount} item${counts.stuckCount === 1 ? '' : 's'} stale in progress >24h in the same status`;
   } else if (counts.unassignedParents > 0) {
-    topRemediation = `Assign owners for ${counts.unassignedParents} unowned outcome${counts.unassignedParents === 1 ? '' : 's'}.`;
+    topRemediation = `Ask the squad to confirm a pick-up route for ${counts.unassignedParents} outcome${counts.unassignedParents === 1 ? '' : 's'}.`;
     trackingReasons = `${counts.unassignedParents} sprint outcome${counts.unassignedParents === 1 ? '' : 's'} without an assignee`;
   } else if (counts.missingEstimate > 0) {
     topRemediation = `Add estimates on ${counts.missingEstimate} work item${counts.missingEstimate === 1 ? '' : 's'} missing a baseline.`;
   }
   if (cockpit.nextBestAction?.reason) {
-    topRemediation = cockpit.nextBestAction.reason;
+    topRemediation = cockpit.nextBestAction.recommendedAction || cockpit.nextBestAction.reason;
     trackingReasons = cockpit.nextBestAction.reason;
   }
 

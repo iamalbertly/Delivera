@@ -36,6 +36,26 @@ export function pickTopStuckRisk(data) {
   const status = String(top.status || 'In progress').trim();
   const assignee = String(top.assignee || '').trim();
   const summary = String(top.summary || 'Work item').trim();
+  const evidenceAction = String(top.recommendedAction || top.nextAction || '').trim();
+  if (evidenceAction) {
+    return {
+      key,
+      summary,
+      status,
+      assignee,
+      hours,
+      reason: String(top.reason || `${key} is the highest material flow intervention.`),
+      nextAction: evidenceAction,
+      isNotStarted: ['to do', 'open', 'backlog'].includes(status.toLowerCase()),
+      issueUrl: top.issueUrl || '',
+      businessImpact: String(top.businessImpact || 'No approved PI value mapping is available.'),
+      interventionType: String(top.interventionType || ''),
+      flowEvidence: top.flowEvidence || null,
+      valueEvidence: top.valueEvidence || null,
+      dependencyEvidence: top.dependencyEvidence || null,
+      swarmPlan: top.swarmPlan || null,
+    };
+  }
   const statusLower = status.toLowerCase();
   const isNotStarted = ['to do', 'open', 'backlog'].includes(statusLower);
   let reason = '';
@@ -54,9 +74,9 @@ export function pickTopStuckRisk(data) {
   }
   let nextAction = '';
   if (!assignee) {
-    nextAction = `Assign ${key} today and post the unblock ask in Jira.`;
+    nextAction = `Ask the squad who can pick up ${key} today, then record the agreed next move in Jira.`;
   } else if (hours >= 48) {
-    nextAction = `Ping @${assignee.split(/\s+/)[0] || assignee} on ${key} before stand-up — unblock or cut scope.`;
+    nextAction = `Ask what the squad can swarm on ${key} before stand-up, then confirm unblock or scope protection.`;
   } else {
     nextAction = `Review ${key} with ${assignee}: confirm blocker vs normal WIP.`;
   }
@@ -106,7 +126,7 @@ export function buildSprintAtAGlanceBriefing(data) {
     topRiskLine = `Top risk: ${topRisk.key} — ${topRisk.reason}`;
     topRiskDetail = topRisk.summary;
   } else if (risks.unownedOutcomes > 0) {
-    topRiskLine = `Top risk: ${risks.unownedOutcomes} unowned outcome${risks.unownedOutcomes === 1 ? '' : 's'} — assign owners before scope slips`;
+    topRiskLine = `Top risk: ${risks.unownedOutcomes} outcome${risks.unownedOutcomes === 1 ? '' : 's'} need a squad pick-up decision`;
   } else if (phaseInfo.justStarting) {
     topRiskLine = 'Top risk: none flagged yet — confirm committed scope in Jira';
   } else {
@@ -141,22 +161,33 @@ export function buildSprintAtAGlanceBriefing(data) {
   const context = data?.context || data?.truthContext || {};
   const fiscalPeriod = String(context.fiscalPeriod || data?.fiscalPeriod || meta.fiscalPeriod || '').trim();
   const squad = String(context.squadDisplayName || context.squadName || board.projectName || board.name || 'Squad').trim();
-  const owner = topRisk?.assignee || 'Owner route missing';
+  const owner = topRisk?.assignee || 'Squad decision needed';
   const impact = topRisk?.businessImpact || (risks.unownedOutcomes > 0
     ? 'Unowned work can miss the sprint commitment without an accountable next move.'
     : 'No immediate customer or PI consequence is evidenced.');
   const freshnessSource = meta.generatedAt || meta.snapshotAt || context.observedAt || '';
   const freshness = freshnessSource ? `Verified ${formatDate(freshnessSource) || freshnessSource}` : 'Freshness unavailable';
   const ask = topRisk
-    ? (topRisk.assignee
-      ? `${topRisk.nextAction} Reply with owner, unblock decision, and ETA before the next stand-up.`
-      : `${topRisk.nextAction} Confirm an owner and ETA today.`)
+    ? `${topRisk.nextAction} Confirm the squad decision and recovery date before the next stand-up.`
     : nextAction;
+  const objective = topRisk?.valueEvidence?.piObjectiveTitle
+    || topRisk?.valueEvidence?.piObjectiveId
+    || 'No approved PI objective mapping';
+  const flow = topRisk?.flowEvidence;
+  const flowLine = flow?.p85CycleHours != null && flow?.currentAgeHours != null
+    ? `${Math.round(flow.currentAgeHours)}h current age vs ${Math.round(flow.p85CycleHours)}h team P85 creation-to-resolution proxy`
+    : (flow?.baselineState === 'forming' ? 'Historical flow baseline forming' : 'No defensible flow threshold available');
+  const dependency = topRisk?.dependencyEvidence?.issueKeys?.length
+    ? topRisk.dependencyEvidence.issueKeys.join(', ')
+    : (topRisk?.swarmPlan?.targetSubtaskKey || 'No verified dependency or blocked subtask');
   const shareFacts = [
     { label: 'Context', value: [squad, sprint.name || 'Sprint', fiscalPeriod].filter(Boolean).join(' · ') },
     { label: 'Time', value: timeLeftLine },
     { label: 'Health & value', value: `${verdictInfo.verdict}; ${doneStories}/${totalStories} stories delivered (${pctDone}%).` },
+    { label: 'PI objective', value: objective },
     { label: 'Highest-impact risk', value: topRisk ? `${topRisk.key} — ${topRisk.summary}; stalled ${formatRiskAge(topRisk.hours)}.` : topRiskLine.replace(/^Top risk:\s*/i, '') },
+    { label: 'Flow signal', value: flowLine },
+    { label: 'Dependency / swarm focus', value: dependency },
     { label: 'Consequence', value: impact },
     { label: 'Owner', value: owner },
     { label: 'Ask', value: ask },

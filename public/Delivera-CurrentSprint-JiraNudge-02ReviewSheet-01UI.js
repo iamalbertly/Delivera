@@ -70,6 +70,7 @@ export function openJiraNudgeReviewSheet({
   const sheet = ensureSheet();
   const governanceSend = meta?.governanceSend === true;
   const sendAllowed = !readOnly && (governanceSend || isSprintCommentSendAllowed(meta, sprint));
+  const interventionHash = asText(meta?.interventionHash);
   const draft = asText(initialDraft) || buildHumanNudgeDraft({
     issueKey: key,
     issueSummary,
@@ -161,6 +162,13 @@ export function openJiraNudgeReviewSheet({
   const onClose = () => closeSheet(sheet);
   sheet.querySelector('[data-review-cancel]')?.addEventListener('click', onClose);
   sendBtn?.addEventListener('click', async () => {
+    const activeInterventionHash = asText(window.__deliveraCurrentSprintPayload
+      ?.decisionCockpit?.nextBestAction?.interventionHash);
+    if (interventionHash && activeInterventionHash && interventionHash !== activeInterventionHash) {
+      if (statusEl) statusEl.textContent = 'Sprint evidence changed. Review the refreshed intervention before sending.';
+      sendBtn.disabled = true;
+      return;
+    }
     const body = asText(textarea?.value);
     if (!body || body.length < 8) {
       if (statusEl) statusEl.textContent = 'Add a short message first (at least 8 characters).';

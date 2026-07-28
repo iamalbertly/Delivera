@@ -60,6 +60,16 @@ Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brie
 
 ## Active PI Governance contract
 
+### Servant-leader flow intelligence
+Current Sprint uses one evidence-bound intervention contract across its cockpit,
+Governance, Actions, Jira nudge review, and WhatsApp/Teams clipboard briefings.
+Ranking prioritizes approved PI value, verified dependencies, median/P85 flow
+evidence, WIP pressure, remaining business days, and subtask readiness. Cycle
+time is labelled as a creation-to-resolution proxy; sprint-close status
+observations remain informational without a configured WIP limit. Recommendations
+invite a human-confirmed squad swarm and never assign people, disable work, or
+perform automatic Jira mutations. Six closed sprints reuse existing caching.
+
 ### Native-first PI artifact intelligence
 
 - Governance accepts image, PDF, and PPTX evidence through `POST /api/governance/pi-imports/prepare`, a one-use signed multipart upload, and a durable status receipt. Browser SHA-256 preflight returns an organization-scoped exact cache hit or joins the existing producer before bytes are uploaded.

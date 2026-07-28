@@ -285,10 +285,27 @@ export function renderDecisionCockpit(data, options = {}) {
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
   const quickCreateChip = '<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context." style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>';
   const blocker = topRisks[0] || {};
-  const ownerLabel = nextBestAction.assignee || blocker.assignee || 'Owner route missing';
-  const nextMoveLabel = ownerLabel === 'Owner route missing' && (nextBestAction.issueKey || blocker.issueKey)
-    ? `Assign owner to ${nextBestAction.issueKey || blocker.issueKey}`
-    : (nextBestAction.summary || nextBestAction.ctaLabel || 'Review the ranked intervention queue');
+  const ownerLabel = nextBestAction.assignee || blocker.assignee || 'Squad decision needed';
+  const nextMoveLabel = nextBestAction.recommendedAction || nextBestAction.nextAction
+    || nextBestAction.summary || nextBestAction.ctaLabel || 'Review the ranked intervention queue';
+  const valueLabel = nextBestAction.valueEvidence?.businessValue
+    || nextBestAction.valueEvidence?.businessCase
+    || nextBestAction.valueEvidence?.piObjectiveTitle
+    || 'No approved PI value mapping';
+  const flowEvidence = nextBestAction.flowEvidence || {};
+  const flowLabel = flowEvidence.p85CycleHours != null && flowEvidence.currentAgeHours != null
+    ? `${Math.round(flowEvidence.currentAgeHours)}h age vs ${Math.round(flowEvidence.p85CycleHours)}h team P85 proxy`
+    : (flowEvidence.baselineState === 'forming' ? 'Historical flow baseline forming' : 'Flow threshold unavailable');
+  const dependencyLabel = nextBestAction.swarmPlan?.targetSubtaskKey
+    || nextBestAction.dependencyEvidence?.issueKeys?.join(', ')
+    || 'No verified dependency or blocked subtask';
+  const servantLeaderFacts = (nextBestAction.issueKey || blocker.issueKey) ? (''
+    + '<section class="decision-summary-strip sprint-flow-facts" aria-label="Value and flow intervention">'
+    + `<div class="decision-summary-cell"><span class="decision-summary-label">Value at risk</span><strong>${escapeHtml(valueLabel)}</strong></div>`
+    + `<div class="decision-summary-cell"><span class="decision-summary-label">Flow signal</span><strong>${escapeHtml(flowLabel)}</strong></div>`
+    + `<div class="decision-summary-cell"><span class="decision-summary-label">Dependency / subtask</span><strong>${escapeHtml(dependencyLabel)}</strong></div>`
+    + `<div class="decision-summary-cell"><span class="decision-summary-label">Squad decision</span><strong>${escapeHtml(nextMoveLabel)}</strong></div>`
+    + '</section>') : '';
   const verdictLabel = health.tone === 'critical' && Number(keySignals.blockers || 0) > 0
     ? COPY.verdictBlocked
     : health.tone === 'warning'
@@ -300,7 +317,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + `<p class="sprint-today-verdict"><strong>${escapeHtml(verdictLabel)}</strong></p>`
     + `<p class="sprint-today-answer">${escapeHtml(health.message || 'Review sprint signals.')}</p>`
     + (blocker.issueKey ? `<p><strong>Main blocker:</strong> ${escapeHtml(blocker.issueKey)}</p>` : '')
-    + ((nextBestAction.issueKey || blocker.issueKey) ? `<p><strong>Owner:</strong> ${escapeHtml(ownerLabel)}</p>` : '')
+    + ((nextBestAction.issueKey || blocker.issueKey) ? `<p><strong>Facilitation route:</strong> ${escapeHtml(ownerLabel)}</p>` : '')
     + `<p><strong>Next move:</strong> ${escapeHtml(nextMoveLabel)}</p>`
     + '</section>');
   const attentionQueueHtml = renderAttentionQueueTable({
@@ -313,6 +330,7 @@ export function renderDecisionCockpit(data, options = {}) {
     : '';
   return ''
     + sprintTodayHero
+    + servantLeaderFacts
     + leanNextMove
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'

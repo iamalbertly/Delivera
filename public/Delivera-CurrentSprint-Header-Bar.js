@@ -594,9 +594,9 @@ export function renderHeaderBar(data, options = {}) {
       .filter(Boolean)
       .join(' | ');
     const topBlockerKey = cockpitAction.issueKey || data?.stuckCandidates?.[0]?.issueKey || '';
-    const takeActionLabel = topBlockerKey
-      ? (cockpitAction.assignee ? `Resolve ${topBlockerKey}` : `Assign owner to ${topBlockerKey}`)
-      : SPRINT_COPY.takeAction;
+    const takeActionLabel = cockpitAction.interventionType === 'swarm-blocked-work'
+      ? `Review swarm for ${topBlockerKey}`
+      : topBlockerKey ? `Review ${topBlockerKey}` : SPRINT_COPY.takeAction;
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
     html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
