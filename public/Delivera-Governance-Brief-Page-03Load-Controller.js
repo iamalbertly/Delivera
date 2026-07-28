@@ -228,7 +228,7 @@ export function renderBriefUi(brief) {
   const evidenceSummary = document.querySelector('#gov-supporting-evidence .governance-evidence-summary');
   const evidenceRows = brief?.evidencePack?.rows?.length || 0;
   if (evidenceSummary && evidenceRows > 0) {
-    evidenceSummary.textContent = `Supporting evidence (${evidenceRows} rows)`;
+    evidenceSummary.textContent = `Proof audit & data quality (${evidenceRows} rows)`;
   }
   renderTechnicalDetails(brief);
   renderReadiness(brief);

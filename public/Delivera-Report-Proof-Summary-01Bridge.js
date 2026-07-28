@@ -32,7 +32,7 @@ function buildBriefSummaryLine(brief) {
   const signals = `${brief.topRisks?.length || 0} delivery signals`;
   const parts = [`${verdict} — ${line}`.trim()];
   if (pulseLine) parts.push(pulseLine);
-  parts.push(`${signals} · open Proof below for audit detail`);
+  parts.push(`${signals} · historical proof and export filters are ready`);
   return parts.filter(Boolean).join(' · ');
 }
 

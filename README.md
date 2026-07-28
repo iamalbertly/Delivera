@@ -13,9 +13,9 @@ Delivera answers **what to say, who to chase, and what proof to show** — in ab
 | `/current-sprint` | **Sprint** | What must move today: answer, blocker, owner, and next move before deeper inventory |
 | `/actions` | **Actions** | Shared intervention queue for governance cases that need follow-up now |
 | `/settings` | **Settings** | Organization registry, participation exceptions, owner-route gaps, AI/provider health, and audit status |
-| `/report` | **Proof** | Evidence and drill-down for the current Brief |
+| `/report` | **Proof** | Historical delivery proof, sprint audit, completed outcomes, exclusions, and exports |
 
-**Proof (report) above-fold:** header **Refresh** / **Export** replace duplicate sidebar Preview when top chrome is present; filter summary lives in the mission strip (sidebar summary hidden when chips exist); scorecard and heavy widgets defer until opened; `delivera:scope-changed` remounts proof summary and filter chips when squad changes.
+**Proof (report) boundary:** Governance owns today’s decision; Report proves what happened across sprints and exports the audit trail. Header **Refresh** / **Export** replace duplicate sidebar Preview, the last valid context auto-loads, and repeated squad/period/freshness labels stay in the shared context strip.
 
 **Bookmarks:** `/brief` → `/governance`. `/leadership` and `/program-increment` → `/governance#decision-snapshot`. `/value-delivery` → `/report`. `/teams` and `/risks-blockers` → `/current-sprint` (with `#stuck-card` where applicable).
 
@@ -72,7 +72,7 @@ Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brie
 ### Direct-to-value release contract
 
 - Governance, Current Sprint, Actions, and Settings keep separate route ownership while sharing sprint truth, case lifecycle, display names, versions, and owner routes.
-- Schema-v2 Layer 1 carries presentation contract version `3`; incompatible browser cache is rejected without replacing the last compatible story.
+- Schema-v2 Layer 1 carries presentation contract version `5`; incompatible browser cache is rejected without replacing the last compatible story.
 - Current Sprint writes a versioned per-squad sprint truth record and Governance reads that same cached record. Both expose the same truth version/hash and concrete `active`, `active-dates-expired`, `ended-no-successor`, `planned-not-started`, `closed`, `partial`, or `unverified` fact.
 - Evidence-dependent actions are server-authorized. Jira failure or evidence older than 60 minutes disables send, approval, escalation, and re-check while preserving safe owner correction and drafts.
 - `/actions` is the visible shared intervention queue and reuses the Governance resolution drawer; hidden legacy action mounts are never a data source.
@@ -84,6 +84,8 @@ Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **A
 - **Server-prepared truth:** `/api/governance/active-loop.json` serves Layer 1; squad and promise detail routes serve Layer 2. The browser renders, filters, and reveals the story but does not calculate Promise Match, Work Split, Proof Age, ranking, ownership, rework, or action eligibility.
 - **Five bands:** Portfolio Answer → Squad Comparison → Synchronized Squad Spotlight → Resolution Drawer → Action Trail. Schema v2 suppresses the legacy comparison-card wall and duplicate action rails.
 - **Deterministic evidence:** Promise Match, Work Split, Proof Age, Possible Rework, Unknown clustering, baseline coverage, owner routing, and stable risk order are rule-based. AI may simplify wording only.
+- **Root-cause evidence:** a missing exact Jira key is not removal. The baseline comparison classifies access gaps, backlog-only epics, future-sprint replans, missing PI metadata, likely moves/re-keys, completed work awaiting proof, program themes, off-plan/support work, period conflicts, and unresolved exact keys. Every diagnosis carries source evidence, confidence, candidate keys, impact, owner route, and one human-confirmed next action.
+- **Proof audit:** “Supporting evidence” is retired. Governance exposes raw proof rows, proof risk, lineage, and technical provenance as **Proof audit & data quality**; meeting copy lives in the Current Sprint share briefing, plan-vs-now stays in the contract projection, and readiness is expressed through squad diagnosis.
 - **Layered truth:** each squad row separates PI contract coverage, sprint cadence, Doing Instead, proof freshness, next action, and a plain trust factor. Missing evidence lowers trust; it never becomes a delivery accusation.
 - **Board identity:** governed board aliases are resolved once and reused by Governance, Current Sprint, Report, catalog selectors, Spotlight, drawers, and previews. Raw Jira keys remain evidence identifiers, not the primary meeting label.
 - **Operating-model firewall:** deterministic evidence can keep operational groups out of PI risk totals while leaving them reviewable. A PI-governed squad with heavy support demand remains in the contract totals and shows that load separately.
@@ -194,6 +196,8 @@ BASE_URL=http://localhost:3001 SKIP_WEBSERVER=true npm run test:stability:focuse
 - **Legacy:** `SESSION_SECRET`, `APP_LOGIN_USER`, `APP_LOGIN_PASSWORD`; sessions use the shared Redis SSOT when configured so Vercel instance changes and Render restarts do not sign everyone out
 - **SuperTokens:** `SUPERTOKENS_ENABLED=true` (optional `SUPERTOKENS_HYBRID_MODE=true`)
 
+The master login belongs only in the untracked local `.env` and the deployment platform’s encrypted environment settings. README documents variable names, never usernames, passwords, API keys, or secret values.
+
 Full matrix: [`docs/environment.md`](docs/environment.md)
 
 ## Common commands
@@ -207,6 +211,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:stability:focused` | Server trust gate: healthz, governance mount, SD continuity, dashboard identity, settings bands |
 | `npm run test:current-sprint:shell-release` | Focused Current Sprint fold, squad switch, Report continuity, and chrome readability |
 | `npm run test:governance:release` | Five risk-ranked meeting-safe release scenarios, fail-fast |
+| `npm run test:masterplan:release` | Exactly eight serial Speed/Trust scenarios: diagnosis → last failure → continuity → proof/report → clipboard → responsive → degradation |
 | `npm run test:settings:registry-release` | Focused Settings registry save, exclusivity, and continuity broadcast contract |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
 | `npm run test:smoke` | Short UX smoke |

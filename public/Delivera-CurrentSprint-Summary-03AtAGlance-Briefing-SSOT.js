@@ -24,9 +24,11 @@ function formatRiskAge(hours) {
 }
 
 export function pickTopStuckRisk(data) {
-  const stuck = [...(Array.isArray(data?.stuckCandidates) ? data.stuckCandidates : [])]
-    .sort((a, b) => asNum(b?.hoursInStatus, 0) - asNum(a?.hoursInStatus, 0));
-  const top = stuck[0];
+  const ranked = data?.decisionCockpit?.nextBestAction || null;
+  const candidates = Array.isArray(data?.stuckCandidates) ? data.stuckCandidates : [];
+  const top = ranked?.issueKey
+    ? { ...candidates.find((item) => String(item.issueKey || item.key).toUpperCase() === String(ranked.issueKey).toUpperCase()), ...ranked }
+    : null;
   if (!top) return null;
   const key = String(top.issueKey || top.key || '').trim();
   if (!key) return null;
@@ -68,6 +70,7 @@ export function pickTopStuckRisk(data) {
     nextAction,
     isNotStarted,
     issueUrl: top.issueUrl || '',
+    businessImpact: String(top.businessImpact || 'The sprint outcome or delivery confidence is at risk.'),
   };
 }
 
@@ -130,19 +133,38 @@ export function buildSprintAtAGlanceBriefing(data) {
         ? 'Add stories and owners in Jira so health signals can form.'
         : 'Keep daily logging current so burndown and leadership rollups stay truthful.'));
 
-  const quickClipboardLines = [
-    scopeLine,
-    `Time: ${timeLeftLine}`,
-    `Health: ${healthLine}`,
-    topRiskLine,
-    `Do next: ${nextAction}`,
-  ].filter(Boolean);
-
   const isHistorical = String(sprint.state || '').toLowerCase() !== 'active' || Boolean(meta.fromSnapshot);
   if (isHistorical) {
     nextAction = 'Snapshot only — switch to a live sprint to post Jira updates or change ownership.';
   }
   const headerExplain = [timeLeftLine, topRiskLine, `Do next: ${nextAction}`].join(' · ');
+  const context = data?.context || data?.truthContext || {};
+  const fiscalPeriod = String(context.fiscalPeriod || data?.fiscalPeriod || meta.fiscalPeriod || '').trim();
+  const squad = String(context.squadDisplayName || context.squadName || board.projectName || board.name || 'Squad').trim();
+  const owner = topRisk?.assignee || 'Owner route missing';
+  const impact = topRisk?.businessImpact || (risks.unownedOutcomes > 0
+    ? 'Unowned work can miss the sprint commitment without an accountable next move.'
+    : 'No immediate customer or PI consequence is evidenced.');
+  const freshnessSource = meta.generatedAt || meta.snapshotAt || context.observedAt || '';
+  const freshness = freshnessSource ? `Verified ${formatDate(freshnessSource) || freshnessSource}` : 'Freshness unavailable';
+  const ask = topRisk
+    ? (topRisk.assignee
+      ? `${topRisk.nextAction} Reply with owner, unblock decision, and ETA before the next stand-up.`
+      : `${topRisk.nextAction} Confirm an owner and ETA today.`)
+    : nextAction;
+  const shareFacts = [
+    { label: 'Context', value: [squad, sprint.name || 'Sprint', fiscalPeriod].filter(Boolean).join(' · ') },
+    { label: 'Time', value: timeLeftLine },
+    { label: 'Health & value', value: `${verdictInfo.verdict}; ${doneStories}/${totalStories} stories delivered (${pctDone}%).` },
+    { label: 'Highest-impact risk', value: topRisk ? `${topRisk.key} — ${topRisk.summary}; stalled ${formatRiskAge(topRisk.hours)}.` : topRiskLine.replace(/^Top risk:\s*/i, '') },
+    { label: 'Consequence', value: impact },
+    { label: 'Owner', value: owner },
+    { label: 'Ask', value: ask },
+    { label: 'Proof', value: `${topRisk?.key || 'No critical Jira key'} · ${freshness}` },
+  ].filter((item) => item.value);
+  const quickClipboardLines = shareFacts.map((item) => `*${item.label}:* ${item.value}`);
+  const quickClipboardHtml = `<section>${shareFacts.map((item) => `<p><strong>${item.label}:</strong> ${String(item.value)
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</p>`).join('')}</section>`;
 
   return {
     scopeLine,
@@ -155,6 +177,8 @@ export function buildSprintAtAGlanceBriefing(data) {
     risksRollup,
     nextAction,
     quickClipboardLines,
+    quickClipboardHtml,
+    shareFacts,
     headerExplain,
     verdict: verdictInfo.verdict,
     phaseInfo,

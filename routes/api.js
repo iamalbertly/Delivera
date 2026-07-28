@@ -126,6 +126,11 @@ async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
     if (!payload || typeof payload !== 'object') return payload;
     const registry = await readGovernanceRegistry();
     const keys = [...new Set(projectKeys.map((key) => String(key || '').trim().toUpperCase()).filter(Boolean))].sort();
+    const baseline = payload.contract || payload.meta?.contract || await resolveActiveLoopBaseline(keys, '').catch(() => null);
+    const contract = baseline || {
+        fiscalPeriod: payload.meta?.fiscalPeriod || payload.meta?.quarter || '',
+        contractId: payload.meta?.contractId || '',
+    };
     const contexts = keys.map((squadId) => buildDeliveryTruthContext({
         squad: {
             squad: squadId,
@@ -133,10 +138,7 @@ async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
             workSplit: payload.meta?.workSplit || {},
         },
         registry,
-        contract: payload.contract || payload.meta?.contract || {
-            fiscalPeriod: payload.meta?.fiscalPeriod || payload.meta?.quarter || '',
-            contractId: payload.meta?.contractId || '',
-        },
+        contract,
         projectKeys: [squadId],
         dataAsOf: payload.meta?.snapshotAt || payload.meta?.generatedAt || new Date().toISOString(),
         source: payload.meta?.stale ? 'Last verified Jira sprint snapshot' : 'Jira active sprint',
@@ -145,7 +147,13 @@ async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
     assertTruthConsistency(contexts);
     payload.contexts = contexts;
     payload.context = contexts.length === 1 ? contexts[0] : null;
-    payload.meta = { ...(payload.meta || {}), registryVersion: registry.version, truthHashes: Object.fromEntries(contexts.map((item) => [item.squadId, item.truthHash])) };
+    payload.meta = {
+        ...(payload.meta || {}),
+        fiscalPeriod: contexts[0]?.fiscalPeriod || payload.meta?.fiscalPeriod || '',
+        contractId: contexts[0]?.contractId || payload.meta?.contractId || '',
+        registryVersion: registry.version,
+        truthHashes: Object.fromEntries(contexts.map((item) => [item.squadId, item.truthHash])),
+    };
     return payload;
 }
 
@@ -1102,6 +1110,7 @@ router.get('/api/current-sprint/truth.json', requireAuth, async (req, res) => {
             pendingConsent: participation.pendingConsent,
             operationalException: participation.operationalException,
         },
+        organizationParticipation: organizationParticipationProjection(registry),
     });
 });
 
@@ -1158,6 +1167,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                 out.meta.sprintTruthVersion = out.meta.sprintReality.version;
                 out.meta.sprintTruthHash = out.meta.sprintReality.payloadHash;
                 out.meta.registryParticipation = registryParticipation.details;
+                out.meta.organizationParticipation = organizationParticipationProjection(registry);
                 out.meta.registryParticipationSummary = {
                     included: registryParticipation.included,
                     excluded: registryParticipation.excluded,
@@ -1205,6 +1215,7 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         payload.meta.projects = projectKeys.join(',');
         payload.meta.partialPermissions = false;
         payload.meta.registryParticipation = registryParticipation.details;
+        payload.meta.organizationParticipation = organizationParticipationProjection(registry);
         payload.meta.registryParticipationSummary = {
             included: registryParticipation.included,
             excluded: registryParticipation.excluded,
@@ -1700,6 +1711,23 @@ async function resolveActiveLoopBaseline(projects = [], quarter = '') {
     };
 }
 
+function organizationParticipationProjection(registry = {}) {
+    const globallyExcludedSquads = (registry.squads || [])
+        .filter((entry) => resolveRegistryParticipation(registry, entry.squadKey).globallyExcluded)
+        .map((entry) => ({
+            squadKey: entry.squadKey,
+            displayName: entry.friendlyName || entry.squadKey,
+            state: entry.participationState || 'pending-consent',
+            reason: entry.participationReason || entry.reason || '',
+        }))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    return {
+        organizationRevision: Number(registry.version) || 0,
+        globallyExcludedSquads,
+        globallyExcludedCount: globallyExcludedSquads.length,
+    };
+}
+
 async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
     const projects = parseGovernanceProjects(req);
     if (!projects.length) {
@@ -1742,6 +1770,7 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
     const caseState = projectActiveLoopCases(events);
     const answer = buildActiveGovernanceAnswer({ brief, baseline, caseState });
     answer.registryVersion = registry.version;
+    answer.organizationParticipation = organizationParticipationProjection(registry);
     answer.contexts = assertTruthConsistency((answer.squads || []).map((squad) => buildDeliveryTruthContext({
         squad,
         registry,
@@ -1777,6 +1806,7 @@ async function cachedActiveLoopDetailForRequest(req) {
     const projectsForTruth = projects.length ? projects : (answer.scope?.projects || []);
     const registry = await readGovernanceRegistry();
     const patched = await patchLayer1WithCanonicalSprintTruth(answer, projectsForTruth, req.query?.quarter || req.body?.quarter || 'current');
+    patched.organizationParticipation = organizationParticipationProjection(registry);
     patched.contexts = assertTruthConsistency((patched.squads || []).map((squad) => buildDeliveryTruthContext({
         squad,
         registry,
@@ -1822,7 +1852,7 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
         const warmStory = readWarmGovernanceStory(storyKey);
         const hit = warmStory ? null : await cache.get(storyKey, { namespace: 'governanceStoryV2' });
         const candidateStory = warmStory || hit?.value || hit;
-        const cachedStory = Number(candidateStory?.presentationContractVersion) === 4 && candidateStory?.lensSummaries
+        const cachedStory = Number(candidateStory?.presentationContractVersion) === 5 && candidateStory?.lensSummaries
             && Array.isArray(candidateStory?.excludedOperationalGroups)
             && candidateStory?.decisionCoverage
             && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash && squad.displayName && squad.contractState && squad.trustFactor)
@@ -1830,6 +1860,7 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
         const prepared = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req));
         const answer = await patchLayer1WithCanonicalSprintTruth(prepared, projects, req.query?.quarter || 'current');
         const registry = await readGovernanceRegistry();
+        answer.organizationParticipation = organizationParticipationProjection(registry);
         answer.contexts = assertTruthConsistency((answer.squads || []).map((squad) => buildDeliveryTruthContext({
             squad, registry, contract: answer.contract || {}, projectKeys: [squad.squad], dataAsOf: answer.evidenceObservedAt || answer.verifiedAt,
             source: 'Jira + approved PI contract + organization registry',
@@ -1868,7 +1899,7 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
         });
         const state = String(req.query.state || '').trim();
         const owner = String(req.query.owner || '').trim().toLowerCase();
-        const cases = promises.filter((promise) => promise.nextAction || promise.caseState !== 'aligned')
+        const cases = promises.filter((promise) => promise.caseState !== 'aligned' || promise.diagnosisCode !== 'verified')
             .filter((promise) => !state || promise.caseState === state)
             .filter((promise) => !owner || String(promise.ownerRoute?.displayName || promise.ownerRoute?.role || '').toLowerCase().includes(owner))
             .filter((promise) => !requestedSquad || String(promise.squad || '').toUpperCase() === requestedSquad)
@@ -1885,6 +1916,14 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
                     title: promise.originalText, state: promise.caseState, lifecycle: promise.actionLifecycle, ownerRoute: promise.ownerRoute,
                     nextAction: promise.nextAction, version: promise.version, dueState, actionType, sourceEntityId, returnContext,
                     proofAge: promise.proofAge || null,
+                    diagnosisCode: promise.diagnosisCode,
+                    diagnosisLabel: promise.diagnosisLabel,
+                    diagnosisConfidence: promise.diagnosisConfidence,
+                    diagnosisEvidence: promise.diagnosisEvidence || [],
+                    candidateIssueKeys: promise.candidateIssueKeys || [],
+                    customerOrPiImpact: promise.customerOrPiImpact,
+                    recommendedAction: promise.recommendedAction,
+                    requiresHumanDecision: promise.requiresHumanDecision,
                     trustFactor: promise.context || null,
                     urgencyLabel: promise.nextAction?.dueState || promise.caseState || 'review',
                     ownerConfidence: promise.ownerRoute?.unresolved ? 'missing-owner-route' : (promise.ownerRoute?.source || 'verified-route'),
@@ -1892,7 +1931,13 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
                     detailHref: `/api/governance/cases/${encodeURIComponent(promise.promiseId)}/detail.json?projects=${encodeURIComponent(squadId)}&squad=${encodeURIComponent(squadId)}&returnTo=${encodeURIComponent('/actions')}`,
                 };
             });
-        return sendJsonOnce(res, 200, { schemaVersion: 3, storyVersion: answer.answerVersion, contexts: answer.contexts || [], cases });
+        return sendJsonOnce(res, 200, {
+            schemaVersion: 3,
+            storyVersion: answer.answerVersion,
+            contexts: answer.contexts || [],
+            organizationParticipation: answer.organizationParticipation,
+            cases,
+        });
     } catch (err) {
         return sendErrorOnce(res, err?.httpStatus || 502, { error: err?.message || 'Actions queue unavailable', code: err?.code || 'ACTIONS_QUEUE_FAILED' });
     }

@@ -185,11 +185,6 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
     </section>`;
   bindEvidenceScopeToggle();
   mount.querySelector('#gov-evidence-preview-more')?.addEventListener('click', () => {
-    const rail = document.getElementById('gov-right-rail-proof-mount');
-    if (rail && !rail.hidden && rail.querySelector('.gov-evidence-preview')) {
-      rail.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
-      return;
-    }
     openEvidenceDrawer(brief, brief?.evidencePack?.rows || []);
   });
 }
@@ -205,6 +200,7 @@ export function renderTechnicalDetails(brief) {
 }
 
 export function renderReadiness(brief) {
+  if (!govPage.els.readiness) return;
   const po = brief?.poReadiness;
   if (!po) { govPage.els.readiness.innerHTML = ''; return; }
   const s = po.signals || {};
@@ -218,6 +214,7 @@ export function renderReadiness(brief) {
 }
 
 export function renderBaseline(brief) {
+  if (!govPage.els.baseline) return;
   const b = brief?.baselineComparison;
   if (!b) { govPage.els.baseline.innerHTML = ''; return; }
   const s = b.summary || {};
@@ -230,7 +227,7 @@ export function renderBaseline(brief) {
     </div>`;
 }
 
-const EVIDENCE_TAB_KEYS = ['proof', 'plan', 'pilot'];
+const EVIDENCE_TAB_KEYS = ['proof'];
 let scorecardBound = false;
 
 function restoreEvidenceTabFromSession(wrap) {
@@ -270,23 +267,15 @@ export function mountEvidenceTabShell() {
     restoreEvidenceTabFromSession(wrap);
     return;
   }
-  const measurement = document.getElementById('gov-measurement-mount');
-  const script = document.getElementById('gov-meeting-script-mount');
   const proof = document.getElementById('gov-proof-risks');
   const evidence = document.getElementById('gov-evidence');
   const technical = document.getElementById('gov-technical-details');
-  const readiness = document.getElementById('gov-readiness');
-  const baseline = document.getElementById('gov-baseline');
-  const scorecard = document.getElementById('gov-scorecard');
   if (!proof || !evidence) return;
 
   const shell = document.createElement('div');
   shell.className = 'gov-evidence-tabs';
   shell.setAttribute('role', 'tablist');
-  shell.innerHTML = ''
-    + `<button type="button" class="gov-evidence-tab is-active" data-evidence-tab="proof" role="tab" aria-selected="true">${escapeHtml(COPY.evidenceTabProof)}</button>`
-    + `<button type="button" class="gov-evidence-tab" data-evidence-tab="plan" role="tab" aria-selected="false">${escapeHtml(COPY.evidenceTabPlan)}</button>`
-    + `<button type="button" class="gov-evidence-tab" data-evidence-tab="pilot" role="tab" aria-selected="false">${escapeHtml(COPY.evidenceTabPilot)}</button>`;
+  shell.innerHTML = `<button type="button" class="gov-evidence-tab is-active" data-evidence-tab="proof" role="tab" aria-selected="true">Proof audit</button>`;
 
   const panels = document.createElement('div');
   panels.className = 'gov-evidence-tab-panels';
@@ -294,26 +283,11 @@ export function mountEvidenceTabShell() {
   const proofPanel = document.createElement('div');
   proofPanel.className = 'gov-evidence-tab-panel gov-tab-panel is-active';
   proofPanel.dataset.evidencePanel = 'proof';
-  if (measurement) proofPanel.appendChild(measurement);
-  if (script) proofPanel.appendChild(script);
   proofPanel.appendChild(proof);
   proofPanel.appendChild(evidence);
   if (technical) proofPanel.appendChild(technical);
 
-  const planPanel = document.createElement('div');
-  planPanel.className = 'gov-evidence-tab-panel gov-tab-panel';
-  planPanel.dataset.evidencePanel = 'plan';
-  planPanel.hidden = true;
-  if (readiness) planPanel.appendChild(readiness);
-  if (baseline) planPanel.appendChild(baseline);
-
-  const pilotPanel = document.createElement('div');
-  pilotPanel.className = 'gov-evidence-tab-panel gov-tab-panel';
-  pilotPanel.dataset.evidencePanel = 'pilot';
-  pilotPanel.hidden = true;
-  if (scorecard) pilotPanel.appendChild(scorecard);
-
-  panels.append(proofPanel, planPanel, pilotPanel);
+  panels.append(proofPanel);
   wrap.querySelectorAll('.governance-subsection-title').forEach((el) => { el.style.display = 'none'; });
   wrap.insertBefore(shell, wrap.firstChild?.nextSibling || null);
   wrap.appendChild(panels);

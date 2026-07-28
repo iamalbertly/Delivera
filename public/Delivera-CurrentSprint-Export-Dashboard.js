@@ -505,11 +505,6 @@ function setLastExportStatus(actionLabel, detail) {
   statusEl.setAttribute('data-last-action', actionLabel);
   statusEl.setAttribute('data-last-timestamp', ts);
   statusEl.setAttribute('data-last-detail', compactDetail);
-  return;
-  statusEl.innerHTML = `${labelHtml} · <span class="export-status-meta">${metaHtml}</span>`;
-  statusEl.setAttribute('data-last-action', actionLabel);
-  statusEl.setAttribute('data-last-timestamp', ts);
-  statusEl.setAttribute('data-last-detail', compactDetail);
 }
 
 try {
@@ -749,7 +744,7 @@ async function copyDashboardSummary(data, btn) {
     const briefing = buildSprintAtAGlanceBriefing(data);
     const model = await buildSprintSummaryModel(data, { mode: 'markdownEnhanced' });
     const text = briefing.quickClipboardLines.join('\n') || renderSummaryModelToQuickClipboard(model, data);
-    const html = renderSummaryModelToQuickClipboardHtml(model);
+    const html = briefing.quickClipboardHtml || renderSummaryModelToQuickClipboardHtml(model);
     const context = buildSummaryContext({
       summaryText: text,
       modelMeta: model?.meta || {},
@@ -765,7 +760,8 @@ async function copyDashboardSummary(data, btn) {
       }));
     } catch (_) {}
     setButtonStatus(btn, 'Copied!', originalText);
-    setLastExportStatus('Copy summary', 'Sprint summary copied for stand-up, review, and leadership updates');
+    const freshness = briefing.shareFacts?.find((item) => item.label === 'Proof')?.value || 'freshness included';
+    setLastExportStatus('Copy summary', `Owner-ready sprint briefing copied · ${freshness}`);
   } catch (error) {
     console.warn('Copy summary error:', error); // eslint-disable-line no-console
     setButtonStatus(btn, 'Copy failed', originalText);

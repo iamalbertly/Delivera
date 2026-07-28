@@ -445,6 +445,13 @@ body.report-page .report-shell-title-block {
   gap: 4px;
 }
 
+body.report-page .report-purpose {
+  max-width: 720px;
+  margin: 0;
+  color: #64748b;
+  font-size: .78rem;
+}
+
 body.report-page .report-shared-header-actions {
   justify-content: flex-end;
 }

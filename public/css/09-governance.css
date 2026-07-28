@@ -2077,6 +2077,15 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .action-case-source--text:hover { color: #0f172a; }
 .registry-suggestion-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 8px; }
 .registry-suggestion-bar small { color: #64748b; }
+[data-diagnostics-only] { display: none !important; }
+.gov-diagnosis-groups { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 8px; margin: 10px 0; }
+.gov-diagnosis-groups > h3 { grid-column: 1 / -1; margin: 0; font-size: .86rem; }
+.gov-diagnosis-groups article { display: grid; gap: 5px; padding: 10px 12px; border: 1px solid #fed7aa; border-radius: 12px; background: #fff7ed; }
+.gov-diagnosis-groups article p,.gov-diagnosis-groups article span,.gov-diagnosis-groups article small { margin: 0; font-size: .78rem; }
+.gov-diagnosis-groups article small { color: #64748b; }
+.gov-operating-firewall article { display: grid; gap: 3px; padding: 10px; }
+.action-case-signals { display: flex; flex-wrap: wrap; gap: 6px; }
+.action-case-signals span { padding: 3px 7px; border-radius: 999px; background: #f1f5f9; font-size: .72rem; }
 @media (max-width: 760px) {
   .gov-story-lenses { display: flex; }
   .gov-story-table { grid-template-columns: 1fr; max-height: none; }

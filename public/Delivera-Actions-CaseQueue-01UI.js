@@ -83,14 +83,16 @@ function render() {
   });
   mount.innerHTML = visible.length ? [...grouped.values()].map((group) => {
     const item = group[0];
-    const title = group.length > 1 ? `${group.length} promises share this correction` : item.title;
+    const title = group.length > 1
+      ? `${group.length} · ${item.diagnosisLabel || 'promises share this correction'}`
+      : (item.diagnosisLabel || item.title);
     const affected = group.length > 1 ? `<small>${escapeHtml(group.map((entry) => entry.title).slice(0, 3).join(' · '))}</small>` : '';
     const sourceHref = governanceSpotlightHref(item.squadId || item.squad, { returnTo: '/actions' });
     const ownerLine = item.ownerRoute?.displayName || item.ownerRoute?.role || 'Owner route missing';
     const proofLine = item.proofAge?.copy || 'Proof age unavailable.';
     const confidenceLine = item.ownerRoute?.unresolved ? 'Owner route needs confirmation' : `Owner route: ${item.ownerConfidence || 'verified'}`;
     const titleAttr = `${proofLine} · ${confidenceLine}`;
-    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${escapeHtml(item.squadDisplayName || item.squad)}${item.issueKey ? ` · ${escapeHtml(item.issueKey)}` : ''}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.lifecycle || 'Needs governance attention.')}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span></div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(ownerLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(item.nextAction?.label || 'Review missing proof')}</button></div></article>`;
+    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${escapeHtml(item.squadDisplayName || item.squad)}${item.issueKey ? ` · ${escapeHtml(item.issueKey)}` : ''}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(ownerLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(item.recommendedAction || item.nextAction?.label || 'Review missing proof')}</button></div></article>`;
   }).join('') : (() => {
     const emptyHref = governanceSpotlightHref(selectedSquad || '', { returnTo: '/actions' });
     return `<div class="empty-state"><h3>No actions match this view</h3><p><a href="${escapeHtml(emptyHref)}">${selectedSquad ? `Open ${escapeHtml(selectedSquad)} spotlight on Governance` : 'Return to Governance'}</a> for the portfolio answer.</p></div>`;
@@ -121,9 +123,9 @@ async function load() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     cases = (await response.json()).cases || [];
     render();
-  } catch (_) {
-    mount.innerHTML = '<div class="empty-state"><h3>Last verified action queue is unavailable</h3><p>Governance evidence remains read-only until the queue can be restored.</p></div>';
-    summary.textContent = 'Queue unavailable.';
+  } catch (error) {
+    mount.innerHTML = `<div class="empty-state" role="status"><h3>Last verified action queue is unavailable</h3><p>Governance evidence remains read-only until the queue can be restored. ${escapeHtml(error.message || 'Typed queue failure.')}</p></div>`;
+    summary.textContent = 'Queue unavailable · verified Governance evidence remains available.';
   }
 }
 
