@@ -70,6 +70,26 @@ observations remain informational without a configured WIP limit. Recommendation
 invite a human-confirmed squad swarm and never assign people, disable work, or
 perform automatic Jira mutations. Six closed sprints reuse existing caching.
 
+The all-project value policy adds one strategic anchor, PI commitment heat,
+human-impact statement, business-time pace label, directional dependency,
+secondary risk, deterministic impact estimate, communication guard, and
+intervention hash to that same contract. Sprint-name scope is accepted only
+after canonical alias matching; conflicting scope quarantines the mission.
+Thin history, partial permissions, stale evidence, or ambiguous mapping refuses
+pace and impact claims. Supportive is the default swarm tone; stale evidence
+forces information-only copy and disables Jira writes.
+
+Material contract amendments and accepted risks append a Decision Genome record
+to the existing ActiveLoop event stream: rationale, trade-off, approver, truth
+hash, original revision, and durable receipt. Governance and Settings project
+those confirmed events as the Human Why trail; there is no separate vault,
+simulator page, decision store, or attention queue.
+
+The canonical catalog contains twelve projects. RPA, ASG, FIN, SD, and MPSA2
+are PI-governed. VB, MPSA, MVA, MAS, TRS, AMS2, and BIO remain pending-consent,
+inspectable, and excluded from PI totals and intervention ranking until a
+version-protected registry decision changes participation.
+
 ### Native-first PI artifact intelligence
 
 - Governance accepts image, PDF, and PPTX evidence through `POST /api/governance/pi-imports/prepare`, a one-use signed multipart upload, and a durable status receipt. Browser SHA-256 preflight returns an organization-scoped exact cache hit or joins the existing producer before bytes are uploaded.
@@ -221,7 +241,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 | `npm run test:stability:focused` | Server trust gate: healthz, governance mount, SD continuity, dashboard identity, settings bands |
 | `npm run test:current-sprint:shell-release` | Focused Current Sprint fold, squad switch, Report continuity, and chrome readability |
 | `npm run test:governance:release` | Five risk-ranked meeting-safe release scenarios, fail-fast |
-| `npm run test:masterplan:release` | Exactly eight serial Speed/Trust scenarios: diagnosis → last failure → continuity → proof/report → clipboard → responsive → degradation |
+| `npm run test:masterplan:release` | Exactly ten serial, fail-fast scenarios: diagnosis → Governance truth → Finance causes → participation → proof/report → clipboard → responsive → degradation → all-project anchor → evidence policy |
 | `npm run test:settings:registry-release` | Focused Settings registry save, exclusivity, and continuity broadcast contract |
 | `npm run dev:hot` | Single-port dev with CSS + API reload |
 | `npm run test:smoke` | Short UX smoke |

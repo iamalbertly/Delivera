@@ -836,7 +836,11 @@ function keepDecisionDraft() {
 }
 
 function amendmentFormHtml() {
-  return `<form class="gov-loop-amend-form"><label>Approved change<select name="type"><option value="mutually-agreed-descope">Mutually agreed descope</option><option value="move-to-next-quarter">Move to next quarter</option><option value="split-into-new-promise">Split into new promise</option><option value="replace-with-urgent-work">Replace with approved urgent work</option><option value="mark-as-support-obligation">Mark as support obligation</option></select></label><label>Business reason<textarea name="reason" minlength="8" required></textarea></label><label>Approval proof reference<input name="approvalProofRef"></label><button class="btn btn-primary" type="submit">Approve amendment</button></form>`;
+  return `<form class="gov-loop-amend-form"><label>Approved change<select name="type"><option value="mutually-agreed-descope">Mutually agreed descope</option><option value="move-to-next-quarter">Move to next quarter</option><option value="split-into-new-promise">Split into new promise</option><option value="replace-with-urgent-work">Replace with approved urgent work</option><option value="mark-as-support-obligation">Mark as support obligation</option></select></label><label>Why this call?<textarea name="reason" minlength="8" required></textarea></label><label>Trade-off<textarea name="tradeOff" minlength="3" required></textarea></label><label>Approved by<input name="approvedBy" autocomplete="off" required></label><label>Approval proof reference<input name="approvalProofRef"></label><button class="btn btn-primary" type="submit">Approve amendment</button></form>`;
+}
+
+function decisionReasonFormHtml(action) {
+  return `<form class="gov-loop-amend-form"><label>Why this call?<textarea name="reason" minlength="8" required></textarea></label><label>Trade-off<textarea name="tradeOff" minlength="3" required></textarea></label><label>Approved by<input name="approvedBy" autocomplete="off" required></label><button class="btn btn-primary" type="submit">Record ${escapeHtml(action.replace(/-/g, ' '))}</button></form>`;
 }
 
 function sourceWriteLabel(state) {
@@ -862,7 +866,7 @@ function drawerHtml(promise, squad) {
   return `<div class="gov-loop-drawer" data-loop-promise-version="${Number(promise.version) || 1}"><section class="gov-loop-drawer-verdict gov-loop-tone-${tone(promise.matchState)}"><span>${escapeHtml(promise.diagnosisLabel || promise.matchLabel)}</span><strong>${escapeHtml(promise.originalText)}</strong><p>${escapeHtml(promise.customerOrPiImpact || promise.proofAge?.copy || '')}</p>${promise.amendmentSentence ? `<p class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</p>` : ''}</section>
   ${diagnosisEvidence ? `<section class="gov-resolution-sheet"><h3>Why Delivera reached this diagnosis</h3><ul>${diagnosisEvidence}</ul><p><strong>Confidence:</strong> ${Math.round((Number(promise.diagnosisConfidence) || 0) * 100)}%</p><p><strong>Recommended:</strong> ${escapeHtml(promise.recommendedAction || '')}</p></section>` : ''}
   <div class="gov-loop-drawer-grid"><section><h3>PI promise source</h3><p>${escapeHtml(promise.source || promise.baselineCoverage?.sourceLabel || 'Approved PI baseline')}</p><p>${escapeHtml(scopedPromiseSourceReference(promise, squad))}</p></section><section><h3>Matched Jira work</h3><p><strong>${escapeHtml(promise.issueKey || 'No Jira proof')}</strong> · ${escapeHtml(promise.statusNow || '')}</p></section><section><h3>Proof age</h3><p>${escapeHtml(promise.proofAge?.state || 'unknown')} · ${escapeHtml(promise.proofAge?.copy || '')}</p></section><section><h3>Work Split</h3><p>${squad?.workSplit?.unplannedPct == null ? 'Unplanned work unknown' : `${squad.workSplit.unplannedPct}% unplanned work`}</p><p>${escapeHtml(squad?.workSplit?.largestUnmappedCluster ? `Largest unmapped cluster: ${squad.workSplit.largestUnmappedCluster}.` : '')}</p><p>${escapeHtml(squad?.workSplit?.explanation || '')}</p><p>Unknown: ${squad?.workSplit?.unknownPct == null ? 'not calculated' : `${squad.workSplit.unknownPct}%`}</p></section><section><h3>Action state</h3><p>${escapeHtml(promise.actionLifecycle || '')}</p></section><section><h3>Owner path</h3>${recipientEditor(promise)}</section><section><h3>Ready to Promise</h3><p>${escapeHtml(promise.readiness?.copy || 'Readiness was not captured in the original baseline.')}</p></section><section><h3>Trade-off Guardrail</h3><p>${escapeHtml(promise.tradeOffGuardrail?.copy || 'No trustworthy percentage is available.')}</p></section></div>
-  <details class="gov-loop-history" open><summary>Nudge and reaction history (${promise.actionHistory?.length || 0})</summary><ol>${(promise.actionHistory || []).map((item) => `<li><strong>${escapeHtml(String(item.type || '').replace(/-/g, ' '))}</strong><small>${escapeHtml(item.replyExcerpt || item.messagePreview || '')}</small></li>`).join('') || '<li>No action has been sent yet.</li>'}</ol></details>
+  <details class="gov-loop-history" open><summary>Human Why and action history (${promise.actionHistory?.length || 0})</summary><ol>${[...(promise.amendmentHistory || []), ...(promise.actionHistory || [])].map((item) => `<li><strong>${escapeHtml(String(item.type || '').replace(/-/g, ' '))}</strong><small>${escapeHtml(item.rationale || item.reason || item.replyExcerpt || item.messagePreview || '')}</small></li>`).join('') || '<li>No human decision has been recorded yet.</li>'}</ol></details>
   ${(promise.sourceWrites || []).length ? `<details class="gov-loop-history"><summary>Source write status (${promise.sourceWrites.length})</summary><ol>${promise.sourceWrites.map((write) => `<li><strong>${escapeHtml(sourceWriteLabel(write.state))}</strong><small>${escapeHtml(write.failureReason || write.correctionPath || `${write.targetSystem || 'source'} · ${write.targetObject || ''}`)}</small></li>`).join('')}</ol></details>` : ''}
   <div class="gov-loop-stale-warning" hidden role="alert"></div><div class="gov-loop-action-status" aria-live="polite"></div><div class="gov-loop-actions">${actions.map((action) => `<span class="gov-loop-action-wrap"><button type="button" class="btn ${action.id === 'send-nudge' || action.id === 'recheck-promise' ? 'btn-primary' : 'btn-secondary'} btn-compact" data-loop-action="${escapeHtml(action.id)}" ${action.allowed ? '' : 'disabled aria-disabled="true"'} title="${escapeHtml(action.reason || '')}">${escapeHtml(action.id === 'send-nudge' && promise.ownerRoute?.displayName ? `Nudge ${promise.ownerRoute.role}: ${promise.ownerRoute.displayName}` : actionLabels[action.id] || action.id)}</button>${action.allowed ? '' : `<small>${escapeHtml(action.reason || 'This action is not currently safe.')}</small>`}</span>`).join('')}</div></div>`;
 }
@@ -916,7 +920,7 @@ function reviewedRecipient(drawer, promise) {
 
 async function versionedPost(url, promise, body) {
   const idempotencyKey = body?.idempotencyKey || `${promise.promiseId}:${promise.version}:${url.split('?')[0]}`;
-  return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'If-Match': `"${promise.version}"`, 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ ...body, expectedVersion: promise.version, idempotencyKey, squadPayloadHash: activeDrawerContext?.squadPayloadHash || '' }) });
+  return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'If-Match': `"${promise.version}"`, 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ ...body, expectedVersion: promise.version, idempotencyKey, squadPayloadHash: activeDrawerContext?.squadPayloadHash || '', truthHash: promise.context?.truthHash || '', originalPromiseRevision: promise.version }) });
 }
 
 async function handleAction(action, promise, drawer) {
@@ -924,7 +928,20 @@ async function handleAction(action, promise, drawer) {
   const status = drawer.querySelector('.gov-loop-action-status');
   if (action === 'amend-contract') {
     status.innerHTML = amendmentFormHtml();
-    status.querySelector('form').addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; await submit(action, promise, drawer, { promiseId: promise.promiseId, type: form.elements.type.value, reason: form.elements.reason.value, approvalProofRef: form.elements.approvalProofRef.value }); });
+    status.querySelector('form').addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; await submit(action, promise, drawer, { promiseId: promise.promiseId, type: form.elements.type.value, reason: form.elements.reason.value, rationale: form.elements.reason.value, tradeOff: form.elements.tradeOff.value, approvedBy: form.elements.approvedBy.value, approvalProofRef: form.elements.approvalProofRef.value }); });
+    return;
+  }
+  if (action === 'accept-risk') {
+    status.innerHTML = decisionReasonFormHtml(action);
+    status.querySelector('form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      await submit(action, promise, drawer, {
+        decision: action, contractId: promise.contractId, reason: form.elements.reason.value,
+        rationale: form.elements.reason.value, tradeOff: form.elements.tradeOff.value,
+        approvedBy: form.elements.approvedBy.value,
+      });
+    });
     return;
   }
   if (action === 'pull-fresh-evidence') return targetedRefresh('promise', promise.promiseId, null, drawer);

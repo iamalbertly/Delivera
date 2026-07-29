@@ -59,6 +59,8 @@ export function buildHumanNudgeDraft({
   issueStatus = '',
   useCase = '',
   staleHours = null,
+  tone = 'supportive',
+  intervention = null,
 } = {}) {
   const key = asText(issueKey);
   const summary = shortenIssueSummary(issueSummary);
@@ -66,7 +68,17 @@ export function buildHumanNudgeDraft({
   const normalizedUseCase = asText(useCase).toLowerCase() || 'ownership';
   const stale = formatStaleLabel(staleHours);
   const builder = USE_CASE_LINES[normalizedUseCase] || USE_CASE_LINES.ownership;
+  const effectiveTone = ['supportive', 'information-only', 'urgent'].includes(asText(tone).toLowerCase())
+    ? asText(tone).toLowerCase() : 'supportive';
+  const evidenceAsk = asText(intervention?.recommendedAction || intervention?.nextAction);
+  const value = asText(intervention?.humanImpact?.statement || intervention?.businessImpact);
   let line = key ? builder(key, stale) : `Please review: ${summary}.`;
+  if (evidenceAsk) {
+    const lead = effectiveTone === 'urgent' ? 'Time-sensitive facilitation needed'
+      : effectiveTone === 'information-only' ? 'For team visibility'
+        : 'Could the squad help restore flow';
+    line = `${lead}: ${key}. ${value ? `${value} ` : ''}${evidenceAsk}`;
+  }
   if (key && summary && summary !== 'this work item' && line.length < 200) {
     line = `${line} (${summary}${status ? ` · ${status}` : ''})`;
   }

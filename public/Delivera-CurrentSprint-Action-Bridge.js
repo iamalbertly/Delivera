@@ -227,6 +227,10 @@ export async function postIssueCommentToJira(issueKey, commentBody, options = {}
           : (getCurrentSprintPayload()?.meta?.teamRoster || []),
         sprintId: options.sprintId ?? getCurrentSprintPayload()?.sprint?.id ?? '',
         boardId: options.boardId ?? getCurrentSprintPayload()?.board?.id ?? '',
+        interventionHash: options.interventionHash ?? getCurrentSprintPayload()?.decisionCockpit?.nextBestAction?.interventionHash ?? '',
+        truthHash: options.truthHash ?? getCurrentSprintPayload()?.context?.truthHash ?? '',
+        squadKey: options.squadKey ?? getCurrentSprintPayload()?.context?.squadKey ?? getCurrentSprintPayload()?.context?.squadId ?? '',
+        registryRevision: options.registryRevision ?? getCurrentSprintPayload()?.context?.organizationRevision ?? getCurrentSprintPayload()?.meta?.registryVersion ?? '',
       }),
       signal: ctrl.signal,
     });

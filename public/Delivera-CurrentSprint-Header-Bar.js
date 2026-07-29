@@ -483,6 +483,12 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-row report-shell-top-row current-sprint-shell-top-row">';
   html += '<div class="report-shell-title-block current-sprint-shell-title-block">';
   html += `<h2 title="${escapeHtml(sprintIdentityLine)}">Today for ${escapeHtml(resolveFriendlySquadLabel(selectedProject, boardName) || sprintNameCompact)}</h2>`;
+  if (missionBriefing?.strategicAnchor) {
+    const anchor = missionBriefing.strategicAnchor;
+    html += `<p class="sprint-strategic-anchor${anchor.conflict ? ' is-conflicted' : ''}" role="${anchor.conflict ? 'alert' : 'status'}">`
+      + `<span>Sprint: ${escapeHtml(anchor.sprintLabel || sprintNameCompact)}</span><span aria-hidden="true"> · </span>`
+      + `<strong>Mission: ${escapeHtml(anchor.missionTitle || 'Mission not mapped')}</strong></p>`;
+  }
   html += `<p class="subtitle">${escapeHtml(verdictDisplayLine)}</p>`;
   html += '</div>';
   html += '<div class="report-header-actions current-sprint-shell-actions">';

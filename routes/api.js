@@ -360,6 +360,21 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
         const commentBody = typeof req.body?.commentBody === 'string' ? String(req.body.commentBody).trim() : '';
         if (!issueKey) return res.status(400).json({ error: 'Missing issue key', code: 'MISSING_ISSUE_KEY' });
         if (!commentBody) return res.status(400).json({ error: 'Missing comment body', code: 'MISSING_COMMENT_BODY' });
+        const interventionHash = String(req.body?.interventionHash || '').trim();
+        const truthHash = String(req.body?.truthHash || '').trim();
+        const squadKeyRaw = String(req.body?.squadKey || '').trim().toUpperCase();
+        const aliases = { DMS: 'SD', AMS: 'AMS2', 'T-SQUAD': 'TRS', BIOMETRIC: 'BIO' };
+        const squadKey = aliases[squadKeyRaw] || squadKeyRaw;
+        const issueProject = issueKey.split('-')[0].toUpperCase();
+        if (interventionHash && !/^[a-f0-9]{24}$/i.test(interventionHash)) {
+            return res.status(409).json({ error: 'The reviewed intervention is no longer valid. Refresh and review again.', code: 'INTERVENTION_CONTEXT_CONFLICT' });
+        }
+        if (truthHash && !/^[a-f0-9]{16,64}$/i.test(truthHash)) {
+            return res.status(409).json({ error: 'Delivery truth changed. Refresh before posting to Jira.', code: 'TRUTH_CONTEXT_CONFLICT' });
+        }
+        if (squadKey && issueProject !== squadKey) {
+            return res.status(409).json({ error: `The active ${squadKey} context cannot post to ${issueKey}.`, code: 'SQUAD_CONTEXT_CONFLICT' });
+        }
 
         const version3Client = createVersion3Client();
         let result = null;
@@ -384,6 +399,10 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
                 bodyPreview: commentBody,
                 sprintId: req.body?.sprintId,
                 boardId: req.body?.boardId,
+                interventionHash,
+                truthHash,
+                squadKey,
+                registryRevision: req.body?.registryRevision,
                 status: 'sent',
             });
             activityId = activityRow?.id || null;
@@ -2180,7 +2199,15 @@ router.post('/api/governance/contracts/:contractId/amendments', requireAuth, asy
             type: 'contract-amended',
             actorId: activeLoopActor(req),
             expectedVersion,
-            payload: { ...validation.value, approvalProofRef: String(req.body?.approvalProofRef || '').slice(0, 500) },
+            payload: {
+                ...validation.value,
+                rationale: String(req.body?.rationale || validation.value.reason || '').slice(0, 1000),
+                tradeOff: String(req.body?.tradeOff || '').slice(0, 1000),
+                approvedBy: String(req.body?.approvedBy || activeLoopActor(req)).slice(0, 180),
+                truthHash: String(req.body?.truthHash || '').slice(0, 80),
+                originalPromiseRevision: Number(req.body?.originalPromiseRevision || expectedVersion),
+                approvalProofRef: String(req.body?.approvalProofRef || '').slice(0, 500),
+            },
         });
         return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, version: row.nextVersion, amendmentId: row.id });
     } catch (err) {
@@ -2195,6 +2222,10 @@ router.post('/api/governance/cases/:promiseId/decisions', requireAuth, async (re
     const typeByDecision = { 'approve-match': 'match-approved', 'accept-risk': 'risk-accepted', 'assign-owner': 'owner-assigned', 'escalate-owner': 'escalation-sent' };
     const type = typeByDecision[decision];
     if (!type) return res.status(422).json({ error: 'Unsupported governance decision', code: 'INVALID_GOVERNANCE_DECISION' });
+    const reason = String(req.body?.rationale || req.body?.reason || '').trim();
+    if (['accept-risk', 'escalate-owner'].includes(decision) && reason.length < 8) {
+        return res.status(422).json({ error: 'Record the human reason for this decision.', code: 'DECISION_RATIONALE_REQUIRED' });
+    }
     try {
         const row = await appendVersionedActiveLoopEvent({
             promiseId: String(req.params.promiseId || '').trim(),
@@ -2202,7 +2233,16 @@ router.post('/api/governance/cases/:promiseId/decisions', requireAuth, async (re
             type,
             actorId: activeLoopActor(req),
             expectedVersion,
-            payload: { reason: String(req.body?.reason || '').slice(0, 1000), assignee: req.body?.assignee || null, recipient: req.body?.recipient || null },
+            payload: {
+                reason: reason.slice(0, 1000),
+                rationale: reason.slice(0, 1000),
+                tradeOff: String(req.body?.tradeOff || '').slice(0, 1000),
+                approvedBy: String(req.body?.approvedBy || activeLoopActor(req)).slice(0, 180),
+                truthHash: String(req.body?.truthHash || '').slice(0, 80),
+                originalPromiseRevision: Number(req.body?.originalPromiseRevision || expectedVersion),
+                assignee: req.body?.assignee || null,
+                recipient: req.body?.recipient || null,
+            },
         });
         return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, version: row.nextVersion, decisionId: row.id });
     } catch (err) {

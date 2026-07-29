@@ -6,6 +6,14 @@ import {
   buildFlowBaseline,
   enhanceFlowIntervention,
 } from '../lib/Delivera-CurrentSprint-Flow-Intelligence-SSOT.js';
+import {
+  buildBusinessTime,
+  buildCommunicationGuard,
+  buildImpactScenario,
+  buildStrategicAnchor,
+} from '../lib/Delivera-CurrentSprint-Value-Flow-Policy-SSOT.js';
+import { buildHumanNudgeDraft } from '../public/Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js';
+import { PROJECT_CATALOG } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -100,6 +108,9 @@ test.describe('Delivera customer speed and trust release', () => {
     expect(cockpit.nextBestAction.recommendedAction).toContain('Who has capacity to swarm SD-5306');
     expect(cockpit.nextBestAction.dependencyEvidence.issueKeys).toEqual(['EV-42']);
     expect(cockpit.nextBestAction.interventionHash).toHaveLength(24);
+    expect(cockpit.nextBestAction.businessTime.state).toBe('past-pace');
+    expect(cockpit.nextBestAction.humanImpact.statement).toBe('Everest milestone remains unblocked.');
+    expect(cockpit.nextBestAction.impactScenario.state).toBe('available');
     expect(JSON.stringify(cockpit)).not.toMatch(/disable new work|automatically assign/i);
   });
 
@@ -256,5 +267,72 @@ test.describe('Delivera customer speed and trust release', () => {
       inputs.filter((input) => input.value || !['off', 'new-password'].includes(input.autocomplete)).length
     ));
     expect(unsafe).toBe(0);
+  });
+
+  test('9 all-project strategic anchors remain canonical and fail closed on identity conflict', () => {
+    expect(PROJECT_CATALOG.map((project) => project.key)).toEqual([
+      'MPSA', 'MAS', 'RPA', 'MVA', 'ASG', 'FIN', 'SD', 'MPSA2', 'TRS', 'VB', 'AMS2', 'BIO',
+    ]);
+    const aligned = buildStrategicAnchor({
+      sprintName: 'FY27DMS06',
+      squadKey: 'SD',
+      valueEvidence: { piObjectiveTitle: 'Protect Q2 customer launch' },
+    });
+    expect(aligned).toMatchObject({
+      canonicalSquad: 'SD',
+      detectedSquad: 'SD',
+      conflict: false,
+      missionTitle: 'Protect Q2 customer launch',
+    });
+    const conflict = buildStrategicAnchor({
+      sprintName: 'FY27DMS06',
+      squadKey: 'FIN',
+      valueEvidence: { piObjectiveTitle: 'Finance settlement' },
+    });
+    expect(conflict.conflict).toBe(true);
+    expect(conflict.missionTitle).toContain('quarantined');
+  });
+
+  test('10 evidence policy controls business time, impact estimates and servant-leader tone', () => {
+    expect(buildBusinessTime({
+      currentAgeHours: 240,
+      p85CycleHours: 72,
+      baselineState: 'ready',
+    })).toMatchObject({ state: 'past-pace', businessDaysPastPace: 5 });
+    expect(buildBusinessTime({
+      currentAgeHours: 240,
+      p85CycleHours: 72,
+      baselineState: 'ready',
+      partialPermissions: true,
+    }).label).toBe('Pace unknown — proof incomplete');
+    expect(buildImpactScenario({
+      flowBaseline: {
+        state: 'ready',
+        medianCycleHours: 48,
+        throughput: [{ completed: 3 }, { completed: 4 }, { completed: 5 }],
+      },
+      daysRemaining: 5,
+      currentWip: 4,
+    }).state).toBe('available');
+    expect(buildImpactScenario({
+      flowBaseline: { state: 'forming', throughput: [] },
+      daysRemaining: 5,
+      currentWip: 4,
+    }).state).toBe('refused');
+    expect(buildCommunicationGuard({ stale: true, selectedTone: 'urgent' })).toMatchObject({
+      effectiveTone: 'information-only',
+      sendAllowed: false,
+    });
+    const supportive = buildHumanNudgeDraft({
+      issueKey: 'SD-5304',
+      tone: 'supportive',
+      intervention: {
+        businessImpact: 'Customer notification value remains blocked.',
+        recommendedAction: 'Who can swarm CSS review today?',
+      },
+    });
+    expect(supportive).toContain('Could the squad help restore flow');
+    expect(supportive).toContain('Who can swarm CSS review today?');
+    expect(supportive).not.toMatch(/assign someone|disable new work/i);
   });
 });

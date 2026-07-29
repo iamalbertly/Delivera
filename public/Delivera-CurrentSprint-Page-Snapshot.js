@@ -19,35 +19,50 @@ function writeSnapshotStore(store) {
   } catch (_) {}
 }
 
-function getSnapshotId(projectKey, boardId) {
-  return [String(projectKey || '').trim(), String(boardId || '').trim()].filter(Boolean).join('::');
+function getSnapshotId(projectKey, boardId, data = null) {
+  const context = data?.context || {};
+  const meta = data?.meta || {};
+  return [
+    String(projectKey || '').trim().toUpperCase(),
+    String(boardId || '').trim(),
+    String(data?.sprint?.id || '').trim(),
+    String(context.contractId || meta.contractId || '').trim(),
+    String(context.organizationRevision || meta.registryVersion || '').trim(),
+    String(context.truthHash || '').trim(),
+    'flow-v2',
+  ].join('::');
 }
 
 export function clearCurrentSprintSnapshot(projectKey, boardId) {
-  const snapshotId = getSnapshotId(projectKey, boardId);
-  if (!snapshotId) return;
   const store = readSnapshotStore();
-  if (!store[snapshotId]) return;
-  delete store[snapshotId];
+  const prefix = `${String(projectKey || '').trim().toUpperCase()}::${String(boardId || '').trim()}::`;
+  const matches = Object.keys(store).filter((key) => key.startsWith(prefix));
+  if (!matches.length) return;
+  matches.forEach((key) => { delete store[key]; });
   writeSnapshotStore(store);
 }
 
 export function readCurrentSprintSnapshot(projectKey, boardId) {
-  const snapshotId = getSnapshotId(projectKey, boardId);
-  if (!snapshotId) return null;
+  const prefix = [String(projectKey || '').trim().toUpperCase(), String(boardId || '').trim()].join('::');
+  if (!prefix.replaceAll(':', '')) return null;
   const store = readSnapshotStore();
-  const snapshot = store[snapshotId];
+  const snapshot = Object.values(store)
+    .filter((item) => String(item?.id || '').startsWith(`${prefix}::`))
+    .sort((a, b) => Number(b?.savedAt || 0) - Number(a?.savedAt || 0))[0];
   if (!snapshot || typeof snapshot !== 'object') return null;
+  const activeSquad = String(snapshot?.data?.context?.squadKey || snapshot?.data?.context?.squadId || projectKey || '').toUpperCase();
+  if (activeSquad && activeSquad !== String(projectKey || '').toUpperCase()) return null;
   const savedAt = Number(snapshot.savedAt || 0);
   if (!Number.isFinite(savedAt) || savedAt <= 0 || (Date.now() - savedAt) > SNAPSHOT_MAX_AGE_MS) {
-    clearCurrentSprintSnapshot(projectKey, boardId);
+    delete store[snapshot.id];
+    writeSnapshotStore(store);
     return null;
   }
   return snapshot;
 }
 
 export function saveCurrentSprintSnapshot(projectKey, boardId, data) {
-  const snapshotId = getSnapshotId(projectKey, boardId);
+  const snapshotId = getSnapshotId(projectKey, boardId, data);
   if (!snapshotId || !data || typeof data !== 'object') return;
   const summary = data.summary || {};
   const sprint = data.sprint || {};
@@ -68,6 +83,7 @@ export function saveCurrentSprintSnapshot(projectKey, boardId, data) {
       ...meta,
       fromSnapshot: true,
       snapshotAt: new Date().toISOString(),
+      snapshotDetailState: 'summary-only',
     },
     sprint: {
       id: sprint.id || null,
@@ -93,6 +109,8 @@ export function saveCurrentSprintSnapshot(projectKey, boardId, data) {
   };
 
   const store = readSnapshotStore();
+  Object.keys(store).filter((key) => key.startsWith(`${String(projectKey || '').toUpperCase()}::${String(boardId || '')}::`))
+    .forEach((key) => { delete store[key]; });
   store[snapshotId] = {
     id: snapshotId,
     boardId: String(boardId || ''),

@@ -9,6 +9,7 @@ import { showJiraNudgeSendReceipt, markIssueNudged } from './Delivera-CurrentSpr
 import { createOverlayController } from './Delivera-Shared-Overlay-Manager.js';
 
 let sheetController = null;
+const TONE_KEY = 'delivera.nudgeTone.v1';
 
 function asText(v) {
   return String(v == null ? '' : v).trim();
@@ -30,6 +31,13 @@ function ensureSheet() {
   document.body.appendChild(sheet);
   sheetController = createOverlayController(sheet, { mode: 'drawer' });
   return sheet;
+}
+
+function readTone() {
+  try {
+    const value = localStorage.getItem(TONE_KEY);
+    return ['supportive', 'information-only', 'urgent'].includes(value) ? value : 'supportive';
+  } catch (_) { return 'supportive'; }
 }
 
 function closeSheet(sheet) {
@@ -71,12 +79,17 @@ export function openJiraNudgeReviewSheet({
   const governanceSend = meta?.governanceSend === true;
   const sendAllowed = !readOnly && (governanceSend || isSprintCommentSendAllowed(meta, sprint));
   const interventionHash = asText(meta?.interventionHash);
+  const intervention = meta?.intervention || window.__deliveraCurrentSprintPayload?.decisionCockpit?.nextBestAction || null;
+  const effectiveGuard = intervention?.communicationGuard || {};
+  const selectedTone = effectiveGuard?.effectiveTone || readTone();
   const draft = asText(initialDraft) || buildHumanNudgeDraft({
     issueKey: key,
     issueSummary,
     issueStatus,
     useCase,
     staleHours,
+    tone: selectedTone,
+    intervention,
   });
   const url = asText(issueUrl);
   let html = '<div class="jira-nudge-review-panel">';
@@ -91,6 +104,13 @@ export function openJiraNudgeReviewSheet({
       : 'Live sprint required to post. Switch to live data or pick an active sprint.';
     html += '<p class="jira-nudge-review-trust" role="alert">' + escapeHtml(staleNote) + '</p>';
   }
+  html += '<fieldset class="jira-nudge-tone" aria-label="Message tone"><legend>Tone</legend>';
+  ['supportive', 'information-only', 'urgent'].forEach((tone) => {
+    const disabled = Array.isArray(effectiveGuard.allowedTones) && !effectiveGuard.allowedTones.includes(tone);
+    const label = tone === 'information-only' ? 'Information-only' : tone[0].toUpperCase() + tone.slice(1);
+    html += `<label><input type="radio" name="jira-nudge-tone" value="${tone}"${tone === selectedTone ? ' checked' : ''}${disabled ? ' disabled' : ''}> ${label}</label>`;
+  });
+  html += '</fieldset>';
   const roster = Array.isArray(meta?.teamRoster) ? meta.teamRoster.slice(0, 8) : [];
   if (roster.length && sendAllowed) {
     html += '<div class="jira-nudge-mention-row" role="group" aria-label="Mention teammates">';
@@ -133,6 +153,16 @@ export function openJiraNudgeReviewSheet({
   };
   updateCount();
   textarea?.addEventListener('input', updateCount);
+  sheet.querySelectorAll('input[name="jira-nudge-tone"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      const tone = input.value;
+      try { localStorage.setItem(TONE_KEY, tone); } catch (_) {}
+      if (textarea) textarea.value = buildHumanNudgeDraft({
+        issueKey: key, issueSummary, issueStatus, useCase, staleHours, tone, intervention,
+      });
+      updateCount();
+    });
+  });
   const insertMention = (token) => {
     if (!textarea || !token) return;
     const start = textarea.selectionStart ?? textarea.value.length;
@@ -178,7 +208,13 @@ export function openJiraNudgeReviewSheet({
     sendBtn.textContent = 'Sending…';
     if (statusEl) statusEl.textContent = '';
     try {
-      const result = await postIssueCommentToJira(key, body, { teamRoster: roster });
+      const result = await postIssueCommentToJira(key, body, {
+        teamRoster: roster,
+        interventionHash,
+        truthHash: meta?.truthHash,
+        squadKey: meta?.squadKey,
+        registryRevision: meta?.registryRevision,
+      });
       markIssueNudged(key);
       showJiraNudgeSendReceipt({
         issueKey: key,

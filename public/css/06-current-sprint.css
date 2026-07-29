@@ -6927,3 +6927,25 @@ body.jira-nudge-review-open { overflow: hidden; }
 .current-sprint-prepared-mission > p {
   margin: 0;
 }
+.sprint-strategic-anchor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin: .25rem 0 0;
+  color: var(--text-muted);
+  font-size: .875rem;
+}
+.sprint-strategic-anchor strong { color: var(--text); }
+.sprint-strategic-anchor.is-conflicted { color: var(--danger, #a61b1b); }
+
+.jira-nudge-tone {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin: .75rem 0;
+  padding: .75rem;
+  border: 1px solid var(--border);
+  border-radius: .75rem;
+}
+.jira-nudge-tone legend { font-weight: 700; }
+.jira-nudge-tone label { min-height: 44px; display: inline-flex; align-items: center; gap: .35rem; }

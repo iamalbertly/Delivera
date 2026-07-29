@@ -54,6 +54,12 @@ export function pickTopStuckRisk(data) {
       valueEvidence: top.valueEvidence || null,
       dependencyEvidence: top.dependencyEvidence || null,
       swarmPlan: top.swarmPlan || null,
+      strategicAnchor: top.strategicAnchor || null,
+      businessTime: top.businessTime || null,
+      humanImpact: top.humanImpact || null,
+      secondaryRisk: top.secondaryRisk || null,
+      impactScenario: top.impactScenario || null,
+      communicationGuard: top.communicationGuard || null,
     };
   }
   const statusLower = status.toLowerCase();
@@ -175,20 +181,22 @@ export function buildSprintAtAGlanceBriefing(data) {
     || 'No approved PI objective mapping';
   const flow = topRisk?.flowEvidence;
   const flowLine = flow?.p85CycleHours != null && flow?.currentAgeHours != null
-    ? `${Math.round(flow.currentAgeHours)}h current age vs ${Math.round(flow.p85CycleHours)}h team P85 creation-to-resolution proxy`
+    ? (topRisk?.businessTime?.label || `${Math.round(flow.currentAgeHours)}h current age vs ${Math.round(flow.p85CycleHours)}h team P85 creation-to-resolution proxy`)
     : (flow?.baselineState === 'forming' ? 'Historical flow baseline forming' : 'No defensible flow threshold available');
   const dependency = topRisk?.dependencyEvidence?.issueKeys?.length
     ? topRisk.dependencyEvidence.issueKeys.join(', ')
     : (topRisk?.swarmPlan?.targetSubtaskKey || 'No verified dependency or blocked subtask');
   const shareFacts = [
     { label: 'Context', value: [squad, sprint.name || 'Sprint', fiscalPeriod].filter(Boolean).join(' · ') },
+    { label: 'Mission', value: topRisk?.strategicAnchor?.missionTitle || objective },
     { label: 'Time', value: timeLeftLine },
     { label: 'Health & value', value: `${verdictInfo.verdict}; ${doneStories}/${totalStories} stories delivered (${pctDone}%).` },
     { label: 'PI objective', value: objective },
     { label: 'Highest-impact risk', value: topRisk ? `${topRisk.key} — ${topRisk.summary}; stalled ${formatRiskAge(topRisk.hours)}.` : topRiskLine.replace(/^Top risk:\s*/i, '') },
     { label: 'Flow signal', value: flowLine },
     { label: 'Dependency / swarm focus', value: dependency },
-    { label: 'Consequence', value: impact },
+    { label: 'Consequence', value: topRisk?.humanImpact?.statement || impact },
+    ...(topRisk?.secondaryRisk ? [{ label: 'Secondary risk', value: `${topRisk.secondaryRisk.squadKey || 'Another squad'} · ${topRisk.secondaryRisk.consequence}` }] : []),
     { label: 'Owner', value: owner },
     { label: 'Ask', value: ask },
     { label: 'Proof', value: `${topRisk?.key || 'No critical Jira key'} · ${freshness}` },
@@ -215,6 +223,11 @@ export function buildSprintAtAGlanceBriefing(data) {
     phaseInfo,
     verdictInfo,
     isHistorical,
+    strategicAnchor: topRisk?.strategicAnchor || {
+      sprintLabel: sprint.name || 'Sprint not named',
+      missionTitle: objective,
+      conflict: false,
+    },
   };
 }
 
