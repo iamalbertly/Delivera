@@ -9,7 +9,7 @@ import { mountStickyMicroAnswer, bindStickyScroll } from './Delivera-App-Governa
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
 import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js';
 import { invalidateBriefCacheEntry } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
-import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260719e';
+import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260729g';
 import { bindGovernancePageInteractions, openInboxNudgeReview, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 
 function installExtensionTrustHint() {

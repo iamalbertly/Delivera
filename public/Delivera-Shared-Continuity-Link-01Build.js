@@ -50,6 +50,8 @@ export function governanceSpotlightHref(squadKey, { returnTo = '', view = 'squad
   if (!spotlight) return '/governance';
   return withParams('/governance', {
     spotlight,
+    squad: spotlight,
+    projects: spotlight,
     view: view || 'squad',
     returnTo: returnTo || undefined,
   });
@@ -106,6 +108,8 @@ export function resolveReturnToHref(returnTo, { squad = '' } = {}) {
     }
     if (target.pathname === '/governance' && squadKey) {
       target.searchParams.set('spotlight', squadKey);
+      target.searchParams.set('squad', squadKey);
+      target.searchParams.set('projects', squadKey);
       target.searchParams.set('view', 'squad');
     }
     return `${target.pathname}${target.search}${target.hash}`;

@@ -43,6 +43,7 @@ import { savePIBaseline, getLatestPIBaseline, listPIBaselines } from '../lib/Del
 import {
     runProposePipeline,
 } from '../lib/Delivera-Governance-PIBaseline-03Propose-Agent.js';
+import { enrichActivityFromJiraExistence } from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
 import { createPiBaselineSlideUploadHandler } from './Delivera-Governance-PIBaseline-Slide-Upload-01Route.js';
 import { createPIArtifactImportRouter } from './Delivera-Governance-PIArtifact-Import-01Route.js';
 import { recordNarrationPattern } from '../lib/Delivera-Governance-Narration-Knowledge-IO.js';
@@ -1815,7 +1816,52 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
             ? { ...projected, displayName: entry.friendlyName, squadRoles: { ...(insight.squadRoles || {}), productOwner: entry.productOwner, scrumMaster: entry.scrumMaster, streamLead: entry.streamLead } }
             : projected;
     });
-    const brief = { ...rawBrief, squadInsights, meta: { ...(rawBrief?.meta || {}), boardAliases, operatingModels, registryVersion: registry.version } };
+    const boardIssueEvidence = new Map();
+    for (const insight of squadInsights) {
+        for (const item of (insight.activeItems || [])) {
+            const issueKey = String(item?.issueKey || item?.key || '').trim().toUpperCase();
+            if (issueKey) boardIssueEvidence.set(issueKey, item);
+            const epicKey = String(item?.epicKey || item?.parentKey || item?.parentIssueKey || '').trim().toUpperCase();
+            if (epicKey) boardIssueEvidence.set(epicKey, item);
+        }
+    }
+    for (const item of (rawBrief?.meta?.boardEpicIndex || [])) {
+        const issueKey = String(item?.issueKey || '').trim().toUpperCase();
+        if (issueKey) boardIssueEvidence.set(issueKey, item);
+    }
+    let baselineIssueEvidence = boardIssueEvidence;
+    if (baseline?.committedItems?.length) {
+        try {
+            baselineIssueEvidence = await enrichActivityFromJiraExistence(
+                baseline.committedItems,
+                boardIssueEvidence,
+                createVersion3Client(),
+                25,
+                { cache },
+            );
+        } catch (error) {
+            logger.warn('governance_baseline_issue_enrichment_failed', {
+                ...buildRequestLogContext(req),
+                code: error?.code || 'JIRA_EVIDENCE_UNAVAILABLE',
+            });
+        }
+    }
+    const serializedBaselineIssueEvidence = Object.fromEntries(
+        [...baselineIssueEvidence.entries()].filter(([, value]) => (
+            ['jira-only', 'access-blocked', 'not-found'].includes(value?.lifecycle)
+        )),
+    );
+    const brief = {
+        ...rawBrief,
+        squadInsights,
+        meta: {
+            ...(rawBrief?.meta || {}),
+            boardAliases,
+            operatingModels,
+            registryVersion: registry.version,
+            baselineIssueEvidence: serializedBaselineIssueEvidence,
+        },
+    };
     const caseState = projectActiveLoopCases(events);
     const answer = buildActiveGovernanceAnswer({ brief, baseline, caseState });
     answer.registryVersion = registry.version;

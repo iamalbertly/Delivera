@@ -1,6 +1,7 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { loginIfRequired } from './Delivera-Playwright-Login-If-Required-01Helper.js';
 import { diagnosePromiseEvidence, PROMISE_DIAGNOSIS_CODES } from '../lib/Delivera-Governance-PIBaseline-02Compare.js';
+import { enrichActivityFromJiraExistence } from '../lib/Delivera-Governance-PIBaseline-04Epic-Activity-Intelligence-SSOT.js';
 import { buildSprintAtAGlanceBriefing } from '../public/Delivera-CurrentSprint-Summary-03AtAGlance-Briefing-SSOT.js';
 import {
   buildFlowBaseline,
@@ -29,7 +30,7 @@ async function visibleIssueKeys(page) {
 }
 
 test.describe('Delivera customer speed and trust release', () => {
-  test('1 changed truth and classifier contracts remain evidence-bound', () => {
+  test('1 changed truth and classifier contracts remain evidence-bound', async () => {
     const fixtures = [
       [{ issueKey: 'FIN-1', permissionDenied: true }, 'access-blocked'],
       [{ issueKey: 'FIN-1b', httpStatus: 401 }, 'access-blocked'],
@@ -38,12 +39,14 @@ test.describe('Delivera customer speed and trust release', () => {
       [{ issueKey: 'FIN-2', currentFound: true, inBacklog: true }, 'backlog-only'],
       [{ issueKey: 'FIN-3', currentFound: true, inFutureSprint: true, sprintName: 'FY27FIN07' }, 'future-sprint'],
       [{ issueKey: 'FIN-4', currentFound: true, missingPiMetadata: true }, 'missing-pi-metadata'],
+      [{ issueKey: 'FIN-4B', currentFound: true, existsInJira: true, missingPiMetadata: true }, 'missing-pi-metadata'],
       [{ issueKey: 'FIN-5', candidateIssueKeys: ['FIN-55'] }, 'likely-moved-or-rekeyed'],
       [{ issueKey: 'FIN-6', currentFound: true, status: 'Done' }, 'done-proof-pending'],
       [{ issueKey: 'FIN-7', currentFound: true, isProgramTheme: true }, 'program-theme'],
       [{ issueKey: 'FIN-8', currentFound: true, supportWork: true }, 'off-plan-or-support'],
       [{ issueKey: 'FIN-9', currentFound: true, baselinePeriod: 'FY27 Q2', jiraPeriod: 'FY27 Q3' }, 'period-conflict'],
       [{ issueKey: 'FIN-10' }, 'exact-key-unavailable'],
+      [{ issueKey: 'FIN-11', notFoundInJira: true, httpStatus: 404 }, 'exact-key-unavailable'],
     ];
     fixtures.forEach(([input, expected]) => {
       const diagnosis = diagnosePromiseEvidence(input);
@@ -71,6 +74,42 @@ test.describe('Delivera customer speed and trust release', () => {
       diagnosisLabel: 'PI epic has active sprint stories',
     });
     expect(Object.values(PROMISE_DIAGNOSIS_CODES)).toHaveLength(12);
+    const directEvidence = await enrichActivityFromJiraExistence(
+      [{ issueKey: 'SD-5316', title: 'PI commitment' }],
+      new Map(),
+      {
+        issues: {
+          getIssue: async () => ({
+            fields: {
+              summary: 'PI commitment',
+              status: { name: 'To Do' },
+              fixVersions: [],
+              labels: [],
+              issuetype: { name: 'Epic' },
+              updated: '2026-07-29T08:00:00.000Z',
+            },
+          }),
+        },
+      },
+      1,
+    );
+    expect(directEvidence.get('SD-5316')).toMatchObject({
+      existsInJira: true,
+      status: 'To Do',
+      missingPiMetadata: true,
+      lifecycle: 'jira-only',
+    });
+    const missingEvidence = await enrichActivityFromJiraExistence(
+      [{ issueKey: 'FIN-1075' }],
+      new Map(),
+      { issues: { getIssue: async () => { const error = new Error('Not found'); error.statusCode = 404; throw error; } } },
+      1,
+    );
+    expect(missingEvidence.get('FIN-1075')).toMatchObject({
+      notFoundInJira: true,
+      httpStatus: 404,
+      lifecycle: 'not-found',
+    });
 
     const activeLoop = buildActiveGovernanceAnswer({
       baseline: {
@@ -93,7 +132,18 @@ test.describe('Delivera customer speed and trust release', () => {
       brief: {
         projects: ['SD'],
         generatedAt: '2026-07-29T08:00:00.000Z',
-        meta: { boardEpicIndex: [] },
+        meta: {
+          boardEpicIndex: [],
+          baselineIssueEvidence: {
+            'SD-9999': {
+              issueKey: 'SD-9999',
+              existsInJira: true,
+              status: 'To Do',
+              missingPiMetadata: true,
+              lifecycle: 'jira-only',
+            },
+          },
+        },
         evidencePack: { rows: [] },
         squadInsights: [{
           projectKey: 'SD',
@@ -125,7 +175,7 @@ test.describe('Delivera customer speed and trust release', () => {
     expect(activeLoop.promises[0].expectedVsActual.durationBusinessDays).toBeGreaterThan(0);
     expect(activeLoop.promises[1]).toMatchObject({
       matchState: 'cannot-verify',
-      diagnosisCode: 'exact-key-unavailable',
+      diagnosisCode: 'missing-pi-metadata',
       expectedVsActual: { actual: { matchedThrough: 'unmatched' } },
     });
     const alignmentHtml = renderAlignmentStripHtml({
@@ -204,6 +254,9 @@ test.describe('Delivera customer speed and trust release', () => {
     const root = page.locator('[data-testid="governance-active-loop"]');
     await expect(root).toHaveAttribute('data-fiscal-period', 'FY27 Q2');
     await expect(root.locator('[data-loop-squad]')).toHaveCount(1);
+    await expect(root.getByTestId('governance-source-line')).toContainText('6 promises checked');
+    await expect(root.locator('.gov-loop-identity-links')).toHaveCount(0);
+    await expect(root).not.toContainText('Finance Squad');
     const sprintCopies = await page.locator('#gov-squad-spotlight').getByText(/\bis active, \d+ business days? remaining\./).count();
     expect(sprintCopies).toBeGreaterThan(0);
     const previewPromiseCount = await page.locator('[data-loop-promise]').count();

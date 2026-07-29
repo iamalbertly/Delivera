@@ -2,6 +2,7 @@
  * Shared state for governance brief page modules.
  */
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { readContinuityTokens } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 export const govPage = {
   els: {},
@@ -27,6 +28,8 @@ export function $(id) {
 }
 
 export function projectsCsv() {
+  const continuity = readContinuityTokens();
+  if (continuity.view === 'squad' && continuity.squad) return continuity.squad;
   const fromBar = govPage.scopeBarApi?.getProjects?.();
   if (fromBar?.length) return fromBar.join(',');
   try {
@@ -38,6 +41,8 @@ export function projectsCsv() {
 }
 
 export function selectedProjects(brief) {
+  const continuity = readContinuityTokens();
+  if (continuity.view === 'squad' && continuity.squad) return [continuity.squad];
   const fromBar = govPage.scopeBarApi?.getProjects?.();
   if (fromBar?.length) return fromBar;
   return Array.isArray(brief?.projects) ? brief.projects : [];

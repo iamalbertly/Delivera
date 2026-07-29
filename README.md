@@ -84,11 +84,15 @@ forces information-only copy and disables Jira writes.
 ### Access diagnosis vs board gaps
 `diagnosePromiseEvidence` in `lib/Delivera-Governance-PIBaseline-02Compare.js` keeps `ACCESS_BLOCKED` for real auth failures only (`permissionDenied` / HTTP 401–403). A missing or unmapped board becomes `BOARD_UNRESOLVED` (“We cannot open this squad’s Jira board yet”) so Governance no longer labels setup gaps as Jira login failure.
 
+Saved PI keys that are absent from the active-board payload receive a bounded direct Jira lookup before Governance concludes. Successful lookups are shared in Redis for 15 minutes and report the issue status plus missing fiscal-quarter/fix-version metadata; 401/403 remains an access gap, while a missing key remains unresolved. The story-cache version changes whenever this diagnosis contract changes, so an older `BOARD_UNRESOLVED` or exact-key verdict cannot survive a deployment.
+
 ### Sticky access recovery
 
 The recovery contract probes all twelve canonical projects, returns per-project `verified` / `no-board` / `degraded` outcomes, and bypasses background-busy throttling for this explicit administrator action. Transient Jira failures retain the last successful board-access result with degraded freshness instead of overwriting it with a false denial. A board with no active sprint remains board-resolved and is diagnosed as a sprint-state gap. After success, Settings preserves the selected squad and opens the refreshed Governance context automatically.
 
 Approved PI matching follows Jira hierarchy: an exact story key or a current story whose `epicKey` / `parentKey` equals the approved commitment is PI-aligned. Missing objective-title metadata is a sponsor-traceability gap, not proof that the story is off-PI. Governance promise hover text and the shared drawer expose expected commitment, actual story keys/status/sprint, mapping path, evidence age, and business-day duration.
+
+Legacy selected-squad bookmarks containing only `spotlight=<KEY>&view=squad` self-heal to the canonical `squad` + `projects` scope before cache lookup. Scope-mismatched client answers are rejected, focused rows never lock stale data as an edit draft, and selected mode suppresses portfolio identity links.
 After credentials are fixed, Settings → Processing intelligence → **Refresh Jira connection** (`POST /api/settings/jira-connection/refresh`) validates `/myself`, clears delivery-truth + boards caches, force-refreshes all 12 projects, and clears client `delivera:governance:active-loop:*` envelopes so ghost “no access” copy does not linger for 24h/6h. The access index is persisted through the shared Redis-backed cache SSOT (with read-only migration from the former local JSON file); Vercel never writes inside its serverless bundle. Concurrent administrator refreshes join the in-flight run, and an incomplete all-project probe fails closed with `JIRA_ACCESS_REFRESH_INCOMPLETE` instead of reporting success.
 Material contract amendments and accepted risks append a Decision Genome record
 to the existing ActiveLoop event stream: rationale, trade-off, approver, truth

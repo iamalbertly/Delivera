@@ -78,10 +78,29 @@ function scopeKey(projects, quarter) {
   return `${CACHE_PREFIX}:${String(projects || '').toUpperCase()}:${String(quarter || 'current')}`;
 }
 
+function normalizedScope(value) {
+  return (Array.isArray(value) ? value : String(value || '').split(','))
+    .map((item) => String(item || '').trim().toUpperCase())
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
+function answerMatchesScope(answer, projects) {
+  const requested = normalizedScope(projects);
+  const received = normalizedScope(answer?.scope?.projects || answer?.projects || []);
+  return Boolean(requested && received && requested === received);
+}
+
 function readCachedAnswer(projects, quarter) {
   try {
-    const envelope = JSON.parse(localStorage.getItem(scopeKey(projects, quarter)) || 'null');
+    const key = scopeKey(projects, quarter);
+    const envelope = JSON.parse(localStorage.getItem(key) || 'null');
     if (envelope?.answer?.schemaVersion !== 2 || !envelope?.savedAt) return null;
+    if (!answerMatchesScope(envelope.answer, projects)) {
+      localStorage.removeItem(key);
+      return null;
+    }
     if (envelope.answer.schemaVersion === 2 && Number(envelope.answer.presentationContractVersion) !== PRESENTATION_CONTRACT_VERSION) return null;
     if (envelope.answer.schemaVersion === 2 && (!envelope.answer.decisionCoverage
       || !(envelope.answer.squads || []).every((squad) => squad.displayName && squad.contractState && squad.trustFactor))) return null;
@@ -96,6 +115,7 @@ function readCachedAnswer(projects, quarter) {
 }
 
 function writeCachedAnswer(projects, quarter, answer) {
+  if (!answerMatchesScope(answer, projects)) return;
   try { localStorage.setItem(scopeKey(projects, quarter), JSON.stringify({ savedAt: new Date().toISOString(), answer })); } catch (_) { /* quota/privacy */ }
 }
 
@@ -405,7 +425,7 @@ function renderHero(answer) {
   const sourceLine = String(answer.sourceLine || '').replace(/\s*·\s*last verified[^·]*$/i, '').trim() || answer.sourceLine;
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
     <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
-    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad answer' : 'PI contract answer'}</span></div><h1 id="gov-loop-answer">${escapeHtml(squadVerdict)}</h1>${isSquadView ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
+    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad answer' : 'PI contract answer'}</span></div><h1 id="gov-loop-answer">${escapeHtml(squadVerdict)}</h1>${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
     <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.copy}</small></span></div><div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>${nextMoveRailHtml(answer)}</div>
     ${portfolioMatrix(answer)}
     <div class="gov-story-update" role="status" hidden><span data-story-update-copy>New evidence ready.</span> <button type="button" class="btn btn-link btn-compact" data-story-apply>Review changes</button><button type="button" class="btn btn-link btn-compact" data-story-keep-draft>Keep my edits as a new decision draft</button></div>
@@ -679,7 +699,7 @@ function syncClearSquadControl() {
       btn.type = 'button';
       btn.className = 'btn btn-link btn-compact';
       btn.setAttribute('data-story-all', '');
-      btn.textContent = 'Clear squad';
+      btn.textContent = 'Back to portfolio';
       btn.addEventListener('click', () => clearSpotlight(true));
       head.appendChild(btn);
     }
@@ -692,8 +712,12 @@ function syncClearSquadControl() {
 function syncSpotlightTodayLink(answer = activeAnswer) {
   const copy = document.querySelector('.gov-loop-copy');
   if (!copy || !answer) return;
-  const html = heroIdentityLinks(answer);
   const existing = copy.querySelector('.gov-loop-identity-links');
+  if (spotlightKey) {
+    existing?.remove();
+    return;
+  }
+  const html = heroIdentityLinks(answer);
   if (!html) {
     existing?.remove();
     return;
@@ -910,7 +934,7 @@ function actionTrailHtml(promises = []) {
 }
 
 function readLocked() {
-  return decisionInProgress || Boolean(persistentPreview || document.querySelector('.gov-loop-drawer') || document.querySelector('.gov-story-row:focus'));
+  return decisionInProgress || Boolean(persistentPreview || document.querySelector('.gov-loop-drawer'));
 }
 
 function announcePending() {
@@ -1177,6 +1201,7 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
     }
     const answer = await activeLoopLoads.get(loadKey); if (seq !== requestSequence) return null;
     if (Number(answer?.presentationContractVersion) !== PRESENTATION_CONTRACT_VERSION) throw new Error(`Presentation contract mismatch (${String(answer?.presentationContractVersion || 'missing')})`);
+    if (!answerMatchesScope(answer, projects)) throw new Error(`Active-loop scope mismatch (${normalizedScope(answer?.scope?.projects)} != ${normalizedScope(projects)})`);
     if (force || !answerHasAccessBlock(answer)) {
       // Drop stale ACCESS_BLOCKED ghost envelopes after reconnect / successful evidence pull.
       try {
