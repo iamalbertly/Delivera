@@ -8,7 +8,7 @@ import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-
 import { buildGuidedNudgeText, getCurrentSprintPayload } from './Delivera-CurrentSprint-Action-Bridge.js';
 import { openJiraNudgeReviewSheet } from './Delivera-CurrentSprint-JiraNudge-02ReviewSheet-01UI.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-import { govPage, MARK_WRONG_REASONS, openPiBaselineWizard, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js';
+import { govPage, MARK_WRONG_REASONS, openPiBaselineWizard, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729h';
 import { buildSquadNudgeDraft } from './Delivera-Governance-SquadNudge-01Draft-SSOT.js';
 import { showInlineToast } from './Delivera-App-Shared-Network-01Fetch-Guard-Helpers.js';
 import { closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';

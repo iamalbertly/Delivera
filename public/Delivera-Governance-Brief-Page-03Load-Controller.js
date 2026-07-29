@@ -30,7 +30,7 @@ import { updateGlobalAgentBar, updateStickyMicroAnswer } from './Delivera-App-Go
 import { readSharedProjectsCsv, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {
   govPage, openPiBaselineWizard, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
-} from './Delivera-Governance-Brief-Page-01Context.js';
+} from './Delivera-Governance-Brief-Page-01Context.js?v=20260729h';
 import { bindOwnerClusterInteractions, bindProofInteractions } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import {
   fetchGovernanceBriefCached, peekGovernanceBriefCache, briefMatchesProjects,
