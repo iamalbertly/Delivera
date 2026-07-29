@@ -18,8 +18,9 @@ export async function loginIfRequired(page, redirectPath = '/', { rootSelector =
     await page.fill('input[name="password"]', testPass);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('domcontentloaded');
-    const pathOnly = redirectPath.split('?')[0];
-    if (!page.url().includes(pathOnly)) {
+    const expected = new URL(target, page.url());
+    const actual = new URL(page.url());
+    if (actual.pathname !== expected.pathname || actual.search !== expected.search || actual.hash !== expected.hash) {
       await page.goto(target, { waitUntil: 'domcontentloaded' });
     }
   }

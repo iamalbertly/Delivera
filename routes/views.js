@@ -15,7 +15,7 @@ const loginFailuresByIp = new Map(); // ip -> { count, resetAt }
 const DEFAULT_APP_LANDING = '/governance';
 
 function sendAppHtml(res, fileName) {
-    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.sendFile(fileName, { root: PUBLIC_ROOT });
 }
 

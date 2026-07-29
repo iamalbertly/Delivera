@@ -1,5 +1,5 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js';
+import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729j';
 import {
   governanceSpotlightHref,
   currentSprintSquadHref,

@@ -15,8 +15,10 @@ import {
   refreshNotificationDockFromStore,
 } from './Delivera-Shared-Notifications-Dock-Manager.js';
 import { initContextualHelp } from './Delivera-Shared-Contextual-Help-01UI.js';
+import { installReleaseCacheGuard } from './Delivera-Shared-Release-Cache-Guard-01SSOT.js';
 
 initContextualHelp();
+installReleaseCacheGuard();
 
 const PAGE_DASHBOARD = 'dashboard';
 const PAGE_PI = 'program-increment';

@@ -25,7 +25,7 @@ function clearActiveLoopClientCaches() {
   } catch (_) { /* privacy / quota */ }
   try {
     // Drop in-memory ActiveLoop answer if that module is already loaded on this page.
-    import('./Delivera-App-Governance-ActiveLoop-01UI.js')
+    import('./Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729j')
       .then((mod) => { if (typeof mod.clearActiveLoopCaches === 'function') mod.clearActiveLoopCaches(); })
       .catch(() => {});
   } catch (_) { /* ignore */ }

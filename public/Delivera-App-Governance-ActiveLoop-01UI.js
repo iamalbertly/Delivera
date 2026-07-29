@@ -7,8 +7,9 @@ import {
   resolveReturnToHref,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
 import { isOwnerMissing } from './Delivera-Shared-Attention-Queue.js';
+import { DELIVERA_CLIENT_RELEASE_SCHEMA } from './Delivera-Shared-Release-Cache-Guard-01SSOT.js';
 
-const CACHE_PREFIX = 'delivera:governance:active-loop:v2:20260728a';
+const CACHE_PREFIX = `delivera:governance:active-loop:v2:${DELIVERA_CLIENT_RELEASE_SCHEMA}`;
 const PRESENTATION_CONTRACT_VERSION = 5;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const sharedStoryState = globalThis.__deliveraGovernanceActiveLoopState ||= {
@@ -97,6 +98,10 @@ function readCachedAnswer(projects, quarter) {
     const key = scopeKey(projects, quarter);
     const envelope = JSON.parse(localStorage.getItem(key) || 'null');
     if (envelope?.answer?.schemaVersion !== 2 || !envelope?.savedAt) return null;
+    if (envelope.answer.cacheRelease !== DELIVERA_CLIENT_RELEASE_SCHEMA) {
+      localStorage.removeItem(key);
+      return null;
+    }
     if (!answerMatchesScope(envelope.answer, projects)) {
       localStorage.removeItem(key);
       return null;
@@ -115,6 +120,7 @@ function readCachedAnswer(projects, quarter) {
 }
 
 function writeCachedAnswer(projects, quarter, answer) {
+  if (answer?.cacheRelease !== DELIVERA_CLIENT_RELEASE_SCHEMA) return;
   if (!answerMatchesScope(answer, projects)) return;
   try { localStorage.setItem(scopeKey(projects, quarter), JSON.stringify({ savedAt: new Date().toISOString(), answer })); } catch (_) { /* quota/privacy */ }
 }
@@ -533,14 +539,7 @@ function bindStory(answer, mount) {
   mount.querySelectorAll('[data-story-lens]').forEach((button) => button.addEventListener('click', () => selectLens(button.dataset.storyLens, answer, mount)));
   mount.querySelector('[data-story-lens-select]')?.addEventListener('change', (event) => selectLens(event.target.value, answer, mount));
   const diagnosticTrigger = mount.querySelector('[data-governance-diagnostics]');
-  diagnosticTrigger?.addEventListener('dblclick', openDiagnostics);
-  let lastDiagnosticTap = 0;
-  diagnosticTrigger?.addEventListener('pointerup', (event) => {
-    if (event.pointerType !== 'touch') return;
-    const now = Date.now();
-    if (now - lastDiagnosticTap < 450) void openDiagnostics();
-    lastDiagnosticTap = now;
-  });
+  diagnosticTrigger?.addEventListener('click', () => void openDiagnostics());
   diagnosticTrigger?.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openDiagnostics(); } });
 }
 
@@ -681,7 +680,15 @@ function openBoardAliasDrawer(squad) {
 
 function updateUrl(squad, push) {
   const url = new URL(location.href);
-  if (squad) url.searchParams.set('spotlight', squad); else url.searchParams.delete('spotlight');
+  if (squad) {
+    url.searchParams.set('spotlight', squad);
+    url.searchParams.set('squad', squad);
+    url.searchParams.set('projects', squad);
+  } else {
+    url.searchParams.delete('spotlight');
+    url.searchParams.delete('squad');
+    url.searchParams.delete('projects');
+  }
   url.searchParams.set('view', activeLens);
   url.searchParams.delete('lens');
   // Preserve returnTo continuity token when present.
@@ -730,7 +737,14 @@ function syncSpotlightTodayLink(answer = activeAnswer) {
 }
 
 function clearSpotlight(pushHistory = false) {
-  spotlightKey = ''; activeSpotlightDetail = null; closePreview(); updateUrl('', pushHistory);
+  spotlightKey = ''; activeSpotlightDetail = null; closePreview();
+  if (pushHistory && activeLens === 'squad' && activeAnswer) {
+    activeLens = 'overall';
+    updateUrl('', true);
+    renderHero(activeAnswer);
+    return;
+  }
+  updateUrl('', pushHistory);
   document.body.classList.remove('governance-squad-selected');
   document.getElementById('gov-squad-spotlight')?.replaceChildren();
   document.querySelectorAll('[data-story-squad]').forEach((row) => row.setAttribute('aria-current', 'false'));
@@ -786,7 +800,14 @@ function spotlightHtml(detail) {
 
 async function showSpotlight(squad, { pushHistory = false } = {}) {
   const sequence = ++spotlightSequence;
-  spotlightKey = squad; activeSpotlightDetail = null; closePreview(); updateUrl(squad, pushHistory);
+  spotlightKey = squad; activeSpotlightDetail = null; closePreview();
+  if (pushHistory && activeLens !== 'squad' && activeAnswer) {
+    activeLens = 'squad';
+    updateUrl(squad, true);
+    renderHero(activeAnswer);
+    return;
+  }
+  updateUrl(squad, pushHistory);
   document.body.classList.add('governance-squad-selected');
   syncClearSquadControl();
   syncSpotlightTodayLink();
@@ -1189,7 +1210,9 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
   const qs = new URLSearchParams({
     projects: String(projects || ''),
     presentationContractVersion: String(PRESENTATION_CONTRACT_VERSION),
-  }); if (quarter) qs.set('quarter', quarter);
+  });
+  if (quarter) qs.set('quarter', quarter);
+  if (force) qs.set('force', '1');
   const activeMount = document.getElementById('gov-active-loop-mount');
   if (activeMount) activeMount.dataset.activeLoopRequest = qs.toString();
   const loadKey = `${String(projects || '').toUpperCase()}|${quarter || 'current'}|${force ? 'force' : 'normal'}`;

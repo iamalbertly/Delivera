@@ -3,7 +3,7 @@
  */
 import { escapeHtml, truthChip, renderStructuredEvidence } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { govPage, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729h';
+import { govPage, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729j';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import {
   GOV_EVIDENCE_TAB_KEY,

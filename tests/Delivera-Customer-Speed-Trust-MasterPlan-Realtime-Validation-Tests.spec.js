@@ -16,6 +16,11 @@ import {
 import { buildHumanNudgeDraft } from '../public/Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js';
 import { PROJECT_CATALOG } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { buildActiveGovernanceAnswer } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
+import {
+  GOVERNANCE_STORY_CACHE_RELEASE,
+  governanceStoryCacheKey,
+} from '../lib/Delivera-Governance-Story-Cache-01SSOT.js';
+import { DELIVERA_CLIENT_RELEASE_SCHEMA } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 import { renderAlignmentStripHtml } from '../public/Delivera-CurrentSprint-Alignment-01Strip-UI.js';
 
 test.describe.configure({ mode: 'serial' });
@@ -31,6 +36,8 @@ async function visibleIssueKeys(page) {
 
 test.describe('Delivera customer speed and trust release', () => {
   test('1 changed truth and classifier contracts remain evidence-bound', async () => {
+    expect(GOVERNANCE_STORY_CACHE_RELEASE).toContain(DELIVERA_CLIENT_RELEASE_SCHEMA);
+    expect(governanceStoryCacheKey(['SD'], 'FY27 Q2')).toContain(GOVERNANCE_STORY_CACHE_RELEASE);
     const fixtures = [
       [{ issueKey: 'FIN-1', permissionDenied: true }, 'access-blocked'],
       [{ issueKey: 'FIN-1b', httpStatus: 401 }, 'access-blocked'],
@@ -262,6 +269,8 @@ test.describe('Delivera customer speed and trust release', () => {
     const previewPromiseCount = await page.locator('[data-loop-promise]').count();
     expect(previewPromiseCount).toBeGreaterThan(0);
     await expect(page.locator('#gov-squad-spotlight')).not.toContainText('baseline missing');
+    await expect(page.locator('#gov-verdict-mount')).toBeEmpty();
+    await expect(page.locator('#gov-answer-mount')).toBeEmpty();
     expect(usefulMs).toBeLessThan(10_000);
   });
 

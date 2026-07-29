@@ -26,7 +26,7 @@ import { discoverBoardsWithCache, discoverFieldsWithCache, recordActivity, resol
 import { normalizeNotesPayload, upsertCurrentSprintNotes } from '../lib/notes-store.js';
 import { previewHandler } from '../lib/preview-handler.js';
 import { getUnifiedRiskCounts } from '../public/Delivera-CurrentSprint-Data-WorkRisk-Rows.js';
-import { appEnvConfig, jiraEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
+import { appEnvConfig, DELIVERA_CLIENT_RELEASE_SCHEMA, jiraEnvConfig } from '../lib/Delivera-Config-Env-Services-Core-SSOT.js';
 import {
     readReportContextFromSession,
     writeReportContextToSession,
@@ -1883,7 +1883,8 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
         issueKey: String(promise.issueKey || ''),
         context: contextBySquad.get(String(promise.squad || '').toUpperCase()) || null,
     }));
-    answer.buildSha = process.env.RENDER_GIT_COMMIT || process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'local';
+    answer.buildSha = appEnvConfig.releaseId;
+    answer.cacheRelease = DELIVERA_CLIENT_RELEASE_SCHEMA;
     const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || req.body?.quarter || '');
     await Promise.all([
         cache.set(storyKey, projectActiveGovernanceLayer1(answer), 60 * 60 * 1000, { namespace: 'governanceStoryV2' }),
@@ -1897,7 +1898,10 @@ async function cachedActiveLoopDetailForRequest(req) {
     const projects = parseGovernanceProjects(req);
     const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || req.body?.quarter || '');
     const hit = await cache.get(storyKey, { namespace: GOVERNANCE_STORY_DETAIL_NAMESPACE });
-    const answer = hit?.value || hit || await assembleActiveLoopAnswerForRequest(req);
+    const candidate = hit?.value || hit;
+    const answer = candidate?.cacheRelease === DELIVERA_CLIENT_RELEASE_SCHEMA
+        ? candidate
+        : await assembleActiveLoopAnswerForRequest(req);
     const projectsForTruth = projects.length ? projects : (answer.scope?.projects || []);
     const registry = await readGovernanceRegistry();
     const patched = await patchLayer1WithCanonicalSprintTruth(answer, projectsForTruth, req.query?.quarter || req.body?.quarter || 'current');
@@ -1944,15 +1948,26 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
     try {
         const projects = parseGovernanceProjects(req);
         const storyKey = governanceStoryCacheKey(projects, req.query?.quarter || '');
-        const warmStory = readWarmGovernanceStory(storyKey);
-        const hit = warmStory ? null : await cache.get(storyKey, { namespace: 'governanceStoryV2' });
+        const force = String(req.query?.force || '') === '1';
+        if (force) {
+            clearWarmGovernanceStory(storyKey);
+            await Promise.all([
+                cache.delete(storyKey, { namespace: 'governanceStoryV2' }),
+                cache.delete(storyKey, { namespace: GOVERNANCE_STORY_DETAIL_NAMESPACE }),
+            ]);
+        }
+        const warmStory = force ? null : readWarmGovernanceStory(storyKey);
+        const hit = (warmStory || force)
+            ? null
+            : await cache.get(storyKey, { namespace: 'governanceStoryV2' });
         const candidateStory = warmStory || hit?.value || hit;
-        const cachedStory = Number(candidateStory?.presentationContractVersion) === 5 && candidateStory?.lensSummaries
+        const cachedStory = candidateStory?.cacheRelease === DELIVERA_CLIENT_RELEASE_SCHEMA
+            && Number(candidateStory?.presentationContractVersion) === 5 && candidateStory?.lensSummaries
             && Array.isArray(candidateStory?.excludedOperationalGroups)
             && candidateStory?.decisionCoverage
             && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash && squad.displayName && squad.contractState && squad.trustFactor)
             ? candidateStory : null;
-        const prepared = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req));
+        const prepared = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req, { force }));
         const answer = await patchLayer1WithCanonicalSprintTruth(prepared, projects, req.query?.quarter || 'current');
         const registry = await readGovernanceRegistry();
         answer.organizationParticipation = organizationParticipationProjection(registry);
@@ -1966,7 +1981,7 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
         rememberWarmGovernanceStory(storyKey, answer);
         if (!res.headersSent) {
           res.setHeader('ETag', `"${answer.answerVersion}"`);
-          res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=300');
+          res.setHeader('Cache-Control', 'private, no-store, max-age=0');
         }
         return sendJsonOnce(res, 200, answer);
     } catch (err) {
@@ -2096,7 +2111,8 @@ router.get('/api/governance/diagnostics.json', requireAuth, async (req, res) => 
     return res.json({
         version: process.env.npm_package_version || '0.0.0.1',
         environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
-        buildSha: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || process.env.RENDER_GIT_COMMIT || '',
+        buildSha: appEnvConfig.releaseId,
+        cacheRelease: DELIVERA_CLIENT_RELEASE_SCHEMA,
         buildTime: process.env.BUILD_TIME || '',
         cacheBackend: redis ? 'redis' : (process.env.NODE_ENV === 'production' ? 'unavailable' : 'local-development fallback'),
         jiraSyncStatus: resolvedJiraHost() ? 'configured' : 'not configured',

@@ -7,9 +7,9 @@ import { mountGovernanceInbox } from './Delivera-App-Governance-Inbox-01Render-U
 import { mountFeedbackLabButton } from './Delivera-App-Governance-Brief-21Render-FeedbackImprovementCenter-UI.js';
 import { mountStickyMicroAnswer, bindStickyScroll } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
 import { initWorkDraftDrawer as initGlobalOutcomeModal } from './Delivera-Work-Draft-Canvas.js';
-import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729h';
+import { govPage, $, projectsCsv } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729j';
 import { invalidateBriefCacheEntry } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
-import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260729h';
+import { loadBrief, copyBrief, setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260729j';
 import { bindGovernancePageInteractions, openInboxNudgeReview, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 
 function installExtensionTrustHint() {

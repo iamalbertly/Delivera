@@ -30,7 +30,7 @@ import { updateGlobalAgentBar, updateStickyMicroAnswer } from './Delivera-App-Go
 import { readSharedProjectsCsv, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {
   govPage, openPiBaselineWizard, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
-} from './Delivera-Governance-Brief-Page-01Context.js?v=20260729h';
+} from './Delivera-Governance-Brief-Page-01Context.js?v=20260729j';
 import { bindOwnerClusterInteractions, bindProofInteractions } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import {
   fetchGovernanceBriefCached, peekGovernanceBriefCache, briefMatchesProjects,
@@ -42,7 +42,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
-import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729h';
+import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729j';
 
 const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
@@ -319,9 +319,17 @@ export async function loadBrief(options = {}) {
   const requested = projectsCsv();
   const quarter = govPage.scopeBarApi?.getQuarterLabel?.() || '';
   const periodWindow = govPage.scopeBarApi?.getPeriodWindow?.() || '28d';
-  // The active PI answer is an independent, cache-first read model. It must
-  // paint even when the heavier legacy brief is unavailable or scope-limited.
-  void loadActiveGovernanceLoop({ projects: requested, quarter, force });
+  // The active PI answer is the page owner. The legacy brief is retained only
+  // as a degraded fallback, so two renderers can never overwrite one another.
+  const activeLoopAnswer = await loadActiveGovernanceLoop({ projects: requested, quarter, force });
+  if (seq !== loadBriefSeq) return;
+  if (activeLoopAnswer) {
+    clearScopeStaleOverlay();
+    hideGovernanceLoading();
+    document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
+    void govPage.inboxApi?.refresh?.();
+    return;
+  }
   const pk = requested.split(',')[0] || 'MPSA';
   const preserve = hasGovernanceBriefContent();
   const switchingScope = preserve && govPage.lastBrief && !briefMatchesProjects(govPage.lastBrief, requested);
