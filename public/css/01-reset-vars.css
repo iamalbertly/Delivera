@@ -53,6 +53,9 @@
   --z-sub-chrome: 1200;
   --z-issue-preview: 1201;
   --z-top-chrome: 1300;
+  --z-drawer: 1600;
+  --z-modal: 1700;
+  --z-toast: 1800;
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
   --brief-desktop-gap: 12px;

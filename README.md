@@ -122,6 +122,14 @@ version-protected registry decision changes participation.
 
 Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **All Squads**, paints the last verified schema-v2 projection from local cache, refreshes quietly, and keeps the first viewport to one contract answer, source/freshness, completed-work line, decision CTA, and stable squad matrix.
 
+- **Selected-squad contract:** a squad row immediately locks `spotlight`, `squad`, and `projects`; the hero, matrix, spotlight, proof, Sprint, Actions, and Report then contain that squad only. Selected mode has one **Back to portfolio** exit, no competing Portfolio/Selected lens toolbar, and administrative alias/rebaseline/refresh controls stay inside **Maintain squad** below the decision truth.
+- **One action and one outcome:** Governance owns the selected squad’s primary decision. Current Sprint uses the shared intervention to rank the blocker panel and renders one `Delivered / Open / Spillover` outcome strip; duplicate risk-filter and page-specific nudge buttons are removed.
+- **Stable vocabulary:** global navigation is **Governance / Sprint / Evidence**. `/report` remains Historical proof & exports rather than a second live Governance answer.
+- **Fresh-shell delivery:** HTML routes and static app assets use ETag revalidation with `Cache-Control: no-cache, must-revalidate`. A new deployment cannot remain hidden behind a stale browser shell while verified application data remains cache-first.
+- **Overlay order:** shared tokens enforce content < sticky chrome < drawer < modal < toast. Scope drawers, governance drawers, nudge review, and contextual help cannot be clipped by top navigation.
+- **Settings density:** organization exceptions remain one atomic Registry revision; repeated PO/SM blanks collapse to one **Owner route incomplete** signal, while **Select pending consent** prepares all seven exception squads for one previewed, audited bulk change.
+- **Actions refresh state:** squad continuity is visible immediately as `<SQUAD> actions · refreshing verified queue`; loading never masquerades as a false empty result and terminal failures remain typed.
+
 - **Server-prepared truth:** `/api/governance/active-loop.json` serves Layer 1; squad and promise detail routes serve Layer 2. The browser renders, filters, and reveals the story but does not calculate Promise Match, Work Split, Proof Age, ranking, ownership, rework, or action eligibility.
 - **Five bands:** Portfolio Answer → Squad Comparison → Synchronized Squad Spotlight → Resolution Drawer → Action Trail. Schema v2 suppresses the legacy comparison-card wall and duplicate action rails.
 - **Deterministic evidence:** Promise Match, Work Split, Proof Age, Possible Rework, Unknown clustering, baseline coverage, owner routing, and stable risk order are rule-based. AI may simplify wording only.

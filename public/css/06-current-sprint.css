@@ -2161,7 +2161,7 @@ button.health-inline-pill {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1300;
+  z-index: var(--z-modal);
   padding: 20px;
 }
 
@@ -6510,7 +6510,7 @@ body.jira-nudge-review-open { overflow: hidden; }
   background: var(--surface, #fff);
   border-radius: 16px 16px 0 0;
   padding: 16px 18px 20px;
-  z-index: 1701;
+  z-index: var(--z-modal);
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
 }
 .jira-nudge-review-textarea {

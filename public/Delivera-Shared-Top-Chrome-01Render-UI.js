@@ -47,9 +47,9 @@ const SIDEBAR_COLLAPSED_KEY = 'delivera_sidebar_collapsed';
 const SIDEBAR_COLLAPSED_PRESET_KEY = 'delivera_sidebar_collapsed_preset_v1';
 
 const SURFACE_SWITCHER = [
-  { key: PAGE_GOVERNANCE, label: 'Answer', href: '/governance' },
-  { key: PAGE_SPRINTS, label: 'Today', href: '/current-sprint' },
-  { key: PAGE_REPORT, label: 'Proof', href: '/report' },
+  { key: PAGE_GOVERNANCE, label: 'Governance', href: '/governance' },
+  { key: PAGE_SPRINTS, label: 'Sprint', href: '/current-sprint' },
+  { key: PAGE_REPORT, label: 'Evidence', href: '/report' },
 ];
 
 function contextualSurfaceHref(item) {

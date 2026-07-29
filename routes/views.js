@@ -14,6 +14,11 @@ const loginFailuresByIp = new Map(); // ip -> { count, resetAt }
 
 const DEFAULT_APP_LANDING = '/governance';
 
+function sendAppHtml(res, fileName) {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    return res.sendFile(fileName, { root: PUBLIC_ROOT });
+}
+
 function resolveExplicitRedirect(explicitRedirect = '') {
     const raw = String(explicitRedirect || '').trim();
     if (!raw || !raw.startsWith('/')) return '';
@@ -98,7 +103,7 @@ router.post('/logout', (req, res) => {
  * GET /report - Serve the main report page (protected when auth enabled)
  */
 router.get('/report', requireAuth, (req, res) => {
-    res.sendFile('report.html', { root: PUBLIC_ROOT });
+    sendAppHtml(res, 'report.html');
 });
 
 // Legacy alias — /home → /dashboard 301 (keep for bookmarks and nav history).
@@ -107,7 +112,7 @@ router.get('/home', requireAuth, (req, res) => {
 });
 
 router.get('/dashboard', requireAuth, (req, res) => {
-    res.sendFile('home.html', { root: PUBLIC_ROOT });
+    sendAppHtml(res, 'home.html');
 });
 
 // Legacy alias — /backlog-intake merged into /value-delivery (2025-05). Keep for bookmarks.
@@ -137,11 +142,11 @@ router.get('/teams', requireAuth, (req, res) => {
 });
 
 router.get('/settings', requireAuth, (req, res) => {
-    res.sendFile('settings.html', { root: PUBLIC_ROOT });
+    sendAppHtml(res, 'settings.html');
 });
 
 router.get('/actions', requireAuth, (req, res) => {
-    res.sendFile('actions.html', { root: PUBLIC_ROOT });
+    sendAppHtml(res, 'actions.html');
 });
 
 /**
@@ -156,7 +161,7 @@ router.get('/reports', requireAuth, (req, res) => {
  * GET /current-sprint - Current sprint transparency page (squad view)
  */
 router.get('/current-sprint', requireAuth, (req, res) => {
-    res.sendFile('current-sprint.html', { root: PUBLIC_ROOT });
+    sendAppHtml(res, 'current-sprint.html');
 });
 
 // Legacy alias — /sprints → /current-sprint (2025-01). Keep for bookmarks.
@@ -175,7 +180,7 @@ router.get('/leadership', requireAuth, (req, res) => {
  * GET /governance - Weekly Delivery Intelligence Brief (governance layer)
  */
 router.get('/governance', requireAuth, (req, res) => {
-    res.sendFile('governance.html', { root: PUBLIC_ROOT });
+    sendAppHtml(res, 'governance.html');
 });
 
 // Alias — /brief → /governance for memorable links.

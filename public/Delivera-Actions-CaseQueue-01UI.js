@@ -110,6 +110,10 @@ function render() {
 }
 
 async function load() {
+  summary.textContent = selectedSquad
+    ? `${selectedSquad} actions · refreshing verified queue`
+    : 'Actions · refreshing verified queue';
+  mount.innerHTML = '<div class="empty-state" role="status"><h3>Verified action queue is refreshing</h3><p>The selected squad remains locked while Delivera checks for newer evidence.</p></div>';
   try {
     const query = new URLSearchParams();
     if (selectedSquad) query.set('squad', selectedSquad);

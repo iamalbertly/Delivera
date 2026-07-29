@@ -41,19 +41,19 @@ const NAV_HREF_OVERRIDES = {
 const NAV_LABELS = {
   [PAGE_DASHBOARD]: 'Today',
   [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_REPORT]: 'Proof',
+  [PAGE_REPORT]: 'Evidence',
   [PAGE_RISKS]: 'Risks',
   [PAGE_TEAMS]: 'Teams',
-  [PAGE_LEADERSHIP]: 'Brief',
-  [PAGE_GOVERNANCE]: 'Brief',
+  [PAGE_LEADERSHIP]: 'Governance',
+  [PAGE_GOVERNANCE]: 'Governance',
   [PAGE_PI]: 'PI Baseline',
   [PAGE_VALUE]: 'Outcomes',
   [PAGE_SETTINGS]: 'Settings',
 };
 const MOBILE_LABELS = {
-  [PAGE_GOVERNANCE]: 'Brief',
+  [PAGE_GOVERNANCE]: 'Governance',
   [PAGE_SPRINTS]: 'Sprint',
-  [PAGE_REPORT]: 'Proof',
+  [PAGE_REPORT]: 'Evidence',
 };
 
 const NAV_ITEMS = [

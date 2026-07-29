@@ -293,8 +293,11 @@ export function renderStories(data) {
   const valueDoneCount = groupedStories.value.filter((story) => String(story?.status || '').toLowerCase().includes('done')).length;
   const spilloverCount = Math.max(0, stories.length - Number(data?.summary?.doneStories || 0));
   const spilloverPct = stories.length > 0 ? Math.round((spilloverCount / stories.length) * 100) : 0;
+  const authoritativeRiskKey = String(data?.decisionCockpit?.nextBestAction?.issueKey || '').toUpperCase();
   const blockerPanelRows = mergedRiskRows
     .filter((row) => Array.isArray(row?.riskTags) && row.riskTags.some((tag) => ['blocker', 'unassigned', 'missing-estimate', 'no-log'].includes(tag)))
+    .sort((a, b) => Number(String(b?.issueKey || b?.key || '').toUpperCase() === authoritativeRiskKey)
+      - Number(String(a?.issueKey || a?.key || '').toUpperCase() === authoritativeRiskKey))
     .slice(0, 6);
 
   let html = '<div class="transparency-card" id="stories-card">';
@@ -315,18 +318,12 @@ export function renderStories(data) {
   // Only render chips when count > 0 — zero-count chips are visual noise that erode trust
   const hasAnyRisk = blockerKeys.size > 0 || noLogKeys.size > 0 || missingEstimateKeys.size > 0 || parentUnassigned > 0 || scopeAddedKeys.size > 0;
   if (hasAnyRisk) {
-    html += '<div class="work-risks-direct-value-strip" role="group" aria-label="Direct action shortcuts">';
-    if (blockerKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="blocker" title="Focus active blockers now">Unblock now (' + blockerKeys.size + ')</button>';
-    if (noLogKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="no-log" title="Focus estimated work with no logs">Logging gaps (' + noLogKeys.size + ')</button>';
-    if (missingEstimateKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="missing-estimate" title="Focus work missing estimate baseline">Estimate gaps (' + missingEstimateKeys.size + ')</button>';
-    if (parentUnassigned > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="unassigned" title="Focus unowned work">Ownership gaps (' + parentUnassigned + ')</button>';
-    if (scopeAddedKeys.size > 0) html += '<button type="button" class="btn btn-secondary btn-compact stories-risk-chip" data-risk-tags="scope" title="Focus scope added mid-sprint">Scope changes (' + scopeAddedKeys.size + ')</button>';
-    const topNudgeKey = blockerKeys.size > 0 ? Array.from(blockerKeys)[0] : (noLogKeys.size > 0 ? Array.from(noLogKeys)[0] : '');
-    const nudgeBtnLabel = topNudgeKey ? ('Nudge ' + topNudgeKey) : 'Send nudge to Jira';
-    const sendAllowed = isSprintCommentSendAllowed(data?.meta, data?.sprint);
-    html += '<button type="button" class="btn btn-primary btn-compact stories-direct-nudge" data-action="send-top-nudge-to-jira" title="Send guided nudge to top visible risk directly to Jira" data-send-top-nudge'
-      + (sendAllowed ? '' : ' disabled aria-disabled="true"')
-      + '>' + nudgeBtnLabel + '</button>';
+    html += '<div class="work-risks-direct-value-strip" aria-label="Sprint risk summary">';
+    if (blockerKeys.size > 0) html += '<span>Blocked ' + blockerKeys.size + '</span>';
+    if (noLogKeys.size > 0) html += '<span>Proof gaps ' + noLogKeys.size + '</span>';
+    if (missingEstimateKeys.size > 0) html += '<span>Estimate gaps ' + missingEstimateKeys.size + '</span>';
+    if (parentUnassigned > 0) html += '<span>Owner gaps ' + parentUnassigned + '</span>';
+    if (scopeAddedKeys.size > 0) html += '<span>Scope changes ' + scopeAddedKeys.size + '</span>';
     html += '</div>';
   }
   html += renderWorkRisksMerged(data);
@@ -499,14 +496,10 @@ export function renderStories(data) {
     return sectionHtml;
   }
 
-  html += '<section class="sprint-story-signals-row" aria-label="Value-first sprint signals">';
-  const headerBarPresent = typeof document !== 'undefined'
-    && document.querySelector('.current-sprint-header-bar');
-  if (!headerBarPresent) {
-    html += renderStorySignalCard('Delivery Progress', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', 'Focus on delivered value, not raw activity.', Number(data?.summary?.percentDone || 0));
-  }
-  html += renderStorySignalCard('Value Delivered', valueDoneCount + '/' + groupedStories.value.length + ' value stories', 'User-facing change completed this sprint.', groupedStories.value.length > 0 ? (valueDoneCount / groupedStories.value.length) * 100 : 0);
-  html += renderStorySignalCard('Spillover Tracker', spilloverCount + ' stories', spilloverPct + '% of sprint scope is still open.', spilloverPct, spilloverPct > 35 ? ' is-warning' : '');
+  html += '<section class="sprint-story-signals-row sprint-outcome-strip" aria-label="Sprint outcome">';
+  html += renderStorySignalCard('Delivered', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', valueDoneCount + ' customer-value stories done.', Number(data?.summary?.percentDone || 0));
+  html += renderStorySignalCard('Open', String(spilloverCount), 'Items still inside the sprint outcome.');
+  html += renderStorySignalCard('Spillover', spilloverPct + '%', 'Open scope requiring a finish, replan, or descope decision.', spilloverPct, spilloverPct > 35 ? ' is-warning' : '');
   html += '</section>';
   html += '<section class="sprint-visibility-grid">';
   html += renderDeliveredSection();

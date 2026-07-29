@@ -296,9 +296,10 @@ export function renderDecisionCockpit(data, options = {}) {
       : '')
     || 'No approved PI value mapping';
   const flowEvidence = nextBestAction.flowEvidence || {};
-  const flowLabel = flowEvidence.p85CycleHours != null && flowEvidence.currentAgeHours != null
-    ? `${Math.round(flowEvidence.currentAgeHours)}h age vs ${Math.round(flowEvidence.p85CycleHours)}h team P85 proxy`
-    : (flowEvidence.baselineState === 'forming' ? 'Historical flow baseline forming' : 'Flow threshold unavailable');
+  const businessTime = nextBestAction.businessTime || {};
+  const flowLabel = businessTime.evidenceState === 'sufficient' && businessTime.businessDaysPastPace != null
+    ? `Approximately ${Math.max(0, Math.round(businessTime.businessDaysPastPace))} business days beyond this squad's sustainable pace`
+    : (flowEvidence.baselineState === 'forming' ? 'Pace baseline forming' : 'Pace unknown — proof incomplete');
   const dependencyLabel = nextBestAction.swarmPlan?.targetSubtaskKey
     || nextBestAction.dependencyEvidence?.issueKeys?.join(', ')
     || 'No verified dependency or blocked subtask';
@@ -328,13 +329,9 @@ export function renderDecisionCockpit(data, options = {}) {
     items: cockpitRisksToAttentionItems(topRisks),
     maxRows: viewportLean ? 3 : 5,
   });
-  const leanNextMove = viewportLean
-    ? (`<p class="sprint-lean-next-move" data-sprint-lean-next-move><strong>Next move:</strong> ${escapeHtml(nextMoveLabel)}</p>`)
-    : '';
   return ''
     + sprintTodayHero
     + servantLeaderFacts
-    + leanNextMove
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
     + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))

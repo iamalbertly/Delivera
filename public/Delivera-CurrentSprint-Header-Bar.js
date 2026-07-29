@@ -496,7 +496,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += '</div>';
   html += '<div class="report-filter-strip current-sprint-filter-strip" data-context-bar="true" aria-live="polite">';
-  html += '<a href="/governance" class="report-back-to-brief">← Back to Answer</a>';
+  html += '<a href="/governance" class="report-back-to-brief">← Back to Governance</a>';
   html += `<div class="report-filter-strip-summary current-sprint-filter-strip-summary applied-filters-chips-row">${shellSummaryHtml}</div>`;
   html += '</div>';
   html += '<div class="header-scope-mount" id="current-sprint-scope-mount" aria-label="Sprint scope"></div>';

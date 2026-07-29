@@ -290,25 +290,26 @@ function portfolioMatrix(answer) {
   const rest = allSquads.filter((squad) => !cannotVerify.includes(squad));
   const groupCannotVerify = !isSquadView && cannotVerify.length >= 2;
   const visibleSquads = groupCannotVerify ? rest : allSquads;
-  const matrixHeadTitle = isSquadView ? 'Squad deep dive' : 'Squads ordered by decision urgency';
-  const matrixHeadKicker = isSquadView ? 'Squad focus' : 'Portfolio comparison';
+  const focusedSquad = isSquadView ? allSquads[0] : null;
+  const matrixHeadTitle = isSquadView ? `${focusedSquad?.displayName || spotlightKey} deep dive` : 'Squads ordered by decision urgency';
+  const matrixHeadKicker = isSquadView ? 'Selected squad' : 'Portfolio comparison';
   const needsExpand = !isSquadView && (visibleSquads.length + (groupCannotVerify ? 1 : 0)) > 3;
   const clearBtn = spotlightKey
-    ? `<button type="button" class="btn btn-link btn-compact" data-story-all aria-current="false">Clear squad</button>`
+    ? `<button type="button" class="btn btn-link btn-compact" data-story-all aria-current="false">Back to portfolio</button>`
     : '';
   const visibleLenses = spotlightKey
     ? lenses
     : lenses.filter(([id]) => id !== 'squad');
   return `<section class="gov-story-matrix${isSquadView ? ' gov-story-matrix--squad-focus' : ''}${needsExpand ? '' : ' is-expanded'}" aria-labelledby="gov-story-matrix-title" data-matrix-expandable="${needsExpand ? 'true' : 'false'}">
-    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(answer.lensSummaries?.overall || 'Select a squad to keep its Jira work, sprint, promises and actions isolated.')}</p></div>${clearBtn}</div>
-    <div class="gov-story-lenses" role="toolbar" aria-label="Governance view">${visibleLenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>
+    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(isSquadView ? `${focusedSquad?.displayName || spotlightKey} work, PI promises and actions only.` : (answer.lensSummaries?.overall || 'Select a squad to keep its Jira work, sprint, promises and actions isolated.'))}</p></div>${clearBtn}</div>
+    ${isSquadView ? '' : `<div class="gov-story-lenses" role="toolbar" aria-label="Governance view">${visibleLenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>`}
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
       <div class="gov-story-columns" role="row"><span>Squad</span><span>Current reality</span><span>PI impact</span><span>Next move</span></div>
       ${groupCannotVerify ? cannotVerifySummaryRow(cannotVerify) : ''}
       ${visibleSquads.map(matrixRow).join('')}
     </div>
     ${needsExpand ? `<button type="button" class="btn btn-link btn-compact gov-matrix-expand" data-matrix-expand>Show more squads</button>` : ''}
-    ${excludedOperationalGroups(answer)}
+    ${isSquadView ? '' : excludedOperationalGroups(answer)}
   </section>`;
 }
 
@@ -392,6 +393,10 @@ function renderHero(answer) {
   const selectedPromise = decisionPromiseForAnswer(answer);
   const focusKey = preferredFocusSquadKey(answer);
   const focusSquad = (answer?.squads || []).find((item) => item.squad === focusKey);
+  const isSquadView = activeLens === 'squad' && Boolean(spotlightKey) && Boolean(focusSquad);
+  const squadVerdict = isSquadView
+    ? `${focusSquad.displayName || focusSquad.squad}: ${focusSquad.contractState?.label || focusSquad.topState || 'Evidence needs review'}. ${matrixNextMoveLabel(focusSquad)}`
+    : answer.answer;
   const nextLabel = noBaseline
     ? 'Recover PI contract'
     : (selectedPromise
@@ -400,7 +405,7 @@ function renderHero(answer) {
   const sourceLine = String(answer.sourceLine || '').replace(/\s*·\s*last verified[^·]*$/i, '').trim() || answer.sourceLine;
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
     <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
-    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>PI contract answer</span></div><h1 id="gov-loop-answer">${escapeHtml(answer.answer)}</h1>${heroIdentityLinks(answer)}<p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
+    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad answer' : 'PI contract answer'}</span></div><h1 id="gov-loop-answer">${escapeHtml(squadVerdict)}</h1>${isSquadView ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
     <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.copy}</small></span></div><div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>${nextMoveRailHtml(answer)}</div>
     ${portfolioMatrix(answer)}
     <div class="gov-story-update" role="status" hidden><span data-story-update-copy>New evidence ready.</span> <button type="button" class="btn btn-link btn-compact" data-story-apply>Review changes</button><button type="button" class="btn btn-link btn-compact" data-story-keep-draft>Keep my edits as a new decision draft</button></div>
@@ -740,7 +745,7 @@ function spotlightHtml(detail) {
   const rebaselineBtn = squad.baselineCoverage?.state === 'verified'
     ? `<button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squadKey)}" data-rebaseline="1" title="Upload a new PI slide to replace the current baseline">Rebaseline</button>`
     : '';
-  return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Selected squad decision</span><h2>${escapeHtml(displayName)}</h2></div><div class="gov-spotlight-head-actions"><button type="button" class="btn btn-link btn-compact" data-edit-alias>Edit squad name</button>${rebaselineBtn}<button type="button" class="btn btn-secondary btn-compact" data-force-squad>Refresh ${escapeHtml(displayName)}</button></div></div>
+  return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Selected squad decision</span><h2>${escapeHtml(displayName)}</h2></div></div>
   <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.label || squad.topState || 'Cannot verify')}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${nextActionHtml}</strong></span></div>
   ${diagnosisGroups.length ? `<section class="gov-diagnosis-groups" aria-label="Evidence-backed root causes"><h3>Why proof is missing</h3>${diagnosisGroups.map((group) => `<article><strong>${group.count} · ${escapeHtml(group.label)}</strong><p>${escapeHtml(group.customerOrPiImpact || '')}</p><small>${escapeHtml((group.issueKeys || []).join(', ') || 'Commitment evidence')} · ${Math.round((Number(group.confidence) || 0) * 100)}% confidence</small><span>${escapeHtml(group.recommendedAction || '')}</span></article>`).join('')}</section>` : ''}
   <div class="gov-spotlight-grid">
@@ -750,7 +755,9 @@ function spotlightHtml(detail) {
     <section><h3>Doing Instead &amp; Work Split</h3><p>${escapeHtml(squad.doingInstead?.copy || 'No major diversion is proven.')}</p><p>${escapeHtml(squad.workSplit?.explanation || '')}</p><p>Unknown: ${squad.workSplit?.unknownPct == null ? 'not calculated' : `${squad.workSplit.unknownPct}%`}</p></section>
     <section><h3>Promise evidence</h3>${promises.length ? promises.map((promise) => `<button type="button" class="gov-spotlight-promise" data-loop-promise="${escapeHtml(promise.promiseId)}" title="${escapeHtml(promiseAlignmentSummary(promise))}"><strong>${escapeHtml(promise.originalText)}</strong><small>${escapeHtml(promise.diagnosisLabel || promise.matchLabel)} · ${escapeHtml(promise.proofAge?.copy || '')}</small>${promise.amendmentSentence ? `<span class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</span>` : ''}</button>`).join('') : `<button type="button" class="btn btn-link gov-spotlight-baseline-cta" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squadKey)}">Cannot verify, baseline missing. Save baseline to compare.</button>`}</section>
     <section class="gov-spotlight-actions"><h3>Action Trail</h3>${actionTrailHtml(promises)}</section>
-  </div><div class="gov-loop-action-status" aria-live="polite"></div>`;
+  </div>
+  <details class="gov-spotlight-maintain"><summary>Maintain squad</summary><div class="gov-spotlight-head-actions"><button type="button" class="btn btn-link btn-compact" data-edit-alias>Edit squad name</button>${rebaselineBtn}<button type="button" class="btn btn-secondary btn-compact" data-force-squad>Refresh ${escapeHtml(displayName)}</button></div></details>
+  <div class="gov-loop-action-status" aria-live="polite"></div>`;
 }
 
 async function showSpotlight(squad, { pushHistory = false } = {}) {

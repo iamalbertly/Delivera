@@ -38,10 +38,13 @@ function row(item) {
   const peopleOptions = people.map((person) => `<option value="${escapeHtml(person.displayName)}">${escapeHtml(`${person.confidence || 'observed'} · ${person.evidence || ''}`)}</option>`).join('');
   const boardCopy = item.boardMapping?.length ? `Boards ${item.boardMapping.join(', ')}` : boardCandidates.length ? `Suggested: ${boardCandidates.map((board) => board.name).join(', ')}` : 'Board mapping not confirmed';
   const original = escapeHtml(JSON.stringify(snapshot(item)));
+  const ownerRoute = hasOwnerGap(item)
+    ? 'Owner route incomplete'
+    : `${personName(item.productOwner)} · ${personName(item.scrumMaster)}`;
   return `<form class="registry-row registry-row--compact" data-registry-squad="${escapeHtml(item.squadKey)}" data-registry-revision="${Number(item.revision) || 1}" data-original="${original}">
     <label class="registry-select" title="Select for one atomic organization change"><input type="checkbox" data-registry-select aria-label="Select ${escapeHtml(item.friendlyName)}"></label>
     <div class="registry-identity"><strong>${escapeHtml(item.friendlyName)}</strong><small>${escapeHtml(item.squadKey)} · ${escapeHtml(item.participationState.replace(/-/g, ' '))} · ${escapeHtml(boardCopy)}</small></div>
-    <div class="registry-route-summary"><span>${escapeHtml(personName(item.productOwner) || 'PO unresolved')}</span><span>${escapeHtml(personName(item.scrumMaster) || 'SM unresolved')}</span></div>
+    <div class="registry-route-summary"><span>${escapeHtml(ownerRoute)}</span></div>
     <button class="registry-disclosure" type="button" data-registry-edit aria-expanded="false" aria-label="Edit ${escapeHtml(item.friendlyName)}" title="Edit ${escapeHtml(item.friendlyName)}"><span aria-hidden="true">›</span></button>
     <div class="registry-editor" hidden>
       <label><span>Participation</span><select name="participationState"><option value="pi-governed" ${item.participationState === 'pi-governed' ? 'selected' : ''}>PI-governed</option><option value="pending-consent" ${item.participationState === 'pending-consent' ? 'selected' : ''}>Pending consent</option><option value="operational-exception" ${item.participationState === 'operational-exception' ? 'selected' : ''}>Operational exception</option></select></label>
@@ -221,7 +224,7 @@ async function saveOne(event) {
     Object.assign(previous, values);
     form.dataset.original = JSON.stringify(snapshot(previous));
     const summary = form.querySelector('.registry-route-summary');
-    if (summary) summary.innerHTML = `<span>${escapeHtml(values.productOwner || 'PO unresolved')}</span><span>${escapeHtml(values.scrumMaster || 'SM unresolved')}</span>`;
+    if (summary) summary.innerHTML = `<span>${escapeHtml(values.productOwner && values.scrumMaster ? `${values.productOwner} · ${values.scrumMaster}` : 'Owner route incomplete')}</span>`;
   }
   button.disabled = true;
   status.textContent = 'Publishing organization truth…';
