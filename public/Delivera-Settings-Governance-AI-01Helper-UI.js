@@ -162,11 +162,22 @@ export function mountGovernanceAiHelper(mount) {
           return;
         }
         clearActiveLoopClientCaches();
+        const projectAccess = Array.isArray(data.projectAccess) ? data.projectAccess : [];
+        const unresolved = projectAccess.filter((item) => item.state !== 'verified');
         if (result) {
           result.textContent = data.displayName
-            ? `Connected as ${data.displayName}. Stale Governance access text was cleared — reopen Brief to verify.`
+            ? `Connected as ${data.displayName}. ${data.projectsChecked || projectAccess.length} projects checked${unresolved.length ? `; ${unresolved.length} need board mapping or a retry` : '; all visible boards verified'}. Opening refreshed Brief…`
             : (data.message || 'Jira connection refreshed.');
         }
+        const current = new URL(window.location.href);
+        const squad = current.searchParams.get('squad') || current.searchParams.get('projects')?.split(',')[0] || '';
+        const target = new URL('/governance', window.location.origin);
+        if (squad) {
+          target.searchParams.set('spotlight', squad);
+          target.searchParams.set('view', 'squad');
+        }
+        target.searchParams.set('jiraRefresh', String(Date.now()));
+        window.setTimeout(() => window.location.assign(target), 350);
       } catch (err) {
         if (result) result.textContent = `Failed — ${err.message}`;
       } finally {

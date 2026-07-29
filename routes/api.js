@@ -166,13 +166,16 @@ async function invalidateDeliveryTruthCaches({ refreshAccess = false } = {}) {
         cache.invalidateByPrefix('boards:'),
         cache.invalidateCurrentSprintSnapshot({}),
     ]);
+    let accessRefresh = null;
     if (refreshAccess) {
         try {
-            await refreshProjectsAccessBatch({ forceAll: true, userId: 'reconnect' });
+            accessRefresh = await refreshProjectsAccessBatch({ forceAll: true, userId: 'reconnect' });
         } catch (err) {
             logger.warn('projects access force-refresh after cache invalidate failed', { error: err?.message });
+            accessRefresh = { checked: 0, results: [], error: err?.code || 'PROJECT_ACCESS_REFRESH_FAILED' };
         }
     }
+    return { accessRefresh };
 }
 
 router.get('/healthz', async (req, res) => {
@@ -1212,7 +1215,8 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
                         globallyExcluded: Boolean(registryParticipation.details[String(candidate.location?.projectKey || '').toUpperCase()]?.globallyExcluded),
                     }))
                     .filter((candidate) => candidate.projectKey && selectedProjects.includes(candidate.projectKey));
-                void Promise.all(projectKeys.map((squadKey) => writeSquadSprintTruth({ squadKey, payload: out, checkedBoards: [{ id: board.id, name: board.name, verified: true }] }))).catch(() => {});
+                void Promise.all(projectKeys.map((squadKey) => writeSquadSprintTruth({ squadKey, payload: out, checkedBoards: [{ id: board.id, name: board.name, verified: true }] })))
+                    .catch((error) => logger.warn('Cached sprint truth projection write failed', buildRequestLogContext(req, { boardId, error: error?.message })));
                 await attachCurrentSprintTruthContext(out, projectKeys);
                 return res.json(out);
             }
@@ -1791,8 +1795,22 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
         const entry = registryByKey.get(key);
         const canonicalSprintRecord = sprintTruthBySquad.get(key);
         const canonicalSprintReality = canonicalSprintRecord || insight.sprintReality;
-        const activeItems = canonicalSprintRecord?.currentWork?.length ? canonicalSprintRecord.currentWork : insight.activeItems;
-        return entry ? { ...insight, activeItems, sprintReality: canonicalSprintReality, displayName: entry.friendlyName, squadRoles: { ...(insight.squadRoles || {}), productOwner: entry.productOwner, scrumMaster: entry.scrumMaster, streamLead: entry.streamLead } } : { ...insight, activeItems, sprintReality: canonicalSprintReality };
+        const activeByKey = new Map((insight.activeItems || []).map((item) => [String(item?.issueKey || item?.key || '').toUpperCase(), item]));
+        for (const item of (canonicalSprintRecord?.currentWork || [])) {
+            const issueKey = String(item?.issueKey || item?.key || '').toUpperCase();
+            if (!issueKey) continue;
+            activeByKey.set(issueKey, { ...(activeByKey.get(issueKey) || {}), ...item });
+        }
+        const activeItems = [...activeByKey.values()];
+        const verifiedBoard = (canonicalSprintRecord?.checkedBoards || []).some((board) => board?.verified === true);
+        const boardResolved = insight.boardResolved !== false
+            || verifiedBoard
+            || canonicalSprintRecord?.state === 'active'
+            || activeItems.length > 0;
+        const projected = { ...insight, activeItems, boardResolved, sprintReality: canonicalSprintReality };
+        return entry
+            ? { ...projected, displayName: entry.friendlyName, squadRoles: { ...(insight.squadRoles || {}), productOwner: entry.productOwner, scrumMaster: entry.scrumMaster, streamLead: entry.streamLead } }
+            : projected;
     });
     const brief = { ...rawBrief, squadInsights, meta: { ...(rawBrief?.meta || {}), boardAliases, operatingModels, registryVersion: registry.version } };
     const caseState = projectActiveLoopCases(events);
@@ -2852,13 +2870,15 @@ router.post('/api/settings/jira-connection/refresh', requireAuth, async (req, re
         }
         const client = createVersion3Client();
         const me = await client.myself.getCurrentUser();
-        await invalidateDeliveryTruthCaches({ refreshAccess: true });
+        const { accessRefresh } = await invalidateDeliveryTruthCaches({ refreshAccess: true });
         const displayName = me?.displayName || me?.emailAddress || me?.accountId || 'authenticated';
         return res.json({
             ok: true,
             displayName,
             message: 'Jira connection verified. Delivery caches and board probes were refreshed.',
             cachesCleared: true,
+            projectAccess: accessRefresh?.results || [],
+            projectsChecked: Number(accessRefresh?.checked) || 0,
         });
     } catch (error) {
         const status = getErrorStatusCode(error);

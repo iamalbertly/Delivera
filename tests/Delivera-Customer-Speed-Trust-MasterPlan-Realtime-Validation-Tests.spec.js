@@ -14,6 +14,8 @@ import {
 } from '../lib/Delivera-CurrentSprint-Value-Flow-Policy-SSOT.js';
 import { buildHumanNudgeDraft } from '../public/Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js';
 import { PROJECT_CATALOG } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
+import { buildActiveGovernanceAnswer } from '../lib/Delivera-Governance-ActiveLoop-01Domain-SSOT.js';
+import { renderAlignmentStripHtml } from '../public/Delivera-CurrentSprint-Alignment-01Strip-UI.js';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -56,7 +58,81 @@ test.describe('Delivera customer speed and trust release', () => {
       .toMatch(/login or permissions/i);
     expect(diagnosePromiseEvidence({ issueKey: 'FIN-1c', boardResolved: false }).diagnosisLabel)
       .toMatch(/cannot open this squad/i);
+    expect(diagnosePromiseEvidence({
+      issueKey: 'SD-5314',
+      boardResolved: false,
+      currentFound: true,
+      status: 'In Progress',
+      matchMethod: 'epic-child',
+      matchedIssueKeys: ['SD-5304'],
+      sprintName: 'FY27DMS06',
+    })).toMatchObject({
+      diagnosisCode: 'verified',
+      diagnosisLabel: 'PI epic has active sprint stories',
+    });
     expect(Object.values(PROMISE_DIAGNOSIS_CODES)).toHaveLength(12);
+
+    const activeLoop = buildActiveGovernanceAnswer({
+      baseline: {
+        id: 'sd-q2',
+        piName: 'FY27 Q2',
+        baselineDate: '2026-07-01',
+        projects: ['SD'],
+        committedItems: [{
+          issueKey: 'SD-5314',
+          squad: 'SD',
+          title: 'DMS notification campaign',
+          originalText: 'DMS notification campaign',
+        }, {
+          issueKey: 'SD-9999',
+          squad: 'SD',
+          title: 'Unmatched PI promise',
+          originalText: 'Unmatched PI promise',
+        }],
+      },
+      brief: {
+        projects: ['SD'],
+        generatedAt: '2026-07-29T08:00:00.000Z',
+        meta: { boardEpicIndex: [] },
+        evidencePack: { rows: [] },
+        squadInsights: [{
+          projectKey: 'SD',
+          boardResolved: true,
+          sprintReality: { contractVersion: 1, state: 'active', sprintName: 'FY27DMS06', copy: 'FY27DMS06 is active.' },
+          activeItems: [{
+            issueKey: 'SD-5304',
+            epicKey: 'SD-5314',
+            summary: 'Deliver notifications',
+            status: 'In Progress',
+            sprintName: 'FY27DMS06',
+            created: '2026-07-17T08:00:00.000Z',
+          }],
+        }],
+      },
+      now: new Date('2026-07-29T08:00:00.000Z'),
+    });
+    expect(activeLoop.promises[0]).toMatchObject({
+      matchState: 'matched',
+      diagnosisCode: 'verified',
+      expectedVsActual: {
+        actual: {
+          issueKeys: ['SD-5304'],
+          matchedThrough: 'epic-child',
+        },
+        disconnectCode: 'story-delivers-approved-epic',
+      },
+    });
+    expect(activeLoop.promises[0].expectedVsActual.durationBusinessDays).toBeGreaterThan(0);
+    expect(activeLoop.promises[1]).toMatchObject({
+      matchState: 'cannot-verify',
+      diagnosisCode: 'exact-key-unavailable',
+      expectedVsActual: { actual: { matchedThrough: 'unmatched' } },
+    });
+    const alignmentHtml = renderAlignmentStripHtml({
+      stories: [{ issueKey: 'SD-5304', epicKey: 'SD-5314' }],
+    }, ['SD-5314']);
+    expect(alignmentHtml).toContain('<strong>1 of 1</strong>');
+    expect(alignmentHtml).not.toContain('off-PI');
 
     const sprintSamples = [24, 48, 72].map((hours, index) => ({
       sprint: { id: index + 1, name: `Closed ${index + 1}` },

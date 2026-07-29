@@ -85,6 +85,10 @@ forces information-only copy and disables Jira writes.
 `diagnosePromiseEvidence` in `lib/Delivera-Governance-PIBaseline-02Compare.js` keeps `ACCESS_BLOCKED` for real auth failures only (`permissionDenied` / HTTP 401–403). A missing or unmapped board becomes `BOARD_UNRESOLVED` (“We cannot open this squad’s Jira board yet”) so Governance no longer labels setup gaps as Jira login failure.
 
 ### Sticky access recovery
+
+The recovery contract probes all twelve canonical projects, returns per-project `verified` / `no-board` / `degraded` outcomes, and bypasses background-busy throttling for this explicit administrator action. Transient Jira failures retain the last successful board-access result with degraded freshness instead of overwriting it with a false denial. A board with no active sprint remains board-resolved and is diagnosed as a sprint-state gap. After success, Settings preserves the selected squad and opens the refreshed Governance context automatically.
+
+Approved PI matching follows Jira hierarchy: an exact story key or a current story whose `epicKey` / `parentKey` equals the approved commitment is PI-aligned. Missing objective-title metadata is a sponsor-traceability gap, not proof that the story is off-PI. Governance promise hover text and the shared drawer expose expected commitment, actual story keys/status/sprint, mapping path, evidence age, and business-day duration.
 After credentials are fixed, Settings → Processing intelligence → **Refresh Jira connection** (`POST /api/settings/jira-connection/refresh`) validates `/myself`, clears delivery-truth + boards caches, force-refreshes the projects access index, and clears client `delivera:governance:active-loop:*` envelopes so ghost “no access” copy does not linger for 24h/6h.
 Material contract amendments and accepted risks append a Decision Genome record
 to the existing ActiveLoop event stream: rationale, trade-off, approver, truth

@@ -12,10 +12,11 @@ async function loadBaselineKeys(projectsCsv) {
   if (cachedBaselineKeys) return cachedBaselineKeys;
   if (!baselineFetchPromise) {
     const pk = String(projectsCsv || '').split(',')[0] || '';
-    baselineFetchPromise = fetch(`/api/governance/pi-baseline?projects=${encodeURIComponent(pk)}`, { credentials: 'include' })
+    baselineFetchPromise = fetch(`/api/governance/pi-baseline?project=${encodeURIComponent(pk)}`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        const keys = (data?.committedItems || []).map((i) => String(i.issueKey || '').toUpperCase()).filter(Boolean);
+        const baseline = data?.baseline || data?.baselines?.[0] || data;
+        const keys = (baseline?.committedItems || []).map((i) => String(i.issueKey || '').toUpperCase()).filter(Boolean);
         cachedBaselineKeys = keys;
         return keys;
       })
@@ -55,6 +56,9 @@ export async function mountAlignmentStrip(container, data) {
     return;
   }
   const projects = data?.meta?.projects || data?.board?.projectKeys?.join(',') || '';
-  const keys = await loadBaselineKeys(projects);
+  const embeddedKeys = Array.isArray(data?.meta?.piBaselineCommittedKeys)
+    ? data.meta.piBaselineCommittedKeys
+    : [];
+  const keys = embeddedKeys.length ? embeddedKeys : await loadBaselineKeys(projects);
   container.innerHTML = renderAlignmentStripHtml(data, keys);
 }

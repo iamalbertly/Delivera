@@ -291,6 +291,9 @@ export function renderDecisionCockpit(data, options = {}) {
   const valueLabel = nextBestAction.valueEvidence?.businessValue
     || nextBestAction.valueEvidence?.businessCase
     || nextBestAction.valueEvidence?.piObjectiveTitle
+    || (nextBestAction.valueEvidence?.commitmentIssueKey
+      ? `Approved PI epic ${nextBestAction.valueEvidence.commitmentIssueKey}${nextBestAction.valueEvidence.commitmentTitle ? ` · ${nextBestAction.valueEvidence.commitmentTitle}` : ''}`
+      : '')
     || 'No approved PI value mapping';
   const flowEvidence = nextBestAction.flowEvidence || {};
   const flowLabel = flowEvidence.p85CycleHours != null && flowEvidence.currentAgeHours != null
