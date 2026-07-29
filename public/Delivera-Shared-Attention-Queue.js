@@ -11,12 +11,32 @@ function dedupeTableItems(items) {
   });
 }
 
+export function isOwnerMissing({
+  tags = [],
+  assignee = '',
+  owner = '',
+  decisionNeededFrom = '',
+  ownerRoute = null,
+} = {}) {
+  const tagMissing = Array.isArray(tags) && tags.includes('unassigned');
+  const routeMissing = ownerRoute
+    ? Boolean(ownerRoute.unresolved) || !String(ownerRoute.displayName || '').trim()
+    : false;
+  const text = String(assignee || owner || decisionNeededFrom || '');
+  const textMissing = /unassigned|no owner|owner route missing|unowned/i.test(text);
+  return Boolean(tagMissing || routeMissing || textMissing);
+}
+
 /** Map sprint cockpit risks to attention queue rows. */
 export function cockpitRisksToAttentionItems(topRisks = []) {
   return (Array.isArray(topRisks) ? topRisks : []).map((r) => {
     const tags = Array.isArray(r.riskTags) ? r.riskTags : [];
-    const ownerMissing = tags.includes('unassigned')
-      || /unassigned|no owner|owner route missing|unowned/i.test(String(r.assignee || r.owner || r.decisionNeededFrom || ''));
+    const ownerMissing = isOwnerMissing({
+      tags,
+      assignee: r.assignee,
+      owner: r.owner,
+      decisionNeededFrom: r.decisionNeededFrom,
+    });
     return {
       issue: r.issueKey || r.label || 'Sprint',
       reason: r.label || r.reason || 'Needs attention',

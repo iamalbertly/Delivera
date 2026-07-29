@@ -30,6 +30,9 @@ test.describe('Delivera customer speed and trust release', () => {
   test('1 changed truth and classifier contracts remain evidence-bound', () => {
     const fixtures = [
       [{ issueKey: 'FIN-1', permissionDenied: true }, 'access-blocked'],
+      [{ issueKey: 'FIN-1b', httpStatus: 401 }, 'access-blocked'],
+      [{ issueKey: 'FIN-1c', boardResolved: false }, 'board-unresolved'],
+      [{ issueKey: 'FIN-1d', boardResolved: false, permissionDenied: true }, 'access-blocked'],
       [{ issueKey: 'FIN-2', currentFound: true, inBacklog: true }, 'backlog-only'],
       [{ issueKey: 'FIN-3', currentFound: true, inFutureSprint: true, sprintName: 'FY27FIN07' }, 'future-sprint'],
       [{ issueKey: 'FIN-4', currentFound: true, missingPiMetadata: true }, 'missing-pi-metadata'],
@@ -49,7 +52,11 @@ test.describe('Delivera customer speed and trust release', () => {
       expect(diagnosis.customerOrPiImpact.length).toBeGreaterThan(12);
       expect(diagnosis.ownerRoute).toBeTruthy();
     });
-    expect(Object.values(PROMISE_DIAGNOSIS_CODES)).toHaveLength(11);
+    expect(diagnosePromiseEvidence({ issueKey: 'FIN-1', permissionDenied: true }).diagnosisLabel)
+      .toMatch(/login or permissions/i);
+    expect(diagnosePromiseEvidence({ issueKey: 'FIN-1c', boardResolved: false }).diagnosisLabel)
+      .toMatch(/cannot open this squad/i);
+    expect(Object.values(PROMISE_DIAGNOSIS_CODES)).toHaveLength(12);
 
     const sprintSamples = [24, 48, 72].map((hours, index) => ({
       sprint: { id: index + 1, name: `Closed ${index + 1}` },
@@ -334,5 +341,29 @@ test.describe('Delivera customer speed and trust release', () => {
     expect(supportive).toContain('Could the squad help restore flow');
     expect(supportive).toContain('Who can swarm CSS review today?');
     expect(supportive).not.toMatch(/assign someone|disable new work/i);
+
+    const doneProbe = buildHumanNudgeDraft({
+      issueKey: 'SD-5314',
+      useCase: 'done-probe',
+      assigneeFirstName: 'Amani',
+      stalledSubtasks: [
+        { issueKey: 'SD-5315', summary: 'Backend' },
+        { issueKey: 'SD-5316', summary: 'CSS review' },
+      ],
+    });
+    expect(doneProbe).toMatch(/Hey @Amani/i);
+    expect(doneProbe).toMatch(/SD-5314/);
+    expect(doneProbe).toMatch(/moved to Done|move to Done|be moved to Done/i);
+    expect(doneProbe).toMatch(/SD-5315/);
+    expect(doneProbe).not.toMatch(/Hey @Amani.*Hey @/i);
+
+    const thinEvidence = buildHumanNudgeDraft({
+      issueKey: 'SD-5314',
+      useCase: 'done-probe',
+      assigneeFirstName: 'Amani',
+      stalledSubtasks: [],
+    });
+    expect(thinEvidence).not.toMatch(/@Amani/);
+    expect(thinEvidence).toMatch(/looks blocked/i);
   });
 });

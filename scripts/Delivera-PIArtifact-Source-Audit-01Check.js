@@ -55,7 +55,7 @@ for (const file of ['public/actions.html', 'public/settings.html']) {
   assert.equal(ids.length, new Set(ids).size, `Duplicate DOM id in ${file}`);
 }
 
-const css = readFileSync('public/css/14-speed-simplicity-trust.css', 'utf8');
+const css = readFileSync('public/styles.css', 'utf8');
 const referenced = [
   ['gov-baseline-job', 'public/Delivera-App-Governance-Brief-PIBaseline-01Wizard-UI.js'],
   ['gov-baseline-trust-strip', 'public/Delivera-App-Governance-PIBaseline-Wizard-02Render-UI.js'],

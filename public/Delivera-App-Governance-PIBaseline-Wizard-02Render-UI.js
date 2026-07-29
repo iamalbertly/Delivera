@@ -5,6 +5,7 @@ import {
   humanEpicActivityLabel,
 } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { renderHealthTileStrip } from './Delivera-Shared-Health-Tile-01Render.js';
 
 function createWorkButton(projectsCsv) {
   return `<button type="button" class="btn btn-secondary btn-compact" data-open-outcome-modal data-outcome-projects="${escapeHtml(projectsCsv)}" data-outcome-context="Create promised work in Jira.">Create work</button>`;
@@ -96,11 +97,12 @@ export function renderBaselineSlideReview(data, projectsCsv, quarterLabel, jiraH
   const matched = (data.candidates || []).filter((candidate) => candidate.issueKey);
   const rows = matched.map((candidate, index) => candidateRow(candidate, index, jiraHost)).join('');
   const detected = (data.squads || []).map((item) => item.key).filter(Boolean).join(', ') || 'Needs review';
-  const trust = `<div class="gov-baseline-trust-strip" role="status">
-    <span><strong>Detected:</strong> ${escapeHtml(detected)}</span>
-    <span><strong>Period:</strong> ${escapeHtml(data.period?.label || quarterLabel || 'Needs review')}</span>
-    <span><strong>Evidence:</strong> ${escapeHtml(data.provenanceComplete ? 'Source-linked' : 'Review required')}</span>
-    <span><strong>AI calls:</strong> ${Number(data.callsConsumed) || 0}${data.cached ? ' · cached' : ''}</span></div>`;
+  const trust = renderHealthTileStrip([
+    { label: 'Detected:', value: detected },
+    { label: 'Period:', value: data.period?.label || quarterLabel || 'Needs review' },
+    { label: 'Evidence:', value: data.provenanceComplete ? 'Source-linked' : 'Review required' },
+    { label: 'AI calls:', value: `${Number(data.callsConsumed) || 0}${data.cached ? ' · cached' : ''}` },
+  ], { role: 'status' });
   const conflicts = (data.conflicts || []).map((item) => `<p class="gov-baseline-error" role="alert">Detected ${escapeHtml(item.detected)} conflicts with requested ${escapeHtml(item.requested)}. Confirm before saving.</p>`).join('');
   const listHtml = `${trust}${conflicts}<ul class="gov-baseline-extracted">${extracted}</ul>
     ${unmatched ? `<p class="gov-inbox-hint">From source — not in Jira yet:</p><div class="gov-baseline-list">${unmatched}</div>` : ''}<div class="gov-baseline-list">${rows}</div>`;

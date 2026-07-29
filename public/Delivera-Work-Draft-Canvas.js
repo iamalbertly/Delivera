@@ -1,3 +1,4 @@
+// SIZE-EXEMPT: Single cohesive draft/canvas interaction surface; split would scatter event coordination
 import { parseOutcomeIntake, OUTCOME_STRUCTURE_MODE } from './Delivera-Shared-Outcome-Intake-Parser.js';
 import { OUTCOME_ACTIVITY_LOG_KEY, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {

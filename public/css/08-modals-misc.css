@@ -1507,6 +1507,7 @@ kbd {
 .home-sprint-pulse-pct--low { background: #fee2e2; color: #991b1b; }
 .home-sprint-pulse-stories { color: var(--text-muted); font-size: 0.8rem; }
 .home-sprint-pulse-risk { background: #fee2e2; color: #991b1b; font-size: 0.78rem; font-weight: 600; padding: 2px 7px; border-radius: 8px; }
+.home-sprint-pulse-card [data-sprint-pulse-stale] { background: var(--card-muted); color: var(--muted-strong); }
 .home-sprint-pulse-cta { margin-left: auto; color: var(--primary, #0f4c81); font-size: 0.82rem; text-decoration: none; font-weight: 600; }
 .home-sprint-pulse-cta:hover { text-decoration: underline; }
 
@@ -1523,3 +1524,16 @@ kbd {
   font-weight: 500;
 }
 .wdc-example-btn:hover { background: var(--card-muted); }
+
+.delivera-shared-issue-preview {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  max-width: 360px;
+  z-index: var(--z-issue-preview);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}

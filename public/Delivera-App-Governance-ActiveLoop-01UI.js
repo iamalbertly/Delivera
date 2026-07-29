@@ -6,6 +6,7 @@ import {
   renderIdentityLinkRow,
   resolveReturnToHref,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
+import { isOwnerMissing } from './Delivera-Shared-Attention-Queue.js';
 
 const CACHE_PREFIX = 'delivera:governance:active-loop:v2:20260728a';
 const PRESENTATION_CONTRACT_VERSION = 5;
@@ -28,6 +29,23 @@ let activeDrawerContext = null;
 let pendingReason = sharedStoryState.pendingReason || 'New evidence ready.';
 let quarterPulseTimer = null;
 let spotlightSequence = 0;
+
+let quarterPulseCleanupBound = false;
+function bindQuarterPulseCleanup() {
+  if (quarterPulseCleanupBound) return;
+  quarterPulseCleanupBound = true;
+  const clear = () => {
+    if (quarterPulseTimer) {
+      clearInterval(quarterPulseTimer);
+      quarterPulseTimer = null;
+    }
+  };
+  window.addEventListener('beforeunload', clear);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clear();
+  });
+}
+
 const activeLoopLoads = new Map();
 
 const lenses = [
@@ -62,9 +80,8 @@ function scopeKey(projects, quarter) {
 
 function readCachedAnswer(projects, quarter) {
   try {
-    const legacyKey = `delivera:governance:active-loop:v1:${String(projects || '').toUpperCase()}:${String(quarter || 'current')}`;
-    const envelope = JSON.parse(localStorage.getItem(scopeKey(projects, quarter)) || localStorage.getItem(legacyKey) || 'null');
-    if (![1, 2].includes(envelope?.answer?.schemaVersion) || !envelope?.savedAt) return null;
+    const envelope = JSON.parse(localStorage.getItem(scopeKey(projects, quarter)) || 'null');
+    if (envelope?.answer?.schemaVersion !== 2 || !envelope?.savedAt) return null;
     if (envelope.answer.schemaVersion === 2 && Number(envelope.answer.presentationContractVersion) !== PRESENTATION_CONTRACT_VERSION) return null;
     if (envelope.answer.schemaVersion === 2 && (!envelope.answer.decisionCoverage
       || !(envelope.answer.squads || []).every((squad) => squad.displayName && squad.contractState && squad.trustFactor))) return null;
@@ -82,6 +99,35 @@ function writeCachedAnswer(projects, quarter, answer) {
   try { localStorage.setItem(scopeKey(projects, quarter), JSON.stringify({ savedAt: new Date().toISOString(), answer })); } catch (_) { /* quota/privacy */ }
 }
 
+/** Clear client active-loop cache keys (v2+) and in-memory answer after a successful Jira reconnect. */
+export function clearActiveLoopCaches() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key && String(key).startsWith('delivera:governance:active-loop:')) localStorage.removeItem(key);
+    }
+  } catch (_) { /* privacy / quota */ }
+  activeAnswer = null;
+  pendingAnswer = null;
+  sharedStoryState.activeAnswer = null;
+  sharedStoryState.pendingAnswer = null;
+}
+
+function answerHasAccessBlock(answer) {
+  const codes = new Set(
+    (answer?.promises || [])
+      .map((promise) => String(promise?.diagnosisCode || '').toLowerCase())
+      .filter(Boolean),
+  );
+  (answer?.squads || []).forEach((squad) => {
+    (squad?.diagnosisGroups || []).forEach((group) => {
+      if (group?.code) codes.add(String(group.code).toLowerCase());
+      if (group?.diagnosisCode) codes.add(String(group.diagnosisCode).toLowerCase());
+    });
+  });
+  return codes.has('access-blocked');
+}
+
 function tone(state) {
   if (['matched', 'aligned-amended', 'resolved-matched'].includes(state)) return 'safe';
   if (['partly-matched', 'done-not-accepted', 'awaiting-owner', 'reply-received-ready-to-recheck'].includes(state)) return 'watch';
@@ -92,7 +138,7 @@ function tone(state) {
 function currentFreshness(answer) {
   const verified = new Date(answer?.verifiedAt);
   const age = Number.isFinite(verified.getTime()) ? Math.max(0, Math.floor((Date.now() - verified.getTime()) / 60000)) : null;
-  if (answer?.freshness?.state === 'failed') return { state: 'failed', copy: 'Showing last verified state. Jira refresh failed.' };
+  if (answer?.freshness?.state === 'failed') return { state: 'failed', copy: 'Showing the last verified answer. A fresh Jira check did not finish — tap Refresh.' };
   if (answer?.scope?.complete === false) return { state: 'partial', copy: `${answer.scope.verifiedSquads} of ${answer.scope.expectedSquads} squads verified. Portfolio conclusion limited.` };
   if (age == null || age >= 60) return { state: 'stale', copy: 'Showing last verified state. Freshness-dependent decisions are paused.' };
   if (age > 15) return { state: 'paused', copy: `Sync paused ${age}m ago.` };
@@ -268,24 +314,24 @@ function portfolioMatrix(answer) {
 
 function heroIdentityLinks(answer) {
   const squads = (answer.squads || []).filter((squad) => Number(squad.attentionCount || 0) > 0).slice(0, 3);
-  if (!squads.length) return '';
-  // Focus-only buttons in the first fold. Sprint "today" is SSOT on the next-move rail
-  // when the rail is visible; under spotlight the rail is hidden, so offer one today link.
   const items = squads.map((squad) => ({ key: squad.squad, label: squad.displayName || squad.squad, mode: 'button' }));
-  if (spotlightKey) {
-    const focused = (answer.squads || []).find((squad) => squad.squad === spotlightKey) || squads[0];
-    if (focused) {
-      const short = String(focused.displayName || focused.squad).split(' ')[0];
-      items.push({
-        key: focused.squad,
-        label: `${short} today`,
-        secondaryLabel: `${short} today`,
-        mode: 'link',
-        secondary: true,
-        href: currentSprintSquadHref(focused.squad),
-      });
-    }
+  // One "today" continuity path (identity row only — not duplicated on the next-move rail).
+  const focusKey = preferredFocusSquadKey(answer);
+  const focused = (answer.squads || []).find((squad) => squad.squad === focusKey)
+    || squads[0]
+    || (answer.squads || [])[0];
+  if (focused) {
+    const short = String(focused.displayName || focused.squad).split(' ')[0];
+    items.push({
+      key: focused.squad,
+      label: `${short} today`,
+      secondaryLabel: `${short} today`,
+      mode: 'link',
+      secondary: true,
+      href: currentSprintSquadHref(focused.squad),
+    });
   }
+  if (!items.length) return '';
   return renderIdentityLinkRow(items);
 }
 
@@ -309,15 +355,13 @@ function nextMoveRailHtml(answer) {
   const squad = (answer?.squads || []).find((item) => item.squad === focusKey) || (answer?.squads || [])[0];
   if (!squad) return '';
   const move = matrixNextMoveLabel(squad);
-  const todayHref = currentSprintSquadHref(squad.squad);
+  // Rail keeps proof audit only — primary CTA opens spotlight; identity row owns "today".
   return `<aside class="gov-next-move-rail" aria-label="Next move for selected squad">
     <span class="gov-loop-kicker">Next move</span>
     <strong>${escapeHtml(squad.displayName || squad.squad)}</strong>
     <p>${escapeHtml(move)}</p>
     <div class="gov-next-move-rail-actions">
-      <button type="button" class="btn btn-secondary btn-compact" data-next-move-spotlight="${escapeHtml(squad.squad)}">Open spotlight</button>
       <button type="button" class="btn btn-link btn-compact" data-all-proof="${escapeHtml(squad.squad)}">All proof</button>
-      <a class="btn btn-link btn-compact" href="${escapeHtml(todayHref)}">${escapeHtml(String(squad.displayName || squad.squad).split(' ')[0])} today</a>
     </div>
   </aside>`;
 }
@@ -384,6 +428,7 @@ function renderHero(answer) {
     const nextFreshness = currentFreshness(activeAnswer);
     el.textContent = [pulse, nextFreshness.copy].filter(Boolean).join(' · ');
   }, 60000);
+  bindQuarterPulseCleanup();
   if (spotlightKey) void showSpotlight(spotlightKey, { pushHistory: false });
 }
 
@@ -619,12 +664,49 @@ function updateUrl(squad, push) {
   broadcastFocus();
 }
 
+function syncClearSquadControl() {
+  const head = document.querySelector('.gov-story-matrix-head');
+  if (!head) return;
+  let btn = head.querySelector('[data-story-all]');
+  if (spotlightKey) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-link btn-compact';
+      btn.setAttribute('data-story-all', '');
+      btn.textContent = 'Clear squad';
+      btn.addEventListener('click', () => clearSpotlight(true));
+      head.appendChild(btn);
+    }
+    btn.setAttribute('aria-current', 'false');
+  } else if (btn) {
+    btn.remove();
+  }
+}
+
+function syncSpotlightTodayLink(answer = activeAnswer) {
+  const copy = document.querySelector('.gov-loop-copy');
+  if (!copy || !answer) return;
+  const html = heroIdentityLinks(answer);
+  const existing = copy.querySelector('.gov-loop-identity-links');
+  if (!html) {
+    existing?.remove();
+    return;
+  }
+  if (existing) existing.outerHTML = html;
+  else {
+    const h1 = copy.querySelector('#gov-loop-answer');
+    if (h1) h1.insertAdjacentHTML('afterend', html);
+  }
+}
+
 function clearSpotlight(pushHistory = false) {
   spotlightKey = ''; activeSpotlightDetail = null; closePreview(); updateUrl('', pushHistory);
   document.body.classList.remove('governance-squad-selected');
   document.getElementById('gov-squad-spotlight')?.replaceChildren();
   document.querySelectorAll('[data-story-squad]').forEach((row) => row.setAttribute('aria-current', 'false'));
-  document.querySelector('[data-story-all]')?.setAttribute('aria-current', 'true');
+  syncClearSquadControl();
+  syncSpotlightTodayLink();
 }
 
 function spotlightHtml(detail) {
@@ -659,6 +741,8 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
   const sequence = ++spotlightSequence;
   spotlightKey = squad; activeSpotlightDetail = null; closePreview(); updateUrl(squad, pushHistory);
   document.body.classList.add('governance-squad-selected');
+  syncClearSquadControl();
+  syncSpotlightTodayLink();
   const primary = document.querySelector('[data-loop-primary]');
   const selectedPromise = decisionPromiseForAnswer(activeAnswer);
   if (primary && selectedPromise) {
@@ -849,7 +933,8 @@ function sourceWriteLabel(state) {
 
 function recipientEditor(promise) {
   const route = promise.ownerRoute || {};
-  return `<div class="gov-recipient-review"><p>${route.unresolved ? 'No epic owner found. Use the PI Team assignment queue or choose the correct recipient before sending.' : `Nudge will go to ${escapeHtml(route.role || 'owner')}: ${escapeHtml(route.displayName || '')}.`}</p><label>Recipient<input data-recipient-name autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(route.displayName || 'PI Team queue')}" placeholder="Choose recipient"></label><label>Role<input data-recipient-role autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(route.role || 'PI Team queue')}"></label><label class="gov-recipient-default"><input type="checkbox" data-recipient-default> Save as squad default</label></div>`;
+  const ownerMissing = isOwnerMissing({ ownerRoute: route });
+  return `<div class="gov-recipient-review"><p>${ownerMissing ? 'No epic owner found. Use the PI Team assignment queue or choose the correct recipient before sending.' : `Nudge will go to ${escapeHtml(route.role || 'owner')}: ${escapeHtml(route.displayName || '')}.`}</p><label>Recipient<input data-recipient-name autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(route.displayName || 'PI Team queue')}" placeholder="Choose recipient"></label><label>Role<input data-recipient-role autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(route.role || 'PI Team queue')}"></label><label class="gov-recipient-default"><input type="checkbox" data-recipient-default> Save as squad default</label></div>`;
 }
 
 function scopedPromiseSourceReference(promise, squad) {
@@ -1003,12 +1088,14 @@ async function targetedRefresh(scopeType, scopeId, button, container) {
 
 async function waitForTargetedRefresh(jobId) {
   const deadline = Date.now() + 45000;
+  let delayMs = 400;
   while (Date.now() < deadline) {
-    await new Promise((resolve) => window.setTimeout(resolve, 500));
     const res = await fetch(`/api/governance/refreshes/${encodeURIComponent(jobId)}`, { credentials: 'same-origin', cache: 'no-store' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Targeted sync status failed (${res.status})`);
     if (data.status !== 'running') return data;
+    await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    delayMs = Math.min(2000, Math.round(delayMs * 1.5));
   }
   throw new Error('Targeted sync is still running. Delivera kept the existing verified view; try again shortly.');
 }
@@ -1064,6 +1151,17 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
     }
     const answer = await activeLoopLoads.get(loadKey); if (seq !== requestSequence) return null;
     if (Number(answer?.presentationContractVersion) !== PRESENTATION_CONTRACT_VERSION) throw new Error(`Presentation contract mismatch (${String(answer?.presentationContractVersion || 'missing')})`);
+    if (force || !answerHasAccessBlock(answer)) {
+      // Drop stale ACCESS_BLOCKED ghost envelopes after reconnect / successful evidence pull.
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+          const key = localStorage.key(i);
+          if (key && String(key).startsWith('delivera:governance:active-loop:') && key !== scopeKey(projects, quarter)) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch (_) { /* privacy / quota */ }
+    }
     writeCachedAnswer(projects, quarter, answer); renderActiveGovernanceLoop(answer); window.setTimeout(() => {
       const loading = document.getElementById('gov-loading');
       if (loading && document.body.classList.contains('governance-story-v2-ready')) {
@@ -1074,7 +1172,7 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
   } catch (error) {
     const mount = document.getElementById('gov-active-loop-mount');
     if (mount) mount.dataset.activeLoopError = String(error?.message || error || 'Unknown active-loop error').slice(0, 240);
-    if (!cached && seq === requestSequence) mount.innerHTML = '<section class="gov-active-loop-hero is-limited" role="status"><h1>Last verified PI answer is unavailable.</h1><p>Decisions requiring fresh evidence are paused.</p></section>';
+    if (!cached && seq === requestSequence && mount) mount.innerHTML = '<section class="gov-active-loop-hero is-limited" role="status"><h1>No Jira data yet</h1><p>Check the Jira connection in Settings, then tap Refresh.</p></section>';
     return cached;
   }
 }

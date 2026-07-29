@@ -45,6 +45,14 @@
   --sticky-global-nav-top: var(--top-chrome-height);
   --sticky-summary-top: calc(var(--sticky-global-nav-top) + 8px);
   --sticky-table-head-top: 64px;
+  /* Verdict colours */
+  --verdict-blocked: #dc2626;
+  --verdict-watch: #d97706;
+  --verdict-on-track: #059669;
+  /* Z-index tokens */
+  --z-sub-chrome: 1200;
+  --z-issue-preview: 1201;
+  --z-top-chrome: 1300;
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
   --brief-desktop-gap: 12px;

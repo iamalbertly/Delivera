@@ -12,5 +12,5 @@ export const CSS_PARTIALS = Object.freeze([
   '09-governance.css',
   '10-meeting-first-surfaces.css',
   '11-executive-pulse.css',
-  '14-speed-simplicity-trust.css',
+  '14-governance-baseline.css',
 ]);

@@ -4,19 +4,16 @@ import { PROJECTS_SSOT_KEY, readSharedProjectsCsv } from './Delivera-Shared-Stor
 import { projectDisplayName } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import {
   currentSprintSquadHref,
-  governanceSpotlightHref,
-  renderIdentityLinkRow,
+  renderSquadIdentityStrip,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 const LAST_ROUTE_KEY = 'delivera.lastRoute.v1';
 const ROUTE_LABELS = {
   '/governance': 'Brief',
-  '/brief': 'Brief',
   '/current-sprint': 'Sprint',
   '/report': 'Evidence',
   '/leadership': 'Brief',
   '/dashboard': 'Today',
-  '/home': 'Today',
 };
 
 function readLastRoute() {
@@ -43,7 +40,15 @@ function applyContinueCta() {
   const btn = document.getElementById('surface-primary-cta');
   if (!btn) return;
   const last = readLastRoute();
-  const path = last?.path || '/governance';
+  let path = last?.path || '/governance';
+  if (path === '/brief') {
+    console.warn('[delivera] legacy /brief route found in stored continuity; redirecting to /governance');
+    path = '/governance';
+  }
+  if (path === '/home') {
+    console.warn('[delivera] legacy /home route found in stored continuity; redirecting to /dashboard');
+    path = '/dashboard';
+  }
   const label = ROUTE_LABELS[path] || 'your last view';
   if (path !== '/governance') {
     btn.setAttribute('data-surface-nav', path);
@@ -54,12 +59,12 @@ function applyContinueCta() {
 async function initHomeBriefMicro() {
   const micro = document.getElementById('surface-verdict-micro');
   if (!micro) return;
-  const projects = readSelectedProjects();
+  const projects = readSharedProjectsCsv();
   if (!projects.length) return;
   try {
     const qs = new URLSearchParams({ projects: projects.join(',') }).toString();
     const res = await fetch(`/api/governance-brief.json?${qs}`, { credentials: 'same-origin' });
-    if (!res.ok) return;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const brief = await res.json();
     const tier = brief?.executiveView?.verdictTier || brief?.meta?.verdictTier || 'watch';
     const sentence = brief?.meta?.commandAnswerSentence || brief?.leadershipNarrative?.meetingAnswer || '';
@@ -67,10 +72,13 @@ async function initHomeBriefMicro() {
     micro.hidden = !micro.textContent;
     const eyebrow = document.querySelector('.surface-eyebrow');
     if (eyebrow && tier) eyebrow.textContent = `Brief · ${String(tier).replace(/([A-Z])/g, ' $1').trim()}`;
-  } catch (_) { /* non-blocking */ }
+  } catch (_) {
+    micro.textContent = 'Could not load summary';
+    micro.hidden = false;
+    const eyebrow = document.querySelector('.surface-eyebrow');
+    if (eyebrow) eyebrow.textContent = 'Brief · stale';
+  }
 }
-
-const readSelectedProjects = readSharedProjectsCsv;
 
 function buildSurfaceSummary(projects) {
   const pageName = document.body.getAttribute('data-surface-name') || 'Executive surface';
@@ -81,40 +89,31 @@ function buildSurfaceSummary(projects) {
 function renderDashboardIdentityLinks(projects) {
   const linksEl = document.getElementById('surface-identity-links');
   if (!linksEl) return;
-  if (!projects.length) {
-    linksEl.hidden = true;
-    linksEl.innerHTML = '';
-    return;
-  }
-  const items = [];
-  projects.slice(0, 3).forEach((projectKey) => {
-    const label = projectDisplayName(projectKey);
-    items.push({
-      key: projectKey,
-      label,
-      mode: 'link',
-      href: governanceSpotlightHref(projectKey),
-    });
-    items.push({
-      key: projectKey,
-      label: 'Sprint',
-      secondaryLabel: 'Sprint',
-      mode: 'link',
-      secondary: true,
-      href: currentSprintSquadHref(projectKey),
-    });
+  const html = renderSquadIdentityStrip(projects, {
+    ariaLabel: 'Dashboard focus links',
+    labelForSquad: (k) => {
+      const v = projectDisplayName(k);
+      return v ? String(v) : String(k);
+    },
+    secondaryLabelForSquad: () => 'Sprint',
   });
-  linksEl.innerHTML = renderIdentityLinkRow(items, { ariaLabel: 'Dashboard focus links' });
-  linksEl.hidden = !linksEl.innerHTML;
+  linksEl.innerHTML = html;
+  linksEl.hidden = !html;
 }
 
-function renderSurfaceContext() {
+function renderSurfaceContext({ skipSurfaceGrid = false } = {}) {
   const contextEl = document.getElementById('surface-context-bar');
   const summaryEl = document.getElementById('surface-summary-line');
   if (!contextEl && !summaryEl) return;
-  const projects = readSelectedProjects();
+  const projects = readSharedProjectsCsv();
   renderDashboardIdentityLinks(projects);
   const grid = document.querySelector('.surface-grid');
+  if (skipSurfaceGrid) {
+    if (grid) grid.hidden = true;
+    if (contextEl) contextEl.hidden = true;
+    if (summaryEl) summaryEl.hidden = true;
+    return;
+  }
   if (grid) {
     // Identity links are the squad-specific exits; keep Evidence only when projects are selected.
     grid.classList.toggle('surface-grid--evidence-only', projects.length > 0);
@@ -134,15 +133,25 @@ function renderSurfaceContext() {
   });
   const parts = buildContextSegmentList(segments);
   if (contextEl) {
-    contextEl.innerHTML = projects.length
-      ? ''
-      : renderContextPartList(parts, {
+    if (projects.length) {
+      contextEl.hidden = true;
+      contextEl.innerHTML = '';
+    } else {
+      contextEl.hidden = false;
+      contextEl.innerHTML = renderContextPartList(parts, {
         className: 'surface-context-strip',
         segmentClass: 'surface-context-segment',
       });
+    }
   }
   if (summaryEl) {
-    summaryEl.textContent = buildSurfaceSummary(projects);
+    if (projects.length) {
+      summaryEl.hidden = true;
+      summaryEl.textContent = '';
+    } else {
+      summaryEl.hidden = false;
+      summaryEl.textContent = buildSurfaceSummary(projects);
+    }
   }
 }
 
@@ -176,10 +185,6 @@ function maybeRedirectExecutiveShell() {
   }
 }
 
-function maybeRedirectDashboardToLastRoute() {
-  return false;
-}
-
 try {
   const path = window.location.pathname || '';
   if (path && path !== '/dashboard' && path !== '/home') {
@@ -188,11 +193,13 @@ try {
 } catch (_) {}
 
 function initSurfacePage() {
-  renderSurfaceContext();
+  const last = readLastRoute();
+  const skipSurfaceGrid = Boolean(last?.path && last.path !== '/governance');
+  renderSurfaceContext({ skipSurfaceGrid });
   applyContinueCta();
   initQuickNavigation();
   initGlobalOutcomeModal({
-    getSelectedProjects: readSelectedProjects,
+    getSelectedProjects: readSharedProjectsCsv,
     getOutcomeDraftContext: () => ({ boardId: null, quarterHint: '' }),
   });
 }
@@ -200,12 +207,21 @@ function initSurfacePage() {
 async function initHomeDashboardSprintPulse() {
   const pulseEl = document.getElementById('home-sprint-pulse');
   if (!pulseEl) return;
-  const projects = readSelectedProjects();
+  const projects = readSharedProjectsCsv();
   if (!projects.length) return;
   const sprintHref = currentSprintSquadHref(projects[0]);
   const hasIdentitySprint = Boolean(document.querySelector('#surface-identity-links a[href*="/current-sprint"]'));
   const ctrl = new AbortController();
-  const timeout = setTimeout(() => ctrl.abort(), 5000);
+  const timeout = setTimeout(() => {
+    pulseEl.hidden = false;
+    pulseEl.innerHTML = `
+      <div class="home-sprint-pulse-inner">
+        <span class="home-sprint-pulse-name">Sprint pulse</span>
+        <span data-sprint-pulse-stale class="home-sprint-pulse-risk">Stale</span>
+        ${hasIdentitySprint ? '' : `<a href="${sprintHref}" class="home-sprint-pulse-cta">Open sprint →</a>`}
+      </div>`;
+    ctrl.abort();
+  }, 5000);
   try {
     const qs = new URLSearchParams({ projects: projects.join(',') }).toString();
     const [sprintRes, squadRes] = await Promise.all([
@@ -261,7 +277,7 @@ async function initHomeDashboardSprintPulse() {
 }
 
 function bootExecutiveSurface() {
-  if (maybeRedirectExecutiveShell() || maybeRedirectDashboardToLastRoute()) return;
+  if (maybeRedirectExecutiveShell()) return;
   initSurfacePage();
   initHomeDashboardSprintPulse();
   initHomeBriefMicro();

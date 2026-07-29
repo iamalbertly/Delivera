@@ -3762,3 +3762,20 @@ a.signals-rail-tile:hover {
     padding: 6px 8px;
   }
 }
+
+/* Cross-page overrides moved out of 14-speed-simplicity-trust */
+@media (max-width: 480px) {
+  body.report-page .report-shell-top-row { flex-wrap: wrap; }
+  body.report-page .report-header-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    flex: 1 0 100%;
+  }
+  body.report-page .report-header-actions > .btn,
+  body.report-page .report-header-actions > details,
+  body.report-page .report-header-more-menu > summary {
+    width: 100%;
+    min-width: 0;
+  }
+}

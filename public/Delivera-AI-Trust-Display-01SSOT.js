@@ -9,6 +9,23 @@ import {
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
 import { resolveAiReadiness } from './Delivera-AI-Readiness-01SSOT.js';
 
+// Single source of truth for trust boundary scopes (used in Settings AI helper UI).
+export const AI_USED_FOR = [
+  'Clearer Brief wording',
+  'PI baseline classification',
+  'Simple Mode copy',
+  'Feedback improvement proposals',
+  'Grouped nudge drafts',
+];
+
+export const AI_NEVER_FOR = [
+  'Jira writes',
+  'Final counts',
+  'Confirmed PI baseline',
+  'Owner facts',
+  'Risk truth',
+];
+
 async function fetchUsage24h() {
   try {
     const res = await fetch('/api/settings/ai-usage.json?hours=24', { credentials: 'include' });

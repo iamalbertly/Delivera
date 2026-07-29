@@ -6949,3 +6949,21 @@ body.jira-nudge-review-open { overflow: hidden; }
 }
 .jira-nudge-tone legend { font-weight: 700; }
 .jira-nudge-tone label { min-height: 44px; display: inline-flex; align-items: center; gap: .35rem; }
+
+/* Cross-page overrides moved out of 14-speed-simplicity-trust */
+.current-sprint-page .story-value-card dd { overflow-wrap: anywhere; }
+
+@media (max-width: 480px) {
+  body.current-sprint-page .header-band .header-band-actions { display: none; }
+  body.current-sprint-page .header-compact-strip {
+    flex-direction: column;
+    align-items: stretch;
+    overflow: visible;
+  }
+  body.current-sprint-page .header-compact-strip .header-export-readiness {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

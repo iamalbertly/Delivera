@@ -86,10 +86,12 @@ export function openJiraNudgeReviewSheet({
     issueKey: key,
     issueSummary,
     issueStatus,
-    useCase,
+    useCase: intervention?.doneProbe?.prefer ? 'done-probe' : useCase,
     staleHours,
     tone: selectedTone,
     intervention,
+    assigneeFirstName: intervention?.doneProbe?.assigneeFirstName || intervention?.assignee || '',
+    stalledSubtasks: intervention?.doneProbe?.stalledSubtasks || intervention?.swarmPlan?.stalledSubtasks || null,
   });
   const url = asText(issueUrl);
   let html = '<div class="jira-nudge-review-panel">';
@@ -158,7 +160,15 @@ export function openJiraNudgeReviewSheet({
       const tone = input.value;
       try { localStorage.setItem(TONE_KEY, tone); } catch (_) {}
       if (textarea) textarea.value = buildHumanNudgeDraft({
-        issueKey: key, issueSummary, issueStatus, useCase, staleHours, tone, intervention,
+        issueKey: key,
+        issueSummary,
+        issueStatus,
+        useCase: intervention?.doneProbe?.prefer ? 'done-probe' : useCase,
+        staleHours,
+        tone,
+        intervention,
+        assigneeFirstName: intervention?.doneProbe?.assigneeFirstName || intervention?.assignee || '',
+        stalledSubtasks: intervention?.doneProbe?.stalledSubtasks || intervention?.swarmPlan?.stalledSubtasks || null,
       });
       updateCount();
     });

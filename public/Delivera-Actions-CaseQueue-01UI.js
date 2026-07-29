@@ -1,10 +1,11 @@
-import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
-import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260719e';
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js';
 import {
   governanceSpotlightHref,
   currentSprintSquadHref,
-  renderIdentityLinkRow,
+  renderSquadIdentityStrip,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
+import { isOwnerMissing } from './Delivera-Shared-Attention-Queue.js';
 
 const mount = document.getElementById('actions-queue-mount');
 const summary = document.getElementById('actions-queue-summary');
@@ -30,25 +31,17 @@ function renderIdentityStrip() {
     return;
   }
   identityMount.hidden = false;
-  identityMount.innerHTML = renderIdentityLinkRow([
-    {
-      key: selectedSquad,
-      label: `${selectedSquad} evidence`,
-      mode: 'link',
-      href: governanceSpotlightHref(selectedSquad, { returnTo: '/actions' }),
-    },
-    {
-      key: selectedSquad,
-      label: `${selectedSquad} today`,
-      secondaryLabel: `${selectedSquad} today`,
-      mode: 'link',
-      secondary: true,
-      href: currentSprintSquadHref(selectedSquad),
-    },
-  ], { ariaLabel: 'Actions continuity links' });
+  identityMount.innerHTML = renderSquadIdentityStrip(selectedSquad, {
+    ariaLabel: 'Actions continuity links',
+    primaryReturnTo: '/actions',
+    primaryLabelForSquad: (k) => `${k} evidence`,
+    secondaryLabelForSquad: (k) => `${k} today`,
+  });
+  identityMount.hidden = !identityMount.innerHTML;
 }
 
 function casePickerHtml(group) {
+  if (!group || !group.length) return '';
   if (group.length <= 1) return '';
   const options = group.map((entry, index) => {
     const id = entry.promiseId || '';
@@ -74,7 +67,7 @@ function render() {
   const grouped = new Map();
   visible.forEach((item) => {
     const squad = item.squadId || item.squad;
-    const ownerUnresolved = item.ownerRoute?.unresolved || !item.ownerRoute?.displayName;
+    const ownerUnresolved = isOwnerMissing({ ownerRoute: item.ownerRoute });
     const key = ownerUnresolved
       ? `${squad}|owner-route|${item.dueState || item.state}`
       : item.groupKey || `${squad}|${item.actionType || 'review'}|${item.sourceEntityId || item.promiseId}|${item.dueState || item.state}`;
@@ -90,7 +83,8 @@ function render() {
     const sourceHref = governanceSpotlightHref(item.squadId || item.squad, { returnTo: '/actions' });
     const ownerLine = item.ownerRoute?.displayName || item.ownerRoute?.role || 'Owner route missing';
     const proofLine = item.proofAge?.copy || 'Proof age unavailable.';
-    const confidenceLine = item.ownerRoute?.unresolved ? 'Owner route needs confirmation' : `Owner route: ${item.ownerConfidence || 'verified'}`;
+    const ownerUnresolved = isOwnerMissing({ ownerRoute: item.ownerRoute });
+    const confidenceLine = ownerUnresolved ? 'Owner route needs confirmation' : `Owner route: ${item.ownerConfidence || 'verified'}`;
     const titleAttr = `${proofLine} · ${confidenceLine}`;
     return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${escapeHtml(item.squadDisplayName || item.squad)}${item.issueKey ? ` · ${escapeHtml(item.issueKey)}` : ''}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(ownerLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(item.recommendedAction || item.nextAction?.label || 'Review missing proof')}</button></div></article>`;
   }).join('') : (() => {

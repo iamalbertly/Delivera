@@ -454,6 +454,7 @@ export function getCurrentSprintPayload() {
 
 export function deriveUseCaseFromRiskTags(riskTags = []) {
   const tags = Array.isArray(riskTags) ? riskTags : String(riskTags || '').split(/\s+/).filter(Boolean);
+  if (tags.includes('done-probe')) return 'done-probe';
   if (tags.includes('blocker')) return 'blocker';
   if (tags.includes('no-log')) return 'no-log';
   if (tags.includes('missing-estimate')) return 'missing-estimate';

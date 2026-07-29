@@ -157,13 +157,22 @@ async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
     return payload;
 }
 
-async function invalidateDeliveryTruthCaches() {
+async function invalidateDeliveryTruthCaches({ refreshAccess = false } = {}) {
     clearWarmGovernanceStory();
     await Promise.all([
         cache.invalidateByPrefix('governanceBrief:'),
         cache.invalidateByPrefix('governanceStoryV2:'),
+        cache.invalidateByPrefix('discovery:boards:'),
+        cache.invalidateByPrefix('boards:'),
         cache.invalidateCurrentSprintSnapshot({}),
     ]);
+    if (refreshAccess) {
+        try {
+            await refreshProjectsAccessBatch({ forceAll: true, userId: 'reconnect' });
+        } catch (err) {
+            logger.warn('projects access force-refresh after cache invalidate failed', { error: err?.message });
+        }
+    }
 }
 
 router.get('/healthz', async (req, res) => {
@@ -2828,6 +2837,39 @@ router.post('/api/settings/ai-provider', requireAuth, async (req, res) => {
     } catch (error) {
         logger.error('ai-provider settings error', { error: error?.message });
         return res.status(500).json({ valid: false, error: String(error?.message || 'Test failed') });
+    }
+});
+
+/** Validate Jira /myself, then clear delivery-truth + boards caches and force-refresh project access. */
+router.post('/api/settings/jira-connection/refresh', requireAuth, async (req, res) => {
+    try {
+        if (!jiraEnvConfig.host || !jiraEnvConfig.email || !jiraEnvConfig.apiToken) {
+            return res.status(503).json({
+                ok: false,
+                code: 'JIRA_ENV_MISSING',
+                error: 'Jira credentials are not configured on the server.',
+            });
+        }
+        const client = createVersion3Client();
+        const me = await client.myself.getCurrentUser();
+        await invalidateDeliveryTruthCaches({ refreshAccess: true });
+        const displayName = me?.displayName || me?.emailAddress || me?.accountId || 'authenticated';
+        return res.json({
+            ok: true,
+            displayName,
+            message: 'Jira connection verified. Delivery caches and board probes were refreshed.',
+            cachesCleared: true,
+        });
+    } catch (error) {
+        const status = getErrorStatusCode(error);
+        const httpStatus = status === 401 || status === 403 ? 502 : (status >= 400 && status < 600 ? status : 502);
+        logger.warn('jira-connection refresh failed', { error: error?.message, status });
+        return res.status(httpStatus).json({
+            ok: false,
+            code: status === 401 || status === 403 ? 'JIRA_UNAUTHORIZED' : 'JIRA_REFRESH_FAILED',
+            error: error?.message || 'Jira connection check failed',
+            httpStatus: status,
+        });
     }
 });
 

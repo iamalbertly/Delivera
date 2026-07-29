@@ -359,7 +359,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
     const accessKeys = Object.keys(accessByKey);
     const allInaccessible = accessKeys.length > 0 && accessKeys.every((k) => accessByKey[k] === false);
     const accessBanner = allInaccessible
-      ? '<p class="gov-scope-access-banner" role="status">Jira access not confirmed for any catalog project — selections kept locally.</p>'
+      ? '<p class="gov-scope-access-banner" role="status">Jira has not confirmed these projects yet. Your selections stay on this device until connection works.</p>'
       : '';
 
     const periodChips = PERIOD_OPTIONS.map((p) => (
@@ -476,6 +476,12 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       }
       if (fromBoards.length) {
         boardsWarn = '';
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+            const key = localStorage.key(i);
+            if (key && String(key).startsWith('delivera:governance:active-loop:')) localStorage.removeItem(key);
+          }
+        } catch (_) { /* privacy / quota */ }
       } else {
         const names = selected.filter((pk) => accessByKey[pk] === false).join(', ');
         boardsWarn = names

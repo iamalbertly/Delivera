@@ -5,7 +5,7 @@
   top: var(--top-chrome-height, 56px);
   left: var(--sidebar-width, 240px);
   right: 0;
-  z-index: 1200;
+  z-index: var(--z-sub-chrome);
   background: #0f172a;
 }
 
@@ -24,7 +24,6 @@ body.sidebar-open #app-sub-chrome-slot {
   gap: 8px;
   flex-wrap: nowrap;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding: 6px 12px;
   background: #0f172a;
@@ -43,7 +42,7 @@ body.sidebar-open #app-sub-chrome-slot {
 }
 
 body.governance-page #app-sub-chrome-slot {
-  display: none !important;
+  display: none;
 }
 
 body.has-top-chrome.has-sub-chrome {

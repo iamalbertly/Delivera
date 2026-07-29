@@ -125,6 +125,62 @@ test.describe('Server stability + self-heal contracts', () => {
     expect(hrefs.some((href) => /\/current-sprint/.test(href) && /squad=/i.test(href) && /projects=/i.test(href))).toBe(true);
   });
 
+  test('dashboard Continue CTA points to last stored route (no legacy maybeRedirect logs)', async ({ page }) => {
+    const consoleTexts = [];
+    page.on('console', (msg) => {
+      try { consoleTexts.push(`${msg.type()}:${msg.text()}`); } catch (_) {}
+    });
+
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('delivera.lastRoute.v1', JSON.stringify({ path: '/current-sprint', at: Date.now() }));
+        localStorage.setItem('delivera_selectedProjects', 'SD');
+      } catch (_) {}
+    });
+
+    await page.route('**/api/current-sprint.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        sprint: { name: 'SD Sprint', state: 'active' },
+        stories: [],
+        meta: {},
+        risks: { blockersOwned: 0 },
+      }),
+    }));
+
+    await page.route('**/api/leadership-summary.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ squads: [] }),
+    }));
+
+    await page.route('**/api/governance-brief.json**', (route) => {
+      const url = new URL(route.request().url());
+      const projects = url.searchParams.get('projects') || 'SD';
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          projects: projects.split(',').filter(Boolean),
+          executiveView: { verdictTier: 'watch' },
+          meta: { commandAnswerSentence: 'Test summary sentence.' },
+        }),
+      });
+    });
+
+    await loginIfRequired(page, '/home?stay=1', {
+      rootSelector: '#surface-primary-cta, .executive-surface-shell',
+      timeout: 20000,
+    });
+
+    const btn = page.locator('#surface-primary-cta');
+    await expect(btn).toHaveAttribute('data-surface-nav', '/current-sprint');
+    await expect(btn).toContainText(/Continue to Sprint/i);
+
+    expect(consoleTexts.join('\n')).not.toMatch(/maybeRedirect/i);
+  });
+
   test('healthz survives a short refresh storm', async ({ page, request }) => {
     await loginIfRequired(page, '/governance', {
       rootSelector: '[data-testid="governance-active-loop"], body.governance-page',

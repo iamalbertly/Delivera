@@ -32,7 +32,7 @@ Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Share
 - **Mobile/tablet (≤768px):** search collapses to a 36px icon (`.is-collapsed`); brand slot hides; focus expands search to a second row (`body.top-search-active`) and grows chrome height to 98px. Help and avatar hide at ≤480px. `Escape` dismisses expanded search.
 - **Brief notifications:** dock stays collapsed until the bell is tapped; on governance mobile it opens as a bottom sheet so it does not cover the scope **Refresh** row.
 - **Brief mobile with owner clusters:** full command card hides; owner action clusters become the primary above-fold surface.
-- **Cross-surface continuity:** spotlight, squad, sprint, and return-route tokens stay meaningful across Governance, Current Sprint, Actions, Report, and Dashboard links via `Delivera-Shared-Continuity-Link-01Build.js`. `/current-sprint?squad=<KEY>` also sets `projects=<KEY>` so the sprint board cannot hydrate another squad first. `/report?squad=<KEY>` mirrors that contract (`projects=` + squad hydrate). Actions → Governance carries `returnTo=/actions`, and Governance shows **Back to Actions** when that token is present.
+- **Cross-surface continuity:** spotlight, squad, sprint, and return-route tokens stay meaningful across Governance, Current Sprint, Actions, Report, and Dashboard links via `Delivera-Shared-Continuity-Link-01Build.js` (including shared `renderSquadIdentityStrip`). `spotlight` and `squad` are intentional URL aliases with a conflict warn when both differ. `/current-sprint?squad=<KEY>` also sets `projects=<KEY>` so the sprint board cannot hydrate another squad first. `/report?squad=<KEY>` mirrors that contract (`projects=` + squad hydrate). Actions → Governance carries `returnTo=/actions`, and Governance shows **Back to Actions** when that token is present. Legacy `/brief` and `/home` continuity routes warn and redirect to `/governance` / `/dashboard`.
 - **Local fail-fast gates:** prefer `npm run test:friction:focused` then `npm run test:stability:focused`. Fat `test:journey:*` suites stay secondary/protected-branch coverage, not the front-line local gate.
 
 Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Shared-Notifications-Dock-Manager.js`).
@@ -79,6 +79,13 @@ Thin history, partial permissions, stale evidence, or ambiguous mapping refuses
 pace and impact claims. Supportive is the default swarm tone; stale evidence
 forces information-only copy and disables Jira writes.
 
+**Quiet-dev Done-probe:** when a parent stays In Progress with little movement and open subtasks are stalled ≥24h, Flow Intelligence prefers a Done-probe intervention. `Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js` drafts information-seeking copy such as `Hey @Name — can KEY be moved to Done? I can see … still stalled.` Thin evidence falls back to the supportive blocker line (no invented @mention).
+
+### Access diagnosis vs board gaps
+`diagnosePromiseEvidence` in `lib/Delivera-Governance-PIBaseline-02Compare.js` keeps `ACCESS_BLOCKED` for real auth failures only (`permissionDenied` / HTTP 401–403). A missing or unmapped board becomes `BOARD_UNRESOLVED` (“We cannot open this squad’s Jira board yet”) so Governance no longer labels setup gaps as Jira login failure.
+
+### Sticky access recovery
+After credentials are fixed, Settings → Processing intelligence → **Refresh Jira connection** (`POST /api/settings/jira-connection/refresh`) validates `/myself`, clears delivery-truth + boards caches, force-refreshes the projects access index, and clears client `delivera:governance:active-loop:*` envelopes so ghost “no access” copy does not linger for 24h/6h.
 Material contract amendments and accepted risks append a Decision Genome record
 to the existing ActiveLoop event stream: rationale, trade-off, approver, truth
 hash, original revision, and durable receipt. Governance and Settings project
@@ -186,11 +193,12 @@ The local friction release gate is intentionally small: `npm run test:friction:f
 
 ## Quickstart
 
-**Prerequisites:** Node.js `>=20`, Jira credentials.
+**Prerequisites:** Node.js `>=20`, Jira credentials (`JIRA_HOST`, `JIRA_EMAIL`, `JIRA_API_TOKEN`). Use an Atlassian account API token for the same email (create/manage at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)). Validate with `npm run validate:jira-env`.
 
 ```bash
 npm install
 cp .env.example .env   # set JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN
+npm run build:css      # compiles public/css/* (incl. 14-governance-baseline.css) → public/styles.css
 npm run dev:safe       # SSOT local watcher: port guard + CSS watch + API reload + /healthz self-heal
 # npm run dev          # thinner path (CSS + nodemon only) — prefer dev:safe when the API flaps
 ```
@@ -234,7 +242,7 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 
 | Command | Use |
 |---------|-----|
-| `npm run build:css` | Compile `public/css/*` → `public/styles.css` |
+| `npm run build:css` | Compile `public/css/*` (01–14 partials; `14-governance-baseline.css` owns baseline job/trust strip) → `public/styles.css` |
 | `npm run check:css` | Fail if `styles.css` is out of sync |
 | `npm run dev:safe` | Port guard + CSS watch + API reload + /healthz self-heal (recommended) |
 | `npm run test:friction:focused` | Small friction-finish release bundle: sprint shell → governance release → settings registry |

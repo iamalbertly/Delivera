@@ -112,18 +112,40 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Proof / next');
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Trust factor');
     await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('M-Pesa Delivery'); await expect(hero.locator('[data-story-squad="DMS"]')).not.toContainText('DMS Squad');
-    await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('DMS baseline image'); await expect(hero.locator('[data-story-squad="AMS"]')).toContainText('AMS deck source'); await expect(hero.locator('[data-story-squad="TRS"]')).toContainText('Transformers manual baseline');
+    // First-fold declutter: baseline source labels live in spotlight, not the dense row.
+    await expect(hero.locator('[data-story-squad="DMS"]')).toContainText('Re-check this promise');
+    await expect(hero.locator('[data-story-squad="AMS"]')).toContainText('Aligned');
+    await expect(hero.locator('[data-story-squad="TRS"]')).toContainText('Transformers');
     await expect(hero.locator('[data-operating-firewall]')).toContainText('Operations Support');
     await expect(page.locator('.gov-portfolio-grid-wrap:visible')).toHaveCount(0); await expect(hero.locator('[data-loop-primary]')).toHaveCount(1);
   });
 
   test('squad spotlight synchronizes the meeting story and history', async ({ page }) => {
     const repeatedPromise = { ...promise, promiseId: 'prm-dms-2', originalText: 'Confirm recharge receipt copy' };
-    await mockMeeting(page, { detailPromises: [promise, repeatedPromise] }); await loginIfRequired(page, '/governance'); await page.locator('[data-story-squad="DMS"]').click();
-    await expect(page).toHaveURL(/spotlight=DMS/); const spot = page.locator('#gov-squad-spotlight'); await expect(spot).toContainText('Current Work Reality'); await expect(spot).toContainText('Sprint Reality'); await expect(spot).toContainText('Doing Instead'); await expect(spot).toContainText('Promise Evidence'); await expect(spot).toContainText('Action Trail'); await expect(spot).toContainText('Legacy Database Migration'); await expect(spot).toContainText('Re-check this promise');
+    const storyWithShared = {
+      ...STORY,
+      promises: [
+        { ...promise, allowedActions: undefined, actionHistory: undefined, amendmentHistory: undefined },
+        { ...repeatedPromise, allowedActions: undefined, actionHistory: undefined, amendmentHistory: undefined },
+      ],
+    };
+    await mockMeeting(page, { story: storyWithShared, detailPromises: [promise, repeatedPromise] });
+    await loginIfRequired(page, '/governance');
+    await page.locator('[data-story-squad="DMS"]').click();
+    await expect(page).toHaveURL(/spotlight=DMS/);
+    const spot = page.locator('#gov-squad-spotlight');
+    await expect(spot).toContainText('Current Work Reality');
+    await expect(spot).toContainText('Sprint Reality');
+    await expect(spot).toContainText('Doing Instead');
+    await expect(spot).toContainText(/Promise [Ee]vidence/);
+    await expect(spot).toContainText('Action Trail');
+    await expect(spot).toContainText('Legacy Database Migration');
+    await expect(spot).toContainText('Re-check this promise');
     await expect(spot.locator('.gov-action-lifecycle')).toHaveCount(1);
     await expect(spot.locator('.gov-action-lifecycle')).toContainText('2 promises share this state');
-    await page.locator('[data-story-all]').click(); await expect(page).not.toHaveURL(/spotlight=/); await expect(spot).toBeEmpty();
+    await page.locator('[data-story-all]').click();
+    await expect(page).not.toHaveURL(/spotlight=/);
+    await expect(spot).toBeEmpty();
   });
 
   test('verified squad can rebaseline without losing squad scope', async ({ page }) => {
@@ -341,10 +363,44 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(page.locator('[data-action-case]')).toContainText(/2.*promises share this correction/);
     const picker = page.locator('[data-action-case-picker]');
     await expect(picker).toBeVisible();
+    await expect(picker.locator('option')).toHaveCount(2);
     await picker.selectOption('prm-dms-2');
     await page.locator('[data-action-case] button.btn-primary').click();
     await expect(page.locator('.gov-right-drawer, [data-promise-drawer], .gov-right-drawer-panel').first()).toBeVisible({ timeout: 5000 });
     await expect(page.locator('.gov-right-drawer, [data-promise-drawer], .gov-right-drawer-panel, body').first()).toContainText(/Confirm recharge receipt copy|DMS-77|prm-dms-2|Owner route/i);
+  });
+
+  test('Actions case picker guard: single-promise group renders no picker and still opens drawer', async ({ page }) => {
+    const cases = [
+      {
+        promiseId: 'prm-dms-1',
+        squad: 'DMS',
+        squadDisplayName: 'M-Pesa Delivery',
+        title: 'Enable 3-click recharge path',
+        issueKey: 'DMS-42',
+        state: 'needs-attention',
+        lifecycle: 'No governance action has been sent yet.',
+        ownerRoute: { role: 'PI Team queue', displayName: '', unresolved: true },
+        nextAction: { label: 'Owner route missing · resolve in drawer' },
+      },
+    ];
+    await page.route('**/api/governance/actions.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, cases }),
+    }));
+    await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }),
+    }));
+
+    await loginIfRequired(page, '/actions');
+    await expect(page.locator('[data-action-case]')).toHaveCount(1);
+    await expect(page.locator('[data-action-case-picker]')).toHaveCount(0);
+    await page.locator('[data-action-case] button.btn-primary').click();
+    await expect(page.locator('.gov-right-drawer, [data-promise-drawer], .gov-right-drawer-panel').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.gov-right-drawer, [data-promise-drawer], .gov-right-drawer-panel, body').first()).toContainText(/Enable 3-click recharge path|prm-dms-1|Owner route/i);
   });
 
   test('Actions groups repeated unresolved owner corrections by squad', async ({ page }) => {

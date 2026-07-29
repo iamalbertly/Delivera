@@ -1,5 +1,6 @@
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import { captureBrowserTelemetry, assertTelemetryClean, selectFirstBoard } from './Delivera-Tests-Shared-PreviewExport-Helpers.js';
+import { loginIfRequired } from './Delivera-Playwright-Login-If-Required-01Helper.js';
 
 const SPRINT_PAGE = '/current-sprint';
 
@@ -25,7 +26,10 @@ async function loadMockSprint(page, sprintBody) {
       body: JSON.stringify(sprintBody),
     });
   });
-  await page.goto(SPRINT_PAGE, { waitUntil: 'domcontentloaded' });
+  await loginIfRequired(page, SPRINT_PAGE, {
+    rootSelector: '#board-select, .current-sprint-header-bar, .current-sprint-report-shell',
+    timeout: 30000,
+  });
   await selectFirstBoard(page, { timeout: 30000 });
   await page.waitForSelector('.current-sprint-header-bar', { timeout: 30000 });
 }

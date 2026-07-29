@@ -19,17 +19,17 @@ body.governance-page .gov-verdict-zone {
 }
 
 body.governance-page .gov-verdict-zone[data-verdict-tier="blocked"] {
-  border-color: #dc2626;
+  border-color: var(--verdict-blocked);
   background: linear-gradient(180deg, #fef2f2 0%, #fff 42%);
 }
 
 body.governance-page .gov-verdict-zone[data-verdict-tier="watch"] {
-  border-color: #d97706;
+  border-color: var(--verdict-watch);
   background: linear-gradient(180deg, #fffbeb 0%, #fff 42%);
 }
 
 body.governance-page .gov-verdict-zone[data-verdict-tier="onTrack"] {
-  border-color: #059669;
+  border-color: var(--verdict-on-track);
   background: linear-gradient(180deg, #ecfdf5 0%, #fff 42%);
 }
 
@@ -106,11 +106,11 @@ body.governance-page .gov-pulse-fill {
 }
 
 body.governance-page .gov-pulse-fill--value {
-  background: #059669;
+  background: var(--verdict-on-track);
 }
 
 body.governance-page .gov-pulse-fill--time {
-  background: #dc2626;
+  background: var(--verdict-blocked);
 }
 
 body.governance-page .gov-pulse-impact {
@@ -149,7 +149,7 @@ body.governance-page .gov-portfolio-banner {
   margin-bottom: 14px;
   padding: 14px 18px;
   border-radius: 12px;
-  border: 2px solid #dc2626;
+  border: 2px solid var(--verdict-blocked);
   background: linear-gradient(180deg, #fef2f2 0%, #fff 55%);
 }
 
@@ -167,19 +167,6 @@ body.governance-page .gov-portfolio-banner-line {
   font-size: 1.05rem;
   font-weight: 600;
   color: #111827;
-}
-
-.delivera-shared-issue-preview {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  max-width: 360px;
-  z-index: 1200;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* Risk heat row — compact portfolio tiles */
@@ -206,9 +193,9 @@ body.governance-page .gov-heat-tile {
   text-align: left;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.05);
 }
-body.governance-page .gov-heat-tile--blocked { border-color: #dc2626; background: #fef2f2; }
-body.governance-page .gov-heat-tile--watch { border-color: #d97706; background: #fffbeb; }
-body.governance-page .gov-heat-tile--onTrack { border-color: #059669; background: #ecfdf5; }
+body.governance-page .gov-heat-tile--blocked { border-color: var(--verdict-blocked); background: #fef2f2; }
+body.governance-page .gov-heat-tile--watch { border-color: var(--verdict-watch); background: #fffbeb; }
+body.governance-page .gov-heat-tile--onTrack { border-color: var(--verdict-on-track); background: #ecfdf5; }
 body.governance-page .gov-heat-key { font-weight: 800; font-size: 0.9rem; }
 body.governance-page .gov-heat-verdict { font-size: 0.72rem; color: #6b7280; }
 body.governance-page .gov-risk-tile-detail {

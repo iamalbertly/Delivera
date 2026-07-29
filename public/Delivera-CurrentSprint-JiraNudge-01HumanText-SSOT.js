@@ -33,6 +33,26 @@ function formatStaleLabel(staleHours) {
   return `${days} day${days === 1 ? '' : 's'} with no update`;
 }
 
+function firstNameFrom(value) {
+  const raw = asText(value).replace(/^@/, '');
+  if (!raw) return '';
+  const token = raw.split(/\s+/)[0];
+  return token.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32);
+}
+
+function stalledLabelList(stalledSubtasks = []) {
+  return (Array.isArray(stalledSubtasks) ? stalledSubtasks : [])
+    .map((row) => {
+      if (typeof row === 'string') return asText(row);
+      const key = asText(row?.issueKey || row?.key);
+      const summary = asText(row?.summary).slice(0, 40);
+      if (key && summary) return `${key} (${summary})`;
+      return key || summary;
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 const USE_CASE_LINES = {
   blocker: (key, stale) => {
     const staleBit = stale ? ` (${stale})` : '';
@@ -43,6 +63,7 @@ const USE_CASE_LINES = {
   unassigned: (key) => `${key} has no owner. Please assign someone and note the next step.`,
   scope: (key) => `${key} was added mid-sprint. Please confirm with PO: keep, split, or defer.`,
   ownership: (key) => `${key} needs a clear owner and next step before stand-up.`,
+  'done-probe': (key) => `can ${key} be moved to Done?`,
 };
 
 /**
@@ -52,6 +73,8 @@ const USE_CASE_LINES = {
  * @param {string} [opts.issueStatus]
  * @param {string} [opts.useCase]
  * @param {number} [opts.staleHours]
+ * @param {string} [opts.assigneeFirstName]
+ * @param {Array<{issueKey?:string,summary?:string}|string>} [opts.stalledSubtasks]
  */
 export function buildHumanNudgeDraft({
   issueKey = '',
@@ -61,17 +84,44 @@ export function buildHumanNudgeDraft({
   staleHours = null,
   tone = 'supportive',
   intervention = null,
+  assigneeFirstName = '',
+  stalledSubtasks = null,
 } = {}) {
   const key = asText(issueKey);
   const summary = shortenIssueSummary(issueSummary);
   const status = asText(issueStatus);
   const normalizedUseCase = asText(useCase).toLowerCase() || 'ownership';
   const stale = formatStaleLabel(staleHours);
-  const builder = USE_CASE_LINES[normalizedUseCase] || USE_CASE_LINES.ownership;
   const effectiveTone = ['supportive', 'information-only', 'urgent'].includes(asText(tone).toLowerCase())
     ? asText(tone).toLowerCase() : 'supportive';
   const evidenceAsk = asText(intervention?.recommendedAction || intervention?.nextAction);
   const value = asText(intervention?.humanImpact?.statement || intervention?.businessImpact);
+  const fromIntervention = Array.isArray(intervention?.swarmPlan?.stalledSubtasks)
+    ? intervention.swarmPlan.stalledSubtasks
+    : (Array.isArray(intervention?.doneProbe?.stalledSubtasks) ? intervention.doneProbe.stalledSubtasks : []);
+  const stalled = stalledLabelList(stalledSubtasks != null ? stalledSubtasks : fromIntervention);
+  const mention = firstNameFrom(
+    assigneeFirstName
+    || intervention?.doneProbe?.assigneeFirstName
+    || intervention?.assigneeFirstName
+    || '',
+  );
+  const preferDoneProbe = normalizedUseCase === 'done-probe'
+    || Boolean(intervention?.doneProbe?.prefer)
+    || (stalled.length > 0 && (normalizedUseCase === 'blocker' || intervention?.interventionType === 'done-probe'));
+
+  if (preferDoneProbe && key && stalled.length) {
+    const hey = mention ? `Hey @${mention} — ` : '';
+    const stalledBit = stalled.join(', ');
+    return truncate(`${hey}can ${key} be moved to Done? I can see ${stalledBit} still stalled.`, HUMAN_NUDGE_MAX);
+  }
+  // Thin evidence: never invent @mentions for Done-probe.
+  if (preferDoneProbe && key && !stalled.length) {
+    const builder = USE_CASE_LINES.blocker;
+    return truncate(builder(key, stale), HUMAN_NUDGE_MAX);
+  }
+
+  const builder = USE_CASE_LINES[normalizedUseCase] || USE_CASE_LINES.ownership;
   let line = key ? builder(key, stale) : `Please review: ${summary}.`;
   if (evidenceAsk) {
     const lead = effectiveTone === 'urgent' ? 'Time-sensitive facilitation needed'
@@ -92,6 +142,16 @@ export function buildCommentForUseCase({
   issueSummary = '',
   issueStatus = '',
   staleHours = null,
+  assigneeFirstName = '',
+  stalledSubtasks = null,
 } = {}) {
-  return buildHumanNudgeDraft({ useCase, issueKey, issueSummary, issueStatus, staleHours });
+  return buildHumanNudgeDraft({
+    useCase,
+    issueKey,
+    issueSummary,
+    issueStatus,
+    staleHours,
+    assigneeFirstName,
+    stalledSubtasks,
+  });
 }

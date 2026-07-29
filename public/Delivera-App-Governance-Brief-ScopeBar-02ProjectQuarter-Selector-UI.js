@@ -25,7 +25,7 @@ export function renderProjectChips(projectKeys, selected, accessByKey = {}) {
     const on = selected.includes(pk);
     const limited = accessByKey[pk] === false;
     const cls = `gov-scope-chip${on ? ' is-on' : ''}${limited ? ' gov-scope-chip--limited' : ''}`;
-    const title = limited ? 'Jira access not confirmed for this project' : pk;
+    const title = limited ? 'Jira has not confirmed this project yet' : pk;
     return `<button type="button" class="${cls}" data-project="${pk}" aria-pressed="${on}" title="${escapeHtml(title)}">${escapeHtml(pk)}</button>`;
   }).join('');
 }
