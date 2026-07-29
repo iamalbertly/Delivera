@@ -44,7 +44,15 @@ const STORY = {
 async function mockMeeting(page, { story = STORY, detailPromises = [promise] } = {}) {
   await page.addInitScript(() => localStorage.clear());
   await routeProjectsCatalog(page);
-  await page.route('**/api/governance/active-loop.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(story) }));
+  await page.route('**/api/governance/active-loop.json**', (route) => {
+    const requested = new URL(route.request().url()).searchParams.get('projects');
+    const projects = requested ? requested.split(',').filter(Boolean) : story.scope.projects;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ...story, scope: { ...story.scope, projects } }),
+    });
+  });
   await page.route('**/api/governance/squads/DMS/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, squad: STORY.squads[0], promises: detailPromises, currentWork: [{ title: 'Legacy Database Migration', percentage: 38 }, { title: 'Operational noise', ticketCount: 14 }], sprintReality: STORY.squads[0].sprintReality, workSplit: STORY.squads[0].workSplit }) }));
   await page.route('**/api/governance/cases/prm-dms-1/detail.json**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 2, storyVersion: 4, promise, squad: STORY.squads[0] }) }));
   await page.route('**/api/governance-brief.json**', (route) => {
@@ -455,8 +463,8 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     const before = await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')));
     const updated = structuredClone(STORY); updated.answerVersion = 5; updated.squads.reverse();
     await page.evaluate(async (story) => { const module = await import('/Delivera-App-Governance-ActiveLoop-01UI.js'); module.renderActiveGovernanceLoop(story); }, updated);
-    await expect(page.locator('.gov-story-update')).toBeVisible();
-    expect(await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')))).toEqual(before);
+    await expect(page.locator('.gov-story-update')).toBeHidden();
+    expect(await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')))).toEqual([...before].reverse());
     await expect(page).toHaveURL(/view=evidence/);
     await expect(page).toHaveURL(/spotlight=DMS/);
   });
