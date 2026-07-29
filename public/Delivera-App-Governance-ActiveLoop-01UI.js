@@ -934,7 +934,7 @@ function actionTrailHtml(promises = []) {
 }
 
 function readLocked() {
-  return decisionInProgress || Boolean(persistentPreview || document.querySelector('.gov-loop-drawer'));
+  return decisionInProgress || Boolean(document.querySelector('.gov-loop-drawer'));
 }
 
 function announcePending() {
