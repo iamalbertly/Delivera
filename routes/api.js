@@ -1773,13 +1773,14 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
         await cache.delete(cacheKey, { namespace: GOVERNANCE_NS });
     }
     const quarter = req.query?.quarter || req.body?.quarter || 'current';
-    const [{ brief: rawBrief }, baseline, events, profiles, registry, sprintTruthBySquad] = await Promise.all([
+    const [{ brief: rawBrief }, baseline, events, profiles, registry, sprintTruthBySquad, accessMap] = await Promise.all([
         getOrBuildGovernanceBrief({ projects, req }),
         resolveActiveLoopBaseline(projects, req.query?.quarter || req.body?.quarter || ''),
         readActiveLoopEvents({ limit: 5000 }),
         Promise.all(projects.map((project) => resolveEffectiveGovernanceProfile({ project, portfolioKey: projects.join('+'), userId: req.session?.user || null }))),
         readGovernanceRegistry(),
         readSquadSprintTruthBatch({ squadKeys: projects, quarter }),
+        getAccessMap(),
     ]);
     const registryByKey = new Map((registry.squads || []).map((item) => [item.squadKey, item]));
     const boardAliases = Object.fromEntries(projects.map((project, index) => [
@@ -1803,7 +1804,9 @@ async function assembleActiveLoopAnswerForRequest(req, { force = false } = {}) {
         }
         const activeItems = [...activeByKey.values()];
         const verifiedBoard = (canonicalSprintRecord?.checkedBoards || []).some((board) => board?.verified === true);
+        const verifiedAccess = accessMap.get(key)?.accessible === true;
         const boardResolved = insight.boardResolved !== false
+            || verifiedAccess
             || verifiedBoard
             || canonicalSprintRecord?.state === 'active'
             || activeItems.length > 0;
