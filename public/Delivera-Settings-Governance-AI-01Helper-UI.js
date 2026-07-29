@@ -6,9 +6,15 @@ import {
   saveAiProviderPref,
   clearAiProviderPref,
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
-import { resolveAiTrustDisplay, AI_USED_FOR, AI_NEVER_FOR } from './Delivera-AI-Trust-Display-01SSOT.js';
+import * as AiTrustDisplay from './Delivera-AI-Trust-Display-01SSOT.js?v=20260729a';
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { renderHealthTileStrip } from './Delivera-Shared-Health-Tile-01Render.js';
+
+const {
+  resolveAiTrustDisplay,
+  AI_USED_FOR = [],
+  AI_NEVER_FOR = [],
+} = AiTrustDisplay;
 
 function clearActiveLoopClientCaches() {
   try {
