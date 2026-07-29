@@ -164,7 +164,7 @@ export function mountGovernanceAiHelper(mount) {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.ok === false) {
-          if (result) result.textContent = `Failed — ${data.error || res.status}. Fix credentials, then try again.`;
+          if (result) result.textContent = `Refresh incomplete — ${data.error || res.status}`;
           return;
         }
         clearActiveLoopClientCaches();

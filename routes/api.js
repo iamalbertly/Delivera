@@ -2872,13 +2872,28 @@ router.post('/api/settings/jira-connection/refresh', requireAuth, async (req, re
         const me = await client.myself.getCurrentUser();
         const { accessRefresh } = await invalidateDeliveryTruthCaches({ refreshAccess: true });
         const displayName = me?.displayName || me?.emailAddress || me?.accountId || 'authenticated';
+        const projectsChecked = Number(accessRefresh?.checked) || 0;
+        const expectedProjects = readCatalogKeys().length;
+        if (projectsChecked < expectedProjects) {
+            return res.status(503).json({
+                ok: false,
+                code: 'JIRA_ACCESS_REFRESH_INCOMPLETE',
+                error: `Jira authenticated, but only ${projectsChecked} of ${expectedProjects} project access checks completed. Existing verified access remains available; retry the refresh.`,
+                displayName,
+                jiraVerified: true,
+                projectsChecked,
+                expectedProjects,
+                refreshReason: accessRefresh?.reason || accessRefresh?.error || 'PROJECT_ACCESS_REFRESH_INCOMPLETE',
+                projectAccess: accessRefresh?.results || [],
+            });
+        }
         return res.json({
             ok: true,
             displayName,
             message: 'Jira connection verified. Delivery caches and board probes were refreshed.',
             cachesCleared: true,
             projectAccess: accessRefresh?.results || [],
-            projectsChecked: Number(accessRefresh?.checked) || 0,
+            projectsChecked,
         });
     } catch (error) {
         const status = getErrorStatusCode(error);
