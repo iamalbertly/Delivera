@@ -1333,6 +1333,13 @@ body.governance-page .app-top-brand-context {
   display: none;
 }
 
+/* AI status lives in Settings helper — demote chrome noise on decision surfaces */
+body.current-sprint-page #app-top-chrome [data-ai-trust-pill],
+body.actions-page #app-top-chrome [data-ai-trust-pill],
+body.settings-page #app-top-chrome [data-ai-trust-pill] {
+  display: none;
+}
+
 .app-top-ai-trust-pill {
   display: inline-flex;
   align-items: center;
@@ -13025,6 +13032,17 @@ body.jira-nudge-review-open { overflow: hidden; }
 .current-sprint-header-bar[data-viewport-lean="true"] .header-action-shortlist {
   display: none;
 }
+/* Desktop first fold: role lens is secondary — fold into details when present */
+@media (min-width: 1200px) {
+  body.current-sprint-page .current-sprint-header-bar:not([data-viewport-lean="true"]) .header-role-modes-row[data-strip="role-lens"] {
+    display: none;
+  }
+}
+/* Portfolio mission subtitle demoted when ActiveLoop paints the PI answer */
+body.governance-active-loop-ready:not(.governance-squad-selected) .gov-story-mission > strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
 .header-drawer-intervention-section .sprint-intervention-queue {
   display: flex;
   flex-wrap: wrap;
@@ -17294,7 +17312,7 @@ body.governance-page.governance-story-v2-ready #app-top-chrome [data-top-action=
 }
 .gov-global-pill { background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 999px; }
 .gov-proof-popover {
-  position: fixed; z-index: 1300; max-width: 300px; padding: 10px 12px;
+  position: fixed; z-index: var(--z-chrome-overlay, 1500); max-width: 300px; padding: 10px 12px;
   background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12); font-size: 0.8rem;
 }

@@ -92,7 +92,12 @@ function searchPlaceholder(page) {
 
 function readProjectsCsvForCreate() {
   try {
-    return readSharedProjectsCsv() || '';
+    const fromStorage = readSharedProjectsCsv() || '';
+    if (fromStorage) return fromStorage;
+    // Continuity: inherit scoped squad/projects from the URL when storage is empty.
+    const params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+    const fromUrl = String(params.get('projects') || params.get('squad') || params.get('spotlight') || '').trim();
+    return fromUrl;
   } catch (_) {
     return '';
   }
@@ -184,8 +189,29 @@ function buildSwitcherHTML(current) {
   return html;
 }
 
+function pageScopedContextLine(rawLine) {
+  const line = String(rawLine || '').trim();
+  if (!line || line === 'No report run yet') {
+    try {
+      const path = String(location?.pathname || '');
+      if (path.includes('/report')) return line || 'No report run yet';
+      const params = new URLSearchParams(location?.search || '');
+      const squad = String(params.get('squad') || params.get('spotlight') || params.get('projects') || '').trim();
+      if (squad) return `Scope ${squad.split(',')[0].trim().toUpperCase()}`;
+      if (path.includes('/current-sprint')) return 'Current sprint';
+      if (path.includes('/actions')) return 'Action queue';
+      if (path.includes('/settings')) return 'Settings';
+      if (path.includes('/governance') || path.includes('/brief')) return 'Governance';
+      return '';
+    } catch (_) {
+      return '';
+    }
+  }
+  return line;
+}
+
 function buildTopChromeHTML(current) {
-  const contextLine = getContextDisplayString();
+  const contextLine = pageScopedContextLine(getContextDisplayString());
   const projects = readProjectsCsvForCreate();
   const placeholder = searchPlaceholder(current);
   return ''
@@ -200,7 +226,9 @@ function buildTopChromeHTML(current) {
     + '<span class="app-top-brand-mark" aria-hidden="true">De</span>'
     + '<span class="app-top-brand-text">'
     + '<span class="app-top-brand-name">Delivera</span>'
-    + `<span class="app-top-brand-context" title="${escapeAttr(contextLine)}">${escapeHtml(truncate(contextLine, 48))}</span>`
+    + (contextLine
+      ? `<span class="app-top-brand-context" title="${escapeAttr(contextLine)}">${escapeHtml(truncate(contextLine, 48))}</span>`
+      : '<span class="app-top-brand-context" hidden></span>')
     + '</span></a></div>'
     + `<div data-top-slot="search">`
     + '<div class="app-top-search-wrap">'
@@ -368,6 +396,19 @@ function bindTopChromeInteractions(chrome, current) {
   if (chrome.dataset.topChromeBound === '1') return;
   chrome.dataset.topChromeBound = '1';
 
+  // Live continuity: switcher hrefs bake at first paint; spotlight pushState must not leak to another squad.
+  chrome.addEventListener('click', (e) => {
+    const link = e.target?.closest?.('a[data-top-surface]');
+    if (!link) return;
+    const key = link.getAttribute('data-top-surface');
+    const item = SURFACE_SWITCHER.find((entry) => entry.key === key);
+    if (!item) return;
+    const nextHref = contextualSurfaceHref(item);
+    if (!nextHref || nextHref === link.getAttribute('href')) return;
+    e.preventDefault();
+    window.location.href = nextHref;
+  });
+
   const search = chrome.querySelector('#app-top-search');
   const searchWrap = chrome.querySelector('.app-top-search-wrap');
   let searchTimer = 0;
@@ -502,7 +543,14 @@ function bindTopChromeInteractions(chrome, current) {
 export function refreshTopChromeBrand() {
   const el = document.querySelector('.app-top-brand-context');
   if (!el) return;
-  const line = getContextDisplayString();
+  const line = pageScopedContextLine(getContextDisplayString());
+  if (!line) {
+    el.hidden = true;
+    el.textContent = '';
+    el.removeAttribute('title');
+    return;
+  }
+  el.hidden = false;
   el.textContent = truncate(line, 48);
   el.setAttribute('title', line);
 }

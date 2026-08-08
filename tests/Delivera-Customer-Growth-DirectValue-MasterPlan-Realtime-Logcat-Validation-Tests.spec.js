@@ -347,10 +347,10 @@ test.describe('Customer growth direct-value continuity master plan', () => {
         const text = await err.first().innerText().catch(() => '');
         expect(text).not.toMatch(/header is not defined/i);
       }
-      const reportLinks = page.locator('a[data-header-action="open-report-context"]');
+      // Visible Open report only (mini-strip copy stays aria-hidden until header-mini-mode).
+      const reportLinks = page.locator('a[data-header-action="open-report-context"]:visible');
       const reportCount = await reportLinks.count();
-      expect(reportCount).toBeGreaterThanOrEqual(1);
-      expect(reportCount).toBeLessThanOrEqual(2);
+      expect(reportCount).toBe(1);
       const href = await reportLinks.first().getAttribute('href');
       expect(href || '').toMatch(/squad=SD|projects=SD/);
       assertTelemetryClean(telemetry);

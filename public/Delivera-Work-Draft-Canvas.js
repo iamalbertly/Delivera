@@ -110,13 +110,22 @@ function readLastProject() {
 
 function getAllowedProjects(prefill = {}) {
   const selected = typeof _config.getSelectedProjects === 'function' ? (_config.getSelectedProjects() || []) : [];
+  // Layer 0: URL continuity (squad/projects/spotlight) — cuts "No backlog context" when scope is already locked.
+  let fromUrl = [];
+  try {
+    const params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+    fromUrl = String(params.get('projects') || params.get('squad') || params.get('spotlight') || '')
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+  } catch (_) {}
   // Layer 1: page-context projects + prefill
   const fromContext = [...selected, ...(prefill.contextProjects || [])];
   // Layer 2: global project context CSV (PROJECTS_SSOT_KEY — user's configured project list)
   const fromCsv = readProjectContextCsv().split(',').map((v) => v.trim()).filter(Boolean);
   // Layer 3: recent activity log (last 3 projects used successfully)
   const fromActivity = readRecentActivityProjectKeys().slice(0, 3);
-  return Array.from(new Set([...fromContext, ...fromCsv, ...fromActivity].map((v) => String(v || '').trim().toUpperCase()).filter(Boolean)));
+  return Array.from(new Set([...fromUrl, ...fromContext, ...fromCsv, ...fromActivity].map((v) => String(v || '').trim().toUpperCase()).filter(Boolean)));
 }
 
 function getDraftContext() {

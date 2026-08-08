@@ -51,6 +51,7 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 - **Report feedback dedupe:** when top chrome is present, `#feedback-panel` stays empty — global Improve Delivera modal is SSOT (`Delivera-Report-Page-Feedback-Panel-Inject.js` defers until after chrome mount)
 - Responsive layout: scope capsule, answer blocks, PI counters, and tables use auto-fit grids + `data-table-scroll-wrap` (no horizontal bleed on mobile)
 - **Above-fold declutter:** duplicate status in command answer hides when scope chip is SSOT; send badge hides when owner clusters exist; agent queue mount and secondary chrome stay collapsed until they have content; governance brand context in top chrome hides (scope capsule is SSOT)
+- **Continuity declutter (2026-08 follow-on):** one visible Open report; squad/mission/% done echo cut on Sprint header; Decision Rail + cockpit twin “Today/next move” merged; wallpaper “Unknown work is 100%” degraded in spotlight/drawer; chrome stops leaking “No report run yet” / AI busy pills onto Sprint/Actions/Settings; Create inherits URL `projects`/`squad`; Actions rows drop repeated squad label when scoped
 - Page-level **Export brief** hides when top chrome is present — **Export brief** moves to command overflow (`#gov-export-overflow`)
 - PI baseline wizard with optional slide upload; rebaseline always preserves the selected squad/project key through the CTA, wizard, API, and matching agent. AI keys live in **Settings** (`/settings#gov-ai-helper`) or `.env` — providers: OpenAI, Claude, **OpenRouter** (`OPENROUTER_API_KEY`). Work-draft canvas links to Settings (no duplicate key UI).
 - **Slide-reader failure contract:** provider quota/auth failures return typed `429`/`503` responses (`AI_PROVIDER_LIMIT_REACHED`, `AI_PROVIDER_AUTH_FAILED`) without leaking provider URLs or key material. The wizard restores the upload controls, keeps the squad/quarter context, focuses a persistent recovery message, and links provider failures to Settings. A successful provider response with no readable commitments returns `AI_SLIDE_CONTENT_NOT_FOUND` instead of silently claiming a successful empty baseline.
@@ -58,156 +59,19 @@ Notifications mount in `#app-notification-slot` under the top bar (`Delivera-Sha
 
 Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brief-ssot`. Layout gate: `npm run test:journey:layout-overlap`. Full governance bundle: `npm run test:journey:governance`.
 
-## Active PI Governance contract
+## Active PI Governance (index)
 
-### Servant-leader flow intelligence
-Current Sprint uses one evidence-bound intervention contract across its cockpit,
-Governance, Actions, Jira nudge review, and WhatsApp/Teams clipboard briefings.
-Ranking prioritizes approved PI value, verified dependencies, median/P85 flow
-evidence, WIP pressure, remaining business days, and subtask readiness. Cycle
-time is labelled as a creation-to-resolution proxy; sprint-close status
-observations remain informational without a configured WIP limit. Recommendations
-invite a human-confirmed squad swarm and never assign people, disable work, or
-perform automatic Jira mutations. Six closed sprints reuse existing caching.
+Meeting-safe PI decision loop: All Squads → one contract answer → squad matrix → spotlight → resolution drawer. Full invariants, diagnosis codes, registry participation, release schema (`20260730a`), continuity, and backlog live in [`context.md`](context.md) (Governance Layer + UX reliability).
 
-The all-project value policy adds one strategic anchor, PI commitment heat,
-human-impact statement, business-time pace label, directional dependency,
-secondary risk, deterministic impact estimate, communication guard, and
-intervention hash to that same contract. Sprint-name scope is accepted only
-after canonical alias matching; conflicting scope quarantines the mission.
-Thin history, partial permissions, stale evidence, or ambiguous mapping refuses
-pace and impact claims. Supportive is the default swarm tone; stale evidence
-forces information-only copy and disables Jira writes.
+**Focused gates (prefer locally):**
+- `npm run test:governance:release` — five fail-fast Governance scenarios
+- `npm run test:friction:focused` — Sprint shell + Governance release + Settings registry
+- `npm run test:settings:registry-release` — registry save / continuity broadcast
+- Orphans for this reliability pass: `tests/Delivera-Governance-Empty-State-Honesty-Validation-Tests.spec.js`, `tests/Delivera-Current-Sprint-Header-Declutter-Validation-Tests.spec.js`, `tests/Delivera-Current-Sprint-Intervention-Queue-Validation-Tests.spec.js`
 
-**Quiet-dev Done-probe:** when a parent stays In Progress with little movement and open subtasks are stalled ≥24h, Flow Intelligence prefers a Done-probe intervention. `Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js` drafts information-seeking copy such as `Hey @Name — can KEY be moved to Done? I can see … still stalled.` Thin evidence falls back to the supportive blocker line (no invented @mention).
+Skip `journey.data-integrity` until that bucket is repaired.
 
-### Access diagnosis vs board gaps
-`diagnosePromiseEvidence` in `lib/Delivera-Governance-PIBaseline-02Compare.js` keeps `ACCESS_BLOCKED` for real auth failures only (`permissionDenied` / HTTP 401–403). A missing or unmapped board becomes `BOARD_UNRESOLVED` (“We cannot open this squad’s Jira board yet”) so Governance no longer labels setup gaps as Jira login failure.
-
-Saved PI keys that are absent from the active-board payload receive a bounded direct Jira lookup before Governance concludes. Successful lookups are shared in Redis for 15 minutes and report the issue status plus missing fiscal-quarter/fix-version metadata; 401/403 remains an access gap, while a missing key remains unresolved. The story-cache version changes whenever this diagnosis contract changes, so an older `BOARD_UNRESOLVED` or exact-key verdict cannot survive a deployment.
-
-### Sticky access recovery
-
-The recovery contract probes all twelve canonical projects, returns per-project `verified` / `no-board` / `degraded` outcomes, and bypasses background-busy throttling for this explicit administrator action. Transient Jira failures retain the last successful board-access result with degraded freshness instead of overwriting it with a false denial. A board with no active sprint remains board-resolved and is diagnosed as a sprint-state gap. After success, Settings preserves the selected squad and opens the refreshed Governance context automatically.
-
-Approved PI matching follows Jira hierarchy: an exact story key or a current story whose `epicKey` / `parentKey` equals the approved commitment is PI-aligned. Missing objective-title metadata is a sponsor-traceability gap, not proof that the story is off-PI. Governance promise hover text and the shared drawer expose expected commitment, actual story keys/status/sprint, mapping path, evidence age, and business-day duration.
-
-Legacy selected-squad bookmarks containing only `spotlight=<KEY>&view=squad` self-heal to the canonical `squad` + `projects` scope before cache lookup. Scope-mismatched client answers are rejected, focused or hovered proof previews never lock stale data as an edit draft, and selected mode suppresses portfolio identity links. Only an active decision edit/drawer may defer a fresh projection.
-After credentials are fixed, Settings → Processing intelligence → **Refresh Jira connection** (`POST /api/settings/jira-connection/refresh`) validates `/myself`, clears delivery-truth + boards caches, force-refreshes all 12 projects, and clears client `delivera:governance:active-loop:*` envelopes so ghost “no access” copy does not linger for 24h/6h. The access index is persisted through the shared Redis-backed cache SSOT (with read-only migration from the former local JSON file); Vercel never writes inside its serverless bundle. Concurrent administrator refreshes join the in-flight run, and an incomplete all-project probe fails closed with `JIRA_ACCESS_REFRESH_INCOMPLETE` instead of reporting success.
-Material contract amendments and accepted risks append a Decision Genome record
-to the existing ActiveLoop event stream: rationale, trade-off, approver, truth
-hash, original revision, and durable receipt. Governance and Settings project
-those confirmed events as the Human Why trail; there is no separate vault,
-simulator page, decision store, or attention queue.
-
-The canonical catalog contains twelve projects. RPA, ASG, FIN, SD, and MPSA2
-are PI-governed. VB, MPSA, MVA, MAS, TRS, AMS2, and BIO remain pending-consent,
-inspectable, and excluded from PI totals and intervention ranking until a
-version-protected registry decision changes participation.
-
-### Native-first PI artifact intelligence
-
-- Governance accepts image, PDF, and PPTX evidence through `POST /api/governance/pi-imports/prepare`, a one-use signed multipart upload, and a durable status receipt. Browser SHA-256 preflight returns an organization-scoped exact cache hit or joins the existing producer before bytes are uploaded.
-- PPTX OOXML and PDF text/layout are extracted locally first. Images use CPU OCR. Only unresolved evidence may progress sequentially through Qianfan OCR Fast, Qwen visual structure, then Gemma reconciliation; the exact model, method, quota use, source span, confidence, and cache savings remain visible.
-- Every external artifact call requires ZDR, schema validation, provenance, a Redis quota reservation, and a closed shared circuit. No external key is required for native or local processing, no dynamic free-router output can approve a baseline, and every baseline save remains a human-approved append-only revision.
-- Vercel owns authenticated prepare/status APIs. `PI_IMPORT_WORKER_URL`, when set, receives the signed upload directly on Render; without a worker, bounded image/native-text work remains available and long multi-page visual processing fails explicitly instead of continuing after the response.
-- Source files are temporary; Redis stores compressed normalized evidence, durable job state, hashes, quotas, circuits, and baseline history—not full decks. Cross-tenant hashes are namespaced by organization.
-- Focused release validation is `npm run test:pi-release`: twelve fail-fast scenarios covering the supplied 48-page FY27 Q2 pack, T-Squad/TRS evidence, duplicate reuse, single-flight, model order, privacy, quota controls, state recovery, and direct-value UI contracts.
-
-### Direct-to-value release contract
-
-- Governance, Current Sprint, Actions, and Settings keep separate route ownership while sharing sprint truth, case lifecycle, display names, versions, and owner routes.
-- Schema-v2 Layer 1 carries presentation contract version `5`; incompatible browser cache is rejected without replacing the last compatible story.
-- Current Sprint writes a versioned per-squad sprint truth record and Governance reads that same cached record. Both expose the same truth version/hash and concrete `active`, `active-dates-expired`, `ended-no-successor`, `planned-not-started`, `closed`, `partial`, or `unverified` fact.
-- Evidence-dependent actions are server-authorized. Jira failure or evidence older than 60 minutes disables send, approval, escalation, and re-check while preserving safe owner correction and drafts.
-- `/actions` is the visible shared intervention queue and reuses the Governance resolution drawer; hidden legacy action mounts are never a data source.
-- Settings owns the versioned organization registry. Participation is `pi-governed`, `pending-consent`, or `operational-exception`; production writes require Redis and fail closed.
-- Release CI runs exactly five fail-fast Governance scenarios. Render deploy validation keeps exactly three production smoke scenarios.
-
-Governance is a meeting-safe PI decision loop, not a Jira clone. It opens in **All Squads**, paints the last verified schema-v2 projection from local cache, refreshes quietly, and keeps the first viewport to one contract answer, source/freshness, completed-work line, decision CTA, and stable squad matrix.
-
-- **Selected-squad contract:** a squad row immediately locks `spotlight`, `squad`, and `projects`; the hero, matrix, spotlight, proof, Sprint, Actions, and Report then contain that squad only. Selected mode has one **Back to portfolio** exit, no competing Portfolio/Selected lens toolbar, and administrative alias/rebaseline/refresh controls stay inside **Maintain squad** below the decision truth.
-- **One action and one outcome:** Governance owns the selected squad’s primary decision. Current Sprint uses the shared intervention to rank the blocker panel and renders one `Delivered / Open / Spillover` outcome strip; duplicate risk-filter and page-specific nudge buttons are removed.
-- **Stable vocabulary:** global navigation is **Governance / Sprint / Evidence**. `/report` remains Historical proof & exports rather than a second live Governance answer.
-- **Fresh-shell delivery:** HTML routes and static app assets use `Cache-Control: no-store, max-age=0`. Every response publishes `x-delivera-release` and `x-delivera-client-schema`; a release-cookie mismatch also emits `Clear-Site-Data: "cache"`. The shared release guard checks diagnostics at boot and on a bounded visibility interval, purges only incompatible Governance/Sprint data envelopes, and broadcasts one safe reload to every open Delivera tab. Drafts and open drawers defer that reload until focus leaves the edit surface.
-- **Single Governance story producer:** the authenticated Active Loop route is the only owner allowed to assemble and write the versioned Governance story. The background scheduler refreshes raw Jira/brief evidence only; it cannot overwrite a newer diagnosis with the legacy `BOARD_UNRESOLVED` projection. Server and browser cache identities include the release schema, build identity, organization scope, registry revision, project scope, and period context.
-- **Selected-squad isolation:** selecting a matrix row writes canonical `spotlight`, `squad`, `projects`, and `view=squad` tokens in one history update, filters the matrix immediately, and keeps unrelated portfolio stories out of the deep dive. Returning to portfolio removes all squad-lock tokens without losing period or freshness.
-- **Overlay order:** shared tokens enforce content < sticky chrome < drawer < modal < toast. Scope drawers, governance drawers, nudge review, and contextual help cannot be clipped by top navigation.
-- **Settings density:** organization exceptions remain one atomic Registry revision; repeated PO/SM blanks collapse to one **Owner route incomplete** signal, while **Select pending consent** prepares all seven exception squads for one previewed, audited bulk change.
-- **Actions refresh state:** squad continuity is visible immediately as `<SQUAD> actions · refreshing verified queue`; loading never masquerades as a false empty result and terminal failures remain typed.
-
-- **Server-prepared truth:** `/api/governance/active-loop.json` serves Layer 1; squad and promise detail routes serve Layer 2. The browser renders, filters, and reveals the story but does not calculate Promise Match, Work Split, Proof Age, ranking, ownership, rework, or action eligibility.
-- **Five bands:** Portfolio Answer → Squad Comparison → Synchronized Squad Spotlight → Resolution Drawer → Action Trail. Schema v2 suppresses the legacy comparison-card wall and duplicate action rails.
-- **Deterministic evidence:** Promise Match, Work Split, Proof Age, Possible Rework, Unknown clustering, baseline coverage, owner routing, and stable risk order are rule-based. AI may simplify wording only.
-- **Root-cause evidence:** a missing exact Jira key is not removal. The baseline comparison classifies access gaps, backlog-only epics, future-sprint replans, missing PI metadata, likely moves/re-keys, completed work awaiting proof, program themes, off-plan/support work, period conflicts, and unresolved exact keys. Every diagnosis carries source evidence, confidence, candidate keys, impact, owner route, and one human-confirmed next action.
-- **Proof audit:** “Supporting evidence” is retired. Governance exposes raw proof rows, proof risk, lineage, and technical provenance as **Proof audit & data quality**; meeting copy lives in the Current Sprint share briefing, plan-vs-now stays in the contract projection, and readiness is expressed through squad diagnosis.
-- **Layered truth:** each squad row separates PI contract coverage, sprint cadence, Doing Instead, proof freshness, next action, and a plain trust factor. Missing evidence lowers trust; it never becomes a delivery accusation.
-- **Board identity:** governed board aliases are resolved once and reused by Governance, Current Sprint, Report, catalog selectors, Spotlight, drawers, and previews. Raw Jira keys remain evidence identifiers, not the primary meeting label.
-- **Operating-model firewall:** deterministic evidence can keep operational groups out of PI risk totals while leaving them reviewable. A PI-governed squad with heavy support demand remains in the contract totals and shows that load separately.
-- **Conservative rework:** “Possible rework” requires at least two strong evidence paths. Weak reopenings, title similarity, minor corrections, and epic splits stay out of risk totals.
-- **Source-safe writes:** local receipt → queued → source pending → source confirmed or failed → projection reconciled. Jira-dependent decisions never turn green before Jira confirms them. All writes carry optimistic version, squad hash, actor, target, idempotency key, retry state, audit evidence, and correction path.
-- **Meeting continuity:** spotlight, lens, drawer draft, focus/popover, and scroll anchor remain stable during refresh. Same-item changes require review; unrelated squad changes do not replace active work.
-- **Targeted freshness:** meeting users can refresh one promise or one squad and concurrent callers join the same job. Portfolio refresh remains worker/admin-owned.
-- **Durability:** Redis is mandatory for production ledgers, hashes, streams, leases, and idempotency. JSONL/memory are local-development fallbacks only; production writes fail closed.
-- **Diagnostics:** normal users see only a subdued UAT version control. Authorized UAT diagnostics open by double-click/double-tap, keyboard activation, or `Alt+Shift+D`; `/healthz` remains the deploy probe.
-
-Primary release validation: `npm run test:governance:release`. It runs exactly five risk-ranked, fail-fast scenarios: source-write truth, Layer 1 value, synchronized Spotlight, refresh continuity, and the previously failed sprint-fold viewport contract. The broader journey remains available as `npm run test:journey:governance-active-loop`; pull requests use the five-scenario gate and protected-branch integration retains the full regression.
-
-## Governance implementation record
-
-This is the SSOT for the meeting-safe Governance implementation. Completed items remain here as durable product invariants: fast portfolio answer first, deterministic proof second, and the next safe transition available without leaving Governance. Future changes must reduce clicks, reduce duplicate surfaces, or make evidence more defensible.
-
-**Priority codebase improvements**
-
-1. **Sprint truth SSOT:** Current Sprint snapshot processing writes the canonical squad record; Governance consumes it rather than rebuilding from weaker portfolio inputs. Rationale: DMS cannot be "no sprint verified" in Governance while Current Sprint shows an active sprint.
-2. **Warm Layer 1 only on first paint:** serve `active-loop.json` from the last verified story and defer legacy `governance-brief.json`, boards, feedback, inbox, and scorecard calls until v2 fallback or below-fold detail needs them. Rationale: the PI Team needs the answer in under two seconds, not an invisible legacy bill.
-3. **Browser single-flight for active-loop reads:** coalesce duplicate first-load calls by scope/quarter/force in the frontend as well as the backend. Rationale: protects 90 concurrent viewers from multiplying identical reads.
-4. **Decision coverage guard:** derive visible totals from schema total, checked promises, or Layer 1 promises so the hero never says `0 of 0` when the source line says promises were checked. Rationale: visible arithmetic must never contradict itself.
-5. **Matrix copy simplification:** replace ambiguous headers (`Sprint cadence`, `Proof / next`, `Trust factor`) with `Sprint reality`, `Proof age / action`, and `Trust basis`. Rationale: brand-new users should understand each column without training.
-6. **Stable lens emphasis:** lenses may dim or highlight columns and update one summary, but never reorder rows. Rationale: meeting participants keep spatial memory while discussing squads.
-7. **Action trail grouping:** group identical empty or waiting states into one row with a promise count, while preserving a single next action. Rationale: removes repeated absence and makes real state changes stand out.
-8. **Owner participation settings:** expose governed/excluded toggles for each catalog squad in Settings, backed by durable profile overrides and role checks. Rationale: squads such as Vodacom Business, M-SQUAD, Digital, Mini Apps, T-Squad, AMS, and Biometric KYC can remain exceptions until consent/onboarding.
-9. **Source-safe write lifecycle everywhere:** link, classify, amend, operational-status, nudge, escalation, and callback writes stay receipt/queued/pending until Jira or Teams confirms. Rationale: no fake green states.
-10. **Unknown cluster decisions:** promote grouped Unknown work only above threshold and offer cluster-level classification. Rationale: a 30-second cleanup decision beats a raw issue dump.
-11. **Conservative Possible Rework:** require two strong evidence paths, confidence, and explanation before promoting. Rationale: the product must never accuse a squad from weak reopen/title similarity.
-12. **Drawer state hash handshake:** compare story version, squad hash, and drawer hash before allowing saves. Rationale: open edits survive background refresh without silent overwrite.
-13. **Global accessible help primitive:** consolidate native titles, hover cards, and one-off popovers into one persistent tooltip/popover pattern. Rationale: Jira keys, trust basis, and proof age help should be readable, copyable, keyboard reachable, and dismissible.
-14. **Actions route boundary:** `/actions` should render the intervention case queue or redirect to a visible anchored Governance section; never land on a hidden empty mount. Rationale: dead navigation teaches users the app is unreliable.
-15. **Current Sprint search truth:** search must filter visible work or be removed from the fold. Rationale: a control that accepts text and changes nothing burns user trust.
-16. **Settings below-fold restructure:** keep AI provider health available, but move organization registry, squad participation, owner routes, and durability status into the first useful Settings band. Rationale: Governance corrections currently need Settings, but Settings hides those levers.
-17. **Mobile first-viewport compression:** reduce hero/matrix vertical height, keep 44px targets, and show the first two squad states without horizontal lens sliding. Rationale: mobile PI review needs immediate value, not scroll debt.
-18. **Diagnostics concealment:** keep build SHA, cache backend, flags, queue depth, and failed write reasons behind the UAT version trigger and authorized Settings entry. Rationale: diagnostics help UAT without polluting executive meetings.
-19. **Friendly work-name SSOT:** render M-Pesa Recharge Trends style names before Jira keys across Governance, Current Sprint, and drawer evidence. Rationale: humans discuss work names; Jira keys are proof links.
-20. **Route-boundary data contracts:** Governance owns portfolio variance, Current Sprint owns today's movement, Actions owns cases, Report owns proof, Settings owns registry/audit. Rationale: fewer surfaces, fewer repeated concepts, less churn.
-21. **Dashboard continuity links:** the `/dashboard` hero uses the same identity-link shape as Governance so the first click can jump straight into either the selected squad brief lane or that squad's sprint lane.
-
-**Bonus prerequisite improvements**
-
-- Add a small server projection health object to Layer 1: `projectionAge`, `sourceBackend`, `detailAvailable`, `lastFailedWrite`, and `queueDepth`, hidden from normal UI but used by tests and diagnostics.
-- Add a stable alias registry helper so display names are not re-derived in UI components.
-- Move duplicate "stale proof" wording into one copy SSOT used by matrix, preview, drawer, and Current Sprint.
-- Cache squad detail payloads by squad hash so Spotlight can reopen instantly in the same meeting.
-- Add one participation override reducer that both Settings and the operating-model drawer call, with optional registry persistence only for authorized users.
-- Add route-boundary tests that fail if Governance renders raw Jira tables above the fold or Actions routes to hidden empty content.
-- Add an API budget counter to test fixtures so no first viewport path can accidentally call Jira or AI directly.
-- Keep release validation to five fail-fast browser scenarios plus table-driven domain tests; broad regression remains protected-branch work, not local churn.
-
-**Realistic edge cases**
-
-- Operational group with one PI-looking epic: keep excluded, show "review classification," and never add the full group to PI totals until authorized.
-- PI-governed squad with heavy support demand: keep in PI totals, show operational load separately, and offer amendment/risk decisions instead of hiding drift.
-- Recently closed sprint with no next sprint: show "last sprint closed X days ago; no replacement detected," not "cadence okay" or generic missing sprint.
-- Minor reopened issue: keep as follow-up or operational support unless Possible Rework reaches the multi-factor threshold.
-- Epic split after acceptance: treat as continuation until acceptance reversal, linked defects, or same-criteria evidence proves possible rework.
-- Stale callback after amendment: reject with a version conflict and preserve the user's draft.
-- Jira write-back failure: keep the case attention-needed, show failure/correction path, and never mark the source confirmed.
-- Layer 2 outage: keep Layer 1 useful, disable drawer write actions that require fresh detail, and show honest detail-unavailable copy.
-- Corrupt or expired cache: show baseline recovery/no verified answer, not old conclusions.
-- Concurrent targeted refresh: join the same promise/squad job and expose shared receipt; never start a portfolio scan from the meeting UI.
-
-**Focused validation gate**
-
-The local friction release gate is intentionally small: `npm run test:friction:focused`. It fail-fast runs Current Sprint shell continuity, the five Governance release scenarios, and Settings registry save/exclusivity contracts. Prefer that over broad current-sprint journeys for local verification. New continuity or above-fold contracts belong in the three friction specs rather than expanding total local suite size.
+**Flow intelligence (summary):** Current Sprint shares one evidence-bound intervention contract with Governance, Actions, and nudge review. Quiet-dev Done-probe drafts live in `Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js`.
 
 ## Quickstart
 
@@ -282,7 +146,8 @@ Prefer the focused gates above for local verification. These remain available fo
 |---------|-----|
 | `npm run test:all` | Full fail-fast orchestration |
 | `npm run test:journey:governance-active-loop` | Active PI contract loop (cache, evidence, actions, concurrency) |
-| `npm run test:journey:direct-value-masterplan` | Direct-to-value master plan cross-surface validation |
+| `npm run test:journey:customer-growth-directvalue-masterplan` | Direct-to-value continuity Master Plan (ScopeTruth, Decision Rail, Commitment Pack, fail-fast logcat) |
+| `npm run test:journey:direct-value-masterplan` | Broader direct-to-value master plan cross-surface validation |
 | `npm run test:journey:value-retention` | Value retention master plan (desktop density, drawers, edge cases) |
 | `npm run test:current-sprint:dedupe-fold` | Sprint header/viewport gate |
 | `npm run test:journey:brief-ssot` | Brief loading shell, cache-first paint, scope sync |
@@ -292,7 +157,7 @@ Prefer the focused gates above for local verification. These remain available fo
 
 Orchestration, journeys, and `SKIP_WEBSERVER`: [`TESTING.md`](TESTING.md)
 
-**Journey buckets (SSOT):** Spec-to-journey mapping lives in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js`. Run a bucket with `node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId>` (e.g. `journey.value-retention`, `journey.ux-core`, `journey.governance`) or the matching `npm run test:journey:*` alias. The journey runner builds CSS before Playwright. `npm run test:focused` runs only specs tagged `@focused` in the test title. **Phase 3 desktop density:** governance brief and current sprint use a 2-column grid from 1024px (shared `--brief-desktop-cols` / `--brief-desktop-gap` in `01-reset-vars.css`). `npm run test:all` runs value-retention → direct-value-masterplan → focused → layout-overlap → current-sprint:dedupe-fold immediately after `check:css` (fail-fast). Direct Value spec owns evidence-tab restore; Value Retention spec owns squad portfolio, investment drawer, and period lens.
+**Journey buckets (SSOT):** Spec-to-journey mapping lives in `scripts/Delivera-Tests-Journey-Buckets-Map-SSOT.js`. Run a bucket with `node scripts/Delivera-Tests-Journey-Runner-SSOT.js <journeyId>` (e.g. `journey.value-retention`, `journey.ux-core`, `journey.governance`) or the matching `npm run test:journey:*` alias. The journey runner builds CSS before Playwright. `npm run test:focused` runs only specs tagged `@focused` in the test title. **Phase 3 desktop density:** governance brief and current sprint use a 2-column grid from 1024px (shared `--brief-desktop-cols` / `--brief-desktop-gap` in `01-reset-vars.css`). `npm run test:all` follows `scripts/Delivera-Test-Orchestration-Steps.js`: build/check CSS → governance-active-loop → churn-retention → value-retention → direct-value → layout-overlap → current-sprint:dedupe-fold → brief-ssot → PI unit/probe → journey.governance → journey.data-integrity → outcome-intake → ux-core → current-sprint → human-nudge-trust → leadership → e2e (fail-fast). Direct Value spec owns evidence-tab restore; Value Retention spec owns squad portfolio, investment drawer, and period lens.
 
 ## CSS contract
 

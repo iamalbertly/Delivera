@@ -282,59 +282,28 @@ export function renderDecisionCockpit(data, options = {}) {
   const nextActionCta = nextBestAction.ctaLabel || (riskQueueTotal > 0 ? 'Review work' : 'Review sprint work');
   const collapseSummary = `${health.status || 'On Track'} — ${health.message || 'Expand for sprint drill-down.'}`;
 
+  const quickCreateProjects = (() => {
+    try {
+      const params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+      return String(params.get('projects') || params.get('squad') || data?.board?.projectKeys?.[0] || '').trim().toUpperCase();
+    } catch (_) {
+      return String(data?.board?.projectKeys?.[0] || '').trim().toUpperCase();
+    }
+  })();
+  const quickCreateAttr = quickCreateProjects ? ` data-outcome-projects="${escapeHtml(quickCreateProjects)}"` : '';
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
-  const quickCreateChip = '<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context." style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>';
-  const blocker = topRisks[0] || {};
-  const ownerLabel = nextBestAction.assignee || blocker.assignee || 'Squad decision needed';
-  const nextMoveLabel = nextBestAction.recommendedAction || nextBestAction.nextAction
-    || nextBestAction.summary || nextBestAction.ctaLabel || 'Review the ranked intervention queue';
-  const valueLabel = nextBestAction.valueEvidence?.businessValue
-    || nextBestAction.valueEvidence?.businessCase
-    || nextBestAction.valueEvidence?.piObjectiveTitle
-    || (nextBestAction.valueEvidence?.commitmentIssueKey
-      ? `Approved PI epic ${nextBestAction.valueEvidence.commitmentIssueKey}${nextBestAction.valueEvidence.commitmentTitle ? ` · ${nextBestAction.valueEvidence.commitmentTitle}` : ''}`
-      : '')
-    || 'No approved PI value mapping';
-  const flowEvidence = nextBestAction.flowEvidence || {};
-  const businessTime = nextBestAction.businessTime || {};
-  const flowLabel = businessTime.evidenceState === 'sufficient' && businessTime.businessDaysPastPace != null
-    ? `Approximately ${Math.max(0, Math.round(businessTime.businessDaysPastPace))} business days beyond this squad's sustainable pace`
-    : (flowEvidence.baselineState === 'forming' ? 'Pace baseline forming' : 'Pace unknown — proof incomplete');
-  const dependencyLabel = nextBestAction.swarmPlan?.targetSubtaskKey
-    || nextBestAction.dependencyEvidence?.issueKeys?.join(', ')
-    || 'No verified dependency or blocked subtask';
-  const servantLeaderFacts = (nextBestAction.issueKey || blocker.issueKey) ? (''
-    + '<section class="decision-summary-strip sprint-flow-facts" aria-label="Value and flow intervention">'
-    + `<div class="decision-summary-cell"><span class="decision-summary-label">Value at risk</span><strong>${escapeHtml(valueLabel)}</strong></div>`
-    + `<div class="decision-summary-cell"><span class="decision-summary-label">Flow signal</span><strong>${escapeHtml(flowLabel)}</strong></div>`
-    + `<div class="decision-summary-cell"><span class="decision-summary-label">Dependency / subtask</span><strong>${escapeHtml(dependencyLabel)}</strong></div>`
-    + `<div class="decision-summary-cell"><span class="decision-summary-label">Squad decision</span><strong>${escapeHtml(nextMoveLabel)}</strong></div>`
-    + '</section>') : '';
-  const verdictLabel = health.tone === 'critical' && Number(keySignals.blockers || 0) > 0
-    ? COPY.verdictBlocked
-    : health.tone === 'warning'
-      ? COPY.verdictWatch
-      : COPY.verdictOnTrack;
-  const sprintTodayHero = viewportLean ? '' : (''
-    + '<section class="sprint-today-hero" aria-label="Sprint today">'
-    + '<h2>Sprint today</h2>'
-    + `<p class="sprint-today-verdict"><strong>${escapeHtml(verdictLabel)}</strong></p>`
-    + `<p class="sprint-today-answer">${escapeHtml(health.message || 'Review sprint signals.')}</p>`
-    + (blocker.issueKey ? `<p><strong>Main blocker:</strong> ${escapeHtml(blocker.issueKey)}</p>` : '')
-    + ((nextBestAction.issueKey || blocker.issueKey) ? `<p><strong>Facilitation route:</strong> ${escapeHtml(ownerLabel)}</p>` : '')
-    + `<p><strong>Next move:</strong> ${escapeHtml(nextMoveLabel)}</p>`
-    + '</section>');
+  const quickCreateChip = `<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context."${quickCreateAttr} style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>`;
   const attentionQueueHtml = renderAttentionQueueTable({
     title: COPY.attentionQueue,
     items: cockpitRisksToAttentionItems(topRisks),
     maxRows: viewportLean ? 3 : 5,
   });
+  // Header Take action owns next-move SSOT — one value strip above the fold, no twin lean next-move.
+  const summaryAboveFold = buildSummaryStrip(data, cockpit);
   return ''
-    + sprintTodayHero
-    + servantLeaderFacts
     + attentionQueueHtml
     + '<section class="decision-cockpit-shell' + leanClass + '">'
-    + (viewportLean ? quickCreateChip : buildSummaryStrip(data, cockpit))
+    + (viewportLean ? quickCreateChip + summaryAboveFold : summaryAboveFold)
     + '<details class="decision-cockpit-details">'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'
@@ -373,7 +342,7 @@ export function renderDecisionCockpit(data, options = {}) {
     + '<details class="decision-rail-card decision-automation-card">'
     + '<summary>Paste tasks -> structure work</summary>'
     + '<p>Turn notes into clean Jira-ready work aligned to outcomes, owners, and next actions.</p>'
-    + '<button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Structure sprint notes into realistic Jira work for this squad.">Structure now</button>'
+    + `<button type="button" class="btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Structure sprint notes into realistic Jira work for this squad."${quickCreateAttr}>Structure now</button>`
     + '</details>'
     + '</aside>'
     + '</div>'

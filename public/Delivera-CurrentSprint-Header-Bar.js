@@ -222,23 +222,20 @@ function resolveFriendlySquadLabel(projectKey, boardName = '') {
   return boardName || key;
 }
 
-function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintNameCompact, verdictInfo, remainingChipLabel, statusBadge, donePercentage }) {
+function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintNameCompact, remainingChipLabel, titleSquadLabel }) {
   const projectKey = String(selectedProject || '').trim().toUpperCase().split(',')[0];
   const friendlyScope = resolveFriendlySquadLabel(projectKey, boardName);
+  const titleSquad = String(titleSquadLabel || '').trim();
+  // Always keep one ScopeTruth chip — continuity tests and Back-to-Governance rely on it.
   const scopeChip = friendlyScope
     ? (projectKey && friendlyScope !== projectKey ? `Scope ${friendlyScope} (${projectKey})` : `Scope ${friendlyScope}`)
     : '';
-  // One status chip SSOT: prefer verdict over duplicate Live/Watch badges when both exist.
-  const statusChip = verdictInfo?.verdict || statusBadge || '';
-  const progressChip = Number.isFinite(Number(donePercentage)) ? `${Number(donePercentage)}% done` : '';
-  // ScopeTruth: one clock strip — do not also reprint full date ranges beside these chips.
+  // ScopeTruth: remaining + sprint window only — % done / Status live in identity metrics + verdict line.
   return renderShellSummaryChips([
     scopeChip,
-    boardName && friendlyScope !== boardName ? `Board ${boardName}` : '',
+    boardName && friendlyScope !== boardName && boardName !== titleSquad ? `Board ${boardName}` : '',
     sprintNameCompact && `Sprint ${sprintNameCompact}`,
-    statusChip && `Status ${statusChip}`,
     remainingChipLabel,
-    progressChip,
   ]);
 }
 
@@ -386,15 +383,8 @@ export function renderHeaderBar(data, options = {}) {
         return true;
       })
     : [];
-  const effectiveHeaderRoleViews = !isHistoricalSprint && headerRoleViews.length === 0
-    ? [
-        { roleMode: 'all', label: SPRINT_COPY.allWorkDefault },
-        { roleMode: 'developer', label: SPRINT_COPY.lensDev },
-        { roleMode: 'scrum-master', label: SPRINT_COPY.lensSM },
-        { roleMode: 'product-owner', label: SPRINT_COPY.lensPO },
-        { roleMode: 'line-manager', label: SPRINT_COPY.lensLeads },
-      ]
-    : headerRoleViews;
+  // Empty lens row beats five wallpaper pills that add clicks without a distinct risk set.
+  const effectiveHeaderRoleViews = headerRoleViews;
   const hasPriorityInterventions = compactStripInterventions.length > 0;
   const cockpitAction = data?.decisionCockpit?.nextBestAction || {};
   const quietActionLabel = String(cockpitAction.summary || SPRINT_COPY.noUrgentIntervention).trim();
@@ -443,9 +433,8 @@ export function renderHeaderBar(data, options = {}) {
     verdictDisplayLine = `${verdictDisplayLine} · ${SPRINT_COPY.lowConfidence}`;
     edgeStateAttr = 'low-confidence';
   } else if (missionBriefing?.headerExplain && edgeStateAttr === 'none') {
-    verdictDisplayLine = viewportLean
-      ? `${remainingChipLabel} · ${donePercentage}% done`
-      : missionBriefing.headerExplain;
+    // Lean: keep one explain line — chips already carry remaining/% done elsewhere.
+    verdictDisplayLine = missionBriefing.headerExplain;
   }
   const suppressDuplicateRiskChrome = viewportLean && missionBriefing && edgeStateAttr === 'none';
   const verdictExplainTitle =
@@ -472,25 +461,27 @@ export function renderHeaderBar(data, options = {}) {
     } catch (_) {}
   }
   const reportLinkHtml = '<a class="header-follow-up-link header-chrome-history-report" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
+  const titleSquadLabel = resolveFriendlySquadLabel(selectedProject, boardName) || sprintNameCompact;
   const shellSummaryHtml = buildCurrentSprintShellSummary({
     selectedProject,
     boardName,
     sprintNameCompact,
-    verdictInfo,
     remainingChipLabel,
-    statusBadge,
-    donePercentage,
+    titleSquadLabel,
   });
 
   const leanAttr = viewportLean ? ' data-viewport-lean="true"' : '';
   let html = `<div class="current-sprint-header-bar report-shell-top current-sprint-report-shell"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
   html += '<div class="header-row report-shell-top-row current-sprint-shell-top-row">';
   html += '<div class="report-shell-title-block current-sprint-shell-title-block">';
-  html += `<h2 title="${escapeHtml(sprintIdentityLine)}">Today for ${escapeHtml(resolveFriendlySquadLabel(selectedProject, boardName) || sprintNameCompact)}</h2>`;
+  html += `<h2 title="${escapeHtml(sprintIdentityLine)}">Today for ${escapeHtml(titleSquadLabel)}</h2>`;
   if (missionBriefing?.strategicAnchor) {
     const anchor = missionBriefing.strategicAnchor;
+    const sprintBit = anchor.sprintLabel || sprintNameCompact;
+    // Mission only when sprint label equals the title squad name (avoid "Sprint: DMS · Mission…").
+    const showSprintBit = sprintBit && String(sprintBit).trim() !== String(titleSquadLabel).trim();
     html += `<p class="sprint-strategic-anchor${anchor.conflict ? ' is-conflicted' : ''}" role="${anchor.conflict ? 'alert' : 'status'}">`
-      + `<span>Sprint: ${escapeHtml(anchor.sprintLabel || sprintNameCompact)}</span><span aria-hidden="true"> · </span>`
+      + (showSprintBit ? `<span>Sprint: ${escapeHtml(sprintBit)}</span><span aria-hidden="true"> · </span>` : '')
       + `<strong>Mission: ${escapeHtml(anchor.missionTitle || 'Mission not mapped')}</strong></p>`;
   }
   html += `<p class="subtitle">${escapeHtml(verdictDisplayLine)}</p>`;
@@ -508,7 +499,10 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-scope-mount" id="current-sprint-scope-mount" aria-label="Sprint scope"></div>';
   html += '<div class="header-band">';
   html += '<div class="header-band-main">';
-  html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintNameCompact)}</span>`;
+  // Skip sprint-name echo when shell title already names the squad.
+  if (sprintNameCompact && String(sprintNameCompact).trim() !== String(titleSquadLabel).trim()) {
+    html += `<span class="header-sprint-name" title="${escapeHtml(sprintIdentityLine)}">${escapeHtml(sprintNameCompact)}</span>`;
+  }
   html += `<span class="header-sprint-dates" title="${escapeHtml(sprintDateLine)}">${escapeHtml(sprintDateLine)}</span>`;
   html += '<span class="status-badge ' + escapeHtml(statusClass) + '" title="' + escapeHtml(statusSummary) + '">' + escapeHtml(statusBadge) + '</span>';
   html += identityMetricsHtml;
@@ -567,7 +561,7 @@ export function renderHeaderBar(data, options = {}) {
     html += sectionLinksHtml;
     html += '</div>';
   }
-  if (viewportLean && hasPriorityInterventions && !suppressDuplicateRiskChrome
+  if (hasPriorityInterventions && !suppressDuplicateRiskChrome
     && (stuckCount > 0 || missingEstimates > 0 || unassignedParents > 0 || missingLoggedItems > 0)) {
     html += '<div class="header-drawer-section header-drawer-intervention-section">';
     html += '<div class="header-drawer-section-label">' + escapeHtml(SPRINT_COPY.openRemediationQueue) + '</div>';
@@ -607,37 +601,21 @@ export function renderHeaderBar(data, options = {}) {
       .join(' | ');
     const topBlockerKey = cockpitAction.issueKey || data?.stuckCandidates?.[0]?.issueKey || '';
     const takeActionLabel = cockpitAction.interventionType === 'swarm-blocked-work'
-      ? `Review swarm for ${topBlockerKey}`
-      : topBlockerKey ? `Review ${topBlockerKey}` : SPRINT_COPY.takeAction;
+      ? `Next move: Review swarm for ${topBlockerKey}`
+      : topBlockerKey ? `Next move: Review ${topBlockerKey}` : `Next move: ${SPRINT_COPY.takeAction}`;
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
-    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation"'
+    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation" data-sprint-lean-next-move'
       + ' data-issue-key="' + escapeHtml(topBlockerKey) + '"'
       + (sendAllowed ? '' : ' disabled aria-disabled="true"')
       + ' title="' + escapeHtml(takeActionTitle) + '">' + escapeHtml(takeActionLabel) + '</button>';
-    if (!viewportLean) {
-      html += renderSprintInterventionQueueHtml(stuckCount, missingEstimates, unassignedParents, missingLoggedItems);
-    }
+    // Intervention queue + shortlist live in the view drawer — primary Take action is first-fold SSOT.
     html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span>' + (viewportLean ? '' : ('<span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span>')) + '</span>';
   } else {
-    html += '<span class="header-export-readiness header-export-readiness--quiet" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(quietActionLabel) + '</span></span>';
+    html += '<span class="header-export-readiness header-export-readiness--quiet" data-sprint-lean-next-move title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span><span class="header-export-readiness-sep">|</span><span>Next move: ' + escapeHtml(quietActionLabel) + '</span></span>';
   }
   html += '</div>';
-  if (hasPriorityInterventions && !viewportLean) {
-    html += '<div class="header-action-shortlist" aria-label="Top intervention shortlist">';
-    compactStripInterventions.slice(0, 2).forEach((item, index) => {
-      const tags = Array.isArray(item.riskTags) ? item.riskTags.join(' ') : '';
-      const label = String(item.label || SPRINT_COPY.focusRiskFallback).trim();
-      html += '<button type="button" class="header-action-shortlist-item"'
-        + ' data-header-action="focus-remediation-shortlist"'
-        + ' data-shortlist-index="' + escapeHtml(String(index)) + '"'
-        + ' data-risk-tags="' + escapeHtml(tags) + '"'
-        + '>'
-        + escapeHtml(label)
-        + '</button>';
-    });
-    html += '</div>';
-  }
+  // Capacity only — Trust already prints on export-readiness (avoid twin Trust cards).
   const showIntelligenceStrip = issuesCount > 0 && !viewportLean && (edgeStateAttr !== 'none' || stuckCount > 0);
   if (showIntelligenceStrip) {
     html += '<div class="header-intelligence-strip" aria-label="Sprint evidence and capacity">';
@@ -645,11 +623,6 @@ export function renderHeaderBar(data, options = {}) {
     html += '<span class="header-intelligence-eyebrow">Now</span>';
     html += '<span class="header-intelligence-title">' + escapeHtml(capacityTitle) + '</span>';
     html += '<span class="header-intelligence-detail">' + escapeHtml(capacityDetail) + '</span>';
-    html += '</div>';
-    html += '<div class="header-intelligence-card header-intelligence-card-' + escapeHtml(edgeStateAttr === 'low-confidence' ? 'warning' : 'neutral') + '" data-header-insight="evidence">';
-    html += '<span class="header-intelligence-eyebrow">Trust</span>';
-    html += '<span class="header-intelligence-title">' + escapeHtml(verdictInfo.trustLabel || exportReadiness) + '</span>';
-    html += '<span class="header-intelligence-detail">' + escapeHtml(evidenceDetail) + '</span>';
     html += '</div>';
     html += '</div>';
   }
@@ -660,8 +633,8 @@ export function renderHeaderBar(data, options = {}) {
     html += headerContextStripHtml;
   }
   const roleModesRowHtml = renderHeaderRoleModesRow(effectiveHeaderRoleViews);
-  // Lean: role pills stay inline (low click cost); long mission prose stays folded.
-  const missionHtml = (viewportLean && missionBriefing && edgeStateAttr === 'none')
+  // Mission fold only when strategic anchor is absent (anchor is the one mission surface).
+  const missionHtml = (viewportLean && missionBriefing && edgeStateAttr === 'none' && !missionBriefing.strategicAnchor)
     ? renderMissionBriefingHtml(missionBriefing, escapeHtml)
     : '';
   if (viewportLean && missionHtml) {
@@ -672,7 +645,7 @@ export function renderHeaderBar(data, options = {}) {
   if (roleModesRowHtml) {
     html += roleModesRowHtml;
   }
-  /* ALB-30: Mini mode hides the full compact strip; surface History report first so it stays above squad identity. */
+  // Mini strip: identity + Open report for header-mini-mode (shell-actions hide when collapsed).
   html += '<div class="header-mini-strip" aria-hidden="true">';
   html += '<div class="header-mini-strip-report-priority">' + reportLinkHtml + '</div>';
   html += '<div class="header-mini-strip-identity">';

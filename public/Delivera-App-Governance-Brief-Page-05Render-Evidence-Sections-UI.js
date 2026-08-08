@@ -3,7 +3,7 @@
  */
 import { escapeHtml, truthChip, renderStructuredEvidence } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
-import { govPage, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729j';
+import { govPage, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729k';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import {
   GOV_EVIDENCE_TAB_KEY,
@@ -11,6 +11,7 @@ import {
   bindTabStrip,
   readStoredTab,
 } from './Delivera-Shared-TabStrip-01Activate-Helper.js';
+import { currentSprintSquadHref } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 const evidenceFocusState = globalThis.__deliveraGovernanceEvidenceFocus ||= {
   spotlightKey: new URL(location.href).searchParams.get('spotlight') || '',
@@ -134,9 +135,9 @@ export function renderEvidenceTable(brief) {
   const body = rows.map((r) => `
     <tr>
       <td><a href="/governance#gov-risk-${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a></td>
-      <td>${escapeHtml(r.statusNow || '')}</td>
-      <td>${escapeHtml(r.statusLastWeek || '')}</td>
-      <td>${escapeHtml(r.whyFlagged || '')}</td>
+      <td>${escapeHtml(r.statusNow || 'Not in this window')}</td>
+      <td>${escapeHtml(r.statusLastWeek || 'No prior status in window')}</td>
+      <td>${escapeHtml(r.whyFlagged || 'No flag reason recorded')}</td>
     </tr>`).join('');
   govPage.els.evidence.classList.add('data-table-scroll-wrap');
   govPage.els.evidence.innerHTML = `${renderEvidenceScopeToggle(brief, totalRows, rows.length)}<table class="governance-evidence-table"><thead><tr><th>Issue</th><th>Status</th><th>Last week</th><th>Why</th></tr></thead><tbody>${body}</tbody></table>`;
@@ -159,7 +160,11 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
   const issueUrlFor = (key) => {
     const k = String(key || '').toUpperCase();
     const risk = [...(brief?.topRisks || []), ...(brief?.risks || [])].find((r) => String(r.issueKey).toUpperCase() === k);
-    return risk?.issueUrl || `/current-sprint?issue=${encodeURIComponent(key || '')}`;
+    if (risk?.issueUrl) return risk.issueUrl;
+    const squadKey = risk?.projectKey || risk?.squad || evidenceFocusState.spotlightKey || '';
+    const base = currentSprintSquadHref(squadKey);
+    const join = base.includes('?') ? '&' : '?';
+    return `${base}${join}issue=${encodeURIComponent(key || '')}`;
   };
   const body = rows.map((r) => {
     const href = issueUrlFor(r.issueKey);

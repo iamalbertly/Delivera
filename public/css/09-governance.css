@@ -992,7 +992,7 @@ body.governance-page.governance-story-v2-ready #app-top-chrome [data-top-action=
 }
 .gov-global-pill { background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 999px; }
 .gov-proof-popover {
-  position: fixed; z-index: 1300; max-width: 300px; padding: 10px 12px;
+  position: fixed; z-index: var(--z-chrome-overlay, 1500); max-width: 300px; padding: 10px 12px;
   background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12); font-size: 0.8rem;
 }

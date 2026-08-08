@@ -1,5 +1,5 @@
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729j';
+import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k';
 import {
   governanceSpotlightHref,
   currentSprintSquadHref,
@@ -61,7 +61,7 @@ function render() {
     .filter((item) => !owner || (owner === 'unresolved' ? item.ownerRoute?.unresolved || !item.ownerRoute?.displayName : item.ownerRoute?.displayName && !item.ownerRoute?.unresolved));
   const urgency = topUrgencyLabel(visible);
   summary.textContent = selectedSquad
-    ? `${visible.length} ${selectedSquad} action${visible.length === 1 ? '' : 's'} · top urgency: ${urgency}`
+    ? `${visible.length} action${visible.length === 1 ? '' : 's'} · top urgency: ${urgency}`
     : `${visible.length} action${visible.length === 1 ? '' : 's'} ready · top urgency: ${urgency}`;
   renderIdentityStrip();
   const grouped = new Map();
@@ -86,7 +86,12 @@ function render() {
     const ownerUnresolved = isOwnerMissing({ ownerRoute: item.ownerRoute });
     const confidenceLine = ownerUnresolved ? 'Owner route needs confirmation' : `Owner route: ${item.ownerConfidence || 'verified'}`;
     const titleAttr = `${proofLine} · ${confidenceLine}`;
-    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${escapeHtml(item.squadDisplayName || item.squad)}${item.issueKey ? ` · ${escapeHtml(item.issueKey)}` : ''}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(ownerLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(item.recommendedAction || item.nextAction?.label || 'Review missing proof')}</button></div></article>`;
+    const rowSquad = String(item.squadId || item.squad || '').trim().toUpperCase();
+    // When identity strip already locks the squad, show issue key only (cut repeated squad eye-travel).
+    const identityLine = selectedSquad && rowSquad === selectedSquad
+      ? (item.issueKey ? escapeHtml(item.issueKey) : 'Case')
+      : `${escapeHtml(item.squadDisplayName || item.squad)}${item.issueKey ? ` · ${escapeHtml(item.issueKey)}` : ''}`;
+    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${identityLine}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(ownerLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(item.recommendedAction || item.nextAction?.label || 'Review missing proof')}</button></div></article>`;
   }).join('') : (() => {
     const emptyHref = governanceSpotlightHref(selectedSquad || '', { returnTo: '/actions' });
     return `<div class="empty-state"><h3>No actions match this view</h3><p><a href="${escapeHtml(emptyHref)}">${selectedSquad ? `Open ${escapeHtml(selectedSquad)} spotlight on Governance` : 'Return to Governance'}</a> for the portfolio answer.</p></div>`;

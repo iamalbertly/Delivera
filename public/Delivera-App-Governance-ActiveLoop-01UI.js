@@ -333,8 +333,7 @@ function portfolioMatrix(answer) {
   const rest = allSquads.filter((squad) => !cannotVerify.includes(squad));
   const groupCannotVerify = !isSquadView && cannotVerify.length >= 2;
   const visibleSquads = groupCannotVerify ? rest : allSquads;
-  const focusedSquad = isSquadView ? allSquads[0] : null;
-  const matrixHeadTitle = isSquadView ? `${focusedSquad?.displayName || spotlightKey} deep dive` : 'Squads ordered by decision urgency';
+  const matrixHeadTitle = isSquadView ? 'Deep dive' : 'Squads ordered by decision urgency';
   const matrixHeadKicker = isSquadView ? 'Selected squad' : 'Portfolio comparison';
   const needsExpand = !isSquadView && (visibleSquads.length + (groupCannotVerify ? 1 : 0)) > 3;
   const clearBtn = spotlightKey
@@ -343,9 +342,12 @@ function portfolioMatrix(answer) {
   const visibleLenses = spotlightKey
     ? lenses
     : lenses.filter(([id]) => id !== 'squad');
+  const lensesToolbar = (!isSquadView && visibleLenses.length > 1)
+    ? `<div class="gov-story-lenses" role="toolbar" aria-label="Governance view">${visibleLenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>`
+    : '';
   return `<section class="gov-story-matrix${isSquadView ? ' gov-story-matrix--squad-focus' : ''}${needsExpand ? '' : ' is-expanded'}" aria-labelledby="gov-story-matrix-title" data-matrix-expandable="${needsExpand ? 'true' : 'false'}">
-    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(isSquadView ? `${focusedSquad?.displayName || spotlightKey} work, PI promises and actions only.` : (answer.lensSummaries?.overall || 'Select a squad to keep its Jira work, sprint, promises and actions isolated.'))}</p></div>${clearBtn}</div>
-    ${isSquadView ? '' : `<div class="gov-story-lenses" role="toolbar" aria-label="Governance view">${visibleLenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>`}
+    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(isSquadView ? 'This squad’s work, promises, and actions only.' : (answer.lensSummaries?.overall || 'Select a squad to keep its Jira work, sprint, promises and actions isolated.'))}</p></div>${clearBtn}</div>
+    ${lensesToolbar}
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
       <div class="gov-story-columns" role="row"><span>Squad</span><span>Current reality</span><span>PI impact</span><span>Next move</span></div>
       ${groupCannotVerify ? cannotVerifySummaryRow(cannotVerify) : ''}
@@ -399,10 +401,11 @@ function nextMoveRailHtml(answer) {
   const squad = (answer?.squads || []).find((item) => item.squad === focusKey) || (answer?.squads || [])[0];
   if (!squad) return '';
   const move = matrixNextMoveLabel(squad);
-  // Rail keeps proof audit only — primary CTA opens spotlight; identity row owns "today".
+  const isFocused = Boolean(spotlightKey && spotlightKey === squad.squad);
+  // When h1 already names the squad, skip the strong name echo in the rail.
   return `<aside class="gov-next-move-rail" aria-label="Next move for selected squad">
     <span class="gov-loop-kicker">Next move</span>
-    <strong>${escapeHtml(squad.displayName || squad.squad)}</strong>
+    ${isFocused ? '' : `<strong>${escapeHtml(squad.displayName || squad.squad)}</strong>`}
     <p>${escapeHtml(move)}</p>
     <div class="gov-next-move-rail-actions">
       <button type="button" class="btn btn-link btn-compact" data-all-proof="${escapeHtml(squad.squad)}">All proof</button>
@@ -438,9 +441,11 @@ function renderHero(answer) {
     : answer.answer;
   const nextLabel = noBaseline
     ? 'Recover PI contract'
-    : (selectedPromise
-      ? `Review ${selectedPromise.squadDisplayName || selectedPromise.squad}`
-      : (focusSquad ? `Open ${String(focusSquad.displayName || focusSquad.squad).split(' ')[0]} spotlight` : 'Review aligned promises'));
+    : (isSquadView
+      ? 'Open decision'
+      : (selectedPromise
+        ? `Review ${selectedPromise.squadDisplayName || selectedPromise.squad}`
+        : (focusSquad ? `Open ${String(focusSquad.displayName || focusSquad.squad).split(' ')[0]} spotlight` : 'Review aligned promises')));
   const sourceLine = String(answer.sourceLine || '').replace(/\s*·\s*last verified[^·]*$/i, '').trim() || answer.sourceLine;
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
     <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
@@ -792,6 +797,18 @@ function promiseAlignmentSummary(promise = {}) {
   return `Expected: ${expected.issueKey || promise.issueKey || 'PI commitment'} in ${expected.fiscalPeriod || promise.quarter || 'the active PI'}. Happening: ${keys} · ${actual.status || promise.statusNow || 'unknown'}${actual.sprintName ? ` · ${actual.sprintName}` : ''} · ${method} · ${duration}.`;
 }
 
+function honestUnknownPctLine(squad, unknown) {
+  const unknownPct = Number(squad?.workSplit?.unknownPct);
+  const clusters = unknown?.clusters || squad?.unknownWork?.clusters || [];
+  if (!Number.isFinite(unknownPct)) return 'Unknown: not calculated';
+  // Wallpaper "Unknown: 100%" without clusters is not discriminatory — degrade gracefully.
+  if (unknownPct >= 100 && !clusters.length) {
+    return squad?.doingInstead?.major?.title
+      || 'Insufficient evidence to measure diversion';
+  }
+  return `Unknown: ${unknownPct}%`;
+}
+
 function spotlightHtml(detail) {
   const squad = detail.squad || {};
   const promises = detail.promises || [];
@@ -807,14 +824,21 @@ function spotlightHtml(detail) {
   const rebaselineBtn = squad.baselineCoverage?.state === 'verified'
     ? `<button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squadKey)}" data-rebaseline="1" title="Upload a new PI slide to replace the current baseline">Rebaseline</button>`
     : '';
+  const unknownEvidenceCopy = (() => {
+    const unknownPct = Number(squad.workSplit?.unknownPct);
+    if (unknown.promoted && Number.isFinite(unknownPct) && unknownPct >= 100 && !(unknown.clusters || []).length) {
+      return squad.doingInstead?.major?.title || 'Insufficient evidence to measure diversion';
+    }
+    return unknown.promoted ? unknown.copy : '';
+  })();
   return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Selected squad decision</span><h2 class="sr-only">${escapeHtml(displayName)}</h2><p class="gov-spotlight-scope-note">Selected squad work, PI promises, and actions only.</p></div></div>
   <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.label || squad.topState || 'Cannot verify')}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${nextActionHtml}</strong></span></div>
   ${diagnosisGroups.length ? `<section class="gov-diagnosis-groups" aria-label="Evidence-backed root causes"><h3>Why proof is missing</h3>${diagnosisGroups.map((group) => `<article><strong>${group.count} · ${escapeHtml(group.label)}</strong><p>${escapeHtml(group.customerOrPiImpact || '')}</p><small>${escapeHtml((group.issueKeys || []).join(', ') || 'Commitment evidence')} · ${Math.round((Number(group.confidence) || 0) * 100)}% confidence</small><span>${escapeHtml(group.recommendedAction || '')}</span></article>`).join('')}</section>` : ''}
   <div class="gov-spotlight-grid">
     <section><h3>Current Work Reality</h3>${work.length ? work.slice(0, 5).map((item) => `<p class="gov-work-theme"><span><strong>${escapeHtml(item.title)}</strong>${item.systemDerived ? ' <small>system-derived label</small>' : ''}</span>${item.systemDerived || item.title === 'Unclear work theme' ? `<button type="button" class="btn btn-link btn-compact gov-theme-rename-btn" data-theme-rename data-theme-id="${escapeHtml(item.themeId || item.title)}" data-theme-version="${Number(item.version) || 1}" title="Rename theme">Rename</button>` : ''}</p>`).join('') : '<p>No current work themes are available.</p>'}</section>
     <section><h3>Sprint Reality</h3><p>${escapeHtml(detail.sprintReality?.copy || 'Sprint reality unavailable.')}</p></section>
-    <section><h3>Evidence Signals</h3><p>${escapeHtml(rework.copy || 'No evidence-backed rework signal is promoted.')}</p>${rework.promoted ? `<details><summary>Why Delivera raised this</summary><ul>${(rework.promoted.paths || []).map((path) => `<li>${escapeHtml(path.label)}</li>`).join('')}</ul></details>` : '<p class="gov-calm-note">Low-confidence follow-up work stays out of risk totals.</p>'}${unknown.promoted ? `<div class="gov-unknown-clusters"><p><strong>${escapeHtml(unknown.copy)}</strong></p>${(unknown.clusters || []).slice(0, 3).map((cluster) => `<article><strong>${escapeHtml(cluster.title)}</strong><small>${cluster.ticketCount} issues · ${cluster.percentage}% · ${escapeHtml(cluster.sharedEvidence?.join(', ') || 'shared work evidence')}</small><button type="button" class="btn btn-secondary btn-compact" data-classify-cluster="${escapeHtml(cluster.id)}" data-cluster-version="${Number(cluster.version) || 1}" data-classification="${escapeHtml(cluster.recommendation)}">${escapeHtml(cluster.recommendation === 'ad-hoc-feature' ? 'Mark as Ad Hoc Feature Work' : cluster.recommendation === 'operational-group-candidate' ? 'Mark as Operational Group candidate' : 'Mark cluster as Operational')}</button></article>`).join('')}</div>` : ''}</section>
-    <section><h3>Doing Instead &amp; Work Split</h3><p>${escapeHtml(squad.doingInstead?.copy || 'No major diversion is proven.')}</p><p>${escapeHtml(squad.workSplit?.explanation || '')}</p><p>Unknown: ${squad.workSplit?.unknownPct == null ? 'not calculated' : `${squad.workSplit.unknownPct}%`}</p></section>
+    <section><h3>Evidence Signals</h3><p>${escapeHtml(rework.copy || 'No evidence-backed rework signal is promoted.')}</p>${rework.promoted ? `<details><summary>Why Delivera raised this</summary><ul>${(rework.promoted.paths || []).map((path) => `<li>${escapeHtml(path.label)}</li>`).join('')}</ul></details>` : '<p class="gov-calm-note">Low-confidence follow-up work stays out of risk totals.</p>'}${unknownEvidenceCopy ? `<div class="gov-unknown-clusters"><p><strong>${escapeHtml(unknownEvidenceCopy)}</strong></p>${(unknown.clusters || []).slice(0, 3).map((cluster) => `<article><strong>${escapeHtml(cluster.title)}</strong><small>${cluster.ticketCount} issues · ${cluster.percentage}% · ${escapeHtml(cluster.sharedEvidence?.join(', ') || 'shared work evidence')}</small><button type="button" class="btn btn-secondary btn-compact" data-classify-cluster="${escapeHtml(cluster.id)}" data-cluster-version="${Number(cluster.version) || 1}" data-classification="${escapeHtml(cluster.recommendation)}">${escapeHtml(cluster.recommendation === 'ad-hoc-feature' ? 'Mark as Ad Hoc Feature Work' : cluster.recommendation === 'operational-group-candidate' ? 'Mark as Operational Group candidate' : 'Mark cluster as Operational')}</button></article>`).join('')}</div>` : ''}</section>
+    <section><h3>Doing Instead &amp; Work Split</h3><p>${escapeHtml(squad.doingInstead?.copy || 'No major diversion is proven.')}</p><p>${escapeHtml(squad.workSplit?.explanation || '')}</p><p>${escapeHtml(honestUnknownPctLine(squad, unknown))}</p></section>
     <section><h3>Promise evidence</h3>${promises.length ? promises.map((promise) => `<button type="button" class="gov-spotlight-promise" data-loop-promise="${escapeHtml(promise.promiseId)}" title="${escapeHtml(promiseAlignmentSummary(promise))}"><strong>${escapeHtml(promise.originalText)}</strong><small>${escapeHtml(promise.diagnosisLabel || promise.matchLabel)} · ${escapeHtml(promise.proofAge?.copy || '')}</small>${promise.amendmentSentence ? `<span class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</span>` : ''}</button>`).join('') : `<button type="button" class="btn btn-link gov-spotlight-baseline-cta" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squadKey)}">Cannot verify, baseline missing. Save baseline to compare.</button>`}</section>
     <section class="gov-spotlight-actions"><h3>Action Trail</h3>${actionTrailHtml(promises)}</section>
   </div>
@@ -1073,7 +1097,7 @@ function drawerHtml(promise, squad) {
   return `<div class="gov-loop-drawer" data-loop-promise-version="${Number(promise.version) || 1}" data-decision-rail="primary"><section class="gov-loop-drawer-verdict gov-loop-tone-${tone(promise.matchState)}"><span>${escapeHtml(promise.diagnosisLabel || promise.matchLabel)}</span><strong>${escapeHtml(promise.originalText)}</strong><p>${escapeHtml(promise.customerOrPiImpact || promise.proofAge?.copy || '')}</p>${promise.amendmentSentence ? `<p class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</p>` : ''}</section>
   <section class="gov-resolution-sheet"><h3>Expected vs happening</h3><p>${escapeHtml(promiseAlignmentSummary(promise))}</p><dl><div><dt>Expected</dt><dd>${escapeHtml(comparison.expected?.commitment || promise.originalText)} · ${escapeHtml(comparison.expected?.fiscalPeriod || promise.quarter || '')}</dd></div><div><dt>Live Jira evidence</dt><dd>${escapeHtml(actualKeys.join(', ') || promise.issueKey || 'No verified key')} · ${escapeHtml(comparison.actual?.status || promise.statusNow || '')}</dd></div><div><dt>Mapping</dt><dd>${escapeHtml(comparison.actual?.matchedThrough === 'epic-child' ? 'Current story delivers the approved PI epic' : comparison.actual?.matchedThrough || 'Unresolved')}</dd></div></dl></section>
   ${diagnosisEvidence ? `<section class="gov-resolution-sheet"><h3>Why Delivera reached this diagnosis</h3><ul>${diagnosisEvidence}</ul><p><strong>Confidence:</strong> ${Math.round((Number(promise.diagnosisConfidence) || 0) * 100)}%</p><p><strong>Recommended:</strong> ${escapeHtml(promise.recommendedAction || '')}</p></section>` : ''}
-  <div class="gov-loop-drawer-grid"><section><h3>PI promise source</h3><p>${escapeHtml(promise.source || promise.baselineCoverage?.sourceLabel || 'Approved PI baseline')}</p><p>${escapeHtml(scopedPromiseSourceReference(promise, squad))}</p></section><section><h3>Matched Jira work</h3><p><strong>${escapeHtml(promise.issueKey || 'No Jira proof')}</strong> · ${escapeHtml(promise.statusNow || '')}</p></section><section><h3>Proof age</h3><p>${escapeHtml(promise.proofAge?.state || 'unknown')} · ${escapeHtml(promise.proofAge?.copy || '')}</p></section><section><h3>Work Split</h3><p>${squad?.workSplit?.unplannedPct == null ? 'Unplanned work unknown' : `${squad.workSplit.unplannedPct}% unplanned work`}</p><p>${escapeHtml(squad?.workSplit?.largestUnmappedCluster ? `Largest unmapped cluster: ${squad.workSplit.largestUnmappedCluster}.` : '')}</p><p>${escapeHtml(squad?.workSplit?.explanation || '')}</p><p>Unknown: ${squad?.workSplit?.unknownPct == null ? 'not calculated' : `${squad.workSplit.unknownPct}%`}</p></section><section><h3>Action state</h3><p>${escapeHtml(promise.actionLifecycle || '')}</p></section><section><h3>Owner path</h3>${recipientEditor(promise)}</section><section><h3>Ready to Promise</h3><p>${escapeHtml(promise.readiness?.copy || 'Readiness was not captured in the original baseline.')}</p></section><section><h3>Trade-off Guardrail</h3><p>${escapeHtml(promise.tradeOffGuardrail?.copy || 'No trustworthy percentage is available.')}</p></section></div>
+  <div class="gov-loop-drawer-grid"><section><h3>PI promise source</h3><p>${escapeHtml(promise.source || promise.baselineCoverage?.sourceLabel || 'Approved PI baseline')}</p><p>${escapeHtml(scopedPromiseSourceReference(promise, squad))}</p></section><section><h3>Matched Jira work</h3><p><strong>${escapeHtml(promise.issueKey || 'No Jira proof')}</strong> · ${escapeHtml(promise.statusNow || '')}</p></section><section><h3>Proof age</h3><p>${escapeHtml(promise.proofAge?.state || 'unknown')} · ${escapeHtml(promise.proofAge?.copy || '')}</p></section><section><h3>Work Split</h3><p>${squad?.workSplit?.unplannedPct == null ? 'Unplanned work unknown' : `${squad.workSplit.unplannedPct}% unplanned work`}</p><p>${escapeHtml(squad?.workSplit?.largestUnmappedCluster ? `Largest unmapped cluster: ${squad.workSplit.largestUnmappedCluster}.` : '')}</p><p>${escapeHtml(squad?.workSplit?.explanation || '')}</p><p>${escapeHtml(honestUnknownPctLine(squad, squad?.unknownWork))}</p></section><section><h3>Action state</h3><p>${escapeHtml(promise.actionLifecycle || '')}</p></section><section><h3>Owner path</h3>${recipientEditor(promise)}</section><section><h3>Ready to Promise</h3><p>${escapeHtml(promise.readiness?.copy || 'Readiness was not captured in the original baseline.')}</p></section><section><h3>Trade-off Guardrail</h3><p>${escapeHtml(promise.tradeOffGuardrail?.copy || 'No trustworthy percentage is available.')}</p></section></div>
   <details class="gov-loop-history" open><summary>Human Why and action history (${promise.actionHistory?.length || 0})</summary><ol>${[...(promise.amendmentHistory || []), ...(promise.actionHistory || [])].map((item) => `<li><strong>${escapeHtml(String(item.type || '').replace(/-/g, ' '))}</strong><small>${escapeHtml(item.rationale || item.reason || item.replyExcerpt || item.messagePreview || '')}</small></li>`).join('') || '<li>No human decision has been recorded yet.</li>'}</ol></details>
   ${(promise.sourceWrites || []).length ? `<details class="gov-loop-history"><summary>Source write status (${promise.sourceWrites.length})</summary><ol>${promise.sourceWrites.map((write) => `<li><strong>${escapeHtml(sourceWriteLabel(write.state))}</strong><small>${escapeHtml(write.failureReason || write.correctionPath || `${write.targetSystem || 'source'} · ${write.targetObject || ''}`)}</small></li>`).join('')}</ol></details>` : ''}
   <div class="gov-loop-stale-warning" hidden role="alert"></div><div class="gov-loop-action-status" aria-live="polite"></div><div class="gov-loop-actions gov-loop-actions--decision-rail" data-decision-rail-primary="${escapeHtml(primary?.id || '')}">${actionsHtml}</div></div>`;
@@ -1321,6 +1345,14 @@ window.addEventListener('popstate', () => {
   if (lens !== activeLens && activeAnswer) selectLens(lens, activeAnswer, document.getElementById('gov-active-loop-mount'));
   const next = new URL(location.href).searchParams.get('spotlight') || '';
   if (next) void showSpotlight(next, { pushHistory: false }); else clearSpotlight(false);
+});
+
+// Same-tab + cross-tab registry continuity (Settings broadcasts StorageEvent).
+window.addEventListener('storage', (event) => {
+  if (event.key !== 'delivera:registry-version' || !event.newValue) return;
+  const projects = String(activeAnswer?.scope?.projects || new URL(location.href).searchParams.get('projects') || '').trim();
+  const quarter = String(activeAnswer?.scope?.quarter || new URL(location.href).searchParams.get('quarter') || '').trim();
+  void loadActiveGovernanceLoop({ projects, quarter, force: true });
 });
 
 document.addEventListener('keydown', (event) => {

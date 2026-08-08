@@ -6547,9 +6547,24 @@ body.jira-nudge-review-open { overflow: hidden; }
 .jira-activity-sym { font-size: 1.1rem; width: 2rem; }
 .jira-activity-preview { color: var(--muted-strong, #4a5d6e); max-width: 280px; }
 
-/* Viewport lean: work first, cockpit collapsed, header chrome in drawer */
-.current-sprint-viewport-lean .sprint-cockpit-column {
-  grid-column: 1 / -1;
+/* Viewport lean: keep 2-col desktop rail so blockers/next-action stay visible without scroll */
+@media (min-width: 1024px) {
+  .current-sprint-viewport-lean .sprint-cockpit-column {
+    grid-column: 2;
+    position: sticky;
+    top: calc(var(--top-chrome-height, 56px) + 12px);
+    align-self: start;
+    max-height: calc(100vh - var(--top-chrome-height, 56px) - 24px);
+    overflow-y: auto;
+  }
+  .current-sprint-viewport-lean .sprint-cards-column {
+    grid-column: 1;
+  }
+}
+@media (max-width: 1023px) {
+  .current-sprint-viewport-lean .sprint-cockpit-column {
+    grid-column: 1 / -1;
+  }
 }
 .decision-cockpit-shell--viewport-lean {
   margin-top: 4px;
@@ -6582,6 +6597,17 @@ body.jira-nudge-review-open { overflow: hidden; }
 .current-sprint-header-bar[data-viewport-lean="true"] .header-intelligence-strip,
 .current-sprint-header-bar[data-viewport-lean="true"] .header-action-shortlist {
   display: none;
+}
+/* Desktop first fold: role lens is secondary — fold into details when present */
+@media (min-width: 1200px) {
+  body.current-sprint-page .current-sprint-header-bar:not([data-viewport-lean="true"]) .header-role-modes-row[data-strip="role-lens"] {
+    display: none;
+  }
+}
+/* Portfolio mission subtitle demoted when ActiveLoop paints the PI answer */
+body.governance-active-loop-ready:not(.governance-squad-selected) .gov-story-mission > strong {
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 .header-drawer-intervention-section .sprint-intervention-queue {
   display: flex;
