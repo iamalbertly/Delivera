@@ -89,7 +89,7 @@ export function setPageState(state, options = {}) {
           }
           loadingEl.classList.add('current-sprint-loading-with-spinner');
         }
-        loadingEl.style.display = 'block';
+        loadingEl.style.display = preserveContent ? 'none' : 'block';
       }
       if (preserveContent && contentEl) contentEl.style.display = 'block';
       break;

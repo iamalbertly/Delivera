@@ -2299,6 +2299,8 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .registry-row--compact { grid-template-columns: 32px minmax(240px,1.5fr) minmax(220px,1fr) auto; align-items: center; }
 .registry-select { display: grid; place-items: center; }
 .registry-select input { width: 18px; height: 18px; }
+.registry-select { width: 44px; min-height: 44px; }
+.registry-editor input:not([type="checkbox"]),.registry-editor select,.registry-bulk input,.registry-bulk select { min-height: 44px; }
 .registry-route-summary { display: flex; flex-wrap: wrap; gap: 6px; color: #475569; font-size: .78rem; }
 .registry-route-summary span { padding: 4px 7px; border-radius: 999px; background: #f1f5f9; }
 .registry-editor { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4,minmax(130px,1fr)) minmax(230px,1.25fr); gap: 10px; align-items: end; padding-top: 10px; border-top: 1px solid #e2e8f0; }
@@ -2336,6 +2338,16 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .action-case-source--text:hover { color: #0f172a; }
 .registry-suggestion-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 8px; }
 .registry-suggestion-bar small { color: #64748b; }
+.gov-loop-cause,.gov-loop-recommendation { max-width: 72ch; margin: 5px 0 0; color: #334155; font-size: .86rem; line-height: 1.4; }
+.gov-loop-recommendation { color: #172033; }
+.registry-filter { max-width: 420px; margin: 12px 0; }
+.registry-filter input { min-height: 44px; }
+.registry-participation-toggle { align-self: center; grid-template-columns: 1fr auto; align-items: center; min-height: 44px; }
+.registry-participation-toggle input { width: 44px; height: 24px; accent-color: var(--primary, #b00020); }
+.action-case-metadata { color: #475569; font-size: .78rem; }
+.actions-queue-filters-body { align-items: end; }
+.actions-queue-filters-body select { min-height: 40px; }
+[data-excluded-reason][hidden] { display: none; }
 [data-diagnostics-only] { display: none !important; }
 .gov-diagnosis-groups { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 8px; margin: 10px 0; }
 .gov-diagnosis-groups > h3 { grid-column: 1 / -1; margin: 0; font-size: .86rem; }

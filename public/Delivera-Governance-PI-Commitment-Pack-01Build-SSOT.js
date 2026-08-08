@@ -14,11 +14,41 @@ function formatDate(value) {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function childTruth(promise = {}) {
+  const actual = promise.expectedVsActual?.actual || {};
+  const children = Array.isArray(actual.children) ? actual.children : [];
+  const issueKeys = Array.isArray(actual.issueKeys) ? actual.issueKeys : [];
+  const total = Number.isFinite(Number(actual.childTotal)) ? Number(actual.childTotal) : (children.length || issueKeys.length);
+  const done = Number.isFinite(Number(actual.doneChildCount))
+    ? Number(actual.doneChildCount)
+    : children.filter((child) => /done|closed|resolved/i.test(String(child?.status || ''))).length;
+  const reopened = Number.isFinite(Number(actual.reopenedChildCount))
+    ? Number(actual.reopenedChildCount)
+    : children.filter((child) => child?.reopened === true).length;
+  const excluded = Number.isFinite(Number(actual.excludedChildCount)) ? Number(actual.excludedChildCount) : 0;
+  const inaccessible = Number.isFinite(Number(actual.inaccessibleChildCount)) ? Number(actual.inaccessibleChildCount) : 0;
+  const open = Math.max(0, Number.isFinite(Number(actual.openChildCount))
+    ? Number(actual.openChildCount)
+    : total - done - excluded);
+  return { total, done, open, reopened, inaccessible };
+}
+
 function openStoriesHint(promise = {}) {
-  const keys = promise.expectedVsActual?.actual?.issueKeys || [];
-  if (keys.length) return `${keys.length} linked issue${keys.length === 1 ? '' : 's'}`;
+  const truth = childTruth(promise);
+  if (truth.total) return `${truth.done}/${truth.total} children complete · ${truth.open} open · ${truth.reopened} reopened${truth.inaccessible ? ` · ${truth.inaccessible} inaccessible` : ''}`;
   if (promise.issueKey) return 'Linked Jira work present';
   return 'No linked stories verified';
+}
+
+function milestoneStatus(promise = {}) {
+  const truth = childTruth(promise);
+  const actual = promise.expectedVsActual?.actual || {};
+  const accepted = Boolean(actual.acceptanceEvidence || promise.acceptanceProof || promise.acceptedAt);
+  if (truth.inaccessible || /cannot verify|metadata/i.test(String(promise.diagnosisLabel || promise.matchLabel || ''))) return 'Cannot verify';
+  if (truth.total && truth.open === 0 && truth.reopened === 0 && accepted) return 'Delivered';
+  if (/block/i.test(String(promise.statusNow || actual.status || ''))) return 'Blocked';
+  if ((truth.done || /done/i.test(String(actual.status || promise.statusNow || ''))) && (!accepted || truth.open || truth.reopened)) return 'Milestone delivered';
+  return 'In progress';
 }
 
 function carryOverLine(promise = {}) {
@@ -53,14 +83,21 @@ export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = 
       || promise.fiscalEnd
       || promise.endDate
       || '';
-    const dateLine = [formatDate(start), formatDate(end)].filter(Boolean).join(' – ')
+    const plannedDates = [formatDate(start), formatDate(end)].filter(Boolean).join(' – ')
       || clean(promise.quarter || promise.expectedVsActual?.expected?.fiscalPeriod || 'PI period unconfirmed', 60);
+    const actual = promise.expectedVsActual?.actual || {};
+    const observedDates = [formatDate(actual.observedStart || actual.startDate), formatDate(actual.observedEnd || actual.endDate)]
+      .filter(Boolean).join(' – ') || 'Not verified';
+    const dependencies = Array.isArray(actual.dependencies) ? actual.dependencies : (Array.isArray(promise.dependencies) ? promise.dependencies : []);
     return {
       issueKey: clean(promise.issueKey || 'Unlinked', 40),
       title: clean(promise.originalText || promise.summary || 'PI commitment', 180),
-      status: clean(promise.diagnosisLabel || promise.matchLabel || promise.statusNow || 'Unknown', 80),
-      dates: dateLine,
+      status: milestoneStatus(promise),
+      plannedDates,
+      observedDates,
       openWork: openStoriesHint(promise),
+      dependencies: dependencies.length ? dependencies.map((value) => clean(value?.issueKey || value, 60)).join(', ') : 'None verified',
+      acceptance: actual.acceptanceEvidence || promise.acceptanceProof ? 'Verified' : 'Not verified',
       carryOver: carryOverLine(promise),
     };
   });
@@ -79,8 +116,9 @@ export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = 
   items.forEach((item, index) => {
     lines.push(`${index + 1}. ${item.title}`);
     lines.push(`   Epic: ${item.issueKey} · ${item.status}`);
-    lines.push(`   Dates: ${item.dates}`);
+    lines.push(`   Planned: ${item.plannedDates} · Observed: ${item.observedDates}`);
     lines.push(`   Work: ${item.openWork}`);
+    lines.push(`   Acceptance: ${item.acceptance} · Dependencies: ${item.dependencies}`);
     lines.push(`   Realism: ${item.carryOver}`);
     lines.push('');
   });

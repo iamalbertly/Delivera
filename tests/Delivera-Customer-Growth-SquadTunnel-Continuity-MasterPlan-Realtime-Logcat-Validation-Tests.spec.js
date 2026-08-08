@@ -13,12 +13,14 @@ import {
 import { routeProjectsCatalog } from './Delivera-Governance-Projects-Catalog-Mock-Helper.js';
 import { PROJECTS_SSOT_KEY } from '../public/Delivera-Shared-Storage-Keys.js';
 import { loginIfRequired } from './Delivera-Playwright-Login-If-Required-01Helper.js';
+import { cache } from '../lib/cache.js';
 
 const NOW = '2026-07-17T10:32:00.000Z';
 
 function activeLoopAnswer() {
   return {
     schemaVersion: 2,
+    cacheRelease: '20260730a',
     presentationContractVersion: 5,
     answerVersion: 9,
     missionHeader: 'FY27 Q2 PI contract governance',
@@ -149,9 +151,24 @@ function activeLoopAnswer() {
 
 async function mockSurfaces(page) {
   const answer = activeLoopAnswer();
-  await page.addInitScript((projectsKey) => {
-    try { localStorage.setItem(projectsKey, 'SD'); } catch (_) {}
-  }, PROJECTS_SSOT_KEY);
+  let deterministicAiCalls = 0;
+  await page.addInitScript(({ projectsKey, cachedAnswer }) => {
+    globalThis.__deliveraTestNavigationStartedAt = performance.now();
+    globalThis.__deliveraFirstValueAt = 0;
+    new MutationObserver(() => {
+      if (!globalThis.__deliveraFirstValueAt && document.querySelector('[data-testid="governance-active-loop"]')) {
+        globalThis.__deliveraFirstValueAt = performance.now();
+      }
+    }).observe(document, { childList: true, subtree: true });
+    try {
+      localStorage.setItem(projectsKey, 'SD');
+      localStorage.setItem('delivera:runtime-release:v1:schema', '20260730a');
+      localStorage.setItem('delivera:governance:active-loop:v2:20260730a:SD,FIN:current', JSON.stringify({
+        savedAt: new Date().toISOString(),
+        answer: cachedAnswer,
+      }));
+    } catch (_) {}
+  }, { projectsKey: PROJECTS_SSOT_KEY, cachedAnswer: answer });
   await routeProjectsCatalog(page);
   await page.route('**/api/governance/active-loop.json**', async (route) => {
     const requested = new URL(route.request().url()).searchParams.get('projects');
@@ -250,6 +267,15 @@ async function mockSurfaces(page) {
             assignee: 'SM',
           },
         ],
+        decisionCockpit: {
+          nextBestAction: {
+            issueKey: 'SD-5307',
+            summary: 'Swipe refresh',
+            assignee: 'DMS Scrum Master',
+            recommendedAction: 'Confirm the recovery date before stand-up.',
+            interventionType: 'swarm-blocked-work',
+          },
+        },
         meta: { projects: 'SD' },
       }),
     });
@@ -295,26 +321,28 @@ async function mockSurfaces(page) {
     });
   });
   await page.route('**/api/governance/registry.json**', async (route) => {
+    const exceptions = [
+      ['VB', 'Vodacom Business'], ['MPSA', 'M-SQUAD'], ['MVA', 'Digital Squad'],
+      ['MAS', 'Mini Apps'], ['TRS', 'T-Squad'], ['AMS2', 'AMS'], ['BIO', 'Biometric KYC'],
+    ].map(([squadKey, friendlyName]) => ({ squadKey, friendlyName, participationState: 'pending-consent', productOwner: '', scrumMaster: '', boardMapping: [], revision: 1 }));
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         version: 8,
-        squads: [
-          {
-            squadKey: 'MPSA',
-            friendlyName: 'M-SQUAD',
-            participationState: 'pending-consent',
-            productOwner: '',
-            scrumMaster: '',
-            boardMapping: [],
-            boardCandidates: [{ id: 230, name: 'MPSA board' }],
-            revision: 1,
-          },
-        ],
+        squads: [...exceptions, { squadKey: 'SD', friendlyName: 'DMS Squad', participationState: 'pi-governed', productOwner: 'Husna', scrumMaster: 'DMS Scrum Master', boardMapping: [1], revision: 1 }],
         auditHistory: [],
       }),
     });
+  });
+  await page.route('**/api/session-meta.json**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ initials: 'DL', emailMasked: 'd***@example.com', canManageOrganizationSettings: true }),
+  }));
+  await page.route('**/api/settings/ai-provider**', async (route) => {
+    deterministicAiCalls += 1;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
   });
   for (const pattern of [
     '**/api/governance/inbox.json**',
@@ -333,6 +361,7 @@ async function mockSurfaces(page) {
         : '{}',
     }));
   }
+  return { getDeterministicAiCalls: () => deterministicAiCalls };
 }
 
 test.describe('Customer growth squad-tunnel continuity master plan', () => {
@@ -340,22 +369,26 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
 
   test('@focused squad tunnel continuity Commitment Pack Sprint Proof logcat', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
-    await mockSurfaces(page);
+    const mocks = await mockSurfaces(page);
 
-    await test.step('01 governance first fold shows verified answer without blank', async () => {
+    await test.step('01 first-value budget and truthful portfolio reconciliation', async () => {
       await loginIfRequired(page, '/governance?projects=SD,FIN', {
         rootSelector: '[data-testid="governance-active-loop"]',
         timeout: 25000,
       });
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-testid="governance-active-loop"]')).toBeVisible({ timeout: 20000 });
+      const firstValueMs = await page.evaluate(() => globalThis.__deliveraFirstValueAt - globalThis.__deliveraTestNavigationStartedAt);
+      expect(firstValueMs).toBeLessThan(2000);
       const bodyText = await page.locator('#gov-active-loop-mount').innerText();
       expect(bodyText).not.toMatch(/Building first verified answer/i);
       expect(bodyText.length).toBeGreaterThan(40);
+      await expect(page.locator('.gov-story-row[data-story-squad]')).toHaveCount(2);
+      expect((await page.locator('#gov-loop-answer').innerText()).length).toBeLessThanOrEqual(150);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('02 DMS tunnel hides peer matrix and locks spotlight URL', async () => {
+    await test.step('02 DMS isolation and continuity tunnel', async () => {
       await page.goto('/governance?spotlight=SD&squad=SD&projects=SD&view=squad');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-testid="governance-active-loop"]')).toBeVisible({ timeout: 20000 });
@@ -365,10 +398,12 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
       const tunnel = await page.locator('[data-squad-tunnel-bar]').innerText();
       expect(tunnel).toMatch(/Selected squad|Back to portfolio/i);
       expect(tunnel).not.toMatch(/Finance Squad/);
+      const sprintHref = await page.locator('a[data-top-surface="sprints"]').first().getAttribute('href');
+      expect(sprintHref || '').toMatch(/squad=SD|projects=SD/);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('03 diagnosis sentence appears once in h1 (no triple echo)', async () => {
+    await test.step('03 deterministic commitment semantics and zero AI calls', async () => {
       const h1 = await page.locator('#gov-loop-answer').innerText();
       expect(h1).toMatch(/lacks PI metadata|DMS Squad/i);
       // Count only visible diagnosis reprints outside the H1 (rail/spotlight must not echo the full sentence).
@@ -381,23 +416,14 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
       const needle = 'lacks PI metadata';
       const matches = outsideH1.split(needle).length - 1;
       expect(matches).toBeLessThan(2);
-      assertTelemetryClean(telemetry);
-    });
-
-    await test.step('04 Commitment Pack control visible in squad rail without AI', async () => {
       await expect(page.locator('.gov-next-move-rail [data-copy-commitment-pack]')).toBeVisible({ timeout: 12000 });
       await page.locator('.gov-next-move-rail [data-copy-commitment-pack]').first().click();
       await expect(page.locator('.gov-next-move-rail [data-commitment-pack-status]').first()).toContainText(/Copied|failed/i, { timeout: 5000 });
+      expect(mocks.getDeterministicAiCalls()).toBe(0);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('05 chrome Sprint href keeps squad continuity', async () => {
-      const sprintHref = await page.locator('a[data-top-surface="sprints"]').first().getAttribute('href');
-      expect(sprintHref || '').toMatch(/squad=SD|projects=SD/);
-      assertTelemetryClean(telemetry);
-    });
-
-    await test.step('06 decision drawer Close not clipped under chrome', async () => {
+    await test.step('04 shared overlay remains above chrome and closes on portfolio return', async () => {
       await page.locator('[data-drawer-close]').first().click({ timeout: 2000 }).catch(() => {});
       await page.locator('.gov-loop-primary, [data-loop-primary]').first().click({ timeout: 10000 });
       const drawer = page.locator('#delivera-gov-right-drawer .gov-loop-drawer, #delivera-gov-right-drawer .gov-resolution-sheet, #delivera-gov-right-drawer .gov-right-drawer-panel');
@@ -411,7 +437,7 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('07 Sprint Proof non-empty; Next-move does not explode risk filters', async () => {
+    await test.step('05 sprint cockpit exposes blocker owner and ask without reveal click', async () => {
       await page.goto('/current-sprint?squad=SD&projects=SD&boardId=1');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('.current-sprint-header-bar[data-context-bar="true"]')).toBeVisible({ timeout: 25000 });
@@ -420,20 +446,16 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
         const proofText = (await proofCell.innerText()).trim();
         expect(proofText.length).toBeGreaterThan(0);
       }
-      const beforeUrl = page.url();
-      const nextMove = page.locator('[data-header-action="focus-remediation"]').first();
-      if (await nextMove.count()) {
-        await nextMove.click();
-        await page.waitForTimeout(400);
-        const after = new URL(page.url());
-        const risk = after.searchParams.get('risk') || '';
-        expect(risk.split(',').filter(Boolean).length).toBeLessThanOrEqual(2);
-        expect(after.searchParams.get('squad') || beforeUrl).toMatch(/SD/);
-      }
+      await expect(page.locator('.sprint-intervention-item-inline')).toContainText(/Owner: DMS Scrum Master/i);
+      await expect(page.locator('.sprint-intervention-item-inline')).toContainText(/Prepared ask:/i);
+      await expect(page.locator('.story-groups-grid--priority .story-value-card')).toHaveCount(1);
+      await expect(page.locator('.sprint-evidence-drawer')).not.toHaveAttribute('open', '');
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('08 Actions short CTA or batch group for shared diagnosis', async () => {
+    await test.step('06 sprint filter persists and actions grouping stays honest', async () => {
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', { detail: { riskTags: ['no-log'], source: 'test' } })));
+      await expect(page).toHaveURL(/risk=no-log/);
       await page.goto('/actions?squad=SD');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('body.actions-page')).toBeVisible({ timeout: 15000 });
@@ -442,16 +464,29 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
         const label = await cta.innerText();
         expect(label).toMatch(/Confirm FY\/Q|Review|Open|epics/i);
       }
+      await expect(page.locator('#actions-queue-summary')).toContainText('2 commitments in 1 action group');
+      await expect(page.locator('.action-case-row h3')).toContainText('2 commitments');
+      await page.selectOption('#actions-owner-filter', 'unresolved');
+      await expect(page.locator('.action-case-row')).toHaveCount(0);
+      await page.selectOption('#actions-owner-filter', 'resolved');
+      await expect(page.locator('.action-case-row')).toHaveCount(1);
       await expect(page.locator('[data-top-action="agent"].is-active, [data-top-surface="actions"].is-active')).toHaveCount(1);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('09 Settings exceptions band + AI collapsed; registry find via chrome', async () => {
+    await test.step('07 settings capability, seven exceptions, and search reset', async () => {
       await page.goto('/settings');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('#gov-settings-registry-mount')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('#gov-settings-registry-mount')).toContainText(/Participation exceptions|PI participation/i);
-      await expect(page.locator('.registry-filter:not(.registry-filter--sr-only)')).toHaveCount(0);
+      await expect(page.locator('.registry-filter:not(.registry-filter--sr-only)')).toBeVisible();
+      await expect(page.locator('[data-registry-squad]')).toHaveCount(8);
+      await expect(page.locator('[data-registry-squad] input[name="piIncluded"]:not(:checked)')).toHaveCount(7);
+      const filter = page.locator('[data-registry-filter]');
+      await filter.fill('DMS');
+      await expect(page.locator('[data-registry-squad]:visible')).toHaveCount(1);
+      await filter.fill('');
+      await expect(page.locator('[data-registry-squad]:visible')).toHaveCount(8);
       const aiFold = page.locator('.gov-ai-processing-fold');
       if (await aiFold.count()) {
         await expect(aiFold).not.toHaveAttribute('open', '');
@@ -459,7 +494,26 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('10 logcat clean — zero pageerror fail-fast', async () => {
+    await test.step('08 accessibility geometry and logcat remain clean', async () => {
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      const undersizedControls = await page.locator('input:not([disabled]), select:not([disabled]), button:not([disabled])').evaluateAll((nodes) => nodes.flatMap((node) => {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || !node.getClientRects().length) return [];
+        const box = node.getBoundingClientRect();
+        if (node instanceof HTMLInputElement && ['checkbox', 'radio'].includes(node.type)) {
+          const target = node.closest('label')?.getBoundingClientRect();
+          if (target && target.width >= 44 && target.height >= 44) return [];
+        }
+        if (box.width === 0 || box.height === 0 || (box.width >= 24 && box.height >= 24)) return [];
+        return [{ tag: node.tagName, id: node.id, name: node.getAttribute('name'), width: box.width, height: box.height }];
+      }));
+      expect(undersizedControls).toEqual([]);
+      const leaseKey = `focused-90-readers-${Date.now()}`;
+      const leases = await Promise.all(Array.from({ length: 90 }, () => cache.claimLease(leaseKey, 5000, { namespace: 'focused-test' })));
+      const acquired = leases.filter((lease) => lease.acquired);
+      expect(acquired).toHaveLength(1);
+      await cache.releaseLease(acquired[0]);
+      expect(mocks.getDeterministicAiCalls()).toBe(0);
       assertTelemetryClean(telemetry);
     });
   });

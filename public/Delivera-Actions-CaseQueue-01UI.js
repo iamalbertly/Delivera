@@ -11,10 +11,20 @@ const mount = document.getElementById('actions-queue-mount');
 const summary = document.getElementById('actions-queue-summary');
 const stateFilter = document.getElementById('actions-state-filter');
 const ownerFilter = document.getElementById('actions-owner-filter');
+const clearFilters = document.getElementById('actions-filter-clear');
 const identityMount = document.getElementById('actions-identity-links');
 let cases = [];
 const routeContext = new URLSearchParams(location.search);
 const selectedSquad = String(routeContext.get('squad') || '').trim().toUpperCase();
+if (stateFilter) stateFilter.value = routeContext.get('state') || '';
+if (ownerFilter) ownerFilter.value = routeContext.get('owner') || '';
+
+function syncFilterUrl() {
+  const next = new URL(location.href);
+  if (stateFilter?.value) next.searchParams.set('state', stateFilter.value); else next.searchParams.delete('state');
+  if (ownerFilter?.value) next.searchParams.set('owner', ownerFilter.value); else next.searchParams.delete('owner');
+  history.replaceState(null, '', `${next.pathname}${next.search}${next.hash}`);
+}
 
 function topUrgencyLabel(items) {
   const ranked = items
@@ -58,11 +68,12 @@ function render() {
   const state = stateFilter?.value || '';
   const owner = ownerFilter?.value || '';
   const visible = cases.filter((item) => !state || item.state === state)
-    .filter((item) => !owner || (owner === 'unresolved' ? item.ownerRoute?.unresolved || !item.ownerRoute?.displayName : item.ownerRoute?.displayName && !item.ownerRoute?.unresolved));
+    .filter((item) => {
+      if (!owner) return true;
+      const missing = isOwnerMissing({ ownerRoute: item.ownerRoute });
+      return owner === 'unresolved' ? missing : !missing;
+    });
   const urgency = topUrgencyLabel(visible);
-  summary.textContent = selectedSquad
-    ? `${visible.length} action${visible.length === 1 ? '' : 's'} · top urgency: ${urgency}`
-    : `${visible.length} action${visible.length === 1 ? '' : 's'} ready · top urgency: ${urgency}`;
   renderIdentityStrip();
   const grouped = new Map();
   visible.forEach((item) => {
@@ -74,13 +85,14 @@ function render() {
     const group = grouped.get(key) || [];
     group.push(item); grouped.set(key, group);
   });
+  summary.textContent = `${visible.length} commitment${visible.length === 1 ? '' : 's'} in ${grouped.size} action group${grouped.size === 1 ? '' : 's'} · top urgency: ${urgency}`;
   mount.innerHTML = visible.length ? [...grouped.values()].map((group) => {
     const item = group[0];
     const title = group.length > 1
-      ? `${group.length} · ${item.diagnosisLabel || 'promises share this correction'}`
+      ? `${group.length} commitments · ${item.diagnosisLabel || 'promises share this correction'}`
       : (item.diagnosisLabel || item.title);
     const affected = group.length > 1 ? `<small>${escapeHtml(group.map((entry) => entry.title).slice(0, 3).join(' · '))}</small>` : '';
-    const sourceHref = governanceSpotlightHref(item.squadId || item.squad, { returnTo: '/actions' });
+    const sourceHref = governanceSpotlightHref(item.squadId || item.squad, { returnTo: `${location.pathname}${location.search}` });
     const ownerLine = item.ownerRoute?.displayName || item.ownerRoute?.role || 'Owner route missing';
     const proofLine = item.proofAge?.copy || 'Proof age unavailable.';
     const ownerUnresolved = isOwnerMissing({ ownerRoute: item.ownerRoute });
@@ -100,7 +112,9 @@ function render() {
       const raw = item.recommendedAction || item.nextAction?.label || 'Review missing proof';
       return raw.length > 48 ? `${raw.slice(0, 46).trimEnd()}…` : raw;
     })();
-    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${identityLine}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(ownerLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(shortCta)}</button></div></article>`;
+    const missing = Array.isArray(item.readiness?.missing) ? item.readiness.missing : [];
+    const metadata = missing.length ? `Missing: ${missing.join(', ')}` : 'Required metadata verified';
+    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${identityLine}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><p class="action-case-metadata"><strong>${escapeHtml(metadata)}</strong> · ${escapeHtml(ownerLine)} · affects Governance, Sprint and PI reporting</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(proofLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(shortCta)}</button></div></article>`;
   }).join('') : (() => {
     const emptyHref = governanceSpotlightHref(selectedSquad || '', { returnTo: '/actions' });
     return `<div class="empty-state"><h3>No actions match this view</h3><p><a href="${escapeHtml(emptyHref)}">${selectedSquad ? `Open ${escapeHtml(selectedSquad)} spotlight on Governance` : 'Return to Governance'}</a> for the portfolio answer.</p></div>`;
@@ -141,6 +155,11 @@ async function load() {
   }
 }
 
-stateFilter?.addEventListener('change', render);
-ownerFilter?.addEventListener('change', render);
+stateFilter?.addEventListener('change', () => { syncFilterUrl(); render(); });
+ownerFilter?.addEventListener('change', () => { syncFilterUrl(); render(); });
+clearFilters?.addEventListener('click', () => {
+  if (stateFilter) stateFilter.value = '';
+  if (ownerFilter) ownerFilter.value = '';
+  syncFilterUrl(); render(); stateFilter?.focus();
+});
 void load();

@@ -292,7 +292,6 @@ export function renderDecisionCockpit(data, options = {}) {
   })();
   const quickCreateAttr = quickCreateProjects ? ` data-outcome-projects="${escapeHtml(quickCreateProjects)}"` : '';
   const leanClass = viewportLean ? ' decision-cockpit-shell--viewport-lean' : '';
-  const quickCreateChip = `<button type="button" class="cs-cockpit-quick-create btn btn-primary btn-compact" data-open-outcome-modal data-outcome-context="Create work from current sprint context."${quickCreateAttr} style="margin-bottom:6px;font-size:0.78rem;">+ Create work</button>`;
   const attentionQueueHtml = renderAttentionQueueTable({
     title: COPY.attentionQueue,
     items: cockpitRisksToAttentionItems(topRisks),
@@ -301,9 +300,9 @@ export function renderDecisionCockpit(data, options = {}) {
   // Header Take action owns next-move SSOT — one value strip above the fold, no twin lean next-move.
   const summaryAboveFold = buildSummaryStrip(data, cockpit);
   return ''
-    + attentionQueueHtml
+    + `<details class="sprint-attention-fold"><summary>${escapeHtml(COPY.attentionQueue)} · ${topRisks.length}</summary>${attentionQueueHtml}</details>`
     + '<section class="decision-cockpit-shell' + leanClass + '">'
-    + (viewportLean ? quickCreateChip + summaryAboveFold : summaryAboveFold)
+    + summaryAboveFold
     + '<details class="decision-cockpit-details">'
     + `<summary class="decision-cockpit-details-summary">${escapeHtml(collapseSummary)}</summary>`
     + '<div class="decision-cockpit-details-body">'

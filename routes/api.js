@@ -1,7 +1,7 @@
 // SIZE-EXEMPT: Central API surface keeps route handlers co-located for auth, caching, and
 // error-contract consistency across report/current-sprint/outcome flows.
 import express from 'express';
-import { requireAuth, requireSuperAdmin } from '../lib/middleware.js';
+import { requireAuth, requireSuperAdmin, isSuperAdminRequest } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { sendJsonOnce, sendErrorOnce } from '../lib/Delivera-Http-SendOnce-01Helper.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
@@ -951,7 +951,11 @@ router.get('/api/session-meta.json', requireAuth, (req, res) => {
     const emailMasked = email
         ? email.replace(/^(.).+(@.+)$/, '$1***$2')
         : '';
-    return res.json({ initials: initials || 'DL', emailMasked });
+    return res.json({
+        initials: initials || 'DL',
+        emailMasked,
+        canManageOrganizationSettings: isSuperAdminRequest(req),
+    });
 });
 
 router.post('/api/client-log', requireAuth, (req, res) => {

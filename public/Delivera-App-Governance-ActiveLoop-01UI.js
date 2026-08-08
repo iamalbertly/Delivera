@@ -277,7 +277,9 @@ function matrixRow(squad) {
   const sprintLabel = sprint.state === 'active'
     ? `${sprint.sprint?.name || sprint.sprintName || 'Active sprint'}${sprint.daysRemaining != null ? ` · ${sprint.daysRemaining} days` : ''}`
     : (sprint.state === 'unavailable' ? 'Sprint status unavailable' : String(sprint.state || 'Unverified').replace(/-/g, ' '));
-  const currentReality = Number(squad.attentionCount)
+  const currentReality = baseline.state === 'missing'
+    ? 'Cannot verify'
+    : Number(squad.attentionCount)
     ? `${squad.attentionCount} need attention${sprintLabel ? ` · ${sprintLabel}` : ''}`
     : (sprintLabel || contract.detail || squad.topState || 'Aligned');
   const piImpact = clusterFirstUnknownImpact(squad, rework);
@@ -329,22 +331,10 @@ function portfolioMatrix(answer) {
       ${excludedOperationalGroups(answer)}
     </div>`;
   }
-  const allSquads = answer.squads || [];
-  // Only group true baseline/setup gaps — never bury diagnosed squads (FIN/DMS) with ASG wallpaper.
-  const cannotVerify = allSquads.filter((squad) => {
-    const baselineMissing = squad.baselineCoverage?.state === 'missing';
-    const label = String(squad.contractState?.label || '');
-    const state = squad.contractState?.state || '';
-    const hasDiagnosis = Array.isArray(squad.diagnosisGroups) && squad.diagnosisGroups.length > 0;
-    if (hasDiagnosis || Number(squad.attentionCount || 0) > 0) return false;
-    return baselineMissing || state === 'cannot-verify' || state === 'missing' || label === 'Cannot verify';
-  });
-  const rest = allSquads.filter((squad) => !cannotVerify.includes(squad));
-  const groupCannotVerify = cannotVerify.length >= 2;
-  const visibleSquads = groupCannotVerify ? rest : allSquads;
+  const visibleSquads = answer.squads || [];
   const matrixHeadTitle = 'Squads ordered by decision urgency';
   const matrixHeadKicker = 'Portfolio comparison';
-  const needsExpand = (visibleSquads.length + (groupCannotVerify ? 1 : 0)) > 3;
+  const needsExpand = visibleSquads.length > 5;
   const clearBtn = '';
   const visibleLenses = lenses.filter(([id]) => id !== 'squad');
   const lensesToolbar = (visibleLenses.length > 1)
@@ -355,7 +345,6 @@ function portfolioMatrix(answer) {
     ${lensesToolbar}
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
       <div class="gov-story-columns" role="row"><span>Squad</span><span>Current reality</span><span>PI impact</span><span>Next move</span></div>
-      ${groupCannotVerify ? cannotVerifySummaryRow(cannotVerify) : ''}
       ${visibleSquads.map(matrixRow).join('')}
     </div>
     ${needsExpand ? `<button type="button" class="btn btn-link btn-compact gov-matrix-expand" data-matrix-expand>Show more squads</button>` : ''}
@@ -459,7 +448,7 @@ function renderHero(answer) {
   const focusSquad = (answer?.squads || []).find((item) => item.squad === focusKey);
   const isSquadView = activeLens === 'squad' && Boolean(spotlightKey) && Boolean(focusSquad);
   // H1 owns the one diagnosis sentence — do not append next-move (rail owns the verb).
-  const squadVerdict = isSquadView
+  const fullVerdict = isSquadView
     ? `${focusSquad.displayName || focusSquad.squad}: ${focusSquad.contractState?.label || focusSquad.topState || 'Evidence needs review'}`
     : answer.answer;
   const nextLabel = noBaseline
@@ -471,9 +460,14 @@ function renderHero(answer) {
         : (focusSquad ? `Open ${String(focusSquad.displayName || focusSquad.squad).split(' ')[0]} spotlight` : 'Review aligned promises')));
   const sourceLine = String(answer.sourceLine || '').replace(/\s*·\s*last verified[^·]*$/i, '').trim() || answer.sourceLine;
   const missionKicker = isSquadView ? 'Selected squad' : 'Portfolio mission';
+  const squadVerdict = String(fullVerdict || 'Portfolio truth needs verification').split(/(?<=[.!?])\s+/)[0].slice(0, 150);
+  const causeLine = isSquadView
+    ? (focusSquad.contractState?.detail || focusSquad.sprintReality?.copy || 'Verified DMS evidence remains isolated from portfolio peers.')
+    : (answer.lensSummaries?.overall || sourceLine || 'Stored squad truth is compared across the included portfolio.');
+  const recommendationLine = noBaseline ? 'Recover the PI contract.' : (focusSquad ? matrixNextMoveLabel(focusSquad) : 'Review the highest-risk squad first.');
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
     <div class="gov-story-mission"><span>${escapeHtml(missionKicker)}</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
-    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad answer' : 'PI contract answer'}</span></div><h1 id="gov-loop-answer">${escapeHtml(squadVerdict)}</h1>${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
+    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad answer' : 'PI contract answer'}</span></div><h1 id="gov-loop-answer">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause"><strong>Why:</strong> ${escapeHtml(causeLine)}</p><p class="gov-loop-recommendation"><strong>Act:</strong> ${escapeHtml(recommendationLine)}</p>${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
     <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.copy}</small></span></div><div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>${nextMoveRailHtml(answer)}</div>
     ${portfolioMatrix(answer)}
     <div class="gov-story-update" role="status" hidden><span data-story-update-copy>New evidence ready.</span> <button type="button" class="btn btn-link btn-compact" data-story-apply>Review changes</button><button type="button" class="btn btn-link btn-compact" data-story-keep-draft>Keep my edits as a new decision draft</button></div>
@@ -808,7 +802,7 @@ function syncSpotlightTodayLink(answer = activeAnswer) {
 }
 
 function clearSpotlight(pushHistory = false) {
-  spotlightKey = ''; activeSpotlightDetail = null; closePreview();
+  spotlightKey = ''; activeSpotlightDetail = null; closePreview(); closeAllGovernanceOverlays();
   if (pushHistory && activeLens === 'squad' && activeAnswer) {
     activeLens = 'overall';
     updateUrl('', true);
@@ -968,7 +962,7 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
         primary.dataset.promiseId = currentDecision.promiseId;
       }
     }
-    mount.innerHTML = `${contextConflict ? '<p class="gov-loop-stale-warning gov-loop-stale-warning--quiet" role="status" data-stale-quiet="true">Refreshing detail · verified proof stays usable</p>' : ''}${spotlightHtml(detail)}`;
+    mount.innerHTML = `${contextConflict ? '<p class="gov-loop-stale-warning gov-loop-stale-warning--quiet" role="status" data-stale-quiet="true">Showing last verified squad proof · newer mismatched context was quarantined</p>' : ''}${spotlightHtml(detail)}`;
     mount.querySelectorAll('[data-loop-promise]').forEach((button) => button.addEventListener('click', () => void openPromiseDrawer(button.getAttribute('data-loop-promise'))));
     mount.querySelectorAll('[data-theme-rename]').forEach((button) => button.addEventListener('click', () => beginThemeRename(button, squad, mount)));
     mount.querySelectorAll('[data-classify-cluster]').forEach((button) => button.addEventListener('click', () => classifyUnknownCluster(button, detail, mount)));

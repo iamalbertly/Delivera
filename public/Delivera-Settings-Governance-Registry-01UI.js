@@ -3,6 +3,7 @@ import { openRightDrawer, closeRightDrawer } from './Delivera-App-Shared-RightDr
 
 const mount = document.getElementById('gov-settings-registry-mount');
 let registry = null;
+let canManageOrganizationSettings = false;
 const drafts = new Map();
 
 function personName(value) { return typeof value === 'string' ? value : value?.displayName || value?.name || ''; }
@@ -26,7 +27,9 @@ function formValues(form) {
     ? boardRaw.split(/[,\s]+/).map(Number).filter((id) => Number.isFinite(id) && id > 0)
     : [];
   return {
-    participationState: normalized(form.elements.participationState?.value),
+    participationState: form.elements.piIncluded?.checked
+      ? 'pi-governed'
+      : (normalized(form.elements.excludedReason?.value) || 'pending-consent'),
     productOwner: normalized(form.elements.productOwner?.value),
     scrumMaster: normalized(form.elements.scrumMaster?.value),
     streamLead: normalized(form.elements.streamLead?.value),
@@ -50,21 +53,23 @@ function row(item) {
     : `${personName(item.productOwner)} · ${personName(item.scrumMaster)}`;
   const boardIds = Array.isArray(item.boardMapping) ? item.boardMapping.join(', ') : '';
   const boardSuggestLabel = boardCandidates.slice(0, 2).map((board) => board.name || board.id).join(' · ');
+  const readOnly = canManageOrganizationSettings ? '' : ' disabled';
+  const included = item.participationState === 'pi-governed';
   return `<form class="registry-row registry-row--compact" data-registry-squad="${escapeHtml(item.squadKey)}" data-registry-revision="${Number(item.revision) || 1}" data-original="${original}">
-    <label class="registry-select" title="Select for one atomic organization change"><input type="checkbox" data-registry-select aria-label="Select ${escapeHtml(item.friendlyName)}"></label>
+    <label class="registry-select" title="Select for one atomic organization change"><input type="checkbox" data-registry-select aria-label="Select ${escapeHtml(item.friendlyName)}"${readOnly}></label>
     <div class="registry-identity"><strong>${escapeHtml(item.friendlyName)}</strong><small>${escapeHtml(item.squadKey)} · ${escapeHtml(item.participationState.replace(/-/g, ' '))} · ${escapeHtml(boardCopy)}</small></div>
     <div class="registry-route-summary"><span>${escapeHtml(ownerRoute)}</span></div>
-    <button class="registry-disclosure" type="button" data-registry-edit aria-expanded="false" aria-label="Edit ${escapeHtml(item.friendlyName)}" title="Edit ${escapeHtml(item.friendlyName)}"><span aria-hidden="true">›</span></button>
+    <button class="registry-disclosure" type="button" data-registry-edit aria-expanded="false" aria-label="${canManageOrganizationSettings ? 'Edit' : 'Inspect'} ${escapeHtml(item.friendlyName)}" title="${canManageOrganizationSettings ? 'Edit' : 'Inspect'} ${escapeHtml(item.friendlyName)}"><span aria-hidden="true">›</span></button>
     <div class="registry-editor" hidden>
-      <label><span>Participation</span><select name="participationState"><option value="pi-governed" ${item.participationState === 'pi-governed' ? 'selected' : ''}>PI-governed</option><option value="pending-consent" ${item.participationState === 'pending-consent' ? 'selected' : ''}>Pending consent</option><option value="operational-exception" ${item.participationState === 'operational-exception' ? 'selected' : ''}>Operational exception</option></select></label>
-      <label><span>Product Owner</span><input name="productOwner" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.productOwner))}" placeholder="Not assigned"></label>
-      <label><span>Scrum Master</span><input name="scrumMaster" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.scrumMaster))}" placeholder="Not assigned"></label>
-      <label><span>Stream lead</span><input name="streamLead" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.streamLead))}" placeholder="Not assigned"></label>
-      <label><span>Board IDs</span><input name="boardMapping" autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(boardIds)}" placeholder="e.g. 230" aria-label="Board mapping for ${escapeHtml(item.friendlyName)}"></label>
+      <label class="registry-participation-toggle"><span>Included in PI governance</span><input type="checkbox" name="piIncluded" ${included ? 'checked' : ''}${readOnly}></label>
+      <label data-excluded-reason ${included ? 'hidden' : ''}><span>Exclusion reason</span><select name="excludedReason"${readOnly}><option value="pending-consent" ${item.participationState === 'pending-consent' ? 'selected' : ''}>Pending consent</option><option value="operational-exception" ${item.participationState === 'operational-exception' ? 'selected' : ''}>Operational exception</option></select></label>
+      <label><span>Product Owner</span><input name="productOwner" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.productOwner))}" placeholder="Not assigned"${readOnly}></label>
+      <label><span>Scrum Master</span><input name="scrumMaster" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.scrumMaster))}" placeholder="Not assigned"${readOnly}></label>
+      <label><span>Stream lead</span><input name="streamLead" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.streamLead))}" placeholder="Not assigned"${readOnly}></label>
+      <label><span>Board IDs</span><input name="boardMapping" autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(boardIds)}" placeholder="e.g. 230" aria-label="Board mapping for ${escapeHtml(item.friendlyName)}"${readOnly}></label>
       <datalist id="people-${escapeHtml(item.squadKey)}">${peopleOptions}</datalist>
-      ${people.length ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-accept-suggestion>Accept people suggestion</button><small>${escapeHtml(people.slice(0, 2).map((p) => p.displayName).join(' · '))}</small></div>` : ''}
-      ${boardCandidates.length ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-accept-board-suggestion>Accept board suggestion</button><small>${escapeHtml(boardSuggestLabel)}</small></div>` : ''}
-      <div class="registry-save"><input name="reason" autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Reason for change" aria-label="Reason for ${escapeHtml(item.friendlyName)} change"><button class="btn btn-primary btn-compact" type="submit" disabled>Save squad</button><small data-registry-status aria-live="polite">${item.lastVerifiedAt ? `Verified ${new Date(item.lastVerifiedAt).toLocaleDateString()}` : boardCandidates.length ? 'Database suggestions ready for review' : 'Not yet verified'}</small></div>
+      ${(people.length || boardCandidates.length) ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-apply-verified-suggestions${readOnly}>Apply verified suggestions</button><small>${escapeHtml([people.slice(0, 2).map((p) => p.displayName).join(' · '), boardSuggestLabel].filter(Boolean).join(' · '))}</small></div>` : ''}
+      <div class="registry-save"><input name="reason" autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Reason for change" aria-label="Reason for ${escapeHtml(item.friendlyName)} change"${readOnly}><button class="btn btn-primary btn-compact" type="submit" disabled>Save squad</button><small data-registry-status aria-live="polite">${canManageOrganizationSettings ? (item.lastVerifiedAt ? `Verified ${new Date(item.lastVerifiedAt).toLocaleDateString()}` : boardCandidates.length ? 'Database suggestions ready for review' : 'Not yet verified') : 'Organization truth · read only'}</small></div>
     </div>
   </form>`;
 }
@@ -85,11 +90,11 @@ function render() {
   const ownerRouteGaps = squads.filter((item) => !isParticipationException(item) && hasOwnerGap(item));
   const platformHealthy = squads.filter((item) => !isParticipationException(item) && !hasOwnerGap(item));
   // Band headers carry counts — drop duplicate health-strip KPI tiles. Bulk stays folded.
-  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.</p><p class="registry-find-hint" data-registry-find-hint>Press <kbd>/</kbd> or use top chrome <strong>Find squad</strong> to filter exceptions.</p></div><span>Registry v${Number(registry.version) || 1}</span></div>
-    <label class="registry-filter registry-filter--sr-only">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state" aria-hidden="true" tabindex="-1"></label>
+  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>${canManageOrganizationSettings ? 'Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.' : 'Organization settings are read-only for this account. An authorized super admin publishes changes once for every Delivera surface.'}</p></div><span>Registry v${Number(registry.version) || 1}</span></div>
+    <label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label>
     ${renderBand('Participation exceptions', 'These squads are excluded or pending onboarding, so this band should stay intentionally small.', participationExceptions, 'No participation exceptions are active.')}
     ${renderBand('Owner-route gaps', 'Fix missing PO and SM routes before the full registry list so actions can land on the right people.', ownerRouteGaps, 'All visible squads have PO and SM routes.')}
-    <details class="registry-bulk" aria-labelledby="registry-bulk-title"><summary id="registry-bulk-title">Bulk participation change <span data-selected-count>0 squads selected</span></summary><div class="registry-bulk-body"><p>Updates are atomic and auditable.</p><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></div></details>
+    ${canManageOrganizationSettings ? '<details class="registry-bulk" aria-labelledby="registry-bulk-title"><summary id="registry-bulk-title">Bulk participation change <span data-selected-count>0 squads selected</span></summary><div class="registry-bulk-body"><p>Updates are atomic and auditable.</p><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></div></details>' : ''}
     ${renderBand('Platform health / audit', 'Healthy squads remain editable here, but the first attention should go to the exception and owner-gap bands above.', platformHealthy, 'No fully routed PI-governed squads are available yet.')}
     <details class="registry-audit"><summary>Recent organization changes</summary>${auditHistory()}</details>`;
   wireRows();
@@ -98,10 +103,13 @@ function render() {
 }
 
 function filterRows(event) {
-  const query = normalized(event.currentTarget.value).toLowerCase();
+  const query = normalized(event?.currentTarget?.value).toLowerCase();
+  const topSearch = document.getElementById('app-top-search');
+  if (topSearch && normalized(topSearch.value).toLowerCase() !== query) topSearch.value = event?.currentTarget?.value || '';
   mount.querySelectorAll('[data-registry-squad]').forEach((form) => {
     form.hidden = Boolean(query) && !form.textContent.toLowerCase().includes(query);
   });
+  if (!query) mount.querySelectorAll('[data-registry-squad]').forEach((form) => { form.hidden = false; });
 }
 
 function updateRowState(form) {
@@ -117,7 +125,13 @@ function updateRowState(form) {
 function wireRows() {
   mount.querySelectorAll('[data-registry-squad]').forEach((form) => {
     const draft = drafts.get(form.dataset.registrySquad);
-    if (draft) Object.entries(draft.values || {}).forEach(([name, value]) => { if (form.elements[name]) form.elements[name].value = value; });
+    if (draft) Object.entries(draft.values || {}).forEach(([name, value]) => {
+      if (name === 'participationState') {
+        form.elements.piIncluded.checked = value === 'pi-governed';
+        form.elements.excludedReason.value = value === 'operational-exception' ? value : 'pending-consent';
+        form.querySelector('[data-excluded-reason]').hidden = value === 'pi-governed';
+      } else if (form.elements[name]) form.elements[name].value = value;
+    });
     form.addEventListener('submit', saveOne);
     form.querySelector('[data-registry-edit]')?.addEventListener('click', (event) => {
       const editor = form.querySelector('.registry-editor');
@@ -126,11 +140,14 @@ function wireRows() {
       if (!editor.hidden) editor.querySelector('select,input')?.focus();
     });
     form.addEventListener('input', () => updateRowState(form));
+    form.elements.piIncluded?.addEventListener('change', () => {
+      form.querySelector('[data-excluded-reason]').hidden = form.elements.piIncluded.checked;
+      updateRowState(form);
+    });
     form.querySelector('[data-registry-select]')?.addEventListener('change', updateBulkState);
-    form.querySelector('[data-accept-suggestion]')?.addEventListener('click', () => {
+    form.querySelector('[data-apply-verified-suggestions]')?.addEventListener('click', () => {
       const squad = registry.squads.find((item) => item.squadKey === form.dataset.registrySquad);
       const people = squad?.suggestions?.people || [];
-      if (!people.length) return;
       const po = people.find((p) => /product owner|po/i.test(String(p.role || p.evidence || ''))) || people[0];
       const sm = people.find((p) => /scrum master|sm/i.test(String(p.role || p.evidence || ''))) || people[1] || people[0];
       if (form.elements.productOwner && !normalized(form.elements.productOwner.value) && po?.displayName) {
@@ -139,22 +156,13 @@ function wireRows() {
       if (form.elements.scrumMaster && !normalized(form.elements.scrumMaster.value) && sm?.displayName) {
         form.elements.scrumMaster.value = sm.displayName;
       }
-      if (!normalized(form.elements.reason?.value)) form.elements.reason.value = 'Accepted registry people suggestion';
-      updateRowState(form);
-      const status = form.querySelector('[data-registry-status]');
-      if (status) status.textContent = 'Suggestion applied — review and save.';
-    });
-    form.querySelector('[data-accept-board-suggestion]')?.addEventListener('click', () => {
-      const squad = registry.squads.find((item) => item.squadKey === form.dataset.registrySquad);
       const boards = squad?.suggestions?.boardMapping || [];
-      if (!boards.length || !form.elements.boardMapping) return;
       const ids = boards.map((board) => Number(board.id || board.boardId || board)).filter((id) => Number.isFinite(id) && id > 0);
-      if (!ids.length) return;
-      form.elements.boardMapping.value = ids.join(', ');
-      if (!normalized(form.elements.reason?.value)) form.elements.reason.value = 'Accepted registry board suggestion';
+      if (ids.length && form.elements.boardMapping && !normalized(form.elements.boardMapping.value)) form.elements.boardMapping.value = ids.join(', ');
+      if (!normalized(form.elements.reason?.value)) form.elements.reason.value = 'Applied verified database suggestions';
       updateRowState(form);
       const status = form.querySelector('[data-registry-status]');
-      if (status) status.textContent = 'Board suggestion applied — review and save.';
+      if (status) status.textContent = 'Verified suggestions filled missing fields — review and save.';
     });
     updateRowState(form);
   });
@@ -163,6 +171,7 @@ function wireRows() {
 function selectedForms() { return [...mount.querySelectorAll('[data-registry-squad]')].filter((form) => form.querySelector('[data-registry-select]')?.checked); }
 
 function updateBulkState() {
+  if (!mount.querySelector('[data-selected-count]')) return;
   const selected = selectedForms();
   const reason = normalized(mount.querySelector('[data-bulk-reason]')?.value);
   const participation = normalized(mount.querySelector('[data-bulk-participation]')?.value);
@@ -190,6 +199,7 @@ function updateBulkState() {
 }
 
 function wireBulk() {
+  if (!canManageOrganizationSettings || !mount.querySelector('.registry-bulk')) return;
   mount.querySelector('[data-select-pending]')?.addEventListener('click', () => {
     mount.querySelectorAll('[data-registry-squad]').forEach((form) => {
       const item = registry.squads.find((squad) => squad.squadKey === form.dataset.registrySquad);
@@ -336,9 +346,13 @@ function showBulkPreviewDrawer({ participationState, names, reason }) {
 
 async function load() {
   try {
-    const response = await fetch('/api/governance/registry.json', { credentials: 'same-origin' });
-    if (!response.ok) throw new Error();
-    registry = await response.json(); render();
+    const [registryResponse, sessionResponse] = await Promise.all([
+      fetch('/api/governance/registry.json', { credentials: 'same-origin' }),
+      fetch('/api/session-meta.json', { credentials: 'same-origin' }),
+    ]);
+    if (!registryResponse.ok || !sessionResponse.ok) throw new Error();
+    [registry, { canManageOrganizationSettings }] = await Promise.all([registryResponse.json(), sessionResponse.json()]);
+    render();
   } catch (_) {
     mount.innerHTML = '<h2 id="governance-registry-title">PI participation and owner routes</h2><p>Organization settings are unavailable. Governance will keep the last verified projection and block registry writes.</p>';
   }

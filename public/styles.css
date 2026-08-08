@@ -12495,6 +12495,28 @@ body.current-sprint-page .burndown-metric-inline {
   gap: 12px;
   margin-top: 14px;
 }
+.story-groups-grid--priority { grid-template-columns: 1fr; }
+.story-groups-grid--priority .story-group-card-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.story-groups-grid--priority .story-value-card { grid-template-columns: minmax(280px,1.2fr) minmax(0,2fr); align-items: start; padding: 10px 12px; }
+.story-groups-grid--priority .story-value-description { display: none; }
+.story-groups-grid--priority .story-value-details { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.story-groups-grid--priority .story-value-details dt { font-size: .66rem; }
+.story-groups-grid--priority .story-value-details dd { font-size: .76rem; }
+.sprint-secondary-fold,.sprint-attention-fold { margin-top: 12px; border: 1px solid var(--border,#dbe3ef); border-radius: 14px; background: #fff; }
+.sprint-secondary-fold > summary,.sprint-attention-fold > summary { min-height: 44px; padding: 11px 14px; color: #334155; font-weight: 750; cursor: pointer; }
+.sprint-secondary-fold > div,.sprint-attention-fold > section { padding: 0 12px 12px; }
+.sprint-visibility-grid { grid-template-columns: 1fr; }
+.sprint-intervention-item-inline { display: grid; gap: 2px; border-radius: 12px !important; text-align: left; white-space: normal; }
+.sprint-intervention-item-inline > span { font-size: .74rem; font-weight: 600; }
+.sprint-intervention-item-inline .sprint-inline-nudge { opacity: .94; }
+@media (min-width: 1180px) {
+  body.current-sprint-page #current-sprint-content { max-width: none; }
+  body.current-sprint-page .story-groups-grid--priority .story-group-section { padding: 14px; }
+}
+@media (max-width: 900px) {
+  .story-groups-grid--priority .story-value-card { grid-template-columns: 1fr; }
+  .story-groups-grid--priority .story-value-details { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
 
 .sprint-story-signals-row {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -18648,6 +18670,8 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .registry-row--compact { grid-template-columns: 32px minmax(240px,1.5fr) minmax(220px,1fr) auto; align-items: center; }
 .registry-select { display: grid; place-items: center; }
 .registry-select input { width: 18px; height: 18px; }
+.registry-select { width: 44px; min-height: 44px; }
+.registry-editor input:not([type="checkbox"]),.registry-editor select,.registry-bulk input,.registry-bulk select { min-height: 44px; }
 .registry-route-summary { display: flex; flex-wrap: wrap; gap: 6px; color: #475569; font-size: .78rem; }
 .registry-route-summary span { padding: 4px 7px; border-radius: 999px; background: #f1f5f9; }
 .registry-editor { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4,minmax(130px,1fr)) minmax(230px,1.25fr); gap: 10px; align-items: end; padding-top: 10px; border-top: 1px solid #e2e8f0; }
@@ -18685,6 +18709,16 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 .action-case-source--text:hover { color: #0f172a; }
 .registry-suggestion-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 8px; }
 .registry-suggestion-bar small { color: #64748b; }
+.gov-loop-cause,.gov-loop-recommendation { max-width: 72ch; margin: 5px 0 0; color: #334155; font-size: .86rem; line-height: 1.4; }
+.gov-loop-recommendation { color: #172033; }
+.registry-filter { max-width: 420px; margin: 12px 0; }
+.registry-filter input { min-height: 44px; }
+.registry-participation-toggle { align-self: center; grid-template-columns: 1fr auto; align-items: center; min-height: 44px; }
+.registry-participation-toggle input { width: 44px; height: 24px; accent-color: var(--primary, #b00020); }
+.action-case-metadata { color: #475569; font-size: .78rem; }
+.actions-queue-filters-body { align-items: end; }
+.actions-queue-filters-body select { min-height: 40px; }
+[data-excluded-reason][hidden] { display: none; }
 [data-diagnostics-only] { display: none !important; }
 .gov-diagnosis-groups { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 8px; margin: 10px 0; }
 .gov-diagnosis-groups > h3 { grid-column: 1 / -1; margin: 0; font-size: .86rem; }

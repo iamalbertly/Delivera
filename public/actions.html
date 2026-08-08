@@ -16,11 +16,12 @@
           <p id="actions-queue-summary" aria-live="polite">Loading the last verified queue…</p>
           <div id="actions-identity-links" class="gov-loop-identity-links" hidden aria-live="polite"></div>
         </div>
-        <details class="actions-queue-filters">
-          <summary>Filters</summary>
+        <details class="actions-queue-filters" open>
+          <summary>Queue filters</summary>
           <div class="actions-queue-filters-body">
-            <label>State<select id="actions-state-filter"><option value="">All open states</option><option value="reply-received-ready-to-recheck">Ready to re-check</option><option value="escalation-due">Escalation due</option><option value="awaiting-owner">Awaiting owner</option><option value="needs-attention">Needs attention</option></select></label>
-            <label>Owner route<select id="actions-owner-filter"><option value="">All owner routes</option><option value="unresolved">Owner unresolved</option><option value="resolved">Owner resolved</option></select></label>
+            <label><span>State</span><select id="actions-state-filter"><option value="">All open states</option><option value="reply-received-ready-to-recheck">Ready to re-check</option><option value="escalation-due">Escalation due</option><option value="awaiting-owner">Awaiting owner</option><option value="needs-attention">Needs attention</option></select></label>
+            <label><span>Owner route</span><select id="actions-owner-filter"><option value="">All owner routes</option><option value="unresolved">Owner unresolved</option><option value="resolved">Owner resolved</option></select></label>
+            <button type="button" class="btn btn-link btn-compact" id="actions-filter-clear">Clear</button>
           </div>
         </details>
       </div>

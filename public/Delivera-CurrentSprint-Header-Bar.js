@@ -623,10 +623,11 @@ export function renderHeaderBar(data, options = {}) {
       : topBlockerKey ? `Next move: Review ${topBlockerKey}` : `Next move: ${SPRINT_COPY.takeAction}`;
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
-    html += '<button type="button" class="sprint-intervention-item sprint-intervention-item-primary" data-header-action="focus-remediation" data-sprint-lean-next-move'
+    const inlineOwner = cockpitAction.assignee || 'Squad swarm';
+    const inlineAsk = cockpitAction.recommendedAction || cockpitAction.nextAction || takeActionLabel;
+    html += '<div class="sprint-intervention-item sprint-intervention-item-primary sprint-intervention-item-inline" data-sprint-lean-next-move'
       + ' data-issue-key="' + escapeHtml(topBlockerKey) + '"'
-      + (sendAllowed ? '' : ' disabled aria-disabled="true"')
-      + ' title="' + escapeHtml(takeActionTitle) + '">' + escapeHtml(takeActionLabel) + '</button>';
+      + ' title="' + escapeHtml(takeActionTitle) + '"><strong>' + escapeHtml(takeActionLabel) + '</strong><span>Owner: ' + escapeHtml(inlineOwner) + '</span><span class="sprint-inline-nudge">Prepared ask: ' + escapeHtml(inlineAsk) + '</span></div>';
     // Intervention queue + shortlist live in the view drawer — primary Take action is first-fold SSOT.
     html += '<span class="header-export-readiness" title="' + escapeHtml(statusSummary) + '"><span>' + escapeHtml(exportReadiness) + '</span><span class="header-export-readiness-sep">|</span><span>' + escapeHtml(verdictInfo.trustLabel) + '</span>' + (viewportLean ? '' : ('<span class="header-export-readiness-sep">|</span><span>' + escapeHtml(interventionText) + '</span>')) + '</span>';
   } else {

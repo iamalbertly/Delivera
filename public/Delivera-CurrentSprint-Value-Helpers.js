@@ -40,7 +40,7 @@ export function deriveBusinessOutcome(story = {}) {
   if (text.includes('visibility') || text.includes('dashboard')) return 'Improves visibility so business and delivery decisions can be made earlier.';
   if (containsAny(text, ENABLER_HINTS)) return 'Protects release flow, integration trust, and delivery reliability for customer-facing work.';
   if (containsAny(text, CX_HINTS)) return 'Improves the quality and speed of the customer-facing experience this sprint.';
-  return 'Moves a measurable sprint outcome forward in a way the business can explain clearly.';
+  return 'Impact not recorded in Jira.';
 }
 
 export function deriveLinkedKpi(story = {}) {
@@ -51,7 +51,7 @@ export function deriveLinkedKpi(story = {}) {
   if (text.includes('report') || text.includes('dashboard')) return 'Supports reporting adoption and decision speed';
   if (tag === 'CX') return 'Supports customer response confidence';
   if (tag === 'Growth') return 'Supports growth KPI visibility';
-  return 'Supports flow efficiency and delivery trust';
+  return 'KPI not recorded in Jira';
 }
 
 export function deriveSprintGoal(data = {}) {

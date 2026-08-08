@@ -507,13 +507,18 @@ export function renderStories(data) {
   html += '</section>';
   html += '<section class="sprint-visibility-grid">';
   html += renderDeliveredSection();
-  html += renderBlockersPanel();
   html += '</section>';
-  html += '<section class="story-groups-grid" aria-label="Grouped sprint stories">';
-  html += renderStoryGroupSection('value', 'Value Delivery', 'User-facing work and KPI movement that the business can recognise immediately.');
-  html += renderStoryGroupSection('enabler', 'Enablers', 'Technical work that protects speed, trust, and the ability to keep delivering value.');
-  html += renderStoryGroupSection('blocked', 'Blocked / At Risk', 'Stories that need intervention because ownership, flow, estimate, or blocker signals are present.', 'blocker');
-  html += '</section>';
+  const priorityStories = [...stories].sort((left, right) => {
+    const leftRisk = (storyRiskTagMap.get(String(left?.issueKey || left?.key || '').toUpperCase()) || []).length;
+    const rightRisk = (storyRiskTagMap.get(String(right?.issueKey || right?.key || '').toUpperCase()) || []).length;
+    const leftDone = /done|closed|resolved/i.test(String(left?.status || '')) ? 1 : 0;
+    const rightDone = /done|closed|resolved/i.test(String(right?.status || '')) ? 1 : 0;
+    return rightRisk - leftRisk || leftDone - rightDone;
+  }).slice(0, 5);
+  html += '<section class="story-groups-grid story-groups-grid--priority" aria-label="Highest-priority sprint work">';
+  html += '<section class="story-group-section"><div class="sprint-group-header"><div><p class="sprint-group-kicker">Priority work</p><h3>Five highest-signal items</h3></div></div><p class="sprint-group-copy">Blocked and unfinished work is ranked first. Open an issue key directly for its evidence.</p><div class="story-group-card-list">';
+  priorityStories.forEach((story) => { html += renderStoryValueCard(story); });
+  html += '</div></section></section>';
 
   if (dailySeries.length > 0) {
     const dayKeysSet = new Set();
@@ -728,7 +733,7 @@ export function renderStories(data) {
   if (!stories.length) {
     html += renderEmptyStateHtml('No work items', 'No work items in this sprint.', '');
   } else {
-    html += '<details class="sprint-evidence-drawer" open>';
+    html += '<details class="sprint-evidence-drawer">';
     html += '<summary class="sprint-evidence-summary">Open Jira evidence and work table</summary>';
     // Prevent rendering all rows to avoid large initial DOM
     const largeBoardMode = stories.length >= 18;
@@ -1111,5 +1116,11 @@ export function wireDailyCompletionTimelineHandlers() {
     } catch (_) {}
     initializeStoryHierarchy();
     initializeMobileCards();
+    const initialRisk = new URL(window.location.href).searchParams.get('risk') || '';
+    if (initialRisk) {
+      window.dispatchEvent(new CustomEvent('currentSprint:applyWorkRiskFilter', {
+        detail: { riskTags: initialRisk.split(',').map((tag) => tag.trim()).filter(Boolean), source: 'url-restore' },
+      }));
+    }
   } catch (_) {}
 }

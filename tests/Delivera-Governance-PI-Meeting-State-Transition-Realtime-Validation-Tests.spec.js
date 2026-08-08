@@ -446,7 +446,8 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await page.locator('[data-registry-filter]').fill('');
     await expect(row.locator('[type="submit"]')).toBeDisabled();
     await row.locator('[data-registry-edit]').click();
-    await row.locator('[name="participationState"]').selectOption('pending-consent');
+    await row.locator('[name="piIncluded"]').uncheck();
+    await row.locator('[name="excludedReason"]').selectOption('pending-consent');
     await row.locator('[name="reason"]').fill('Squad onboarding consent is pending');
     await row.locator('[type="submit"]').click();
     await expect(row.locator('[data-registry-status]')).toContainText('changed while you were editing');

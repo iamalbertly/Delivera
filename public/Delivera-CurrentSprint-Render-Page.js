@@ -177,14 +177,14 @@ export function renderCurrentSprintPage(data) {
   }
 
   if (hasBurndownData) {
-    html += '<div class="sprint-cards-row risks-row">';
+    html += '<details class="sprint-secondary-fold"><summary>Flow evidence</summary><div class="sprint-cards-row risks-row">';
     html += '<div class="card-column burndown-column">' + renderBurndown(data) + '</div>';
-    html += '</div>';
+    html += '</div></details>';
   }
 
-  html += '<div class="sprint-cards-row secondary-row">';
+  html += '<details class="sprint-secondary-fold"><summary>Risks, notes and assumptions</summary><div class="sprint-cards-row secondary-row">';
   html += '<div class="card-column risks-insights-column">' + renderRisksAndInsights(data) + '</div>';
-  html += '</div>';
+  html += '</div></details>';
   html += '</div>';
 
   try {
