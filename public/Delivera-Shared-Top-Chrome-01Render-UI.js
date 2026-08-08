@@ -214,15 +214,20 @@ function pageScopedContextLine(rawLine) {
     const path = String(location?.pathname || '');
     const params = new URLSearchParams(location?.search || '');
     const squad = String(params.get('squad') || params.get('spotlight') || params.get('projects') || '').trim();
+    const squadKey = squad ? squad.split(',')[0].trim().toUpperCase() : '';
     // Non-report surfaces: never wallpaper truncated report ranges — ScopeTruth / squad only.
     if (!path.includes('/report')) {
-      if (squad) return `Scope ${squad.split(',')[0].trim().toUpperCase()}`;
+      if (path.includes('/current-sprint') && squadKey) {
+        const sprintName = String(window.__deliveraCurrentSprintPayload?.sprint?.name || '').trim();
+        const shortSprint = sprintName ? sprintName.split(/\s+/).slice(0, 2).join(' ') : '';
+        return shortSprint ? `${squadKey} · ${shortSprint}` : `Scope ${squadKey}`;
+      }
+      if (squadKey) return `Scope ${squadKey}`;
       if (path.includes('/current-sprint')) return 'Current sprint';
       if (path.includes('/actions')) return 'Action queue';
       if (path.includes('/settings')) return 'Settings';
       if (path.includes('/governance') || path.includes('/brief')) return 'Governance';
       if (!line || line === 'No report run yet') return '';
-      // Strip Range: … fragments from legacy context strings.
       return line.replace(/\s*\|\s*Range:[^|]*/gi, '').replace(/^Range:[^|]*/i, '').trim();
     }
   } catch (_) { /* fall through */ }

@@ -492,11 +492,11 @@ export function renderHeaderBar(data, options = {}) {
         + `</p>`;
     }
   }
-  // When Take action owns next-move, keep subtitle to clock/edge only (cut triple repeat).
+  // When Take action owns next-move, strip Ends-in from subtitle (one clock lives in Context only).
   const subtitleForFold = hasPriorityInterventions && edgeStateAttr === 'none'
-    ? (remainingChipLabel || verdictInfo.verdict || verdictDisplayLine)
+    ? (verdictInfo.verdict || 'Needs Attention')
     : verdictDisplayLine;
-  html += `<p class="subtitle">${escapeHtml(subtitleForFold)}</p>`;
+  html += `<p class="subtitle" data-sprint-primary-strip="true">${escapeHtml(subtitleForFold)}</p>`;
   html += '</div>';
   html += '<div class="report-header-actions current-sprint-shell-actions">';
   html += reportLinkHtml;
@@ -520,9 +520,9 @@ export function renderHeaderBar(data, options = {}) {
   html += identityMetricsHtml;
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
-  // Avoid reprinting the full next-move prose when Take action already owns it.
+  // Avoid reprinting next-move or Ends-in when Take action already owns the verb.
   const verdictExplainText = hasPriorityInterventions && edgeStateAttr === 'none'
-    ? (remainingChipLabel || '')
+    ? ''
     : verdictDisplayLine;
   if (verdictExplainText) {
     html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictExplainText) + '</span>';
@@ -669,7 +669,9 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="header-mini-strip-identity">';
   html += `<span class="header-mini-strip-name">${escapeHtml(sprintNameCompact)}</span>`;
   html += `<span class="header-mini-strip-verdict header-mini-strip-verdict-${escapeHtml(verdictPresentation.color)}">${escapeHtml(verdictPresentation.verdict)}</span>`;
-  html += `<span class="header-mini-strip-days">${escapeHtml(remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
+  html += hasPriorityInterventions
+    ? `<span class="header-mini-strip-days">${escapeHtml(donePercentage)}% done</span>`
+    : `<span class="header-mini-strip-days">${escapeHtml(remainingChipLabel)} | ${escapeHtml(donePercentage)}% done</span>`;
   html += '</div>';
   html += '</div>';
   html += '</div>';

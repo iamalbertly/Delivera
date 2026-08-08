@@ -95,11 +95,12 @@ export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = 
   };
 }
 
-export function commitmentPackControlsHtml() {
+export function commitmentPackControlsHtml({ disabled = false, emptyHint = '' } = {}) {
+  const hint = emptyHint || (disabled ? 'No verified promises to pack.' : 'Deterministic pack from stored Jira + PI baseline — no AI tokens.');
   return `<div class="gov-commitment-pack" data-commitment-pack>
-    <p class="gov-calm-note">Deterministic pack from stored Jira + PI baseline — no AI tokens.</p>
-    <button type="button" class="btn btn-secondary btn-compact" data-copy-commitment-pack>Copy PI commitment pack</button>
-    <span class="gov-commitment-pack-status" data-commitment-pack-status aria-live="polite"></span>
+    <p class="gov-calm-note">${hint}</p>
+    <button type="button" class="btn btn-secondary btn-compact" data-copy-commitment-pack${disabled ? ' disabled aria-disabled="true"' : ''}>Copy PI commitment pack</button>
+    <span class="gov-commitment-pack-status" data-commitment-pack-status aria-live="polite">${disabled ? 'No verified promises to pack' : ''}</span>
   </div>`;
 }
 

@@ -391,6 +391,16 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/actions,/settings,/report',
   },
+  'tests/Delivera-Customer-Growth-SquadTunnel-Continuity-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.customer-growth-squadtunnel-continuity-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/actions,/settings',
+  },
+  'tests/Delivera-Customer-Growth-DirectValue-Stickiness-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.customer-growth-directvalue-stickiness-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/actions,/settings',
+  },
   'tests/Delivera-Governance-Click-Friction-MasterPlan-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-click-friction-masterplan',
     layer: 'cross-surface-ux',
@@ -658,6 +668,20 @@ export const journeyBuckets = {
     label: 'Customer Growth – ScopeTruth, Decision Rail, Commitment Pack continuity',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.customer-growth-directvalue-masterplan',
+    ),
+  },
+  'journey.customer-growth-squadtunnel-continuity-masterplan': {
+    id: 'journey.customer-growth-squadtunnel-continuity-masterplan',
+    label: 'Customer Growth – Squad tunnel continuity MasterPlan',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.customer-growth-squadtunnel-continuity-masterplan',
+    ),
+  },
+  'journey.customer-growth-directvalue-stickiness-masterplan': {
+    id: 'journey.customer-growth-directvalue-stickiness-masterplan',
+    label: 'Customer Growth – Stickiness echo-death MasterPlan',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.customer-growth-directvalue-stickiness-masterplan',
     ),
   },
   'journey.governance-click-friction-masterplan': {

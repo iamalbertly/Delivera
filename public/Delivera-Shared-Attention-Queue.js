@@ -82,9 +82,14 @@ export function renderAttentionQueueTable({ title = 'Attention queue', items = [
   const safeItems = dedupeTableItems(items);
   if (!safeItems.length) return '';
   const body = safeItems.slice(0, maxRows).map((item) => {
+    // Header Take-action owns "Review KEY" — table shows status/owner verb only (no twin CTA).
+    const nextMovePlain = String(item.nextMove || '').trim();
+    const demotedNext = /^(review|open|focus)\s+/i.test(nextMovePlain)
+      ? (item.owner && item.owner !== 'Scrum Master' ? `Owner: ${item.owner}` : (item.proof ? 'See proof' : 'In header'))
+      : nextMovePlain;
     const nextMoveCell = item.assignInline
       ? `<button type="button" class="btn btn-secondary btn-compact" data-attention-assign="${escapeHtml(item.issueKey)}" data-risk-tags="unassigned">Assign</button>`
-      : escapeHtml(item.nextMove);
+      : escapeHtml(demotedNext);
     return `
     <tr data-risk-tags="${escapeHtml((item.riskTags || []).join(' '))}" data-issue-key="${escapeHtml(item.issueKey || item.issue || '')}">
       <td data-label="Issue">${escapeHtml(item.issue)}</td>

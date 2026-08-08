@@ -349,10 +349,15 @@ function buildCurrentSprintSidebarContextParts() {
   if (!data?.sprint) return null;
   const sprintName = String(data.sprint.name || 'Sprint').trim();
   const daysRemaining = data?.daysMeta?.daysRemaining;
+  const attentionCount = Array.isArray(data?.topRisks) ? data.topRisks.length
+    : (Array.isArray(data?.stuckCandidates) ? data.stuckCandidates.length : 0);
+  // One clock: when attention interventions exist, Time shows Live — not a second Ends-in.
   let timeValue = 'Live sprint';
-  if (Number.isFinite(Number(daysRemaining))) {
+  if (!attentionCount && Number.isFinite(Number(daysRemaining))) {
     const whole = Math.floor(Number(daysRemaining));
     timeValue = whole <= 0 ? 'Ends today' : `Ends in ${whole}d`;
+  } else if (attentionCount) {
+    timeValue = 'Live';
   }
   const projects = String(data?.meta?.projects || data?.board?.projectKeys?.join(',') || '').trim() || 'All projects';
   const counts = getUnifiedRiskCounts(data);

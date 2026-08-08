@@ -1937,6 +1937,42 @@ body.governance-active-loop-ready #gov-scope-bar-mount .gov-scope-capsule {
 .gov-loop-squad-name { font-weight: 800; color: inherit; }
 .gov-loop-squad-summary { min-width: 0; color: #64748b; font-size: .74rem; line-height: 1.3; }
 .gov-loop-proof-popover { position: fixed; z-index: 1405; width: min(380px, calc(100vw - 32px)); padding: 12px; border: 1px solid #cbd5e1; border-radius: 14px; background: #fff; box-shadow: 0 20px 60px rgba(15,23,42,.18); animation: gov-loop-pop .14s ease-out both; }
+/* Drawer open: toast > drawer > chrome; popover stays under drawer (intentional). */
+body.gov-drawer-open .gov-loop-proof-popover,
+body:has(#delivera-gov-right-drawer:not([hidden])) .gov-loop-proof-popover { z-index: 1290; pointer-events: none; opacity: 0; }
+.gov-loop-diag-chip {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: .72rem;
+  font-weight: 600;
+}
+.registry-find-hint { margin: 6px 0 0; color: #64748b; font-size: .78rem; }
+.registry-find-hint kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #f8fafc;
+  font-size: .72rem;
+}
+.attention-queue-table tr.is-highlighted,
+tr.is-highlighted {
+  outline: 2px solid #0f172a;
+  outline-offset: -2px;
+  animation: gov-row-highlight 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .attention-queue-table tr.is-highlighted,
+  tr.is-highlighted { animation: none; }
+}
+@keyframes gov-row-highlight {
+  from { background-color: #fef3c7; }
+  to { background-color: transparent; }
+}
 .gov-loop-popover-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .gov-loop-popover-close { width: 32px; height: 32px; border: 0; border-radius: 8px; background: #f1f5f9; cursor: pointer; font-size: 1.25rem; }
 .gov-loop-preview-row { width: 100%; display: grid; grid-template-columns: 10px 1fr; gap: 8px; align-items: start; padding: 9px 4px; text-align: left; border: 0; border-top: 1px solid #eef2f7; background: transparent; cursor: pointer; }

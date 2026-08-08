@@ -503,7 +503,8 @@ body.has-top-chrome .sidebar-toggle {
 body.chrome-suppress-page-create [data-open-outcome-modal].report-outcome-intake-create-btn,
 body.chrome-suppress-page-create .executive-shared-header-actions [data-open-outcome-modal],
 body.chrome-suppress-page-create .hud-actions-row > [data-open-outcome-modal]:first-of-type,
-body.chrome-suppress-page-create .cs-cockpit-quick-create {
+body.chrome-suppress-page-create .cs-cockpit-quick-create,
+body.chrome-suppress-page-create .decision-automation-card [data-open-outcome-modal] {
   display: none !important;
 }
 

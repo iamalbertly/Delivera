@@ -277,7 +277,9 @@ function matrixRow(squad) {
   const sprintLabel = sprint.state === 'active'
     ? `${sprint.sprint?.name || sprint.sprintName || 'Active sprint'}${sprint.daysRemaining != null ? ` · ${sprint.daysRemaining} days` : ''}`
     : (sprint.state === 'unavailable' ? 'Sprint status unavailable' : String(sprint.state || 'Unverified').replace(/-/g, ' '));
-  const currentReality = `${contract.label}${sprintLabel ? ` · ${sprintLabel}` : ''}`;
+  const currentReality = Number(squad.attentionCount)
+    ? `${squad.attentionCount} need attention${sprintLabel ? ` · ${sprintLabel}` : ''}`
+    : (sprintLabel || contract.detail || squad.topState || 'Aligned');
   const piImpact = clusterFirstUnknownImpact(squad, rework);
   const nextCell = spotlightKey === squad.squad
     ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Open decision</strong><small class="sr-only">${escapeHtml(action)}</small></span>`
@@ -408,7 +410,10 @@ function nextMoveRailHtml(answer) {
   const move = isFocused
     ? (matrixNextMoveLabel(squad).split('·')[0].trim() || 'Open decision')
     : matrixNextMoveLabel(squad);
-  const packHtml = isFocused ? commitmentPackControlsHtml() : '';
+  const packPromises = (answer?.promises || []).filter((item) => item.squad === squad.squad);
+  const packHtml = isFocused
+    ? commitmentPackControlsHtml({ disabled: !packPromises.length })
+    : '';
   return `<aside class="gov-next-move-rail" aria-label="Next move for selected squad" data-rail-squad="${escapeHtml(squad.squad || '')}">
     <span class="gov-loop-kicker">Next move</span>
     ${isFocused ? '' : `<strong>${escapeHtml(squad.displayName || squad.squad)}</strong>`}
@@ -636,6 +641,13 @@ function wireCommitmentPackCopy(root, answer, squadKey) {
   const squad = [...(answer?.squads || []), ...(answer?.excludedOperationalGroups || [])].find((item) => item.squad === squadKey);
   const promises = (answer?.promises || []).filter((item) => item.squad === squadKey);
   const pack = buildPiCommitmentPack({ promises, squad });
+  const empty = !promises.length;
+  if (empty) {
+    copyBtn.disabled = true;
+    copyBtn.setAttribute('aria-disabled', 'true');
+    if (status) status.textContent = 'No verified promises to pack';
+    return;
+  }
   copyBtn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(pack.text);
@@ -650,11 +662,11 @@ function openAllProofDrawer(answer, squadKey) {
   const squad = [...(answer?.squads || []), ...(answer?.excludedOperationalGroups || [])].find((item) => item.squad === squadKey);
   const promises = (answer?.promises || []).filter((item) => item.squad === squadKey);
   const pack = buildPiCommitmentPack({ promises, squad });
-  const rows = promises.map((promise) => `<li><button type="button" class="btn btn-link" data-all-proof-promise="${escapeHtml(promise.promiseId)}"><strong>${escapeHtml(promise.issueKey || 'Unlinked commitment')}</strong> · ${escapeHtml(promise.diagnosisLabel || promise.matchLabel)}</button><span>${escapeHtml(promise.originalText)}</span><small>${escapeHtml(promise.proofAge?.copy || promise.customerOrPiImpact || '')}</small></li>`).join('');
+  const rows = promises.map((promise) => `<li><button type="button" class="btn btn-link" data-all-proof-promise="${escapeHtml(promise.promiseId)}"><strong>${escapeHtml(promise.issueKey || 'Unlinked commitment')}</strong></button><span>${escapeHtml(promise.originalText)}</span><small>${escapeHtml(promise.proofAge?.copy || promise.customerOrPiImpact || promise.statusNow || '')}</small></li>`).join('');
   const { el } = openRightDrawer({
     title: `${squad?.displayName || squadKey} · proof audit`,
     panelClass: 'active-loop',
-    bodyHtml: `<section class="gov-resolution-sheet" data-proof-audit-squad="${escapeHtml(squadKey)}"><p>${escapeHtml(squad?.baselineCoverage?.copy || 'Approved PI contract evidence')}</p>${commitmentPackControlsHtml()}<ol class="gov-proof-audit-list">${rows || '<li>No verified promise evidence is available for this squad.</li>'}</ol></section>`,
+    bodyHtml: `<section class="gov-resolution-sheet" data-proof-audit-squad="${escapeHtml(squadKey)}"><p>${escapeHtml(squad?.baselineCoverage?.copy || 'Approved PI contract evidence')}</p>${commitmentPackControlsHtml({ disabled: !promises.length })}<ol class="gov-proof-audit-list">${rows || '<li>No verified promise evidence is available for this squad.</li>'}</ol></section>`,
   });
   el.querySelectorAll('[data-all-proof-promise]').forEach((button) => button.addEventListener('click', () => void openPromiseDrawer(button.dataset.allProofPromise)));
   wireCommitmentPackCopy(el, answer, squadKey);
@@ -841,9 +853,23 @@ function spotlightHtml(detail) {
     }
     return unknown.promoted ? String(unknown.copy || '').replace(/^Unknown work is \d+%\.\s*/i, '').trim() || unknown.copy : '';
   })();
-  return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Selected squad decision</span><h2 class="sr-only">${escapeHtml(displayName)}</h2><p class="gov-spotlight-scope-note">Selected squad work, PI promises, and actions only.</p></div></div>
-  <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.detail || squad.topState || 'Needs decision')}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${nextActionHtml}</strong></span></div>
-  ${diagnosisGroups.length ? `<section class="gov-diagnosis-groups" aria-label="Evidence-backed root causes"><h3>Why proof is missing</h3>${diagnosisGroups.map((group) => `<article><strong>${group.count} · ${(group.issueKeys || []).slice(0, 3).map((k) => escapeHtml(k)).join(', ') || escapeHtml(group.label)}</strong><p>${escapeHtml(group.customerOrPiImpact || '')}</p><small>${Math.round((Number(group.confidence) || 0) * 100)}% confidence</small></article>`).join('')}</section>` : ''}
+  const inTunnel = Boolean(spotlightKey) && activeLens === 'squad';
+  const h1OwnsDiagnosis = Boolean(String(squad.contractState?.label || '').trim());
+  // Tunnel: H1 owns diagnosis; rail owns next move — no twin groups / Next-safe / scope wallpaper.
+  const showDiagnosisGroups = !inTunnel && !h1OwnsDiagnosis && diagnosisGroups.length > 0;
+  const piContractChip = squad.contractState?.detail
+    || (Number(squad.attentionCount) > 0 ? `${squad.attentionCount} need attention` : '')
+    || squad.topState
+    || 'Needs decision';
+  const nextSafeCell = inTunnel
+    ? ''
+    : `<span><small>Next safe action</small><strong>${nextActionHtml}</strong></span>`;
+  const scopeNote = inTunnel
+    ? '<p class="gov-spotlight-scope-note sr-only">Selected squad work, PI promises, and actions only.</p>'
+    : '<p class="gov-spotlight-scope-note">Selected squad work, PI promises, and actions only.</p>';
+  return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Selected squad decision</span><h2 class="sr-only">${escapeHtml(displayName)}</h2>${scopeNote}</div></div>
+  <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(piContractChip)}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span>${nextSafeCell}</div>
+  ${showDiagnosisGroups ? `<section class="gov-diagnosis-groups" aria-label="Evidence-backed root causes"><h3>Why proof is missing</h3>${diagnosisGroups.map((group) => `<article><strong>${group.count} · ${(group.issueKeys || []).slice(0, 3).map((k) => escapeHtml(k)).join(', ') || escapeHtml(group.label)}</strong><p>${escapeHtml(group.customerOrPiImpact || '')}</p><small>${Math.round((Number(group.confidence) || 0) * 100)}% confidence</small></article>`).join('')}</section>` : ''}
   <div class="gov-spotlight-grid">
     <section><h3>Current Work Reality</h3>${work.length ? work.slice(0, 5).map((item) => `<p class="gov-work-theme"><span><strong>${escapeHtml(item.title)}</strong>${item.systemDerived ? ' <small>system-derived label</small>' : ''}</span>${item.systemDerived || item.title === 'Unclear work theme' ? `<button type="button" class="btn btn-link btn-compact gov-theme-rename-btn" data-theme-rename data-theme-id="${escapeHtml(item.themeId || item.title)}" data-theme-version="${Number(item.version) || 1}" title="Rename theme">Rename</button>` : ''}</p>`).join('') : '<p>No current work themes are available.</p>'}</section>
     <section><h3>Sprint Reality</h3><p>${escapeHtml(detail.sprintReality?.copy || 'Sprint reality unavailable.')}</p></section>
@@ -1118,7 +1144,12 @@ function drawerHtml(promise, squad) {
   const actionsHtml = primary
     ? `${renderAction(primary, { primaryBtn: true })}${moreActions.length ? `<details class="gov-loop-more-actions"><summary>More decisions (${moreActions.length})</summary><div class="gov-loop-actions gov-loop-actions--more">${moreActions.map((action) => renderAction(action)).join('')}</div></details>` : ''}`
     : `<div class="gov-loop-actions">${actions.map((action) => renderAction(action)).join('')}</div>`;
-  return `<div class="gov-loop-drawer" data-loop-promise-version="${Number(promise.version) || 1}" data-decision-rail="primary"><section class="gov-loop-drawer-verdict gov-loop-tone-${tone(promise.matchState)}"><span>${escapeHtml(promise.diagnosisLabel || promise.matchLabel)}</span><strong>${escapeHtml(promise.originalText)}</strong><p>${escapeHtml(promise.customerOrPiImpact || promise.proofAge?.copy || '')}</p>${promise.amendmentSentence ? `<p class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</p>` : ''}</section>
+  const h1Label = String((activeAnswer?.squads || []).find((s) => s.squad === promise.squad)?.contractState?.label || '');
+  const diagLabel = String(promise.diagnosisLabel || promise.matchLabel || '');
+  const diagChip = diagLabel && diagLabel !== h1Label
+    ? `<span class="gov-loop-diag-chip">${escapeHtml(diagLabel)}</span>`
+    : '';
+  return `<div class="gov-loop-drawer" data-loop-promise-version="${Number(promise.version) || 1}" data-decision-rail="primary"><section class="gov-loop-drawer-verdict gov-loop-tone-${tone(promise.matchState)}"><strong>${escapeHtml(promise.issueKey || 'Unlinked')}</strong><span>${escapeHtml(promise.originalText)}</span>${diagChip}<p>${escapeHtml(promise.customerOrPiImpact || promise.proofAge?.copy || '')}</p>${promise.amendmentSentence ? `<p class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</p>` : ''}</section>
   <section class="gov-resolution-sheet"><h3>Expected vs happening</h3><p>${escapeHtml(promiseAlignmentSummary(promise))}</p><dl><div><dt>Expected</dt><dd>${escapeHtml(comparison.expected?.commitment || promise.originalText)} · ${escapeHtml(comparison.expected?.fiscalPeriod || promise.quarter || '')}</dd></div><div><dt>Live Jira evidence</dt><dd>${escapeHtml(actualKeys.join(', ') || promise.issueKey || 'No verified key')} · ${escapeHtml(comparison.actual?.status || promise.statusNow || '')}</dd></div><div><dt>Mapping</dt><dd>${escapeHtml(comparison.actual?.matchedThrough === 'epic-child' ? 'Current story delivers the approved PI epic' : comparison.actual?.matchedThrough || 'Unresolved')}</dd></div></dl></section>
   ${diagnosisEvidence ? `<section class="gov-resolution-sheet"><h3>Why Delivera reached this diagnosis</h3><ul>${diagnosisEvidence}</ul><p><strong>Confidence:</strong> ${Math.round((Number(promise.diagnosisConfidence) || 0) * 100)}%</p><p><strong>Recommended:</strong> ${escapeHtml(promise.recommendedAction || '')}</p></section>` : ''}
   <div class="gov-loop-drawer-grid"><section><h3>PI promise source</h3><p>${escapeHtml(promise.source || promise.baselineCoverage?.sourceLabel || 'Approved PI baseline')}</p><p>${escapeHtml(scopedPromiseSourceReference(promise, squad))}</p></section><section><h3>Matched Jira work</h3><p><strong>${escapeHtml(promise.issueKey || 'No Jira proof')}</strong> · ${escapeHtml(promise.statusNow || '')}</p></section><section><h3>Proof age</h3><p>${escapeHtml(promise.proofAge?.state || 'unknown')} · ${escapeHtml(promise.proofAge?.copy || '')}</p></section><section><h3>Work Split</h3><p>${squad?.workSplit?.unplannedPct == null ? 'Unplanned work unknown' : `${squad.workSplit.unplannedPct}% unplanned work`}</p><p>${escapeHtml(squad?.workSplit?.largestUnmappedCluster ? `Largest unmapped cluster: ${squad.workSplit.largestUnmappedCluster}.` : '')}</p><p>${escapeHtml(squad?.workSplit?.explanation || '')}</p><p>${escapeHtml(honestUnknownPctLine(squad, squad?.unknownWork))}</p></section><section><h3>Action state</h3><p>${escapeHtml(promise.actionLifecycle || '')}</p></section><section><h3>Owner path</h3>${recipientEditor(promise)}</section><section><h3>Ready to Promise</h3><p>${escapeHtml(promise.readiness?.copy || 'Readiness was not captured in the original baseline.')}</p></section><section><h3>Trade-off Guardrail</h3><p>${escapeHtml(promise.tradeOffGuardrail?.copy || 'No trustworthy percentage is available.')}</p></section></div>
