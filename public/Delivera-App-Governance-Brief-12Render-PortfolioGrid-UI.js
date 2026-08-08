@@ -3,6 +3,7 @@ import { readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { renderPulseBars } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
 import { classifyWorkAlignment, renderAlignmentChip } from './Delivera-Shared-WorkAlignment-01Chip-SSOT.js';
+import { currentSprintSquadHref } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 function heatLabel(squad) {
   if (squad.healthSignals?.sprintSetup === 'limited') return 'Needs setup';
@@ -58,7 +59,7 @@ function renderRiskTileDetail(squad, brief, { autoExpand = false, hideNudge = fa
       ${detailRows}
       <div class="gov-squad-detail-actions">
         ${hideNudge ? '' : `<button type="button" class="btn btn-primary btn-compact" data-squad-nudge="${escapeHtml(squad.projectKey)}" data-squad-nudge-issue="${escapeHtml(topRiskKey)}">${escapeHtml(COPY.nudgeSmPo)}</button>`}
-        <a class="btn btn-secondary btn-compact" href="/current-sprint">${escapeHtml(COPY.openSprint)}</a>
+        <a class="btn btn-secondary btn-compact" href="${escapeHtml(currentSprintSquadHref(squad.projectKey || squad.squad || ''))}">${escapeHtml(COPY.openSprint)}</a>
         <button type="button" class="btn btn-link btn-compact gov-proof-chip" data-proof-squad="${escapeHtml(squad.projectKey)}">Open evidence</button>
       </div>
     </div>`;

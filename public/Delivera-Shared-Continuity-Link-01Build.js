@@ -207,3 +207,21 @@ export function renderShellSummaryChips(chips = []) {
     .map((chip) => `<span class="report-filter-strip-chip">${escapeText(chip)}</span>`)
     .join('');
 }
+
+/** SSOT: rewrite URL continuity params without inventing a second history helper. */
+export function rewriteContinuityUrl({ squad, boardId, sprintId, projects, spotlight, view } = {}) {
+  try {
+    const url = new URL(typeof location !== 'undefined' ? location.href : 'http://localhost');
+    if (squad) url.searchParams.set('squad', normalizeSquadKey(squad));
+    if (spotlight) url.searchParams.set('spotlight', normalizeSquadKey(spotlight));
+    if (projects) url.searchParams.set('projects', String(projects).trim());
+    if (boardId) url.searchParams.set('boardId', String(boardId));
+    if (view) url.searchParams.set('view', String(view));
+    if (sprintId) url.searchParams.set('sprintId', String(sprintId));
+    else url.searchParams.delete('sprintId');
+    if (typeof history !== 'undefined') history.replaceState({}, '', url.toString());
+    return url.toString();
+  } catch (_) {
+    return '';
+  }
+}

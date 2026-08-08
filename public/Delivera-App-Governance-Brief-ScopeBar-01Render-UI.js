@@ -1,10 +1,11 @@
 /**
  * Governance Brief scope bar — persistent projects, period pills, refresh.
  */
+import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { clearGovernanceClientCaches } from './Delivera-Shared-Release-Cache-Guard-01SSOT.js';
 import { PROJECTS_SSOT_KEY, GOVERNANCE_QUARTER_KEY, readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 import { notifyScopeChanged } from './Delivera-Shared-Scope-Notify-01Bridge.js';
-import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { govPage } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729j';
+import { govPage } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729k';
 import { setLoadBriefForce } from './Delivera-Governance-Brief-Page-03Load-Controller.js?v=20260719e';
 import { invalidateBriefCacheEntry, normalizeProjectsCsv } from './Delivera-Shared-Brief-Client-Cache-01Bridge.js';
 import { defaultSelectedKeys, readCatalogKeys } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
@@ -476,12 +477,7 @@ export function mountGovernanceScopeBar({ mount, quarterLabel = '', onRefresh, o
       }
       if (fromBoards.length) {
         boardsWarn = '';
-        try {
-          for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-            const key = localStorage.key(i);
-            if (key && String(key).startsWith('delivera:governance:active-loop:')) localStorage.removeItem(key);
-          }
-        } catch (_) { /* privacy / quota */ }
+        clearGovernanceClientCaches();
       } else {
         const names = selected.filter((pk) => accessByKey[pk] === false).join(', ');
         boardsWarn = names

@@ -7,8 +7,16 @@ import {
   resolveReturnToHref,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
 import { isOwnerMissing } from './Delivera-Shared-Attention-Queue.js';
-import { DELIVERA_CLIENT_RELEASE_SCHEMA } from './Delivera-Shared-Release-Cache-Guard-01SSOT.js';
-import { buildPiCommitmentPack, commitmentPackControlsHtml } from './Delivera-Governance-PI-Commitment-Pack-01Build-SSOT.js';
+import { DELIVERA_CLIENT_RELEASE_SCHEMA, clearGovernanceClientCaches } from './Delivera-Shared-Release-Cache-Guard-01SSOT.js';
+import {
+  buildPiCommitmentPack,
+  commitmentPackControlsHtml,
+  clusterFirstUnknownImpact,
+  honestUnknownPctLine,
+  promiseAlignmentSummary,
+} from './Delivera-Governance-PI-Commitment-Pack-01Build-SSOT.js';
+
+// SIZE-EXEMPT: cohesive ActiveLoop story orchestrator (load/cache, spotlight URL, decision drawers); helpers live in Commitment-Pack / Continuity / Cache Guard SSOTs.
 
 const CACHE_PREFIX = `delivera:governance:active-loop:v2:${DELIVERA_CLIENT_RELEASE_SCHEMA}`;
 const PRESENTATION_CONTRACT_VERSION = 5;
@@ -126,14 +134,9 @@ function writeCachedAnswer(projects, quarter, answer) {
   try { localStorage.setItem(scopeKey(projects, quarter), JSON.stringify({ savedAt: new Date().toISOString(), answer })); } catch (_) { /* quota/privacy */ }
 }
 
-/** Clear client active-loop cache keys (v2+) and in-memory answer after a successful Jira reconnect. */
+/** Clear client active-loop cache keys and in-memory answer after reconnect / registry. */
 export function clearActiveLoopCaches() {
-  try {
-    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-      const key = localStorage.key(i);
-      if (key && String(key).startsWith('delivera:governance:active-loop:')) localStorage.removeItem(key);
-    }
-  } catch (_) { /* privacy / quota */ }
+  clearGovernanceClientCaches();
   activeAnswer = null;
   pendingAnswer = null;
   sharedStoryState.activeAnswer = null;
@@ -162,43 +165,27 @@ function tone(state) {
   return 'risk';
 }
 
+/** Map Domain freshness SSOT onto UI elevate — do not re-age from verifiedAt. */
 function currentFreshness(answer) {
-  const verified = new Date(answer?.verifiedAt);
-  const age = Number.isFinite(verified.getTime()) ? Math.max(0, Math.floor((Date.now() - verified.getTime()) / 60000)) : null;
-  if (answer?.freshness?.state === 'failed') return { state: 'failed', copy: 'Showing the last verified answer. A fresh Jira check did not finish — tap Refresh.', elevate: true };
-  if (answer?.scope?.complete === false) return { state: 'partial', copy: `${answer.scope.verifiedSquads} of ${answer.scope.expectedSquads} squads verified. Portfolio conclusion limited.`, elevate: true };
-  if (age == null || age >= 60) return { state: 'stale', copy: 'Showing last verified state. Freshness-dependent decisions are paused.', elevate: true };
-  // Soft pause: keep proof usable — demote to quiet chip, not first-fold alarm wallpaper.
-  if (age > 15) return { state: 'paused', copy: `Verified ${age}m ago`, elevate: false };
-  return { state: 'calm', copy: `Last verified ${verified.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`, elevate: false };
-}
-
-function clusterFirstUnknownImpact(squad, rework) {
-  const unknownPct = Number(squad.workSplit?.unknownPct);
-  const clusters = Array.isArray(squad.unknownWork?.clusters) ? squad.unknownWork.clusters : [];
-  const top = clusters[0];
-  const unknownCopy = squad.unknownWork?.promoted ? squad.unknownWork.copy : '';
-  // Wallpaper "Unknown work is 100%" — prefer cluster action when evidence exists.
-  if (top && Number.isFinite(unknownPct) && unknownPct >= 80) {
-    const keyHint = Array.isArray(top.issueKeys) && top.issueKeys[0]
-      ? top.issueKeys[0]
-      : (top.id || '');
-    const title = String(top.title || 'Unclassified cluster').trim();
-    return keyHint
-      ? `Classify ${keyHint}${title ? ` · ${title}` : ''}`
-      : `Classify cluster · ${title}`;
+  const f = answer?.freshness || {};
+  if (f.state === 'failed') {
+    return { state: 'failed', copy: f.copy || 'Showing the last verified answer. A fresh Jira check did not finish — tap Refresh.', elevate: true };
   }
-  if (unknownCopy && Number.isFinite(unknownPct) && unknownPct >= 100 && !clusters.length) {
-    return squad.doingInstead?.major?.title
-      || (rework ? squad.possibleRework.copy : 'Insufficient evidence to measure diversion');
+  if (answer?.scope?.complete === false) {
+    return {
+      state: 'partial',
+      copy: `${answer.scope.verifiedSquads} of ${answer.scope.expectedSquads} squads verified. Portfolio conclusion limited.`,
+      elevate: true,
+    };
   }
-  if (squad.unknownWork?.promoted) {
-    // Strip leading "Unknown work is N%." wallpaper when a classify clause already follows.
-    const stripped = String(unknownCopy).replace(/^Unknown work is \d+%\.\s*/i, '').trim();
-    return stripped || unknownCopy;
+  if (f.state === 'stale') {
+    return { state: 'stale', copy: f.copy || 'Showing last verified state. Freshness-dependent decisions are paused.', elevate: true };
   }
-  if (squad.doingInstead?.major?.title) return squad.doingInstead.major.title;
-  return rework ? squad.possibleRework.copy : 'Insufficient evidence to measure diversion';
+  if (f.state === 'paused') {
+    return { state: 'paused', copy: f.copy || 'Verified recently', elevate: Boolean(f.restrictFreshActions) };
+  }
+  if (f.copy) return { state: f.state || 'calm', copy: f.copy, elevate: Boolean(f.restrictFreshActions) };
+  return { state: 'calm', copy: 'Last verified recently.', elevate: false };
 }
 
 /**
@@ -807,39 +794,6 @@ function clearSpotlight(pushHistory = false) {
   document.querySelectorAll('[data-story-squad]').forEach((row) => row.setAttribute('aria-current', 'false'));
   syncClearSquadControl();
   syncSpotlightTodayLink();
-}
-
-function promiseAlignmentSummary(promise = {}) {
-  const comparison = promise.expectedVsActual || {};
-  const expected = comparison.expected || {};
-  const actual = comparison.actual || {};
-  const keys = (actual.issueKeys || []).join(', ') || promise.issueKey || 'No Jira work matched';
-  const method = actual.matchedThrough === 'epic-child'
-    ? 'story to approved PI epic'
-    : actual.matchedThrough === 'exact-key' || actual.matchedThrough === 'baseline-comparison'
-      ? 'approved Jira key'
-      : 'no verified mapping';
-  const duration = comparison.durationBusinessDays == null
-    ? 'duration unknown'
-    : `${comparison.durationBusinessDays} business day${comparison.durationBusinessDays === 1 ? '' : 's'} observed`;
-  return `Expected: ${expected.issueKey || promise.issueKey || 'PI commitment'} in ${expected.fiscalPeriod || promise.quarter || 'the active PI'}. Happening: ${keys} · ${actual.status || promise.statusNow || 'unknown'}${actual.sprintName ? ` · ${actual.sprintName}` : ''} · ${method} · ${duration}.`;
-}
-
-function honestUnknownPctLine(squad, unknown) {
-  const unknownPct = Number(squad?.workSplit?.unknownPct);
-  const clusters = unknown?.clusters || squad?.unknownWork?.clusters || [];
-  if (!Number.isFinite(unknownPct)) return 'Unknown: not calculated';
-  // Wallpaper "Unknown: 100%" without clusters is not discriminatory — degrade gracefully.
-  if (unknownPct >= 100 && !clusters.length) {
-    return squad?.doingInstead?.major?.title
-      || 'Insufficient evidence to measure diversion';
-  }
-  if (clusters[0] && unknownPct >= 80) {
-    const top = clusters[0];
-    const keyHint = Array.isArray(top.issueKeys) && top.issueKeys[0] ? top.issueKeys[0] : '';
-    return keyHint ? `Classify ${keyHint}` : `Classify · ${String(top.title || 'cluster').trim()}`;
-  }
-  return `Unknown: ${unknownPct}%`;
 }
 
 function spotlightHtml(detail) {

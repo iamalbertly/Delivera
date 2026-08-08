@@ -9,6 +9,7 @@ import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprin
 import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
 import { hydrateCurrentSprintProjectsSelect } from './Delivera-CurrentSprint-Projects-Catalog-01Hydrate.js';
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
+import { rewriteContinuityUrl } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -53,18 +54,6 @@ function findBoardIdForSquad(boards, squadKey) {
   if (!key || !Array.isArray(boards)) return '';
   const match = boards.find((board) => boardProjectKey(board) === key);
   return match ? String(match.id) : '';
-}
-
-function rewriteContinuityUrl({ squad, boardId, sprintId, projects }) {
-  try {
-    const url = new URL(window.location.href);
-    if (squad) url.searchParams.set('squad', squad);
-    if (projects) url.searchParams.set('projects', projects);
-    if (boardId) url.searchParams.set('boardId', String(boardId));
-    if (sprintId) url.searchParams.set('sprintId', String(sprintId));
-    else url.searchParams.delete('sprintId');
-    window.history.replaceState({}, '', url.toString());
-  } catch (_) {}
 }
 
 function applySquadAuthoritativeScope(requestedSquad) {

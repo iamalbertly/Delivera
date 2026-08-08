@@ -30,7 +30,7 @@ import { updateGlobalAgentBar, updateStickyMicroAnswer } from './Delivera-App-Go
 import { readSharedProjectsCsv, PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 import {
   govPage, openPiBaselineWizard, projectsCsv, selectedProjects, isPortfolioMode, refreshScopeBarCounts,
-} from './Delivera-Governance-Brief-Page-01Context.js?v=20260729j';
+} from './Delivera-Governance-Brief-Page-01Context.js?v=20260729k';
 import { bindOwnerClusterInteractions, bindProofInteractions } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
 import {
   fetchGovernanceBriefCached, peekGovernanceBriefCache, briefMatchesProjects,
@@ -42,7 +42,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
-import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729j';
+import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k';
 
 const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 

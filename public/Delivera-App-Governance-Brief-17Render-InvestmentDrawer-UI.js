@@ -1,7 +1,6 @@
 /**
  * Investment lens drawer body — hours by PI / planned / ad-hoc (sponsor view).
  */
-import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
@@ -66,9 +65,4 @@ export function renderInvestmentBodyHtml(brief) {
         <tbody>${list}</tbody>
       </table>
       <p class="gov-investment-note">Based on sprint logged hours and squad drift signals — not payroll.</p>`;
-}
-
-/** @deprecated Use openEvidenceDrawer(brief, [], { initialTab: 'investment' }) */
-export function openInvestmentDrawer(brief) {
-  return openEvidenceDrawer(brief || {}, [], { initialTab: 'investment' });
 }

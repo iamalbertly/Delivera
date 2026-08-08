@@ -23,6 +23,11 @@ function clearIncompatibleCaches() {
   }
 }
 
+/** SSOT: wipe governance + sprint client caches (reconnect, registry, release bump). */
+export function clearGovernanceClientCaches() {
+  clearIncompatibleCaches();
+}
+
 function activeEditInProgress() {
   const active = document.activeElement;
   const editingField = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);

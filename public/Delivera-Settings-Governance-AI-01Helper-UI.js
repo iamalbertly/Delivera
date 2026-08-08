@@ -1,15 +1,16 @@
-﻿/**
- * Settings — AI keys (browser-only) for narration, Create work, and PI slide reading.
- */
+﻿import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { clearGovernanceClientCaches } from './Delivera-Shared-Release-Cache-Guard-01SSOT.js';
+import * as AiTrustDisplay from './Delivera-AI-Trust-Display-01SSOT.js?v=20260729a';
+import { renderHealthTileStrip } from './Delivera-Shared-Health-Tile-01Render.js';
 import {
   readAiProviderPref,
   saveAiProviderPref,
   clearAiProviderPref,
 } from './Delivera-Shared-AI-Provider-Pref-01Helper.js';
-import * as AiTrustDisplay from './Delivera-AI-Trust-Display-01SSOT.js?v=20260729a';
-import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { renderHealthTileStrip } from './Delivera-Shared-Health-Tile-01Render.js';
 
+/**
+ * Settings — AI keys (browser-only) for narration, Create work, and PI slide reading.
+ */
 const {
   resolveAiTrustDisplay,
   AI_USED_FOR = [],
@@ -17,15 +18,9 @@ const {
 } = AiTrustDisplay;
 
 function clearActiveLoopClientCaches() {
+  clearGovernanceClientCaches();
   try {
-    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-      const key = localStorage.key(i);
-      if (key && String(key).startsWith('delivera:governance:active-loop:')) localStorage.removeItem(key);
-    }
-  } catch (_) { /* privacy / quota */ }
-  try {
-    // Drop in-memory ActiveLoop answer if that module is already loaded on this page.
-    import('./Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729j')
+    import('./Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k')
       .then((mod) => { if (typeof mod.clearActiveLoopCaches === 'function') mod.clearActiveLoopCaches(); })
       .catch(() => {});
   } catch (_) { /* ignore */ }

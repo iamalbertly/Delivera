@@ -4,6 +4,7 @@
  * Sticky positioning on desktop, relative on mobile
  * Rationale: Customer - Context always visible. Simplicity - Eliminates duplication. Trust - Countdown builds urgency awareness.
  */
+// SIZE-EXEMPT: sticky Current Sprint header orchestrator (render + wire); copy/chips/health live in existing SSOTs.
 
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { formatDate } from './Delivera-Shared-Format-DateNumber-Helpers.js';

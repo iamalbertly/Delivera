@@ -2,7 +2,7 @@ import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisi
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
 import { COPY, freshnessShortLabel } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { sendReadinessBadge } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
-import { govPage } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729j';
+import { govPage } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729k';
 
 let popoverEl = null;
 let pinned = false;

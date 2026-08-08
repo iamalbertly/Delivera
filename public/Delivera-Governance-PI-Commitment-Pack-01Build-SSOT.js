@@ -102,3 +102,44 @@ export function commitmentPackControlsHtml() {
     <span class="gov-commitment-pack-status" data-commitment-pack-status aria-live="polite"></span>
   </div>`;
 }
+
+/** Prefer Domain cluster-first unknown copy — UI must not re-strip wallpaper. */
+export function clusterFirstUnknownImpact(squad, rework) {
+  const unknown = squad?.unknownWork || {};
+  if (unknown.promoted && unknown.copy) return unknown.copy;
+  if (squad?.doingInstead?.major?.title) return squad.doingInstead.major.title;
+  if (rework) return squad?.possibleRework?.copy || 'Insufficient evidence to measure diversion';
+  return 'Insufficient evidence to measure diversion';
+}
+
+export function honestUnknownPctLine(squad, unknown) {
+  const unknownPct = Number(squad?.workSplit?.unknownPct);
+  const clusters = unknown?.clusters || squad?.unknownWork?.clusters || [];
+  if (!Number.isFinite(unknownPct)) return 'Unknown: not calculated';
+  if (unknownPct >= 100 && !clusters.length) {
+    return squad?.doingInstead?.major?.title || 'Insufficient evidence to measure diversion';
+  }
+  if (clusters[0] && unknownPct >= 80) {
+    const top = clusters[0];
+    const keyHint = Array.isArray(top.issueKeys) && top.issueKeys[0] ? top.issueKeys[0] : '';
+    return keyHint ? `Classify ${keyHint}` : `Classify · ${String(top.title || 'cluster').trim()}`;
+  }
+  if (unknown?.promoted && unknown?.copy) return unknown.copy;
+  return `Unknown: ${unknownPct}%`;
+}
+
+export function promiseAlignmentSummary(promise = {}) {
+  const comparison = promise.expectedVsActual || {};
+  const expected = comparison.expected || {};
+  const actual = comparison.actual || {};
+  const keys = (actual.issueKeys || []).join(', ') || promise.issueKey || 'No Jira work matched';
+  const method = actual.matchedThrough === 'epic-child'
+    ? 'story to approved PI epic'
+    : actual.matchedThrough === 'exact-key' || actual.matchedThrough === 'baseline-comparison'
+      ? 'approved Jira key'
+      : 'no verified mapping';
+  const duration = comparison.durationBusinessDays == null
+    ? 'duration unknown'
+    : `${comparison.durationBusinessDays} business day${comparison.durationBusinessDays === 1 ? '' : 's'} observed`;
+  return `Expected: ${expected.issueKey || promise.issueKey || 'PI commitment'} in ${expected.fiscalPeriod || promise.quarter || 'the active PI'}. Happening: ${keys} · ${actual.status || promise.statusNow || 'unknown'}${actual.sprintName ? ` · ${actual.sprintName}` : ''} · ${method} · ${duration}.`;
+}
