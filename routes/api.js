@@ -188,10 +188,14 @@ router.get('/healthz', async (req, res) => {
   }
 
   // Redis is advisory only — ok/ready must stay true while the process is listening.
+  res.setHeader('x-delivera-release', appEnvConfig.releaseId);
+  res.setHeader('x-delivera-client-schema', DELIVERA_CLIENT_RELEASE_SCHEMA);
   return sendJsonOnce(res, 200, {
     ok: true,
     ready: true,
     instanceId: appEnvConfig.instanceId,
+    releaseId: appEnvConfig.releaseId,
+    clientSchema: DELIVERA_CLIENT_RELEASE_SCHEMA,
     uptime: Math.floor((Date.now() - serverStartTime) / 1000),
     redis,
   });
@@ -1587,7 +1591,22 @@ async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true
     const agileClient = createAgileClient();
     const version3Client = createVersion3Client();
     const fields = await discoverFieldsWithCache(version3Client);
-    const { boards } = await discoverBoardsWithCache(projects, agileClient);
+    const { boards: discoveredBoards } = await discoverBoardsWithCache(projects, agileClient);
+    // Prefer organization registry boardMapping so FIN/SD (and others) resolve
+    // the verified board instead of wandering into BOARD_UNRESOLVED ghosts.
+    let boards = discoveredBoards;
+    try {
+        const registry = await readGovernanceRegistry();
+        const preferredIds = new Set();
+        for (const project of projects) {
+            const entry = (registry.squads || []).find((item) => String(item.squadKey || '').toUpperCase() === String(project).toUpperCase());
+            (entry?.boardMapping || []).forEach((id) => preferredIds.add(Number(id)));
+        }
+        if (preferredIds.size) {
+            const prioritized = discoveredBoards.filter((board) => preferredIds.has(Number(board.id)));
+            if (prioritized.length) boards = prioritized;
+        }
+    } catch (_) { /* discovery-only fallback */ }
 
     let baseline = null;
     try { baseline = await getLatestPIBaseline(`${projects.join('+')}`); } catch (_) { baseline = null; }
@@ -1967,7 +1986,36 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
             && candidateStory?.decisionCoverage
             && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash && squad.displayName && squad.contractState && squad.trustFactor)
             ? candidateStory : null;
-        const prepared = cachedStory || projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req, { force }));
+
+        let prepared = cachedStory;
+        if (!prepared) {
+            // Shared cold rebuild: one Jira assemble for concurrent users on the same scope.
+            const leaseKey = `active-loop-build:${storyKey}`;
+            const lease = await cache.claimLease(leaseKey, 90000, { namespace: 'governanceSingleFlight' });
+            try {
+                if (!lease.acquired) {
+                    for (let attempt = 0; attempt < 24 && !prepared; attempt += 1) {
+                        await new Promise((resolve) => setTimeout(resolve, 400));
+                        const warm = readWarmGovernanceStory(storyKey);
+                        const shared = await cache.get(storyKey, { namespace: 'governanceStoryV2' });
+                        const candidate = warm || shared?.value || shared;
+                        if (candidate?.cacheRelease === DELIVERA_CLIENT_RELEASE_SCHEMA
+                            && Number(candidate?.presentationContractVersion) === 5
+                            && candidate?.lensSummaries
+                            && Array.isArray(candidate?.excludedOperationalGroups)
+                            && candidate?.decisionCoverage) {
+                            prepared = candidate;
+                        }
+                    }
+                }
+                if (!prepared) {
+                    prepared = projectActiveGovernanceLayer1(await assembleActiveLoopAnswerForRequest(req, { force }));
+                }
+            } finally {
+                if (lease.acquired) await cache.releaseLease(lease).catch(() => false);
+            }
+        }
+
         const answer = await patchLayer1WithCanonicalSprintTruth(prepared, projects, req.query?.quarter || 'current');
         const registry = await readGovernanceRegistry();
         answer.organizationParticipation = organizationParticipationProjection(registry);
@@ -2336,6 +2384,16 @@ router.post('/api/governance/cases/:promiseId/decisions', requireAuth, async (re
                 recipient: req.body?.recipient || null,
             },
         });
+        // Feed Delivera's understanding: confirmed match/dismiss becomes durable learning.
+        void recordImprovementEvent({
+            type: 'governance-decision',
+            decision,
+            promiseId: String(req.params.promiseId || '').trim(),
+            matchMethod: String(req.body?.matchMethod || '').slice(0, 80),
+            epicKey: String(req.body?.epicKey || '').slice(0, 80),
+            issueKey: String(req.body?.issueKey || '').slice(0, 80),
+            actorId: activeLoopActor(req),
+        }).catch(() => {});
         return res.setHeader('ETag', `"${row.nextVersion}"`).json({ success: true, version: row.nextVersion, decisionId: row.id });
     } catch (err) {
         return res.status(err?.httpStatus || 400).json({ error: err?.message, code: err?.code || 'DECISION_FAILED', latestVersion: err?.latestVersion });

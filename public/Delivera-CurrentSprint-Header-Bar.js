@@ -478,13 +478,23 @@ export function renderHeaderBar(data, options = {}) {
   if (missionBriefing?.strategicAnchor) {
     const anchor = missionBriefing.strategicAnchor;
     const sprintBit = anchor.sprintLabel || sprintNameCompact;
-    // Mission only when sprint label equals the title squad name (avoid "Sprint: DMS · Mission…").
-    const showSprintBit = sprintBit && String(sprintBit).trim() !== String(titleSquadLabel).trim();
-    html += `<p class="sprint-strategic-anchor${anchor.conflict ? ' is-conflicted' : ''}" role="${anchor.conflict ? 'alert' : 'status'}">`
-      + (showSprintBit ? `<span>Sprint: ${escapeHtml(sprintBit)}</span><span aria-hidden="true"> · </span>` : '')
-      + `<strong>Mission: ${escapeHtml(anchor.missionTitle || 'Mission not mapped')}</strong></p>`;
+    const missionTitle = String(anchor.missionTitle || '').trim();
+    const missionMapped = missionTitle && !/^mission not mapped$/i.test(missionTitle);
+    // Hide "Mission not mapped" wallpaper — only show a real mapped mission.
+    if (missionMapped || (sprintBit && String(sprintBit).trim() !== String(titleSquadLabel).trim() && anchor.conflict)) {
+      const showSprintBit = sprintBit && String(sprintBit).trim() !== String(titleSquadLabel).trim();
+      html += `<p class="sprint-strategic-anchor${anchor.conflict ? ' is-conflicted' : ''}" role="${anchor.conflict ? 'alert' : 'status'}">`
+        + (showSprintBit ? `<span>Sprint: ${escapeHtml(sprintBit)}</span>` : '')
+        + (showSprintBit && missionMapped ? `<span aria-hidden="true"> · </span>` : '')
+        + (missionMapped ? `<strong>Mission: ${escapeHtml(missionTitle)}</strong>` : (anchor.conflict ? `<strong>${escapeHtml(missionTitle || 'Mission conflict')}</strong>` : ''))
+        + `</p>`;
+    }
   }
-  html += `<p class="subtitle">${escapeHtml(verdictDisplayLine)}</p>`;
+  // When Take action owns next-move, keep subtitle to clock/edge only (cut triple repeat).
+  const subtitleForFold = hasPriorityInterventions && edgeStateAttr === 'none'
+    ? (remainingChipLabel || verdictInfo.verdict || verdictDisplayLine)
+    : verdictDisplayLine;
+  html += `<p class="subtitle">${escapeHtml(subtitleForFold)}</p>`;
   html += '</div>';
   html += '<div class="report-header-actions current-sprint-shell-actions">';
   html += reportLinkHtml;
@@ -508,7 +518,13 @@ export function renderHeaderBar(data, options = {}) {
   html += identityMetricsHtml;
   html += '<div class="sprint-verdict-line sprint-verdict-' + escapeHtml(verdictPresentation.color) + '" data-signal="health" role="status" aria-live="polite" aria-label="' + escapeHtml(SPRINT_COPY.ariaSprintHealthVerdict) + '">';
   html += '<strong>' + escapeHtml(verdictPresentation.verdict) + '</strong>';
-  html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictDisplayLine) + '</span>';
+  // Avoid reprinting the full next-move prose when Take action already owns it.
+  const verdictExplainText = hasPriorityInterventions && edgeStateAttr === 'none'
+    ? (remainingChipLabel || '')
+    : verdictDisplayLine;
+  if (verdictExplainText) {
+    html += '<span class="sprint-verdict-explain" title="' + escapeHtml(verdictExplainTitle || verdictDisplayLine) + '">' + escapeHtml(verdictExplainText) + '</span>';
+  }
   if (!suppressDuplicateRiskChrome) {
     if (verdictRiskChips.length) {
       const primaryVerdictChip = verdictRiskChips[0];

@@ -61,7 +61,7 @@ test.describe('Governance empty state honesty', () => {
             verifiedAt: new Date().toISOString(),
           },
         };
-        localStorage.setItem('delivera:governance:active-loop:v2:20260728a:SD:current', JSON.stringify(stale));
+        localStorage.setItem('delivera:governance:active-loop:v2:20260730a:SD:current', JSON.stringify(stale));
       } catch (_) {}
     });
 

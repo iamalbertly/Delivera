@@ -1,6 +1,14 @@
 import { COPY, firstNameFromDisplay } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { proofChipSummary } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
+import { currentSprintSquadHref } from './Delivera-Shared-Continuity-Link-01Build.js';
+
+function issueSprintHref(issueKey, squadKey) {
+  const base = currentSprintSquadHref(squadKey);
+  if (!issueKey) return base;
+  const join = base.includes('?') ? '&' : '?';
+  return `${base}${join}issue=${encodeURIComponent(issueKey)}`;
+}
 
 export function renderOwnerActionClusters(brief, groups = []) {
   if (!groups.length) {
@@ -24,8 +32,9 @@ export function renderOwnerActionClusters(brief, groups = []) {
     const renderIssueRow = (r) => {
       const age = Number(r.ageHours) || 0;
       const ageChip = age >= 48 ? `<span class="gov-age-chip">${Math.round(age / 24)}d</span>` : '';
+      const squadKey = r.projectKey || r.squad || g.projectKey || g.squad || '';
       const keyHtml = r.issueKey
-        ? `<a href="/current-sprint?issue=${encodeURIComponent(r.issueKey)}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a>`
+        ? `<a href="${escapeHtml(issueSprintHref(r.issueKey, squadKey))}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a>`
         : '';
       return `
       <li class="gov-cluster-issue">
@@ -34,9 +43,10 @@ export function renderOwnerActionClusters(brief, groups = []) {
         ${ageChip}
       </li>`;
     };
+    const leadSquad = leadIssue?.projectKey || leadIssue?.squad || g.projectKey || g.squad || '';
     const leadRow = leadIssue ? `
       <div class="gov-cluster-lead-issue" data-cluster-lead="${gi}">
-        ${leadIssue.issueKey ? `<a href="/current-sprint?issue=${encodeURIComponent(leadIssue.issueKey)}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(leadIssue.issueKey)}">${escapeHtml(leadIssue.issueKey)}</a>` : ''}
+        ${leadIssue.issueKey ? `<a href="${escapeHtml(issueSprintHref(leadIssue.issueKey, leadSquad))}" class="gov-cluster-issue-key gov-issue-key-link" data-issue-key="${escapeHtml(leadIssue.issueKey)}">${escapeHtml(leadIssue.issueKey)}</a>` : ''}
         <span class="gov-cluster-lead-title">${escapeHtml(leadIssue.displayTitle || leadIssue.summary || '')}</span>
       </div>` : '';
     const issueRows = restIssues.map(renderIssueRow).join('');

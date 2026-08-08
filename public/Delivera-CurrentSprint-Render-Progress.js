@@ -337,10 +337,14 @@ export function renderStories(data) {
     return tag;
   }
 
-  function renderStorySignalCard(label, value, copy, progress = null, tone = '') {
+  function renderStorySignalCard(label, value, copy, progress = null, tone = '', riskTags = '') {
     const progressTone = progress != null ? deriveDeliveryProgressTone(progress) : '';
     const toneClass = (tone || progressTone) ? ' ' + (tone || progressTone).trim() : '';
-    let cardHtml = '<article class="sprint-story-signal-card' + toneClass + '">';
+    const tags = String(riskTags || '').trim();
+    const interactive = tags
+      ? ` role="button" tabindex="0" data-risk-tags="${escapeHtml(tags)}" class="sprint-story-signal-card stories-risk-chip${toneClass}"`
+      : ` class="sprint-story-signal-card${toneClass}"`;
+    let cardHtml = '<article' + interactive + '>';
     cardHtml += '<p class="sprint-story-signal-label">' + escapeHtml(label) + '</p>';
     cardHtml += '<strong>' + escapeHtml(value) + '</strong>';
     cardHtml += '<p>' + escapeHtml(copy) + '</p>';
@@ -496,10 +500,10 @@ export function renderStories(data) {
     return sectionHtml;
   }
 
-  html += '<section class="sprint-story-signals-row sprint-outcome-strip" aria-label="Sprint outcome">';
-  html += renderStorySignalCard('Delivered', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', valueDoneCount + ' customer-value stories done.', Number(data?.summary?.percentDone || 0));
-  html += renderStorySignalCard('Open', String(spilloverCount), 'Items still inside the sprint outcome.');
-  html += renderStorySignalCard('Spillover', spilloverPct + '%', 'Open scope requiring a finish, replan, or descope decision.', spilloverPct, spilloverPct > 35 ? ' is-warning' : '');
+  html += '<section class="sprint-story-signals-row sprint-outcome-strip" aria-label="Sprint outcome — click to filter">';
+  html += renderStorySignalCard('Delivered', formatNumber(data?.summary?.percentDone ?? 0, 0, '0') + '%', valueDoneCount + ' customer-value stories done.', Number(data?.summary?.percentDone || 0), '', '');
+  html += renderStorySignalCard('Open', String(spilloverCount), 'Items still inside the sprint outcome.', null, '', 'scope');
+  html += renderStorySignalCard('Spillover', spilloverPct + '%', 'Open scope requiring a finish, replan, or descope decision.', spilloverPct, spilloverPct > 35 ? ' is-warning' : '', 'scope blocker');
   html += '</section>';
   html += '<section class="sprint-visibility-grid">';
   html += renderDeliveredSection();

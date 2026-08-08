@@ -1437,16 +1437,30 @@ body.settings-page #app-top-chrome [data-ai-trust-pill] {
 }
 
 .app-top-chrome [data-top-slot="search"] {
-  flex: 1 1 200px;
+  flex: 1 1 160px;
   min-width: 80px;
-  max-width: 520px;
+  max-width: 420px;
   margin-left: auto;
 }
 
 .app-top-chrome [data-top-slot="actions"] {
   flex: 0 0 auto;
-  gap: 6px;
-  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+/* Hidden AI pill must not leave flex ghosts in the actions cluster */
+.app-top-chrome [data-top-slot="actions"] [data-ai-trust-pill][hidden],
+body.current-sprint-page #app-top-chrome [data-ai-trust-pill],
+body.actions-page #app-top-chrome [data-ai-trust-pill],
+body.settings-page #app-top-chrome [data-ai-trust-pill] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .app-top-btn {
@@ -18003,7 +18017,26 @@ body.governance-story-v2-ready #gov-sticky-answer-mount { display: none !importa
 @media (min-width: 1180px) {
   body.governance-squad-selected .gov-story-v2 { grid-template-columns: minmax(620px, 1.55fr) minmax(360px, .9fr); align-items: start; }
   body.governance-squad-selected .gov-story-matrix { grid-column: 1; }
-  body.governance-squad-selected .gov-squad-spotlight { position: sticky; top: calc(var(--top-chrome-height, 56px) + 12px); grid-column: 2; max-height: calc(100vh - var(--top-chrome-height, 56px) - 24px); overflow: auto; overscroll-behavior: contain; padding: 10px; border: 1px solid #dbe4ee; border-radius: 16px; background: #f8fafc; }
+  /* Decision rail stays sticky above spotlight so right column is not empty whitespace. */
+  body.governance-squad-selected .gov-loop-decision-bento {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: calc(var(--top-chrome-height, 56px) + 12px);
+    z-index: 2;
+    align-self: start;
+  }
+  body.governance-squad-selected .gov-squad-spotlight {
+    grid-column: 2;
+    /* Flows under sticky decision bento — fills right-rail whitespace without fighting sticky overlap. */
+    max-height: calc(100vh - var(--top-chrome-height, 56px) - 180px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 10px;
+    border: 1px solid #dbe4ee;
+    border-radius: 16px;
+    background: #f8fafc;
+  }
   body.governance-squad-selected .gov-spotlight-readout,
   body.governance-squad-selected .gov-spotlight-grid { grid-template-columns: 1fr; }
   body.governance-squad-selected .gov-spotlight-actions { grid-column: auto; }
@@ -18202,6 +18235,19 @@ body.governance-active-loop-ready #gov-scope-bar-mount .gov-scope-capsule {
 .gov-loop-actions { position: sticky; bottom: -1px; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; border: 1px solid #dbe3ee; border-radius: 14px; background: rgba(255,255,255,.94); backdrop-filter: blur(14px); box-shadow: 0 -8px 25px rgba(15,23,42,.06); }
 .gov-loop-action-status { min-height: 0; padding: 0; color: #475569; }.gov-loop-action-status:not(:empty) { padding: 10px 12px; border-radius: 10px; background: #eff6ff; }.gov-loop-action-status.is-success { background: #f0fdf4; color: #166534; }.gov-loop-action-status.is-warn { background: #fff7ed; color: #9a3412; }
 .gov-loop-stale-warning { padding: 10px 12px; border: 1px solid #fdba74; border-radius: 10px; background: #fff7ed; color: #9a3412; }
+.gov-loop-stale-warning--quiet {
+  padding: 4px 8px;
+  margin: 0 0 8px;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.gov-hero-freshness-meta--quiet {
+  opacity: 0.72;
+  font-weight: 600;
+}
 .gov-loop-amend-form { display: grid; gap: 10px; }.gov-loop-amend-form label { display: grid; gap: 5px; font-weight: 700; }.gov-loop-amend-form select,.gov-loop-amend-form textarea,.gov-loop-amend-form input { width: 100%; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }.gov-loop-amend-form textarea { min-height: 92px; resize: vertical; }.gov-loop-form-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .gov-loop-live-region { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 

@@ -109,16 +109,30 @@ body.settings-page #app-top-chrome [data-ai-trust-pill] {
 }
 
 .app-top-chrome [data-top-slot="search"] {
-  flex: 1 1 200px;
+  flex: 1 1 160px;
   min-width: 80px;
-  max-width: 520px;
+  max-width: 420px;
   margin-left: auto;
 }
 
 .app-top-chrome [data-top-slot="actions"] {
   flex: 0 0 auto;
-  gap: 6px;
-  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+/* Hidden AI pill must not leave flex ghosts in the actions cluster */
+.app-top-chrome [data-top-slot="actions"] [data-ai-trust-pill][hidden],
+body.current-sprint-page #app-top-chrome [data-ai-trust-pill],
+body.actions-page #app-top-chrome [data-ai-trust-pill],
+body.settings-page #app-top-chrome [data-ai-trust-pill] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .app-top-btn {

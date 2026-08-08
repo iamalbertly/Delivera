@@ -53,6 +53,8 @@
   --z-sub-chrome: 1200;
   --z-issue-preview: 1201;
   --z-top-chrome: 1300;
+  --z-sidebar: 1400;
+  --z-chrome-overlay: 1500;
   --z-drawer: 1600;
   --z-modal: 1700;
   --z-toast: 1800;

@@ -1,7 +1,7 @@
-export const DELIVERA_CLIENT_RELEASE_SCHEMA = '20260729j';
+export const DELIVERA_CLIENT_RELEASE_SCHEMA = '20260730a';
 
 const RELEASE_KEY = 'delivera:runtime-release:v1';
-const CHECK_INTERVAL_MS = 15 * 60 * 1000;
+const CHECK_INTERVAL_MS = 30 * 1000;
 const CACHE_PREFIXES = [
   'delivera:governance:active-loop:',
   'delivera:current-sprint:snapshot:',
@@ -52,14 +52,20 @@ function reloadForRelease(release) {
 }
 
 async function readRuntimeRelease() {
-  const response = await fetch('/api/governance/diagnostics.json', {
+  const response = await fetch('/healthz', {
     credentials: 'same-origin',
     cache: 'no-store',
     headers: { 'x-delivera-release-check': '1' },
   });
   if (!response.ok) return '';
-  const body = await response.json();
-  return String(body.buildSha || response.headers.get('x-delivera-release') || '').trim();
+  const headerRelease = String(response.headers.get('x-delivera-release') || '').trim();
+  if (headerRelease) return headerRelease;
+  try {
+    const body = await response.json();
+    return String(body?.releaseId || '').trim();
+  } catch (_) {
+    return '';
+  }
 }
 
 export function installReleaseCacheGuard() {

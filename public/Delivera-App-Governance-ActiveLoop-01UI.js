@@ -165,11 +165,40 @@ function tone(state) {
 function currentFreshness(answer) {
   const verified = new Date(answer?.verifiedAt);
   const age = Number.isFinite(verified.getTime()) ? Math.max(0, Math.floor((Date.now() - verified.getTime()) / 60000)) : null;
-  if (answer?.freshness?.state === 'failed') return { state: 'failed', copy: 'Showing the last verified answer. A fresh Jira check did not finish — tap Refresh.' };
-  if (answer?.scope?.complete === false) return { state: 'partial', copy: `${answer.scope.verifiedSquads} of ${answer.scope.expectedSquads} squads verified. Portfolio conclusion limited.` };
-  if (age == null || age >= 60) return { state: 'stale', copy: 'Showing last verified state. Freshness-dependent decisions are paused.' };
-  if (age > 15) return { state: 'paused', copy: `Sync paused ${age}m ago.` };
-  return { state: 'calm', copy: `Last verified ${verified.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.` };
+  if (answer?.freshness?.state === 'failed') return { state: 'failed', copy: 'Showing the last verified answer. A fresh Jira check did not finish — tap Refresh.', elevate: true };
+  if (answer?.scope?.complete === false) return { state: 'partial', copy: `${answer.scope.verifiedSquads} of ${answer.scope.expectedSquads} squads verified. Portfolio conclusion limited.`, elevate: true };
+  if (age == null || age >= 60) return { state: 'stale', copy: 'Showing last verified state. Freshness-dependent decisions are paused.', elevate: true };
+  // Soft pause: keep proof usable — demote to quiet chip, not first-fold alarm wallpaper.
+  if (age > 15) return { state: 'paused', copy: `Verified ${age}m ago`, elevate: false };
+  return { state: 'calm', copy: `Last verified ${verified.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`, elevate: false };
+}
+
+function clusterFirstUnknownImpact(squad, rework) {
+  const unknownPct = Number(squad.workSplit?.unknownPct);
+  const clusters = Array.isArray(squad.unknownWork?.clusters) ? squad.unknownWork.clusters : [];
+  const top = clusters[0];
+  const unknownCopy = squad.unknownWork?.promoted ? squad.unknownWork.copy : '';
+  // Wallpaper "Unknown work is 100%" — prefer cluster action when evidence exists.
+  if (top && Number.isFinite(unknownPct) && unknownPct >= 80) {
+    const keyHint = Array.isArray(top.issueKeys) && top.issueKeys[0]
+      ? top.issueKeys[0]
+      : (top.id || '');
+    const title = String(top.title || 'Unclassified cluster').trim();
+    return keyHint
+      ? `Classify ${keyHint}${title ? ` · ${title}` : ''}`
+      : `Classify cluster · ${title}`;
+  }
+  if (unknownCopy && Number.isFinite(unknownPct) && unknownPct >= 100 && !clusters.length) {
+    return squad.doingInstead?.major?.title
+      || (rework ? squad.possibleRework.copy : 'Insufficient evidence to measure diversion');
+  }
+  if (squad.unknownWork?.promoted) {
+    // Strip leading "Unknown work is N%." wallpaper when a classify clause already follows.
+    const stripped = String(unknownCopy).replace(/^Unknown work is \d+%\.\s*/i, '').trim();
+    return stripped || unknownCopy;
+  }
+  if (squad.doingInstead?.major?.title) return squad.doingInstead.major.title;
+  return rework ? squad.possibleRework.copy : 'Insufficient evidence to measure diversion';
 }
 
 /**
@@ -260,18 +289,7 @@ function matrixRow(squad) {
     ? `${sprint.sprint?.name || sprint.sprintName || 'Active sprint'}${sprint.daysRemaining != null ? ` · ${sprint.daysRemaining} days` : ''}`
     : (sprint.state === 'unavailable' ? 'Sprint status unavailable' : String(sprint.state || 'Unverified').replace(/-/g, ' '));
   const currentReality = `${contract.label}${sprintLabel ? ` · ${sprintLabel}` : ''}`;
-  const piImpact = (() => {
-    const unknownPct = Number(squad.workSplit?.unknownPct);
-    const unknownCopy = squad.unknownWork?.promoted ? squad.unknownWork.copy : '';
-    // Identical "Unknown work is 100%" across squads is noise — only show when it discriminates.
-    if (unknownCopy && Number.isFinite(unknownPct) && unknownPct >= 100 && !squad.unknownWork?.clusters?.length) {
-      return squad.doingInstead?.major?.title
-        || (rework ? squad.possibleRework.copy : 'Insufficient evidence to measure diversion');
-    }
-    if (squad.unknownWork?.promoted) return unknownCopy;
-    if (squad.doingInstead?.major?.title) return squad.doingInstead.major.title;
-    return rework ? squad.possibleRework.copy : 'Insufficient evidence to measure diversion';
-  })();
+  const piImpact = clusterFirstUnknownImpact(squad, rework);
   const nextCell = spotlightKey === squad.squad
     ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Open decision</strong><small class="sr-only">${escapeHtml(action)}</small></span>`
     : `<span role="cell" title="${escapeHtml(actionFull)}"><strong>${escapeHtml(action)}</strong></span>`;
@@ -416,8 +434,18 @@ function nextMoveRailHtml(answer) {
 function heroFreshnessMeta(answer) {
   const freshness = currentFreshness(answer);
   const pulse = quarterPulseLabel();
+  // Elevate only blocking freshness — soft pause stays out of the mission strip.
+  if (!freshness.elevate) {
+    const quiet = [pulse, freshness.state === 'paused' ? freshness.copy : ''].filter(Boolean).join(' · ');
+    if (!quiet && freshness.state === 'calm') {
+      return `<button type="button" class="gov-hero-evidence-link gov-hero-freshness-meta gov-hero-freshness-meta--quiet" data-hero-freshness data-quarter-pulse data-freshness-elevate="false" aria-label="Evidence freshness">${escapeHtml(freshness.copy)}</button>`;
+    }
+    return quiet
+      ? `<button type="button" class="gov-hero-evidence-link gov-hero-freshness-meta gov-hero-freshness-meta--quiet" data-hero-freshness data-quarter-pulse data-freshness-elevate="false" aria-label="Evidence freshness">${escapeHtml(quiet)}</button>`
+      : '';
+  }
   const parts = [pulse, freshness.copy].filter(Boolean);
-  return `<button type="button" class="gov-hero-evidence-link gov-hero-freshness-meta" data-hero-freshness data-quarter-pulse aria-label="Evidence freshness">${escapeHtml(parts.join(' · '))}</button>`;
+  return `<button type="button" class="gov-hero-evidence-link gov-hero-freshness-meta" data-hero-freshness data-quarter-pulse data-freshness-elevate="true" aria-label="Evidence freshness">${escapeHtml(parts.join(' · '))}</button>`;
 }
 
 function renderHero(answer) {
@@ -806,6 +834,11 @@ function honestUnknownPctLine(squad, unknown) {
     return squad?.doingInstead?.major?.title
       || 'Insufficient evidence to measure diversion';
   }
+  if (clusters[0] && unknownPct >= 80) {
+    const top = clusters[0];
+    const keyHint = Array.isArray(top.issueKeys) && top.issueKeys[0] ? top.issueKeys[0] : '';
+    return keyHint ? `Classify ${keyHint}` : `Classify · ${String(top.title || 'cluster').trim()}`;
+  }
   return `Unknown: ${unknownPct}%`;
 }
 
@@ -826,10 +859,18 @@ function spotlightHtml(detail) {
     : '';
   const unknownEvidenceCopy = (() => {
     const unknownPct = Number(squad.workSplit?.unknownPct);
-    if (unknown.promoted && Number.isFinite(unknownPct) && unknownPct >= 100 && !(unknown.clusters || []).length) {
+    const clusters = unknown.clusters || [];
+    if (unknown.promoted && Number.isFinite(unknownPct) && unknownPct >= 100 && !clusters.length) {
       return squad.doingInstead?.major?.title || 'Insufficient evidence to measure diversion';
     }
-    return unknown.promoted ? unknown.copy : '';
+    if (unknown.promoted && clusters[0] && Number.isFinite(unknownPct) && unknownPct >= 80) {
+      const top = clusters[0];
+      const keyHint = Array.isArray(top.issueKeys) && top.issueKeys[0] ? top.issueKeys[0] : '';
+      return keyHint
+        ? `Classify ${keyHint}${top.title ? ` · ${top.title}` : ''}`
+        : (unknown.copy || '').replace(/^Unknown work is \d+%\.\s*/i, '').trim() || unknown.copy;
+    }
+    return unknown.promoted ? String(unknown.copy || '').replace(/^Unknown work is \d+%\.\s*/i, '').trim() || unknown.copy : '';
   })();
   return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Selected squad decision</span><h2 class="sr-only">${escapeHtml(displayName)}</h2><p class="gov-spotlight-scope-note">Selected squad work, PI promises, and actions only.</p></div></div>
   <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(squad.contractState?.label || squad.topState || 'Cannot verify')}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span><span><small>Next safe action</small><strong>${nextActionHtml}</strong></span></div>
@@ -861,10 +902,18 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
   syncSpotlightTodayLink();
   const primary = document.querySelector('[data-loop-primary]');
   const selectedPromise = decisionPromiseForAnswer(activeAnswer);
-  if (primary && selectedPromise) {
-    primary.textContent = `Review ${selectedPromise.squadDisplayName || selectedPromise.squad}`;
-    primary.dataset.promiseId = selectedPromise.promiseId;
-    primary.dataset.squadId = selectedPromise.squad;
+  if (primary) {
+    if (activeLens === 'squad' && spotlightKey) {
+      primary.textContent = 'Open decision';
+      if (selectedPromise?.promiseId) {
+        primary.dataset.promiseId = selectedPromise.promiseId;
+        primary.dataset.squadId = selectedPromise.squad || squad;
+      }
+    } else if (selectedPromise) {
+      primary.textContent = `Review ${selectedPromise.squadDisplayName || selectedPromise.squad}`;
+      primary.dataset.promiseId = selectedPromise.promiseId;
+      primary.dataset.squadId = selectedPromise.squad;
+    }
   }
   document.querySelectorAll('[data-story-squad]').forEach((row) => row.setAttribute('aria-current', String(row.getAttribute('data-story-squad') === squad)));
   document.querySelector('[data-story-all]')?.setAttribute('aria-current', 'false');
@@ -880,7 +929,7 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
     mount.querySelectorAll('[data-theme-rename]').forEach((button) => button.addEventListener('click', () => beginThemeRename(button, squad, mount)));
     mount.querySelectorAll('[data-force-squad]').forEach((button) => button.addEventListener('click', () => forceSquadSync(squad, button)));
     mount.querySelectorAll('[data-edit-alias]').forEach((button) => button.addEventListener('click', () => openAliasEditor(squad, mount)));
-    mount.querySelectorAll('[data-classify-cluster]').forEach((button) => button.addEventListener('click', () => classifyCluster(button, squad, mount)));
+    mount.querySelectorAll('[data-classify-cluster]').forEach((button) => button.addEventListener('click', () => classifyUnknownCluster(button, cachedDetail, mount)));
   }
   // Fetch full detail in the background to enrich the cached render
   try {
@@ -914,11 +963,17 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
       : fetchedDetail;
     activeSpotlightDetail = detail;
     const currentDecision = decisionPromiseForAnswer(activeAnswer);
-    if (primary && currentDecision) {
-      primary.textContent = `Review ${currentDecision.squadDisplayName || detail.squad?.displayName || currentDecision.squad}`;
-      primary.dataset.promiseId = currentDecision.promiseId;
+    if (primary) {
+      // Squad focus already owns the decision rail — keep "Open decision" (don't re-wallpaper the long squad name).
+      if (activeLens === 'squad' && spotlightKey) {
+        primary.textContent = 'Open decision';
+        if (currentDecision?.promiseId) primary.dataset.promiseId = currentDecision.promiseId;
+      } else if (currentDecision) {
+        primary.textContent = `Review ${currentDecision.squadDisplayName || detail.squad?.displayName || currentDecision.squad}`;
+        primary.dataset.promiseId = currentDecision.promiseId;
+      }
     }
-    mount.innerHTML = `${contextConflict ? '<p class="gov-loop-stale-warning" role="status">Detail refresh is catching up. Verified proof remains visible.</p>' : ''}${spotlightHtml(detail)}`;
+    mount.innerHTML = `${contextConflict ? '<p class="gov-loop-stale-warning gov-loop-stale-warning--quiet" role="status" data-stale-quiet="true">Refreshing detail · verified proof stays usable</p>' : ''}${spotlightHtml(detail)}`;
     mount.querySelectorAll('[data-loop-promise]').forEach((button) => button.addEventListener('click', () => void openPromiseDrawer(button.getAttribute('data-loop-promise'))));
     mount.querySelectorAll('[data-theme-rename]').forEach((button) => button.addEventListener('click', () => beginThemeRename(button, squad, mount)));
     mount.querySelectorAll('[data-classify-cluster]').forEach((button) => button.addEventListener('click', () => classifyUnknownCluster(button, detail, mount)));
@@ -927,7 +982,7 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
   } catch (error) {
     // Keep the cached render if the fetch fails — only show error if no cached render exists
     if (!cachedSquad) mount.innerHTML = '<p role="status">Squad details are unavailable. The portfolio answer remains valid.</p>';
-    else mount.insertAdjacentHTML('afterbegin', `<p class="gov-loop-stale-warning" role="status">Detail refresh unavailable. Verified proof remains visible. ${escapeHtml(error.message || '')}</p>`);
+    else mount.insertAdjacentHTML('afterbegin', `<p class="gov-loop-stale-warning gov-loop-stale-warning--quiet" role="status" data-stale-quiet="true">Detail refresh unavailable · verified proof stays usable</p>`);
   }
 }
 
