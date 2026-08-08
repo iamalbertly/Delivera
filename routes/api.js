@@ -2085,7 +2085,7 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
                     trustFactor: promise.context || null,
                     urgencyLabel: promise.nextAction?.dueState || promise.caseState || 'review',
                     ownerConfidence: promise.ownerRoute?.unresolved ? 'missing-owner-route' : (promise.ownerRoute?.source || 'verified-route'),
-                    groupKey: `${squadId}|${actionType}|${sourceEntityId}|${dueState}`,
+                    groupKey: `${squadId}|${promise.diagnosisCode || actionType}|${dueState}`,
                     detailHref: `/api/governance/cases/${encodeURIComponent(promise.promiseId)}/detail.json?projects=${encodeURIComponent(squadId)}&squad=${encodeURIComponent(squadId)}&returnTo=${encodeURIComponent('/actions')}`,
                 };
             });

@@ -2400,6 +2400,20 @@ button.health-inline-pill {
   font-weight: 600;
   color: var(--primary);
   min-width: 60px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.attention-queue-table td[data-label="Issue"],
+.attention-queue-table td[data-label="Proof"],
+.attention-queue-table td[data-label="Reason"] {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--text, #0f172a);
+}
+
+.attention-queue-table td[data-label="Proof"] {
+  color: var(--muted-strong, #475569);
 }
 
 .issue-summary {

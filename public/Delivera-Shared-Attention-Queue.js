@@ -42,7 +42,7 @@ export function cockpitRisksToAttentionItems(topRisks = []) {
       reason: r.label || r.reason || 'Needs attention',
       owner: r.owner || r.decisionNeededFrom || r.assignee || 'Scrum Master',
       nextMove: r.action || r.recommendedAction || '',
-      proof: r.evidence || r.detail || '',
+      proof: r.evidence || r.detail || r.reason || r.status || r.summary || r.label || '',
       dedupeKey: r.issueKey ? String(r.issueKey).toUpperCase() : `cockpit:${r.label}`,
       tone: r.tone === 'critical' ? 'critical' : r.tone === 'warning' ? 'warning' : '',
       issueKey: r.issueKey || '',
@@ -70,7 +70,7 @@ export function risksToAttentionItems(brief) {
       reason: r.riskLabel || r.riskType || 'Needs attention',
       owner: r.decisionNeededFrom || 'Scrum Master',
       nextMove: r.recommendedAction || '',
-      proof: r.evidence || '',
+      proof: r.evidence || r.detail || r.reason || r.statusNow || r.summary || r.proofLine || '',
       dedupeKey: key,
       tone: r.escalation === 'escalate' ? 'critical' : r.escalation === 'act-today' ? 'warning' : '',
     });

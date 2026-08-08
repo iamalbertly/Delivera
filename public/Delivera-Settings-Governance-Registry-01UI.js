@@ -85,7 +85,8 @@ function render() {
   const ownerRouteGaps = squads.filter((item) => !isParticipationException(item) && hasOwnerGap(item));
   const platformHealthy = squads.filter((item) => !isParticipationException(item) && !hasOwnerGap(item));
   // Band headers carry counts — drop duplicate health-strip KPI tiles. Bulk stays folded.
-  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.</p></div><label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label><span>Registry v${Number(registry.version) || 1}</span></div>
+  mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera. Use top chrome <strong>Find squad</strong> to filter.</p></div><span>Registry v${Number(registry.version) || 1}</span></div>
+    <label class="registry-filter registry-filter--sr-only">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state" aria-hidden="true" tabindex="-1"></label>
     ${renderBand('Participation exceptions', 'These squads are excluded or pending onboarding, so this band should stay intentionally small.', participationExceptions, 'No participation exceptions are active.')}
     ${renderBand('Owner-route gaps', 'Fix missing PO and SM routes before the full registry list so actions can land on the right people.', ownerRouteGaps, 'All visible squads have PO and SM routes.')}
     <details class="registry-bulk" aria-labelledby="registry-bulk-title"><summary id="registry-bulk-title">Bulk participation change <span data-selected-count>0 squads selected</span></summary><div class="registry-bulk-body"><p>Updates are atomic and auditable.</p><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></div></details>
@@ -223,6 +224,17 @@ function broadcastRegistryVersion(version) {
       oldValue: null,
     }));
   } catch (_) {}
+  // Wipe ActiveLoop / sprint client caches so Governance + Sprint pick up org truth without user reset.
+  try {
+    import('./Delivera-Shared-Release-Cache-Guard-01SSOT.js')
+      .then((mod) => { if (typeof mod.clearGovernanceClientCaches === 'function') mod.clearGovernanceClientCaches(); })
+      .catch(() => {});
+  } catch (_) { /* ignore */ }
+  try {
+    import('./Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k')
+      .then((mod) => { if (typeof mod.clearActiveLoopCaches === 'function') mod.clearActiveLoopCaches(); })
+      .catch(() => {});
+  } catch (_) { /* ignore */ }
 }
 
 async function requestBatch(changes, reason) {

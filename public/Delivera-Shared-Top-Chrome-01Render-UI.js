@@ -16,8 +16,10 @@ import {
   actionsSquadHref,
   currentSprintSquadHref,
   governanceSpotlightHref,
+  persistLastFocusSquad,
   readContinuityTokens,
   reportSquadHref,
+  resolveFocusSquadKey,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 export const TOP_CHROME_ID = 'app-top-chrome';
@@ -55,13 +57,30 @@ const SURFACE_SWITCHER = [
 function contextualSurfaceHref(item) {
   if (typeof window === 'undefined') return item.href;
   const tokens = readContinuityTokens();
-  const squad = tokens.squad || tokens.spotlight;
+  const squad = resolveFocusSquadKey();
   const sprintId = tokens.sprintId;
   if (!squad && !sprintId) return item.href;
   if (item.key === PAGE_GOVERNANCE && squad) return governanceSpotlightHref(squad);
   if (item.key === PAGE_SPRINTS) return currentSprintSquadHref(squad, { sprintId });
   if (item.key === PAGE_REPORT) return reportSquadHref(squad);
   return item.href;
+}
+
+/** Rebake surface switcher hrefs after spotlight pushState without remounting chrome. */
+export function refreshTopChromeSurfaceHrefs() {
+  const chrome = document.getElementById(TOP_CHROME_ID);
+  if (!chrome) return;
+  chrome.querySelectorAll('a[data-top-surface]').forEach((link) => {
+    const key = link.getAttribute('data-top-surface');
+    const item = SURFACE_SWITCHER.find((entry) => entry.key === key);
+    if (!item) return;
+    link.setAttribute('href', contextualSurfaceHref(item));
+  });
+  const actionsBtn = chrome.querySelector('[data-top-action="agent"]');
+  if (actionsBtn) {
+    const squad = resolveFocusSquadKey();
+    actionsBtn.dataset.actionsHref = squad ? actionsSquadHref(squad) : '/actions';
+  }
 }
 
 function getPathState() {
@@ -85,7 +104,7 @@ function searchPlaceholder(page) {
   if (page === PAGE_GOVERNANCE) return 'Search squads…';
   if (page === PAGE_SPRINTS) return 'Jump to issue KEY…';
   if (page === PAGE_REPORT) return 'Filter proof view…';
-  if (page === PAGE_SETTINGS) return 'Filter settings…';
+  if (page === PAGE_SETTINGS) return 'Find squad…';
   if (page === PAGE_ACTIONS) return 'Filter action queue…';
   return 'Search…';
 }
@@ -191,17 +210,26 @@ function buildSwitcherHTML(current) {
 
 function pageScopedContextLine(rawLine) {
   const line = String(rawLine || '').trim();
-  if (!line || line === 'No report run yet') {
-    try {
-      const path = String(location?.pathname || '');
-      if (path.includes('/report')) return line || 'No report run yet';
-      const params = new URLSearchParams(location?.search || '');
-      const squad = String(params.get('squad') || params.get('spotlight') || params.get('projects') || '').trim();
+  try {
+    const path = String(location?.pathname || '');
+    const params = new URLSearchParams(location?.search || '');
+    const squad = String(params.get('squad') || params.get('spotlight') || params.get('projects') || '').trim();
+    // Non-report surfaces: never wallpaper truncated report ranges — ScopeTruth / squad only.
+    if (!path.includes('/report')) {
       if (squad) return `Scope ${squad.split(',')[0].trim().toUpperCase()}`;
       if (path.includes('/current-sprint')) return 'Current sprint';
       if (path.includes('/actions')) return 'Action queue';
       if (path.includes('/settings')) return 'Settings';
       if (path.includes('/governance') || path.includes('/brief')) return 'Governance';
+      if (!line || line === 'No report run yet') return '';
+      // Strip Range: … fragments from legacy context strings.
+      return line.replace(/\s*\|\s*Range:[^|]*/gi, '').replace(/^Range:[^|]*/i, '').trim();
+    }
+  } catch (_) { /* fall through */ }
+  if (!line || line === 'No report run yet') {
+    try {
+      const path = String(location?.pathname || '');
+      if (path.includes('/report')) return line || 'No report run yet';
       return '';
     } catch (_) {
       return '';
@@ -316,6 +344,13 @@ function delegateSearch(page, query) {
     return;
   }
   if (page === PAGE_SETTINGS) {
+    const registryFilter = document.querySelector('[data-registry-filter]');
+    if (registryFilter) {
+      registryFilter.value = q;
+      registryFilter.dispatchEvent(new Event('input', { bubbles: true }));
+      document.getElementById('gov-settings-registry-mount')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     const sections = document.querySelectorAll('main h2, main h3, .settings-section-title');
     const lower = q.toLowerCase();
     for (const el of sections) {
@@ -507,8 +542,7 @@ function bindTopChromeInteractions(chrome, current) {
   });
 
   chrome.querySelector('[data-top-action="agent"]')?.addEventListener('click', () => {
-    const tokens = readContinuityTokens();
-    window.location.assign(actionsSquadHref(tokens.squad || tokens.spotlight, { source: current || 'app' }));
+    window.location.assign(actionsSquadHref(resolveFocusSquadKey(), { source: current || 'app' }));
   });
 
   document.addEventListener('click', (e) => {
@@ -615,6 +649,21 @@ export function ensureTopChrome() {
   refreshTopChromeBrand();
   loadSessionMetaIntoAvatar();
   void refreshAiTrustPill();
+  refreshTopChromeSurfaceHrefs();
+
+  if (!window.__deliveraTopChromeFocusBound) {
+    window.__deliveraTopChromeFocusBound = true;
+    window.addEventListener('delivera:governance-focus', (event) => {
+      const key = String(event.detail?.spotlightKey || '').trim();
+      if (key) persistLastFocusSquad(key);
+      refreshTopChromeSurfaceHrefs();
+      refreshTopChromeBrand();
+    });
+    window.addEventListener('delivera:scope-changed', () => {
+      refreshTopChromeSurfaceHrefs();
+      refreshTopChromeBrand();
+    });
+  }
 
   window.dispatchEvent(new CustomEvent('app:top-chrome-rendered', { detail: { current } }));
   return chrome;

@@ -3,8 +3,35 @@
  * Keeps spotlight / squad / returnTo tokens consistent across Governance, Sprint, Actions, Dashboard.
  */
 
+const LAST_FOCUS_SQUAD_KEY = 'delivera:continuity:last-focus-squad:v1';
+
 export function normalizeSquadKey(value) {
   return String(value || '').trim().toUpperCase();
+}
+
+export function persistLastFocusSquad(squadKey) {
+  const key = normalizeSquadKey(squadKey);
+  if (!key || typeof sessionStorage === 'undefined') return;
+  try { sessionStorage.setItem(LAST_FOCUS_SQUAD_KEY, key); } catch (_) { /* privacy / quota */ }
+}
+
+export function readLastFocusSquad() {
+  try {
+    return normalizeSquadKey(typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(LAST_FOCUS_SQUAD_KEY) : '');
+  } catch (_) {
+    return '';
+  }
+}
+
+/** URL tokens first; fall back to last focus so chrome Sprint/Evidence never drop squad mid-tunnel. */
+export function resolveFocusSquadKey(url = typeof location !== 'undefined' ? location.href : '') {
+  const tokens = readContinuityTokens(url);
+  const fromUrl = normalizeSquadKey(tokens.squad || tokens.spotlight);
+  if (fromUrl) {
+    persistLastFocusSquad(fromUrl);
+    return fromUrl;
+  }
+  return readLastFocusSquad();
 }
 
 export function readContinuityTokens(url = typeof location !== 'undefined' ? location.href : '') {
@@ -23,6 +50,7 @@ export function readContinuityTokens(url = typeof location !== 'undefined' ? loc
         squad,
       });
     }
+    if (squad || spotlight) persistLastFocusSquad(squad || spotlight);
     return {
       spotlight,
       squad,
@@ -212,8 +240,16 @@ export function renderShellSummaryChips(chips = []) {
 export function rewriteContinuityUrl({ squad, boardId, sprintId, projects, spotlight, view } = {}) {
   try {
     const url = new URL(typeof location !== 'undefined' ? location.href : 'http://localhost');
-    if (squad) url.searchParams.set('squad', normalizeSquadKey(squad));
-    if (spotlight) url.searchParams.set('spotlight', normalizeSquadKey(spotlight));
+    if (squad) {
+      const key = normalizeSquadKey(squad);
+      url.searchParams.set('squad', key);
+      persistLastFocusSquad(key);
+    }
+    if (spotlight) {
+      const key = normalizeSquadKey(spotlight);
+      url.searchParams.set('spotlight', key);
+      persistLastFocusSquad(key);
+    }
     if (projects) url.searchParams.set('projects', String(projects).trim());
     if (boardId) url.searchParams.set('boardId', String(boardId));
     if (view) url.searchParams.set('view', String(view));

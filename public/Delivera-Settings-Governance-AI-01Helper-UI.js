@@ -45,7 +45,8 @@ export function mountGovernanceAiHelper(mount) {
 
     mount.innerHTML = `
       <section id="gov-ai-helper" class="surface-card gov-ai-helper-card">
-        <h2>Processing intelligence</h2>
+        <details class="gov-ai-processing-fold">
+        <summary><strong>Processing intelligence</strong> <span class="gov-ai-helper-note">Collapsed by default — org registry above is the first-fold SSOT.</span></summary>
         <p class="gov-ai-helper-lead">Local extraction and the shared cache protect speed and quota. External models receive only unresolved evidence.</p>
         ${renderHealthTileStrip([
           { label: 'Worker', value: intelligence?.worker || 'Unavailable', lineBreak: true },
@@ -92,6 +93,7 @@ export function mountGovernanceAiHelper(mount) {
           <button type="button" class="btn btn-link btn-compact" id="gov-ai-clear">Clear</button>
         </div>
         <p id="gov-ai-test-result" class="gov-ai-helper-result" aria-live="polite"></p>
+        </details>
         </details>
 
         <h3 class="gov-ai-helper-sub">Jira</h3>

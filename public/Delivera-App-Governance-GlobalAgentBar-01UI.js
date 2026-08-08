@@ -37,7 +37,12 @@ export function updateGlobalAgentBar(brief) {
   const receipt = brief?.meta?.workerReceipt || {};
   const inbox = receipt.inboxTotal ?? receipt.pendingCount ?? 0;
   const gaps = (brief?.meta?.setupGaps || []).length;
-  const pi = brief?.meta?.piConfidence?.headline || 'PI n/a';
+  const piRaw = brief?.meta?.piConfidence?.headline || '';
+  const piLower = String(piRaw).toLowerCase();
+  // Hide untrusted wallpaper unless Gaps give a one-click path.
+  const showPi = piRaw && !/not trusted|n\/a|unavailable/i.test(piLower)
+    ? `<span class="gov-global-pill">${escapeHtml(piRaw.slice(0, 50))}</span>`
+    : (gaps > 0 ? `<span class="gov-global-pill">Gaps ${gaps} · fix setup</span>` : '');
   const since = brief?.meta?.sinceLastRun?.summary || '';
   const po = brief?.meta?.poReadiness || brief?.poReadiness;
   const poPill = po?.score != null
@@ -46,13 +51,18 @@ export function updateGlobalAgentBar(brief) {
   const deltaPill = since
     ? `<span class="gov-global-pill gov-since-delta">${escapeHtml(since.slice(0, 60))}</span>`
     : (inbox > 0 ? `<span class="gov-global-pill">Brief queue: ${inbox}</span>` : '');
+  const piShowsGaps = gaps > 0 && !piRaw;
+  const gapsPill = (gaps > 0 && !piShowsGaps && !/Gaps/i.test(showPi))
+    ? `<span class="gov-global-pill">Gaps ${gaps}</span>`
+    : '';
   bar.innerHTML = `
     ${deltaPill}
     ${poPill}
-    <span class="gov-global-pill">Gaps ${gaps}</span>
-    <span class="gov-global-pill">${escapeHtml(pi.slice(0, 50))}</span>`;
-  bar.hidden = false;
-  document.body.classList.add('has-sub-chrome');
+    ${gapsPill}
+    ${showPi}`;
+  const hasContent = Boolean(bar.textContent.trim());
+  bar.hidden = !hasContent;
+  document.body.classList.toggle('has-sub-chrome', hasContent);
 }
 
 export function mountStickyMicroAnswer(mount) {

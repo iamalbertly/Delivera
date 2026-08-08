@@ -223,7 +223,7 @@ function resolveFriendlySquadLabel(projectKey, boardName = '') {
   return boardName || key;
 }
 
-function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintNameCompact, remainingChipLabel, titleSquadLabel }) {
+function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintNameCompact, remainingChipLabel, titleSquadLabel, omitRemaining = false }) {
   const projectKey = String(selectedProject || '').trim().toUpperCase().split(',')[0];
   const friendlyScope = resolveFriendlySquadLabel(projectKey, boardName);
   const titleSquad = String(titleSquadLabel || '').trim();
@@ -231,12 +231,12 @@ function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintName
   const scopeChip = friendlyScope
     ? (projectKey && friendlyScope !== projectKey ? `Scope ${friendlyScope} (${projectKey})` : `Scope ${friendlyScope}`)
     : '';
-  // ScopeTruth: remaining + sprint window only — % done / Status live in identity metrics + verdict line.
+  // ScopeTruth: remaining only when not already on subtitle/verdict (cut Ends-in echo).
   return renderShellSummaryChips([
     scopeChip,
     boardName && friendlyScope !== boardName && boardName !== titleSquad ? `Board ${boardName}` : '',
     sprintNameCompact && `Sprint ${sprintNameCompact}`,
-    remainingChipLabel,
+    omitRemaining ? '' : remainingChipLabel,
   ]);
 }
 
@@ -469,6 +469,7 @@ export function renderHeaderBar(data, options = {}) {
     sprintNameCompact,
     remainingChipLabel,
     titleSquadLabel,
+    omitRemaining: hasPriorityInterventions,
   });
 
   const leanAttr = viewportLean ? ' data-viewport-lean="true"' : '';
@@ -780,18 +781,18 @@ export function wireHeaderBarHandlers() {
         showSprintActionToast(SPRINT_COPY.historical, 'error');
         return true;
       }
+      const boundIssueKey = String(focusRemediation.getAttribute('data-issue-key') || '').trim();
       try {
-        const boundIssueKey = String(focusRemediation.getAttribute('data-issue-key') || '').trim();
         const escapedIssueKey = globalThis.CSS?.escape ? CSS.escape(boundIssueKey) : boundIssueKey.replace(/[^A-Za-z0-9_-]/g, '');
         const row = boundIssueKey
-          ? document.querySelector(`#work-risks-table tbody [data-issue-key="${escapedIssueKey}"], #stories-table tbody tr[data-issue-key="${escapedIssueKey}"], #stuck-card tbody tr[data-issue-key="${escapedIssueKey}"]`)
-          : document.querySelector('#work-risks-table tbody .work-risk-parent-row, #stories-table tbody tr[data-issue-key], #stuck-card tbody tr[data-issue-key]');
+          ? document.querySelector(`#work-risks-table tbody [data-issue-key="${escapedIssueKey}"], #stories-table tbody tr[data-issue-key="${escapedIssueKey}"], #stuck-card tbody tr[data-issue-key="${escapedIssueKey}"], .attention-queue-table tr[data-issue-key="${escapedIssueKey}"], tr[data-issue-key="${escapedIssueKey}"]`)
+          : document.querySelector('#work-risks-table tbody .work-risk-parent-row, #stories-table tbody tr[data-issue-key], #stuck-card tbody tr[data-issue-key], .attention-queue-table tr[data-issue-key]');
         if (row) {
           const link = row.querySelector('a[href*="/browse/"]');
-          const key = link ? (link.textContent || '').trim() : (row.getAttribute('data-issue-key') || '');
+          const key = link ? (link.textContent || '').trim() : (row.getAttribute('data-issue-key') || boundIssueKey);
           const url = link ? link.href : '';
-          const summaryCell = row.querySelector('.story-summary-cell, td.subtask-child-summary, td[data-label="Summary"]');
-          const statusCell = row.querySelector('.story-status-cell, td[data-label="Status"]');
+          const summaryCell = row.querySelector('.story-summary-cell, td.subtask-child-summary, td[data-label="Summary"], td[data-label="Reason"]');
+          const statusCell = row.querySelector('.story-status-cell, td[data-label="Status"], td[data-label="Proof"]');
           const summary = summaryCell ? (summaryCell.textContent || '').trim() : '';
           const status = statusCell ? (statusCell.textContent || '').trim() : '';
           if (key) {
@@ -809,14 +810,39 @@ export function wireHeaderBarHandlers() {
               meta: payload?.meta,
               sprint: payload?.sprint,
             });
-            row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+            row.classList.add('is-highlighted');
+            row.scrollIntoView?.({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
             return true;
           }
         }
+        // KEY known but row missing — open nudge without mutating risk filters (direct-to-value).
+        if (boundIssueKey) {
+          const payload = getCurrentSprintPayload();
+          openJiraNudgeReviewSheet({
+            issueKey: boundIssueKey,
+            issueSummary: '',
+            issueStatus: '',
+            issueUrl: '',
+            useCase: 'blocker',
+            staleHours: null,
+            readOnly: !isSprintCommentSendAllowed(payload?.meta, payload?.sprint),
+            meta: payload?.meta,
+            sprint: payload?.sprint,
+          });
+          document.querySelector('.attention-queue, #stuck-card, #stories-card')?.scrollIntoView?.({
+            behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'start',
+          });
+          return true;
+        }
       } catch (err) {
-        showSprintActionToast(err?.message || 'Could not post comment.', 'error');
+        showSprintActionToast(err?.message || 'Could not open next move.', 'error');
+        return true;
       }
-      applyHeaderRiskAction(['no-log', 'missing-estimate', 'unassigned', 'blocker'], 'header-take-action');
+      document.querySelector('.attention-queue, #stuck-card, #stories-card')?.scrollIntoView?.({
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      });
       return true;
     }
     const shortlistRemediation = el.closest?.('[data-header-action="focus-remediation-shortlist"]');
