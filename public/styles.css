@@ -58,6 +58,8 @@
   --z-sub-chrome: 1200;
   --z-issue-preview: 1201;
   --z-top-chrome: 1300;
+  --z-sidebar: 1400;
+  --z-chrome-overlay: 1500;
   --z-drawer: 1600;
   --z-modal: 1700;
   --z-toast: 1800;
@@ -1375,7 +1377,7 @@ body.governance-page .app-top-brand-context {
   left: 0;
   right: 0;
   height: var(--top-chrome-height, 56px);
-  z-index: 1300;
+  z-index: var(--z-top-chrome, 1300);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1722,7 +1724,7 @@ body.governance-page .app-top-brand-context {
   color: var(--text);
   box-shadow: var(--shadow-gloss);
   border: 1px solid var(--border);
-  z-index: 1310;
+  z-index: var(--z-chrome-overlay, 1500);
 }
 
 .app-top-avatar-menu[hidden] {
@@ -1760,7 +1762,7 @@ body.governance-page .app-top-brand-context {
   color: var(--text);
   box-shadow: var(--shadow-gloss);
   border: 1px solid var(--border);
-  z-index: 1310;
+  z-index: var(--z-chrome-overlay, 1500);
   font-size: 0.82rem;
 }
 
@@ -12972,9 +12974,24 @@ body.jira-nudge-review-open { overflow: hidden; }
 .jira-activity-sym { font-size: 1.1rem; width: 2rem; }
 .jira-activity-preview { color: var(--muted-strong, #4a5d6e); max-width: 280px; }
 
-/* Viewport lean: work first, cockpit collapsed, header chrome in drawer */
-.current-sprint-viewport-lean .sprint-cockpit-column {
-  grid-column: 1 / -1;
+/* Viewport lean: keep 2-col desktop rail so blockers/next-action stay visible without scroll */
+@media (min-width: 1024px) {
+  .current-sprint-viewport-lean .sprint-cockpit-column {
+    grid-column: 2;
+    position: sticky;
+    top: calc(var(--top-chrome-height, 56px) + 12px);
+    align-self: start;
+    max-height: calc(100vh - var(--top-chrome-height, 56px) - 24px);
+    overflow-y: auto;
+  }
+  .current-sprint-viewport-lean .sprint-cards-column {
+    grid-column: 1;
+  }
+}
+@media (max-width: 1023px) {
+  .current-sprint-viewport-lean .sprint-cockpit-column {
+    grid-column: 1 / -1;
+  }
 }
 .decision-cockpit-shell--viewport-lean {
   margin-top: 4px;
@@ -16953,12 +16970,95 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
   padding: 4px 10px; cursor: pointer; font: inherit;
 }
 
-.gov-right-drawer-host { position: fixed; inset: 0; z-index: var(--z-drawer); display: flex; }
+.gov-loop-actions--decision-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+.gov-loop-more-actions {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.gov-loop-more-actions > summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+.gov-loop-actions--more {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.gov-commitment-pack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 12px;
+}
+.gov-commitment-pack-status {
+  font-size: 0.8rem;
+  color: #166534;
+}
+.gov-spotlight-scope-note {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.gov-loading--restore {
+  max-width: 42rem;
+}
+.gov-story-row [role="cell"] strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.gov-next-move-rail p,
+.gov-loop-primary {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1280px) {
+  .gov-active-loop-hero.gov-story-v2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    column-gap: 16px;
+    align-items: start;
+  }
+  .gov-active-loop-hero.gov-story-v2 .gov-story-mission,
+  .gov-active-loop-hero.gov-story-v2 .gov-loop-copy,
+  .gov-active-loop-hero.gov-story-v2 .gov-story-matrix,
+  .gov-active-loop-hero.gov-story-v2 .gov-squad-spotlight,
+  .gov-active-loop-hero.gov-story-v2 .gov-story-update,
+  .gov-active-loop-hero.gov-story-v2 .gov-story-footer {
+    grid-column: 1;
+  }
+  .gov-active-loop-hero.gov-story-v2 .gov-loop-decision-bento {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    position: sticky;
+    top: calc(var(--top-chrome-height, 56px) + 12px);
+  }
+}
+.gov-right-drawer-host {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  display: flex;
+  align-items: stretch;
+  padding-top: var(--top-chrome-height, 56px);
+  box-sizing: border-box;
+}
 .gov-right-drawer-host[hidden] { display: none; }
 .gov-right-drawer-backdrop { flex: 1; background: rgba(0,0,0,0.35); border: 0; cursor: pointer; }
 .gov-right-drawer-panel {
   width: min(400px, 94vw); background: var(--surface, #fff);
-  box-shadow: -4px 0 24px rgba(0,0,0,0.12); display: flex; flex-direction: column; max-height: 100vh;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12); display: flex; flex-direction: column;
+  max-height: calc(100vh - var(--top-chrome-height, 56px));
+  align-self: stretch;
 }
 .gov-right-drawer-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -17890,7 +17990,12 @@ body.governance-story-v2-ready #gov-sticky-answer-mount { display: none !importa
   body.governance-squad-selected .gov-spotlight-grid { grid-template-columns: 1fr; }
   body.governance-squad-selected .gov-spotlight-actions { grid-column: auto; }
   body.governance-squad-selected .gov-spotlight-head { align-items: stretch; flex-direction: column; }
-  body.governance-squad-selected .gov-next-move-rail { display: none; }
+}
+@media (min-width: 1024px) {
+  body.governance-active-loop-ready:not(.governance-squad-selected) .gov-next-move-rail {
+    position: sticky;
+    top: calc(var(--top-chrome-height, 56px) + 12px);
+  }
 }
 
 .gov-next-move-rail {
@@ -17905,6 +18010,24 @@ body.governance-story-v2-ready #gov-sticky-answer-mount { display: none !importa
 .gov-next-move-rail strong { color: #0f172a; font-size: .92rem; }
 .gov-next-move-rail p { margin: 0; color: #334155; font-size: .82rem; line-height: 1.35; }
 .gov-next-move-rail-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.gov-work-theme { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.gov-theme-rename-btn {
+  opacity: 0;
+  pointer-events: none;
+  flex-shrink: 0;
+  font-size: .72rem !important;
+  min-height: 28px !important;
+  padding: 2px 6px !important;
+}
+.gov-work-theme:hover .gov-theme-rename-btn,
+.gov-work-theme:focus-within .gov-theme-rename-btn,
+.gov-theme-rename-btn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .gov-theme-rename-btn { opacity: .65; pointer-events: auto; }
+}
 .gov-excluded-admin-hint { display: none !important; }
 .gov-hero-freshness-meta {
   display: inline-flex;
@@ -18068,8 +18191,24 @@ body.governance-active-loop-ready #gov-verdict-mount,
 body.governance-active-loop-ready #gov-loading,
 body.governance-active-loop-ready .governance-header.gov-header-compact,
 body.governance-active-loop-ready #gov-action-clusters-mount,
-body.governance-active-loop-ready #gov-setup-debt-mount,
-body.governance-active-loop-ready #gov-right-rail-mount { display: none !important; }
+body.governance-active-loop-ready #gov-setup-debt-mount { display: none !important; }
+body.governance-active-loop-ready #gov-right-rail-mount:not([data-right-rail-has-queue]):not([data-right-rail-has-receipt]):empty,
+body.governance-active-loop-ready #gov-right-rail-mount:not([data-right-rail-has-queue]):not([data-right-rail-has-receipt]) { display: none !important; }
+@media (min-width: 1024px) {
+  body.governance-active-loop-ready #gov-right-rail-mount[data-right-rail-has-queue],
+  body.governance-active-loop-ready #gov-right-rail-mount[data-right-rail-has-receipt] {
+    display: block !important;
+  }
+  body.governance-story-v2-ready .governance-shell.governance-shell--desktop-grid:has(#gov-right-rail-mount[data-right-rail-has-queue]),
+  body.governance-story-v2-ready .governance-shell.governance-shell--desktop-grid:has(#gov-right-rail-mount[data-right-rail-has-receipt]) {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  }
+  body.governance-story-v2-ready .governance-shell.governance-shell--desktop-grid:has(#gov-right-rail-mount[data-right-rail-has-queue]) .gov-main-column,
+  body.governance-story-v2-ready .governance-shell.governance-shell--desktop-grid:has(#gov-right-rail-mount[data-right-rail-has-receipt]) .gov-main-column {
+    grid-column: 1;
+    width: auto;
+  }
+}
 body.governance-active-loop-ready .gov-brief-layout { display: block !important; }
 body.governance-active-loop-ready .gov-main-column { max-width: 1440px; margin-inline: auto; }
 body.governance-story-v2-ready #gov-scope-refresh,

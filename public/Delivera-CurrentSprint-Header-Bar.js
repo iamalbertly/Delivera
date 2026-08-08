@@ -34,7 +34,7 @@ import {
   formatSprintRemainingLabel,
   formatFreshnessAgeLabel,
 } from './Delivera-CurrentSprint-Copy.js';
-import { renderShellSummaryChips, reportSquadHref } from './Delivera-Shared-Continuity-Link-01Build.js';
+import { governanceSpotlightHref, renderShellSummaryChips, reportSquadHref } from './Delivera-Shared-Continuity-Link-01Build.js';
 import { projectDisplayName } from './Delivera-Shared-Projects-Catalog-01SSOT.js';
 
 const headerFilterUiState = {
@@ -222,7 +222,7 @@ function resolveFriendlySquadLabel(projectKey, boardName = '') {
   return boardName || key;
 }
 
-function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintNameCompact, verdictInfo, remainingChipLabel, statusBadge }) {
+function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintNameCompact, verdictInfo, remainingChipLabel, statusBadge, donePercentage }) {
   const projectKey = String(selectedProject || '').trim().toUpperCase().split(',')[0];
   const friendlyScope = resolveFriendlySquadLabel(projectKey, boardName);
   const scopeChip = friendlyScope
@@ -230,12 +230,15 @@ function buildCurrentSprintShellSummary({ selectedProject, boardName, sprintName
     : '';
   // One status chip SSOT: prefer verdict over duplicate Live/Watch badges when both exist.
   const statusChip = verdictInfo?.verdict || statusBadge || '';
+  const progressChip = Number.isFinite(Number(donePercentage)) ? `${Number(donePercentage)}% done` : '';
+  // ScopeTruth: one clock strip — do not also reprint full date ranges beside these chips.
   return renderShellSummaryChips([
     scopeChip,
     boardName && friendlyScope !== boardName ? `Board ${boardName}` : '',
     sprintNameCompact && `Sprint ${sprintNameCompact}`,
     statusChip && `Status ${statusChip}`,
     remainingChipLabel,
+    progressChip,
   ]);
 }
 
@@ -476,6 +479,7 @@ export function renderHeaderBar(data, options = {}) {
     verdictInfo,
     remainingChipLabel,
     statusBadge,
+    donePercentage,
   });
 
   const leanAttr = viewportLean ? ' data-viewport-lean="true"' : '';
@@ -496,7 +500,9 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += '</div>';
   html += '<div class="report-filter-strip current-sprint-filter-strip" data-context-bar="true" aria-live="polite">';
-  html += '<a href="/governance" class="report-back-to-brief">← Back to Governance</a>';
+  const continuitySquad = String(selectedProject || '').trim().toUpperCase();
+  const backHref = continuitySquad ? governanceSpotlightHref(continuitySquad) : '/governance';
+  html += `<a href="${escapeHtml(backHref)}" class="report-back-to-brief">← Back to Governance</a>`;
   html += `<div class="report-filter-strip-summary current-sprint-filter-strip-summary applied-filters-chips-row">${shellSummaryHtml}</div>`;
   html += '</div>';
   html += '<div class="header-scope-mount" id="current-sprint-scope-mount" aria-label="Sprint scope"></div>';
@@ -589,7 +595,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '</details>';
   html += '</div>';
   html += '<div class="header-compact-strip" aria-label="' + escapeHtml(SPRINT_COPY.compactStripAria) + '">';
-  html += reportLinkHtml;
+  // Open report stays only in shell-actions (SSOT) — avoid duplicate History links in the same viewport.
   if (hasPriorityInterventions) {
     const interventionText = compactStripInterventions
       .map((item) => {
@@ -951,10 +957,11 @@ export function wireHeaderBarHandlers() {
         return;
       }
 
-      const openReportContext = el.closest('[data-context-action="open-report-context"]');
+      const openReportContext = el.closest('[data-header-action="open-report-context"], [data-context-action="open-report-context"]');
       if (openReportContext && bar.contains(openReportContext)) {
         event.preventDefault();
-        window.location.href = '/report';
+        const href = openReportContext.getAttribute('href') || '/report';
+        window.location.href = href;
         return;
       }
 
@@ -1127,6 +1134,16 @@ export function wireHeaderBarHandlers() {
   } catch (_) {}
   if (isFirstWire) {
     applyRoleMode(initialMode, { silent: true, applyPreset: true });
+    // Blockers-first: when default risk tags include blocker (or owned blockers exist),
+    // auto-apply so SM/PO see pain without an extra click.
+    const defaultTags = String(headerBar.getAttribute('data-default-risk-tags') || '')
+      .split(/\s+/)
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    const urlRisk = String(new URL(location.href).searchParams.get('risk') || '').trim().toLowerCase();
+    if (urlRisk === 'blocker' || (defaultTags.includes('blocker') && initialMode === 'all')) {
+      applyHeaderRiskAction(['blocker'], urlRisk === 'blocker' ? 'url-risk-blocker' : 'default-blockers-first');
+    }
   } else {
     applyRoleMode(headerFilterUiState.roleMode || initialMode, { silent: true, applyPreset: false });
   }

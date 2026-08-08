@@ -290,7 +290,17 @@ function refreshBoards(preferredId, preferredSprintId) {
         });
     })
     .catch((err) => {
-      const msg = err.message || 'Failed to load boards.';
+      const msg = String(err?.message || err || 'Failed to load boards.');
+      // Render/wire ReferenceErrors must not masquerade as board fetch failures when
+      // sprint content already painted from snapshot or a successful load.
+      const isRenderBug = /is not defined|ReferenceError/i.test(msg);
+      const contentVisible = currentSprintDom.contentEl
+        && currentSprintDom.contentEl.style.display !== 'none'
+        && String(currentSprintDom.contentEl.innerHTML || '').trim().length > 80;
+      if (isRenderBug && contentVisible) {
+        console.warn('[current-sprint] Non-fatal render error after boards load:', msg);
+        return null;
+      }
       setBoardSelectCouldntLoad();
       showBoardsLoadError(msg || "Couldn't load boards.", preferredId, preferredSprintId);
       if ((msg || '').includes('Session expired')) appendCurrentSprintLoginLink(currentSprintDom.errorEl);

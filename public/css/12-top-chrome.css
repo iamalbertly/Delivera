@@ -49,7 +49,7 @@ body.governance-page .app-top-brand-context {
   left: 0;
   right: 0;
   height: var(--top-chrome-height, 56px);
-  z-index: 1300;
+  z-index: var(--z-top-chrome, 1300);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -396,7 +396,7 @@ body.governance-page .app-top-brand-context {
   color: var(--text);
   box-shadow: var(--shadow-gloss);
   border: 1px solid var(--border);
-  z-index: 1310;
+  z-index: var(--z-chrome-overlay, 1500);
 }
 
 .app-top-avatar-menu[hidden] {
@@ -434,7 +434,7 @@ body.governance-page .app-top-brand-context {
   color: var(--text);
   box-shadow: var(--shadow-gloss);
   border: 1px solid var(--border);
-  z-index: 1310;
+  z-index: var(--z-chrome-overlay, 1500);
   font-size: 0.82rem;
 }
 

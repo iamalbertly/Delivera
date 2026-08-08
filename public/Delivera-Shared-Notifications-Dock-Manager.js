@@ -97,11 +97,18 @@ function pageContextFromPath() {
 }
 
 function notificationFocusLink(pageContext) {
-  if (pageContext === 'governance') return { href: '/governance', label: 'Open Brief queue' };
-  if (pageContext === 'settings') return { href: '/settings', label: 'Open settings' };
-  if (pageContext === 'current-sprint') return { href: '/current-sprint#stories-card', label: 'Focus sprint work' };
-  if (pageContext === 'leadership') return { href: '/governance#decision-snapshot', label: 'Open Brief snapshot' };
-  return { href: '/report', label: 'Open proof view' };
+  // Direct-to-value: bell lands on the intervention queue, not a hop back to Brief.
+  let squad = '';
+  try {
+    const params = new URL(typeof location !== 'undefined' ? location.href : '', 'http://localhost').searchParams;
+    squad = String(params.get('squad') || params.get('spotlight') || '').trim().toUpperCase();
+  } catch (_) {}
+  const actionsHref = squad ? `/actions?squad=${encodeURIComponent(squad)}` : '/actions';
+  if (pageContext === 'governance') return { href: actionsHref, label: 'Open action queue' };
+  if (pageContext === 'settings') return { href: '/settings#gov-settings-registry-mount', label: 'Open participation exceptions' };
+  if (pageContext === 'current-sprint') return { href: actionsHref, label: 'Open action queue' };
+  if (pageContext === 'leadership') return { href: actionsHref, label: 'Open action queue' };
+  return { href: actionsHref, label: 'Open action queue' };
 }
 
 function mountNotificationDockElement(summary, pageContext = 'report') {

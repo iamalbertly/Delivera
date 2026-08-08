@@ -27,25 +27,41 @@ export function showGovernanceLoading(msg = 'Loading your delivery answer…', o
   const { loadingEl, errorEl, contentEl } = getDom();
   if (errorEl) errorEl.hidden = true;
   const preserve = options.preserveContent === true && hasGovernanceBriefContent();
+  const activeLoopReady = Boolean(document.getElementById('gov-active-loop-mount')?.querySelector('.gov-active-loop-hero, .gov-story-row, .gov-loop-decision-bento'));
   if (loadingEl) {
-    if (preserve) {
-      loadingEl.innerHTML = REFRESH_COPY_HTML;
-      const copyEl = loadingEl.querySelector('.gov-loading-msg');
-      if (copyEl) {
-        copyEl.textContent = msg || 'Refreshing… showing previous answer until live data arrives.';
+    if (preserve || activeLoopReady) {
+      // Keep cold/restore title structure — never wipe ActiveLoop attributes into a second empty UI.
+      let titleEl = loadingEl.querySelector('[data-gov-loading-title]');
+      let copyEl = loadingEl.querySelector('.gov-loading-msg');
+      if (!titleEl || !copyEl) {
+        loadingEl.innerHTML = ''
+          + '<div class="current-sprint-loading-spinner" aria-hidden="true"></div>'
+          + '<div><strong data-gov-loading-title>Refreshing verified answer</strong>'
+          + '<p class="current-sprint-loading-msg gov-loading-msg" aria-live="polite"></p></div>';
+        titleEl = loadingEl.querySelector('[data-gov-loading-title]');
+        copyEl = loadingEl.querySelector('.gov-loading-msg');
       }
-      loadingEl.classList.remove('current-sprint-loading-with-spinner');
+      if (titleEl) titleEl.textContent = 'Refreshing · last verified answer stays visible';
+      if (copyEl) copyEl.textContent = msg || 'Refreshing… showing previous answer until live data arrives.';
+      loadingEl.dataset.govLoadingMode = 'restore';
+      loadingEl.classList.add('current-sprint-loading-with-spinner');
+      loadingEl.classList.add('gov-loading--restore');
     } else {
-      loadingEl.innerHTML = SPINNER_HTML;
+      loadingEl.innerHTML = ''
+        + '<div class="current-sprint-loading-spinner" aria-hidden="true"></div>'
+        + '<div><strong data-gov-loading-title>Building first verified answer…</strong>'
+        + '<p class="current-sprint-loading-msg gov-loading-msg" aria-live="polite"></p></div>';
       const msgEl = loadingEl.querySelector('.gov-loading-msg');
       if (msgEl) msgEl.textContent = msg;
+      loadingEl.dataset.govLoadingMode = 'cold';
       loadingEl.classList.add('current-sprint-loading-with-spinner');
     }
     loadingEl.style.display = 'block';
     loadingEl.removeAttribute('hidden');
+    loadingEl.setAttribute('aria-hidden', 'false');
   }
   if (contentEl) {
-    if (preserve) {
+    if (preserve || activeLoopReady) {
       setScopeStaleOverlay(true, msg || 'Updating scope…');
       contentEl.style.display = 'block';
     } else {

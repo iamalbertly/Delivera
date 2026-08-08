@@ -1,4 +1,5 @@
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
+import { openRightDrawer, closeRightDrawer } from './Delivera-App-Shared-RightDrawer-01UI.js';
 
 const mount = document.getElementById('gov-settings-registry-mount');
 let registry = null;
@@ -15,15 +16,21 @@ function snapshot(item) {
     productOwner: normalized(personName(item.productOwner)),
     scrumMaster: normalized(personName(item.scrumMaster)),
     streamLead: normalized(personName(item.streamLead)),
+    boardMapping: Array.isArray(item.boardMapping) ? item.boardMapping.map(Number).filter(Boolean) : [],
   };
 }
 
 function formValues(form) {
+  const boardRaw = normalized(form.elements.boardMapping?.value);
+  const boardMapping = boardRaw
+    ? boardRaw.split(/[,\s]+/).map(Number).filter((id) => Number.isFinite(id) && id > 0)
+    : [];
   return {
     participationState: normalized(form.elements.participationState?.value),
     productOwner: normalized(form.elements.productOwner?.value),
     scrumMaster: normalized(form.elements.scrumMaster?.value),
     streamLead: normalized(form.elements.streamLead?.value),
+    boardMapping,
   };
 }
 
@@ -41,6 +48,8 @@ function row(item) {
   const ownerRoute = hasOwnerGap(item)
     ? 'Owner route incomplete'
     : `${personName(item.productOwner)} · ${personName(item.scrumMaster)}`;
+  const boardIds = Array.isArray(item.boardMapping) ? item.boardMapping.join(', ') : '';
+  const boardSuggestLabel = boardCandidates.slice(0, 2).map((board) => board.name || board.id).join(' · ');
   return `<form class="registry-row registry-row--compact" data-registry-squad="${escapeHtml(item.squadKey)}" data-registry-revision="${Number(item.revision) || 1}" data-original="${original}">
     <label class="registry-select" title="Select for one atomic organization change"><input type="checkbox" data-registry-select aria-label="Select ${escapeHtml(item.friendlyName)}"></label>
     <div class="registry-identity"><strong>${escapeHtml(item.friendlyName)}</strong><small>${escapeHtml(item.squadKey)} · ${escapeHtml(item.participationState.replace(/-/g, ' '))} · ${escapeHtml(boardCopy)}</small></div>
@@ -51,8 +60,10 @@ function row(item) {
       <label><span>Product Owner</span><input name="productOwner" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.productOwner))}" placeholder="Not assigned"></label>
       <label><span>Scrum Master</span><input name="scrumMaster" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.scrumMaster))}" placeholder="Not assigned"></label>
       <label><span>Stream lead</span><input name="streamLead" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.streamLead))}" placeholder="Not assigned"></label>
+      <label><span>Board IDs</span><input name="boardMapping" autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(boardIds)}" placeholder="e.g. 230" aria-label="Board mapping for ${escapeHtml(item.friendlyName)}"></label>
       <datalist id="people-${escapeHtml(item.squadKey)}">${peopleOptions}</datalist>
-      ${people.length ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-accept-suggestion>Accept suggestion</button><small>${escapeHtml(people.slice(0, 2).map((p) => p.displayName).join(' · '))}</small></div>` : ''}
+      ${people.length ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-accept-suggestion>Accept people suggestion</button><small>${escapeHtml(people.slice(0, 2).map((p) => p.displayName).join(' · '))}</small></div>` : ''}
+      ${boardCandidates.length ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-accept-board-suggestion>Accept board suggestion</button><small>${escapeHtml(boardSuggestLabel)}</small></div>` : ''}
       <div class="registry-save"><input name="reason" autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Reason for change" aria-label="Reason for ${escapeHtml(item.friendlyName)} change"><button class="btn btn-primary btn-compact" type="submit" disabled>Save squad</button><small data-registry-status aria-live="polite">${item.lastVerifiedAt ? `Verified ${new Date(item.lastVerifiedAt).toLocaleDateString()}` : boardCandidates.length ? 'Database suggestions ready for review' : 'Not yet verified'}</small></div>
     </div>
   </form>`;
@@ -132,6 +143,18 @@ function wireRows() {
       const status = form.querySelector('[data-registry-status]');
       if (status) status.textContent = 'Suggestion applied — review and save.';
     });
+    form.querySelector('[data-accept-board-suggestion]')?.addEventListener('click', () => {
+      const squad = registry.squads.find((item) => item.squadKey === form.dataset.registrySquad);
+      const boards = squad?.suggestions?.boardMapping || [];
+      if (!boards.length || !form.elements.boardMapping) return;
+      const ids = boards.map((board) => Number(board.id || board.boardId || board)).filter((id) => Number.isFinite(id) && id > 0);
+      if (!ids.length) return;
+      form.elements.boardMapping.value = ids.join(', ');
+      if (!normalized(form.elements.reason?.value)) form.elements.reason.value = 'Accepted registry board suggestion';
+      updateRowState(form);
+      const status = form.querySelector('[data-registry-status]');
+      if (status) status.textContent = 'Board suggestion applied — review and save.';
+    });
     updateRowState(form);
   });
 }
@@ -185,6 +208,7 @@ function patchFromValues(values) {
     productOwner: values.productOwner ? { displayName: values.productOwner } : null,
     scrumMaster: values.scrumMaster ? { displayName: values.scrumMaster } : null,
     streamLead: values.streamLead ? { displayName: values.streamLead } : null,
+    boardMapping: Array.isArray(values.boardMapping) ? values.boardMapping : [],
   };
 }
 
@@ -271,35 +295,30 @@ async function saveBulk() {
  */
 function showBulkPreviewDrawer({ participationState, names, reason }) {
   return new Promise((resolve) => {
-    const host = document.createElement('div');
-    host.className = 'gov-right-drawer-host';
-    host.innerHTML = `
-      <div class="gov-right-drawer-backdrop" data-drawer-close></div>
-      <aside class="gov-right-drawer-panel" role="dialog" aria-labelledby="bulk-preview-title">
-        <header class="gov-right-drawer-head">
-          <h2 id="bulk-preview-title" class="gov-right-drawer-title">Preview organization change</h2>
-          <button type="button" class="btn btn-link btn-compact" data-drawer-close aria-label="Close">Close</button>
-        </header>
-        <div class="gov-right-drawer-body">
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      closeRightDrawer();
+      resolve(result);
+    };
+    const { el } = openRightDrawer({
+      title: 'Preview organization change',
+      panelClass: 'registry-bulk',
+      bodyHtml: `<section class="gov-resolution-sheet">
           <p><strong>${escapeHtml(names.length)} squad${names.length === 1 ? '' : 's'}</strong> will move to <strong>${escapeHtml(participationState.replace(/-/g, ' '))}</strong>.</p>
           <ul class="gov-bulk-preview-list">${names.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>
           <p><small>Reason: ${escapeHtml(reason)}</small></p>
           <div class="gov-bulk-preview-actions">
             <button type="button" class="btn btn-primary" data-bulk-apply>Apply</button>
-            <button type="button" class="btn btn-link" data-drawer-close>Cancel</button>
+            <button type="button" class="btn btn-link" data-bulk-cancel>Cancel</button>
           </div>
-        </div>
-      </aside>`;
-    document.body.appendChild(host);
-    document.body.classList.add('gov-right-drawer-open');
-    const cleanup = (result) => {
-      host.remove();
-      document.body.classList.remove('gov-right-drawer-open');
-      resolve(result);
-    };
-    host.querySelector('[data-bulk-apply]')?.addEventListener('click', () => cleanup(true));
-    host.querySelectorAll('[data-drawer-close]').forEach((btn) => btn.addEventListener('click', () => cleanup(false)));
-    host.querySelector('[data-bulk-apply]')?.focus();
+        </section>`,
+      onClose: () => finish(false),
+    });
+    el.querySelector('[data-bulk-apply]')?.addEventListener('click', () => finish(true));
+    el.querySelector('[data-bulk-cancel]')?.addEventListener('click', () => finish(false));
+    el.querySelector('[data-bulk-apply]')?.focus();
   });
 }
 

@@ -386,6 +386,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/settings',
   },
+  'tests/Delivera-Customer-Growth-DirectValue-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.customer-growth-directvalue-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/actions,/settings,/report',
+  },
   'tests/Delivera-Governance-Click-Friction-MasterPlan-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-click-friction-masterplan',
     layer: 'cross-surface-ux',
@@ -646,6 +651,13 @@ export const journeyBuckets = {
     label: 'Churn Retention – Direct-to-value governance dedupe',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.churn-retention-masterplan',
+    ),
+  },
+  'journey.customer-growth-directvalue-masterplan': {
+    id: 'journey.customer-growth-directvalue-masterplan',
+    label: 'Customer Growth – ScopeTruth, Decision Rail, Commitment Pack continuity',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.customer-growth-directvalue-masterplan',
     ),
   },
   'journey.governance-click-friction-masterplan': {
