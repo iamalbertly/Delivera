@@ -1,7 +1,7 @@
 /**
  * Governance brief — load, render surfaces, export/copy helpers.
  */
-import { partitionBriefSurfaces, groupDoNowByOwner } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { partitionBriefSurfaces, groupDoNowByOwner, suppressDoNowWhenActiveLoop } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
 import { renderVerdictZone } from './Delivera-App-Governance-Brief-07Render-VerdictZone-UI.js';
 import { renderPortfolioGrid, renderCompareRail } from './Delivera-App-Governance-Brief-12Render-PortfolioGrid-UI.js';
 import { bindPortfolioHeatMap, ensurePortfolioHeatDelegation } from './Delivera-Governance-Brief-Page-04Bind-Interactions-Controller.js';
@@ -42,7 +42,7 @@ import {
 import { showErrorView } from './Delivera-Shared-Status-View-Helpers.js';
 import { commandAnswerSentence } from './Delivera-App-Governance-Brief-CommandSurface-01Helpers.js';
 import { writeTextToClipboardWithFallback, showClipboardFallbackSnippet } from './Delivera-Shared-Clipboard-01Bridge.js';
-import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k';
+import { loadActiveGovernanceLoop, hydrateEpicCommitmentRail } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k';
 
 const PI_AUTO_OPEN_KEY = 'gov-pi-auto-open-dismissed';
 
@@ -118,7 +118,7 @@ async function applyBriefToUi(brief, feedbackSummary = null) {
 export function renderBriefUi(brief) {
   const scopeKeys = selectedProjects(brief);
   govPage.lastBrief = brief;
-  govPage.lastSurfaces = partitionBriefSurfaces(brief, scopeKeys);
+  govPage.lastSurfaces = suppressDoNowWhenActiveLoop(partitionBriefSurfaces(brief, scopeKeys));
   govPage.ownerGroups = groupDoNowByOwner(govPage.lastSurfaces.drawerIssues);
   const hasOwnerClusters = (govPage.ownerGroups || []).length > 0;
   const squadCount = selectedProjects(brief).length;
@@ -328,6 +328,20 @@ export async function loadBrief(options = {}) {
     hideGovernanceLoading();
     document.getElementById('main-content')?.setAttribute('data-gov-brief-state', 'content');
     void govPage.inboxApi?.refresh?.();
+    // Background brief hydrate for epic rail chips only — never re-render legacy brief chrome.
+    void (async () => {
+      try {
+        const brief = await fetchGovernanceBriefCached({
+          projects: requested,
+          quarter,
+          periodWindow,
+          force: false,
+        });
+        if (seq !== loadBriefSeq || !brief) return;
+        govPage.lastBrief = brief;
+        hydrateEpicCommitmentRail(brief);
+      } catch (_) { /* Active Loop already painted from promises */ }
+    })();
     return;
   }
   const pk = requested.split(',')[0] || 'MPSA';

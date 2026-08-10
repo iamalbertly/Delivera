@@ -411,6 +411,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance',
   },
+  'tests/Delivera-Governance-FirstViewport-Value-Dedupe-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.governance-firstviewport-value-dedupe-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance',
+  },
   'tests/Delivera-Governance-Growth-MasterPlan-Round2-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-growth-masterplan-round2',
     layer: 'cross-surface-ux',
@@ -689,6 +694,13 @@ export const journeyBuckets = {
     label: 'Governance Click Friction – Mobile scope sheet, copy SSOT, proof clicks',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.governance-click-friction-masterplan',
+    ),
+  },
+  'journey.governance-firstviewport-value-dedupe-masterplan': {
+    id: 'journey.governance-firstviewport-value-dedupe-masterplan',
+    label: 'Governance FirstViewport – Delivery H1, CTA dedupe, epic rail',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-firstviewport-value-dedupe-masterplan',
     ),
   },
   'journey.governance-growth-masterplan-round2': {

@@ -10,12 +10,17 @@ import {
 import { isOwnerMissing } from './Delivera-Shared-Attention-Queue.js';
 import { DELIVERA_CLIENT_RELEASE_SCHEMA, clearGovernanceClientCaches } from './Delivera-Shared-Release-Cache-Guard-01SSOT.js';
 import {
+  buildDeliveryH1,
+  buildDeliveryPortfolioKpis,
+  buildEpicRailChips,
   buildPiCommitmentPack,
   commitmentPackControlsHtml,
   clusterFirstUnknownImpact,
   honestUnknownPctLine,
+  primaryVerbLabel,
   promiseAlignmentSummary,
 } from './Delivera-Governance-PI-Commitment-Pack-01Build-SSOT.js';
+import { renderEpicCommitmentRailHtml } from './Delivera-App-Governance-Brief-19Render-PIConfidenceStrip-UI.js';
 
 // SIZE-EXEMPT: cohesive ActiveLoop story orchestrator (load/cache, spotlight URL, decision drawers); helpers live in Commitment-Pack / Continuity / Cache Guard SSOTs.
 
@@ -26,6 +31,7 @@ const sharedStoryState = globalThis.__deliveraGovernanceActiveLoopState ||= {
   activeAnswer: null,
   pendingAnswer: null,
   pendingReason: 'New evidence ready.',
+  lastBrief: null,
 };
 let requestSequence = 0;
 let activeAnswer = sharedStoryState.activeAnswer;
@@ -256,7 +262,7 @@ function matrixNextMoveLabel(squad) {
   const actionId = squad.nextAction?.id || squad.nextAction?.action || '';
   const verb = actionLabels[actionId]
     || String(squad.nextAction?.label || '').split(/[:·]/)[0].trim()
-    || (squad.baselineCoverage?.state === 'missing' ? 'Save baseline' : 'Review evidence');
+    || (squad.baselineCoverage?.state === 'missing' ? 'Save baseline' : 'Open spotlight');
   const owner = squad.ownerRoute?.displayName
     || squad.nextAction?.ownerDisplayName
     || squad.ownerDisplayName
@@ -265,33 +271,50 @@ function matrixNextMoveLabel(squad) {
   return owner ? `${short} · ${owner}` : short;
 }
 
-function matrixRow(squad) {
+function matrixRow(squad, { preferredKey = '' } = {}) {
   const baseline = squad.baselineCoverage || (activeAnswer?.contract ? { state: 'verified', sourceLabel: activeAnswer.contract.source || 'Approved PI contract', copy: 'Contract source confirmed.' } : { state: 'missing', copy: 'Baseline missing.' });
   const split = squad.workSplit || {};
   const contract = squad.contractState || { label: baseline.state === 'missing' ? 'Cannot verify' : squad.topState || 'Unknown', detail: baseline.copy || '' };
   const sprint = squad.sprintReality || {};
   const trust = squad.trustFactor || { label: 'Limited, evidence incomplete', level: 'limited' };
-  const actionFull = squad.nextAction?.label || (baseline.state === 'missing' ? 'Save baseline to compare' : 'Review evidence');
-  const action = matrixNextMoveLabel(squad);
+  const actionFull = squad.nextAction?.label
+    || (baseline.state === 'missing'
+      ? (baseline.copy || 'Baseline missing — save baseline to compare')
+      : (sprint.state === 'unavailable' || sprint.state === 'unverified'
+        ? (sprint.copy || 'Sprint evidence unavailable')
+        : 'Open spotlight'));
+  const actionShort = String(matrixNextMoveLabel(squad).split('·')[0] || 'Open').trim().slice(0, 28);
   const rework = squad.possibleRework?.promoted;
-  const sprintLabel = sprint.state === 'active'
-    ? `${sprint.sprint?.name || sprint.sprintName || 'Active sprint'}${sprint.daysRemaining != null ? ` · ${sprint.daysRemaining} days` : ''}`
-    : (sprint.state === 'unavailable' ? 'Sprint status unavailable' : String(sprint.state || 'Unverified').replace(/-/g, ' '));
-  const currentReality = baseline.state === 'missing'
-    ? 'Cannot verify'
-    : Number(squad.attentionCount)
-    ? `${squad.attentionCount} need attention${sprintLabel ? ` · ${sprintLabel}` : ''}`
-    : (sprintLabel || contract.detail || squad.topState || 'Aligned');
-  const piImpact = clusterFirstUnknownImpact(squad, rework);
+  const isPreferred = preferredKey && preferredKey === squad.squad;
+  const isCurrent = spotlightKey === squad.squad || isPreferred;
+  const piPct = Number(squad.piPct);
+  const evidencedLabel = Number.isFinite(piPct) ? `${piPct}% evidenced` : (baseline.state === 'missing' ? 'Cannot score' : '—');
+  const divertPct = Number(squad.doingInstead?.major?.percentage ?? split.unplannedPct);
+  const divertLabel = squad.doingInstead?.major?.title
+    || (Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}% unplanned` : 'No diversion proven');
+  const slipLabel = sprint.daysRemaining != null
+    ? `${sprint.daysRemaining}d left`
+    : (sprint.state === 'unavailable' || sprint.state === 'unverified'
+      ? (sprint.copy || baseline.copy || 'Sprint unverified')
+      : (sprint.sprint?.name || sprint.sprintName || String(sprint.state || '—').replace(/-/g, ' ')));
   const nextCell = spotlightKey === squad.squad
-    ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Open decision</strong><small class="sr-only">${escapeHtml(action)}</small></span>`
-    : `<span role="cell" title="${escapeHtml(actionFull)}"><strong>${escapeHtml(action)}</strong></span>`;
-  return `<button type="button" role="row" class="gov-story-row gov-story-row--${tone(baseline.state === 'missing' ? 'missing' : squad.topState)}" data-story-squad="${escapeHtml(squad.squad)}" data-loop-squad="${escapeHtml(squad.squad)}" data-has-rollover="${Number(squad.sprintReality?.carryoverCount) > 0}" data-sprint-risk="${Boolean(squad.sprintReality?.endedWithoutReplacement || squad.sprintReality?.state === 'watch' || sprint.state === 'unverified')}" data-operational-risk="${Boolean(squad.doingInstead?.major)}" data-unknown-risk="${Boolean(squad.unknownWork?.promoted)}" data-rework-risk="${Boolean(rework)}" data-trust="${escapeHtml(trust.level || 'limited')}" aria-label="Open ${escapeHtml(squad.displayName || squad.squad)} spotlight" aria-current="${spotlightKey === squad.squad ? 'true' : 'false'}">
+    ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Open</strong><small class="sr-only">${escapeHtml(actionShort)}</small></span>`
+    : baseline.state === 'missing'
+      ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Save baseline</strong><small>${escapeHtml((baseline.copy || '').slice(0, 48))}</small></span>`
+      : `<span role="cell" title="${escapeHtml(actionFull)}"><strong>${escapeHtml(actionShort)}</strong></span>`;
+  const settingsHref = '/settings#gov-settings-registry-mount';
+  const rowTag = baseline.state === 'missing' ? 'div' : 'button';
+  const rowType = baseline.state === 'missing' ? '' : ' type="button"';
+  const missingActions = baseline.state === 'missing'
+    ? `<span role="cell"><a class="btn btn-compact btn-secondary" href="${escapeHtml(settingsHref)}" data-cannot-verify-settings data-setup-baseline-ssot="1">Save baseline</a></span>`
+    : nextCell;
+  return `<${rowTag}${rowType} role="row" class="gov-story-row gov-story-row--${tone(baseline.state === 'missing' ? 'missing' : squad.topState)}${isPreferred ? ' is-focus-preferred' : ''}" data-story-squad="${escapeHtml(squad.squad)}" data-loop-squad="${escapeHtml(squad.squad)}" data-focus-preferred="${isPreferred ? 'true' : 'false'}" data-has-rollover="${Number(squad.sprintReality?.carryoverCount) > 0}" data-sprint-risk="${Boolean(squad.sprintReality?.endedWithoutReplacement || squad.sprintReality?.state === 'watch' || sprint.state === 'unverified')}" data-operational-risk="${Boolean(squad.doingInstead?.major)}" data-unknown-risk="${Boolean(squad.unknownWork?.promoted)}" data-rework-risk="${Boolean(rework)}" data-trust="${escapeHtml(trust.level || 'limited')}" aria-label="Open ${escapeHtml(squad.displayName || squad.squad)} spotlight" aria-current="${isCurrent ? 'true' : 'false'}">
     <span role="cell" class="gov-story-squad"><strong>${escapeHtml(squad.displayName || squad.squad)}</strong><small>${escapeHtml(squad.attentionCount ? `${squad.attentionCount} need attention` : 'No contract variance proven')}</small></span>
-    <span role="cell" data-context-help="${escapeHtml(sprint.copy || contract.detail || 'Open the squad evidence rail for source detail.')}"><strong>${escapeHtml(currentReality)}</strong><small>${escapeHtml(sprint.copy || contract.detail || '')}</small></span>
-    <span role="cell" data-context-help="${escapeHtml(split.explanation || trust.label)}"><strong>${escapeHtml(piImpact)}</strong><small>${escapeHtml(split.explanation || '')}</small></span>
-    ${nextCell}
-  </button>`;
+    <span role="cell" data-matrix-evidenced="1"><strong>${escapeHtml(evidencedLabel)}</strong><small>${escapeHtml(contract.label || '')}</small></span>
+    <span role="cell" data-matrix-diverted="1" data-context-help="${escapeHtml(split.explanation || trust.label)}"><strong>${escapeHtml(divertLabel)}</strong><small>${escapeHtml(Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}%` : '')}</small></span>
+    <span role="cell" data-matrix-slip="1"><strong>${escapeHtml(slipLabel)}</strong><small>${escapeHtml(sprint.copy || '')}</small></span>
+    ${missingActions}
+  </${rowTag}>`;
 }
 
 function cannotVerifySummaryRow(squads) {
@@ -301,15 +324,17 @@ function cannotVerifySummaryRow(squads) {
     ? (first.displayName || first.squad)
     : `Cannot verify · ${squads.length} squads`;
   const names = squads.map((s) => s.displayName || s.squad).join(', ');
-  // Prefer Settings registry / baseline setup over dead-end spotlight for baseline gaps.
+  const reason = first.baselineCoverage?.copy || first.contractState?.detail || 'Baseline missing or incomplete';
   const settingsHref = '/settings#gov-settings-registry-mount';
   return `<div role="row" class="gov-story-row gov-story-row--unknown gov-story-row--grouped" data-cannot-verify-group="${squads.map((s) => s.squad).join(',')}" aria-label="${escapeHtml(label)}">
     <span role="cell" class="gov-story-squad"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(names)}</small></span>
-    <span role="cell"><strong>Cannot verify</strong><small>Baseline missing or incomplete</small></span>
-    <span role="cell"><strong>No PI claim</strong><small>Evidence incomplete</small></span>
-    <span role="cell"><a class="btn btn-compact btn-secondary" href="${escapeHtml(settingsHref)}" data-cannot-verify-settings>Save baseline</a><button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1" data-cannot-verify-setup>Setup</button></span>
+    <span role="cell"><strong>Cannot score</strong><small>${escapeHtml(reason)}</small></span>
+    <span role="cell"><strong>No diversion claim</strong><small>Evidence incomplete</small></span>
+    <span role="cell"><strong>—</strong></span>
+    <span role="cell"><a class="btn btn-compact btn-secondary" href="${escapeHtml(settingsHref)}" data-cannot-verify-settings data-setup-baseline-ssot="1">Save baseline</a></span>
   </div>`;
 }
+
 
 function excludedOperationalGroups(answer) {
   const organization = answer.organizationParticipation || {};
@@ -332,20 +357,22 @@ function portfolioMatrix(answer) {
     </div>`;
   }
   const visibleSquads = answer.squads || [];
-  const matrixHeadTitle = 'Squads ordered by decision urgency';
+  const matrixHeadTitle = 'Squads by delivery urgency';
   const matrixHeadKicker = 'Portfolio comparison';
-  const needsExpand = visibleSquads.length > 5;
-  const clearBtn = '';
+  // Typical PI portfolios ≤12 — expand by default (zero click).
+  const needsExpand = visibleSquads.length > 12;
+  const preferredKey = preferredFocusSquadKey(answer);
   const visibleLenses = lenses.filter(([id]) => id !== 'squad');
   const lensesToolbar = (visibleLenses.length > 1)
     ? `<div class="gov-story-lenses" role="toolbar" aria-label="Governance view">${visibleLenses.map(([id, label]) => `<button type="button" class="btn btn-compact ${id === activeLens ? 'btn-secondary' : 'btn-link'}" data-story-lens="${id}" aria-pressed="${id === activeLens}">${label}</button>`).join('')}</div>`
     : '';
+  // Why lives once in the hero — matrix head stays structural only.
   return `<section class="gov-story-matrix${needsExpand ? '' : ' is-expanded'}" aria-labelledby="gov-story-matrix-title" data-matrix-expandable="${needsExpand ? 'true' : 'false'}">
-    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2><p class="gov-lens-summary" data-lens-summary>${escapeHtml(answer.lensSummaries?.overall || 'Select a squad to keep its Jira work, sprint, promises and actions isolated.')}</p></div>${clearBtn}</div>
+    <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2></div></div>
     ${lensesToolbar}
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
-      <div class="gov-story-columns" role="row"><span>Squad</span><span>Current reality</span><span>PI impact</span><span>Next move</span></div>
-      ${visibleSquads.map(matrixRow).join('')}
+      <div class="gov-story-columns" role="row"><span>Squad</span><span>Evidenced</span><span>Diverted</span><span>Slip</span><span>Next</span></div>
+      ${visibleSquads.map((squad) => matrixRow(squad, { preferredKey })).join('')}
     </div>
     ${needsExpand ? `<button type="button" class="btn btn-link btn-compact gov-matrix-expand" data-matrix-expand>Show more squads</button>` : ''}
     ${excludedOperationalGroups(answer)}
@@ -353,26 +380,20 @@ function portfolioMatrix(answer) {
 }
 
 function heroIdentityLinks(answer) {
-  const squads = (answer.squads || []).filter((squad) => Number(squad.attentionCount || 0) > 0).slice(0, 3);
-  const items = squads.map((squad) => ({ key: squad.squad, label: squad.displayName || squad.squad, mode: 'button' }));
-  // One "today" continuity path (identity row only — not duplicated on the next-move rail).
+  // One Sprint continuity link only — matrix rows own squad selection.
   const focusKey = preferredFocusSquadKey(answer);
   const focused = (answer.squads || []).find((squad) => squad.squad === focusKey)
-    || squads[0]
     || (answer.squads || [])[0];
-  if (focused) {
-    const short = String(focused.displayName || focused.squad).split(' ')[0];
-    items.push({
-      key: focused.squad,
-      label: `${short} today`,
-      secondaryLabel: `${short} today`,
-      mode: 'link',
-      secondary: true,
-      href: currentSprintSquadHref(focused.squad),
-    });
-  }
-  if (!items.length) return '';
-  return renderIdentityLinkRow(items);
+  if (!focused) return '';
+  const short = String(focused.displayName || focused.squad).split(' ')[0];
+  return renderIdentityLinkRow([{
+    key: focused.squad,
+    label: `${short} today`,
+    secondaryLabel: `${short} today`,
+    mode: 'link',
+    secondary: true,
+    href: currentSprintSquadHref(focused.squad),
+  }]);
 }
 
 function returnToActionsControl() {
@@ -395,23 +416,62 @@ function nextMoveRailHtml(answer) {
   const squad = (answer?.squads || []).find((item) => item.squad === focusKey) || (answer?.squads || [])[0];
   if (!squad) return '';
   const isFocused = Boolean(spotlightKey && spotlightKey === squad.squad);
-  // Squad tunnel: KEY + short verb only — h1 owns the full diagnosis sentence.
-  const move = isFocused
-    ? (matrixNextMoveLabel(squad).split('·')[0].trim() || 'Open decision')
-    : matrixNextMoveLabel(squad);
+  // Primary CTA owns the verb — rail only hosts proof pack controls.
   const packPromises = (answer?.promises || []).filter((item) => item.squad === squad.squad);
   const packHtml = isFocused
     ? commitmentPackControlsHtml({ disabled: !packPromises.length })
     : '';
-  return `<aside class="gov-next-move-rail" aria-label="Next move for selected squad" data-rail-squad="${escapeHtml(squad.squad || '')}">
-    <span class="gov-loop-kicker">Next move</span>
-    ${isFocused ? '' : `<strong>${escapeHtml(squad.displayName || squad.squad)}</strong>`}
-    <p data-next-move-short>${escapeHtml(move)}</p>
+  return `<aside class="gov-next-move-rail" aria-label="Proof tools for selected squad" data-rail-squad="${escapeHtml(squad.squad || '')}">
+    <span class="gov-loop-kicker">Proof tools</span>
+    <strong>${escapeHtml(squad.displayName || squad.squad)}</strong>
     <div class="gov-next-move-rail-actions">
       <button type="button" class="btn btn-link btn-compact" data-all-proof="${escapeHtml(squad.squad)}">All proof</button>
     </div>
     ${packHtml}
   </aside>`;
+}
+
+function deliveryBentoHtml(answer, coverage) {
+  const kpis = buildDeliveryPortfolioKpis(answer);
+  const evidenced = kpis.promiseTotal
+    ? `${kpis.evidencedCount}/${kpis.promiseTotal}`
+    : (kpis.evidencedPct != null ? `${kpis.evidencedPct}%` : '—');
+  return `<div class="gov-delivery-bento" data-gov-delivery-bento="1" aria-label="PI delivery pulse">
+    <div class="gov-delivery-cell" data-delivery-cell="evidenced"><strong>${escapeHtml(evidenced)}</strong><small>Evidenced</small></div>
+    <div class="gov-delivery-cell" data-delivery-cell="diverted"><strong>${kpis.divertingCount}</strong><small>Diverting</small></div>
+    <div class="gov-delivery-cell" data-delivery-cell="attention"><strong>${kpis.attentionCount}</strong><small>At risk</small></div>
+    <div class="gov-delivery-cell" data-delivery-cell="unverified"><strong>${kpis.unverifiedCount}</strong><small>Unverified</small></div>
+    <p class="gov-delivery-meta" data-decision-coverage-meta="${escapeHtml(coverage.copy)}">${coverage.closed} decided this PI · ${coverage.open} open</p>
+  </div>`;
+}
+
+function epicRailMountHtml(answer, focusKey) {
+  const chips = buildEpicRailChips({
+    brief: sharedStoryState.lastBrief || null,
+    answer,
+    squadKey: (activeLens === 'squad' && spotlightKey) ? spotlightKey : '',
+  });
+  return renderEpicCommitmentRailHtml(chips);
+}
+
+/** Re-render epic rail only when brief arrives after Active Loop (no second H1). */
+export function hydrateEpicCommitmentRail(brief = null) {
+  if (brief) sharedStoryState.lastBrief = brief;
+  const rail = document.querySelector('[data-epic-commitment-rail]');
+  if (!rail || !activeAnswer) return;
+  const focusKey = (activeLens === 'squad' && spotlightKey) ? spotlightKey : '';
+  const chips = buildEpicRailChips({ brief: sharedStoryState.lastBrief || brief, answer: activeAnswer, squadKey: focusKey });
+  const next = renderEpicCommitmentRailHtml(chips);
+  const wrap = document.createElement('div');
+  wrap.innerHTML = next;
+  const node = wrap.firstElementChild;
+  if (node) rail.replaceWith(node);
+  const strip = document.getElementById('gov-pi-strip-mount');
+  if (strip) {
+    strip.replaceChildren();
+    strip.toggleAttribute('data-pi-strip-empty', true);
+    strip.hidden = true;
+  }
 }
 
 function heroFreshnessMeta(answer) {
@@ -443,32 +503,26 @@ function renderHero(answer) {
   const freshness = currentFreshness(answer);
   const noBaseline = !answer.contract;
   const coverage = normalizedDecisionCoverage(answer);
-  const selectedPromise = decisionPromiseForAnswer(answer);
   const focusKey = preferredFocusSquadKey(answer);
   const focusSquad = (answer?.squads || []).find((item) => item.squad === focusKey);
   const isSquadView = activeLens === 'squad' && Boolean(spotlightKey) && Boolean(focusSquad);
-  // H1 owns the one diagnosis sentence — do not append next-move (rail owns the verb).
-  const fullVerdict = isSquadView
-    ? `${focusSquad.displayName || focusSquad.squad}: ${focusSquad.contractState?.label || focusSquad.topState || 'Evidence needs review'}`
-    : answer.answer;
-  const nextLabel = noBaseline
-    ? 'Recover PI contract'
-    : (isSquadView
-      ? 'Open decision'
-      : (selectedPromise
-        ? `Review ${selectedPromise.squadDisplayName || selectedPromise.squad}`
-        : (focusSquad ? `Open ${String(focusSquad.displayName || focusSquad.squad).split(' ')[0]} spotlight` : 'Review aligned promises')));
+  const nextLabel = primaryVerbLabel(focusSquad, { noBaseline, isSquadView, actionLabels });
   const sourceLine = String(answer.sourceLine || '').replace(/\s*·\s*last verified[^·]*$/i, '').trim() || answer.sourceLine;
   const missionKicker = isSquadView ? 'Selected squad' : 'Portfolio mission';
-  const squadVerdict = String(fullVerdict || 'Portfolio truth needs verification').split(/(?<=[.!?])\s+/)[0].slice(0, 150);
+  const squadVerdict = buildDeliveryH1(answer, { isSquadView, focusSquad });
   const causeLine = isSquadView
-    ? (focusSquad.contractState?.detail || focusSquad.sprintReality?.copy || 'Verified DMS evidence remains isolated from portfolio peers.')
+    ? (focusSquad.contractState?.detail || focusSquad.sprintReality?.copy || 'Squad evidence remains isolated from portfolio peers.')
     : (answer.lensSummaries?.overall || sourceLine || 'Stored squad truth is compared across the included portfolio.');
-  const recommendationLine = noBaseline ? 'Recover the PI contract.' : (focusSquad ? matrixNextMoveLabel(focusSquad) : 'Review the highest-risk squad first.');
-  mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" aria-labelledby="gov-loop-answer">
+  const quietMeta = [sourceLine, answer.deliveraDid ? `✓ ${answer.deliveraDid}` : ''].filter(Boolean).join(' · ');
+  mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" data-gov-value-first="1" aria-labelledby="gov-loop-answer">
     <div class="gov-story-mission"><span>${escapeHtml(missionKicker)}</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
-    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad answer' : 'PI contract answer'}</span></div><h1 id="gov-loop-answer">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause"><strong>Why:</strong> ${escapeHtml(causeLine)}</p><p class="gov-loop-recommendation"><strong>Act:</strong> ${escapeHtml(recommendationLine)}</p>${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source" data-testid="governance-source-line">${escapeHtml(sourceLine)}</p><p class="gov-loop-did"><span aria-hidden="true">✓</span> ${escapeHtml(answer.deliveraDid)}</p></div>
-    <div class="gov-loop-decision-bento"><div class="gov-loop-progress" aria-label="${escapeHtml(coverage.copy)}"><span class="gov-loop-decision-count"><strong>${coverage.closed}</strong><small>of ${coverage.total}</small></span><span><strong>Decision coverage</strong><small>${coverage.copy}</small></span></div><div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>${nextMoveRailHtml(answer)}</div>
+    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad delivery' : 'PI delivery answer'}</span></div><h1 id="gov-loop-answer" data-gov-delivery-h1="1">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause" data-gov-why-once="1"><strong>Why:</strong> ${escapeHtml(causeLine)}</p>${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source gov-loop-meta-quiet" data-testid="governance-source-line">${escapeHtml(quietMeta)}</p></div>
+    <div class="gov-loop-decision-bento">
+      ${deliveryBentoHtml(answer, coverage)}
+      <div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>
+      ${epicRailMountHtml(answer, focusKey)}
+      ${nextMoveRailHtml(answer)}
+    </div>
     ${portfolioMatrix(answer)}
     <div class="gov-story-update" role="status" hidden><span data-story-update-copy>New evidence ready.</span> <button type="button" class="btn btn-link btn-compact" data-story-apply>Review changes</button><button type="button" class="btn btn-link btn-compact" data-story-keep-draft>Keep my edits as a new decision draft</button></div>
     <div id="gov-squad-spotlight" class="gov-squad-spotlight" aria-live="polite"></div>
@@ -477,6 +531,12 @@ function renderHero(answer) {
   document.body.classList.add('governance-active-loop-ready', 'governance-story-v2-ready');
   if (spotlightKey) document.body.classList.add('governance-squad-selected');
   else document.body.classList.remove('governance-squad-selected');
+  const strip = document.getElementById('gov-pi-strip-mount');
+  if (strip) {
+    strip.replaceChildren();
+    strip.toggleAttribute('data-pi-strip-empty', true);
+    strip.hidden = true;
+  }
   ['gov-action-clusters-mount', 'gov-compare-rail-mount', 'gov-sticky-answer-mount'].forEach((id) => {
     const legacy = document.getElementById(id);
     if (!legacy || legacy === mount) return;
@@ -595,7 +655,7 @@ function selectLens(lens, answer, mount) {
   if (summary) summary.textContent = answer.lensSummaries?.[lens] || '';
   if (lens === 'squad' && spotlightKey) document.getElementById('gov-squad-spotlight')?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   if (lens === 'evidence') mount.querySelector('.gov-loop-source')?.focus?.({ preventScroll: true });
-  const url = new URL(location.href); url.searchParams.set('view', lens); url.searchParams.delete('lens'); history.replaceState({ ...(history.state || {}), spotlight: spotlightKey, view: lens }, '', url);
+  const url = new URL(location.href); url.searchParams.set('view', lens); url.searchParams.delete('lens'); history.replaceState({ ...(history.state || {}), squad: spotlightKey, view: lens }, '', url);
   broadcastFocus();
 }
 
@@ -746,9 +806,9 @@ function openBoardAliasDrawer(squad) {
 function updateUrl(squad, push) {
   const url = new URL(location.href);
   if (squad) {
-    url.searchParams.set('spotlight', squad);
     url.searchParams.set('squad', squad);
     url.searchParams.set('projects', squad);
+    url.searchParams.delete('spotlight');
   } else {
     url.searchParams.delete('spotlight');
     url.searchParams.delete('squad');
@@ -757,7 +817,7 @@ function updateUrl(squad, push) {
   url.searchParams.set('view', activeLens);
   url.searchParams.delete('lens');
   // Preserve returnTo continuity token when present.
-  history[push ? 'pushState' : 'replaceState']({ spotlight: squad, view: activeLens, returnTo: url.searchParams.get('returnTo') || '' }, '', url);
+  history[push ? 'pushState' : 'replaceState']({ squad, view: activeLens, returnTo: url.searchParams.get('returnTo') || '' }, '', url);
   broadcastFocus();
 }
 
@@ -1330,7 +1390,9 @@ export function renderActiveGovernanceLoop(answer, { forceApply = false } = {}) 
 }
 
 export async function loadActiveGovernanceLoop({ projects, quarter = '', force = false } = {}) {
-  const seq = ++requestSequence; spotlightKey = new URL(location.href).searchParams.get('spotlight') || '';
+  const seq = ++requestSequence; spotlightKey = new URL(location.href).searchParams.get('squad')
+    || new URL(location.href).searchParams.get('spotlight')
+    || '';
   const cached = force ? null : readCachedAnswer(projects, quarter);
   const loadingEl = document.getElementById('gov-loading');
   const loadingTitle = loadingEl?.querySelector('[data-gov-loading-title]');
@@ -1392,7 +1454,9 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
 window.addEventListener('popstate', () => {
   const lens = new URL(location.href).searchParams.get('view') || 'overall';
   if (lens !== activeLens && activeAnswer) selectLens(lens, activeAnswer, document.getElementById('gov-active-loop-mount'));
-  const next = new URL(location.href).searchParams.get('spotlight') || '';
+  const next = new URL(location.href).searchParams.get('squad')
+    || new URL(location.href).searchParams.get('spotlight')
+    || '';
   if (next) void showSpotlight(next, { pushHistory: false }); else clearSpotlight(false);
 });
 

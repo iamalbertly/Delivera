@@ -24,7 +24,7 @@ import { loginIfRequired } from './Delivera-Playwright-Login-If-Required-01Helpe
 const NOW = new Date('2026-07-17T10:32:00.000Z');
 
 async function openGovernance(page) {
-  await loginIfRequired(page, '/governance', {
+  await loginIfRequired(page, '/governance?projects=SD,RPA,AMS2,MPSA2', {
     rootSelector: '[data-testid="governance-active-loop"]',
     timeout: 20000,
   });
@@ -242,17 +242,17 @@ test.describe('Active PI governance realtime value journey @focused', () => {
     await openGovernance(page);
     const hero = page.getByTestId('governance-active-loop');
     await expect(hero).toBeVisible({ timeout: 15000 });
-    await test.step('01 all-squads contract answer is first', async () => expect(hero.locator('h1')).toContainText('2 squads are not aligned'));
+    await test.step('01 delivery-first H1 answers the PI question', async () => expect(hero.locator('[data-gov-delivery-h1="1"]')).toContainText(/evidenced/i));
     await test.step('02 source names the immutable quarter contract', async () => expect(page.getByTestId('governance-source-line')).toContainText('FY27 Q2 PI contract'));
     await test.step('03 promise count and verification time are visible', async () => expect(page.getByTestId('governance-source-line')).toContainText('11 promises checked'));
-    await test.step('04 Delivera already did line explains automation', async () => expect(hero.locator('.gov-loop-did')).toContainText('matched the contract to Jira'));
+    await test.step('04 Delivera already did line explains automation', async () => expect(page.getByTestId('governance-source-line')).toContainText('matched the contract to Jira'));
     await test.step('05 exactly one primary governance CTA exists', async () => expect(hero.locator('[data-loop-primary]')).toHaveCount(1));
     await test.step('06 every squad remains visible and calm', async () => expect(hero.locator('[data-loop-squad]')).toHaveCount(4));
-    await test.step('07 risk squad exposes baseline variance', async () => expect(hero.locator('[data-loop-squad="DMS"]')).toContainText(/Needs attention|2 need attention/i));
-    await test.step('08 aligned squad remains present', async () => expect(hero.locator('[data-loop-squad="AMS"]')).toContainText(/Aligned|aligned/i));
-    await test.step('09 decision coverage rewards explicit closure without ranking squads', async () => expect(hero.locator('.gov-loop-progress')).toContainText('Decision coverage'));
+    await test.step('07 risk squad exposes baseline variance', async () => expect(hero.locator('[data-loop-squad="DMS"]')).toContainText(/Needs attention|31% evidenced/i));
+    await test.step('08 aligned squad remains present', async () => expect(hero.locator('[data-loop-squad="AMS"]')).toContainText(/Aligned|aligned|100% evidenced/i));
+    await test.step('09 delivery bento shows decided meta without ranking squads', async () => expect(hero.locator('[data-gov-delivery-bento="1"]')).toContainText(/decided/i));
     await test.step('10 duplicate legacy hero is removed from the visible journey', async () => expect(page.locator('#gov-verdict-mount')).toBeHidden());
-    await test.step('11 duplicate owner/action rails are removed', async () => expect(page.locator('#gov-action-clusters-mount')).toBeHidden());
+    await test.step('11 duplicate owner/action rails are removed', async () => expect(page.locator('#gov-action-clusters-mount')).toHaveCount(0));
     await test.step('12 heavy proof remains progressively disclosed', async () => expect(page.locator('#gov-supporting-evidence')).not.toHaveAttribute('open', ''));
     await test.step('13 response fits without horizontal overflow', async () => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

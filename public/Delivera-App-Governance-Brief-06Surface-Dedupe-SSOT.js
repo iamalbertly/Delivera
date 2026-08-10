@@ -88,6 +88,16 @@ export function partitionBriefSurfaces(brief, projectKeys = null) {
   return { doNowActions, drawerIssues, measurementRisks, proofRows };
 }
 
+/**
+ * When Active Loop owns the page, suppress Do-first actions that restate the primary verb.
+ */
+export function suppressDoNowWhenActiveLoop(surfaces = {}) {
+  if (typeof document !== 'undefined' && document.body?.classList?.contains('governance-active-loop-ready')) {
+    return { ...surfaces, doNowActions: [] };
+  }
+  return surfaces;
+}
+
 function plainAction(risk) {
   const raw = String(risk.recommendedAction || '').trim();
   if (!raw) return 'Confirm the next step today.';

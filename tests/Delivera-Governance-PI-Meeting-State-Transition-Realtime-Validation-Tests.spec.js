@@ -114,7 +114,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await expect(hero).toContainText('Portfolio mission'); await expect(hero.locator('[data-story-squad]')).toHaveCount(4); await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify'); await expect(hero.locator('[data-story-squad="RPA"]')).not.toContainText('off-plan');
     await expect(hero.locator('.gov-loop-decision-count')).toContainText('of 4');
     await expect(hero.locator('.gov-story-columns')).toContainText('Squad');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Current reality');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Evidenced');
     await expect(hero.locator('.gov-story-columns')).toContainText('PI impact');
     await expect(hero.locator('.gov-story-columns')).toContainText('Next move');
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Proof / next');
@@ -140,7 +140,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await mockMeeting(page, { story: storyWithShared, detailPromises: [promise, repeatedPromise] });
     await loginIfRequired(page, '/governance');
     await page.locator('[data-story-squad="DMS"]').click();
-    await expect(page).toHaveURL(/spotlight=DMS/);
+    await expect(page).toHaveURL(/[?&]squad=DMS/);
     const spot = page.locator('#gov-squad-spotlight');
     await expect(spot).toContainText('Current Work Reality');
     await expect(spot).toContainText('Sprint Reality');
@@ -152,7 +152,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await expect(spot.locator('.gov-action-lifecycle')).toHaveCount(1);
     await expect(spot.locator('.gov-action-lifecycle')).toContainText('2 promises share this state');
     await page.locator('[data-story-all]').click();
-    await expect(page).not.toHaveURL(/spotlight=/);
+    await expect(page).not.toHaveURL(/[?&](spotlight|squad)=/);
     await expect(spot).toBeEmpty();
   });
 
@@ -202,7 +202,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     const hero = page.getByTestId('governance-active-loop');
     await expect(hero.locator('.gov-loop-identity-links')).toBeVisible();
     await hero.locator('[data-hero-focus-squad="DMS"]').click();
-    await expect(page).toHaveURL(/spotlight=DMS/);
+    await expect(page).toHaveURL(/[?&]squad=DMS/);
     await expect(page.locator('#gov-squad-spotlight')).toContainText('M-Pesa Delivery');
     await expect(hero.locator('.gov-loop-identity-link-secondary').first()).toHaveAttribute('href', /current-sprint\?squad=/);
   });
@@ -255,7 +255,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await loginIfRequired(page, '/actions?squad=DMS');
     await expect(page.locator('#actions-queue-summary')).toContainText('DMS');
     await page.locator('.action-case-source').first().click();
-    await expect(page).toHaveURL(/governance\?.*spotlight=DMS/);
+    await expect(page).toHaveURL(/governance\?.*squad=DMS/);
     await expect(page).toHaveURL(/returnTo=/);
     await expect(page.locator('[data-return-to-actions]')).toBeVisible({ timeout: 15000 });
     await page.locator('[data-return-to-actions]').click();
@@ -305,7 +305,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(hero).toContainText('2 squads are not aligned');
     await expect(hero.locator('[data-story-squad]')).toHaveCount(4);
     await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Current reality');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Evidenced');
     await expect(hero.locator('.gov-story-columns')).toContainText('PI impact');
     await expect(hero.locator('.gov-story-columns')).toContainText('Next move');
     await expect(page.locator('#gov-action-clusters-mount:visible')).toHaveCount(0);
@@ -317,7 +317,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(todayLinks).toHaveCount(1);
     await expect(page.locator('.app-top-chrome [data-top-action="agent"]')).toBeHidden();
     await hero.locator('[data-hero-focus-squad="DMS"]').click();
-    await expect(page).toHaveURL(/spotlight=DMS/);
+    await expect(page).toHaveURL(/[?&]squad=DMS/);
     await expect(page.locator('#gov-squad-spotlight')).toContainText('Legacy Database Migration');
   });
 
@@ -467,6 +467,6 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(page.locator('.gov-story-update')).toBeHidden();
     expect(await page.locator('[data-story-squad]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-story-squad')))).toEqual([...before].reverse());
     await expect(page).toHaveURL(/view=evidence/);
-    await expect(page).toHaveURL(/spotlight=DMS/);
+    await expect(page).toHaveURL(/[?&]squad=DMS/);
   });
 });

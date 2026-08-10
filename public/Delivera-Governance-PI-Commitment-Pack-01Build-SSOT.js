@@ -182,3 +182,138 @@ export function promiseAlignmentSummary(promise = {}) {
     : `${comparison.durationBusinessDays} business day${comparison.durationBusinessDays === 1 ? '' : 's'} observed`;
   return `Expected: ${expected.issueKey || promise.issueKey || 'PI commitment'} in ${expected.fiscalPeriod || promise.quarter || 'the active PI'}. Happening: ${keys} · ${actual.status || promise.statusNow || 'unknown'}${actual.sprintName ? ` · ${actual.sprintName}` : ''} · ${method} · ${duration}.`;
 }
+
+/** Portfolio delivery KPIs for first-viewport H1 + bento (Active Loop fields only). */
+export function buildDeliveryPortfolioKpis(answer = {}) {
+  const squads = Array.isArray(answer.squads) ? answer.squads : [];
+  const promises = Array.isArray(answer.promises) ? answer.promises : [];
+  const promiseTotal = promises.length
+    || Number(answer.decisionCoverage?.total)
+    || Number(String(answer.sourceLine || '').match(/(\d+)\s+promises?\s+checked/i)?.[1] || 0)
+    || squads.reduce((sum, s) => sum + (Number(s.promiseCount) || 0), 0);
+  const evidenced = promises.filter((p) => {
+    const state = String(p.matchState || p.caseState || '').toLowerCase();
+    return state.includes('matched') || state === 'aligned' || state === 'aligned-amended' || p.verdict === 'delivered';
+  }).length;
+  const evidencedFromPct = squads.length
+    ? Math.round(squads.reduce((sum, s) => sum + (Number(s.piPct) || 0), 0) / squads.length)
+    : 0;
+  const evidencedCount = evidenced || Math.round((evidencedFromPct / 100) * promiseTotal);
+  const attentionSquads = squads.filter((s) => Number(s.attentionCount || 0) > 0);
+  const attentionCount = attentionSquads.reduce((sum, s) => sum + (Number(s.attentionCount) || 0), 0);
+  const diverting = squads.filter((s) => s.doingInstead?.major || Number(s.workSplit?.unplannedPct) > 0);
+  const unverified = squads.filter((s) => s.baselineCoverage?.state === 'missing'
+    || /cannot.?verify|unverified|missing/i.test(String(s.contractState?.label || s.topState || '')));
+  const topDivert = diverting
+    .map((s) => ({ squad: s, pct: Number(s.doingInstead?.major?.percentage || s.workSplit?.unplannedPct || 0) }))
+    .sort((a, b) => b.pct - a.pct)[0];
+  const topRisk = [...squads].sort((a, b) => Number(b.attentionCount || 0) - Number(a.attentionCount || 0))[0];
+  const avgPiPct = squads.length
+    ? Math.round(squads.reduce((sum, s) => sum + (Number(s.piPct) || 0), 0) / squads.length)
+    : null;
+  return {
+    promiseTotal,
+    evidencedCount: Math.min(promiseTotal || evidencedCount, evidencedCount),
+    evidencedPct: avgPiPct,
+    attentionCount,
+    attentionSquads: attentionSquads.length,
+    divertingCount: diverting.length,
+    unverifiedCount: unverified.length,
+    topDivertTitle: topDivert?.squad?.doingInstead?.major?.title || '',
+    topDivertSquad: topDivert?.squad?.displayName || topDivert?.squad?.squad || '',
+    topRiskSquad: topRisk?.displayName || topRisk?.squad || '',
+    topRiskKey: topRisk?.squad || '',
+  };
+}
+
+/** One delivery-first H1 sentence — never “N of M squads verified”. */
+export function buildDeliveryH1(answer = {}, { isSquadView = false, focusSquad = null } = {}) {
+  if (isSquadView && focusSquad) {
+    const pct = Number(focusSquad.piPct);
+    const divert = focusSquad.doingInstead?.major?.title
+      || (Number(focusSquad.workSplit?.unplannedPct) > 0 ? `${focusSquad.workSplit.unplannedPct}% unplanned` : '');
+    const name = focusSquad.displayName || focusSquad.squad || 'Squad';
+    if (Number.isFinite(pct)) {
+      return divert
+        ? `${name}: ${pct}% evidenced · diverting into ${divert}`.slice(0, 150)
+        : `${name}: ${pct}% of PI commitments evidenced`.slice(0, 150);
+    }
+    return `${name}: ${focusSquad.contractState?.label || focusSquad.topState || 'Evidence needs review'}`.slice(0, 150);
+  }
+  const k = buildDeliveryPortfolioKpis(answer);
+  if (!answer.contract) return 'PI contract missing — recover baseline to score delivery';
+  if (!(answer.squads || []).length) return 'No squad evidence yet — connect Jira to score delivery';
+  const base = k.promiseTotal
+    ? `${k.evidencedCount} of ${k.promiseTotal} commitments evidenced`
+    : (k.evidencedPct != null ? `${k.evidencedPct}% portfolio evidenced` : 'Delivery evidence incomplete');
+  const divertPart = k.divertingCount
+    ? `${k.divertingCount} squad${k.divertingCount === 1 ? '' : 's'} diverting`
+    : '';
+  const riskPart = k.topRiskSquad && k.attentionCount
+    ? `${k.topRiskSquad} drives miss risk`
+    : (k.unverifiedCount ? `${k.unverifiedCount} unverified` : '');
+  return [base, divertPart, riskPart].filter(Boolean).join(' · ').slice(0, 160);
+}
+
+/** Short next-verb for the single primary CTA (rail must not restate this). */
+export function primaryVerbLabel(squad, { noBaseline = false, isSquadView = false, actionLabels = {} } = {}) {
+  if (noBaseline) return 'Recover PI contract';
+  if (isSquadView) return 'Open decision';
+  if (!squad) return 'Review aligned promises';
+  const actionId = squad.nextAction?.id || squad.nextAction?.action || '';
+  const verb = actionLabels[actionId]
+    || String(squad.nextAction?.label || '').split(/[:·]/)[0].trim()
+    || (squad.baselineCoverage?.state === 'missing' ? 'Save baseline' : 'Open spotlight');
+  const shortName = String(squad.displayName || squad.squad || '').split(' ')[0];
+  const short = verb.length > 36 ? `${verb.slice(0, 34).trimEnd()}…` : verb;
+  return shortName ? `${short} · ${shortName}` : short;
+}
+
+/** Timeline chips for epic rail — prefer brief chips; fall back to Active Loop promises. */
+export function buildEpicRailChips({ brief = null, answer = null, squadKey = '' } = {}) {
+  const fromBrief = Array.isArray(brief?.meta?.piConfidence?.timelineChips)
+    ? brief.meta.piConfidence.timelineChips
+    : [];
+  const focus = String(squadKey || '').trim().toUpperCase();
+  let chips = fromBrief;
+  if (focus) {
+    const filtered = chips.filter((chip) => {
+      const key = String(chip.squad || chip.projectKey || chip.issueKey || '').toUpperCase();
+      return key === focus || key.startsWith(`${focus}-`) || String(chip.issueKey || '').toUpperCase().startsWith(`${focus}-`);
+    });
+    if (filtered.length) chips = filtered;
+  }
+  if (chips.length) {
+    return chips.slice(0, 6).map((chip) => ({
+      issueKey: chip.issueKey || '',
+      title: chip.title || '',
+      plannedStartDate: chip.plannedStartDate || '',
+      plannedEndDate: chip.plannedEndDate || '',
+      elapsedPct: chip.elapsedPct,
+      deliveryPct: chip.deliveryPct,
+      confidenceLabel: chip.confidenceLabel || (chip.plannedEndDate ? 'Medium' : 'No forecast'),
+      missingDates: !chip.plannedEndDate,
+      source: 'brief',
+    }));
+  }
+  const promises = (answer?.promises || []).filter((p) => !focus || String(p.squad || '').toUpperCase() === focus);
+  return promises.slice(0, 6).map((promise) => {
+    const truth = childTruth(promise);
+    const expected = promise.expectedVsActual?.expected || {};
+    const start = expected.startDate || promise.fiscalStart || promise.startDate || '';
+    const end = expected.endDate || promise.fiscalEnd || promise.endDate || '';
+    const deliveryPct = truth.total ? Math.round((truth.done / truth.total) * 100) : null;
+    return {
+      issueKey: promise.issueKey || '',
+      title: promise.originalText || promise.summary || 'PI commitment',
+      plannedStartDate: start,
+      plannedEndDate: end,
+      elapsedPct: null,
+      deliveryPct,
+      confidenceLabel: end ? (truth.total ? 'Medium' : 'No children') : 'No forecast',
+      missingDates: !end,
+      childHint: truth.total ? `${truth.done}/${truth.total} children` : 'No child stories',
+      source: 'promise',
+    };
+  });
+}

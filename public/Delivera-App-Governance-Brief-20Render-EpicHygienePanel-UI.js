@@ -78,7 +78,7 @@ export function renderEpicHygieneInlineRow(brief) {
     </div>`;
 }
 
-export function renderEpicHygienePanel(brief) {
+export function renderEpicHygienePanel() {
   return '';
 }
 

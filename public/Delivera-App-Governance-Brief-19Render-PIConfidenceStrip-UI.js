@@ -3,25 +3,61 @@ import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisi
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
 import { renderAdHocChip, renderEpicHygieneInlineRow } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
 
-function chipHtml(chip) {
-  const elapsed = chip.elapsedPct != null ? `${chip.elapsedPct}% elapsed` : 'dates unknown';
-  const delivery = chip.deliveryPct != null ? `${chip.deliveryPct}% delivered` : 'delivery pending';
-  const conf = chip.confidenceLabel || 'Medium';
+function formatChipDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (!Number.isFinite(d.getTime())) return String(value).slice(0, 12);
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+export function chipHtml(chip) {
+  const missing = Boolean(chip.missingDates) || (!chip.plannedEndDate && chip.elapsedPct == null);
+  const elapsed = missing
+    ? 'No forecast · missing end date'
+    : (chip.elapsedPct != null ? `${chip.elapsedPct}% elapsed` : 'dates unknown');
+  const delivery = chip.deliveryPct != null
+    ? `${chip.deliveryPct}% delivered`
+    : (chip.childHint || 'delivery pending');
+  const conf = chip.confidenceLabel || (missing ? 'No forecast' : 'Medium');
+  const range = [formatChipDate(chip.plannedStartDate), formatChipDate(chip.plannedEndDate)].filter(Boolean).join(' → ');
+  const pulse = chip.worstSlip ? ' is-pulse-slip' : '';
   return `
-    <article class="gov-pi-chip" data-issue-key="${escapeHtml(chip.issueKey || '')}">
+    <article class="gov-pi-chip${pulse}" data-issue-key="${escapeHtml(chip.issueKey || '')}" data-epic-rail-chip="1"${missing ? ' data-missing-dates="true"' : ''}>
       <header class="gov-pi-chip-head">
         <span class="gov-pi-chip-key">${escapeHtml(chip.issueKey || '')}</span>
-        <span class="gov-pi-chip-conf gov-pi-conf--${escapeHtml(String(conf).toLowerCase())}">${escapeHtml(conf)}</span>
+        <span class="gov-pi-chip-conf gov-pi-conf--${escapeHtml(String(conf).toLowerCase().replace(/\s+/g, '-'))}">${escapeHtml(conf)}</span>
       </header>
       <p class="gov-pi-chip-title">${escapeHtml(businessTitleFromSummary(chip.title || '', 72))}</p>
       <div class="gov-pi-chip-bars">
         <span class="gov-pi-bar-label">Time</span>
-        <div class="gov-pi-bar"><span style="width:${chip.elapsedPct || 0}%"></span></div>
+        <div class="gov-pi-bar"><span style="width:${missing ? 0 : (chip.elapsedPct || 0)}%"></span></div>
         <span class="gov-pi-bar-label">Delivery</span>
         <div class="gov-pi-bar gov-pi-bar--delivery"><span style="width:${chip.deliveryPct || 0}%"></span></div>
       </div>
-      <p class="gov-pi-chip-meta">${escapeHtml(elapsed)} · ${escapeHtml(delivery)}</p>
+      <p class="gov-pi-chip-meta">${escapeHtml(range ? `${range} · ${elapsed}` : elapsed)} · ${escapeHtml(delivery)}</p>
     </article>`;
+}
+
+/** Zero-click epic commitment rail for Active Loop hero (SSOT chips; suppress page PI strip when used). */
+export function renderEpicCommitmentRailHtml(chips = [], { emptyCopy = 'Epic dates appear when PI baseline chips or linked promises are available.' } = {}) {
+  const list = Array.isArray(chips) ? chips : [];
+  if (!list.length) {
+    return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" data-epic-rail-empty="true" aria-label="PI epic commitments">
+      <span class="gov-loop-kicker">PI epic commitments</span>
+      <p class="gov-calm-note">${escapeHtml(emptyCopy)}</p>
+    </aside>`;
+  }
+  const ranked = [...list].map((chip, index) => {
+    const slip = Number(chip.elapsedPct) || 0;
+    const delivery = Number(chip.deliveryPct);
+    const score = chip.missingDates ? 200 + index : (Number.isFinite(delivery) ? slip - delivery : slip);
+    return { ...chip, _slipScore: score };
+  }).sort((a, b) => b._slipScore - a._slipScore);
+  if (ranked[0]) ranked[0] = { ...ranked[0], worstSlip: true };
+  return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" aria-label="PI epic commitments">
+    <span class="gov-loop-kicker">PI epic commitments</span>
+    <div class="gov-pi-chip-row gov-epic-rail-chips" role="list">${ranked.map(chipHtml).join('')}</div>
+  </aside>`;
 }
 
 export function renderPICompactBadge(brief) {
@@ -38,6 +74,11 @@ export function renderPICompactBadge(brief) {
 
 export function renderPIConfidenceStrip(brief, opts = {}) {
   const hideBaselineCta = Boolean(opts.hideBaselineCta);
+  // Active Loop hero owns epic chips — do not render a second PI strip on the happy path.
+  if (opts.suppressForActiveLoop
+    || (typeof document !== 'undefined' && document.body?.classList?.contains('governance-active-loop-ready'))) {
+    return '';
+  }
   const strip = brief?.meta?.piConfidence;
   if (!strip) return '';
   const c = strip.counts || {};

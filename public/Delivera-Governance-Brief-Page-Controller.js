@@ -45,8 +45,10 @@ function init() {
   govPage.els.baseline = $('gov-baseline');
   govPage.els.scorecard = $('gov-scorecard');
   govPage.els.error = $('gov-error');
-  mountStickyMicroAnswer(govPage.els.stickyAnswerMount);
-  bindStickyScroll(120);
+  if (govPage.els.stickyAnswerMount) {
+    mountStickyMicroAnswer(govPage.els.stickyAnswerMount);
+    bindStickyScroll(120);
+  }
   govPage.scopeBarApi = mountGovernanceScopeBar({
     mount: $('gov-scope-bar-mount'),
     onRefresh: (opts) => loadBrief({ force: opts?.force === true }),

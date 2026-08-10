@@ -40,17 +40,10 @@ export function readContinuityTokens(url = typeof location !== 'undefined' ? loc
     const spotlightRaw = parsed.searchParams.get('spotlight');
     const squadRaw = parsed.searchParams.get('squad');
 
-    // `spotlight` and `squad` are intentionally treated as URL-param aliases during rollouts.
-    // Governance may write `spotlight`, while Sprint/Actions may write `squad` — accepting either avoids hard breaks.
-    const spotlight = normalizeSquadKey(spotlightRaw || squadRaw);
+    // Canonical write is `squad`. `spotlight` remains a read alias for older deep links.
     const squad = normalizeSquadKey(squadRaw || spotlightRaw);
-    if (spotlightRaw && squadRaw && normalizeSquadKey(spotlightRaw) !== normalizeSquadKey(squadRaw)) {
-      console.warn('[delivera] spotlight/squad param conflict; accepting both as independent scopes', {
-        spotlight,
-        squad,
-      });
-    }
-    if (squad || spotlight) persistLastFocusSquad(squad || spotlight);
+    const spotlight = squad;
+    if (squad) persistLastFocusSquad(squad);
     return {
       spotlight,
       squad,
@@ -74,12 +67,12 @@ function withParams(pathname, params = {}) {
 }
 
 export function governanceSpotlightHref(squadKey, { returnTo = '', view = 'squad' } = {}) {
-  const spotlight = normalizeSquadKey(squadKey);
-  if (!spotlight) return '/governance';
+  const squad = normalizeSquadKey(squadKey);
+  if (!squad) return '/governance';
+  // Write canonical `squad` only; readers still accept legacy `spotlight`.
   return withParams('/governance', {
-    spotlight,
-    squad: spotlight,
-    projects: spotlight,
+    squad,
+    projects: squad,
     view: view || 'squad',
     returnTo: returnTo || undefined,
   });

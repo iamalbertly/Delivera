@@ -9,10 +9,9 @@ export const PAGE_HEADINGS = {
   sprints: 'Sprint today',
 };
 
-/** Above-fold Brief zones (order matters). */
+/** Above-fold Governance zones when Active Loop owns the page (order matters). */
 export const BRIEF_ABOVE_FOLD = [
-  'gov-verdict-mount',
-  'gov-action-clusters-mount',
+  'gov-active-loop-mount',
 ];
 
 export const BRIEF_BELOW_FOLD = [

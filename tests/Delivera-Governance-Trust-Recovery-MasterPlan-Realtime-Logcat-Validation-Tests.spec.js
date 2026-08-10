@@ -21,12 +21,12 @@ function promise({ promiseId, squad, issueKey, title }) {
 function squad(squadId, displayName, sprintName) {
   return {
     squad: squadId, displayName, riskOrder: squadId === 'SD' ? 1 : 2, payloadHash: `hash-${squadId}`,
-    attentionCount: 1, topState: 'no-jira-proof', proofState: 'aging',
+    attentionCount: 1, topState: 'no-jira-proof', proofState: 'aging', piPct: squadId === 'SD' ? 40 : 55,
     contractState: { label: '1 proof gap', detail: 'Approved PI commitment needs Jira evidence.' },
     trustFactor: { label: 'Limited, evidence aging', level: 'limited' },
     baselineCoverage: { state: 'verified', sourceLabel: 'FY27 Q2 contract', copy: 'Approved baseline verified.' },
     sprintReality: { state: 'active', sprint: { id: squadId === 'SD' ? 42 : 77, name: sprintName, state: 'active' }, sprintName, daysRemaining: 6, copy: `${sprintName} is active in Jira.` },
-    workSplit: { method: 'ticket-count', percentages: { pi: 70, support: 10, unplanned: 10, unknown: 10 }, explanation: 'Calculated from active Jira work using one denominator.' },
+    workSplit: { method: 'ticket-count', unplannedPct: 10, percentages: { pi: 70, support: 10, unplanned: 10, unknown: 10 }, explanation: 'Calculated from active Jira work using one denominator.' },
     unknownWork: { promoted: false }, possibleRework: { promoted: null, copy: 'No evidence-backed rework signal.' },
     doingInstead: { copy: 'No major diversion proven.', clusters: [] },
     nextAction: { label: 'Review missing proof' }, currentWork: [{ title: `${displayName} active work`, themeId: `${squadId}-work` }],
@@ -40,7 +40,7 @@ function activeAnswer() {
     promise({ promiseId: 'promise-finance', squad: 'RPA', issueKey: 'RPA-88', title: 'Finance launch' }),
   ];
   return {
-    schemaVersion: 2, presentationContractVersion: 3, answerVersion: 7, missionHeader: 'Protect FY27 Q2 commitments',
+    schemaVersion: 2, presentationContractVersion: 5, answerVersion: 7, missionHeader: 'Protect FY27 Q2 commitments',
     answer: 'Two squads need one evidence decision each.', sourceLine: 'Compared with FY27 Q2 PI contract · 2 promises checked · verified now',
     deliveraDid: 'Delivera reconciled Jira sprint truth and prepared the safest owner asks.', verifiedAt: now, evidenceObservedAt: now,
     freshness: { state: 'live' }, contract: { id: 'fy27-q2', piName: 'FY27 Q2', source: 'approved-baseline' },
@@ -93,7 +93,7 @@ test.describe('Governance trust recovery master plan @focused', () => {
     const telemetry = captureBrowserTelemetry(page); await mockGovernance(page);
     await page.goto('/governance?projects=SD,RPA');
     await expect(page.getByTestId('governance-active-loop')).toBeVisible({ timeout: 20000 });
-    await expect(page.locator('.gov-story-columns > span')).toHaveCount(4);
+    await expect(page.locator('.gov-story-columns > span')).toHaveCount(5);
     await expect(page.locator('[data-story-lens]')).toHaveCount(2);
     await expect(page.locator('.gov-story-columns')).not.toContainText(/Proof Age|Trust Basis/i);
     await expect(page.locator('[data-governance-diagnostics]')).toHaveText('Diagnostics');
@@ -106,7 +106,7 @@ test.describe('Governance trust recovery master plan @focused', () => {
     page.on('request', (request) => { if (request.url().includes('/squads/SD/detail.json')) detailQuery = request.url(); });
     await page.goto('/governance?projects=SD,RPA');
     await page.locator('[data-story-squad="SD"]').click();
-    await expect(page).toHaveURL(/spotlight=SD/);
+    await expect(page).toHaveURL(/[?&]squad=SD/);
     await expect(page.locator('#gov-squad-spotlight')).toContainText('FY27DMS06');
     expect(detailQuery).toMatch(/projects=SD/); expect(detailQuery).not.toMatch(/projects=SD%2CRPA/);
     await page.locator('[data-loop-primary]').click();
@@ -134,7 +134,7 @@ test.describe('Governance trust recovery master plan @focused', () => {
     await page.goto('/actions?squad=SD');
     await expect(page.locator('[data-action-case]')).toHaveCount(1);
     await expect(page.locator('[data-action-case]')).toContainText('DMS Squad · SD-5310');
-    await expect(page.locator('.action-case-source')).toHaveAttribute('href', /spotlight=SD/);
+    await expect(page.locator('.action-case-source')).toHaveAttribute('href', /[?&]squad=SD/);
     expect(requested).toContain('squad=SD'); assertTelemetryClean(telemetry);
   });
 

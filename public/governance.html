@@ -8,7 +8,6 @@
 </head>
 <body class="executive-surface-page governance-page">
   <div id="gov-scope-bar-mount" class="gov-scope-bar-sticky" aria-label="Brief scope"></div>
-  <div id="gov-sticky-answer-mount" class="gov-sticky-answer-mount" aria-live="polite"></div>
   <details id="gov-secondary-chrome" class="gov-secondary-chrome" hidden>
     <summary class="gov-secondary-chrome-summary">Feedback and survey</summary>
     <div id="gov-feedback-lab-mount"></div>
@@ -23,14 +22,13 @@
     <div id="gov-brief-content" class="gov-brief-layout">
       <div class="gov-main-column">
         <div id="gov-active-loop-mount" aria-live="polite"></div>
-        <div id="gov-verdict-mount" class="gov-hero-verdict-mount" aria-label="Squad delivery pulse"></div>
-        <header class="governance-header gov-header-compact">
+        <!-- Legacy Brief fallback mounts (hidden when Active Loop owns the page) -->
+        <div id="gov-verdict-mount" class="gov-hero-verdict-mount" aria-label="Squad delivery pulse" hidden></div>
+        <header class="governance-header gov-header-compact" hidden>
           <div id="gov-freshness" class="governance-freshness" aria-live="polite"></div>
           <div id="gov-answer-mount"></div>
         </header>
-
-        <div id="gov-action-clusters-mount"></div>
-        <div id="gov-setup-debt-mount"></div>
+        <div id="gov-setup-debt-mount" hidden></div>
 
         <details id="gov-supporting-evidence" class="governance-evidence-wrap">
           <summary class="governance-section-title governance-evidence-summary">Proof audit &amp; data quality</summary>
@@ -45,12 +43,11 @@
         </details>
       </div>
 
-      <aside id="gov-right-rail-mount" class="gov-right-rail" aria-label="Agent queue and PI confidence">
+      <aside id="gov-right-rail-mount" class="gov-right-rail" aria-label="Agent queue">
         <div id="gov-right-rail-proof-mount" class="gov-right-rail-proof" aria-live="polite"></div>
         <div id="gov-worker-receipt-mount" class="gov-right-rail-receipt"></div>
         <div id="gov-queue-mount" class="gov-inbox-mount gov-right-rail-queue" aria-label="Agent queue"></div>
-        <div id="gov-pi-strip-mount" class="gov-right-rail-pi"></div>
-        <div id="gov-compare-rail-mount" class="gov-right-rail-compare"></div>
+        <div id="gov-pi-strip-mount" class="gov-right-rail-pi" hidden data-pi-strip-empty="true"></div>
       </aside>
     </div>
     <div id="gov-error" class="alert-banner" hidden role="alert"></div>
