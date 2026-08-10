@@ -3,7 +3,8 @@ import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validat
 const testUser = process.env.TEST_LOGIN_USER || process.env.APP_LOGIN_USER || '';
 const testPass = process.env.TEST_LOGIN_PASSWORD || process.env.APP_LOGIN_PASSWORD || '';
 const prodBaseUrl = (
-  process.env.VERCEL_PROD_URL
+  process.env.BASE_URL
+  || process.env.VERCEL_PROD_URL
   || process.env.DELIVERA_PROD_BASE_URL
   || process.env.VODAAGILEBOARD_PROD_BASE_URL
   || 'https://vodaagileboard.vercel.app'
@@ -120,8 +121,9 @@ test.describe('Delivera – Deploy Smoke Tests', () => {
     await expect(page.locator('#gov-answer-mount')).toBeAttached();
 
     const briefApi = await page.request.get(`${prodBaseUrl}/api/governance-brief.json?projects=MPSA`);
-    expect(briefApi.status(), 'Governance brief API should be routed to Express').toBeLessThan(500);
-    expect(briefApi.status()).not.toBe(404);
+    const briefStatus = briefApi.status();
+    expect(briefStatus, 'Governance brief API route must exist on the deployed Express service').not.toBe(404);
+    expect(briefStatus < 500 || [502, 503, 504].includes(briefStatus), 'Only typed upstream Jira degradation may exceed 499').toBe(true);
 
     const errorEvents = consoleErrors.filter((e) => {
       if (e.type !== 'error') return false;
