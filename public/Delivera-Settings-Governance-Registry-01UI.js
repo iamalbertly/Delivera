@@ -211,10 +211,21 @@ function updateBulkState() {
 function wireBulk() {
   if (!canManageOrganizationSettings || !mount.querySelector('.registry-bulk')) return;
   mount.querySelector('[data-select-pending]')?.addEventListener('click', () => {
+    let selected = 0;
     mount.querySelectorAll('[data-registry-squad]').forEach((form) => {
       const item = registry.squads.find((squad) => squad.squadKey === form.dataset.registrySquad);
-      form.querySelector('[data-registry-select]').checked = item?.participationState === 'pending-consent';
+      const pending = item?.participationState === 'pending-consent';
+      form.querySelector('[data-registry-select]').checked = pending;
+      if (pending) selected += 1;
     });
+    // One gesture: soft-include + auto-reason so Preview enables immediately.
+    const select = mount.querySelector('[data-bulk-participation]');
+    if (select && selected) select.value = 'pi-governed';
+    const reasonInput = mount.querySelector('[data-bulk-reason]');
+    if (reasonInput && selected && !normalized(reasonInput.value)) {
+      reasonInput.value = 'Onboarding into PI governance';
+      reasonInput.dataset.autoFilled = '1';
+    }
     updateBulkState();
   });
   mount.querySelector('[data-bulk-reason]')?.addEventListener('input', updateBulkState);

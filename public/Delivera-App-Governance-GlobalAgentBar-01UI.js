@@ -50,7 +50,9 @@ export function updateGlobalAgentBar(brief) {
     : '';
   const deltaPill = since
     ? `<span class="gov-global-pill gov-since-delta">${escapeHtml(since.slice(0, 60))}</span>`
-    : (inbox > 0 ? `<span class="gov-global-pill">Brief queue: ${inbox}</span>` : '');
+    : (inbox > 0 && !new URLSearchParams(location.search).get('squad')
+      ? `<span class="gov-global-pill">Brief queue: ${inbox}</span>`
+      : '');
   const piShowsGaps = gaps > 0 && !piRaw;
   const gapsPill = (gaps > 0 && !piShowsGaps && !/Gaps/i.test(showPi))
     ? `<span class="gov-global-pill">Gaps ${gaps}</span>`

@@ -496,12 +496,41 @@ export function buildEpicRailChips({ brief = null, answer = null, squadKey = '' 
     ? brief.meta.piConfidence.timelineChips
     : [];
   const promiseByKey = new Map();
+  const focusPromises = [];
   for (const p of answer?.promises || []) {
     const k = String(p.issueKey || '').trim().toUpperCase();
     if (k) promiseByKey.set(k, p);
+    if (focus && String(p.squad || '').trim().toUpperCase() === focus) {
+      focusPromises.push(p);
+    }
   }
 
-  let seeds = fromBrief.map((chip) => ({ ...chip, source: 'brief' }));
+  const matchesFocus = (chip) => {
+    if (!focus) return true;
+    const issueKey = String(chip.issueKey || '').toUpperCase();
+    const key = String(chip.squad || chip.projectKey || chip.issueKey || '').toUpperCase();
+    const promise = promiseByKey.get(issueKey);
+    const squad = String(promise?.squad || chip.squad || '').toUpperCase();
+    return key === focus
+      || key.startsWith(`${focus}-`)
+      || issueKey.startsWith(`${focus}-`)
+      || squad === focus;
+  };
+
+  // When scoped: prefer that squad's promises first so peer brief chips cannot dominate.
+  let seeds = [];
+  if (focus && focusPromises.length) {
+    seeds = focusPromises.map((promise) => ({
+      issueKey: promise.issueKey || '',
+      title: promise.originalText || promise.summary || 'PI commitment',
+      source: 'promise',
+      squad: promise.squad,
+      _promise: promise,
+    }));
+  }
+  if (!seeds.length) {
+    seeds = fromBrief.map((chip) => ({ ...chip, source: 'brief' }));
+  }
   if (!seeds.length) {
     for (const [key, act] of activity) {
       seeds.push({
@@ -524,16 +553,9 @@ export function buildEpicRailChips({ brief = null, answer = null, squadKey = '' 
   }
 
   if (focus) {
-    const filtered = seeds.filter((chip) => {
-      const key = String(chip.squad || chip.projectKey || chip.issueKey || '').toUpperCase();
-      const promise = promiseByKey.get(String(chip.issueKey || '').toUpperCase());
-      const squad = String(promise?.squad || chip.squad || '').toUpperCase();
-      return key === focus
-        || key.startsWith(`${focus}-`)
-        || String(chip.issueKey || '').toUpperCase().startsWith(`${focus}-`)
-        || squad === focus;
-    });
-    if (filtered.length) seeds = filtered;
+    const filtered = seeds.filter(matchesFocus);
+    // Continuity seal: never fall back to peer squad chips when focus is set.
+    seeds = filtered;
   }
 
   return seeds.slice(0, 6).map((chip) => {

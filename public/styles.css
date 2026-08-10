@@ -18469,6 +18469,39 @@ body:has(#delivera-gov-right-drawer:not([hidden])) .gov-loop-proof-popover { z-i
   font: 0.72rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
 }
+/* Wide desktop: pack preview uses right dead space when accordion locked or tunnel active. */
+@media (min-width: 1400px) {
+  body.gov-pack-column-wide .gov-loop-decision-bento,
+  body.gov-accordion-locked .gov-loop-decision-bento {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(260px, .72fr);
+    gap: 12px 16px;
+    align-items: start;
+  }
+  body.gov-pack-column-wide .gov-epic-commitment-rail,
+  body.gov-accordion-locked .gov-epic-commitment-rail {
+    grid-column: 1 / -1;
+  }
+  body.gov-pack-column-wide .gov-next-move-rail,
+  body.gov-accordion-locked .gov-next-move-rail,
+  body.gov-pack-column-wide [data-commitment-pack-preview],
+  body.gov-accordion-locked [data-commitment-pack-preview] {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    max-height: min(420px, 55vh);
+  }
+}
+/* Drawers/modals must clear shared header chrome. */
+.gov-scope-drawer,
+.gov-right-drawer,
+[data-gov-drawer],
+.notification-drawer {
+  z-index: var(--z-drawer);
+}
+.gov-modal,
+[data-gov-modal] {
+  z-index: var(--z-modal);
+}
 .gov-delivery-decision-inline {
   grid-column: 1 / -1;
   margin: 0;

@@ -247,8 +247,10 @@ async function mockSurfaces(page) {
             timelineChips: [
               { issueKey: 'SD-5314', title: 'NBA Integration', plannedStartDate: '2026-07-01', plannedEndDate: '2026-07-31', deliveryPct: 50, squad: 'SD' },
               { issueKey: 'SD-5309', title: 'EVOD Upgrade', plannedStartDate: '2026-07-05', plannedEndDate: '2026-07-31', deliveryPct: 100, squad: 'SD' },
+              { issueKey: 'FIN-1075', title: 'Finance ledger uplift', plannedStartDate: '2026-07-01', plannedEndDate: '2026-07-31', deliveryPct: 10, squad: 'FIN' },
+              { issueKey: 'FIN-1100', title: 'Finance peer noise', plannedStartDate: '2026-07-01', plannedEndDate: '2026-07-20', deliveryPct: 0, squad: 'FIN' },
             ],
-            counts: { committed: 2, atRisk: 1, missingDates: 0 },
+            counts: { committed: 4, atRisk: 2, missingDates: 0 },
           },
         },
         baselineComparison: {
@@ -345,7 +347,7 @@ test.describe('Governance accordion-first value master plan', () => {
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('03 click locks accordion; matrix stays; URL unchanged', async () => {
+    await test.step('03 click locks accordion; matrix stays; URL unchanged; rail/CTA scoped to SD', async () => {
       const before = page.url();
       await page.locator('.gov-story-row[data-story-squad="SD"]').click();
       await expect(page.locator('[data-story-squad-wrap="SD"][data-accordion-state="locked"]')).toBeVisible();
@@ -355,18 +357,40 @@ test.describe('Governance accordion-first value master plan', () => {
       await expect(page.locator('.gov-story-matrix')).toBeVisible();
       expect(page.url()).toBe(before);
       expect(page.url()).not.toMatch(/view=squad/);
+      // Continuity seal: locked accordion owns chrome — no FIN-* rail bleed / Confirm FIN CTA.
+      await expect(page.locator('[data-gov-delivery-bento]')).toHaveAttribute('data-bento-scope', 'squad');
+      await expect(page.locator('[data-gov-delivery-bento]')).toHaveAttribute('data-bento-squad', 'SD');
+      const lockedRail = page.locator('[data-epic-commitment-rail]').first();
+      await expect(lockedRail).toBeVisible({ timeout: 8000 });
+      const lockedRailText = await lockedRail.innerText();
+      expect(lockedRailText).not.toMatch(/FIN-\d+/i);
+      const keys = await page.locator('[data-epic-commitment-rail] [data-issue-key]').evaluateAll((nodes) =>
+        nodes.map((n) => String(n.getAttribute('data-issue-key') || '').toUpperCase()));
+      expect(keys.every((k) => !k || k.startsWith('SD-'))).toBeTruthy();
+      const primary = page.locator('[data-loop-primary]');
+      await expect(primary).toBeVisible();
+      const primaryText = await primary.innerText();
+      expect(primaryText).not.toMatch(/Confirm.*FIN-|FIN-\d+/i);
       assertTelemetryClean(telemetry);
     });
 
-    await test.step('04 Full squad detail CTA opens tunnel with squad-scoped bento', async () => {
+    await test.step('04 Full squad detail CTA opens tunnel with squad-scoped bento; no FIN rail', async () => {
       await page.locator('[data-full-squad-detail="SD"]').click();
       await expect(page).toHaveURL(/[?&]squad=SD/);
       await expect(page.locator('body')).toHaveClass(/governance-squad-selected/);
       await expect(page.locator('[data-gov-delivery-bento]')).toHaveAttribute('data-bento-scope', 'squad');
-      const attention = await page.locator('[data-delivery-cell="attention"] strong').innerText();
-      expect(Number(attention)).toBeLessThanOrEqual(4);
+      await expect(page.locator('[data-delivery-cell="evidenced"] strong')).toBeVisible();
+      // Twin-meter seal: tunnel outcome strip owns At risk — bento omits duplicate attention cell.
+      await expect(page.locator('[data-gov-delivery-bento] [data-delivery-cell="attention"]')).toHaveCount(0);
       await expect(page.locator('[data-spotlight-outcome]')).toBeVisible();
       await expect(page.locator('[data-spotlight-sprint]')).toBeVisible();
+      const tunnelRail = page.locator('[data-epic-commitment-rail]').first();
+      await expect(tunnelRail).toBeVisible({ timeout: 8000 });
+      const tunnelText = await tunnelRail.innerText();
+      expect(tunnelText).not.toMatch(/FIN-\d+/i);
+      const tunnelKeys = await page.locator('[data-epic-commitment-rail] [data-issue-key]').evaluateAll((nodes) =>
+        nodes.map((n) => String(n.getAttribute('data-issue-key') || '').toUpperCase()));
+      expect(tunnelKeys.every((k) => !k || k.startsWith('SD-'))).toBeTruthy();
       assertTelemetryClean(telemetry);
     });
 

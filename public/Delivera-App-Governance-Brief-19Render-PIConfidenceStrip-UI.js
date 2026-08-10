@@ -15,16 +15,32 @@ export function chipHtml(chip) {
   const missing = Boolean(chip.missingDates) || !chip.plannedEndDate;
   const hasChildren = Number(chip.childTotal) > 0 || (chip.childHint && !/no child/i.test(String(chip.childHint)));
   const range = [formatChipDate(chip.plannedStartDate), formatChipDate(chip.plannedEndDate)].filter(Boolean).join(' → ');
-  const dateLine = missing
-    ? (hasChildren && chip.childHint ? `No Jira target · ${chip.childHint}` : 'No forecast · missing end date')
-    : (chip.elapsedPct != null ? `${chip.elapsedPct}% elapsed` : 'on timeline');
+  const childHint = hasChildren && chip.childHint ? String(chip.childHint) : '';
+  // One child string only — never "0/2 children" in both dateLine and delivery.
+  let dateLine;
+  if (missing) {
+    if (childHint && (chip.plannedStartDate || chip.plannedEndDate || range)) {
+      dateLine = `${range || 'Children dates'} · ${childHint}`;
+    } else if (childHint) {
+      dateLine = `Children only · ${childHint}`;
+    } else {
+      dateLine = 'No forecast · missing end date';
+    }
+  } else {
+    dateLine = chip.elapsedPct != null ? `${chip.elapsedPct}% elapsed` : 'on timeline';
+  }
   const delivery = chip.deliveryPct != null
-    ? `${chip.deliveryPct}% delivered${hasChildren && chip.childHint ? ` · ${chip.childHint}` : ''}`
-    : (chip.childHint || 'delivery pending');
-  const conf = chip.confidenceLabel || (missing ? (hasChildren ? 'Children only' : 'No forecast') : 'Medium');
+    ? `${chip.deliveryPct}% delivered`
+    : (childHint && missing ? '' : (childHint || 'delivery pending'));
+  const conf = chip.confidenceLabel || (missing ? (hasChildren ? (range || chip.plannedStartDate ? 'Children dates' : 'Children only') : 'No forecast') : 'Medium');
   const pulse = chip.worstSlip ? ' is-pulse-slip' : '';
   const displayTitle = businessTitleFromSummary(chip.title || '', 72);
   const identityHtml = renderIssueIdentityHtml(chip.issueKey || '', { title: displayTitle });
+  const metaParts = [range && !missing ? range : '', dateLine, delivery].filter(Boolean);
+  // Avoid duplicating range when already embedded in dateLine for missing-date child path.
+  const meta = missing
+    ? [dateLine, delivery].filter(Boolean).join(' · ')
+    : metaParts.filter((part, index, arr) => arr.indexOf(part) === index).join(' · ');
   return `
     <article class="gov-pi-chip${pulse}" data-issue-key="${escapeHtml(chip.issueKey || '')}" data-epic-rail-chip="1"${missing ? ' data-missing-dates="true"' : ''}${hasChildren ? ' data-has-children="true"' : ''}>
       <header class="gov-pi-chip-head">
@@ -37,7 +53,7 @@ export function chipHtml(chip) {
         <span class="gov-pi-bar-label">Delivery</span>
         <div class="gov-pi-bar gov-pi-bar--delivery"><span style="width:${chip.deliveryPct || 0}%"></span></div>
       </div>
-      <p class="gov-pi-chip-meta" data-epic-chip-meta="1">${escapeHtml(range ? `${range} · ${dateLine}` : dateLine)} · ${escapeHtml(delivery)}</p>
+      <p class="gov-pi-chip-meta" data-epic-chip-meta="1">${escapeHtml(meta)}</p>
     </article>`;
 }
 
@@ -45,9 +61,9 @@ export function chipHtml(chip) {
 export function renderEpicCommitmentRailHtml(chips = [], { emptyCopy = 'Epic dates appear when PI baseline chips or linked promises are available.' } = {}) {
   const list = Array.isArray(chips) ? chips : [];
   if (!list.length) {
-    return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" data-epic-rail-empty="true" aria-label="PI epic commitments">
+    return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" data-epic-rail-empty="true" aria-label="PI epic commitments" aria-live="polite">
       <span class="gov-loop-kicker">PI epic commitments</span>
-      <p class="gov-calm-note">${escapeHtml(emptyCopy)}</p>
+      <p class="gov-calm-note">${escapeHtml(emptyCopy || 'No PI epics verified for this squad')}</p>
     </aside>`;
   }
   const ranked = [...list].map((chip, index) => {
@@ -57,7 +73,7 @@ export function renderEpicCommitmentRailHtml(chips = [], { emptyCopy = 'Epic dat
     return { ...chip, _slipScore: score };
   }).sort((a, b) => b._slipScore - a._slipScore);
   if (ranked[0]) ranked[0] = { ...ranked[0], worstSlip: true };
-  return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" aria-label="PI epic commitments">
+  return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" aria-label="PI epic commitments" aria-live="polite">
     <span class="gov-loop-kicker">PI epic commitments</span>
     <div class="gov-pi-chip-row gov-epic-rail-chips" role="list">${ranked.map(chipHtml).join('')}</div>
   </aside>`;

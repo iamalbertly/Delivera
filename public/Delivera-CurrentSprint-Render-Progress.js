@@ -383,34 +383,41 @@ export function renderStories(data) {
     let panelHtml = '<article class="sprint-blockers-panel">';
     panelHtml += '<div class="sprint-group-header"><div><p class="sprint-group-kicker">Blockers Panel</p><h3>Active blockers</h3></div><span class="sprint-group-count" data-blocker-count>' + blockerPanelRows.length + ' visible</span></div>';
     panelHtml += '<div class="sprint-blockers-list">';
-    blockerPanelRows.forEach((row) => {
+    blockerPanelRows.forEach((row, index) => {
       const ownerRaw = row.owner || row.assignee || row.reporter || '';
       const isOrphan = !ownerRaw || isFormerUserLabel(ownerRaw);
       const ownerDisplay = isOrphan ? 'Owner needed' : ownerRaw;
       const ageLabel = formatBlockerAge(row.hoursInStatus);
       const ageTone = blockerAgeTone(row.hoursInStatus);
       const isFormerRep = isFormerUserLabel(row.reporter);
-      panelHtml += '<article class="sprint-blocker-row' + (isOrphan ? ' sprint-blocker-row--orphan' : '') + '">';
+      const faceUp = index < 3;
+      panelHtml += '<article class="sprint-blocker-row' + (isOrphan ? ' sprint-blocker-row--orphan' : '') + (faceUp ? ' sprint-blocker-row--face-up' : ' sprint-blocker-row--compact') + '" data-blocker-face-up="' + (faceUp ? '1' : '0') + '">';
       if (isOrphan) {
         panelHtml += '<div class="sprint-blocker-orphan-alert" data-blocker-orphan-alert>No active owner — deactivated account. Assign before escalating.</div>';
       }
       panelHtml += '<div class="sprint-blocker-top">'
         + '<strong>' + renderIssueKeyLink(row.issueKey || row.key, row.issueUrl) + ' ' + escapeHtml(row.summary || '') + '</strong>'
         + '</div>';
-      const hours = Number(row.hoursInStatus || 0);
-      const rootCause = hours >= 24
-        ? `Status unchanged ${Math.round(hours)}h — likely blocking sprint flow`
-        : 'Needs ownership or unblock decision';
-      const likelyOwner = ownerRaw && !isOrphan ? ownerRaw : (row.reporter || 'Unassigned');
-      panelHtml += '<p class="sprint-blocker-root-cause" data-blocker-root-cause="1">' + escapeHtml(rootCause) + '</p>';
-      panelHtml += '<div class="sprint-blocker-meta">'
-        + '<span class="sprint-blocker-owner' + (isOrphan ? ' sprint-blocker-owner--missing' : '') + '" data-blocker-owner>' + escapeHtml(COPY.likelyOwner) + ': ' + escapeHtml(likelyOwner) + '</span>'
-        + '<span class="sprint-blocker-age ' + escapeHtml(ageTone) + '" data-blocker-age>' + escapeHtml(ageLabel) + '</span>'
-        + (isFormerRep ? '<span class="sprint-blocker-former-reporter" data-former-reporter>Reporter deactivated</span>' : '')
-        + '</div>';
-      const canNudge = Boolean((likelyOwner && likelyOwner !== 'Unassigned') || getCurrentSprintPayload()?.meta?.teamRoster?.length);
-      if (canNudge) {
-        panelHtml += '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(row.issueKey || row.key || '') + '">Review nudge</button>';
+      if (faceUp || isOrphan) {
+        const hours = Number(row.hoursInStatus || 0);
+        const rootCause = hours >= 24
+          ? `Status unchanged ${Math.round(hours)}h — likely blocking sprint flow`
+          : 'Needs ownership or unblock decision';
+        const likelyOwner = ownerRaw && !isOrphan ? ownerRaw : (row.reporter || 'Unassigned');
+        panelHtml += '<p class="sprint-blocker-root-cause" data-blocker-root-cause="1">' + escapeHtml(rootCause) + '</p>';
+        panelHtml += '<div class="sprint-blocker-meta">'
+          + '<span class="sprint-blocker-owner' + (isOrphan ? ' sprint-blocker-owner--missing' : '') + '" data-blocker-owner>' + escapeHtml(COPY.likelyOwner) + ': ' + escapeHtml(likelyOwner) + '</span>'
+          + '<span class="sprint-blocker-age ' + escapeHtml(ageTone) + '" data-blocker-age>' + escapeHtml(ageLabel) + '</span>'
+          + (isFormerRep ? '<span class="sprint-blocker-former-reporter" data-former-reporter>Reporter deactivated</span>' : '')
+          + '</div>';
+        const canNudge = Boolean((likelyOwner && likelyOwner !== 'Unassigned') || getCurrentSprintPayload()?.meta?.teamRoster?.length);
+        if (canNudge) {
+          panelHtml += '<button type="button" class="btn btn-link btn-compact" data-blocker-nudge="' + escapeHtml(row.issueKey || row.key || '') + '">Review nudge</button>';
+        }
+      } else {
+        panelHtml += '<div class="sprint-blocker-meta sprint-blocker-meta--compact">'
+          + '<span class="sprint-blocker-age ' + escapeHtml(ageTone) + '" data-blocker-age>' + escapeHtml(ageLabel) + '</span>'
+          + '</div>';
       }
       panelHtml += '</article>';
     });

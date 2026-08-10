@@ -429,8 +429,15 @@ function preferredFocusSquadKey(answer) {
   return ranked[0]?.squad || '';
 }
 
+/** Continuity SSOT: tunnel → accordion lock → attention-ranked portfolio focus. */
+function activeRailSquadKey(answer) {
+  if (activeLens === 'squad' && spotlightKey) return spotlightKey;
+  if (lockedAccordionSquad) return lockedAccordionSquad;
+  return preferredFocusSquadKey(answer);
+}
+
 function nextMoveRailHtml(answer) {
-  const focusKey = preferredFocusSquadKey(answer);
+  const focusKey = activeRailSquadKey(answer);
   const squad = (answer?.squads || []).find((item) => item.squad === focusKey) || (answer?.squads || [])[0];
   if (!squad) return '';
   const isFocused = Boolean(spotlightKey && spotlightKey === squad.squad);
@@ -453,27 +460,32 @@ function nextMoveRailHtml(answer) {
 }
 
 function deliveryBentoHtml(answer, coverage) {
-  const isSquadView = activeLens === 'squad' && Boolean(spotlightKey);
-  const kpis = isSquadView
-    ? buildDeliverySquadKpis(answer, spotlightKey)
+  const railKey = activeRailSquadKey(answer);
+  const inTunnel = activeLens === 'squad' && Boolean(spotlightKey);
+  const isSquadScoped = Boolean(railKey) && (inTunnel || Boolean(lockedAccordionSquad));
+  const kpis = isSquadScoped
+    ? buildDeliverySquadKpis(answer, railKey)
     : buildDeliveryPortfolioKpis(answer);
   const evidenced = kpis.promiseTotal
     ? `${kpis.evidencedCount}/${kpis.promiseTotal}`
     : (kpis.evidencedPct != null ? `${kpis.evidencedPct}%` : '—');
-  const evidencedDetail = kpis.storiesDone || kpis.epicsClosed
+  const evidencedDetail = (!inTunnel && (kpis.storiesDone || kpis.epicsClosed))
     ? `${kpis.storiesDone} stories · ${kpis.epicsClosed} epics closed`
     : '';
-  const divertedDetail = kpis.topDivertTitle
+  const divertedDetail = (!inTunnel && kpis.topDivertTitle)
     ? kpis.topDivertTitle.slice(0, 36)
     : '';
-  const topDecision = isSquadView ? decisionPromiseForAnswer(answer) : null;
+  const topDecision = isSquadScoped ? decisionPromiseForAnswer(answer) : null;
   const decisionInline = topDecision
     ? `<p class="gov-delivery-decision-inline" data-delivery-top-decision="1"><strong>Top decision</strong> · ${escapeHtml(businessTitleFromSummary(topDecision.originalText || topDecision.summary || topDecision.issueKey || '', 72))}</p>`
     : '';
-  return `<div class="gov-delivery-bento" data-gov-delivery-bento="1" data-bento-scope="${isSquadView ? 'squad' : 'portfolio'}" aria-label="PI delivery pulse">
+  const attentionCell = inTunnel
+    ? ''
+    : `<div class="gov-delivery-cell" data-delivery-cell="attention"><strong>${kpis.attentionCount}</strong><small>At risk</small></div>`;
+  return `<div class="gov-delivery-bento" data-gov-delivery-bento="1" data-bento-scope="${isSquadScoped ? 'squad' : 'portfolio'}" data-bento-squad="${escapeHtml(isSquadScoped ? railKey : '')}" aria-label="PI delivery pulse">
     <div class="gov-delivery-cell" data-delivery-cell="evidenced"><strong>${escapeHtml(evidenced)}</strong><small>Evidenced${evidencedDetail ? ` · ${escapeHtml(evidencedDetail)}` : ''}</small></div>
     <div class="gov-delivery-cell" data-delivery-cell="diverted"><strong>${kpis.divertingCount}</strong><small>Diverting${divertedDetail ? ` · ${escapeHtml(divertedDetail)}` : ''}</small></div>
-    <div class="gov-delivery-cell" data-delivery-cell="attention"><strong>${kpis.attentionCount}</strong><small>At risk</small></div>
+    ${attentionCell}
     <div class="gov-delivery-cell" data-delivery-cell="unverified"><strong>${kpis.unverifiedCount}</strong><small>Unverified</small></div>
     ${decisionInline}
     <p class="gov-delivery-meta" data-decision-coverage-meta="${escapeHtml(coverage.copy)}">${coverage.closed} decided this PI · ${coverage.open} open</p>
@@ -482,23 +494,80 @@ function deliveryBentoHtml(answer, coverage) {
 
 function epicRailMountHtml(answer, focusKey) {
   const brief = sharedStoryState.lastBrief || null;
+  const railKey = focusKey || activeRailSquadKey(answer) || '';
   const chips = buildEpicRailChips({
     brief,
     answer,
-    squadKey: (activeLens === 'squad' && spotlightKey)
-      ? spotlightKey
-      : (focusKey || preferredFocusSquadKey(answer) || ''),
+    squadKey: railKey,
   });
-  // Prefer promise/activity chips immediately — never leave a permanent loading rail when promises exist.
+  const emptyCopy = railKey
+    ? `No PI epics verified for ${railKey}`
+    : 'Epic dates appear when PI baseline chips or linked promises are available.';
   if (chips.length) return renderEpicCommitmentRailHtml(chips);
+  const scopedPromises = railKey
+    ? (answer?.promises || []).filter((p) => String(p.squad || '').toUpperCase() === String(railKey).toUpperCase())
+    : (answer?.promises || []);
   const hasActivity = Boolean(brief?.meta?.boardEpicIndex?.length || brief?.baselineComparison?.items?.length);
-  if (!hasActivity && (answer?.promises || []).length) {
-    return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" data-epic-rail-loading="true" aria-label="PI epic commitments">
+  if (!hasActivity && scopedPromises.length) {
+    return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" data-epic-rail-loading="true" data-rail-squad="${escapeHtml(railKey)}" aria-label="PI epic commitments" aria-live="polite">
       <span class="gov-loop-kicker">PI epic commitments</span>
       <p class="gov-calm-note">Loading epic dates and child counts…</p>
     </aside>`;
   }
-  return renderEpicCommitmentRailHtml(chips);
+  return renderEpicCommitmentRailHtml(chips, { emptyCopy });
+}
+
+/** Patch bento / primary CTA / epic rail for accordion lock without URL or full hero remount. */
+function refreshDecisionSurface(answer = activeAnswer) {
+  if (!answer) return;
+  const hero = document.querySelector('.gov-active-loop-hero');
+  const bentoHost = hero?.querySelector('.gov-loop-decision-bento');
+  if (!bentoHost) return;
+  const coverage = normalizedDecisionCoverage(answer);
+  const railKey = activeRailSquadKey(answer);
+  const focusSquad = (answer?.squads || []).find((item) => item.squad === railKey);
+  const isSquadView = activeLens === 'squad' && Boolean(spotlightKey) && Boolean(focusSquad);
+  const noBaseline = !answer.contract;
+  const nextLabel = primaryVerbLabel(focusSquad, {
+    noBaseline,
+    isSquadView: isSquadView || Boolean(lockedAccordionSquad && focusSquad),
+    actionLabels,
+  });
+
+  const bento = bentoHost.querySelector('[data-gov-delivery-bento]');
+  if (bento) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = deliveryBentoHtml(answer, coverage);
+    const node = wrap.firstElementChild;
+    if (node) bento.replaceWith(node);
+  }
+
+  const primary = bentoHost.querySelector('[data-loop-primary]');
+  if (primary && nextLabel) {
+    primary.textContent = nextLabel;
+    const promise = decisionPromiseForAnswer(answer);
+    if (promise?.promiseId) {
+      primary.dataset.promiseId = promise.promiseId;
+      primary.dataset.squadId = promise.squad || railKey;
+    } else {
+      delete primary.dataset.promiseId;
+      if (railKey) primary.dataset.squadId = railKey;
+    }
+  }
+
+  const rail = bentoHost.querySelector('[data-epic-commitment-rail]');
+  if (rail) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = epicRailMountHtml(answer, railKey);
+    const node = wrap.firstElementChild;
+    if (node) {
+      node.setAttribute('data-rail-squad', railKey || '');
+      rail.replaceWith(node);
+    }
+  }
+
+  document.body.classList.toggle('gov-accordion-locked', Boolean(lockedAccordionSquad));
+  document.body.classList.toggle('gov-pack-column-wide', Boolean(lockedAccordionSquad || (activeLens === 'squad' && spotlightKey)));
 }
 
 /** Inject format-alignment chip when brief arrives after hero paint (zero extra click). */
@@ -521,15 +590,19 @@ export function hydrateEpicCommitmentRail(brief = null) {
   if (brief) sharedStoryState.lastBrief = brief;
   const rail = document.querySelector('[data-epic-commitment-rail]');
   if (!rail || !activeAnswer) return;
-  const focusKey = (activeLens === 'squad' && spotlightKey)
-    ? spotlightKey
-    : preferredFocusSquadKey(activeAnswer);
+  const focusKey = activeRailSquadKey(activeAnswer);
   const chips = buildEpicRailChips({ brief: sharedStoryState.lastBrief || brief, answer: activeAnswer, squadKey: focusKey });
-  const next = renderEpicCommitmentRailHtml(chips);
+  const emptyCopy = focusKey
+    ? `No PI epics verified for ${focusKey}`
+    : 'Epic dates appear when PI baseline chips or linked promises are available.';
+  const next = renderEpicCommitmentRailHtml(chips, { emptyCopy });
   const wrap = document.createElement('div');
   wrap.innerHTML = next;
   const node = wrap.firstElementChild;
-  if (node) rail.replaceWith(node);
+  if (node) {
+    if (focusKey) node.setAttribute('data-rail-squad', focusKey);
+    rail.replaceWith(node);
+  }
   hydrateAdHocChip(brief || sharedStoryState.lastBrief);
   const strip = document.getElementById('gov-pi-strip-mount');
   if (strip) {
@@ -568,10 +641,14 @@ function renderHero(answer) {
   const freshness = currentFreshness(answer);
   const noBaseline = !answer.contract;
   const coverage = normalizedDecisionCoverage(answer);
-  const focusKey = preferredFocusSquadKey(answer);
+  const focusKey = activeRailSquadKey(answer);
   const focusSquad = (answer?.squads || []).find((item) => item.squad === focusKey);
   const isSquadView = activeLens === 'squad' && Boolean(spotlightKey) && Boolean(focusSquad);
-  const nextLabel = primaryVerbLabel(focusSquad, { noBaseline, isSquadView, actionLabels });
+  const nextLabel = primaryVerbLabel(focusSquad, {
+    noBaseline,
+    isSquadView: isSquadView || Boolean(lockedAccordionSquad && focusSquad),
+    actionLabels,
+  });
   const sourceLine = String(answer.sourceLine || '').replace(/\s*·\s*last verified[^·]*$/i, '').trim() || answer.sourceLine;
   const missionKicker = isSquadView ? 'Selected squad' : 'Portfolio mission';
   const squadVerdict = buildDeliveryH1(answer, { isSquadView, focusSquad });
@@ -590,7 +667,7 @@ function renderHero(answer) {
     <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad delivery' : 'PI delivery answer'}</span></div><h1 id="gov-loop-answer" data-gov-delivery-h1="1">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause" data-gov-why-once="1"><strong>Why:</strong> ${escapeHtml(causeLine)}</p>${adHocChip}${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source gov-loop-meta-quiet" data-testid="governance-source-line">${escapeHtml(quietMeta)}</p></div>
     <div class="gov-loop-decision-bento">
       ${deliveryBentoHtml(answer, coverage)}
-      <div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>
+      <div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary data-squad-id="${escapeHtml(focusKey || '')}">${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>
       ${epicRailMountHtml(answer, focusKey)}
       ${nextMoveRailHtml(answer)}
     </div>
@@ -600,6 +677,8 @@ function renderHero(answer) {
     <footer class="gov-story-footer"><button type="button" class="gov-diagnostics-trigger" data-governance-diagnostics aria-label="Open authorized diagnostics">Diagnostics</button></footer>
   </section>`;
   document.body.classList.add('governance-active-loop-ready', 'governance-story-v2-ready');
+  document.body.classList.toggle('gov-accordion-locked', Boolean(lockedAccordionSquad));
+  document.body.classList.toggle('gov-pack-column-wide', Boolean(lockedAccordionSquad || (activeLens === 'squad' && spotlightKey)));
   if (spotlightKey) document.body.classList.add('governance-squad-selected');
   else document.body.classList.remove('governance-squad-selected');
   const strip = document.getElementById('gov-pi-strip-mount');
@@ -632,7 +711,7 @@ function renderHero(answer) {
 }
 
 function decisionPromiseForAnswer(answer) {
-  const focusKey = preferredFocusSquadKey(answer);
+  const focusKey = activeRailSquadKey(answer);
   const spotlightPromises = activeSpotlightDetail?.promises || [];
   const promises = focusKey && spotlightPromises.length && spotlightKey === focusKey
     ? spotlightPromises
@@ -655,7 +734,7 @@ function bindStory(answer, mount) {
       window.location.href = '/settings#gov-settings-registry-mount';
       return;
     }
-    const focusKey = preferredFocusSquadKey(answer);
+    const focusKey = activeRailSquadKey(answer);
     const promise = decisionPromiseForAnswer(answer);
     if (promise?.promiseId) return void openPromiseDrawer(promise.promiseId);
     if (focusKey) {
@@ -924,6 +1003,7 @@ function closeSquadAccordion({ onlyPeek = false, squad = '' } = {}) {
   if (!onlyPeek) {
     lockedAccordionSquad = '';
     peekAccordionSquad = '';
+    refreshDecisionSurface(activeAnswer);
   }
 }
 
@@ -961,6 +1041,7 @@ function openSquadAccordion(row, squadKey, { locked = false } = {}) {
       event.stopPropagation();
       void showSpotlight(squadKey, { pushHistory: true });
     });
+    refreshDecisionSurface(activeAnswer);
   } else {
     peekAccordionSquad = squadKey;
     panel.querySelector('[data-full-squad-detail]')?.addEventListener('click', (event) => {
@@ -1211,7 +1292,7 @@ function spotlightHtml(detail) {
     return `<article><strong>${group.count} · ${keyBits || escapeHtml(group.label)}</strong><p>${escapeHtml(group.customerOrPiImpact || '')}</p><small>${Math.round((Number(group.confidence) || 0) * 100)}% confidence</small></article>`;
   }).join('')}</section>` : ''}
   <div class="gov-spotlight-grid">
-    <section><h3>Current Work Reality</h3>${work.length ? work.slice(0, 5).map((item) => `<p class="gov-work-theme"><span><strong>${escapeHtml(item.title)}</strong>${item.systemDerived ? ' <small>system-derived label</small>' : ''}</span></p>`).join('') : '<p>No current work themes are available.</p>'}</section>
+    <section><h3>Current Work Reality</h3>${work.length ? work.slice(0, 5).map((item) => `<p class="gov-work-theme"><span><strong>${escapeHtml(item.title)}</strong></span></p>`).join('') : '<p>No current work themes are available.</p>'}</section>
     <section><h3>Diverted work</h3><p>${escapeHtml(squad.doingInstead?.copy || rework.copy || 'No major diversion is proven.')}</p><p>${escapeHtml(squad.workSplit?.explanation || '')}</p><p>${escapeHtml(honestUnknownPctLine(squad, unknown))}</p>${unknownEvidenceCopy ? `<div class="gov-unknown-clusters"><p><strong>${escapeHtml(unknownEvidenceCopy)}</strong></p>${divertedClusters}</div>` : ''}${rework.promoted ? `<details><summary>Why Delivera raised this</summary><ul>${(rework.promoted.paths || []).map((path) => `<li>${escapeHtml(path.label)}</li>`).join('')}</ul></details>` : ''}</section>
     <section><h3>PI commitments</h3>${commitmentFace}</section>
     ${hasRealTrail ? `<section class="gov-spotlight-actions"><h3>Action Trail</h3>${trail}</section>` : ''}
@@ -1309,7 +1390,7 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
         primary.dataset.promiseId = currentDecision.promiseId;
       }
     }
-    mount.innerHTML = `${contextConflict ? '<p class="gov-loop-stale-warning gov-loop-stale-warning--quiet" role="status" data-stale-quiet="true">Showing last verified squad proof · newer mismatched context was quarantined</p>' : ''}${spotlightHtml(detail)}`;
+    mount.innerHTML = `${contextConflict ? '<p class="gov-loop-stale-warning gov-loop-stale-warning--quiet" role="status" data-stale-quiet="true">Showing last verified ' + escapeHtml(squad) + ' proof · newer mismatched context was quarantined · peer squad fill-in is blocked</p>' : ''}${spotlightHtml(detail)}`;
     mount.querySelectorAll('[data-loop-promise]').forEach((button) => button.addEventListener('click', () => void openPromiseDrawer(button.getAttribute('data-loop-promise'))));
     mount.querySelectorAll('[data-theme-rename]').forEach((button) => button.addEventListener('click', () => beginThemeRename(button, squad, mount)));
     mount.querySelectorAll('[data-classify-cluster]').forEach((button) => button.addEventListener('click', () => classifyUnknownCluster(button, detail, mount)));

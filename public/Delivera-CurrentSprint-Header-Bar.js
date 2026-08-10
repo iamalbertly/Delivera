@@ -499,10 +499,13 @@ export function renderHeaderBar(data, options = {}) {
     }
   }
   // When Take action owns next-move, strip Ends-in from subtitle (one clock lives in Context only).
+  // Continuity seal: one Needs Attention SSOT — verdict strip owns the label; subtitle stays calm.
   const subtitleForFold = hasPriorityInterventions && edgeStateAttr === 'none'
-    ? (verdictInfo.verdict || 'Needs Attention')
+    ? ''
     : verdictDisplayLine;
-  html += `<p class="subtitle" data-sprint-primary-strip="true">${escapeHtml(subtitleForFold)}</p>`;
+  if (subtitleForFold) {
+    html += `<p class="subtitle" data-sprint-primary-strip="true">${escapeHtml(subtitleForFold)}</p>`;
+  }
   html += '</div>';
   html += '<div class="report-header-actions current-sprint-shell-actions">';
   html += reportLinkHtml;

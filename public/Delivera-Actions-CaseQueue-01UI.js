@@ -86,8 +86,31 @@ function render() {
     const group = grouped.get(key) || [];
     group.push(item); grouped.set(key, group);
   });
-  summary.textContent = `${visible.length} commitment${visible.length === 1 ? '' : 's'} in ${grouped.size} action group${grouped.size === 1 ? '' : 's'} · top urgency: ${urgency}`;
-  mount.innerHTML = visible.length ? [...grouped.values()].map((group) => {
+  // Highest urgency first — one honest summary, no contradictory wallpaper.
+  const rankedGroups = [...grouped.values()].sort((a, b) => {
+    const rank = (item) => {
+      const label = String(item?.urgencyLabel || item?.dueState || '').toLowerCase();
+      if (/critical|overdue|blocked/.test(label)) return 0;
+      if (/high|aging|stale|urgent/.test(label)) return 1;
+      if (/medium|watch/.test(label)) return 2;
+      return 3;
+    };
+    return rank(a[0]) - rank(b[0]);
+  });
+  const top = rankedGroups[0]?.[0];
+  const honestState = top
+    ? [
+      urgency && urgency !== 'review' ? `Top urgency: ${urgency}` : '',
+      top.proofAge?.copy || '',
+      Array.isArray(top.readiness?.missing) && top.readiness.missing.length
+        ? `Missing: ${top.readiness.missing.join(', ')}`
+        : '',
+    ].filter(Boolean).join(' · ') || `${visible.length} open commitment${visible.length === 1 ? '' : 's'}`
+    : 'No open actions in this view';
+  summary.textContent = selectedSquad
+    ? `${selectedSquad} · ${honestState}`
+    : `${visible.length} commitment${visible.length === 1 ? '' : 's'} in ${rankedGroups.length} group${rankedGroups.length === 1 ? '' : 's'} · ${honestState}`;
+  mount.innerHTML = rankedGroups.length ? rankedGroups.map((group) => {
     const item = group[0];
     const title = group.length > 1
       ? `${group.length} commitments · ${item.diagnosisLabel || 'promises share this correction'}`
@@ -95,12 +118,15 @@ function render() {
     const affected = group.length > 1 ? `<small>${escapeHtml(group.map((entry) => entry.title).slice(0, 3).join(' · '))}</small>` : '';
     const sourceHref = governanceSpotlightHref(item.squadId || item.squad, { returnTo: `${location.pathname}${location.search}` });
     const ownerLine = item.ownerRoute?.displayName || item.ownerRoute?.role || 'Owner route missing';
-    const proofLine = item.proofAge?.copy || 'Proof age unavailable.';
+    const proofLine = item.proofAge?.copy || '';
     const ownerUnresolved = isOwnerMissing({ ownerRoute: item.ownerRoute });
-    const confidenceLine = ownerUnresolved ? 'Owner route needs confirmation' : `Owner route: ${item.ownerConfidence || 'verified'}`;
-    const titleAttr = `${proofLine} · ${confidenceLine}`;
+    const missing = Array.isArray(item.readiness?.missing) ? item.readiness.missing : [];
+    // One honest line: missing OR proof age OR verified — never "verified" beside an aging clock.
+    const stateSentence = missing.length
+      ? `Missing: ${missing.join(', ')}`
+      : (proofLine || (ownerUnresolved ? 'Owner route needs confirmation' : 'Ready for owner action'));
+    const titleAttr = [stateSentence, ownerUnresolved ? 'Owner route needs confirmation' : `Owner route: ${item.ownerConfidence || 'verified'}`].filter(Boolean).join(' · ');
     const rowSquad = String(item.squadId || item.squad || '').trim().toUpperCase();
-    // When identity strip already locks the squad, show issue key only (cut repeated squad eye-travel).
     const identityLine = selectedSquad && rowSquad === selectedSquad
       ? (item.issueKey
         ? renderIssueIdentityHtml(item.issueKey, { title: businessTitleFromSummary(item.originalText || item.title || '', 56) })
@@ -115,9 +141,7 @@ function render() {
       const raw = item.recommendedAction || item.nextAction?.label || 'Review missing proof';
       return raw.length > 48 ? `${raw.slice(0, 46).trimEnd()}…` : raw;
     })();
-    const missing = Array.isArray(item.readiness?.missing) ? item.readiness.missing : [];
-    const metadata = missing.length ? `Missing: ${missing.join(', ')}` : 'Required metadata verified';
-    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${identityLine}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><p class="action-case-metadata"><strong>${escapeHtml(metadata)}</strong> · ${escapeHtml(ownerLine)} · affects Governance, Sprint and PI reporting</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(proofLine)}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(shortCta)}</button></div></article>`;
+    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${identityLine}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><p class="action-case-metadata" data-action-honest-state="1"><strong>${escapeHtml(stateSentence)}</strong> · ${escapeHtml(ownerLine)}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(proofLine && missing.length ? proofLine : '')}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(shortCta)}</button></div></article>`;
   }).join('') : (() => {
     const emptyHref = governanceSpotlightHref(selectedSquad || '', { returnTo: '/actions' });
     return `<div class="empty-state"><h3>No actions match this view</h3><p><a href="${escapeHtml(emptyHref)}">${selectedSquad ? `Open ${escapeHtml(selectedSquad)} spotlight on Governance` : 'Return to Governance'}</a> for the portfolio answer.</p></div>`;
