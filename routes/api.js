@@ -1,7 +1,7 @@
 // SIZE-EXEMPT: Central API surface keeps route handlers co-located for auth, caching, and
 // error-contract consistency across report/current-sprint/outcome flows.
 import express from 'express';
-import { requireAuth, requireSuperAdmin, isSuperAdminRequest } from '../lib/middleware.js';
+import { requireAuth, requireSuperAdmin, isSuperAdminRequest, APP_LOGIN_USER } from '../lib/middleware.js';
 import { logger, buildRequestLogContext } from '../lib/Delivera-Server-Logging-Utility.js';
 import { sendJsonOnce, sendErrorOnce } from '../lib/Delivera-Http-SendOnce-01Helper.js';
 import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from '../lib/cache.js';
@@ -417,7 +417,10 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
                 'r.lyatuu@gmail.com',
                 'albert.lyatuu@gmail.com',
             ]);
-            if (!allowedActors.has(actorId.toLowerCase()) || issueKey.toUpperCase() !== 'SD-5314' || squadKey !== 'SD') {
+            const normalizedActorId = actorId.toLowerCase();
+            const isAlbertLegacyIdentity = req.authUser?.via === 'legacy-session'
+                && normalizedActorId === String(APP_LOGIN_USER || '').trim().toLowerCase();
+            if ((!allowedActors.has(normalizedActorId) && !isAlbertLegacyIdentity) || issueKey.toUpperCase() !== 'SD-5314' || squadKey !== 'SD') {
                 return res.status(403).json({ error: 'Production validation is restricted to Albert Lyatuu, DMS/SD, and SD-5314.', code: 'DMS_VALIDATION_SCOPE_DENIED' });
             }
             if (!commentBody.includes(`[Delivera validation:${validationRunId}]`)) {
