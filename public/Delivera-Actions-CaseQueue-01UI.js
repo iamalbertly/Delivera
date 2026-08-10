@@ -4,6 +4,8 @@ import {
   governanceSpotlightHref,
   currentSprintSquadHref,
   renderSquadIdentityStrip,
+  resolveFocusSquadKey,
+  rewriteContinuityUrl,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
 import { isOwnerMissing } from './Delivera-Shared-Attention-Queue.js';
 import { businessTitleFromSummary } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
@@ -16,7 +18,17 @@ const clearFilters = document.getElementById('actions-filter-clear');
 const identityMount = document.getElementById('actions-identity-links');
 let cases = [];
 const routeContext = new URLSearchParams(location.search);
-const selectedSquad = String(routeContext.get('squad') || '').trim().toUpperCase();
+let selectedSquad = String(routeContext.get('squad') || '').trim().toUpperCase();
+
+function inheritFocusSquadIfNeeded() {
+  if (selectedSquad) return selectedSquad;
+  const fromFocus = String(resolveFocusSquadKey() || '').trim().toUpperCase();
+  if (!fromFocus) return '';
+  selectedSquad = fromFocus;
+  rewriteContinuityUrl({ squad: fromFocus });
+  return selectedSquad;
+}
+inheritFocusSquadIfNeeded();
 if (stateFilter) stateFilter.value = routeContext.get('state') || '';
 if (ownerFilter) ownerFilter.value = routeContext.get('owner') || '';
 
@@ -126,6 +138,13 @@ function render() {
       ? `Missing: ${missing.join(', ')}`
       : (proofLine || (ownerUnresolved ? 'Owner route needs confirmation' : 'Ready for owner action'));
     const titleAttr = [stateSentence, ownerUnresolved ? 'Owner route needs confirmation' : `Owner route: ${item.ownerConfidence || 'verified'}`].filter(Boolean).join(' · ');
+    const rawImpact = String(item.customerOrPiImpact || item.lifecycle || '').trim();
+    // Kill contradiction: "No evidence gap" under aging proof / needs-attention.
+    const impactContradicts = /no evidence gap/i.test(rawImpact)
+      && (proofLine || /needs-attention|aging|stale|overdue/i.test(String(item.urgencyLabel || '')));
+    const impactLine = impactContradicts
+      ? ''
+      : (rawImpact && rawImpact !== stateSentence ? rawImpact : '');
     const rowSquad = String(item.squadId || item.squad || '').trim().toUpperCase();
     const identityLine = selectedSquad && rowSquad === selectedSquad
       ? (item.issueKey
@@ -141,7 +160,7 @@ function render() {
       const raw = item.recommendedAction || item.nextAction?.label || 'Review missing proof';
       return raw.length > 48 ? `${raw.slice(0, 46).trimEnd()}…` : raw;
     })();
-    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${identityLine}</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(item.customerOrPiImpact || item.lifecycle || 'Needs governance attention.')}</p><p class="action-case-metadata" data-action-honest-state="1"><strong>${escapeHtml(stateSentence)}</strong> · ${escapeHtml(ownerLine)}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(proofLine && missing.length ? proofLine : '')}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(shortCta)}</button></div></article>`;
+    return `<article class="action-case-row" data-action-case="${escapeHtml(item.promiseId)}" data-action-detail="${escapeHtml(item.detailHref || '')}" data-action-squad="${escapeHtml(item.squadId || item.squad)}" title="${escapeHtml(titleAttr)}"><div><span>${identityLine}</span><h3>${escapeHtml(title)}</h3>${impactLine ? `<p>${escapeHtml(impactLine)}</p>` : ''}<p class="action-case-metadata" data-action-honest-state="1"><strong>${escapeHtml(stateSentence)}</strong> · ${escapeHtml(ownerLine)}</p><div class="action-case-signals"><span>${escapeHtml(item.urgencyLabel || 'review')}</span>${item.diagnosisConfidence != null ? `<span>${Math.round(Number(item.diagnosisConfidence) * 100)}% evidence confidence</span>` : ''}</div>${affected}${casePickerHtml(group)}<a class="action-case-source action-case-source--text" href="${sourceHref}">Squad evidence</a></div><div class="action-case-next"><small>${escapeHtml(proofLine && missing.length ? proofLine : '')}</small><button type="button" class="btn btn-primary btn-compact">${escapeHtml(shortCta)}</button></div></article>`;
   }).join('') : (() => {
     const emptyHref = governanceSpotlightHref(selectedSquad || '', { returnTo: '/actions' });
     return `<div class="empty-state"><h3>No actions match this view</h3><p><a href="${escapeHtml(emptyHref)}">${selectedSquad ? `Open ${escapeHtml(selectedSquad)} spotlight on Governance` : 'Return to Governance'}</a> for the portfolio answer.</p></div>`;
@@ -165,6 +184,7 @@ function render() {
 }
 
 async function load() {
+  inheritFocusSquadIfNeeded();
   summary.textContent = selectedSquad
     ? `${selectedSquad} actions · refreshing verified queue`
     : 'Actions · refreshing verified queue';

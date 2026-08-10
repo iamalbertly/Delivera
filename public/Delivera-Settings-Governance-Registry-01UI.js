@@ -97,11 +97,15 @@ function render() {
   const platformHealthy = squads.filter((item) => !isParticipationException(item) && !hasOwnerGap(item));
   // Band headers carry counts — drop duplicate health-strip KPI tiles.
   // Org exception bulk band is first-fold for authorized admins (platform law, one atomic save).
+  const chromeOwnsFind = Boolean(document.getElementById('app-top-search'));
+  const findControl = chromeOwnsFind
+    ? `<input type="search" class="gov-visually-hidden" data-registry-filter data-registry-filter-chrome-ssot="1" tabindex="-1" aria-hidden="true" placeholder="Name, key, owner, or state">`
+    : `<label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label>`;
   const bulkFirst = canManageOrganizationSettings
-    ? `<section class="registry-band registry-band--org-policy" data-registry-org-policy="1"><header class="registry-band-head"><div><h3>Organization participation policy</h3><p>Toggle pending-consent and operational exceptions once for every Delivera surface. Soft-include squads appear as unverified until a PI baseline exists; soft-exclude keeps historical evidence but removes them from PI ranks.</p></div><span data-selected-count>0 squads selected</span></header><div class="registry-bulk registry-bulk--open" aria-labelledby="registry-bulk-title"><div class="registry-bulk-body"><p id="registry-bulk-title">Updates are atomic and auditable across Governance, Current Sprint, and Actions.</p><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed (soft include)</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception (soft exclude)</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Preview and apply</button><p data-bulk-status role="status" aria-live="polite"></p></div></div></section>`
+    ? `<section class="registry-band registry-band--org-policy" data-registry-org-policy="1"><header class="registry-band-head"><div><h3>Organization participation policy</h3><p>Toggle pending-consent and operational exceptions once for every Delivera surface. Soft-include squads appear as unverified until a PI baseline exists; soft-exclude keeps historical evidence but removes them from PI ranks.</p></div><span data-selected-count>0 squads selected</span></header><div class="registry-bulk registry-bulk--open" aria-labelledby="registry-bulk-title"><div class="registry-bulk-body"><p id="registry-bulk-title">Updates are atomic and auditable across Governance, Current Sprint, and Actions.</p><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed (soft include)</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception (soft exclude)</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Apply policy</button><p data-bulk-status role="status" aria-live="polite"></p></div></div></section>`
     : '';
   mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>${canManageOrganizationSettings ? 'Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.' : 'Organization settings are read-only for this account. An authorized super admin publishes changes once for every Delivera surface.'}</p></div><span>Registry v${Number(registry.version) || 1}</span></div>
-    <label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label>
+    ${findControl}
     ${bulkFirst}
     ${renderBand('Participation exceptions', 'These squads are excluded or pending onboarding, so this band should stay intentionally small.', participationExceptions, 'No participation exceptions are active.')}
     ${renderBand('Owner-route gaps', 'Fix missing PO and SM routes before the full registry list so actions can land on the right people.', ownerRouteGaps, 'All visible squads have PO and SM routes.')}
@@ -147,7 +151,16 @@ function wireRows() {
       const editor = form.querySelector('.registry-editor');
       editor.hidden = !editor.hidden;
       event.currentTarget.setAttribute('aria-expanded', String(!editor.hidden));
-      if (!editor.hidden) editor.querySelector('select,input')?.focus();
+      if (!editor.hidden) {
+        // Autofill PO/SM from verified DB suggestions when fields are empty (zero extra click).
+        const applyBtn = form.querySelector('[data-apply-verified-suggestions]');
+        if (applyBtn) {
+          const poEmpty = !normalized(form.elements.productOwner?.value);
+          const smEmpty = !normalized(form.elements.scrumMaster?.value);
+          if (poEmpty || smEmpty) applyBtn.click();
+        }
+        editor.querySelector('select,input')?.focus();
+      }
     });
     form.addEventListener('input', () => updateRowState(form));
     form.elements.piIncluded?.addEventListener('change', () => {
@@ -206,6 +219,9 @@ function updateBulkState() {
     }
   }
   mount.querySelector('[data-bulk-preview]').disabled = !selected.length || !reason || !participation;
+  const previewBtn = mount.querySelector('[data-bulk-preview]');
+  if (previewBtn && !previewBtn.disabled) previewBtn.textContent = 'Apply policy';
+  else if (previewBtn) previewBtn.textContent = 'Apply policy';
 }
 
 function wireBulk() {

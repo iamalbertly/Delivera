@@ -402,6 +402,12 @@ export const specMetadata = {
     page: '/governance,/settings',
     priority: 'P0',
   },
+  'tests/Delivera-Governance-Focus-Inheritance-Continuity-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.governance-focus-inheritance-continuity',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/actions,/settings',
+    priority: 'P0',
+  },
   'tests/Delivera-Customer-Growth-DirectValue-Stickiness-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
     journey: 'journey.customer-growth-directvalue-stickiness-masterplan',
     layer: 'cross-surface-ux',
@@ -697,6 +703,13 @@ export const journeyBuckets = {
     label: 'Customer Growth – Squad tunnel continuity MasterPlan',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.customer-growth-squadtunnel-continuity-masterplan',
+    ),
+  },
+  'journey.governance-focus-inheritance-continuity': {
+    id: 'journey.governance-focus-inheritance-continuity',
+    label: 'Governance – Focus inheritance Continuity Retention MasterPlan',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-focus-inheritance-continuity',
     ),
   },
   'journey.customer-growth-directvalue-stickiness-masterplan': {

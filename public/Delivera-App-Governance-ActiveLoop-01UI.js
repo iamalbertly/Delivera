@@ -78,12 +78,16 @@ const lenses = [
 ];
 
 function broadcastFocus() {
-  if (spotlightKey) persistLastFocusSquad(spotlightKey);
+  // Continuity Retention: only explicit lock/tunnel writes last-focus.
+  // Unlock must not clobber session focus with attention-ranked peers (e.g. FIN).
+  const explicit = lockedAccordionSquad || spotlightKey || '';
+  if (explicit) persistLastFocusSquad(explicit);
   window.dispatchEvent(new CustomEvent('delivera:governance-focus', {
     detail: {
-      spotlightKey,
+      spotlightKey: explicit || spotlightKey,
       activeLens,
-      mode: activeLens === 'squad' && spotlightKey ? 'selected-squad' : 'portfolio',
+      lockedAccordionSquad,
+      mode: explicit ? 'selected-squad' : 'portfolio',
     },
   }));
 }
@@ -517,7 +521,7 @@ function epicRailMountHtml(answer, focusKey) {
   return renderEpicCommitmentRailHtml(chips, { emptyCopy });
 }
 
-/** Patch bento / primary CTA / epic rail for accordion lock without URL or full hero remount. */
+/** Patch bento / primary CTA / epic rail / H1 for accordion lock without URL or full hero remount. */
 function refreshDecisionSurface(answer = activeAnswer) {
   if (!answer) return;
   const hero = document.querySelector('.gov-active-loop-hero');
@@ -526,13 +530,31 @@ function refreshDecisionSurface(answer = activeAnswer) {
   const coverage = normalizedDecisionCoverage(answer);
   const railKey = activeRailSquadKey(answer);
   const focusSquad = (answer?.squads || []).find((item) => item.squad === railKey);
-  const isSquadView = activeLens === 'squad' && Boolean(spotlightKey) && Boolean(focusSquad);
+  const inTunnel = activeLens === 'squad' && Boolean(spotlightKey);
+  const isSquadScoped = Boolean(focusSquad) && (inTunnel || Boolean(lockedAccordionSquad));
   const noBaseline = !answer.contract;
   const nextLabel = primaryVerbLabel(focusSquad, {
     noBaseline,
-    isSquadView: isSquadView || Boolean(lockedAccordionSquad && focusSquad),
+    isSquadView: isSquadScoped,
     actionLabels,
   });
+
+  // Soft-swap H1 / Why to locked or tunnel squad (peek does not call this).
+  const h1 = hero.querySelector('[data-gov-delivery-h1]');
+  if (h1) {
+    const nextH1 = buildDeliveryH1(answer, { isSquadView: isSquadScoped, focusSquad });
+    if (nextH1) {
+      h1.textContent = nextH1;
+      h1.setAttribute('aria-live', 'polite');
+    }
+  }
+  const why = hero.querySelector('[data-gov-why-once]');
+  if (why) {
+    const causeLine = isSquadScoped && focusSquad
+      ? (focusSquad.contractState?.detail || focusSquad.sprintReality?.copy || 'Squad evidence remains isolated from portfolio peers.')
+      : (answer.lensSummaries?.overall || answer.sourceLine || 'Stored squad truth is compared across the included portfolio.');
+    why.innerHTML = `<strong>Why:</strong> ${escapeHtml(causeLine)}`;
+  }
 
   const bento = bentoHost.querySelector('[data-gov-delivery-bento]');
   if (bento) {
@@ -567,7 +589,8 @@ function refreshDecisionSurface(answer = activeAnswer) {
   }
 
   document.body.classList.toggle('gov-accordion-locked', Boolean(lockedAccordionSquad));
-  document.body.classList.toggle('gov-pack-column-wide', Boolean(lockedAccordionSquad || (activeLens === 'squad' && spotlightKey)));
+  document.body.classList.toggle('gov-pack-column-wide', Boolean(lockedAccordionSquad || inTunnel));
+  broadcastFocus();
 }
 
 /** Inject format-alignment chip when brief arrives after hero paint (zero extra click). */
@@ -1782,9 +1805,14 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
   const loadingTitle = loadingEl?.querySelector('[data-gov-loading-title]');
   const loadingMsg = loadingEl?.querySelector('.gov-loading-msg');
   if (cached) {
-    if (loadingTitle) loadingTitle.textContent = 'Restoring the last verified delivery answer';
-    if (loadingMsg) loadingMsg.textContent = 'Portfolio comparison and squad evidence are refreshing quietly. Decisions wait for verified Jira truth.';
-    if (loadingEl) loadingEl.dataset.govLoadingMode = 'restore';
+    // Cache-first: paint hero immediately, hide cold empty state — reconcile network quietly.
+    if (loadingTitle) loadingTitle.textContent = 'Refreshing verified proof…';
+    if (loadingMsg) loadingMsg.textContent = 'Showing last verified answer while fresh evidence loads.';
+    if (loadingEl) {
+      loadingEl.dataset.govLoadingMode = 'restore';
+      loadingEl.hidden = true;
+      loadingEl.setAttribute('aria-hidden', 'true');
+    }
     renderActiveGovernanceLoop(cached);
   } else {
     if (loadingTitle) loadingTitle.textContent = 'Building first verified answer…';

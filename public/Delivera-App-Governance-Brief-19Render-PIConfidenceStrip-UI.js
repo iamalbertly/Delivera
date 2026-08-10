@@ -37,22 +37,28 @@ export function chipHtml(chip) {
   const displayTitle = businessTitleFromSummary(chip.title || '', 72);
   const identityHtml = renderIssueIdentityHtml(chip.issueKey || '', { title: displayTitle });
   const metaParts = [range && !missing ? range : '', dateLine, delivery].filter(Boolean);
-  // Avoid duplicating range when already embedded in dateLine for missing-date child path.
   const meta = missing
     ? [dateLine, delivery].filter(Boolean).join(' · ')
     : metaParts.filter((part, index, arr) => arr.indexOf(part) === index).join(' · ');
+  const timeW = missing ? 0 : (Number(chip.elapsedPct) || 0);
+  const delW = Number(chip.deliveryPct) || 0;
+  // Compact: hide empty 0% bars — they read as broken, not honest.
+  const compactBars = missing || (timeW <= 0 && delW <= 0);
+  const barsHtml = compactBars
+    ? ''
+    : `<div class="gov-pi-chip-bars">
+        <span class="gov-pi-bar-label">Time</span>
+        <div class="gov-pi-bar"><span style="width:${timeW}%"></span></div>
+        <span class="gov-pi-bar-label">Delivery</span>
+        <div class="gov-pi-bar gov-pi-bar--delivery"><span style="width:${delW}%"></span></div>
+      </div>`;
   return `
-    <article class="gov-pi-chip${pulse}" data-issue-key="${escapeHtml(chip.issueKey || '')}" data-epic-rail-chip="1"${missing ? ' data-missing-dates="true"' : ''}${hasChildren ? ' data-has-children="true"' : ''}>
+    <article class="gov-pi-chip${pulse}" data-issue-key="${escapeHtml(chip.issueKey || '')}" data-epic-rail-chip="1"${missing ? ' data-missing-dates="true"' : ''}${hasChildren ? ' data-has-children="true"' : ''}${compactBars ? ' data-compact-bars="1"' : ''}>
       <header class="gov-pi-chip-head">
         <span class="gov-pi-chip-identity">${identityHtml}</span>
         <span class="gov-pi-chip-conf gov-pi-conf--${escapeHtml(String(conf).toLowerCase().replace(/\s+/g, '-'))}">${escapeHtml(conf)}</span>
       </header>
-      <div class="gov-pi-chip-bars">
-        <span class="gov-pi-bar-label">Time</span>
-        <div class="gov-pi-bar"><span style="width:${missing ? 0 : (chip.elapsedPct || 0)}%"></span></div>
-        <span class="gov-pi-bar-label">Delivery</span>
-        <div class="gov-pi-bar gov-pi-bar--delivery"><span style="width:${chip.deliveryPct || 0}%"></span></div>
-      </div>
+      ${barsHtml}
       <p class="gov-pi-chip-meta" data-epic-chip-meta="1">${escapeHtml(meta)}</p>
     </article>`;
 }

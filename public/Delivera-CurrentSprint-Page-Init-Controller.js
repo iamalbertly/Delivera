@@ -9,7 +9,7 @@ import { readCurrentSprintSnapshot, saveCurrentSprintSnapshot, clearCurrentSprin
 import { markPerf, resetPerfMarks } from './Delivera-Shared-Perf-Marks.js';
 import { hydrateCurrentSprintProjectsSelect } from './Delivera-CurrentSprint-Projects-Catalog-01Hydrate.js';
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
-import { rewriteContinuityUrl } from './Delivera-Shared-Continuity-Link-01Build.js';
+import { resolveFocusSquadKey, rewriteContinuityUrl } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 function showRenderedContent(data) {
   showCurrentSprintRenderedContent(data, (sprintId) => initHandlers.selectSprintById(sprintId));
@@ -39,10 +39,11 @@ function buildLoadingContext(boardLabel = '', sprintLabel = '') {
 
 function getRequestedSquadFromUrl() {
   try {
-    return String(new URL(window.location.href).searchParams.get('squad') || '').trim().toUpperCase().split(',')[0];
-  } catch (_) {
-    return '';
-  }
+    const fromUrl = String(new URL(window.location.href).searchParams.get('squad') || '').trim().toUpperCase().split(',')[0];
+    if (fromUrl) return fromUrl;
+  } catch (_) { /* ignore */ }
+  // Continuity Retention: bare /current-sprint inherits Governance lock/tunnel focus.
+  return String(resolveFocusSquadKey() || '').trim().toUpperCase();
 }
 
 function boardProjectKey(board) {
@@ -133,12 +134,15 @@ function refreshBoards(preferredId, preferredSprintId) {
   const requestId = ++lastBoardsRefreshRequestId;
   const { boardSelect } = currentSprintDom;
   const requestedSquad = getRequestedSquadFromUrl();
-  // Squad URL token is authoritative: force project scope before boards load so we never
-  // resolve SD against an MPSA-only board list and silently fall back to the wrong squad.
+  // Squad URL token OR Continuity last-focus is authoritative before boards load.
+  // Prevents bare /current-sprint from silently landing on catalog MPSA default.
   const scopedProjects = applySquadAuthoritativeScope(requestedSquad) || getProjectsParam();
+  if (requestedSquad && String(getProjectsParam() || '').toUpperCase() !== requestedSquad) {
+    applySquadAuthoritativeScope(requestedSquad);
+  }
   showRibbon('', 'fresh');
-  showLoading('Loading boards for ' + scopedProjects + '...');
-  void revealPreparedSprintTruth(scopedProjects);
+  showLoading('Loading boards for ' + (requestedSquad || scopedProjects) + '...');
+  void revealPreparedSprintTruth(requestedSquad || scopedProjects);
   return loadBoards()
     .then((res) => {
       if (requestId !== lastBoardsRefreshRequestId) return null;

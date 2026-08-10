@@ -297,10 +297,12 @@ export function renderDecisionCockpit(data, options = {}) {
     items: cockpitRisksToAttentionItems(topRisks),
     maxRows: viewportLean ? 3 : 5,
   });
+  // Continuity Retention: auto-expand Attention when verdict needs attention — zero click to top pain.
+  const attentionOpen = /needs attention|watch closely|at risk/i.test(String(health.status || collapseSummary || ''));
   // Header Take action owns next-move SSOT — one value strip above the fold, no twin lean next-move.
   const summaryAboveFold = buildSummaryStrip(data, cockpit);
   return ''
-    + `<details class="sprint-attention-fold"><summary>${escapeHtml(COPY.attentionQueue)} · ${topRisks.length}</summary>${attentionQueueHtml}</details>`
+    + `<details class="sprint-attention-fold"${attentionOpen && topRisks.length ? ' open' : ''} data-attention-auto-open="${attentionOpen ? '1' : '0'}"><summary>${escapeHtml(COPY.attentionQueue)} · ${topRisks.length}</summary>${attentionQueueHtml}</details>`
     + '<section class="decision-cockpit-shell' + leanClass + '">'
     + summaryAboveFold
     + '<details class="decision-cockpit-details">'
