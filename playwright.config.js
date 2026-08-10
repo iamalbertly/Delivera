@@ -9,7 +9,7 @@ function resolveTestBaseUrl() {
       if (Number.isFinite(port) && port > 0) return `http://localhost:${port}`;
     }
   } catch (_) { /* ignore */ }
-  return 'http://localhost:3000';
+  return 'http://localhost:3001';
 }
 
 const testBaseUrl = resolveTestBaseUrl();

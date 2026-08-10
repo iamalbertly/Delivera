@@ -126,6 +126,11 @@ export function deriveImpactedSpecs(changedFiles, allSpecPaths) {
     'delivera-shared-notifications-dock',
     '12-top-chrome',
     'current-sprint-projects-catalog',
+    'Board-Sprint-Capability',
+    'Delivera-Dev-Env',
+    'build-css.js',
+    'Governance-Worker-01Scheduler',
+    'Startup-Speed-Trust',
   ];
 
   const strongKeywords = [

@@ -67,6 +67,12 @@ function row(item) {
       <label><span>Scrum Master</span><input name="scrumMaster" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.scrumMaster))}" placeholder="Not assigned"${readOnly}></label>
       <label><span>Stream lead</span><input name="streamLead" autocomplete="off" data-1p-ignore data-lpignore="true" list="people-${escapeHtml(item.squadKey)}" value="${escapeHtml(personName(item.streamLead))}" placeholder="Not assigned"${readOnly}></label>
       <label><span>Board IDs</span><input name="boardMapping" autocomplete="off" data-1p-ignore data-lpignore="true" value="${escapeHtml(boardIds)}" placeholder="e.g. 230" aria-label="Board mapping for ${escapeHtml(item.friendlyName)}"${readOnly}></label>
+      ${boardCandidates.some((b) => String(b.type || '').toLowerCase() === 'kanban' || String(b.type || '').toLowerCase() === 'simple')
+        ? '<p class="registry-board-warn" data-registry-board-warn="1" role="status">This board doesn’t support sprints—pick a scrum board.</p>'
+        : ''}
+      ${item.boardMapping?.length && boardCandidates.some((b) => item.boardMapping.includes(Number(b.id)) && /kanban|simple/i.test(String(b.type || '')))
+        ? '<p class="registry-board-warn" data-registry-board-warn="1" role="status">Saved board mapping points at a non-scrum board—sprint views will skip it.</p>'
+        : ''}
       <datalist id="people-${escapeHtml(item.squadKey)}">${peopleOptions}</datalist>
       ${(people.length || boardCandidates.length) ? `<div class="registry-suggestion-bar"><button type="button" class="btn btn-link btn-compact" data-apply-verified-suggestions${readOnly}>Apply verified suggestions</button><small>${escapeHtml([people.slice(0, 2).map((p) => p.displayName).join(' · '), boardSuggestLabel].filter(Boolean).join(' · '))}</small></div>` : ''}
       <div class="registry-save"><input name="reason" autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Reason for change" aria-label="Reason for ${escapeHtml(item.friendlyName)} change"${readOnly}><button class="btn btn-primary btn-compact" type="submit" disabled>Save squad</button><small data-registry-status aria-live="polite">${canManageOrganizationSettings ? (item.lastVerifiedAt ? `Verified ${new Date(item.lastVerifiedAt).toLocaleDateString()}` : boardCandidates.length ? 'Database suggestions ready for review' : 'Not yet verified') : 'Organization truth · read only'}</small></div>

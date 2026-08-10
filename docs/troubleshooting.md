@@ -2,17 +2,31 @@
 
 Use this page for common run and validation issues.
 
-## Server does not start
+## Cold boot checklist (after reboot)
+
+1. Run **one** server: `npm run dev` (port guard + CSS watch + self-heal).
+2. Confirm `Delivera running on http://localhost:3001` (or the port in `.delivera-dev-port`).
+3. Open `/governance` — Answer/Today should paint within a few seconds (cache-first while workers warm).
+4. Terminal should **not** spam `ERROR Error fetching sprints for board … 400` for kanban boards; those are skipped as non-sprint-capable.
+5. Optional: `npm run validate:jira-env` if Jira looks empty.
 
 ### Port in use
 
 - Symptom: startup fails with `EADDRINUSE` or nodemon shows `app crashed - waiting for file changes`
-- Common cause: multiple `npm run dev` terminals on the same machine (ports 3000–3002)
+- Common cause: multiple `npm run dev` terminals on the same machine (ports 3001–3010)
 - Fix:
-  - use **one** dev server: `npm run dev:safe` (checks the port before start)
+  - use **one** dev server: `npm run dev` (checks the port before start)
+  - or `npm run dev:safe:force` to kill the preferred-port listener
   - stop duplicate `node`/`nodemon` processes, or set another `PORT` in `.env` and restart
   - on Windows, if needed: `taskkill /PID <pid> /F` (PID printed by the port guard)
-- Note: CSS/HTML edits no longer restart the API when using `dev:safe` / `dev:hot`; only `server.js`, `lib/`, `routes/`, and `api/` changes trigger nodemon
+- Note: CSS/HTML edits no longer restart the API; only `server.js`, `lib/`, `routes/`, and `api/` changes trigger nodemon
+- Stale `.delivera-dev-port` after reboot is fine — the port guard re-probes and rewrites it
+
+### Post-reboot worker noise (historical)
+
+- Older builds called `getAllSprints` on every discovered board (including kanban board 27) and logged ERROR on HTTP 400.
+- Current behavior: scrum-only sprint ops + deferred governance worker (45s) + negative cache for non-sprint boards.
+- If you still see board-27 ERROR spam, confirm you are on a build that includes `lib/Delivera-Data-Board-Sprint-Capability-01SSOT.js`.
 
 ## Jira connection issues
 
@@ -36,6 +50,7 @@ npm run validate:jira-env
   - legacy auth mode (all legacy vars present)
   - SuperTokens mode (enabled + connection URI configured)
 - In hybrid mode, confirm `SUPERTOKENS_HYBRID_MODE=true` during migration
+- If SuperTokens Docker is enabled, start it separately: `npm run auth:supertokens:up`
 
 ## CSS check failures
 
@@ -48,33 +63,3 @@ npm run validate:jira-env
 npm run build:css
 npm run check:css
 ```
-
-See `public/css/README.md` for CSS ownership rules.
-
-## Tests fail early in orchestration
-
-- `npm run test:all` is fail-fast and stops on first failing step.
-- Use focused journeys while debugging:
-  - `npm run test:journey:ux-core`
-  - `npm run test:journey:current-sprint`
-  - `npm run test:journey:data-integrity`
-
-Refer to `TESTING.md` for run modes and flags.
-
-## Stale or inconsistent preview/sprint data
-
-- Use live/refresh query options when debugging data freshness.
-- Ensure test cache clear endpoint is available only when intended.
-- For multi-instance deployments, prefer `CACHE_BACKEND=redis`.
-
-## Jira comment send returns 404 or does nothing
-
-- Symptom: browser console shows `404` on `POST /api/issues/KEY/comment`, or Take action / Send to Jira fails silently.
-- If the response body is HTML `Cannot POST /api/issues/.../comment`, the Node process is running **old code**. Restart: `npm run dev` or `npm start` on the port you use (`BASE_URL`). The UI toast should say the comment API is missing on this port after the client fix ships.
-- If the API returns JSON with `JIRA_COMMENT_FAILED` and HTTP 403/404, check Jira token permissions (**Add comments** on the project) and that the issue key exists.
-- Snapshot or historical sprint views disable send; switch to **Live** active sprint data before commenting.
-
-### Console noise that is not Delivera
-
-- `A listener indicated an asynchronous response by returning true, but the message channel closed` — almost always a **browser extension** (password manager, ad blocker, Cursor/IDE helper). Disable extensions on `127.0.0.1` or use a clean profile if it obscures real errors.
-- `[Violation] 'storage' handler took …ms` on `Delivera-Shared-Global-Nav.js` — localStorage sync for notification badges; debounced in app code. Safe to ignore unless the page feels sluggish.

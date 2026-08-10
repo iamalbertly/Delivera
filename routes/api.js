@@ -8,6 +8,12 @@ import { cache, CACHE_TTL, CACHE_KEYS, buildCurrentSprintSnapshotCacheKey } from
 import { createAgileClient, createVersion3Client } from '../lib/jiraClients.js';
 import { fetchSprintsForBoard } from '../lib/sprints.js';
 import { buildCurrentSprintPayload } from '../lib/currentSprint.js';
+import {
+  pickPrimaryBacklogBoard,
+  selectBoardsForSprintOps,
+  filterSprintCapableBoards,
+  isSprintCapableBoard,
+} from '../lib/Delivera-Data-Board-Sprint-Capability-01SSOT.js';
 import { projectSquadSprintTruth } from '../lib/Delivera-Governance-Sprint-Reality-01SSOT.js';
 import { readSquadSprintTruthBatch, writeSquadSprintTruth } from '../lib/Delivera-Governance-Squad-Sprint-Truth-02Store-IO.js';
 import {
@@ -68,6 +74,7 @@ import {
 } from '../lib/Delivera-Governance-Profile-01Resolve-SSOT.js';
 import { buildImpactPack, impactPackMonthKey } from '../lib/Delivera-Governance-Worker-05ImpactPack-Builder.js';
 import { clampConfidenceToFreshness } from '../lib/Delivera-Governance-Grammar-01Rules-SSOT.js';
+import { getGovernanceWorkerStartupState } from '../lib/Delivera-Governance-Worker-01Scheduler.js';
 import { buildQuarterlyKPIForProjects } from '../lib/Delivera-Data-QuarterlyKPI-Calculator.js';
 import { readQuarterLabelIndex, rememberQuarterLabel } from '../lib/Delivera-Governance-Quarter-Labels-01Index-SSOT.js';
 import { PROJECT_CATALOG, readCatalogKeys } from '../public/Delivera-Shared-Projects-Catalog-01SSOT.js';
@@ -187,6 +194,7 @@ router.get('/healthz', async (req, res) => {
     redis = false;
   }
 
+  const workerState = getGovernanceWorkerStartupState();
   // Redis is advisory only — ok/ready must stay true while the process is listening.
   res.setHeader('x-delivera-release', appEnvConfig.releaseId);
   res.setHeader('x-delivera-client-schema', DELIVERA_CLIENT_RELEASE_SCHEMA);
@@ -198,6 +206,8 @@ router.get('/healthz', async (req, res) => {
     clientSchema: DELIVERA_CLIENT_RELEASE_SCHEMA,
     uptime: Math.floor((Date.now() - serverStartTime) / 1000),
     redis,
+    workersStarted: workerState.workersStarted,
+    startupGrace: workerState.startupGrace,
   });
 });
 
@@ -769,16 +779,6 @@ function buildOutcomeSummaryHtml(payload) {
     return `Created Jira work items in project ${projectKey} backlog.${verificationSuffix}`;
 }
 
-function pickPrimaryBacklogBoard(boards, projectKey) {
-    const normalizedProjectKey = String(projectKey || '').trim().toUpperCase();
-    const list = Array.isArray(boards) ? boards : [];
-    return list.find((board) => String(board?.location?.projectKey || '').toUpperCase() === normalizedProjectKey && String(board?.type || '').toLowerCase() === 'scrum')
-        || list.find((board) => String(board?.location?.projectKey || '').toUpperCase() === normalizedProjectKey)
-        || list.find((board) => String(board?.type || '').toLowerCase() === 'scrum')
-        || list[0]
-        || null;
-}
-
 async function verifyOutcomeCreationAndBacklog({
     agileClient,
     version3Client,
@@ -1081,16 +1081,24 @@ const getSprintsHandler = async (req, res) => {
 
         const agileClient = createAgileClient();
         const { boards } = await discoverBoardsWithCache(selectedProjects, agileClient);
+        const sprintBoards = filterSprintCapableBoards(boards);
         const boardId = boardIdParam != null ? Number(boardIdParam) : null;
         const selectedBoard = boardId != null && !Number.isNaN(boardId)
-            ? boards.find((board) => Number(board.id) === boardId)
-            : boards[0];
+            ? (boards.find((board) => Number(board.id) === boardId) || null)
+            : (sprintBoards[0] || boards[0]);
 
         if (!selectedBoard?.id) {
             return res.status(404).json({ error: 'Board not found', code: 'BOARD_NOT_FOUND' });
         }
+        if (!isSprintCapableBoard(selectedBoard) && selectedBoard.type) {
+            return res.status(400).json({
+                error: 'Board does not support sprints',
+                code: 'BOARD_NOT_SPRINT_CAPABLE',
+                board: { id: selectedBoard.id, name: selectedBoard.name || '', type: selectedBoard.type },
+            });
+        }
 
-        const sprints = await fetchSprintsForBoard(selectedBoard.id, agileClient);
+        const sprints = await fetchSprintsForBoard(selectedBoard.id, agileClient, { board: selectedBoard });
         const list = (Array.isArray(sprints) ? sprints : []).map((sprint) => ({
             id: sprint.id,
             name: sprint.name,
@@ -1402,8 +1410,8 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
         const fields = await discoverFieldsWithCache(version3Client);
 
         const { boards } = await discoverBoardsWithCache(projects, agileClient);
-        const activeBoards = boards.slice(0, 5);
-        const sprintPromises = activeBoards.map((b) => fetchSprintsForBoard(b.id, agileClient));
+        const activeBoards = filterSprintCapableBoards(boards).slice(0, 5);
+        const sprintPromises = activeBoards.map((b) => fetchSprintsForBoard(b.id, agileClient, { board: b }));
         const allSprintsRaw = await Promise.all(sprintPromises);
 
         const relevantSprints = allSprintsRaw.flat()
@@ -1413,7 +1421,7 @@ router.get('/api/leadership-summary.json', requireAuth, async (req, res) => {
 
         const boardPayloadsSettled = await Promise.allSettled(
             activeBoards.map((board) => buildCurrentSprintPayload({
-                board: { id: board.id, name: board.name, location: board.location },
+                board: { id: board.id, name: board.name, location: board.location, type: board.type },
                 projectKeys: board.location?.projectKey ? [board.location.projectKey] : projects,
                 agileClient,
                 fields: {
@@ -1596,21 +1604,17 @@ async function getOrBuildGovernanceBrief({ projects, req, includeEvidence = true
     const version3Client = createVersion3Client();
     const fields = await discoverFieldsWithCache(version3Client);
     const { boards: discoveredBoards } = await discoverBoardsWithCache(projects, agileClient);
-    // Prefer organization registry boardMapping so FIN/SD (and others) resolve
-    // the verified board instead of wandering into BOARD_UNRESOLVED ghosts.
+    // Prefer organization registry boardMapping + scrum-capable boards so FIN/SD
+    // resolve verified sprint boards instead of kanban ghosts (board 27 / BOARD_UNRESOLVED).
     let boards = discoveredBoards;
     try {
         const registry = await readGovernanceRegistry();
-        const preferredIds = new Set();
-        for (const project of projects) {
-            const entry = (registry.squads || []).find((item) => String(item.squadKey || '').toUpperCase() === String(project).toUpperCase());
-            (entry?.boardMapping || []).forEach((id) => preferredIds.add(Number(id)));
-        }
-        if (preferredIds.size) {
-            const prioritized = discoveredBoards.filter((board) => preferredIds.has(Number(board.id)));
-            if (prioritized.length) boards = prioritized;
-        }
-    } catch (_) { /* discovery-only fallback */ }
+        const selected = selectBoardsForSprintOps(discoveredBoards, { projectKeys: projects, registry });
+        if (selected.boards.length) boards = selected.boards;
+        else boards = filterSprintCapableBoards(discoveredBoards);
+    } catch (_) {
+        boards = filterSprintCapableBoards(discoveredBoards);
+    }
 
     let baseline = null;
     try { baseline = await getLatestPIBaseline(`${projects.join('+')}`); } catch (_) { baseline = null; }

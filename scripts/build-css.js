@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Concatenates CSS partials from public/css/ in order into public/styles.css.
- * Source of truth for order; run after editing any partial (npm run build:css).
+ * Skips write when concatenated content is unchanged (faster cold boot).
  */
 
 import fs from 'fs';
@@ -38,7 +38,18 @@ function main() {
     }
   }
 
-  fs.writeFileSync(outPath, chunks.join(''), 'utf-8');
+  const next = chunks.join('');
+  if (fs.existsSync(outPath)) {
+    try {
+      const prev = fs.readFileSync(outPath, 'utf-8');
+      if (prev === next) {
+        console.log('[build-css] Skipped (unchanged)');
+        return;
+      }
+    } catch (_) { /* rewrite below */ }
+  }
+
+  fs.writeFileSync(outPath, next, 'utf-8');
   console.log('[build-css] Wrote public/styles.css');
 }
 

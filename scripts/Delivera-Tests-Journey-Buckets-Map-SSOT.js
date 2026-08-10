@@ -421,6 +421,12 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance',
   },
+  'tests/Delivera-Startup-Speed-Trust-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.startup-speed-trust',
+    layer: 'infra',
+    page: '/governance,/current-sprint',
+    priority: 'P0',
+  },
   'tests/Delivera-Governance-Growth-MasterPlan-Round2-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-growth-masterplan-round2',
     layer: 'cross-surface-ux',
@@ -713,6 +719,13 @@ export const journeyBuckets = {
     label: 'Governance Delivery-Trust – Verdict SSOT, identity, bento, logcat',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.governance-delivery-trust-masterplan',
+    ),
+  },
+  'journey.startup-speed-trust': {
+    id: 'journey.startup-speed-trust',
+    label: 'Startup Speed & Trust – healthz, kanban skip, worker receipt, logcat',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.startup-speed-trust',
     ),
   },
   'journey.governance-growth-masterplan-round2': {

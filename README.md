@@ -79,8 +79,8 @@ Meeting-safe PI decision loop owned by Active Loop (presentation contract v5): d
 - `npm run test:journey:customer-growth-squadtunnel-continuity-masterplan` — squad tunnel + continuity
 - `npm run test:current-sprint:shell-release` — Sprint shell continuity
 - `npm run test:friction:focused` — Sprint shell + Governance release + Settings registry
-- Do **not** run `npm run vercel:deploy` / `--prod` unless intentionally releasing; prefer `npm run dev:safe` + hard-refresh for UI proof. Skip full journey buckets unless a gate fails.
-- Local Playwright: run `npm run dev:safe` first, then `SKIP_WEBSERVER=true` with `BASE_URL` matching `.delivera-dev-port` (usually `http://localhost:3001`), or let Playwright start a fresh server (`REUSE_DEV_SERVER` unset).
+- Do **not** run `npm run vercel:deploy` / `--prod` unless intentionally releasing; prefer `npm run dev` + hard-refresh for UI proof. Skip full journey buckets unless a gate fails.
+- Local Playwright: run `npm run dev` first, then `SKIP_WEBSERVER=true` with `BASE_URL` matching `.delivera-dev-port` (usually `http://localhost:3001`), or let Playwright start a fresh server (`REUSE_DEV_SERVER` unset).
 
 Skip `journey.data-integrity` until that bucket is repaired.
 
@@ -93,9 +93,8 @@ Skip `journey.data-integrity` until that bucket is repaired.
 ```bash
 npm install
 cp .env.example .env   # set JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN
-npm run build:css      # compiles public/css/* (incl. 14-governance-baseline.css) → public/styles.css
-npm run dev:safe       # SSOT local watcher: port guard + CSS watch + API reload + /healthz self-heal
-# npm run dev          # thinner path (CSS + nodemon only) — prefer dev:safe when the API flaps
+npm run build:css      # compiles public/css/* → public/styles.css (skips write when unchanged)
+npm run dev            # SSOT local watcher: port guard + CSS watch + API reload + /healthz self-heal
 ```
 
 Production-style: `npm start` (runs `build:css` first).
@@ -104,24 +103,23 @@ Production-style: `npm start` (runs `build:css` first).
 
 | Command | Use |
 |---------|-----|
-| `npm run dev:safe` | **Recommended.** Port guard + CSS watch + nodemon + health self-heal |
-| `npm run dev:safe:force` | Kill preferred-port listener, then start `dev:safe` |
-| `npm run dev:hot` | CSS + API reload without port guard |
-| `npm run dev` | One-shot CSS build + nodemon only (prints tip to use `dev:safe`) |
+| `npm run dev` | **Recommended.** Port guard + CSS watch + nodemon + health self-heal |
+| `npm run dev:safe:force` | Kill preferred-port listener, then start `dev` |
+| `npm run dev:safe` / `npm run dev:hot` | Aliases of `npm run dev` (backward compatible) |
 
-**Dev port conflicts:** `dev:safe` auto-picks the first free port in `3001–3010` when the preferred port is busy (writes `.delivera-dev-port`). Use `npm run dev:safe:force` to terminate the listener on your preferred port, or set `PORT=3010 npm run dev:safe` to pin a port.
+**Dev port conflicts:** `npm run dev` auto-picks the first free port in `3001–3010` when the preferred port is busy (writes `.delivera-dev-port`). Use `npm run dev:safe:force` to terminate the listener on your preferred port, or set `PORT=3010 npm run dev` to pin a port.
 
-**Self-heal:** If the API process dies on a recoverable request race (or `/healthz` misses 3 polls), `dev:safe`/`dev:hot` respawns nodemon with backoff so Answer/Today do not stay blank until you touch a file.
+**Self-heal:** If the API process dies on a recoverable request race (or `/healthz` misses 3 polls), `npm run dev` respawns nodemon with backoff so Answer/Today do not stay blank until you touch a file.
 
 Playwright against an already-running server:
 
 ```bash
-npm run dev:safe
+npm run dev
 # another terminal:
 BASE_URL=http://localhost:3001 SKIP_WEBSERVER=true npm run test:stability:focused
 ```
 
-**Health probe:** `GET /healthz` returns `{ ok: true, ready: true }` when the process is listening (Redis is advisory only). Used by Render, deploy smoke, and the stability gate.
+**Health probe:** `GET /healthz` returns `{ ok: true, ready: true }` when the process is listening (Redis is advisory only; `workersStarted` / `startupGrace` are advisory). Used by Render, deploy smoke, and the stability gate.
 
 ## Auth modes
 
@@ -137,16 +135,17 @@ Full matrix: [`docs/environment.md`](docs/environment.md)
 
 | Command | Use |
 |---------|-----|
-| `npm run build:css` | Compile `public/css/*` (01–14 partials; `14-governance-baseline.css` owns baseline job/trust strip) → `public/styles.css` |
+| `npm run build:css` | Compile `public/css/*` (01–14 partials; `14-governance-baseline.css` owns baseline job/trust strip) → `public/styles.css` (skips when unchanged) |
 | `npm run check:css` | Fail if `styles.css` is out of sync |
-| `npm run dev:safe` | Port guard + CSS watch + API reload + /healthz self-heal (recommended) |
+| `npm run dev` | Port guard + CSS watch + API reload + /healthz self-heal (SSOT) |
 | `npm run test:friction:focused` | Small friction-finish release bundle: sprint shell → governance release → settings registry |
 | `npm run test:stability:focused` | Server trust gate: healthz, governance mount, SD continuity, dashboard identity, settings bands |
+| `npm run test:journey:startup-speed-trust` | Startup Speed & Trust MasterPlan (healthz, kanban skip, worker receipt, logcat) |
+| `npm run test:startup-ssot` | Unit tests for board sprint-capability SSOT |
 | `npm run test:current-sprint:shell-release` | Focused Current Sprint fold, squad switch, Report continuity, and chrome readability |
 | `npm run test:governance:release` | Five risk-ranked meeting-safe release scenarios, fail-fast |
 | `npm run test:masterplan:release` | Exactly ten serial, fail-fast scenarios: diagnosis → Governance truth → Finance causes → participation → proof/report → clipboard → responsive → degradation → all-project anchor → evidence policy |
 | `npm run test:settings:registry-release` | Focused Settings registry save, exclusivity, and continuity broadcast contract |
-| `npm run dev:hot` | Single-port dev with CSS + API reload |
 | `npm run test:smoke` | Short UX smoke |
 | `npm run test:focused` | Focused Playwright specs tagged `@focused` (fail-fast, port guard) |
 | Official Vercel Git integration | Authenticated preview/production deployment SSOT |

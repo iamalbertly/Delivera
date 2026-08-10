@@ -2,9 +2,27 @@ import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { renderAiContributionStrip } from './Delivera-Shared-AgentQueue-01UI.js';
 
+function resolveReceiptState(brief, receipt) {
+  const skips = Array.isArray(brief?.meta?.partialBoardSkips) ? brief.meta.partialBoardSkips : [];
+  if (receipt?.authFailed) return { state: 'warn', line: receipt.line || 'Jira reconnect required.' };
+  if (skips.length) {
+    return {
+      state: 'partial',
+      line: receipt?.line || `Partial (${skips.length} board${skips.length === 1 ? '' : 's'} skipped — kanban)`,
+    };
+  }
+  if (receipt?.warming || brief?.freshness?.fromCache === false && !brief?.meta?.boardsResolved) {
+    return { state: 'warming', line: receipt?.line || 'Warming Jira cache' };
+  }
+  if (receipt?.line) return { state: 'ready', line: receipt.line };
+  return { state: 'warming', line: 'Warming Jira cache' };
+}
+
 export function renderWorkerReceiptRail(brief, feedbackSummary = null, aiContribution = null) {
   const r = brief?.meta?.workerReceipt || {};
-  const line = r.line || 'Worker will prepare your brief after startup.';
+  const resolved = resolveReceiptState(brief, r);
+  const line = resolved.line;
+  const state = resolved.state;
   const auth = r.authFailed;
   const improvements = feedbackSummary?.lastImprovements || [];
   const improveLine = improvements.length
@@ -12,10 +30,11 @@ export function renderWorkerReceiptRail(brief, feedbackSummary = null, aiContrib
     : '';
   const aiStrip = renderAiContributionStrip(aiContribution || brief?.meta?.aiContribution || {});
   const openAttr = auth ? ' open' : '';
+  const warnClass = state === 'warn' ? ' gov-worker-receipt--warn' : '';
 
-    return `
+  return `
     <details class="gov-receipt-details"${openAttr} role="status" aria-live="polite">
-      <summary class="gov-worker-receipt gov-worker-receipt--clickable${auth ? ' gov-worker-receipt--warn' : ''}" data-worker-receipt-open="1" title="Open agent queue">
+      <summary class="gov-worker-receipt gov-worker-receipt--clickable${warnClass}" data-worker-receipt-open="1" data-worker-receipt-state="${escapeHtml(state)}" title="Open agent queue">
         <span class="gov-worker-receipt-label">Agent</span>
         <span class="gov-worker-receipt-line">${escapeHtml(line)}</span>
         ${auth ? '<a href="/settings" class="gov-worker-receipt-link">Reconnect Jira</a>' : ''}

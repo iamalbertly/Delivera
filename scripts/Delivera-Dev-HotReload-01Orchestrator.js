@@ -1,11 +1,16 @@
 /**
  * One terminal: API restart (nodemon) + CSS rebuild on save + health self-heal.
- * No second port required. Prefer: npm run dev:safe
+ * SSOT entry: npm run dev (= port guard + this orchestrator).
  */
 import { spawn } from 'child_process';
-import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import {
+  cleanNodeOptions,
+  readDevPortFromFile,
+  resolveNodemonBin,
+  DEFAULT_DEV_PORT,
+} from './Delivera-Dev-Env-01Helper.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HEALTH_INTERVAL_MS = 5000;
@@ -22,32 +27,21 @@ let respawnInFlight = false;
 let lastRestartLogAt = 0;
 
 function readDevPort() {
-  const portFile = join(root, '.delivera-dev-port');
-  if (!existsSync(portFile)) return process.env.PORT || '3000';
-  try {
-    const n = Number(readFileSync(portFile, 'utf8').trim());
-    return Number.isFinite(n) && n > 0 ? String(n) : (process.env.PORT || '3000');
-  } catch (_) {
-    return process.env.PORT || '3000';
-  }
+  return String(readDevPortFromFile(root, DEFAULT_DEV_PORT));
 }
 
 function logRestart(message) {
   const now = Date.now();
   if (now - lastRestartLogAt < 2000) return;
   lastRestartLogAt = now;
-  console.log(`[dev:hot] ${message}`);
+  console.log(`[dev] ${message}`);
 }
 
 function spawnEnv(extraEnv = {}) {
   return {
     ...process.env,
     PORT: readDevPort(),
-    // Quiet Node experimental localStorage warning when NODE_OPTIONS injects --localstorage-file.
-    NODE_OPTIONS: String(process.env.NODE_OPTIONS || '')
-      .split(/\s+/)
-      .filter((part) => part && !part.startsWith('--localstorage-file'))
-      .join(' '),
+    NODE_OPTIONS: cleanNodeOptions(process.env.NODE_OPTIONS),
     ...extraEnv,
   };
 }
@@ -56,19 +50,28 @@ function run(label, command, args, extraEnv = {}) {
   const child = spawn(command, args, {
     cwd: root,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
+    shell: false,
     env: spawnEnv(extraEnv),
   });
   child.on('exit', (code, signal) => {
     if (shuttingDown) return;
     if (label === 'server') {
-      console.error(`[dev:hot] server exited code=${code ?? 'null'} signal=${signal || 'none'}`);
+      console.error(`[dev] server exited code=${code ?? 'null'} signal=${signal || 'none'}`);
       void scheduleServerRespawn('server-exit');
       return;
     }
-    if (code && code !== 0) console.error(`[dev:hot] ${label} exited`, code);
+    if (code && code !== 0) console.error(`[dev] ${label} exited`, code);
   });
   return child;
+}
+
+function spawnServer() {
+  const nodemonJs = resolveNodemonBin(root);
+  if (nodemonJs) {
+    return run('server', process.execPath, [nodemonJs, 'server.js']);
+  }
+  // Fallback when local nodemon missing (still avoid shell:true + args).
+  return run('server', process.execPath, ['--run', 'npx', 'nodemon', 'server.js']);
 }
 
 async function healthOk(port) {
@@ -88,7 +91,7 @@ async function healthOk(port) {
 async function scheduleServerRespawn(reason) {
   if (shuttingDown || respawnInFlight) return;
   if (respawnCount >= MAX_RESPAWNS) {
-    console.error(`[dev:hot] Gave up respawning server after ${MAX_RESPAWNS} attempts (${reason}).`);
+    console.error(`[dev] Gave up respawning server after ${MAX_RESPAWNS} attempts (${reason}).`);
     return;
   }
   respawnInFlight = true;
@@ -101,7 +104,7 @@ async function scheduleServerRespawn(reason) {
     }
     await new Promise((resolve) => setTimeout(resolve, delay));
     if (shuttingDown) return;
-    serverChild = run('server', 'npx', ['nodemon', 'server.js']);
+    serverChild = spawnServer();
     healthMisses = 0;
   } finally {
     respawnInFlight = false;
@@ -126,10 +129,9 @@ function startHealthWatchdog(port) {
 }
 
 const devPort = readDevPort();
-console.log(`[dev:hot] Starting nodemon (server) + CSS watch on port ${devPort}.`);
-console.log('[dev:hot] Prefer npm run dev:safe for port guard + self-heal. Plain npm run dev skips the port guard.');
+console.log(`[dev] Delivera on http://localhost:${devPort} — CSS watch + API self-heal active`);
 cssWatch = run('css', process.execPath, ['scripts/Delivera-Dev-Css-Watch-01Runner.js']);
-serverChild = run('server', 'npx', ['nodemon', 'server.js']);
+serverChild = spawnServer();
 startHealthWatchdog(devPort);
 
 function shutdown() {
