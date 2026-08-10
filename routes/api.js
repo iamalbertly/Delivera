@@ -412,8 +412,11 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
         const validationRunId = String(req.body?.validationRunId || '').trim();
         const actorId = String(req.authUser?.id || req.session?.user || '').trim();
         if (validationRunId) {
-            const allowedActors = new Set(String(process.env.DELIVERA_DMS_VALIDATION_USERS || 'Albert Lyatuu,r.lyatuu@gmail.com,albert.lyatuu@gmail.com')
-                .split(',').map((value) => value.trim().toLowerCase()).filter(Boolean));
+            const allowedActors = new Set([
+                'albert lyatuu',
+                'r.lyatuu@gmail.com',
+                'albert.lyatuu@gmail.com',
+            ]);
             if (!allowedActors.has(actorId.toLowerCase()) || issueKey.toUpperCase() !== 'SD-5314' || squadKey !== 'SD') {
                 return res.status(403).json({ error: 'Production validation is restricted to Albert Lyatuu, DMS/SD, and SD-5314.', code: 'DMS_VALIDATION_SCOPE_DENIED' });
             }
