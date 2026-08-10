@@ -51,14 +51,19 @@ function milestoneStatus(promise = {}) {
   return 'In progress';
 }
 
-function carryOverLine(promise = {}) {
+function carryOverLine(promise = {}, monthLabel = '') {
+  const month = clean(monthLabel, 20) || new Date().toLocaleDateString(undefined, { month: 'long' });
   const label = clean(promise.diagnosisLabel || promise.matchLabel || '', 80).toLowerCase();
   const status = clean(promise.statusNow || promise.expectedVsActual?.actual?.status || '', 40).toLowerCase();
-  if (label.includes('proof pending') || label.includes('done') && label.includes('proof')) {
-    return 'July milestone may be claimed only with acceptance evidence; open work or proof gaps remain.';
+  const truth = childTruth(promise);
+  if (label.includes('proof pending') || (label.includes('done') && label.includes('proof'))) {
+    return `${month} milestone may be claimed only with acceptance evidence; open work or proof gaps remain.`;
+  }
+  if (truth.open > 0) {
+    return `Remaining open children and external dependencies carry into the next period.`;
   }
   if (label.includes('active sprint') || status.includes('progress')) {
-    return 'Work continued in the active sprint; treat July dates as a milestone, not full epic close.';
+    return `Work continued in the active sprint; treat ${month} dates as a milestone, not full epic close.`;
   }
   if (label.includes('metadata') || label.includes('cannot verify')) {
     return 'Dates are not PI-trusted until FY/quarter metadata is confirmed.';
@@ -66,64 +71,124 @@ function carryOverLine(promise = {}) {
   return 'Status reflects verified Jira evidence only — unfinished stories block “done”.';
 }
 
+/** Child story min/max dates + counts for epic chips and packs. */
+export function childDateEnvelope(promise = {}) {
+  const actual = promise.expectedVsActual?.actual || {};
+  const children = Array.isArray(actual.children) ? actual.children : [];
+  let minStart = null;
+  let maxEnd = null;
+  const consider = (raw) => {
+    if (!raw) return;
+    const t = new Date(raw).getTime();
+    if (!Number.isFinite(t)) return;
+    if (minStart == null || t < minStart) minStart = t;
+    if (maxEnd == null || t > maxEnd) maxEnd = t;
+  };
+  for (const child of children) {
+    consider(child?.startDate || child?.created || child?.firstInProgress || child?.plannedStartDate);
+    consider(child?.endDate || child?.resolved || child?.updated || child?.targetDate || child?.plannedEndDate);
+  }
+  consider(actual.observedStart || actual.startDate);
+  consider(actual.observedEnd || actual.endDate);
+  consider(promise.fiscalStart || promise.startDate);
+  consider(promise.fiscalEnd || promise.endDate);
+  return {
+    start: minStart != null ? new Date(minStart).toISOString() : '',
+    end: maxEnd != null ? new Date(maxEnd).toISOString() : '',
+    ...childTruth(promise),
+  };
+}
+
+function resolveBrowseUrl(promise = {}, browseHost = '') {
+  const direct = clean(promise.issueUrl || promise.browseUrl || '', 240);
+  if (direct) return direct;
+  const key = clean(promise.issueKey || '', 40);
+  const host = clean(browseHost || promise.jiraBrowseHost || '', 120).replace(/\/+$/, '');
+  if (key && host) return `${host}/browse/${key}`;
+  if (key) return `https://vodacomtz.atlassian.net/browse/${key}`;
+  return '';
+}
+
+function statusSentence(promise = {}, monthLabel = '') {
+  const status = milestoneStatus(promise);
+  const truth = childTruth(promise);
+  const month = clean(monthLabel, 20) || 'PI';
+  if (status === 'Delivered') {
+    return `${month} Milestone Delivered. All ${truth.total || ''} verified children are complete with acceptance evidence.`.replace(/\s+/g, ' ').trim();
+  }
+  if (status === 'Milestone delivered') {
+    return `${month} Milestone Delivered. Core delivery progressed (${truth.done}/${truth.total || truth.done} children); remaining open work or acceptance proof carries forward.`;
+  }
+  if (status === 'Blocked') return `Blocked. ${openStoriesHint(promise)}.`;
+  if (status === 'Cannot verify') return `Cannot verify yet — PI metadata or Jira proof is incomplete.`;
+  return `In progress. ${openStoriesHint(promise)}.`;
+}
+
 /**
  * @param {object} opts
  * @param {object[]} opts.promises
  * @param {object} [opts.squad]
  * @param {string} [opts.monthLabel]
+ * @param {string} [opts.browseHost]
  * @returns {{ title: string, text: string, items: object[] }}
  */
-export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = '' } = {}) {
+export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = '', browseHost = '' } = {}) {
+  const month = clean(monthLabel, 40) || new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const items = (promises || []).slice(0, 12).map((promise) => {
-    const start = promise.expectedVsActual?.expected?.startDate
-      || promise.fiscalStart
-      || promise.startDate
-      || '';
-    const end = promise.expectedVsActual?.expected?.endDate
-      || promise.fiscalEnd
-      || promise.endDate
-      || '';
+    const envelope = childDateEnvelope(promise);
+    const expectedStart = promise.expectedVsActual?.expected?.startDate || promise.fiscalStart || promise.startDate || '';
+    const expectedEnd = promise.expectedVsActual?.expected?.endDate || promise.fiscalEnd || promise.endDate || '';
+    const start = expectedStart || envelope.start || '';
+    const end = expectedEnd || envelope.end || '';
     const plannedDates = [formatDate(start), formatDate(end)].filter(Boolean).join(' – ')
       || clean(promise.quarter || promise.expectedVsActual?.expected?.fiscalPeriod || 'PI period unconfirmed', 60);
     const actual = promise.expectedVsActual?.actual || {};
-    const observedDates = [formatDate(actual.observedStart || actual.startDate), formatDate(actual.observedEnd || actual.endDate)]
+    const observedDates = [formatDate(actual.observedStart || actual.startDate || envelope.start), formatDate(actual.observedEnd || actual.endDate || envelope.end)]
       .filter(Boolean).join(' – ') || 'Not verified';
     const dependencies = Array.isArray(actual.dependencies) ? actual.dependencies : (Array.isArray(promise.dependencies) ? promise.dependencies : []);
+    const status = milestoneStatus(promise);
     return {
       issueKey: clean(promise.issueKey || 'Unlinked', 40),
+      issueUrl: resolveBrowseUrl(promise, browseHost),
       title: clean(promise.originalText || promise.summary || 'PI commitment', 180),
-      status: milestoneStatus(promise),
+      status,
+      statusSentence: statusSentence(promise, month),
       plannedDates,
       observedDates,
       openWork: openStoriesHint(promise),
       dependencies: dependencies.length ? dependencies.map((value) => clean(value?.issueKey || value, 60)).join(', ') : 'None verified',
       acceptance: actual.acceptanceEvidence || promise.acceptanceProof ? 'Verified' : 'Not verified',
-      carryOver: carryOverLine(promise),
+      carryOver: carryOverLine(promise, month),
     };
   });
 
   const squadName = clean(squad.displayName || squad.squad || 'Selected squad', 80);
-  const month = clean(monthLabel, 40) || new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const parallelNote = items.length > 1
-    ? `These ${items.length} workstreams were tracked in parallel; unfinished stories mean an epic cannot be called fully done.`
-    : 'Single commitment in scope for this pack.';
+    ? `We worked on these ${items.length} workstreams in parallel throughout ${month}, delivering the core functionality while carrying over specific dependencies.`
+    : `Here is the update on our ${month} PI commitments for ${squadName}.`;
 
   const lines = [
-    `PI commitment update — ${squadName} (${month})`,
-    parallelNote,
+    `Here is the update on our ${month} PI commitments for the ${squadName}. ${parallelNote}`,
     '',
   ];
-  items.forEach((item, index) => {
-    lines.push(`${index + 1}. ${item.title}`);
-    lines.push(`   Epic: ${item.issueKey} · ${item.status}`);
-    lines.push(`   Planned: ${item.plannedDates} · Observed: ${item.observedDates}`);
-    lines.push(`   Work: ${item.openWork}`);
-    lines.push(`   Acceptance: ${item.acceptance} · Dependencies: ${item.dependencies}`);
-    lines.push(`   Realism: ${item.carryOver}`);
+  items.forEach((item) => {
+    const epicLine = item.issueUrl
+      ? `${item.title} (Epic: ${item.issueUrl})`
+      : `${item.title} (Epic: ${item.issueKey})`;
+    lines.push(epicLine);
+    lines.push(`Dates: ${item.plannedDates}`);
+    lines.push(`Status: ${item.statusSentence}`);
+    if (item.carryOver) lines.push(item.carryOver);
     lines.push('');
   });
   if (!items.length) {
     lines.push('No verified PI commitments are available for this squad yet.');
+  } else {
+    const delivered = items.filter((item) => /delivered/i.test(item.status)).length;
+    const summary = delivered === items.length
+      ? `Summary: All ${month} PI targets were met. The Epics remain open in Jira to track remaining sub-tasks and external dependencies.`
+      : `Summary: ${delivered} of ${items.length} ${month} commitments reached a milestone. Epics remain open in Jira for unfinished children and dependencies.`;
+    lines.push(summary);
   }
 
   return {
@@ -134,9 +199,10 @@ export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = 
 }
 
 export function commitmentPackControlsHtml({ disabled = false, emptyHint = '' } = {}) {
-  const hint = emptyHint || (disabled ? 'No verified promises to pack.' : 'Deterministic pack from stored Jira + PI baseline — no AI tokens.');
+  const hint = emptyHint || (disabled ? 'No verified promises to pack.' : 'Paste-ready PI update from stored Jira + baseline — no AI tokens.');
   return `<div class="gov-commitment-pack" data-commitment-pack>
     <p class="gov-calm-note">${hint}</p>
+    <pre class="gov-commitment-pack-preview" data-commitment-pack-preview hidden></pre>
     <button type="button" class="btn btn-secondary btn-compact" data-copy-commitment-pack${disabled ? ' disabled aria-disabled="true"' : ''}>Copy PI commitment pack</button>
     <span class="gov-commitment-pack-status" data-commitment-pack-status aria-live="polite">${disabled ? 'No verified promises to pack' : ''}</span>
   </div>`;
@@ -183,10 +249,7 @@ export function promiseAlignmentSummary(promise = {}) {
   return `Expected: ${expected.issueKey || promise.issueKey || 'PI commitment'} in ${expected.fiscalPeriod || promise.quarter || 'the active PI'}. Happening: ${keys} · ${actual.status || promise.statusNow || 'unknown'}${actual.sprintName ? ` · ${actual.sprintName}` : ''} · ${method} · ${duration}.`;
 }
 
-/** Portfolio delivery KPIs for first-viewport H1 + bento (Active Loop fields only). */
-export function buildDeliveryPortfolioKpis(answer = {}) {
-  const squads = Array.isArray(answer.squads) ? answer.squads : [];
-  const promises = Array.isArray(answer.promises) ? answer.promises : [];
+function kpiBundle({ squads = [], promises = [], answer = {}, evidencedPctFallback = null } = {}) {
   const promiseTotal = promises.length
     || Number(answer.decisionCoverage?.total)
     || Number(String(answer.sourceLine || '').match(/(\d+)\s+promises?\s+checked/i)?.[1] || 0)
@@ -198,7 +261,7 @@ export function buildDeliveryPortfolioKpis(answer = {}) {
   const evidencedFromPct = squads.length
     ? Math.round(squads.reduce((sum, s) => sum + (Number(s.piPct) || 0), 0) / squads.length)
     : 0;
-  const evidencedCount = evidenced || Math.round((evidencedFromPct / 100) * promiseTotal);
+  const evidencedCount = evidenced || Math.round(((evidencedPctFallback ?? evidencedFromPct) / 100) * promiseTotal);
   const attentionSquads = squads.filter((s) => Number(s.attentionCount || 0) > 0);
   const attentionCount = attentionSquads.reduce((sum, s) => sum + (Number(s.attentionCount) || 0), 0);
   const diverting = squads.filter((s) => s.doingInstead?.major || Number(s.workSplit?.unplannedPct) > 0);
@@ -211,10 +274,14 @@ export function buildDeliveryPortfolioKpis(answer = {}) {
   const avgPiPct = squads.length
     ? Math.round(squads.reduce((sum, s) => sum + (Number(s.piPct) || 0), 0) / squads.length)
     : null;
-  const storiesDone = promises.reduce((sum, p) => sum + (Number(p.expectedVsActual?.actual?.doneChildCount) || 0), 0);
+  const storiesDone = promises.reduce((sum, p) => {
+    const truth = childTruth(p);
+    return sum + (truth.done || Number(p.expectedVsActual?.actual?.doneChildCount) || 0);
+  }, 0);
   const epicsClosed = promises.filter((p) => {
     const state = String(p.matchState || '').toLowerCase();
-    return state.includes('matched') || state === 'aligned-amended' || p.verdict === 'delivered';
+    return state.includes('matched') || state === 'aligned-amended' || p.verdict === 'delivered'
+      || milestoneStatus(p) === 'Delivered';
   }).length;
   return {
     promiseTotal,
@@ -231,6 +298,48 @@ export function buildDeliveryPortfolioKpis(answer = {}) {
     topRiskSquad: topRisk?.displayName || topRisk?.squad || '',
     topRiskKey: topRisk?.squad || '',
   };
+}
+
+/** Portfolio delivery KPIs for first-viewport H1 + bento (Active Loop fields only). */
+export function buildDeliveryPortfolioKpis(answer = {}) {
+  const squads = Array.isArray(answer.squads) ? answer.squads : [];
+  const promises = Array.isArray(answer.promises) ? answer.promises : [];
+  return kpiBundle({ squads, promises, answer });
+}
+
+/** Squad-scoped delivery KPIs — never bleed portfolio peers into a selected-squad tunnel. */
+export function buildDeliverySquadKpis(answer = {}, squadKey = '') {
+  const focus = String(squadKey || '').trim().toUpperCase();
+  if (!focus) return buildDeliveryPortfolioKpis(answer);
+  const squads = (Array.isArray(answer.squads) ? answer.squads : [])
+    .filter((s) => String(s.squad || '').trim().toUpperCase() === focus);
+  const promises = (Array.isArray(answer.promises) ? answer.promises : [])
+    .filter((p) => String(p.squad || '').trim().toUpperCase() === focus);
+  const squad = squads[0];
+  const bundle = kpiBundle({
+    squads,
+    promises,
+    answer: { ...answer, decisionCoverage: null, sourceLine: '' },
+    evidencedPctFallback: Number(squad?.piPct),
+  });
+  if (squad && Number.isFinite(Number(squad.piPct))) bundle.evidencedPct = Number(squad.piPct);
+  if (squad && !bundle.promiseTotal && Number(squad.promiseCount)) {
+    bundle.promiseTotal = Number(squad.promiseCount);
+    if (bundle.evidencedPct != null) {
+      bundle.evidencedCount = Math.round((bundle.evidencedPct / 100) * bundle.promiseTotal);
+    }
+  }
+  if (squad && !bundle.attentionCount) bundle.attentionCount = Number(squad.attentionCount) || 0;
+  if (squad && !bundle.divertingCount && (squad.doingInstead?.major || Number(squad.workSplit?.unplannedPct) > 0)) {
+    bundle.divertingCount = 1;
+    bundle.topDivertTitle = squad.doingInstead?.major?.title || '';
+    bundle.topDivertSquad = squad.displayName || squad.squad || '';
+  }
+  if (squad && !bundle.unverifiedCount && (squad.baselineCoverage?.state === 'missing'
+    || /cannot.?verify|unverified|missing/i.test(String(squad.contractState?.label || squad.topState || '')))) {
+    bundle.unverifiedCount = 1;
+  }
+  return bundle;
 }
 
 /** One delivery-first H1 sentence — never “N of M squads verified”. */
@@ -265,7 +374,10 @@ export function buildDeliveryH1(answer = {}, { isSquadView = false, focusSquad =
 /** Short next-verb for the single primary CTA (rail must not restate this). */
 export function primaryVerbLabel(squad, { noBaseline = false, isSquadView = false, actionLabels = {} } = {}) {
   if (noBaseline) return 'Recover PI contract';
-  if (isSquadView) return 'Open decision';
+  if (isSquadView) {
+    const actionId = squad?.nextAction?.id || squad?.nextAction?.action || '';
+    return actionLabels[actionId] || 'Review commitment';
+  }
   if (!squad) return 'Review aligned promises';
   const actionId = squad.nextAction?.id || squad.nextAction?.action || '';
   const fromLabels = actionLabels[actionId] || '';
@@ -326,20 +438,23 @@ function activityMapFromBrief(brief = {}) {
 
 function mergeChipWithActivity(chip, activity, promise = null) {
   const truth = promise ? childTruth(promise) : { total: 0, done: 0 };
+  const envelope = promise ? childDateEnvelope(promise) : { start: '', end: '', total: 0, done: 0 };
   const actStories = Number(activity?.storyCount) || 0;
   const actDone = Number(activity?.doneCount) || 0;
-  const childTotal = truth.total || actStories;
-  const childDone = truth.total ? truth.done : actDone;
+  const childTotal = truth.total || envelope.total || actStories;
+  const childDone = truth.total ? truth.done : (envelope.done || actDone);
   const start = chip.plannedStartDate
     || activity?.plannedStartDate
     || activity?.firstActiveSprintStart
     || promise?.expectedVsActual?.expected?.startDate
     || promise?.fiscalStart
+    || envelope.start
     || '';
   const end = chip.plannedEndDate
     || activity?.plannedEndDate
     || promise?.expectedVsActual?.expected?.endDate
     || promise?.fiscalEnd
+    || envelope.end
     || '';
   const deliveryPct = chip.deliveryPct != null
     ? chip.deliveryPct
@@ -349,17 +464,23 @@ function mergeChipWithActivity(chip, activity, promise = null) {
   const childHint = childTotal
     ? `${childDone}/${childTotal} children`
     : (activity?.lifecycle === 'not-started' ? '0 children in sprint' : 'No child stories');
-  const missingDates = !end;
+  // Children-only forecast is honest when Jira target missing but child envelope exists.
+  const missingDates = !end && !envelope.end;
+  const hasChildDates = Boolean(envelope.start || envelope.end);
   return {
     issueKey: chip.issueKey || activity?.issueKey || promise?.issueKey || '',
     title: chip.title || activity?.title || promise?.originalText || promise?.summary || 'PI commitment',
     plannedStartDate: start,
-    plannedEndDate: end,
+    plannedEndDate: end || envelope.end || '',
     elapsedPct: chip.elapsedPct ?? null,
     deliveryPct,
     confidenceLabel: chip.confidenceLabel
-      || (missingDates ? (childTotal ? 'Children only' : 'No forecast') : (childTotal ? 'Medium' : 'Limited')),
-    missingDates,
+      || (missingDates && !hasChildDates
+        ? (childTotal ? 'Children only' : 'No forecast')
+        : (missingDates && hasChildDates
+          ? 'Children dates'
+          : (childTotal ? 'Medium' : 'Limited'))),
+    missingDates: missingDates && !hasChildDates,
     childHint,
     childTotal,
     childDone,

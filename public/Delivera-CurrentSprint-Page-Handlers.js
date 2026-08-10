@@ -10,11 +10,50 @@ function bindGlobalPrefetchHover() {
   isGlobalHoverBound = true;
   document.addEventListener('mouseover', (e) => {
     const trigger = e.target.closest('[data-sprint-id], [data-action="drill-down"]');
-    if (!trigger || trigger.dataset.prefetched) return;
-    trigger.dataset.prefetched = 'true';
-    const sprintId = trigger.dataset.sprintId;
-    if (sprintId) {
-      // In next phase: fetch(`/api/sprint-details/${sprintId}`).catch(()=>{});
+    if (trigger && !trigger.dataset.prefetched) {
+      trigger.dataset.prefetched = 'true';
+      const sprintId = trigger.dataset.sprintId;
+      if (sprintId) {
+        // In next phase: fetch(`/api/sprint-details/${sprintId}`).catch(()=>{});
+      }
+    }
+    // Hover-read: expand parent story children without requiring a toggle click.
+    const parent = e.target.closest('tr.story-parent-row[data-has-children="true"]');
+    if (parent && parent.getAttribute('aria-expanded') !== 'true' && !parent.dataset.hoverExpandLocked) {
+      parent.setAttribute('aria-expanded', 'true');
+      parent.classList.add('story-parent-row-expanded');
+      parent.dataset.hoverPeek = '1';
+      const key = parent.getAttribute('data-parent-key');
+      const toggle = parent.querySelector('.story-row-toggle');
+      if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      if (key) {
+        document.querySelectorAll(`tr.subtask-child-row[data-parent-key="${key}"]`).forEach((child) => {
+          child.hidden = false;
+          child.style.display = '';
+        });
+      }
+    }
+  }, { passive: true });
+  document.addEventListener('mouseout', (e) => {
+    const parent = e.target.closest?.('tr.story-parent-row[data-hover-peek="1"]');
+    if (!parent) return;
+    const related = e.relatedTarget;
+    if (related && parent.contains(related)) return;
+    if (parent.dataset.hoverExpandLocked === '1') return;
+    // Keep click-expanded rows open; only collapse pure hover peeks.
+    if (parent.querySelector('.story-row-toggle')?.getAttribute('aria-expanded') === 'true'
+      && parent.dataset.userExpanded === '1') return;
+    parent.setAttribute('aria-expanded', 'false');
+    parent.classList.remove('story-parent-row-expanded');
+    delete parent.dataset.hoverPeek;
+    const key = parent.getAttribute('data-parent-key');
+    const toggle = parent.querySelector('.story-row-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    if (key) {
+      document.querySelectorAll(`tr.subtask-child-row[data-parent-key="${key}"]`).forEach((child) => {
+        child.hidden = true;
+        child.style.display = 'none';
+      });
     }
   }, { passive: true });
 }

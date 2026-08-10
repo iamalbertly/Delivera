@@ -396,6 +396,12 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance,/current-sprint,/actions,/settings',
   },
+  'tests/Delivera-Governance-Accordion-First-Value-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.governance-active-loop',
+    layer: 'cross-surface-ux',
+    page: '/governance,/settings',
+    priority: 'P0',
+  },
   'tests/Delivera-Customer-Growth-DirectValue-Stickiness-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
     journey: 'journey.customer-growth-directvalue-stickiness-masterplan',
     layer: 'cross-surface-ux',
