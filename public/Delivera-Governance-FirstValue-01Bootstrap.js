@@ -1,4 +1,4 @@
-import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k';
+import { loadActiveGovernanceLoop } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260810b';
 import { PROJECTS_SSOT_KEY } from './Delivera-Shared-Storage-Keys.js';
 
 // Paint last-known portfolio truth before the full Governance controller and

@@ -20,7 +20,7 @@ const {
 function clearActiveLoopClientCaches() {
   clearGovernanceClientCaches();
   try {
-    import('./Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k')
+    import('./Delivera-App-Governance-ActiveLoop-01UI.js?v=20260810b')
       .then((mod) => { if (typeof mod.clearActiveLoopCaches === 'function') mod.clearActiveLoopCaches(); })
       .catch(() => {});
   } catch (_) { /* ignore */ }

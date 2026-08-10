@@ -463,6 +463,15 @@ function nextMoveRailHtml(answer) {
   </aside>`;
 }
 
+function specificDecisionLabel(promise, squad = {}) {
+  if (!promise) return 'Review commitment';
+  const actionId = promise.nextAction?.id || promise.nextAction?.action || '';
+  const configured = actionLabels[actionId] || '';
+  if (configured && !/send nudge/i.test(configured)) return configured;
+  const owner = promise.ownerRoute?.displayName || squad.ownerRoute?.displayName || 'squad owner';
+  return promise.issueKey ? `Ask ${owner} about ${promise.issueKey}` : `Ask ${owner} for evidence`;
+}
+
 function deliveryBentoHtml(answer, coverage) {
   const railKey = activeRailSquadKey(answer);
   const inTunnel = activeLens === 'squad' && Boolean(spotlightKey);
@@ -921,11 +930,12 @@ function wireCommitmentPackCopy(root, answer, squadKey) {
   const preview = (packRoot || root).querySelector('[data-commitment-pack-preview]');
   const squad = [...(answer?.squads || []), ...(answer?.excludedOperationalGroups || [])].find((item) => item.squad === squadKey);
   const promises = (answer?.promises || []).filter((item) => item.squad === squadKey);
-  const pack = buildPiCommitmentPack({ promises, squad });
+  const pack = buildPiCommitmentPack({ promises, squad, epicForecasts: answer?.epicForecasts || answer?.deliveryTruth?.epicForecasts || [] });
   const empty = !promises.length;
   if (preview && pack.text) {
     preview.hidden = false;
-    preview.textContent = pack.text;
+    const previewLines = pack.text.split('\n').map((line) => line.trim()).filter(Boolean).slice(0, 5);
+    preview.textContent = `${previewLines.join('\n')}\n\nFull pack copies with all commitments and evidence.`;
   }
   if (empty) {
     copyBtn.disabled = true;
@@ -947,7 +957,7 @@ function wireCommitmentPackCopy(root, answer, squadKey) {
 function openAllProofDrawer(answer, squadKey) {
   const squad = [...(answer?.squads || []), ...(answer?.excludedOperationalGroups || [])].find((item) => item.squad === squadKey);
   const promises = (answer?.promises || []).filter((item) => item.squad === squadKey);
-  const pack = buildPiCommitmentPack({ promises, squad });
+  const pack = buildPiCommitmentPack({ promises, squad, epicForecasts: answer?.epicForecasts || answer?.deliveryTruth?.epicForecasts || [] });
   const rows = promises.map((promise) => {
     const title = businessTitleFromSummary(promise.originalText || promise.summary || '', 64);
     return `<li><button type="button" class="btn btn-link" data-all-proof-promise="${escapeHtml(promise.promiseId)}">${renderIssueIdentityHtml(promise.issueKey || '', { title })}</button><small>${escapeHtml(promise.proofAge?.copy || promise.customerOrPiImpact || promise.statusNow || '')}</small></li>`;
@@ -1358,8 +1368,7 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
   const selectedPromise = decisionPromiseForAnswer(activeAnswer);
   if (primary) {
     if (activeLens === 'squad' && spotlightKey) {
-      const actionId = selectedPromise?.nextAction?.id || selectedPromise?.nextAction?.action || '';
-      const writeVerb = actionLabels[actionId] || (selectedPromise?.issueKey ? `Review ${selectedPromise.issueKey}` : 'Review commitment');
+      const writeVerb = specificDecisionLabel(selectedPromise);
       primary.textContent = writeVerb;
       if (selectedPromise?.promiseId) {
         primary.dataset.promiseId = selectedPromise.promiseId;
@@ -1422,8 +1431,7 @@ async function showSpotlight(squad, { pushHistory = false } = {}) {
     if (primary) {
       // Squad focus owns the decision rail — write verb, not wallpaper CTA.
       if (activeLens === 'squad' && spotlightKey) {
-        const actionId = currentDecision?.nextAction?.id || currentDecision?.nextAction?.action || '';
-        primary.textContent = actionLabels[actionId] || (currentDecision?.issueKey ? `Review ${currentDecision.issueKey}` : 'Review commitment');
+        primary.textContent = specificDecisionLabel(currentDecision, detail.squad || {});
         if (currentDecision?.promiseId) primary.dataset.promiseId = currentDecision.promiseId;
       } else if (currentDecision) {
         primary.textContent = `Review ${currentDecision.squadDisplayName || detail.squad?.displayName || currentDecision.squad}`;

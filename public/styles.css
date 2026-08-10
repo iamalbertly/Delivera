@@ -19150,6 +19150,87 @@ body.settings-page .registry-list {
   .gov-delivery-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .delivera-issue-title { display: block; font-size: .72rem; margin-top: 2px; }
 }
+
+/* Responsive continuity seal: one explicit outer grid, no implicit desktop columns. */
+body.governance-story-v2-ready .gov-active-loop-hero.gov-story-v2 {
+  width: 100%;
+  max-width: none;
+}
+body.governance-active-loop-ready .gov-epic-commitment-rail .gov-pi-chip-row,
+body.governance-active-loop-ready .gov-epic-rail-chips {
+  max-height: none;
+  overflow: visible;
+}
+.gov-commitment-pack-preview {
+  max-height: none;
+  overflow: visible;
+}
+
+@media (min-width: 1180px) {
+  body.governance-squad-selected .gov-active-loop-hero.gov-story-v2 {
+    grid-template-columns: minmax(0, 1.55fr) minmax(420px, .9fr);
+    gap: 16px;
+    align-items: start;
+  }
+  body.governance-squad-selected .gov-story-mission {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  body.governance-squad-selected .gov-loop-copy {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+  body.governance-squad-selected .gov-loop-decision-bento {
+    display: flex;
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    min-width: 0;
+  }
+  body.governance-squad-selected .gov-squad-spotlight {
+    grid-column: 1;
+    grid-row: 3;
+    min-width: 0;
+  }
+  body.governance-squad-selected .gov-story-footer {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+  body.governance-squad-selected .gov-next-move-rail {
+    position: static;
+    grid-column: auto;
+    grid-row: auto;
+    min-width: 0;
+  }
+  body.governance-squad-selected .gov-spotlight-readout {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  body.governance-squad-selected .gov-spotlight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body.governance-squad-selected .gov-spotlight-actions {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 1600px) {
+  body.governance-squad-selected .gov-active-loop-hero.gov-story-v2 {
+    grid-template-columns: minmax(0, 1.7fr) minmax(480px, .82fr);
+  }
+}
+
+@media (max-width: 1179px) {
+  body.governance-squad-selected .gov-loop-decision-bento,
+  body.gov-pack-column-wide .gov-loop-decision-bento,
+  body.gov-accordion-locked .gov-loop-decision-bento {
+    display: flex;
+    flex-direction: column;
+  }
+  body.governance-squad-selected .gov-next-move-rail {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
 /* Meeting-first product surfaces — light, high-contrast, red as signal only */
 
 body.executive-surface-page,

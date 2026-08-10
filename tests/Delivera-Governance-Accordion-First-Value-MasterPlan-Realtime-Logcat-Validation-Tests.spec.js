@@ -395,6 +395,37 @@ test.describe('Governance accordion-first value master plan', () => {
     });
 
     await test.step('05 epic chips show child dates or children honesty', async () => {
+      for (const viewport of [
+        { width: 1920, height: 1080 },
+        { width: 768, height: 1024 },
+        { width: 390, height: 844 },
+      ]) {
+        await page.setViewportSize(viewport);
+        const geometry = await page.evaluate(() => {
+          const hero = document.querySelector('.gov-active-loop-hero');
+          const bento = document.querySelector('.gov-loop-decision-bento');
+          const cells = [...document.querySelectorAll('.gov-delivery-cell')].map((node) => node.getBoundingClientRect().width);
+          const nested = [...document.querySelectorAll('.gov-epic-rail-chips,.gov-next-move-rail,.gov-commitment-pack-preview')]
+            .map((node) => ({ clientWidth: node.clientWidth, scrollWidth: node.scrollWidth }));
+          return {
+            viewportWidth: innerWidth,
+            documentWidth: document.documentElement.scrollWidth,
+            heroWidth: hero?.getBoundingClientRect().width || 0,
+            bentoClientWidth: bento?.clientWidth || 0,
+            bentoScrollWidth: bento?.scrollWidth || 0,
+            cells,
+            nested,
+          };
+        });
+        expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewportWidth + 1);
+        expect(geometry.bentoScrollWidth).toBeLessThanOrEqual(geometry.bentoClientWidth + 1);
+        expect(geometry.nested.every((item) => item.scrollWidth <= item.clientWidth + 1)).toBe(true);
+        if (viewport.width === 1920) {
+          expect(geometry.heroWidth).toBeGreaterThan(1700);
+          expect(geometry.cells.every((width) => width >= 100)).toBe(true);
+        }
+      }
+      await page.setViewportSize({ width: 1920, height: 1080 });
       const rail = page.locator('[data-epic-commitment-rail]:not([data-epic-rail-loading])').first();
       await expect(rail).toBeVisible({ timeout: 10000 });
       const meta = await rail.innerText();
@@ -415,6 +446,8 @@ test.describe('Governance accordion-first value master plan', () => {
       expect(text).toMatch(/Here is the update on our/i);
       expect(text).toMatch(/SD-5314|NBA Integration/i);
       expect(text).toMatch(/Dates:/i);
+      expect(text).toMatch(/Start .*End /i);
+      expect(text).toMatch(/Observed:/i);
       expect(text).toMatch(/Status:/i);
       await page.locator('[data-copy-commitment-pack]').click();
       await expect(page.locator('[data-commitment-pack-status]')).toContainText(/Copied|Copy failed/i, { timeout: 5000 });

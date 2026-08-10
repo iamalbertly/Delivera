@@ -132,19 +132,24 @@ function statusSentence(promise = {}, monthLabel = '') {
  * @param {string} [opts.browseHost]
  * @returns {{ title: string, text: string, items: object[] }}
  */
-export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = '', browseHost = '' } = {}) {
+export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = '', browseHost = '', epicForecasts = [] } = {}) {
   const month = clean(monthLabel, 40) || new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const forecastByIssue = new Map((epicForecasts || []).map((forecast) => [
+    clean(forecast.issueKey || forecast.commitmentId, 40).toUpperCase(),
+    forecast,
+  ]));
   const items = (promises || []).slice(0, 12).map((promise) => {
     const envelope = childDateEnvelope(promise);
-    const expectedStart = promise.expectedVsActual?.expected?.startDate || promise.fiscalStart || promise.startDate || '';
-    const expectedEnd = promise.expectedVsActual?.expected?.endDate || promise.fiscalEnd || promise.endDate || '';
+    const forecast = forecastByIssue.get(clean(promise.issueKey || promise.commitmentId, 40).toUpperCase()) || {};
+    const expectedStart = promise.expectedVsActual?.expected?.startDate || promise.fiscalStart || promise.startDate || forecast.plannedStart || '';
+    const expectedEnd = promise.expectedVsActual?.expected?.endDate || promise.fiscalEnd || promise.endDate || forecast.plannedEnd || forecast.forecastEnd || '';
     const start = expectedStart || envelope.start || '';
     const end = expectedEnd || envelope.end || '';
-    const plannedDates = [formatDate(start), formatDate(end)].filter(Boolean).join(' – ')
-      || clean(promise.quarter || promise.expectedVsActual?.expected?.fiscalPeriod || 'PI period unconfirmed', 60);
+    const plannedDates = `Start ${formatDate(start) || 'not verified'} · End ${formatDate(end) || 'not verified'}`;
     const actual = promise.expectedVsActual?.actual || {};
-    const observedDates = [formatDate(actual.observedStart || actual.startDate || envelope.start), formatDate(actual.observedEnd || actual.endDate || envelope.end)]
-      .filter(Boolean).join(' – ') || 'Not verified';
+    const observedStart = actual.observedStart || actual.startDate || forecast.actualStart || envelope.start;
+    const observedEnd = actual.observedEnd || actual.endDate || forecast.forecastEnd || envelope.end;
+    const observedDates = `Start ${formatDate(observedStart) || 'not verified'} · Forecast end ${formatDate(observedEnd) || 'not verified'}`;
     const dependencies = Array.isArray(actual.dependencies) ? actual.dependencies : (Array.isArray(promise.dependencies) ? promise.dependencies : []);
     const status = milestoneStatus(promise);
     return {
@@ -177,6 +182,7 @@ export function buildPiCommitmentPack({ promises = [], squad = {}, monthLabel = 
       : `${item.title} (Epic: ${item.issueKey})`;
     lines.push(epicLine);
     lines.push(`Dates: ${item.plannedDates}`);
+    lines.push(`Observed: ${item.observedDates}`);
     lines.push(`Status: ${item.statusSentence}`);
     if (item.carryOver) lines.push(item.carryOver);
     lines.push('');
