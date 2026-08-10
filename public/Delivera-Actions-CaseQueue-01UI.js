@@ -1,4 +1,4 @@
-import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml, renderIssueIdentityHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260729k';
 import {
   governanceSpotlightHref,
@@ -6,6 +6,7 @@ import {
   renderSquadIdentityStrip,
 } from './Delivera-Shared-Continuity-Link-01Build.js';
 import { isOwnerMissing } from './Delivera-Shared-Attention-Queue.js';
+import { businessTitleFromSummary } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 const mount = document.getElementById('actions-queue-mount');
 const summary = document.getElementById('actions-queue-summary');
@@ -101,8 +102,10 @@ function render() {
     const rowSquad = String(item.squadId || item.squad || '').trim().toUpperCase();
     // When identity strip already locks the squad, show issue key only (cut repeated squad eye-travel).
     const identityLine = selectedSquad && rowSquad === selectedSquad
-      ? (item.issueKey ? escapeHtml(item.issueKey) : 'Case')
-      : `${escapeHtml(item.squadDisplayName || item.squad)}${item.issueKey ? ` · ${escapeHtml(item.issueKey)}` : ''}`;
+      ? (item.issueKey
+        ? renderIssueIdentityHtml(item.issueKey, { title: businessTitleFromSummary(item.originalText || item.title || '', 56) })
+        : 'Case')
+      : `${escapeHtml(item.squadDisplayName || item.squad)}${item.issueKey ? ` · ${renderIssueIdentityHtml(item.issueKey, { title: businessTitleFromSummary(item.originalText || item.title || '', 40) })}` : ''}`;
     const shortCta = (() => {
       const code = String(item.diagnosisCode || '').toLowerCase();
       const keys = group.map((entry) => entry.issueKey).filter(Boolean);

@@ -21,6 +21,9 @@ import {
   promiseAlignmentSummary,
 } from './Delivera-Governance-PI-Commitment-Pack-01Build-SSOT.js';
 import { renderEpicCommitmentRailHtml } from './Delivera-App-Governance-Brief-19Render-PIConfidenceStrip-UI.js';
+import { bindEpicHygieneInteractions, renderAdHocChip } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
+import { renderIssueIdentityHtml, renderSprintIdentityHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { businessTitleFromSummary } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 // SIZE-EXEMPT: cohesive ActiveLoop story orchestrator (load/cache, spotlight URL, decision drawers); helpers live in Commitment-Pack / Continuity / Cache Guard SSOTs.
 
@@ -258,61 +261,66 @@ function normalizedDecisionCoverage(answer) {
   };
 }
 
-function matrixNextMoveLabel(squad) {
-  const actionId = squad.nextAction?.id || squad.nextAction?.action || '';
-  const verb = actionLabels[actionId]
-    || String(squad.nextAction?.label || '').split(/[:·]/)[0].trim()
-    || (squad.baselineCoverage?.state === 'missing' ? 'Save baseline' : 'Open spotlight');
-  const owner = squad.ownerRoute?.displayName
-    || squad.nextAction?.ownerDisplayName
-    || squad.ownerDisplayName
-    || '';
-  const short = verb.length > 42 ? `${verb.slice(0, 40).trimEnd()}…` : verb;
-  return owner ? `${short} · ${owner}` : short;
-}
-
 function matrixRow(squad, { preferredKey = '' } = {}) {
   const baseline = squad.baselineCoverage || (activeAnswer?.contract ? { state: 'verified', sourceLabel: activeAnswer.contract.source || 'Approved PI contract', copy: 'Contract source confirmed.' } : { state: 'missing', copy: 'Baseline missing.' });
   const split = squad.workSplit || {};
   const contract = squad.contractState || { label: baseline.state === 'missing' ? 'Cannot verify' : squad.topState || 'Unknown', detail: baseline.copy || '' };
   const sprint = squad.sprintReality || {};
   const trust = squad.trustFactor || { label: 'Limited, evidence incomplete', level: 'limited' };
+  const noBaseline = baseline.state === 'missing';
+  const rework = squad.possibleRework?.promoted;
+  const isPreferred = preferredKey && preferredKey === squad.squad;
+  const isCurrent = spotlightKey === squad.squad || isPreferred;
   const actionFull = squad.nextAction?.label
-    || (baseline.state === 'missing'
+    || (noBaseline
       ? (baseline.copy || 'Baseline missing — save baseline to compare')
       : (sprint.state === 'unavailable' || sprint.state === 'unverified'
         ? (sprint.copy || 'Sprint evidence unavailable')
         : 'Open spotlight'));
-  const actionShort = String(matrixNextMoveLabel(squad).split('·')[0] || 'Open').trim().slice(0, 28);
-  const rework = squad.possibleRework?.promoted;
-  const isPreferred = preferredKey && preferredKey === squad.squad;
-  const isCurrent = spotlightKey === squad.squad || isPreferred;
+  // Sole-verb SSOT: preferred/current → Open; else short verb (no mid-word slice).
+  const actionId = squad.nextAction?.id || squad.nextAction?.action || '';
+  const fromLabels = actionLabels[actionId] || '';
+  const rawVerb = fromLabels
+    || String(squad.nextAction?.label || '').split(/[:·]/)[0].trim()
+    || 'Open';
+  const keyMatch = rawVerb.match(/\b([A-Z][A-Z0-9]+-\d+)\b/);
+  const verbFromSsot = fromLabels
+    || (keyMatch && /confirm|whether|moved/i.test(rawVerb) ? `Confirm ${keyMatch[1]}` : rawVerb.split(/\s+/).slice(0, 4).join(' '))
+    || 'Open';
+  const actionShort = (isPreferred || isCurrent) ? 'Open' : verbFromSsot;
   const piPct = Number(squad.piPct);
-  const evidencedLabel = Number.isFinite(piPct) ? `${piPct}% evidenced` : (baseline.state === 'missing' ? 'Cannot score' : '—');
+  const evidencedLabel = Number.isFinite(piPct) ? `${piPct}% evidenced` : (noBaseline ? 'Cannot score' : '—');
   const divertPct = Number(squad.doingInstead?.major?.percentage ?? split.unplannedPct);
+  const divertTitle = squad.doingInstead?.major?.title
+    || (Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}% unplanned` : '')
+    || honestUnknownPctLine(squad, squad.unknownWork)
+    || 'No diversion proven';
   const divertLabel = squad.doingInstead?.major?.title
-    || (Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}% unplanned` : 'No diversion proven');
+    || (Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}% unplanned` : '—');
+  const divertVisible = squad.doingInstead?.major?.title
+    || (Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}% unplanned` : '');
+  const slipTitle = sprint.copy || baseline.copy || sprint.sprint?.name || sprint.sprintName || '';
   const slipLabel = sprint.daysRemaining != null
     ? `${sprint.daysRemaining}d left`
     : (sprint.state === 'unavailable' || sprint.state === 'unverified'
-      ? (sprint.copy || baseline.copy || 'Sprint unverified')
-      : (sprint.sprint?.name || sprint.sprintName || String(sprint.state || '—').replace(/-/g, ' ')));
-  const nextCell = spotlightKey === squad.squad
-    ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Open</strong><small class="sr-only">${escapeHtml(actionShort)}</small></span>`
-    : baseline.state === 'missing'
-      ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Save baseline</strong><small>${escapeHtml((baseline.copy || '').slice(0, 48))}</small></span>`
+      ? 'Sprint unverified'
+      : (sprint.sprint?.name || sprint.sprintName || '—'));
+  const nextCell = (isPreferred || isCurrent)
+    ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Open</strong><small class="sr-only">${escapeHtml(verbFromSsot)}</small></span>`
+    : noBaseline
+      ? `<span role="cell" title="${escapeHtml(actionFull)}"><strong>Save baseline</strong></span>`
       : `<span role="cell" title="${escapeHtml(actionFull)}"><strong>${escapeHtml(actionShort)}</strong></span>`;
   const settingsHref = '/settings#gov-settings-registry-mount';
-  const rowTag = baseline.state === 'missing' ? 'div' : 'button';
-  const rowType = baseline.state === 'missing' ? '' : ' type="button"';
-  const missingActions = baseline.state === 'missing'
+  const rowTag = noBaseline ? 'div' : 'button';
+  const rowType = noBaseline ? '' : ' type="button"';
+  const missingActions = noBaseline
     ? `<span role="cell"><a class="btn btn-compact btn-secondary" href="${escapeHtml(settingsHref)}" data-cannot-verify-settings data-setup-baseline-ssot="1">Save baseline</a></span>`
     : nextCell;
-  return `<${rowTag}${rowType} role="row" class="gov-story-row gov-story-row--${tone(baseline.state === 'missing' ? 'missing' : squad.topState)}${isPreferred ? ' is-focus-preferred' : ''}" data-story-squad="${escapeHtml(squad.squad)}" data-loop-squad="${escapeHtml(squad.squad)}" data-focus-preferred="${isPreferred ? 'true' : 'false'}" data-has-rollover="${Number(squad.sprintReality?.carryoverCount) > 0}" data-sprint-risk="${Boolean(squad.sprintReality?.endedWithoutReplacement || squad.sprintReality?.state === 'watch' || sprint.state === 'unverified')}" data-operational-risk="${Boolean(squad.doingInstead?.major)}" data-unknown-risk="${Boolean(squad.unknownWork?.promoted)}" data-rework-risk="${Boolean(rework)}" data-trust="${escapeHtml(trust.level || 'limited')}" aria-label="Open ${escapeHtml(squad.displayName || squad.squad)} spotlight" aria-current="${isCurrent ? 'true' : 'false'}">
+  return `<${rowTag}${rowType} role="row" class="gov-story-row gov-story-row--${tone(noBaseline ? 'missing' : squad.topState)}${isPreferred ? ' is-focus-preferred' : ''}" data-story-squad="${escapeHtml(squad.squad)}" data-loop-squad="${escapeHtml(squad.squad)}" data-focus-preferred="${isPreferred ? 'true' : 'false'}" data-has-rollover="${Number(squad.sprintReality?.carryoverCount) > 0}" data-sprint-risk="${Boolean(squad.sprintReality?.endedWithoutReplacement || squad.sprintReality?.state === 'watch' || sprint.state === 'unverified')}" data-operational-risk="${Boolean(squad.doingInstead?.major)}" data-unknown-risk="${Boolean(squad.unknownWork?.promoted)}" data-rework-risk="${Boolean(rework)}" data-trust="${escapeHtml(trust.level || 'limited')}" aria-label="Open ${escapeHtml(squad.displayName || squad.squad)} spotlight" aria-current="${isCurrent ? 'true' : 'false'}">
     <span role="cell" class="gov-story-squad"><strong>${escapeHtml(squad.displayName || squad.squad)}</strong><small>${escapeHtml(squad.attentionCount ? `${squad.attentionCount} need attention` : 'No contract variance proven')}</small></span>
     <span role="cell" data-matrix-evidenced="1"><strong>${escapeHtml(evidencedLabel)}</strong><small>${escapeHtml(contract.label || '')}</small></span>
-    <span role="cell" data-matrix-diverted="1" data-context-help="${escapeHtml(split.explanation || trust.label)}"><strong>${escapeHtml(divertLabel)}</strong><small>${escapeHtml(Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}%` : '')}</small></span>
-    <span role="cell" data-matrix-slip="1"><strong>${escapeHtml(slipLabel)}</strong><small>${escapeHtml(sprint.copy || '')}</small></span>
+    <span role="cell" data-matrix-diverted="1" title="${escapeHtml(divertTitle)}" data-context-help="${escapeHtml(split.explanation || trust.label)}"><strong>${escapeHtml(divertVisible || divertLabel)}</strong><small>${escapeHtml(Number.isFinite(divertPct) && divertPct > 0 && squad.doingInstead?.major?.title ? `${divertPct}%` : '')}</small></span>
+    <span role="cell" data-matrix-slip="1" title="${escapeHtml(slipTitle)}"><strong>${escapeHtml(slipLabel)}</strong></span>
     ${missingActions}
   </${rowTag}>`;
 }
@@ -357,6 +365,8 @@ function portfolioMatrix(answer) {
     </div>`;
   }
   const visibleSquads = answer.squads || [];
+  const baselineMissing = visibleSquads.filter((s) => s.baselineCoverage?.state === 'missing');
+  const baselineVerified = visibleSquads.filter((s) => s.baselineCoverage?.state !== 'missing');
   const matrixHeadTitle = 'Squads by delivery urgency';
   const matrixHeadKicker = 'Portfolio comparison';
   // Typical PI portfolios ≤12 — expand by default (zero click).
@@ -372,7 +382,8 @@ function portfolioMatrix(answer) {
     ${lensesToolbar}
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
       <div class="gov-story-columns" role="row"><span>Squad</span><span>Evidenced</span><span>Diverted</span><span>Slip</span><span>Next</span></div>
-      ${visibleSquads.map((squad) => matrixRow(squad, { preferredKey })).join('')}
+      ${baselineMissing.length ? cannotVerifySummaryRow(baselineMissing) : ''}
+      ${baselineVerified.map((squad) => matrixRow(squad, { preferredKey })).join('')}
     </div>
     ${needsExpand ? `<button type="button" class="btn btn-link btn-compact gov-matrix-expand" data-matrix-expand>Show more squads</button>` : ''}
     ${excludedOperationalGroups(answer)}
@@ -416,14 +427,20 @@ function nextMoveRailHtml(answer) {
   const squad = (answer?.squads || []).find((item) => item.squad === focusKey) || (answer?.squads || [])[0];
   if (!squad) return '';
   const isFocused = Boolean(spotlightKey && spotlightKey === squad.squad);
-  // Primary CTA owns the verb — rail only hosts proof pack controls.
+  // Portfolio first fold: primary CTA + epic rail own attention. Proof tools only in squad tunnel.
+  if (!isFocused) return '';
   const packPromises = (answer?.promises || []).filter((item) => item.squad === squad.squad);
-  const packHtml = isFocused
-    ? commitmentPackControlsHtml({ disabled: !packPromises.length })
-    : '';
+  const packHtml = commitmentPackControlsHtml({ disabled: !packPromises.length });
+  const sprint = squad.sprintReality?.sprint || {};
+  const sprintHtml = renderSprintIdentityHtml(sprint, {
+    name: squad.sprintReality?.sprintName || sprint.name || '',
+    sprintId: sprint.id,
+    href: currentSprintSquadHref(squad.squad),
+  });
   return `<aside class="gov-next-move-rail" aria-label="Proof tools for selected squad" data-rail-squad="${escapeHtml(squad.squad || '')}">
     <span class="gov-loop-kicker">Proof tools</span>
     <strong>${escapeHtml(squad.displayName || squad.squad)}</strong>
+    <p class="gov-next-move-sprint">${sprintHtml}</p>
     <div class="gov-next-move-rail-actions">
       <button type="button" class="btn btn-link btn-compact" data-all-proof="${escapeHtml(squad.squad)}">All proof</button>
     </div>
@@ -436,9 +453,15 @@ function deliveryBentoHtml(answer, coverage) {
   const evidenced = kpis.promiseTotal
     ? `${kpis.evidencedCount}/${kpis.promiseTotal}`
     : (kpis.evidencedPct != null ? `${kpis.evidencedPct}%` : '—');
+  const evidencedDetail = kpis.storiesDone || kpis.epicsClosed
+    ? `${kpis.storiesDone} stories · ${kpis.epicsClosed} epics closed`
+    : '';
+  const divertedDetail = kpis.topDivertTitle
+    ? kpis.topDivertTitle.slice(0, 36)
+    : '';
   return `<div class="gov-delivery-bento" data-gov-delivery-bento="1" aria-label="PI delivery pulse">
-    <div class="gov-delivery-cell" data-delivery-cell="evidenced"><strong>${escapeHtml(evidenced)}</strong><small>Evidenced</small></div>
-    <div class="gov-delivery-cell" data-delivery-cell="diverted"><strong>${kpis.divertingCount}</strong><small>Diverting</small></div>
+    <div class="gov-delivery-cell" data-delivery-cell="evidenced"><strong>${escapeHtml(evidenced)}</strong><small>Evidenced${evidencedDetail ? ` · ${escapeHtml(evidencedDetail)}` : ''}</small></div>
+    <div class="gov-delivery-cell" data-delivery-cell="diverted"><strong>${kpis.divertingCount}</strong><small>Diverting${divertedDetail ? ` · ${escapeHtml(divertedDetail)}` : ''}</small></div>
     <div class="gov-delivery-cell" data-delivery-cell="attention"><strong>${kpis.attentionCount}</strong><small>At risk</small></div>
     <div class="gov-delivery-cell" data-delivery-cell="unverified"><strong>${kpis.unverifiedCount}</strong><small>Unverified</small></div>
     <p class="gov-delivery-meta" data-decision-coverage-meta="${escapeHtml(coverage.copy)}">${coverage.closed} decided this PI · ${coverage.open} open</p>
@@ -446,12 +469,37 @@ function deliveryBentoHtml(answer, coverage) {
 }
 
 function epicRailMountHtml(answer, focusKey) {
+  const brief = sharedStoryState.lastBrief || null;
+  const hasActivity = Boolean(brief?.meta?.boardEpicIndex?.length || brief?.baselineComparison?.items?.length);
+  if (!hasActivity && (answer?.promises || []).length) {
+    return `<aside class="gov-epic-commitment-rail" data-epic-commitment-rail="1" data-epic-rail-loading="true" aria-label="PI epic commitments">
+      <span class="gov-loop-kicker">PI epic commitments</span>
+      <p class="gov-calm-note">Loading epic dates and child counts…</p>
+    </aside>`;
+  }
   const chips = buildEpicRailChips({
-    brief: sharedStoryState.lastBrief || null,
+    brief,
     answer,
-    squadKey: (activeLens === 'squad' && spotlightKey) ? spotlightKey : '',
+    squadKey: (activeLens === 'squad' && spotlightKey)
+      ? spotlightKey
+      : (focusKey || preferredFocusSquadKey(answer) || ''),
   });
   return renderEpicCommitmentRailHtml(chips);
+}
+
+/** Inject format-alignment chip when brief arrives after hero paint (zero extra click). */
+function hydrateAdHocChip(brief = null) {
+  const b = brief || sharedStoryState.lastBrief;
+  if (!b || spotlightKey || activeLens === 'squad') return;
+  const hero = document.querySelector('.gov-active-loop-hero');
+  const copy = hero?.querySelector('.gov-loop-copy');
+  if (!copy || copy.querySelector('[data-adhoc-open], .gov-adhoc-chip')) return;
+  const chip = renderAdHocChip(b);
+  if (!chip) return;
+  const anchor = copy.querySelector('[data-gov-why-once="1"]');
+  if (anchor) anchor.insertAdjacentHTML('afterend', chip);
+  else copy.insertAdjacentHTML('beforeend', chip);
+  bindEpicHygieneInteractions(hero || copy, b);
 }
 
 /** Re-render epic rail only when brief arrives after Active Loop (no second H1). */
@@ -459,13 +507,16 @@ export function hydrateEpicCommitmentRail(brief = null) {
   if (brief) sharedStoryState.lastBrief = brief;
   const rail = document.querySelector('[data-epic-commitment-rail]');
   if (!rail || !activeAnswer) return;
-  const focusKey = (activeLens === 'squad' && spotlightKey) ? spotlightKey : '';
+  const focusKey = (activeLens === 'squad' && spotlightKey)
+    ? spotlightKey
+    : preferredFocusSquadKey(activeAnswer);
   const chips = buildEpicRailChips({ brief: sharedStoryState.lastBrief || brief, answer: activeAnswer, squadKey: focusKey });
   const next = renderEpicCommitmentRailHtml(chips);
   const wrap = document.createElement('div');
   wrap.innerHTML = next;
   const node = wrap.firstElementChild;
   if (node) rail.replaceWith(node);
+  hydrateAdHocChip(brief || sharedStoryState.lastBrief);
   const strip = document.getElementById('gov-pi-strip-mount');
   if (strip) {
     strip.replaceChildren();
@@ -514,9 +565,15 @@ function renderHero(answer) {
     ? (focusSquad.contractState?.detail || focusSquad.sprintReality?.copy || 'Squad evidence remains isolated from portfolio peers.')
     : (answer.lensSummaries?.overall || sourceLine || 'Stored squad truth is compared across the included portfolio.');
   const quietMeta = [sourceLine, answer.deliveraDid ? `✓ ${answer.deliveraDid}` : ''].filter(Boolean).join(' · ');
+  const adHocChip = !isSquadView && sharedStoryState.lastBrief ? renderAdHocChip(sharedStoryState.lastBrief) : '';
+  const jiraDegraded = freshness.state === 'failed' || answerHasAccessBlock(answer);
+  const degradeBanner = jiraDegraded
+    ? '<p class="gov-loop-stale-warning" role="alert" data-jira-degraded="1">Jira access limited — showing last verified proof. Refresh when access restores.</p>'
+    : '';
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" data-gov-value-first="1" aria-labelledby="gov-loop-answer">
+    ${degradeBanner}
     <div class="gov-story-mission"><span>${escapeHtml(missionKicker)}</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
-    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad delivery' : 'PI delivery answer'}</span></div><h1 id="gov-loop-answer" data-gov-delivery-h1="1">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause" data-gov-why-once="1"><strong>Why:</strong> ${escapeHtml(causeLine)}</p>${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source gov-loop-meta-quiet" data-testid="governance-source-line">${escapeHtml(quietMeta)}</p></div>
+    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad delivery' : 'PI delivery answer'}</span></div><h1 id="gov-loop-answer" data-gov-delivery-h1="1">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause" data-gov-why-once="1"><strong>Why:</strong> ${escapeHtml(causeLine)}</p>${adHocChip}${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source gov-loop-meta-quiet" data-testid="governance-source-line">${escapeHtml(quietMeta)}</p></div>
     <div class="gov-loop-decision-bento">
       ${deliveryBentoHtml(answer, coverage)}
       <div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>
@@ -546,6 +603,7 @@ function renderHero(answer) {
     legacy.setAttribute('inert', '');
   });
   bindStory(answer, mount);
+  if (sharedStoryState.lastBrief) bindEpicHygieneInteractions(mount, sharedStoryState.lastBrief);
   // Live-update the merged freshness meta every 60 seconds (zero API cost, client-side math)
   if (quarterPulseTimer) clearInterval(quarterPulseTimer);
   quarterPulseTimer = setInterval(() => {
@@ -616,14 +674,6 @@ function bindStory(answer, mount) {
   mount.querySelectorAll('[data-all-proof]').forEach((button) => button.addEventListener('click', () => openAllProofDrawer(answer, button.dataset.allProof)));
   const railSquad = mount.querySelector('[data-rail-squad]')?.getAttribute('data-rail-squad') || spotlightKey;
   if (railSquad) wireCommitmentPackCopy(mount, answer, railSquad);
-  mount.querySelectorAll('[data-hero-focus-squad]').forEach((button) => button.addEventListener('click', () => {
-    void showSpotlight(button.dataset.heroFocusSquad, { pushHistory: true });
-    document.getElementById('gov-squad-spotlight')?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  }));
-  mount.querySelectorAll('[data-next-move-spotlight]').forEach((button) => button.addEventListener('click', () => {
-    void showSpotlight(button.dataset.nextMoveSpotlight, { pushHistory: true });
-    document.getElementById('gov-squad-spotlight')?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  }));
   mount.querySelectorAll('[data-story-squad]').forEach((row) => {
     const squad = row.getAttribute('data-story-squad');
     row.addEventListener('focus', () => openPreview(row, squad, { persistent: true }));
@@ -716,14 +766,16 @@ function openAllProofDrawer(answer, squadKey) {
   const squad = [...(answer?.squads || []), ...(answer?.excludedOperationalGroups || [])].find((item) => item.squad === squadKey);
   const promises = (answer?.promises || []).filter((item) => item.squad === squadKey);
   const pack = buildPiCommitmentPack({ promises, squad });
-  const rows = promises.map((promise) => `<li><button type="button" class="btn btn-link" data-all-proof-promise="${escapeHtml(promise.promiseId)}"><strong>${escapeHtml(promise.issueKey || 'Unlinked commitment')}</strong></button><span>${escapeHtml(promise.originalText)}</span><small>${escapeHtml(promise.proofAge?.copy || promise.customerOrPiImpact || promise.statusNow || '')}</small></li>`).join('');
+  const rows = promises.map((promise) => {
+    const title = businessTitleFromSummary(promise.originalText || promise.summary || '', 64);
+    return `<li><button type="button" class="btn btn-link" data-all-proof-promise="${escapeHtml(promise.promiseId)}">${renderIssueIdentityHtml(promise.issueKey || '', { title })}</button><small>${escapeHtml(promise.proofAge?.copy || promise.customerOrPiImpact || promise.statusNow || '')}</small></li>`;
+  }).join('');
   const { el } = openRightDrawer({
     title: `${squad?.displayName || squadKey} · proof audit`,
     panelClass: 'active-loop',
-    bodyHtml: `<section class="gov-resolution-sheet" data-proof-audit-squad="${escapeHtml(squadKey)}"><p>${escapeHtml(squad?.baselineCoverage?.copy || 'Approved PI contract evidence')}</p>${commitmentPackControlsHtml({ disabled: !promises.length })}<ol class="gov-proof-audit-list">${rows || '<li>No verified promise evidence is available for this squad.</li>'}</ol></section>`,
+    bodyHtml: `<section class="gov-resolution-sheet" data-proof-audit-squad="${escapeHtml(squadKey)}"><p>${escapeHtml(squad?.baselineCoverage?.copy || 'Approved PI contract evidence')}</p><ol class="gov-proof-audit-list">${rows || '<li>No verified promise evidence is available for this squad.</li>'}</ol></section>`,
   });
   el.querySelectorAll('[data-all-proof-promise]').forEach((button) => button.addEventListener('click', () => void openPromiseDrawer(button.dataset.allProofPromise)));
-  wireCommitmentPackCopy(el, answer, squadKey);
 }
 
 function closePreview() { persistentPreview?.remove(); persistentPreview = null; previewPersistent = false; }
@@ -893,19 +945,15 @@ function spotlightHtml(detail) {
     ? `<button type="button" class="btn btn-link btn-compact" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squadKey)}" data-rebaseline="1" title="Upload a new PI slide to replace the current baseline">Rebaseline</button>`
     : '';
   const unknownEvidenceCopy = (() => {
-    const unknownPct = Number(squad.workSplit?.unknownPct);
+    const line = clusterFirstUnknownImpact(squad, rework);
+    if (!unknown.promoted && !squad.doingInstead?.major) return '';
     const clusters = unknown.clusters || [];
-    if (unknown.promoted && Number.isFinite(unknownPct) && unknownPct >= 100 && !clusters.length) {
-      return squad.doingInstead?.major?.title || 'Insufficient evidence to measure diversion';
+    if (clusters[0]?.issueKeys?.[0]) {
+      const key = clusters[0].issueKeys[0];
+      const title = clusters[0].title || '';
+      return title ? `Classify ${key} · ${title}` : `Classify ${key}`;
     }
-    if (unknown.promoted && clusters[0] && Number.isFinite(unknownPct) && unknownPct >= 80) {
-      const top = clusters[0];
-      const keyHint = Array.isArray(top.issueKeys) && top.issueKeys[0] ? top.issueKeys[0] : '';
-      return keyHint
-        ? `Classify ${keyHint}${top.title ? ` · ${top.title}` : ''}`
-        : (unknown.copy || '').replace(/^Unknown work is \d+%\.\s*/i, '').trim() || unknown.copy;
-    }
-    return unknown.promoted ? String(unknown.copy || '').replace(/^Unknown work is \d+%\.\s*/i, '').trim() || unknown.copy : '';
+    return line;
   })();
   const inTunnel = Boolean(spotlightKey) && activeLens === 'squad';
   const h1OwnsDiagnosis = Boolean(String(squad.contractState?.label || '').trim());
@@ -923,13 +971,27 @@ function spotlightHtml(detail) {
     : '<p class="gov-spotlight-scope-note">Selected squad work, PI promises, and actions only.</p>';
   return `<div class="gov-spotlight-head"><div><span class="gov-loop-kicker">Selected squad decision</span><h2 class="sr-only">${escapeHtml(displayName)}</h2>${scopeNote}</div></div>
   <div class="gov-spotlight-readout"><span><small>PI contract</small><strong>${escapeHtml(piContractChip)}</strong></span><span><small>Sprint reality</small><strong>${escapeHtml(squad.sprintCadence?.label || squad.sprintReality?.state || 'Unverified')}</strong></span><span><small>Trust basis</small><strong>${escapeHtml(squad.trustFactor?.label || 'Limited')}</strong></span>${nextSafeCell}</div>
-  ${showDiagnosisGroups ? `<section class="gov-diagnosis-groups" aria-label="Evidence-backed root causes"><h3>Why proof is missing</h3>${diagnosisGroups.map((group) => `<article><strong>${group.count} · ${(group.issueKeys || []).slice(0, 3).map((k) => escapeHtml(k)).join(', ') || escapeHtml(group.label)}</strong><p>${escapeHtml(group.customerOrPiImpact || '')}</p><small>${Math.round((Number(group.confidence) || 0) * 100)}% confidence</small></article>`).join('')}</section>` : ''}
+  ${showDiagnosisGroups ? `<section class="gov-diagnosis-groups" aria-label="Evidence-backed root causes"><h3>Why proof is missing</h3>${diagnosisGroups.map((group) => {
+    const keyBits = (group.issueKeys || []).slice(0, 3).map((k) => {
+      const promise = promises.find((p) => p.issueKey === k);
+      return renderIssueIdentityHtml(k, { title: businessTitleFromSummary(promise?.originalText || '', 48) });
+    }).join(', ');
+    return `<article><strong>${group.count} · ${keyBits || escapeHtml(group.label)}</strong><p>${escapeHtml(group.customerOrPiImpact || '')}</p><small>${Math.round((Number(group.confidence) || 0) * 100)}% confidence</small></article>`;
+  }).join('')}</section>` : ''}
   <div class="gov-spotlight-grid">
     <section><h3>Current Work Reality</h3>${work.length ? work.slice(0, 5).map((item) => `<p class="gov-work-theme"><span><strong>${escapeHtml(item.title)}</strong>${item.systemDerived ? ' <small>system-derived label</small>' : ''}</span>${item.systemDerived || item.title === 'Unclear work theme' ? `<button type="button" class="btn btn-link btn-compact gov-theme-rename-btn" data-theme-rename data-theme-id="${escapeHtml(item.themeId || item.title)}" data-theme-version="${Number(item.version) || 1}" title="Rename theme">Rename</button>` : ''}</p>`).join('') : '<p>No current work themes are available.</p>'}</section>
-    <section><h3>Sprint Reality</h3><p>${escapeHtml(detail.sprintReality?.copy || 'Sprint reality unavailable.')}</p></section>
-    <section><h3>Evidence Signals</h3><p>${escapeHtml(rework.copy || 'No evidence-backed rework signal is promoted.')}</p>${rework.promoted ? `<details><summary>Why Delivera raised this</summary><ul>${(rework.promoted.paths || []).map((path) => `<li>${escapeHtml(path.label)}</li>`).join('')}</ul></details>` : '<p class="gov-calm-note">Low-confidence follow-up work stays out of risk totals.</p>'}${unknownEvidenceCopy ? `<div class="gov-unknown-clusters"><p><strong>${escapeHtml(unknownEvidenceCopy)}</strong></p>${(unknown.clusters || []).slice(0, 3).map((cluster) => `<article><strong>${escapeHtml(cluster.title)}</strong><small>${cluster.ticketCount} issues · ${cluster.percentage}% · ${escapeHtml(cluster.sharedEvidence?.join(', ') || 'shared work evidence')}</small><button type="button" class="btn btn-secondary btn-compact" data-classify-cluster="${escapeHtml(cluster.id)}" data-cluster-version="${Number(cluster.version) || 1}" data-classification="${escapeHtml(cluster.recommendation)}">${escapeHtml(cluster.recommendation === 'ad-hoc-feature' ? 'Mark as Ad Hoc Feature Work' : cluster.recommendation === 'operational-group-candidate' ? 'Mark as Operational Group candidate' : 'Mark cluster as Operational')}</button></article>`).join('')}</div>` : ''}</section>
+    ${inTunnel
+    ? `<details class="gov-spotlight-sprint-details"><summary>Sprint reality</summary><p>${escapeHtml(detail.sprintReality?.copy || 'Sprint reality unavailable.')}</p></details>`
+    : `<section><h3>Sprint Reality</h3><p>${escapeHtml(detail.sprintReality?.copy || 'Sprint reality unavailable.')}</p></section>`}
+    <section><h3>Evidence Signals</h3><p>${escapeHtml(rework.copy || 'No evidence-backed rework signal is promoted.')}</p>${rework.promoted ? `<details><summary>Why Delivera raised this</summary><ul>${(rework.promoted.paths || []).map((path) => `<li>${escapeHtml(path.label)}</li>`).join('')}</ul></details>` : '<p class="gov-calm-note">Low-confidence follow-up work stays out of risk totals.</p>'}${unknownEvidenceCopy ? `<div class="gov-unknown-clusters"><p><strong>${escapeHtml(unknownEvidenceCopy)}</strong></p>${(unknown.clusters || []).slice(0, 3).map((cluster) => {
+    const leadKey = Array.isArray(cluster.issueKeys) && cluster.issueKeys[0] ? cluster.issueKeys[0] : '';
+    const leadTitle = cluster.title || '';
+    const classifyLabel = cluster.recommendation === 'ad-hoc-feature' ? 'Ad hoc' : cluster.recommendation === 'operational-group-candidate' ? 'Ops group' : 'Operational';
+    const classified = cluster.classificationState === 'classified';
+    return `<article class="gov-cluster-card"><span class="gov-cluster-identity">${leadKey ? renderIssueIdentityHtml(leadKey, { title: leadTitle }) : escapeHtml(cluster.title)}</span><small>${cluster.ticketCount} issues · ${cluster.percentage}% · ${escapeHtml(cluster.sharedEvidence?.join(', ') || 'shared work evidence')}</small>${classified ? '<span class="gov-cluster-classified">Classified</span>' : `<button type="button" class="btn btn-link btn-compact gov-cluster-classify" data-classify-cluster="${escapeHtml(cluster.id)}" data-cluster-version="${Number(cluster.version) || 1}" data-classification="${escapeHtml(cluster.recommendation)}">${escapeHtml(classifyLabel)}</button>`}</article>`;
+  }).join('')}</div>` : ''}</section>
     <section><h3>Doing Instead &amp; Work Split</h3><p>${escapeHtml(squad.doingInstead?.copy || 'No major diversion is proven.')}</p><p>${escapeHtml(squad.workSplit?.explanation || '')}</p><p>${escapeHtml(honestUnknownPctLine(squad, unknown))}</p></section>
-    <section><h3>Promise evidence</h3>${promises.length ? promises.map((promise) => `<button type="button" class="gov-spotlight-promise" data-loop-promise="${escapeHtml(promise.promiseId)}" title="${escapeHtml(promiseAlignmentSummary(promise))}"><strong>${escapeHtml(promise.issueKey || 'Unlinked')}</strong><small>${escapeHtml(promise.proofAge?.copy || promise.statusNow || 'Open evidence')}</small><span class="gov-spotlight-promise-title">${escapeHtml(promise.originalText)}</span>${promise.amendmentSentence ? `<span class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</span>` : ''}</button>`).join('') : `<button type="button" class="btn btn-link gov-spotlight-baseline-cta" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squadKey)}">Cannot verify, baseline missing. Save baseline to compare.</button>`}</section>
+    <section><h3>Promise evidence</h3>${promises.length ? promises.map((promise) => `<button type="button" class="gov-spotlight-promise" data-loop-promise="${escapeHtml(promise.promiseId)}" title="${escapeHtml(promiseAlignmentSummary(promise))}"><span class="gov-spotlight-promise-id">${renderIssueIdentityHtml(promise.issueKey || '', { title: businessTitleFromSummary(promise.originalText || '', 72) })}</span><small>${escapeHtml(promise.proofAge?.copy || promise.statusNow || 'Open evidence')}</small>${promise.amendmentSentence ? `<span class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</span>` : ''}</button>`).join('') : `<button type="button" class="btn btn-link gov-spotlight-baseline-cta" data-setup-baseline-ssot="1" data-squad="${escapeHtml(squadKey)}">Cannot verify, baseline missing. Save baseline to compare.</button>`}</section>
     <section class="gov-spotlight-actions"><h3>Action Trail</h3>${actionTrailHtml(promises)}</section>
   </div>
   <details class="gov-spotlight-maintain"><summary>Maintain squad</summary><div class="gov-spotlight-head-actions"><button type="button" class="btn btn-link btn-compact" data-edit-alias>Edit squad name</button>${rebaselineBtn}<button type="button" class="btn btn-secondary btn-compact" data-force-squad>Refresh ${escapeHtml(displayName)}</button></div></details>
@@ -1059,6 +1121,8 @@ async function classifyUnknownCluster(button, detail, container) {
       : `Classification saved · ${data.writeState || 'queued'}.`;
     button.textContent = 'Classified';
     delete button.dataset.optimistic;
+    const squadKey = squad.squad || '';
+    if (squadKey) void showSpotlight(squadKey, { pushHistory: false });
   } catch (error) {
     button.disabled = false;
     button.textContent = priorLabel;
@@ -1185,6 +1249,8 @@ function drawerHtml(promise, squad) {
     || allowed[0]
     || null;
   const secondaryAllowed = allowed.filter((action) => action !== primary);
+  const verdictLabel = promise.verdictLabel || promise.matchLabel || promise.diagnosisLabel || 'Cannot verify';
+  const verdictTone = promise.matchState || 'cannot-verify';
   const renderAction = (action, { primaryBtn = false } = {}) => {
     const label = action.id === 'send-nudge' && promise.ownerRoute?.displayName
       ? `Nudge ${promise.ownerRoute.role}: ${promise.ownerRoute.displayName}`
@@ -1199,14 +1265,17 @@ function drawerHtml(promise, squad) {
     ? `${renderAction(primary, { primaryBtn: true })}${moreActions.length ? `<details class="gov-loop-more-actions"><summary>More decisions (${moreActions.length})</summary><div class="gov-loop-actions gov-loop-actions--more">${moreActions.map((action) => renderAction(action)).join('')}</div></details>` : ''}`
     : `<div class="gov-loop-actions">${actions.map((action) => renderAction(action)).join('')}</div>`;
   const h1Label = String((activeAnswer?.squads || []).find((s) => s.squad === promise.squad)?.contractState?.label || '');
-  const diagLabel = String(promise.diagnosisLabel || promise.matchLabel || '');
-  const diagChip = diagLabel && diagLabel !== h1Label
+  const diagLabel = String(promise.diagnosisLabel || '');
+  const diagChip = diagLabel && diagLabel !== verdictLabel && diagLabel !== h1Label
     ? `<span class="gov-loop-diag-chip">${escapeHtml(diagLabel)}</span>`
     : '';
-  return `<div class="gov-loop-drawer" data-loop-promise-version="${Number(promise.version) || 1}" data-decision-rail="primary"><section class="gov-loop-drawer-verdict gov-loop-tone-${tone(promise.matchState)}"><strong>${escapeHtml(promise.issueKey || 'Unlinked')}</strong><span>${escapeHtml(promise.originalText)}</span>${diagChip}<p>${escapeHtml(promise.customerOrPiImpact || promise.proofAge?.copy || '')}</p>${promise.amendmentSentence ? `<p class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</p>` : ''}</section>
-  <section class="gov-resolution-sheet"><h3>Expected vs happening</h3><p>${escapeHtml(promiseAlignmentSummary(promise))}</p><dl><div><dt>Expected</dt><dd>${escapeHtml(comparison.expected?.commitment || promise.originalText)} · ${escapeHtml(comparison.expected?.fiscalPeriod || promise.quarter || '')}</dd></div><div><dt>Live Jira evidence</dt><dd>${escapeHtml(actualKeys.join(', ') || promise.issueKey || 'No verified key')} · ${escapeHtml(comparison.actual?.status || promise.statusNow || '')}</dd></div><div><dt>Mapping</dt><dd>${escapeHtml(comparison.actual?.matchedThrough === 'epic-child' ? 'Current story delivers the approved PI epic' : comparison.actual?.matchedThrough || 'Unresolved')}</dd></div></dl></section>
-  ${diagnosisEvidence ? `<section class="gov-resolution-sheet"><h3>Why Delivera reached this diagnosis</h3><ul>${diagnosisEvidence}</ul><p><strong>Confidence:</strong> ${Math.round((Number(promise.diagnosisConfidence) || 0) * 100)}%</p><p><strong>Recommended:</strong> ${escapeHtml(promise.recommendedAction || '')}</p></section>` : ''}
-  <div class="gov-loop-drawer-grid"><section><h3>PI promise source</h3><p>${escapeHtml(promise.source || promise.baselineCoverage?.sourceLabel || 'Approved PI baseline')}</p><p>${escapeHtml(scopedPromiseSourceReference(promise, squad))}</p></section><section><h3>Matched Jira work</h3><p><strong>${escapeHtml(promise.issueKey || 'No Jira proof')}</strong> · ${escapeHtml(promise.statusNow || '')}</p></section><section><h3>Proof age</h3><p>${escapeHtml(promise.proofAge?.state || 'unknown')} · ${escapeHtml(promise.proofAge?.copy || '')}</p></section><section><h3>Work Split</h3><p>${squad?.workSplit?.unplannedPct == null ? 'Unplanned work unknown' : `${squad.workSplit.unplannedPct}% unplanned work`}</p><p>${escapeHtml(squad?.workSplit?.largestUnmappedCluster ? `Largest unmapped cluster: ${squad.workSplit.largestUnmappedCluster}.` : '')}</p><p>${escapeHtml(squad?.workSplit?.explanation || '')}</p><p>${escapeHtml(honestUnknownPctLine(squad, squad?.unknownWork))}</p></section><section><h3>Action state</h3><p>${escapeHtml(promise.actionLifecycle || '')}</p></section><section><h3>Owner path</h3>${recipientEditor(promise)}</section><section><h3>Ready to Promise</h3><p>${escapeHtml(promise.readiness?.copy || 'Readiness was not captured in the original baseline.')}</p></section><section><h3>Trade-off Guardrail</h3><p>${escapeHtml(promise.tradeOffGuardrail?.copy || 'No trustworthy percentage is available.')}</p></section></div>
+  const childKeysHtml = (actualKeys.length ? actualKeys : (promise.issueKey ? [promise.issueKey] : []))
+    .map((k) => renderIssueIdentityHtml(k, { title: businessTitleFromSummary(promise.originalText || '', 48) }))
+    .join(', ') || 'No verified key';
+  return `<div class="gov-loop-drawer" data-loop-promise-version="${Number(promise.version) || 1}" data-decision-rail="primary" data-verdict-label="${escapeHtml(verdictLabel)}"><section class="gov-loop-drawer-verdict gov-loop-tone-${tone(verdictTone)}">${renderIssueIdentityHtml(promise.issueKey || '', { title: businessTitleFromSummary(promise.originalText || '', 80) })}<p class="gov-loop-verdict-label"><strong>${escapeHtml(verdictLabel)}</strong></p>${diagChip}<p>${escapeHtml(promise.customerOrPiImpact || promise.proofAge?.copy || '')}</p>${promise.amendmentSentence ? `<p class="gov-amendment-sentence"><s aria-hidden="true">${escapeHtml(promise.originalText)}</s><span class="sr-only">Original promise: ${escapeHtml(promise.originalText)}.</span> → ${escapeHtml(promise.amendmentSentence.split('→').slice(1).join('→').trim())}</p>` : ''}</section>
+  <section class="gov-resolution-sheet"><h3>Expected vs happening</h3><p>${escapeHtml(promiseAlignmentSummary(promise))}</p><dl><div><dt>Expected</dt><dd>${escapeHtml(comparison.expected?.commitment || promise.originalText)} · ${escapeHtml(comparison.expected?.fiscalPeriod || promise.quarter || '')}${comparison.expected?.startDate || comparison.expected?.endDate ? ` · ${escapeHtml([comparison.expected?.startDate, comparison.expected?.endDate].filter(Boolean).join(' → '))}` : ''}</dd></div><div><dt>Live Jira evidence</dt><dd>${childKeysHtml} · ${escapeHtml(comparison.actual?.status || promise.statusNow || '')}${comparison.actual?.childTotal ? ` · ${comparison.actual.doneChildCount || 0}/${comparison.actual.childTotal} children` : ''}</dd></div><div><dt>Mapping</dt><dd>${escapeHtml(comparison.actual?.matchedThrough === 'epic-child' ? 'Current story delivers the approved PI epic' : comparison.actual?.matchedThrough || 'Unresolved')}</dd></div></dl></section>
+  ${diagnosisEvidence ? `<details class="gov-loop-history gov-loop-diagnosis-details"><summary>Why Delivera reached this diagnosis</summary><ul>${diagnosisEvidence}</ul><p><strong>Confidence:</strong> ${Math.round((Number(promise.diagnosisConfidence) || 0) * 100)}%</p><p><strong>Recommended:</strong> ${escapeHtml(promise.recommendedAction || '')}</p></details>` : ''}
+  <div class="gov-loop-drawer-grid"><section><h3>PI promise source</h3><p>${escapeHtml(promise.source || promise.baselineCoverage?.sourceLabel || 'Approved PI baseline')}</p><p>${escapeHtml(scopedPromiseSourceReference(promise, squad))}</p></section><section><h3>Matched Jira work</h3><p>${renderIssueIdentityHtml(promise.issueKey || '', { title: businessTitleFromSummary(promise.originalText || '', 64) })} · ${escapeHtml(promise.statusNow || '')}</p></section><section><h3>Proof age</h3><p>${escapeHtml(promise.proofAge?.state || 'unknown')} · ${escapeHtml(promise.proofAge?.copy || '')}</p></section><section><h3>Work Split</h3><p>${squad?.workSplit?.unplannedPct == null ? 'Unplanned work unknown' : `${squad.workSplit.unplannedPct}% unplanned work`}</p><p>${escapeHtml(squad?.workSplit?.largestUnmappedCluster ? `Largest unmapped cluster: ${squad.workSplit.largestUnmappedCluster}.` : '')}</p><p>${escapeHtml(squad?.workSplit?.explanation || '')}</p><p>${escapeHtml(honestUnknownPctLine(squad, squad?.unknownWork))}</p></section><section><h3>Action state</h3><p>${escapeHtml(promise.actionLifecycle || '')}</p></section><section><h3>Owner path</h3>${recipientEditor(promise)}</section><section><h3>Ready to Promise</h3><p>${escapeHtml(promise.readiness?.copy || 'Readiness was not captured in the original baseline.')}</p></section><section><h3>Trade-off Guardrail</h3><p>${escapeHtml(promise.tradeOffGuardrail?.copy || 'No trustworthy percentage is available.')}</p></section></div>
   <details class="gov-loop-history" open><summary>Human Why and action history (${promise.actionHistory?.length || 0})</summary><ol>${[...(promise.amendmentHistory || []), ...(promise.actionHistory || [])].map((item) => `<li><strong>${escapeHtml(String(item.type || '').replace(/-/g, ' '))}</strong><small>${escapeHtml(item.rationale || item.reason || item.replyExcerpt || item.messagePreview || '')}</small></li>`).join('') || '<li>No human decision has been recorded yet.</li>'}</ol></details>
   ${(promise.sourceWrites || []).length ? `<details class="gov-loop-history"><summary>Source write status (${promise.sourceWrites.length})</summary><ol>${promise.sourceWrites.map((write) => `<li><strong>${escapeHtml(sourceWriteLabel(write.state))}</strong><small>${escapeHtml(write.failureReason || write.correctionPath || `${write.targetSystem || 'source'} · ${write.targetObject || ''}`)}</small></li>`).join('')}</ol></details>` : ''}
   <div class="gov-loop-stale-warning" hidden role="alert"></div><div class="gov-loop-action-status" aria-live="polite"></div><div class="gov-loop-actions gov-loop-actions--decision-rail" data-decision-rail-primary="${escapeHtml(primary?.id || '')}">${actionsHtml}</div></div>`;
@@ -1238,7 +1307,7 @@ export async function openPromiseDrawer(promiseId, { detailHref = '' } = {}) {
     return;
   }
   const promise = detail.promise; const squad = detail.squad;
-  const { el } = openRightDrawer({ title: `${promise.squadDisplayName || squad?.displayName || promise.squad} · ${promise.matchLabel}`, bodyHtml: drawerHtml(promise, squad), panelClass: 'active-loop' });
+  const { el } = openRightDrawer({ title: `${promise.squadDisplayName || squad?.displayName || promise.squad} · ${promise.verdictLabel || promise.matchLabel}`, bodyHtml: drawerHtml(promise, squad), panelClass: 'active-loop' });
   const drawer = el?.querySelector('.gov-loop-drawer');
   if (drawer) {
     drawer.dataset.drawerStateHash = promise.drawerStateHash || '';
@@ -1256,7 +1325,16 @@ export async function openPromiseDrawer(promiseId, { detailHref = '' } = {}) {
 }
 
 function reviewedRecipient(drawer, promise) {
-  return { displayName: drawer.querySelector('[data-recipient-name]')?.value.trim() || '', role: drawer.querySelector('[data-recipient-role]')?.value.trim() || 'Selected recipient', accountId: promise.ownerRoute?.accountId || '', source: 'case-review' };
+  const route = promise.ownerRoute || {};
+  const displayName = drawer.querySelector('[data-recipient-name]')?.value.trim() || '';
+  const role = drawer.querySelector('[data-recipient-role]')?.value.trim() || 'Selected recipient';
+  const nameChanged = displayName && route.displayName && displayName !== route.displayName;
+  return {
+    displayName,
+    role,
+    accountId: nameChanged ? '' : (route.accountId || ''),
+    source: 'case-review',
+  };
 }
 
 async function versionedPost(url, promise, body) {

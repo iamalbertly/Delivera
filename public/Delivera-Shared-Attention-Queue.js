@@ -1,4 +1,4 @@
-import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
+import { escapeHtml, renderIssueIdentityHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 function dedupeTableItems(items) {
   const seen = new Set();
@@ -92,7 +92,9 @@ export function renderAttentionQueueTable({ title = 'Attention queue', items = [
       : escapeHtml(demotedNext);
     return `
     <tr data-risk-tags="${escapeHtml((item.riskTags || []).join(' '))}" data-issue-key="${escapeHtml(item.issueKey || item.issue || '')}">
-      <td data-label="Issue">${escapeHtml(item.issue)}</td>
+      <td data-label="Issue">${/^[A-Z][A-Z0-9]+-\d+$/i.test(String(item.issueKey || item.issue || ''))
+        ? renderIssueIdentityHtml(item.issueKey || item.issue, { title: item.summary || item.title || item.reason || '' })
+        : escapeHtml(item.issue)}</td>
       <td data-label="Reason">${escapeHtml(item.reason)}</td>
       <td data-label="Owner">${escapeHtml(item.owner)}</td>
       <td data-label="Next move">${nextMoveCell}</td>

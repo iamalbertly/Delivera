@@ -8,6 +8,7 @@
 
 import { escapeHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import { formatDate } from './Delivera-Shared-Format-DateNumber-Helpers.js';
+import { businessTitleFromSummary } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { renderExportButton } from './Delivera-CurrentSprint-Export-Dashboard.js';
 import { deriveSprintVerdict } from './Delivera-CurrentSprint-Alert-Banner.js';
 import { readNotificationSummary } from './Delivera-Shared-Notifications-Dock-Manager.js';
@@ -463,6 +464,11 @@ export function renderHeaderBar(data, options = {}) {
   }
   const reportLinkHtml = '<a class="header-follow-up-link header-chrome-history-report" href="' + reportHref + '" data-header-action="open-report-context">' + escapeHtml(SPRINT_COPY.openReport) + '</a>';
   const titleSquadLabel = resolveFriendlySquadLabel(selectedProject, boardName) || sprintNameCompact;
+  const continuitySquadKey = String(selectedProject || '').trim().toUpperCase();
+  const titleSquadHref = continuitySquadKey ? governanceSpotlightHref(continuitySquadKey) : '';
+  const titleSquadHtml = titleSquadHref
+    ? `<a class="current-sprint-title-squad" href="${escapeHtml(titleSquadHref)}" title="Open ${escapeHtml(titleSquadLabel)} on Governance">${escapeHtml(titleSquadLabel)}</a>`
+    : escapeHtml(titleSquadLabel);
   const shellSummaryHtml = buildCurrentSprintShellSummary({
     selectedProject,
     boardName,
@@ -476,7 +482,7 @@ export function renderHeaderBar(data, options = {}) {
   let html = `<div class="current-sprint-header-bar report-shell-top current-sprint-report-shell"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
   html += '<div class="header-row report-shell-top-row current-sprint-shell-top-row">';
   html += '<div class="report-shell-title-block current-sprint-shell-title-block">';
-  html += `<h2 title="${escapeHtml(sprintIdentityLine)}">Today for ${escapeHtml(titleSquadLabel)}</h2>`;
+  html += `<h2 title="${escapeHtml(sprintIdentityLine)}">Today for ${titleSquadHtml}</h2>`;
   if (missionBriefing?.strategicAnchor) {
     const anchor = missionBriefing.strategicAnchor;
     const sprintBit = anchor.sprintLabel || sprintNameCompact;
@@ -503,7 +509,7 @@ export function renderHeaderBar(data, options = {}) {
   html += '</div>';
   html += '</div>';
   html += '<div class="report-filter-strip current-sprint-filter-strip" data-context-bar="true" aria-live="polite">';
-  const continuitySquad = String(selectedProject || '').trim().toUpperCase();
+  const continuitySquad = continuitySquadKey;
   const backHref = continuitySquad ? governanceSpotlightHref(continuitySquad) : '/governance';
   html += `<a href="${escapeHtml(backHref)}" class="report-back-to-brief">← Back to Governance</a>`;
   html += `<div class="report-filter-strip-summary current-sprint-filter-strip-summary applied-filters-chips-row">${shellSummaryHtml}</div>`;
@@ -618,9 +624,18 @@ export function renderHeaderBar(data, options = {}) {
       .filter(Boolean)
       .join(' | ');
     const topBlockerKey = cockpitAction.issueKey || data?.stuckCandidates?.[0]?.issueKey || '';
+    const topBlockerTitle = businessTitleFromSummary(
+      cockpitAction.summary || cockpitAction.title || data?.stuckCandidates?.[0]?.summary || '',
+      48,
+    );
+    const blockerIdentity = topBlockerKey
+      ? (topBlockerTitle && topBlockerTitle !== 'Work item needs attention'
+        ? `${topBlockerKey} · ${topBlockerTitle}`
+        : topBlockerKey)
+      : '';
     const takeActionLabel = cockpitAction.interventionType === 'swarm-blocked-work'
-      ? `Next move: Review swarm for ${topBlockerKey}`
-      : topBlockerKey ? `Next move: Review ${topBlockerKey}` : `Next move: ${SPRINT_COPY.takeAction}`;
+      ? `Next move: Review swarm for ${blockerIdentity || 'blocked work'}`
+      : blockerIdentity ? `Next move: Review ${blockerIdentity}` : `Next move: ${SPRINT_COPY.takeAction}`;
     const sendAllowed = isSprintCommentSendAllowed(meta, sprint);
     const takeActionTitle = sendAllowed ? SPRINT_COPY.takeAction : SPRINT_COPY.historical;
     const inlineOwner = cockpitAction.assignee || 'Squad swarm';

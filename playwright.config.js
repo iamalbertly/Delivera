@@ -40,9 +40,9 @@ export default defineConfig({
 
   webServer: process.env.SKIP_WEBSERVER !== 'true' ? {
     command: process.env.CI ? 'npm run start' : 'node scripts/Delivera-Dev-Port-Guard-01Check.js && npm run start',
-    url: `${testBaseUrl}/healthz`,
+    url: `${testBaseUrl}/governance`,
     env: { ...process.env, PORT: testServerPort },
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: process.env.REUSE_DEV_SERVER === 'true' && !process.env.CI,
     timeout: 120000,
   } : undefined,
 });

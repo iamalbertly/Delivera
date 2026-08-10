@@ -65,17 +65,26 @@ Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brie
 
 ## Active PI Governance (index)
 
-Meeting-safe PI decision loop: All Squads → one contract answer → squad matrix → spotlight → resolution drawer. Full invariants, diagnosis codes, registry participation, release schema (`20260730a`), continuity, and backlog live in [`context.md`](context.md) (Governance Layer + UX reliability).
+Meeting-safe PI decision loop owned by Active Loop (presentation contract v5): delivery H1 + delivery bento (Evidenced / Diverting / At risk / Unverified) → one primary CTA → squad matrix (Evidenced / Diverted / Slip / Next) → epic commitment rail (start→end + child done/total from timelineChips + epic activity) → spotlight → resolution drawer. Legacy brief chrome is a degraded fallback only (lazy-loaded). Full invariants, diagnosis codes, registry participation, release schema (`20260730a`), continuity (`squad` write, `spotlight` read alias), and backlog live in [`context.md`](context.md) (Governance Layer + UX reliability).
 
-**Focused gates (prefer locally):**
-- `npm run test:governance:release` — five fail-fast Governance scenarios
+**Above-fold SSOT:** delivery-first H1 (not “N of M verified”); one `[data-loop-primary]`; `{Squad} today` chip is Sprint continuity only; matrix preferred Next = `Open`; enriched bento shows stories done + epics closed; epic rail hydrates from brief chips with honest `No Jira target · N/M children` when end date missing; single `verdictLabel` drives drawer title/tone (no verified vs cannot-verify contradiction); format-alignment chip from ad-hoc epics; Proof tools rail appears only in squad tunnel (not portfolio first fold).
+
+**Epic title period SSOT** (`lib/Delivera-Governance-EpicHygiene-01Score-SSOT.js`): aligned naming is `FY27 Q2 – Squad – Platform – Commitment title`. `parseEpicTitleParts` / `periodFromEpicSummary` beat Fix Version / label-only PI metadata. Domain stamps child counts + start/end on `expectedVsActual`. Non-aligned titles surface as ad-hoc / slip signals (`formatAligned: false`).
+
+**Issue identity SSOT:** Jira keys, epic keys, and sprint ids always render with a human title (or sprint name) via `renderIssueIdentityHtml` / `renderSprintIdentityHtml`, linking to `/report?issueKey=` or Current Sprint continuity — never bare codes alone. Epic rail chips use the same identity helper.
+
+**Focused gates (prefer locally — saves Vercel / API credits):**
+- `npm run test:journey:governance-delivery-trust-masterplan` — verdict SSOT, enriched bento, identity, drawer/nudge, logcat (includes epic-title unit pre-step)
+- `npm run test:journey:governance-firstviewport-value-dedupe` — delivery H1, CTA dedupe, epic rail, continuity
+- `npm run test:journey:customer-growth-squadtunnel-continuity-masterplan` — squad tunnel + continuity
+- `npm run test:current-sprint:shell-release` — Sprint shell continuity
 - `npm run test:friction:focused` — Sprint shell + Governance release + Settings registry
-- `npm run test:settings:registry-release` — registry save / continuity broadcast
-- Orphans for this reliability pass: `tests/Delivera-Governance-Empty-State-Honesty-Validation-Tests.spec.js`, `tests/Delivera-Current-Sprint-Header-Declutter-Validation-Tests.spec.js`, `tests/Delivera-Current-Sprint-Intervention-Queue-Validation-Tests.spec.js`
+- Do **not** run `npm run vercel:deploy` / `--prod` unless intentionally releasing; prefer `npm run dev:safe` + hard-refresh for UI proof. Skip full journey buckets unless a gate fails.
+- Local Playwright: run `npm run dev:safe` first, then `SKIP_WEBSERVER=true` with `BASE_URL` matching `.delivera-dev-port` (usually `http://localhost:3001`), or let Playwright start a fresh server (`REUSE_DEV_SERVER` unset).
 
 Skip `journey.data-integrity` until that bucket is repaired.
 
-**Flow intelligence (summary):** Current Sprint shares one evidence-bound intervention contract with Governance, Actions, and nudge review. Quiet-dev Done-probe drafts live in `Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js`.
+**Flow intelligence (summary):** Current Sprint shares one evidence-bound intervention contract with Governance, Actions, and nudge review. Quiet-dev Done-probe drafts live in `Delivera-CurrentSprint-JiraNudge-01HumanText-SSOT.js`. Squad title on Sprint links back via `governanceSpotlightHref`.
 
 ## Quickstart
 

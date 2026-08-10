@@ -200,6 +200,15 @@ export function verdictTierFromBrief(brief = {}) {
 export function businessTitleFromSummary(summary = '', maxLen = 72) {
   let t = String(summary || '').trim();
   t = t.replace(/^[A-Z]{2,10}-\d+\s*[-:–]?\s*/i, '');
+  // Strip structured PI epic prefix: FY27 Q2 - Squad - Platform - Title → Title
+  const periodMatch = t.match(/^(FY\s*\d{2,4}\s*Q[1-4])\s*[-–—|:]\s*(.+)$/i);
+  if (periodMatch) {
+    const rest = periodMatch[2];
+    const segs = rest.split(/\s*[-–—|]\s*/).map((p) => p.trim()).filter(Boolean);
+    if (segs.length >= 3) t = segs.slice(2).join(' — ');
+    else if (segs.length >= 2) t = segs.slice(1).join(' — ');
+    else t = rest;
+  }
   t = t.replace(/\s+/g, ' ').trim();
   if (t.length > maxLen) t = `${t.slice(0, maxLen - 1)}…`;
   return t || 'Work item needs attention';

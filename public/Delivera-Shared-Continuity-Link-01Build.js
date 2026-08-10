@@ -108,6 +108,18 @@ export function reportSquadHref(squadKey) {
   });
 }
 
+/** Continuity deep-link for a single Jira issue (Evidence / Report surface). */
+export function reportIssueHref(issueKey, { squad = '' } = {}) {
+  const key = String(issueKey || '').trim().toUpperCase();
+  if (!key) return '/report';
+  const squadKey = normalizeSquadKey(squad);
+  return withParams('/report', {
+    issueKey: key,
+    squad: squadKey || undefined,
+    projects: squadKey || undefined,
+  });
+}
+
 export function resolveReturnToHref(returnTo, { squad = '' } = {}) {
   const raw = String(returnTo || '').trim();
   if (!raw) return '';
@@ -128,7 +140,8 @@ export function resolveReturnToHref(returnTo, { squad = '' } = {}) {
       target.searchParams.set('projects', squadKey);
     }
     if (target.pathname === '/governance' && squadKey) {
-      target.searchParams.set('spotlight', squadKey);
+      // Canonical write is `squad` only; drop legacy spotlight dual-write.
+      target.searchParams.delete('spotlight');
       target.searchParams.set('squad', squadKey);
       target.searchParams.set('projects', squadKey);
       target.searchParams.set('view', 'squad');

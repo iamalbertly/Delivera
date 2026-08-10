@@ -211,10 +211,17 @@ export function buildDeliveryPortfolioKpis(answer = {}) {
   const avgPiPct = squads.length
     ? Math.round(squads.reduce((sum, s) => sum + (Number(s.piPct) || 0), 0) / squads.length)
     : null;
+  const storiesDone = promises.reduce((sum, p) => sum + (Number(p.expectedVsActual?.actual?.doneChildCount) || 0), 0);
+  const epicsClosed = promises.filter((p) => {
+    const state = String(p.matchState || '').toLowerCase();
+    return state.includes('matched') || state === 'aligned-amended' || p.verdict === 'delivered';
+  }).length;
   return {
     promiseTotal,
     evidencedCount: Math.min(promiseTotal || evidencedCount, evidencedCount),
     evidencedPct: avgPiPct,
+    storiesDone,
+    epicsClosed,
     attentionCount,
     attentionSquads: attentionSquads.length,
     divertingCount: diverting.length,
@@ -261,59 +268,159 @@ export function primaryVerbLabel(squad, { noBaseline = false, isSquadView = fals
   if (isSquadView) return 'Open decision';
   if (!squad) return 'Review aligned promises';
   const actionId = squad.nextAction?.id || squad.nextAction?.action || '';
-  const verb = actionLabels[actionId]
+  const fromLabels = actionLabels[actionId] || '';
+  const raw = fromLabels
     || String(squad.nextAction?.label || '').split(/[:·]/)[0].trim()
     || (squad.baselineCoverage?.state === 'missing' ? 'Save baseline' : 'Open spotlight');
+  // Prefer issue-key cues over mid-sentence essays; never hard-slice mid-word.
+  const keyMatch = raw.match(/\b([A-Z][A-Z0-9]+-\d+)\b/);
+  let verb = raw;
+  if (!fromLabels && keyMatch && /confirm|whether|moved/i.test(raw)) {
+    verb = `Confirm ${keyMatch[1]}`;
+  } else if (!fromLabels && raw.length > 36) {
+    const cut = raw.slice(0, 36);
+    const sp = cut.lastIndexOf(' ');
+    verb = `${(sp > 14 ? cut.slice(0, sp) : cut).trimEnd()}…`;
+  }
   const shortName = String(squad.displayName || squad.squad || '').split(' ')[0];
-  const short = verb.length > 36 ? `${verb.slice(0, 34).trimEnd()}…` : verb;
-  return shortName ? `${short} · ${shortName}` : short;
+  return shortName ? `${verb} · ${shortName}` : verb;
 }
 
-/** Timeline chips for epic rail — prefer brief chips; fall back to Active Loop promises. */
+/** Build issueKey → activity map from brief (baseline items + boardEpicIndex). Zero API. */
+function activityMapFromBrief(brief = {}) {
+  const map = new Map();
+  const put = (key, patch) => {
+    const k = String(key || '').trim().toUpperCase();
+    if (!k) return;
+    const prev = map.get(k) || {};
+    map.set(k, { ...prev, ...patch, issueKey: k });
+  };
+  for (const item of brief?.baselineComparison?.items || []) {
+    const act = item?.epicActivity || {};
+    put(item.issueKey, {
+      title: item.title || item.issueKey,
+      plannedStartDate: item.plannedStartDate || act.firstActiveSprintStart || '',
+      plannedEndDate: item.targetDate || item.plannedEndDate || '',
+      storyCount: Number(act.storyCount) || 0,
+      doneCount: Number(act.doneCount) || 0,
+      firstActiveSprintStart: act.firstActiveSprintStart || '',
+      lifecycle: act.lifecycle || '',
+      deliveryPct: item.verdict === 'delivered' ? 100 : (Number(act.storyCount) > 0
+        ? Math.round((Number(act.doneCount) || 0) / Number(act.storyCount) * 100)
+        : null),
+    });
+  }
+  for (const entry of brief?.meta?.boardEpicIndex || []) {
+    const k = String(entry.issueKey || '').trim().toUpperCase();
+    if (!k || map.has(k)) continue;
+    put(k, {
+      title: entry.title || k,
+      plannedStartDate: entry.plannedStartDate || '',
+      plannedEndDate: entry.targetDate || entry.plannedEndDate || '',
+      storyCount: Number(entry.storyCount) || 0,
+      doneCount: Number(entry.doneCount) || 0,
+    });
+  }
+  return map;
+}
+
+function mergeChipWithActivity(chip, activity, promise = null) {
+  const truth = promise ? childTruth(promise) : { total: 0, done: 0 };
+  const actStories = Number(activity?.storyCount) || 0;
+  const actDone = Number(activity?.doneCount) || 0;
+  const childTotal = truth.total || actStories;
+  const childDone = truth.total ? truth.done : actDone;
+  const start = chip.plannedStartDate
+    || activity?.plannedStartDate
+    || activity?.firstActiveSprintStart
+    || promise?.expectedVsActual?.expected?.startDate
+    || promise?.fiscalStart
+    || '';
+  const end = chip.plannedEndDate
+    || activity?.plannedEndDate
+    || promise?.expectedVsActual?.expected?.endDate
+    || promise?.fiscalEnd
+    || '';
+  const deliveryPct = chip.deliveryPct != null
+    ? chip.deliveryPct
+    : (activity?.deliveryPct != null
+      ? activity.deliveryPct
+      : (childTotal ? Math.round((childDone / childTotal) * 100) : null));
+  const childHint = childTotal
+    ? `${childDone}/${childTotal} children`
+    : (activity?.lifecycle === 'not-started' ? '0 children in sprint' : 'No child stories');
+  const missingDates = !end;
+  return {
+    issueKey: chip.issueKey || activity?.issueKey || promise?.issueKey || '',
+    title: chip.title || activity?.title || promise?.originalText || promise?.summary || 'PI commitment',
+    plannedStartDate: start,
+    plannedEndDate: end,
+    elapsedPct: chip.elapsedPct ?? null,
+    deliveryPct,
+    confidenceLabel: chip.confidenceLabel
+      || (missingDates ? (childTotal ? 'Children only' : 'No forecast') : (childTotal ? 'Medium' : 'Limited')),
+    missingDates,
+    childHint,
+    childTotal,
+    childDone,
+    source: chip.source || (activity ? 'activity' : 'promise'),
+  };
+}
+
+/** Timeline chips for epic rail — prefer brief chips; enrich with activity + promises. */
 export function buildEpicRailChips({ brief = null, answer = null, squadKey = '' } = {}) {
+  const focus = String(squadKey || '').trim().toUpperCase();
+  const activity = activityMapFromBrief(brief || {});
   const fromBrief = Array.isArray(brief?.meta?.piConfidence?.timelineChips)
     ? brief.meta.piConfidence.timelineChips
     : [];
-  const focus = String(squadKey || '').trim().toUpperCase();
-  let chips = fromBrief;
-  if (focus) {
-    const filtered = chips.filter((chip) => {
-      const key = String(chip.squad || chip.projectKey || chip.issueKey || '').toUpperCase();
-      return key === focus || key.startsWith(`${focus}-`) || String(chip.issueKey || '').toUpperCase().startsWith(`${focus}-`);
-    });
-    if (filtered.length) chips = filtered;
+  const promiseByKey = new Map();
+  for (const p of answer?.promises || []) {
+    const k = String(p.issueKey || '').trim().toUpperCase();
+    if (k) promiseByKey.set(k, p);
   }
-  if (chips.length) {
-    return chips.slice(0, 6).map((chip) => ({
-      issueKey: chip.issueKey || '',
-      title: chip.title || '',
-      plannedStartDate: chip.plannedStartDate || '',
-      plannedEndDate: chip.plannedEndDate || '',
-      elapsedPct: chip.elapsedPct,
-      deliveryPct: chip.deliveryPct,
-      confidenceLabel: chip.confidenceLabel || (chip.plannedEndDate ? 'Medium' : 'No forecast'),
-      missingDates: !chip.plannedEndDate,
-      source: 'brief',
-    }));
+
+  let seeds = fromBrief.map((chip) => ({ ...chip, source: 'brief' }));
+  if (!seeds.length) {
+    for (const [key, act] of activity) {
+      seeds.push({
+        issueKey: key,
+        title: act.title,
+        plannedStartDate: act.plannedStartDate,
+        plannedEndDate: act.plannedEndDate,
+        deliveryPct: act.deliveryPct,
+        source: 'activity',
+      });
+    }
   }
-  const promises = (answer?.promises || []).filter((p) => !focus || String(p.squad || '').toUpperCase() === focus);
-  return promises.slice(0, 6).map((promise) => {
-    const truth = childTruth(promise);
-    const expected = promise.expectedVsActual?.expected || {};
-    const start = expected.startDate || promise.fiscalStart || promise.startDate || '';
-    const end = expected.endDate || promise.fiscalEnd || promise.endDate || '';
-    const deliveryPct = truth.total ? Math.round((truth.done / truth.total) * 100) : null;
-    return {
+  if (!seeds.length) {
+    seeds = (answer?.promises || []).map((promise) => ({
       issueKey: promise.issueKey || '',
       title: promise.originalText || promise.summary || 'PI commitment',
-      plannedStartDate: start,
-      plannedEndDate: end,
-      elapsedPct: null,
-      deliveryPct,
-      confidenceLabel: end ? (truth.total ? 'Medium' : 'No children') : 'No forecast',
-      missingDates: !end,
-      childHint: truth.total ? `${truth.done}/${truth.total} children` : 'No child stories',
       source: 'promise',
-    };
+      _promise: promise,
+    }));
+  }
+
+  if (focus) {
+    const filtered = seeds.filter((chip) => {
+      const key = String(chip.squad || chip.projectKey || chip.issueKey || '').toUpperCase();
+      const promise = promiseByKey.get(String(chip.issueKey || '').toUpperCase());
+      const squad = String(promise?.squad || chip.squad || '').toUpperCase();
+      return key === focus
+        || key.startsWith(`${focus}-`)
+        || String(chip.issueKey || '').toUpperCase().startsWith(`${focus}-`)
+        || squad === focus;
+    });
+    if (filtered.length) seeds = filtered;
+  }
+
+  return seeds.slice(0, 6).map((chip) => {
+    const key = String(chip.issueKey || '').trim().toUpperCase();
+    return mergeChipWithActivity(
+      chip,
+      activity.get(key),
+      chip._promise || promiseByKey.get(key) || null,
+    );
   });
 }

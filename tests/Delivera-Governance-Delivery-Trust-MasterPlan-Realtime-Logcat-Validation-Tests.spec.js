@@ -1,6 +1,5 @@
 /**
- * Governance FirstViewport Value + Dedupe MasterPlan — Realtime + Logcat.
- * Keep ≤10 focused steps. Delivery KPIs zero-click; Act/Why/CTA dedupe; epic rail; continuity quiet.
+ * Governance Delivery-Trust MasterPlan — Realtime + Logcat (≤10 steps).
  */
 import { test, expect } from './Delivera-Playwright-Console-Guard-Global-Validation-Helpers.js';
 import {
@@ -17,7 +16,6 @@ function buildAnswer() {
     schemaVersion: 2,
     presentationContractVersion: 5,
     answerVersion: 9,
-    cacheRelease: undefined,
     missionHeader: 'PORTFOLIO MISSION FY27 Q2 PI contract governance',
     answer: '2 squads need evidence decisions.',
     sourceLine: 'Compared with FY27 Q2 PI contract · 4 promises checked',
@@ -43,8 +41,8 @@ function buildAnswer() {
         workSplit: { unplannedPct: 38, explanation: 'Unplanned cluster present.' },
         doingInstead: { major: { title: 'Legacy migrations', percentage: 38 }, copy: 'Diverting into migrations.' },
         unknownWork: { promoted: false }, possibleRework: { promoted: null },
-        nextAction: { id: 'send-nudge', label: 'Confirm FIN-1075 moved' },
-        ownerRoute: { displayName: 'Amina N.' },
+        nextAction: { id: 'send-nudge', label: 'Confirm SD-5314 moved' },
+        ownerRoute: { displayName: 'Amina N.', role: 'Squad PO', accountId: 'acc-1' },
       },
       {
         squad: 'RPA', displayName: 'Finance Squad', riskOrder: 2, payloadHash: 'h-rpa',
@@ -62,18 +60,23 @@ function buildAnswer() {
     ],
     promises: [
       {
-        promiseId: 'prm-sd-1', squad: 'SD', issueKey: 'SD-5314', originalText: 'Customer journey integration',
-        matchState: 'no-jira-proof', caseState: 'needs-attention', statusNow: 'In Progress',
+        promiseId: 'prm-sd-1', squad: 'SD', issueKey: 'SD-5314',
+        originalText: 'FY27 Q2 – DMS – NBA – Customer journey integration',
+        matchState: 'partly-matched', verdictLabel: 'Partly matched', version: 1,
+        diagnosisCode: 'off-plan-or-support', diagnosisLabel: 'Squad is delivering other work',
+        caseState: 'needs-attention', statusNow: 'In Progress',
+        ownerRoute: { displayName: 'Amina N.', role: 'Squad PO', accountId: 'acc-1' },
         expectedVsActual: {
-          expected: { startDate: '2026-05-01', endDate: '2026-07-31', issueKey: 'SD-5314' },
-          actual: { childTotal: 5, doneChildCount: 2, openChildCount: 3, issueKeys: ['SD-5314'] },
+          expected: { startDate: '2026-05-01', endDate: '2026-07-31', issueKey: 'SD-5314', fiscalPeriod: 'FY27 Q2' },
+          actual: { childTotal: 5, doneChildCount: 2, openChildCount: 3, issueKeys: ['SD-5314'], status: 'In Progress', matchedThrough: 'exact-key' },
         },
-        nextAction: { label: 'Confirm FIN-1075 moved' },
+        nextAction: { label: 'Confirm SD-5314 moved' },
         allowedActions: [{ id: 'send-nudge', allowed: true, reason: 'Owner ready.' }],
+        diagnosisEvidence: [{ label: 'Jira key', value: 'SD-5314' }],
       },
       {
         promiseId: 'prm-rpa-1', squad: 'RPA', issueKey: 'RPA-88', originalText: 'Automate dispute workflow',
-        matchState: 'partly-matched', caseState: 'needs-attention', statusNow: 'In Progress',
+        matchState: 'partly-matched', verdictLabel: 'Partly matched', caseState: 'needs-attention', statusNow: 'In Progress', version: 1,
         expectedVsActual: {
           expected: { startDate: '2026-04-01', endDate: '', issueKey: 'RPA-88' },
           actual: { childTotal: 0, doneChildCount: 0, openChildCount: 0, issueKeys: ['RPA-88'] },
@@ -87,7 +90,7 @@ function buildAnswer() {
 
 function buildBrief() {
   return {
-    briefId: 'fv-dedupe',
+    briefId: 'delivery-trust',
     projects: ['SD', 'RPA'],
     generatedAt: NOW,
     freshness: { confidenceLimit: 'live' },
@@ -98,7 +101,7 @@ function buildBrief() {
       items: [
         {
           issueKey: 'SD-5314',
-          title: 'Customer journey integration',
+          title: 'FY27 Q2 – DMS – NBA – Customer journey integration',
           plannedStartDate: '2026-05-01',
           targetDate: '2026-07-31',
           verdict: 'at-risk',
@@ -120,6 +123,7 @@ function buildBrief() {
       setupGaps: [],
       partialProjects: [],
       boardEpicIndex: [],
+      adHocEpics: [{ issueKey: 'SD-99', title: 'Random epic', formatAligned: false, reason: 'not in baseline' }],
       piConfidence: {
         trusted: false,
         confidencePct: 42,
@@ -127,7 +131,7 @@ function buildBrief() {
         timelineChips: [
           {
             issueKey: 'SD-5314',
-            title: 'Customer journey integration',
+            title: 'FY27 Q2 – DMS – NBA – Customer journey integration',
             squad: 'SD',
             plannedStartDate: '2026-05-01',
             plannedEndDate: '2026-07-31',
@@ -137,20 +141,6 @@ function buildBrief() {
             childHint: '2/5 children',
             childTotal: 5,
             childDone: 2,
-          },
-          {
-            issueKey: 'RPA-88',
-            title: 'Automate dispute workflow',
-            squad: 'RPA',
-            plannedStartDate: '2026-04-01',
-            plannedEndDate: '',
-            elapsedPct: null,
-            deliveryPct: null,
-            confidenceLabel: 'No forecast',
-            childHint: '1/3 children',
-            childTotal: 3,
-            childDone: 1,
-            missingDates: true,
           },
         ],
       },
@@ -196,8 +186,7 @@ async function mockJourney(page) {
         workSplit: found.workSplit,
       };
     } else if (path.includes('/api/governance/cases/')) {
-      const p = answer.promises[0];
-      body = { schemaVersion: 2, storyVersion: 9, promise: p, squad: answer.squads[0] };
+      body = { schemaVersion: 2, storyVersion: 9, promise: answer.promises[0], squad: answer.squads[0] };
     } else if (path === '/api/governance-brief.json') body = brief;
     else if (path === '/api/projects-catalog.json') {
       body = { projects: [{ key: 'SD', label: 'DMS Squad', accessible: true }, { key: 'RPA', label: 'Finance Squad', accessible: true }] };
@@ -209,91 +198,72 @@ async function mockJourney(page) {
     else if (path === '/api/session-meta.json') body = { authenticated: true, initials: 'DL' };
     else if (path === '/api/current-sprint.json' || path.includes('current-sprint')) {
       body = { sprint: { name: 'FY27DMS06', state: 'active' }, issues: [], boards: [] };
-    } else {
-      body = {};
-    }
+    } else body = {};
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
 }
 
-test.describe('Governance FirstViewport Value Dedupe MasterPlan @focused', () => {
-  test('delivery-first viewport, CTA dedupe, epic rail, continuity @focused', async ({ page }) => {
+test.describe.configure({ retries: 0 });
+
+test.describe('Governance Delivery-Trust MasterPlan @focused', () => {
+  test('delivery-trust viewport, identity, drawer, nudge, logcat @focused', async ({ page }) => {
     const telemetry = captureBrowserTelemetry(page);
     await mockJourney(page);
 
-    await test.step('01 open governance with delivery H1 and bento zero-click', async () => {
+    await test.step('01 epic rail meta and issue identity on first fold', async () => {
       await loginIfRequired(page, '/governance?projects=SD,RPA', {
         rootSelector: '[data-testid="governance-active-loop"]',
         timeout: 20000,
       });
-      const loop = page.getByTestId('governance-active-loop');
-      await expect(loop).toBeVisible({ timeout: 20000 });
-      await expect(loop).toHaveAttribute('data-gov-value-first', '1');
-      const h1 = page.locator('[data-gov-delivery-h1="1"]');
-      await expect(h1).toBeVisible();
-      await expect(h1).toContainText(/evidenced/i);
-      await expect(h1).not.toContainText(/squads verified/i);
-      await expect(page.locator('[data-gov-delivery-bento="1"]')).toBeVisible();
-      await expect(page.locator('[data-delivery-cell="evidenced"]')).toBeVisible();
-      await expect(page.locator('[data-delivery-cell="diverted"]')).toBeVisible();
-    });
-
-    await test.step('02 Act paragraph gone; single primary CTA', async () => {
-      await expect(page.locator('.gov-loop-recommendation')).toHaveCount(0);
-      await expect(page.locator('[data-loop-primary]')).toHaveCount(1);
-      await expect(page.locator('[data-next-move-short]')).toHaveCount(0);
-    });
-
-    await test.step('03 Why once in hero; matrix head has no lens essay', async () => {
-      await expect(page.locator('[data-gov-why-once="1"]')).toHaveCount(1);
-      await expect(page.locator('[data-lens-summary]')).toHaveCount(0);
-    });
-
-    await test.step('04 epic commitment rail shows date range and/or child counts', async () => {
-      const rail = page.locator('[data-epic-commitment-rail="1"]');
-      await expect(rail).toBeVisible();
-      const chip = page.locator('[data-epic-rail-chip="1"]').first();
-      await expect(chip).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-epic-commitment-rail="1"]')).toBeVisible();
       const meta = page.locator('[data-epic-chip-meta="1"]').first();
       await expect(meta).toBeVisible();
-      const metaText = await meta.innerText();
-      expect(metaText).toMatch(/children|→|No forecast/i);
-      expect(metaText).toMatch(/2\/5 children|1\/3 children|May|Jul|No forecast/i);
-      // Issue key is a continuity link with human title.
+      await expect(meta).toContainText(/children|→|No Jira target/i);
+      await expect(page.locator('.delivera-issue-identity').first()).toBeVisible();
       await expect(page.locator('.delivera-issue-key').first()).toHaveAttribute('href', /issueKey=/);
     });
 
-    await test.step('05 top-risk preferred highlight; one today continuity link; Next not mid-word truncated', async () => {
-      await expect(page.locator('[data-focus-preferred="true"]')).toHaveCount(1);
-      const todayLinks = page.locator('a').filter({ hasText: /today/i });
-      await expect(todayLinks).toHaveCount(1);
-      const preferredNext = page.locator('[data-focus-preferred="true"] [role="cell"]').last().locator('strong');
-      await expect(preferredNext).toHaveText(/^\s*Open\s*$/);
-      const nextLabels = await page.locator('.gov-story-row [role="cell"]:last-child strong').allTextContents();
-      for (const label of nextLabels) {
-        const trimmed = String(label || '').trim();
-        expect(trimmed).not.toMatch(/\w…$/);
-        expect(trimmed.length).toBeLessThanOrEqual(42);
-      }
+    await test.step('02 single primary CTA and enriched bento', async () => {
+      await expect(page.locator('[data-loop-primary]')).toHaveCount(1);
+      await expect(page.locator('.gov-loop-recommendation')).toHaveCount(0);
+      const evidenced = page.locator('[data-delivery-cell="evidenced"] small');
+      await expect(evidenced).toContainText(/stories|epics/i);
     });
 
-    await test.step('06 matrix shows evidenced / diverted / slip columns; quiet diversion wallpaper', async () => {
-      const cols = page.locator('.gov-story-columns');
-      await expect(cols).toContainText(/Evidenced/i);
-      await expect(cols).toContainText(/Diverted/i);
-      await expect(cols).toContainText(/Slip/i);
-      await expect(cols).not.toContainText(/Current reality/i);
-      await expect(page.locator('[data-matrix-diverted="1"] strong').filter({ hasText: /No diversion proven/i })).toHaveCount(0);
+    await test.step('03 format alignment chip visible on portfolio', async () => {
+      await expect(page.locator('[data-adhoc-open]')).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('[data-adhoc-open]')).toContainText(/non-aligned/i);
     });
 
-    await test.step('07 continuity uses squad param only (no dual spotlight write)', async () => {
+    await test.step('04 matrix divert shows cluster line when diverting', async () => {
+      const divert = page.locator('[data-story-squad="SD"] [data-matrix-diverted="1"] strong');
+      await expect(divert).toContainText(/Legacy migrations/i);
+    });
+
+    await test.step('05 drawer single verdict label', async () => {
+      await page.locator('[data-loop-primary]').click();
+      await expect(page.locator('.gov-loop-drawer')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.gov-loop-drawer')).toHaveAttribute('data-verdict-label', /Partly matched/i);
+      await expect(page.locator('.gov-loop-verdict-label strong')).toHaveText(/Partly matched/i);
+      await page.locator('[data-drawer-close]').first().click();
+    });
+
+    await test.step('06 nudge button reflects owner route from fixture', async () => {
+      await page.locator('[data-loop-primary]').click();
+      const nudge = page.locator('[data-loop-action="send-nudge"]');
+      await expect(nudge).toBeVisible();
+      await expect(nudge).toContainText(/Amina N./i);
+      await page.locator('[data-drawer-close]').first().click();
+    });
+
+    await test.step('07 continuity squad param and spotlight', async () => {
       await page.locator('[data-story-squad="SD"]').click();
       await expect(page).toHaveURL(/[?&]squad=SD/);
       await expect(page).not.toHaveURL(/spotlight=/);
-      await expect(page.locator('#gov-squad-spotlight')).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('#gov-squad-spotlight')).toBeVisible();
     });
 
-    await test.step('08 telemetry and console clean', async () => {
+    await test.step('08 console and telemetry clean after click path', async () => {
       assertTelemetryClean(telemetry);
     });
   });

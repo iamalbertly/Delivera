@@ -2,6 +2,7 @@ import { COPY, businessTitleFromSummary } from './Delivera-App-Shared-Delivery-C
 import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisions-UI.js';
 import { GOV_TOOLTIPS } from './Delivera-App-Governance-Brief-Tooltip-01SSOT.js';
 import { renderAdHocChip, renderEpicHygieneInlineRow } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
+import { renderIssueIdentityHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 
 function formatChipDate(value) {
   if (!value) return '';
@@ -11,30 +12,32 @@ function formatChipDate(value) {
 }
 
 export function chipHtml(chip) {
-  const missing = Boolean(chip.missingDates) || (!chip.plannedEndDate && chip.elapsedPct == null);
-  const elapsed = missing
-    ? 'No forecast · missing end date'
-    : (chip.elapsedPct != null ? `${chip.elapsedPct}% elapsed` : 'dates unknown');
-  const delivery = chip.deliveryPct != null
-    ? `${chip.deliveryPct}% delivered`
-    : (chip.childHint || 'delivery pending');
-  const conf = chip.confidenceLabel || (missing ? 'No forecast' : 'Medium');
+  const missing = Boolean(chip.missingDates) || !chip.plannedEndDate;
+  const hasChildren = Number(chip.childTotal) > 0 || (chip.childHint && !/no child/i.test(String(chip.childHint)));
   const range = [formatChipDate(chip.plannedStartDate), formatChipDate(chip.plannedEndDate)].filter(Boolean).join(' → ');
+  const dateLine = missing
+    ? (hasChildren && chip.childHint ? `No Jira target · ${chip.childHint}` : 'No forecast · missing end date')
+    : (chip.elapsedPct != null ? `${chip.elapsedPct}% elapsed` : 'on timeline');
+  const delivery = chip.deliveryPct != null
+    ? `${chip.deliveryPct}% delivered${hasChildren && chip.childHint ? ` · ${chip.childHint}` : ''}`
+    : (chip.childHint || 'delivery pending');
+  const conf = chip.confidenceLabel || (missing ? (hasChildren ? 'Children only' : 'No forecast') : 'Medium');
   const pulse = chip.worstSlip ? ' is-pulse-slip' : '';
+  const displayTitle = businessTitleFromSummary(chip.title || '', 72);
+  const identityHtml = renderIssueIdentityHtml(chip.issueKey || '', { title: displayTitle });
   return `
-    <article class="gov-pi-chip${pulse}" data-issue-key="${escapeHtml(chip.issueKey || '')}" data-epic-rail-chip="1"${missing ? ' data-missing-dates="true"' : ''}>
+    <article class="gov-pi-chip${pulse}" data-issue-key="${escapeHtml(chip.issueKey || '')}" data-epic-rail-chip="1"${missing ? ' data-missing-dates="true"' : ''}${hasChildren ? ' data-has-children="true"' : ''}>
       <header class="gov-pi-chip-head">
-        <span class="gov-pi-chip-key">${escapeHtml(chip.issueKey || '')}</span>
+        <span class="gov-pi-chip-identity">${identityHtml}</span>
         <span class="gov-pi-chip-conf gov-pi-conf--${escapeHtml(String(conf).toLowerCase().replace(/\s+/g, '-'))}">${escapeHtml(conf)}</span>
       </header>
-      <p class="gov-pi-chip-title">${escapeHtml(businessTitleFromSummary(chip.title || '', 72))}</p>
       <div class="gov-pi-chip-bars">
         <span class="gov-pi-bar-label">Time</span>
         <div class="gov-pi-bar"><span style="width:${missing ? 0 : (chip.elapsedPct || 0)}%"></span></div>
         <span class="gov-pi-bar-label">Delivery</span>
         <div class="gov-pi-bar gov-pi-bar--delivery"><span style="width:${chip.deliveryPct || 0}%"></span></div>
       </div>
-      <p class="gov-pi-chip-meta">${escapeHtml(range ? `${range} · ${elapsed}` : elapsed)} · ${escapeHtml(delivery)}</p>
+      <p class="gov-pi-chip-meta" data-epic-chip-meta="1">${escapeHtml(range ? `${range} · ${dateLine}` : dateLine)} · ${escapeHtml(delivery)}</p>
     </article>`;
 }
 

@@ -1562,7 +1562,7 @@ body.governance-page .governance-shell--hero-squad:has([data-hero-squad="1"]) .g
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(220px, .7fr);
+  grid-template-columns: minmax(0, 1.85fr) minmax(240px, .78fr);
   gap: clamp(12px, 2vw, 24px);
   padding: clamp(14px, 2vw, 24px);
   margin: 0 0 14px;
@@ -1607,7 +1607,7 @@ body.governance-story-v2-ready #gov-sticky-answer-mount { display: none !importa
 .gov-story-lenses .btn { min-height: 30px; white-space: nowrap; }
 .gov-story-table { display: grid; }
 .gov-story-columns,
-.gov-story-row { display: grid; grid-template-columns: minmax(110px, .9fr) minmax(90px, .7fr) minmax(120px, 1fr) minmax(90px, .7fr) minmax(88px, .65fr); gap: 8px; align-items: center; }
+.gov-story-row { display: grid; grid-template-columns: minmax(110px, .9fr) minmax(90px, .7fr) minmax(100px, .9fr) minmax(90px, .7fr) minmax(108px, .8fr); gap: 8px; align-items: center; }
 .gov-story-columns { padding: 5px 14px; color: #64748b; background: #f8fafc; border-block: 1px solid #e2e8f0; font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .gov-story-row { width: 100%; min-height: 54px; padding: 8px 14px; border: 0; border-bottom: 1px solid #eef2f7; border-left: 3px solid transparent; background: #fff; color: #172033; text-align: left; cursor: pointer; }
 .gov-story-row.is-focus-preferred { background: #eff6ff; box-shadow: inset 0 0 0 1px #bfdbfe; }
@@ -1955,14 +1955,24 @@ body.governance-active-loop-ready #gov-scope-bar-mount .gov-scope-capsule {
   display: grid;
   gap: 6px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 .gov-epic-commitment-rail .gov-pi-chip-row,
 .gov-epic-rail-chips {
   display: grid;
   gap: 6px;
-  max-height: 280px;
+  max-height: min(42vh, 360px);
   overflow: auto;
   scrollbar-width: thin;
+}
+@media (min-width: 1200px) {
+  body.governance-active-loop-ready .gov-active-loop-hero {
+    grid-template-columns: minmax(0, 1.9fr) minmax(280px, .85fr);
+  }
+  body.governance-active-loop-ready .gov-epic-commitment-rail .gov-pi-chip-row,
+  body.governance-active-loop-ready .gov-epic-rail-chips {
+    max-height: min(52vh, 420px);
+  }
 }
 .gov-pi-chip.is-pulse-slip {
   border-color: #f59e0b;
@@ -2498,4 +2508,33 @@ body.governance-page .gov-owner-cluster-head .gov-send-badge { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .registry-disclosure span { transition: none; }
+}
+
+/* Round 3 — issue/sprint identity + above-fold reclaim */
+.gov-next-move-sprint { margin: 0; font-size: .72rem; color: #64748b; }
+.delivera-issue-identity { display: inline; }
+.delivera-issue-key { font-weight: 700; color: #1e3a5f; text-decoration: underline dotted; text-underline-offset: 2px; }
+.delivera-issue-title { font-weight: 500; color: #334155; }
+.delivera-sprint-identity { color: #1e3a5f; font-weight: 600; text-decoration: none; }
+.gov-adhoc-ssot-hint { margin: 0 0 10px; font-size: .78rem; color: #475569; }
+.gov-adhoc-item.is-format-misaligned { border-left: 3px solid #d97706; padding-left: 8px; }
+.gov-spotlight-promise-id { display: block; margin-bottom: 2px; }
+.gov-pi-chip-identity .delivera-issue-title { display: block; font-size: .72rem; margin-top: 2px; }
+.gov-cluster-card { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 0; border-bottom: 1px solid #e2e8f0; }
+.gov-cluster-identity { flex: 1 1 100%; }
+.gov-cluster-classified { font-size: .72rem; color: #64748b; font-weight: 600; }
+.gov-cluster-classify { padding: 0; min-height: 32px; }
+.gov-loop-verdict-label { margin: 4px 0 0; font-size: .9rem; }
+.gov-loop-diagnosis-details { margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .gov-right-drawer-panel { transition: none !important; transform: none !important; }
+}
+@media (min-width: 1024px) {
+  body.governance-active-loop-ready:not(.governance-squad-selected) .gov-active-loop-hero {
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, .95fr);
+  }
+}
+@media (max-width: 720px) {
+  .gov-delivery-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .delivera-issue-title { display: block; font-size: .72rem; margin-top: 2px; }
 }

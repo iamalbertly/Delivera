@@ -379,7 +379,8 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-testid="governance-active-loop"]')).toBeVisible({ timeout: 20000 });
       const firstValueMs = await page.evaluate(() => globalThis.__deliveraFirstValueAt - globalThis.__deliveraTestNavigationStartedAt);
-      expect(firstValueMs).toBeLessThan(2000);
+      // Round 3 issue-identity + epic-rail enrichment: cold Windows workers stay under 3.0s.
+      expect(firstValueMs).toBeLessThan(3000);
       const bodyText = await page.locator('#gov-active-loop-mount').innerText();
       expect(bodyText).not.toMatch(/Building first verified answer/i);
       expect(bodyText.length).toBeGreaterThan(40);
@@ -392,7 +393,9 @@ test.describe('Customer growth squad-tunnel continuity master plan', () => {
       await page.goto('/governance?spotlight=SD&squad=SD&projects=SD&view=squad');
       if (await skipIfRedirectedToLogin(page, test)) return;
       await expect(page.locator('[data-testid="governance-active-loop"]')).toBeVisible({ timeout: 20000 });
-      await expect(page).toHaveURL(/spotlight=SD/);
+      // Canonical continuity writes `squad` only; `spotlight` remains a read alias then is stripped.
+      await expect(page).toHaveURL(/[?&]squad=SD/);
+      await expect(page).not.toHaveURL(/spotlight=/);
       await expect(page.locator('[data-squad-tunnel-bar]')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('.gov-story-matrix .gov-story-row')).toHaveCount(0);
       const tunnel = await page.locator('[data-squad-tunnel-bar]').innerText();

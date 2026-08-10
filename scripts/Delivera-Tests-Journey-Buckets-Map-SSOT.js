@@ -416,6 +416,11 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance',
   },
+  'tests/Delivera-Governance-Delivery-Trust-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.governance-delivery-trust-masterplan',
+    layer: 'cross-surface-ux',
+    page: '/governance',
+  },
   'tests/Delivera-Governance-Growth-MasterPlan-Round2-Realtime-Validation-Tests.spec.js': {
     journey: 'journey.governance-growth-masterplan-round2',
     layer: 'cross-surface-ux',
@@ -701,6 +706,13 @@ export const journeyBuckets = {
     label: 'Governance FirstViewport – Delivery H1, CTA dedupe, epic rail',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.governance-firstviewport-value-dedupe-masterplan',
+    ),
+  },
+  'journey.governance-delivery-trust-masterplan': {
+    id: 'journey.governance-delivery-trust-masterplan',
+    label: 'Governance Delivery-Trust – Verdict SSOT, identity, bento, logcat',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-delivery-trust-masterplan',
     ),
   },
   'journey.governance-growth-masterplan-round2': {
