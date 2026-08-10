@@ -29,7 +29,7 @@ import { businessTitleFromSummary } from './Delivera-App-Shared-Delivery-Copy-01
 // SIZE-EXEMPT: cohesive ActiveLoop story orchestrator (load/cache, spotlight URL, decision drawers); helpers live in Commitment-Pack / Continuity / Cache Guard SSOTs.
 
 const CACHE_PREFIX = `delivera:governance:active-loop:v2:${DELIVERA_CLIENT_RELEASE_SCHEMA}`;
-const PRESENTATION_CONTRACT_VERSION = 5;
+const PRESENTATION_CONTRACT_VERSION = 6;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const sharedStoryState = globalThis.__deliveraGovernanceActiveLoopState ||= {
   activeAnswer: null,
@@ -297,7 +297,7 @@ function matrixRow(squad, { preferredKey = '' } = {}) {
     || 'Open';
   const actionShort = (isPreferred || isCurrent) ? 'Open' : verbFromSsot;
   const piPct = Number(squad.piPct);
-  const evidencedLabel = Number.isFinite(piPct) ? `${piPct}% evidenced` : (noBaseline ? 'Cannot score' : '—');
+  const evidencedLabel = Number.isFinite(piPct) ? `${piPct}% source coverage` : (noBaseline ? 'Cannot score' : '—');
   const divertPct = Number(squad.doingInstead?.major?.percentage ?? split.unplannedPct);
   const divertTitle = squad.doingInstead?.major?.title
     || (Number.isFinite(divertPct) && divertPct > 0 ? `${divertPct}% unplanned` : '')
@@ -392,7 +392,7 @@ function portfolioMatrix(answer) {
     <div class="gov-story-matrix-head"><div><span class="gov-loop-kicker">${escapeHtml(matrixHeadKicker)}</span><h2 id="gov-story-matrix-title">${escapeHtml(matrixHeadTitle)}</h2></div></div>
     ${lensesToolbar}
     <div class="gov-story-table" role="table" aria-label="PI governance by squad">
-      <div class="gov-story-columns" role="row"><span>Squad</span><span>Evidenced</span><span>Diverted</span><span>Slip</span><span>Next</span></div>
+      <div class="gov-story-columns" role="row"><span>Squad</span><span>Source coverage</span><span>Diverted</span><span>Slip</span><span>Next</span></div>
       ${baselineMissing.length ? cannotVerifySummaryRow(baselineMissing) : ''}
       ${baselineVerified.map((squad) => matrixRow(squad, { preferredKey })).join('')}
     </div>
@@ -476,6 +476,13 @@ function deliveryBentoHtml(answer, coverage) {
   const evidencedDetail = (!inTunnel && (kpis.storiesDone || kpis.epicsClosed))
     ? `${kpis.storiesDone} stories · ${kpis.epicsClosed} epics closed`
     : '';
+  const truth = answer?.deliveryTruth || {};
+  const delivered = Number(truth.commitmentCompletion?.total) > 0
+    ? `${Number(truth.commitmentCompletion?.completed) || 0}/${Number(truth.commitmentCompletion.total)}`
+    : '—';
+  const deliveredDetail = Number(truth.childStoryCompletion?.total) > 0
+    ? `${Number(truth.childStoryCompletion?.completed) || 0}/${Number(truth.childStoryCompletion.total)} child stories`
+    : 'outcome confirmation pending';
   const divertedDetail = (!inTunnel && kpis.topDivertTitle)
     ? kpis.topDivertTitle.slice(0, 36)
     : '';
@@ -487,7 +494,7 @@ function deliveryBentoHtml(answer, coverage) {
     ? ''
     : `<div class="gov-delivery-cell" data-delivery-cell="attention"><strong>${kpis.attentionCount}</strong><small>At risk</small></div>`;
   return `<div class="gov-delivery-bento" data-gov-delivery-bento="1" data-bento-scope="${isSquadScoped ? 'squad' : 'portfolio'}" data-bento-squad="${escapeHtml(isSquadScoped ? railKey : '')}" aria-label="PI delivery pulse">
-    <div class="gov-delivery-cell" data-delivery-cell="evidenced"><strong>${escapeHtml(evidenced)}</strong><small>Evidenced${evidencedDetail ? ` · ${escapeHtml(evidencedDetail)}` : ''}</small></div>
+    <div class="gov-delivery-cell" data-delivery-cell="delivered"><strong>${escapeHtml(delivered)}</strong><small>Delivered · ${escapeHtml(deliveredDetail)}</small></div>
     <div class="gov-delivery-cell" data-delivery-cell="diverted"><strong>${kpis.divertingCount}</strong><small>Diverting${divertedDetail ? ` · ${escapeHtml(divertedDetail)}` : ''}</small></div>
     ${attentionCell}
     <div class="gov-delivery-cell" data-delivery-cell="unverified"><strong>${kpis.unverifiedCount}</strong><small>Unverified</small></div>
@@ -533,11 +540,16 @@ function refreshDecisionSurface(answer = activeAnswer) {
   const inTunnel = activeLens === 'squad' && Boolean(spotlightKey);
   const isSquadScoped = Boolean(focusSquad) && (inTunnel || Boolean(lockedAccordionSquad));
   const noBaseline = !answer.contract;
-  const nextLabel = primaryVerbLabel(focusSquad, {
+  let nextLabel = primaryVerbLabel(focusSquad, {
     noBaseline,
     isSquadView: isSquadScoped,
     actionLabels,
   });
+  if (/send nudge/i.test(nextLabel)) {
+    const decision = decisionPromiseForAnswer(answer);
+    const owner = decision?.ownerRoute?.displayName || focusSquad?.ownerRoute?.displayName || 'squad owner';
+    nextLabel = decision?.issueKey ? `Ask ${owner} about ${decision.issueKey}` : `Ask ${owner} for evidence`;
+  }
 
   // Soft-swap H1 / Why to locked or tunnel squad (peek does not call this).
   const h1 = hero.querySelector('[data-gov-delivery-h1]');
@@ -667,11 +679,16 @@ function renderHero(answer) {
   const focusKey = activeRailSquadKey(answer);
   const focusSquad = (answer?.squads || []).find((item) => item.squad === focusKey);
   const isSquadView = activeLens === 'squad' && Boolean(spotlightKey) && Boolean(focusSquad);
-  const nextLabel = primaryVerbLabel(focusSquad, {
+  let nextLabel = primaryVerbLabel(focusSquad, {
     noBaseline,
     isSquadView: isSquadView || Boolean(lockedAccordionSquad && focusSquad),
     actionLabels,
   });
+  if (/send nudge/i.test(nextLabel)) {
+    const decision = decisionPromiseForAnswer(answer);
+    const owner = decision?.ownerRoute?.displayName || focusSquad?.ownerRoute?.displayName || 'squad owner';
+    nextLabel = decision?.issueKey ? `Ask ${owner} about ${decision.issueKey}` : `Ask ${owner} for evidence`;
+  }
   const sourceLine = String(answer.sourceLine || '').replace(/\s*·\s*last verified[^·]*$/i, '').trim() || answer.sourceLine;
   const missionKicker = isSquadView ? 'Selected squad' : 'Portfolio mission';
   const squadVerdict = buildDeliveryH1(answer, { isSquadView, focusSquad });
@@ -971,7 +988,7 @@ function squadAccordionHtml(squadKey, { locked = false } = {}) {
   if (!summary) return '<p class="gov-calm-note">Squad summary unavailable.</p>';
   const promises = (activeAnswer?.promises || []).filter((item) => item.squad === squadKey);
   const piPct = Number(summary.piPct);
-  const evidenced = Number.isFinite(piPct) ? `${piPct}% evidenced` : (summary.contractState?.label || 'Evidence pending');
+  const evidenced = Number.isFinite(piPct) ? `${piPct}% source coverage` : (summary.contractState?.label || 'Evidence pending');
   const divert = summary.doingInstead?.major?.title
     || (Number(summary.workSplit?.unplannedPct) > 0 ? `${summary.workSplit.unplannedPct}% unplanned` : 'No diversion proven');
   const sprint = summary.sprintCadence?.label
@@ -985,7 +1002,7 @@ function squadAccordionHtml(squadKey, { locked = false } = {}) {
   const baselineMissing = summary.baselineCoverage?.state === 'missing';
   return `<div class="gov-squad-accordion-body" data-accordion-locked="${locked ? 'true' : 'false'}">
     <div class="gov-squad-accordion-pulse" data-accordion-pulse="1">
-      <span data-accordion-evidenced="1"><strong>${escapeHtml(evidenced)}</strong><small>Delivered</small></span>
+      <span data-accordion-evidenced="1"><strong>${escapeHtml(evidenced)}</strong><small>Source coverage</small></span>
       <span data-accordion-diverted="1"><strong>${escapeHtml(divert)}</strong><small>Diverted</small></span>
       <span data-accordion-sprint="1"><strong>${escapeHtml(sprint)}</strong><small>Sprint</small></span>
     </div>
@@ -1254,7 +1271,7 @@ function spotlightHtml(detail) {
   const h1OwnsDiagnosis = Boolean(String(squad.contractState?.label || '').trim());
   const showDiagnosisGroups = !inTunnel && !h1OwnsDiagnosis && diagnosisGroups.length > 0;
   const piPct = Number(squad.piPct);
-  const deliveredLabel = Number.isFinite(piPct) ? `${piPct}% evidenced` : (squad.contractState?.label || 'Evidence pending');
+  const deliveredLabel = Number.isFinite(piPct) ? `${piPct}% source coverage` : (squad.contractState?.label || 'Evidence pending');
   const divertLabel = squad.doingInstead?.major?.title
     || (Number(squad.workSplit?.unplannedPct) > 0 ? `${squad.workSplit.unplannedPct}% unplanned` : 'No diversion proven');
   const riskLabel = Number(squad.attentionCount) > 0 ? `${squad.attentionCount} at risk` : 'None at risk';

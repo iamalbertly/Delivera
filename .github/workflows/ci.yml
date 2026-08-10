@@ -20,8 +20,8 @@ jobs:
       # Guard: fail fast if styles.css was edited directly instead of via partials
       - name: Verify CSS partials are in sync
         run: npm run build:css && npm run check:css
-      - name: Run five risk-ranked release scenarios
-        run: npm run test:governance:release
+      - name: Run Customer Realism master-plan gate
+        run: npm run test:masterplan:customer-realism
         env:
           CI: true
           NODE_ENV: test
@@ -72,3 +72,14 @@ jobs:
           TEST_LOGIN_USER: ${{ secrets.APP_LOGIN_USER }}
           TEST_LOGIN_PASSWORD: ${{ secrets.APP_LOGIN_PASSWORD }}
         run: npx playwright test tests/Delivera-Deploy-Smoke-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list
+      - name: Validate DMS Jira write and guaranteed cleanup
+        env:
+          CI: true
+          BASE_URL: ${{ secrets.DELIVERA_PROD_BASE_URL != '' && secrets.DELIVERA_PROD_BASE_URL || secrets.VODAAGILEBOARD_PROD_BASE_URL }}
+          SKIP_WEBSERVER: true
+          TEST_LOGIN_USER: ${{ secrets.APP_LOGIN_USER }}
+          TEST_LOGIN_PASSWORD: ${{ secrets.APP_LOGIN_PASSWORD }}
+          DELIVERA_RUN_DMS_WRITE_VALIDATION: true
+          DELIVERA_DMS_VALIDATION_USERS: ${{ secrets.APP_LOGIN_USER }}
+          DELIVERA_RELEASE_ID: ${{ github.sha }}
+        run: npm run test:production:dms-write-cleanup

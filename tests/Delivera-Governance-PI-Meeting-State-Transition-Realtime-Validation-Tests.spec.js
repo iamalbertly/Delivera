@@ -31,7 +31,7 @@ const promise = {
 };
 
 const STORY = {
-  schemaVersion: 2, presentationContractVersion: 5, buildSha: 'test', compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
+  schemaVersion: 2, presentationContractVersion: 6, buildSha: 'test', compatibilitySchemaVersion: 1, answerId: 'story-v2', answerVersion: 4, missionHeader: 'FY27 Q2 PI contract governance', contract: { id: 'q2-contract', piName: 'FY27 Q2', source: 'approved-portfolio-baselines' },
   scope: { mode: 'all-squads', projects: ['DMS', 'RPA', 'AMS', 'TRS', 'OPS'], expectedSquads: 5, verifiedSquads: 5, piGovernedSquads: 4, excludedOperationalGroups: 1, complete: true, partialProjects: [] },
   answer: '2 squads are not aligned to PI promises. DMS has 1 no-proof promise. RPA has 1 partial match.', sourceLine: 'Compared with FY27 Q2 PI contract · 4 promises checked', deliveraDid: 'Delivera matched the contract to Jira, checked proof age and work split, and prepared 2 safe owner asks.', verifiedAt: NOW.toISOString(), loopCompletion: 25,
   decisionCoverage: { closed: 1, total: 4, preparedOwnerAsks: 2, copy: '1 decided · 3 open · 4 in scope' },
@@ -114,7 +114,7 @@ test.describe('Meeting-ready governance browser journey @focused', () => {
     await expect(hero).toContainText('Portfolio mission'); await expect(hero.locator('[data-story-squad]')).toHaveCount(4); await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify'); await expect(hero.locator('[data-story-squad="RPA"]')).not.toContainText('off-plan');
     await expect(hero.locator('.gov-loop-decision-count')).toContainText('of 4');
     await expect(hero.locator('.gov-story-columns')).toContainText('Squad');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Evidenced');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Source coverage');
     await expect(hero.locator('.gov-story-columns')).toContainText('PI impact');
     await expect(hero.locator('.gov-story-columns')).toContainText('Next move');
     await expect(hero.locator('.gov-story-columns')).not.toContainText('Proof / next');
@@ -305,7 +305,7 @@ test.describe('Direct-to-value governance release — exactly five fail-fast sce
     await expect(hero).toContainText('2 squads are not aligned');
     await expect(hero.locator('[data-story-squad]')).toHaveCount(4);
     await expect(hero.locator('[data-story-squad="RPA"]')).toContainText('Cannot verify');
-    await expect(hero.locator('.gov-story-columns')).toContainText('Evidenced');
+    await expect(hero.locator('.gov-story-columns')).toContainText('Source coverage');
     await expect(hero.locator('.gov-story-columns')).toContainText('PI impact');
     await expect(hero.locator('.gov-story-columns')).toContainText('Next move');
     await expect(page.locator('#gov-action-clusters-mount:visible')).toHaveCount(0);

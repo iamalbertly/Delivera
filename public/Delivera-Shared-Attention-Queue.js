@@ -90,15 +90,20 @@ export function renderAttentionQueueTable({ title = 'Attention queue', items = [
     const nextMoveCell = item.assignInline
       ? `<button type="button" class="btn btn-secondary btn-compact" data-attention-assign="${escapeHtml(item.issueKey)}" data-risk-tags="unassigned">Assign</button>`
       : escapeHtml(demotedNext);
+    const reason = String(item.reason || 'Needs attention').trim();
+    const proof = String(item.proof || '').trim();
+    const evidenceAge = !proof || proof === reason
+      ? 'No newer evidence'
+      : proof;
     return `
     <tr data-risk-tags="${escapeHtml((item.riskTags || []).join(' '))}" data-issue-key="${escapeHtml(item.issueKey || item.issue || '')}">
       <td data-label="Issue">${/^[A-Z][A-Z0-9]+-\d+$/i.test(String(item.issueKey || item.issue || ''))
-        ? renderIssueIdentityHtml(item.issueKey || item.issue, { title: item.summary || item.title || item.reason || '' })
+        ? renderIssueIdentityHtml(item.issueKey || item.issue, { title: item.summary || item.title || '' })
         : escapeHtml(item.issue)}</td>
-      <td data-label="Reason">${escapeHtml(item.reason)}</td>
+      <td data-label="Risk">${escapeHtml(reason)}</td>
       <td data-label="Owner">${escapeHtml(item.owner)}</td>
-      <td data-label="Next move">${nextMoveCell}</td>
-      <td data-label="Proof">${escapeHtml(item.proof)}</td>
+      <td data-label="Next action">${nextMoveCell}</td>
+      <td data-label="Evidence age">${escapeHtml(evidenceAge)}</td>
     </tr>`;
   }).join('');
   return `
@@ -106,7 +111,7 @@ export function renderAttentionQueueTable({ title = 'Attention queue', items = [
       <h2 class="governance-section-title">${escapeHtml(title)}</h2>
       <div class="data-table-scroll-wrap attention-queue-table-wrap">
         <table class="attention-queue-table">
-          <thead><tr><th>Issue</th><th>Reason</th><th>Owner</th><th>Next move</th><th>Proof</th></tr></thead>
+          <thead><tr><th>Issue</th><th>Risk</th><th>Owner</th><th>Next action</th><th>Evidence age</th></tr></thead>
           <tbody>${body}</tbody>
         </table>
       </div>

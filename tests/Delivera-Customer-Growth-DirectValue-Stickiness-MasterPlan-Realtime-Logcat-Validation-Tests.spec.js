@@ -19,7 +19,7 @@ const DIAGNOSIS = 'Jira commitment exists but lacks PI metadata';
 function activeLoopAnswer() {
   return {
     schemaVersion: 2,
-    presentationContractVersion: 5,
+    presentationContractVersion: 6,
     answerVersion: 11,
     missionHeader: 'FY27 Q2 PI contract governance',
     contract: { id: 'contract-q2', piName: 'FY27 Q2', source: 'approved-baseline' },

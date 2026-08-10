@@ -40,7 +40,7 @@ function activeAnswer() {
     promise({ promiseId: 'promise-finance', squad: 'RPA', issueKey: 'RPA-88', title: 'Finance launch' }),
   ];
   return {
-    schemaVersion: 2, presentationContractVersion: 5, answerVersion: 7, missionHeader: 'Protect FY27 Q2 commitments',
+    schemaVersion: 2, presentationContractVersion: 6, answerVersion: 7, missionHeader: 'Protect FY27 Q2 commitments',
     answer: 'Two squads need one evidence decision each.', sourceLine: 'Compared with FY27 Q2 PI contract · 2 promises checked · verified now',
     deliveraDid: 'Delivera reconciled Jira sprint truth and prepared the safest owner asks.', verifiedAt: now, evidenceObservedAt: now,
     freshness: { state: 'live' }, contract: { id: 'fy27-q2', piName: 'FY27 Q2', source: 'approved-baseline' },

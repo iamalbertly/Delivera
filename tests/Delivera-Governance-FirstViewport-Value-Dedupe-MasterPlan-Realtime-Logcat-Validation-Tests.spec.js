@@ -15,7 +15,7 @@ const NOW = new Date('2026-07-17T10:32:00.000Z').toISOString();
 function buildAnswer() {
   return {
     schemaVersion: 2,
-    presentationContractVersion: 5,
+    presentationContractVersion: 6,
     answerVersion: 9,
     cacheRelease: undefined,
     missionHeader: 'PORTFOLIO MISSION FY27 Q2 PI contract governance',
@@ -234,7 +234,7 @@ test.describe('Governance FirstViewport Value Dedupe MasterPlan @focused', () =>
       await expect(h1).toContainText(/evidenced/i);
       await expect(h1).not.toContainText(/squads verified/i);
       await expect(page.locator('[data-gov-delivery-bento="1"]')).toBeVisible();
-      await expect(page.locator('[data-delivery-cell="evidenced"]')).toBeVisible();
+      await expect(page.locator('[data-delivery-cell="delivered"]')).toBeVisible();
       await expect(page.locator('[data-delivery-cell="diverted"]')).toBeVisible();
     });
 
@@ -279,7 +279,7 @@ test.describe('Governance FirstViewport Value Dedupe MasterPlan @focused', () =>
 
     await test.step('06 matrix shows evidenced / diverted / slip columns; quiet diversion wallpaper', async () => {
       const cols = page.locator('.gov-story-columns');
-      await expect(cols).toContainText(/Evidenced/i);
+      await expect(cols).toContainText(/Source coverage/i);
       await expect(cols).toContainText(/Diverted/i);
       await expect(cols).toContainText(/Slip/i);
       await expect(cols).not.toContainText(/Current reality/i);

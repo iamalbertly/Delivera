@@ -19,7 +19,7 @@ const NOW = '2026-07-17T10:32:00.000Z';
 function activeLoopAnswer() {
   return {
     schemaVersion: 2,
-    presentationContractVersion: 5,
+    presentationContractVersion: 6,
     answerVersion: 7,
     missionHeader: 'FY27 Q2 PI contract governance',
     contract: { id: 'contract-q2', piName: 'FY27 Q2', source: 'approved-baseline' },

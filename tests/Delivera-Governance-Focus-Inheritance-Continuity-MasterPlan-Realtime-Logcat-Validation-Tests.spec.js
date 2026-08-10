@@ -21,7 +21,7 @@ function activeLoopAnswer() {
   return {
     schemaVersion: 2,
     cacheRelease: '20260730a',
-    presentationContractVersion: 5,
+    presentationContractVersion: 6,
     answerVersion: 12,
     missionHeader: 'FY27 Q2 PI contract governance',
     contract: { id: 'contract-q2', piName: 'FY27 Q2', source: 'approved-baseline' },

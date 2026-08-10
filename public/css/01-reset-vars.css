@@ -61,7 +61,7 @@
   /* Layout geometry — single source of truth so drawer calc stays in sync with sidebar */
   --sidebar-width: 240px;
   --brief-desktop-gap: 12px;
-  --brief-desktop-cols: minmax(0, 1fr) minmax(320px, 1fr);
+  --brief-desktop-cols: minmax(0, 2fr) minmax(320px, 1fr);
   /* Work draft canvas — type chip colours */
   --chip-epic: #6d28d9;
   --chip-epic-bg: #f5f3ff;
@@ -83,6 +83,7 @@
 
 /* Viewport containment: prevent any component from extending past the device viewport */
 html {
+  scroll-padding-top: calc(var(--top-chrome-height) + 16px);
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;

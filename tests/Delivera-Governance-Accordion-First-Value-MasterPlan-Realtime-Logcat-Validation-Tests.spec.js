@@ -20,7 +20,7 @@ function activeLoopAnswer() {
   return {
     schemaVersion: 2,
     cacheRelease: '20260730a',
-    presentationContractVersion: 5,
+    presentationContractVersion: 6,
     answerVersion: 11,
     missionHeader: 'FY27 Q2 PI contract governance',
     contract: { id: 'contract-q2', piName: 'FY27 Q2', source: 'approved-baseline' },
@@ -379,7 +379,7 @@ test.describe('Governance accordion-first value master plan', () => {
       await expect(page).toHaveURL(/[?&]squad=SD/);
       await expect(page.locator('body')).toHaveClass(/governance-squad-selected/);
       await expect(page.locator('[data-gov-delivery-bento]')).toHaveAttribute('data-bento-scope', 'squad');
-      await expect(page.locator('[data-delivery-cell="evidenced"] strong')).toBeVisible();
+      await expect(page.locator('[data-delivery-cell="delivered"] strong')).toBeVisible();
       // Twin-meter seal: tunnel outcome strip owns At risk — bento omits duplicate attention cell.
       await expect(page.locator('[data-gov-delivery-bento] [data-delivery-cell="attention"]')).toHaveCount(0);
       await expect(page.locator('[data-spotlight-outcome]')).toBeVisible();

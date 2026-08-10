@@ -87,7 +87,7 @@ function auditHistory() {
 }
 
 function renderBand(title, description, items, emptyCopy = 'Nothing to review right now.') {
-  return `<section class="registry-band"><header class="registry-band-head"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span>${items.length}</span></header>${items.length ? `<div class="registry-list">${items.map(row).join('')}</div>` : `<p class="governance-empty">${escapeHtml(emptyCopy)}</p>`}</section>`;
+  return `<section class="registry-band" data-registry-band><header class="registry-band-head"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span data-registry-band-count>${items.length} / ${items.length}</span></header>${items.length ? `<div class="registry-list">${items.map(row).join('')}</div>` : `<p class="governance-empty">${escapeHtml(emptyCopy)}</p>`}</section>`;
 }
 
 function render() {
@@ -102,7 +102,7 @@ function render() {
     ? `<input type="search" class="gov-visually-hidden" data-registry-filter data-registry-filter-chrome-ssot="1" tabindex="-1" aria-hidden="true" placeholder="Name, key, owner, or state">`
     : `<label class="registry-filter">Find squad<input type="search" data-registry-filter placeholder="Name, key, owner, or state"></label>`;
   const bulkFirst = canManageOrganizationSettings
-    ? `<section class="registry-band registry-band--org-policy" data-registry-org-policy="1"><header class="registry-band-head"><div><h3>Organization participation policy</h3><p>Toggle pending-consent and operational exceptions once for every Delivera surface. Soft-include squads appear as unverified until a PI baseline exists; soft-exclude keeps historical evidence but removes them from PI ranks.</p></div><span data-selected-count>0 squads selected</span></header><div class="registry-bulk registry-bulk--open" aria-labelledby="registry-bulk-title"><div class="registry-bulk-body"><p id="registry-bulk-title">Updates are atomic and auditable across Governance, Current Sprint, and Actions.</p><button type="button" class="btn btn-link btn-compact" data-select-pending>Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed (soft include)</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception (soft exclude)</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><button type="button" class="btn btn-primary" data-bulk-preview disabled>Apply policy</button><p data-bulk-status role="status" aria-live="polite"></p></div></div></section>`
+    ? `<section class="registry-band registry-band--org-policy" data-registry-org-policy="1"><header class="registry-band-head"><div><h3>Organization participation policy</h3><p>Toggle pending-consent and operational exceptions once for every Delivera surface. Soft-include squads appear as unverified until a PI baseline exists; soft-exclude keeps historical evidence but removes them from PI ranks.</p></div><span data-selected-count>0 squads selected</span></header><div class="registry-bulk registry-bulk--open" aria-labelledby="registry-bulk-title"><div class="registry-bulk-body"><p id="registry-bulk-title">Updates are atomic and auditable across Governance, Current Sprint, and Actions.</p><button type="button" class="btn btn-link btn-compact" data-select-pending aria-pressed="false">Select pending consent</button><label>New participation<select data-bulk-participation><option value="">Keep current</option><option value="pi-governed">PI-governed (soft include)</option><option value="pending-consent">Pending consent</option><option value="operational-exception">Operational exception (soft exclude)</option></select></label><label>Reason<input data-bulk-reason autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Why this organization policy is changing"></label><div data-bulk-diff class="registry-policy-diff" role="status" aria-live="polite">Select squads to preview an organization-wide change.</div><button type="button" class="btn btn-primary" data-bulk-preview disabled>Publish changes</button><p data-bulk-status role="status" aria-live="polite"></p></div></div></section>`
     : '';
   mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>${canManageOrganizationSettings ? 'Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.' : 'Organization settings are read-only for this account. An authorized super admin publishes changes once for every Delivera surface.'}</p></div><span>Registry v${Number(registry.version) || 1}</span></div>
     ${findControl}
@@ -124,6 +124,11 @@ function filterRows(event) {
     form.hidden = Boolean(query) && !form.textContent.toLowerCase().includes(query);
   });
   if (!query) mount.querySelectorAll('[data-registry-squad]').forEach((form) => { form.hidden = false; });
+  mount.querySelectorAll('[data-registry-band]').forEach((band) => {
+    const rows = [...band.querySelectorAll('[data-registry-squad]')];
+    const count = band.querySelector('[data-registry-band-count]');
+    if (count) count.textContent = `${rows.filter((form) => !form.hidden).length} / ${rows.length}`;
+  });
 }
 
 function updateRowState(form) {
@@ -199,48 +204,30 @@ function updateBulkState() {
   const reason = normalized(mount.querySelector('[data-bulk-reason]')?.value);
   const participation = normalized(mount.querySelector('[data-bulk-participation]')?.value);
   mount.querySelector('[data-selected-count]').textContent = `${selected.length} squad${selected.length === 1 ? '' : 's'} selected`;
-  // Auto-suggest: if squads are selected but participation not yet chosen, default to 'pi-governed'
-  if (selected.length && !participation) {
-    const select = mount.querySelector('[data-bulk-participation]');
-    if (select && select.value !== 'pi-governed') {
-      select.value = 'pi-governed';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-      return; // re-run updateBulkState via the change listener
-    }
-  }
-  // Auto-suggest: if squads are selected but reason is empty, pre-fill a default reason
-  if (selected.length && !reason) {
-    const reasonInput = mount.querySelector('[data-bulk-reason]');
-    if (reasonInput && !reasonInput.dataset.autoFilled) {
-      reasonInput.value = 'Onboarding into PI governance';
-      reasonInput.dataset.autoFilled = '1';
-      reasonInput.dispatchEvent(new Event('input', { bubbles: true }));
-      return; // re-run updateBulkState via the input listener
-    }
-  }
   mount.querySelector('[data-bulk-preview]').disabled = !selected.length || !reason || !participation;
   const previewBtn = mount.querySelector('[data-bulk-preview]');
-  if (previewBtn && !previewBtn.disabled) previewBtn.textContent = 'Apply policy';
-  else if (previewBtn) previewBtn.textContent = 'Apply policy';
+  if (previewBtn) previewBtn.textContent = `Publish ${selected.length || ''} change${selected.length === 1 ? '' : 's'}`.replace('  ', ' ');
+  const diff = mount.querySelector('[data-bulk-diff]');
+  if (diff) diff.textContent = !selected.length
+    ? 'Select squads to preview an organization-wide change.'
+    : !participation
+      ? `${selected.length} selected · choose the intended participation state; nothing has changed.`
+      : `${selected.length} selected · current states → ${participation.replace(/-/g, ' ')} · publication remains reversible through a new version.`;
 }
 
 function wireBulk() {
   if (!canManageOrganizationSettings || !mount.querySelector('.registry-bulk')) return;
   mount.querySelector('[data-select-pending]')?.addEventListener('click', () => {
-    let selected = 0;
+    const button = mount.querySelector('[data-select-pending]');
+    const clearPreset = button?.getAttribute('aria-pressed') === 'true';
     mount.querySelectorAll('[data-registry-squad]').forEach((form) => {
       const item = registry.squads.find((squad) => squad.squadKey === form.dataset.registrySquad);
       const pending = item?.participationState === 'pending-consent';
-      form.querySelector('[data-registry-select]').checked = pending;
-      if (pending) selected += 1;
+      form.querySelector('[data-registry-select]').checked = clearPreset ? false : pending;
     });
-    // One gesture: soft-include + auto-reason so Preview enables immediately.
-    const select = mount.querySelector('[data-bulk-participation]');
-    if (select && selected) select.value = 'pi-governed';
-    const reasonInput = mount.querySelector('[data-bulk-reason]');
-    if (reasonInput && selected && !normalized(reasonInput.value)) {
-      reasonInput.value = 'Onboarding into PI governance';
-      reasonInput.dataset.autoFilled = '1';
+    if (button) {
+      button.setAttribute('aria-pressed', String(!clearPreset));
+      button.textContent = clearPreset ? 'Select pending consent' : 'Clear pending selection';
     }
     updateBulkState();
   });
@@ -286,7 +273,7 @@ function broadcastRegistryVersion(version) {
 
 async function requestBatch(changes, reason) {
   const idempotencyKey = globalThis.crypto?.randomUUID?.() || `registry-${Date.now()}`;
-  const response = await fetch('/api/governance/registry', { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ changes, reason, idempotencyKey }) });
+  const response = await fetch('/api/governance/registry', { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey, 'If-Match': `"${Number(registry?.version) || 1}"` }, body: JSON.stringify({ changes, reason, idempotencyKey, expectedRegistryVersion: Number(registry?.version) || 1 }) });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw Object.assign(new Error(result.error || 'No organization truth was changed.'), { result, status: response.status });
   return result;

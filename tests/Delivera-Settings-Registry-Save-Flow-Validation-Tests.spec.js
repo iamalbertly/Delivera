@@ -3,7 +3,7 @@ import { loginIfRequired } from './Delivera-Playwright-Login-If-Required-01Helpe
 
 /**
  * Validates Settings save flow + band exclusivity.
- * - Auto-suggests participation (PI-governed) + pre-fills reason
+ * - Presets selection only; policy and rationale remain explicit
  * - Uses in-app drawer preview (not native confirm())
  * - Broadcasts registry version via localStorage
  * - Each squad appears in exactly one band
@@ -22,23 +22,23 @@ const MOCK_REGISTRY = {
 };
 
 test.describe('Settings registry save flow', () => {
-  test('auto-suggests participation and pre-fills reason after selecting pending', async ({ page }) => {
+  test('pending preset is reversible and does not invent participation or reason', async ({ page }) => {
     await page.route('**/api/governance/registry.json*', (route) => {
       route.fulfill({ json: MOCK_REGISTRY });
     });
 
     await loginIfRequired(page, '/settings', { rootSelector: '#governance-registry-title, .registry-bulk' });
-    await page.locator('.registry-bulk > summary').click();
     await expect(page.locator('[data-select-pending]')).toBeVisible();
     await page.locator('[data-select-pending]').click();
-    await page.waitForTimeout(500);
 
     const participationSelect = page.locator('[data-bulk-participation]');
-    await expect(participationSelect).toHaveValue('pi-governed');
+    await expect(participationSelect).toHaveValue('');
     const reasonInput = page.locator('[data-bulk-reason]');
-    await expect(reasonInput).toHaveValue('Onboarding into PI governance');
+    await expect(reasonInput).toHaveValue('');
     const previewBtn = page.locator('[data-bulk-preview]');
-    await expect(previewBtn).toBeEnabled();
+    await expect(previewBtn).toBeDisabled();
+    await page.locator('[data-select-pending]').click();
+    await expect(page.locator('[data-selected-count]')).toContainText('0 squads');
   });
 
   test('uses in-app drawer preview instead of native confirm()', async ({ page }) => {
@@ -61,10 +61,10 @@ test.describe('Settings registry save flow', () => {
     page.on('dialog', () => { confirmCalled = true; });
 
     await loginIfRequired(page, '/settings', { rootSelector: '#governance-registry-title, .registry-bulk' });
-    await page.locator('.registry-bulk > summary').click();
     await expect(page.locator('[data-select-pending]')).toBeVisible();
     await page.locator('[data-select-pending]').click();
-    await page.waitForTimeout(500);
+    await page.locator('[data-bulk-participation]').selectOption('pi-governed');
+    await page.locator('[data-bulk-reason]').fill('Consent verified');
     await page.locator('[data-bulk-preview]').click();
 
     const drawer = page.locator('.gov-right-drawer-panel:visible');
@@ -115,7 +115,7 @@ test.describe('Settings registry save flow', () => {
       route.fulfill({ json: MOCK_REGISTRY });
     });
     await loginIfRequired(page, '/settings', { rootSelector: '#gov-settings-registry-mount' });
-    const bands = page.locator('.registry-band');
+    const bands = page.locator('.registry-band:not([data-registry-org-policy])');
     await expect(bands).toHaveCount(3);
     await expect(bands.nth(0)).toContainText('Participation exceptions');
     await expect(bands.nth(1)).toContainText('Owner-route gaps');
@@ -128,6 +128,6 @@ test.describe('Settings registry save flow', () => {
     expect(new Set(allKeys).size).toBe(allKeys.length);
     const bulkBox = await page.locator('.registry-bulk').boundingBox();
     const ownerGapBox = await bands.nth(1).boundingBox();
-    expect(bulkBox?.y || 0).toBeGreaterThan(ownerGapBox?.y || 0);
+    expect(bulkBox?.y || 0).toBeLessThan(ownerGapBox?.y || 0);
   });
 });

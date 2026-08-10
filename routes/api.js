@@ -23,7 +23,7 @@ import {
     updateGovernanceRegistryBatch,
     updateGovernanceRegistrySquad,
 } from '../lib/Delivera-Governance-Registry-01Store-IO.js';
-import { assertTruthConsistency, buildDeliveryTruthContext } from '../lib/Delivera-Governance-Delivery-Truth-01SSOT.js';
+import { assertTruthConsistency, buildDeliveryTruthContext, buildDeliveryTruthProjection, toScopeTruth } from '../lib/Delivera-Governance-Delivery-Truth-01SSOT.js';
 import { streamCSV, CSV_COLUMNS } from '../lib/csv.js';
 import { generateExcelWorkbook, generateExcelFilename, formatDateRangeForFilename } from '../lib/excel.js';
 import { getQuarterLabelAndPeriod, getQuartersUpToCurrent } from '../lib/Delivera-Data-VodacomQuarters-01Bounds.js';
@@ -155,6 +155,18 @@ async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
     assertTruthConsistency(contexts);
     payload.contexts = contexts;
     payload.context = contexts.length === 1 ? contexts[0] : null;
+    payload.scopeTruth = contexts.length === 1 ? toScopeTruth(contexts[0]) : null;
+    payload.scopeTruths = contexts.map(toScopeTruth);
+    payload.truthHash = contexts.length === 1 ? contexts[0].truthHash : governanceTruthHashForContexts(contexts);
+    payload.dataState = payload.meta?.stale
+        ? 'snapshot'
+        : payload.meta?.partialPermissions ? 'degraded'
+            : (Array.isArray(payload.issues) && payload.issues.length === 0 ? 'empty' : 'live');
+    payload.deliveryTruth = buildDeliveryTruthProjection({
+        context: contexts[0] || null,
+        commitments: payload.epics || payload.commitments || [],
+        workItems: payload.issues || payload.items || [],
+    });
     payload.meta = {
         ...(payload.meta || {}),
         fiscalPeriod: contexts[0]?.fiscalPeriod || payload.meta?.fiscalPeriod || '',
@@ -163,6 +175,10 @@ async function attachCurrentSprintTruthContext(payload, projectKeys = []) {
         truthHashes: Object.fromEntries(contexts.map((item) => [item.squadId, item.truthHash])),
     };
     return payload;
+}
+
+function governanceTruthHashForContexts(contexts = []) {
+    return contexts.map((context) => context.truthHash).filter(Boolean).sort().join('.');
 }
 
 async function invalidateDeliveryTruthCaches({ refreshAccess = false } = {}) {
@@ -393,6 +409,18 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
         const aliases = { DMS: 'SD', AMS: 'AMS2', 'T-SQUAD': 'TRS', BIOMETRIC: 'BIO' };
         const squadKey = aliases[squadKeyRaw] || squadKeyRaw;
         const issueProject = issueKey.split('-')[0].toUpperCase();
+        const validationRunId = String(req.body?.validationRunId || '').trim();
+        const actorId = String(req.authUser?.id || req.session?.user || '').trim();
+        if (validationRunId) {
+            const allowedActors = new Set(String(process.env.DELIVERA_DMS_VALIDATION_USERS || 'r.lyatuu@gmail.com,albert.lyatuu@gmail.com')
+                .split(',').map((value) => value.trim().toLowerCase()).filter(Boolean));
+            if (!allowedActors.has(actorId.toLowerCase()) || issueKey.toUpperCase() !== 'SD-5314' || squadKey !== 'SD') {
+                return res.status(403).json({ error: 'Production validation is restricted to Albert Lyatuu, DMS/SD, and SD-5314.', code: 'DMS_VALIDATION_SCOPE_DENIED' });
+            }
+            if (!commentBody.includes(`[Delivera validation:${validationRunId}]`)) {
+                return res.status(422).json({ error: 'Validation comments require the unique cleanup marker.', code: 'DMS_VALIDATION_MARKER_REQUIRED' });
+            }
+        }
         if (interventionHash && !/^[a-f0-9]{24}$/i.test(interventionHash)) {
             return res.status(409).json({ error: 'The reviewed intervention is no longer valid. Refresh and review again.', code: 'INTERVENTION_CONTEXT_CONFLICT' });
         }
@@ -420,7 +448,7 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
         try {
             const commentId = result?.id || result?.commentId || null;
             const activityRow = await appendJiraActivityEntry({
-                user: req.user?.id || req.user?.email || 'unknown',
+                user: actorId || 'unknown',
                 issueKey,
                 commentId,
                 bodyPreview: commentBody,
@@ -430,6 +458,10 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
                 truthHash,
                 squadKey,
                 registryRevision: req.body?.registryRevision,
+                validationRunId,
+                commitSha: req.body?.commitSha,
+                cleanupRequired: Boolean(validationRunId),
+                cleanupStatus: validationRunId ? 'pending' : 'not-required',
                 status: 'sent',
             });
             activityId = activityRow?.id || null;
@@ -443,6 +475,9 @@ router.post('/api/issues/:issueKey/comment', requireAuth, async (req, res) => {
             commentId: result?.id || result?.commentId || null,
             activityId,
             auditId: activityId,
+            validationRunId,
+            cleanupRequired: Boolean(validationRunId),
+            cleanupStatus: validationRunId ? 'pending' : 'not-required',
         });
     } catch (error) {
         logger.error('Comment endpoint error', { error: error?.message });
@@ -456,7 +491,8 @@ router.get('/api/jira-activity', requireAuth, async (req, res) => {
     try {
         const limit = Math.min(100, Math.max(1, Number(req.query?.limit) || 50));
         const entries = await readJiraActivityEntries({ limit });
-        return res.json({ entries });
+        const actorId = String(req.authUser?.id || req.session?.user || '').trim().toLowerCase();
+        return res.json({ entries: isSuperAdminRequest(req) ? entries : entries.filter((entry) => String(entry.user || '').toLowerCase() === actorId) });
     } catch (error) {
         logger.error('Jira activity list failed', { error: error?.message });
         return res.status(500).json({ error: 'Failed to load activity', code: 'JIRA_ACTIVITY_READ_FAILED' });
@@ -469,6 +505,10 @@ router.post('/api/jira-activity/:id/undo', requireAuth, async (req, res) => {
         if (!id) return res.status(400).json({ error: 'Missing activity id', code: 'MISSING_ACTIVITY_ID' });
         const entry = await findJiraActivityEntry(id);
         if (!entry) return res.status(404).json({ error: 'Activity not found', code: 'ACTIVITY_NOT_FOUND' });
+        const actorId = String(req.authUser?.id || req.session?.user || '').trim().toLowerCase();
+        if (!isSuperAdminRequest(req) && String(entry.user || '').toLowerCase() !== actorId) {
+            return res.status(403).json({ error: 'You may undo only your own Jira activity.', code: 'ACTIVITY_UNDO_FORBIDDEN' });
+        }
         if (entry.status === 'undone') {
             return res.json({ success: true, entry, alreadyUndone: true });
         }
@@ -486,13 +526,14 @@ router.post('/api/jira-activity/:id/undo', requireAuth, async (req, res) => {
             await updateJiraActivityEntry(id, {
                 status: 'undo_failed',
                 undoReason: err?.message || 'Jira undo failed',
+                cleanupStatus: entry.cleanupRequired ? 'failed' : entry.cleanupStatus,
             });
             return res.status(httpStatus >= 400 && httpStatus < 600 ? httpStatus : 500).json({
                 error: err?.message || 'Could not undo in Jira',
                 code: err?.code || 'JIRA_UNDO_FAILED',
             });
         }
-        const updated = await updateJiraActivityEntry(id, { status: 'undone', undoReason: '' });
+        const updated = await updateJiraActivityEntry(id, { status: 'undone', undoReason: '', cleanupStatus: entry.cleanupRequired ? 'confirmed' : entry.cleanupStatus });
         return res.json({ success: true, entry: updated });
     } catch (error) {
         logger.error('Jira activity undo failed', { error: error?.message });
@@ -1174,21 +1215,30 @@ router.get('/api/current-sprint.json', requireAuth, async (req, res) => {
         if (!selectedProjects.length) {
             return res.status(400).json({ error: 'At least one project required', code: 'NO_PROJECTS' });
         }
-        const boardId = boardIdParam != null ? Number(boardIdParam) : null;
-        if (boardId == null || Number.isNaN(boardId)) {
-            return res.status(400).json({ error: 'boardId required', code: 'MISSING_BOARD_ID' });
-        }
+        let boardId = boardIdParam != null ? Number(boardIdParam) : null;
         const sprintId = sprintIdParam != null ? Number(sprintIdParam) : null;
 
         const agileClient = createAgileClient();
         const version3Client = createVersion3Client();
         recordActivity();
         const { boards } = await discoverBoardsWithCache(selectedProjects, agileClient);
+        const registry = await readGovernanceRegistry();
+        if (boardId == null || Number.isNaN(boardId)) {
+            const mappedIds = selectedProjects.flatMap((projectKey) => {
+                const row = registry.squads?.find((item) => item.squadKey === String(projectKey).toUpperCase());
+                return Array.isArray(row?.boardMapping) ? row.boardMapping : [];
+            }).map(Number).filter(Number.isFinite);
+            boardId = boards.find((candidate) => mappedIds.includes(Number(candidate.id)))?.id
+                ?? pickPrimaryBacklogBoard(boards)?.id
+                ?? null;
+        }
+        if (boardId == null || Number.isNaN(Number(boardId))) {
+            return res.status(422).json({ error: 'No sprint-capable board is registered for this squad.', code: 'BOARD_SCOPE_UNRESOLVED' });
+        }
         const board = boards.find(b => b.id === boardId);
         if (!board) return res.status(404).json({ error: 'Board not found', code: 'BOARD_NOT_FOUND' });
 
         const projectKeys = board.location?.projectKey ? [board.location.projectKey] : selectedProjects;
-        const registry = await readGovernanceRegistry();
         const registryParticipation = partitionSquadsByParticipation(registry, selectedProjects);
         const forceLive = req.query.live === 'true' || req.query.refresh === 'true';
         const completionAnchor = (req.query.completionAnchor || 'resolution').toLowerCase();
@@ -1989,7 +2039,7 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
             : await cache.get(storyKey, { namespace: 'governanceStoryV2' });
         const candidateStory = warmStory || hit?.value || hit;
         const cachedStory = candidateStory?.cacheRelease === DELIVERA_CLIENT_RELEASE_SCHEMA
-            && Number(candidateStory?.presentationContractVersion) === 5 && candidateStory?.lensSummaries
+            && Number(candidateStory?.presentationContractVersion) === 6 && candidateStory?.lensSummaries
             && Array.isArray(candidateStory?.excludedOperationalGroups)
             && candidateStory?.decisionCoverage
             && candidateStory?.squads?.every?.((squad) => Number(squad.riskOrder) > 0 && squad.payloadHash && squad.displayName && squad.contractState && squad.trustFactor)
@@ -2008,7 +2058,7 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
                         const shared = await cache.get(storyKey, { namespace: 'governanceStoryV2' });
                         const candidate = warm || shared?.value || shared;
                         if (candidate?.cacheRelease === DELIVERA_CLIENT_RELEASE_SCHEMA
-                            && Number(candidate?.presentationContractVersion) === 5
+                            && Number(candidate?.presentationContractVersion) === 6
                             && candidate?.lensSummaries
                             && Array.isArray(candidate?.excludedOperationalGroups)
                             && candidate?.decisionCoverage) {
@@ -2034,6 +2084,21 @@ router.get('/api/governance/active-loop.json', requireAuth, async (req, res) => 
         })));
         const contextBySquad = new Map(answer.contexts.map((context) => [context.squadId, context]));
         answer.squads = (answer.squads || []).map((squad) => ({ ...squad, context: contextBySquad.get(String(squad.squad || '').toUpperCase()) || null }));
+        if (projects.length === 1) {
+            const scopedKey = String(projects[0]).toUpperCase();
+            answer.squads = answer.squads.filter((squad) => String(squad.squad || '').toUpperCase() === scopedKey);
+            answer.promises = (answer.promises || []).filter((promise) => String(promise.squad || '').toUpperCase() === scopedKey);
+            answer.contexts = answer.contexts.filter((context) => context.squadId === scopedKey);
+        }
+        answer.scopeTruths = answer.contexts.map(toScopeTruth);
+        answer.scopeTruth = answer.contexts.length === 1 ? answer.scopeTruths[0] : null;
+        answer.deliveryTruth = buildDeliveryTruthProjection({
+            context: answer.contexts[0] || null,
+            commitments: answer.promises || [],
+            workItems: answer.squads.flatMap((squad) => squad.activeItems || squad.workItems || []),
+            quarterElapsed: answer.quarterElapsed,
+        });
+        answer.epicForecasts = answer.deliveryTruth.epicForecasts;
         rememberWarmGovernanceStory(storyKey, answer);
         if (!res.headersSent) {
           res.setHeader('ETag', `"${answer.answerVersion}"`);
@@ -2098,9 +2163,12 @@ router.get('/api/governance/actions.json', requireAuth, async (req, res) => {
                 };
             });
         return sendJsonOnce(res, 200, {
-            schemaVersion: 3,
+            schemaVersion: 4,
             storyVersion: answer.answerVersion,
             contexts: answer.contexts || [],
+            scopeTruth: requestedSquad ? toScopeTruth((answer.contexts || []).find((context) => context.squadId === requestedSquad)) : null,
+            truthHash: requestedSquad ? (answer.contexts || []).find((context) => context.squadId === requestedSquad)?.truthHash || '' : '',
+            deliveryTruth: buildDeliveryTruthProjection({ context: answer.contexts?.[0] || null, commitments: promises }),
             organizationParticipation: answer.organizationParticipation,
             cases,
         });
@@ -2135,6 +2203,8 @@ router.patch('/api/governance/registry', requireAuth, requireSuperAdmin, async (
             reason: req.body?.reason,
             actor: req.authUser?.id || req.session?.user || 'authorized-user',
             idempotencyKey,
+            expectedRegistryVersion: req.body?.expectedRegistryVersion
+                ?? (String(req.headers['if-match'] || '').replace(/[^0-9]/g, '') || null),
         });
         await invalidateDeliveryTruthCaches();
         res.setHeader('ETag', `"${registry.version}"`);

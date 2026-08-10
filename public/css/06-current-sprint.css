@@ -2405,14 +2405,14 @@ button.health-inline-pill {
 }
 
 .attention-queue-table td[data-label="Issue"],
-.attention-queue-table td[data-label="Proof"],
-.attention-queue-table td[data-label="Reason"] {
+.attention-queue-table td[data-label="Evidence age"],
+.attention-queue-table td[data-label="Risk"] {
   overflow-wrap: anywhere;
   word-break: break-word;
   color: var(--text, #0f172a);
 }
 
-.attention-queue-table td[data-label="Proof"] {
+.attention-queue-table td[data-label="Evidence age"] {
   color: var(--muted-strong, #475569);
 }
 

@@ -32,7 +32,7 @@ async function openGovernance(page) {
 
 const ACTIVE_ANSWER = {
   schemaVersion: 2,
-  presentationContractVersion: 5,
+  presentationContractVersion: 6,
   answerVersion: 7,
   contract: { id: 'contract-q2', piName: 'FY27 Q2', approvedBy: 'PI Team', approvedAt: '2026-07-01T08:00:00Z', source: 'approved-baseline' },
   scope: { mode: 'all-squads', projects: ['SD', 'RPA', 'AMS2', 'MPSA2'], expectedSquads: 4, verifiedSquads: 4, complete: true, partialProjects: [] },

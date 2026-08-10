@@ -43,7 +43,7 @@ test.describe('Governance empty state honesty', () => {
           savedAt: new Date().toISOString(),
           answer: {
             schemaVersion: 2,
-            presentationContractVersion: 5,
+            presentationContractVersion: 6,
             answer: 'Jira access prevents verification',
             sourceLine: '1 promises checked',
             decisionCoverage: { total: 1, closed: 0, copy: '1 open' },

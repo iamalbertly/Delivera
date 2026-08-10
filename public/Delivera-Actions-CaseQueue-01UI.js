@@ -88,18 +88,11 @@ function render() {
     });
   const urgency = topUrgencyLabel(visible);
   renderIdentityStrip();
-  const grouped = new Map();
-  visible.forEach((item) => {
-    const squad = item.squadId || item.squad;
-    const ownerUnresolved = isOwnerMissing({ ownerRoute: item.ownerRoute });
-    const key = ownerUnresolved
-      ? `${squad}|owner-route|${item.dueState || item.state}`
-      : item.groupKey || `${squad}|${item.actionType || 'review'}|${item.sourceEntityId || item.promiseId}|${item.dueState || item.state}`;
-    const group = grouped.get(key) || [];
-    group.push(item); grouped.set(key, group);
-  });
+  // One commitment is one accountable row. Similar diagnosis never merges identity,
+  // CTA, owner, or continuity links across two promises.
+  const grouped = visible.map((item) => [item]);
   // Highest urgency first — one honest summary, no contradictory wallpaper.
-  const rankedGroups = [...grouped.values()].sort((a, b) => {
+  const rankedGroups = grouped.sort((a, b) => {
     const rank = (item) => {
       const label = String(item?.urgencyLabel || item?.dueState || '').toLowerCase();
       if (/critical|overdue|blocked/.test(label)) return 0;
@@ -124,13 +117,16 @@ function render() {
     : `${visible.length} commitment${visible.length === 1 ? '' : 's'} in ${rankedGroups.length} group${rankedGroups.length === 1 ? '' : 's'} · ${honestState}`;
   mount.innerHTML = rankedGroups.length ? rankedGroups.map((group) => {
     const item = group[0];
-    const title = group.length > 1
+    const baseTitle = group.length > 1
       ? `${group.length} commitments · ${item.diagnosisLabel || 'promises share this correction'}`
       : (item.diagnosisLabel || item.title);
     const affected = group.length > 1 ? `<small>${escapeHtml(group.map((entry) => entry.title).slice(0, 3).join(' · '))}</small>` : '';
     const sourceHref = governanceSpotlightHref(item.squadId || item.squad, { returnTo: `${location.pathname}${location.search}` });
     const ownerLine = item.ownerRoute?.displayName || item.ownerRoute?.role || 'Owner route missing';
     const proofLine = item.proofAge?.copy || '';
+    const title = /verified/i.test(String(baseTitle || '')) && proofLine
+      ? 'Delivery evidence needs refresh'
+      : baseTitle;
     const ownerUnresolved = isOwnerMissing({ ownerRoute: item.ownerRoute });
     const missing = Array.isArray(item.readiness?.missing) ? item.readiness.missing : [];
     // One honest line: missing OR proof age OR verified — never "verified" beside an aging clock.

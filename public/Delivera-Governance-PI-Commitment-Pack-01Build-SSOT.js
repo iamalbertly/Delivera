@@ -344,24 +344,32 @@ export function buildDeliverySquadKpis(answer = {}, squadKey = '') {
 
 /** One delivery-first H1 sentence — never “N of M squads verified”. */
 export function buildDeliveryH1(answer = {}, { isSquadView = false, focusSquad = null } = {}) {
+  const truth = answer?.deliveryTruth || null;
+  const completed = Number(truth?.commitmentCompletion?.completed);
+  const total = Number(truth?.commitmentCompletion?.total);
   if (isSquadView && focusSquad) {
     const pct = Number(focusSquad.piPct);
     const divert = focusSquad.doingInstead?.major?.title
       || (Number(focusSquad.workSplit?.unplannedPct) > 0 ? `${focusSquad.workSplit.unplannedPct}% unplanned` : '');
     const name = focusSquad.displayName || focusSquad.squad || 'Squad';
+    if ((answer?.scope?.projects || []).length === 1 && Number.isFinite(completed) && Number.isFinite(total) && total > 0) {
+      return `${name}: ${completed} of ${total} PI commitments delivered${divert ? ` · ${divert}` : ''}`.slice(0, 150);
+    }
     if (Number.isFinite(pct)) {
       return divert
-        ? `${name}: ${pct}% evidenced · diverting into ${divert}`.slice(0, 150)
-        : `${name}: ${pct}% of PI commitments evidenced`.slice(0, 150);
+        ? `${name}: ${pct}% source coverage · diverting into ${divert}`.slice(0, 150)
+        : `${name}: ${pct}% source coverage; delivery outcome not yet confirmed`.slice(0, 150);
     }
     return `${name}: ${focusSquad.contractState?.label || focusSquad.topState || 'Evidence needs review'}`.slice(0, 150);
   }
   const k = buildDeliveryPortfolioKpis(answer);
   if (!answer.contract) return 'PI contract missing — recover baseline to score delivery';
   if (!(answer.squads || []).length) return 'No squad evidence yet — connect Jira to score delivery';
-  const base = k.promiseTotal
-    ? `${k.evidencedCount} of ${k.promiseTotal} commitments evidenced`
-    : (k.evidencedPct != null ? `${k.evidencedPct}% portfolio evidenced` : 'Delivery evidence incomplete');
+  const base = Number.isFinite(completed) && Number.isFinite(total) && total > 0
+    ? `${completed} of ${total} commitments delivered`
+    : (k.promiseTotal
+      ? `${k.evidencedCount} of ${k.promiseTotal} commitments have source coverage`
+      : (k.evidencedPct != null ? `${k.evidencedPct}% source coverage` : 'Delivery evidence incomplete'));
   const divertPart = k.divertingCount
     ? `${k.divertingCount} squad${k.divertingCount === 1 ? '' : 's'} diverting`
     : '';
@@ -476,7 +484,7 @@ function mergeChipWithActivity(chip, activity, promise = null) {
     deliveryPct,
     confidenceLabel: chip.confidenceLabel
       || (missingDates && !hasChildDates
-        ? (childTotal ? 'Children only' : 'No forecast')
+        ? (childTotal ? 'Based on child stories' : 'Dates missing')
         : (missingDates && hasChildDates
           ? 'Children dates'
           : (childTotal ? 'Medium' : 'Limited'))),

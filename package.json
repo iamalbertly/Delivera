@@ -42,6 +42,8 @@
     "test:friction:focused": "npm run test:current-sprint:shell-release && npm run test:governance:release && npm run test:settings:registry-release",
     "test:stability:focused": "npx playwright test tests/Delivera-Server-Stability-SelfHeal-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
     "test:masterplan:release": "npm run build:css && npm run check:css && npx playwright test tests/Delivera-Customer-Speed-Trust-MasterPlan-Realtime-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
+    "test:masterplan:customer-realism": "npm run build:css && npm run check:css && npx playwright test tests/Delivera-Customer-Realism-Simplicity-Speed-Trust-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
+    "test:production:dms-write-cleanup": "npx playwright test tests/Delivera-DMS-Production-Write-And-Cleanup-Validation-Tests.spec.js --max-failures=1 --workers=1 --reporter=list",
     "test:pi-release": "node --test --test-concurrency=1 scripts/Delivera-PIArtifact-Focused-Release-01Test.js",
     "audit:pi-release": "node scripts/Delivera-PIArtifact-Source-Audit-01Check.js",
     "test:journey:outcome-intake": "node scripts/Delivera-Tests-Journey-Runner-SSOT.js journey.outcome-intake",

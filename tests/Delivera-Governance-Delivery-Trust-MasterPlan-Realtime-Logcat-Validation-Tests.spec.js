@@ -14,7 +14,7 @@ const NOW = new Date('2026-07-17T10:32:00.000Z').toISOString();
 function buildAnswer() {
   return {
     schemaVersion: 2,
-    presentationContractVersion: 5,
+    presentationContractVersion: 6,
     answerVersion: 9,
     missionHeader: 'PORTFOLIO MISSION FY27 Q2 PI contract governance',
     answer: '2 squads need evidence decisions.',
@@ -226,8 +226,8 @@ test.describe('Governance Delivery-Trust MasterPlan @focused', () => {
     await test.step('02 single primary CTA and enriched bento', async () => {
       await expect(page.locator('[data-loop-primary]')).toHaveCount(1);
       await expect(page.locator('.gov-loop-recommendation')).toHaveCount(0);
-      const evidenced = page.locator('[data-delivery-cell="evidenced"] small');
-      await expect(evidenced).toContainText(/stories|epics/i);
+      const evidenced = page.locator('[data-delivery-cell="delivered"] small');
+      await expect(evidenced).toContainText(/delivered|outcome|child stories/i);
     });
 
     await test.step('03 format alignment chip visible on portfolio', async () => {
@@ -257,10 +257,11 @@ test.describe('Governance Delivery-Trust MasterPlan @focused', () => {
     });
 
     await test.step('07 continuity squad param and spotlight', async () => {
+      const before = page.url();
       await page.locator('[data-story-squad="SD"]').click();
-      await expect(page).toHaveURL(/[?&]squad=SD/);
+      await expect(page).toHaveURL(before);
       await expect(page).not.toHaveURL(/spotlight=/);
-      await expect(page.locator('#gov-squad-spotlight')).toBeVisible();
+      await expect(page.locator('[data-story-squad-wrap="SD"][data-accordion-state="locked"]')).toBeVisible();
     });
 
     await test.step('08 console and telemetry clean after click path', async () => {

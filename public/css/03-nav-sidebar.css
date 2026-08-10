@@ -480,6 +480,7 @@ body.sidebar-scroll-lock {
   }
 
   .app-sidebar:not(.open) .sidebar-link,
+  .app-sidebar:not(.open) .app-sidebar-nav,
   .app-sidebar:not(.open) .sidebar-more,
   .app-sidebar:not(.open) .sidebar-context-card,
   .app-sidebar:not(.open) .sidebar-footer {
