@@ -649,12 +649,39 @@ body.governance-page.has-top-chrome #gov-scope-bar-mount.gov-scope-bar-sticky {
   border-color: #fcd34d;
   background: #fffbeb;
 }
-@media (min-width: 1280px) {
-  #gov-right-rail-proof-mount {
-    position: sticky;
-    top: calc(var(--sticky-global-nav-top, 56px) + var(--gov-scope-bar-height, 72px) + 12px);
-    max-height: calc(100vh - 120px);
-    overflow: auto;
+.gov-loop-meta-quiet {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.gov-story-footer {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}
+.gov-story-footer:focus-within {
+  opacity: 1;
+  height: auto;
+  overflow: visible;
+}
+@media (max-width: 768px) {
+  .gov-epic-commitment-rail .gov-pi-chip:nth-child(n+2) {
+    display: none;
+  }
+  .gov-delivery-bento {
+    grid-template-columns: 1fr 1fr;
+  }
+  .gov-loop-cause {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 .governance-risk-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

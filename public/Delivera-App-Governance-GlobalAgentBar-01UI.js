@@ -26,12 +26,12 @@ export function updateGlobalAgentBar(brief) {
   const bar = mountGlobalAgentBar();
   if (!bar || document.body?.classList?.contains('governance-page')) {
     if (bar) bar.hidden = true;
-    document.body.classList.remove('has-sub-chrome');
     return;
   }
   if (!brief) {
     bar.hidden = true;
-    document.body.classList.remove('has-sub-chrome');
+    const hasFocusStrip = Boolean(document.querySelector('[data-focus-strip="1"]'));
+    document.body.classList.toggle('has-sub-chrome', hasFocusStrip);
     return;
   }
   const receipt = brief?.meta?.workerReceipt || {};
@@ -64,7 +64,8 @@ export function updateGlobalAgentBar(brief) {
     ${showPi}`;
   const hasContent = Boolean(bar.textContent.trim());
   bar.hidden = !hasContent;
-  document.body.classList.toggle('has-sub-chrome', hasContent);
+  const hasFocusStrip = Boolean(document.querySelector('[data-focus-strip="1"]'));
+  document.body.classList.toggle('has-sub-chrome', hasContent || hasFocusStrip);
 }
 
 export function mountStickyMicroAnswer(mount) {

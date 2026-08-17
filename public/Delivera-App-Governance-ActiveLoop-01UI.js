@@ -746,10 +746,10 @@ function renderHero(answer) {
     ${degradeBanner}
     ${nudgeCommandment}
     <div class="gov-story-mission"><span>${escapeHtml(missionKicker)}</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
-    <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad delivery' : 'PI delivery answer'}</span></div><h1 id="gov-loop-answer" data-gov-delivery-h1="1">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause" data-gov-why-once="1"><strong>Why:</strong> ${escapeHtml(causeLine)}</p>${adHocChip}${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source gov-loop-meta-quiet" data-testid="governance-source-line">${escapeHtml(quietMeta)}</p></div>
+    <div class="gov-loop-copy"><h1 id="gov-loop-answer" data-gov-delivery-h1="1">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause" data-gov-why-once="1"><strong>Why:</strong> ${escapeHtml(causeLine)}</p>${adHocChip}${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source gov-loop-meta-quiet" data-testid="governance-source-line">${escapeHtml(quietMeta)}</p></div>
     <div class="gov-loop-decision-bento">
       ${deliveryBentoHtml(answer, coverage)}
-      <div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary data-squad-id="${escapeHtml(focusKey || '')}">${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>
+      <div class="gov-loop-decision-actions"><button type="button" class="btn btn-primary gov-loop-primary" data-loop-primary data-squad-id="${escapeHtml(focusKey || '')}"${jiraDegraded ? ' disabled data-jira-degraded-cta="1" title="Jira access limited — refresh when access restores"' : ''}>${escapeHtml(nextLabel)}</button>${returnToActionsControl()}</div>
       ${epicRailMountHtml(answer, focusKey)}
       ${nextMoveRailHtml(answer)}
     </div>
@@ -1118,6 +1118,7 @@ function openSquadAccordion(row, squadKey, { locked = false } = {}) {
   panel.hidden = false;
   panel.innerHTML = squadAccordionHtml(squadKey, { locked });
   wrap.dataset.accordionState = locked ? 'locked' : 'peek';
+  wrap.setAttribute('aria-label', locked ? `Locked to ${squadKey} only` : `Peek ${squadKey}`);
   trigger?.setAttribute('aria-expanded', locked ? 'true' : 'true');
   if (locked) {
     lockedAccordionSquad = squadKey;

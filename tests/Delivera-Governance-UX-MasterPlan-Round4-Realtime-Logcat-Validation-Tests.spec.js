@@ -400,6 +400,7 @@ test.describe('Governance UX MasterPlan Round4 @focused', () => {
       await page.evaluate(() => { const d = document.getElementById('gov-supporting-evidence'); if (d) d.open = true; });
       await expect(page.locator('[data-proof-incomplete="1"]').first()).toBeVisible();
       await expect(page.locator('[data-proof-incomplete="1"]').first()).toContainText(/Proof incomplete/i);
+      await expect(page.locator('#gov-proof-risks [data-open-proof]').first()).toBeEnabled();
     });
 
     await test.step('06 current sprint top blocker highlighted without click', async () => {
@@ -430,8 +431,11 @@ test.describe('Governance UX MasterPlan Round4 @focused', () => {
     await test.step('09 focus strip on sprint and actions', async () => {
       await page.goto('/current-sprint?squad=SD');
       await expect(page.locator('[data-focus-strip="1"]')).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('[data-focus-strip="1"] .focus-strip-nav a')).toHaveCount(1);
       await page.goto('/actions?squad=SD');
       await expect(page.locator('[data-focus-strip="1"]')).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('[data-focus-strip="1"] .focus-strip-nav a')).toHaveCount(1);
+      await expect(page.locator('#actions-identity-links')).toBeHidden();
     });
 
     await test.step('10 telemetry clean', async () => {

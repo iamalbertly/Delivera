@@ -13,7 +13,6 @@ import {
   bindTabStrip,
   readStoredTab,
 } from './Delivera-Shared-TabStrip-01Activate-Helper.js';
-import { currentSprintSquadHref } from './Delivera-Shared-Continuity-Link-01Build.js';
 
 const evidenceFocusState = globalThis.__deliveraGovernanceEvidenceFocus ||= {
   spotlightKey: new URL(location.href).searchParams.get('spotlight') || '',
@@ -125,7 +124,7 @@ export function renderProofRisks(risks, opts = {}) {
         <p><strong>${escapeHtml(COPY.nextMove)}:</strong> ${escapeHtml(r.recommendedAction || '')}</p>
         <p class="gov-risk-proof-line"><strong>${escapeHtml(COPY.proofLine)}:</strong> ${escapeHtml(proofLine)}</p>
         <div class="governance-risk-tools">
-          <button type="button" class="btn btn-secondary btn-compact" data-open-proof="${idx}"${rowDegraded ? ' disabled title="Refresh proof before acting"' : ''}>${escapeHtml(COPY.openProof || 'Open proof')}</button>
+          <button type="button" class="btn btn-secondary btn-compact" data-open-proof="${idx}">${escapeHtml(COPY.openProof || 'Open proof')}</button>
         </div>
         <div class="gov-mark-wrong-panel" data-wrong-panel="${idx}" hidden></div>
         <div class="governance-risk-detail" data-detail="${idx}" hidden>${renderStructuredEvidence(ev, r)}</div>
@@ -168,21 +167,19 @@ export function renderEvidencePreview(brief, maxRows = 2, mountEl = null) {
     return;
   }
   const total = brief?.evidencePack?.rows?.length || rows.length;
-  const issueUrlFor = (key) => {
-    const k = String(key || '').toUpperCase();
-    const risk = [...(brief?.topRisks || []), ...(brief?.risks || [])].find((r) => String(r.issueKey).toUpperCase() === k);
-    if (risk?.issueUrl) return risk.issueUrl;
-    const squadKey = risk?.projectKey || risk?.squad || evidenceFocusState.spotlightKey || '';
-    const base = currentSprintSquadHref(squadKey);
-    const join = base.includes('?') ? '&' : '?';
-    return `${base}${join}issue=${encodeURIComponent(key || '')}`;
-  };
   const body = rows.map((r) => {
-    const href = issueUrlFor(r.issueKey);
-    const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
+    const risk = [...(brief?.topRisks || []), ...(brief?.risks || [])].find(
+      (item) => String(item.issueKey).toUpperCase() === String(r.issueKey || '').toUpperCase(),
+    );
+    const identity = renderIssueIdentityHtml(r.issueKey, {
+      title: r.statusNow || '',
+      href: `/report?issueKey=${encodeURIComponent(r.issueKey || '')}`,
+      jiraUrl: risk?.issueUrl || '',
+      keyOnly: true,
+    });
     return `
     <tr>
-      <td><a href="${escapeHtml(href)}" class="gov-issue-key-link gov-proof-row-link" data-issue-key="${escapeHtml(r.issueKey || '')}"${ext}>${escapeHtml(r.issueKey || '')}</a></td>
+      <td>${identity}</td>
       <td>${escapeHtml(r.statusNow || '')}</td>
       <td>${escapeHtml(r.whyFlagged || '')}</td>
     </tr>`;

@@ -514,7 +514,10 @@ export function renderHeaderBar(data, options = {}) {
   html += '<div class="report-filter-strip current-sprint-filter-strip" data-context-bar="true" aria-live="polite">';
   const continuitySquad = continuitySquadKey;
   const backHref = continuitySquad ? governanceSpotlightHref(continuitySquad) : '/governance';
-  html += `<a href="${escapeHtml(backHref)}" class="report-back-to-brief">← Back to Governance</a>`;
+  const hideBackTwin = typeof document !== 'undefined' && document.body?.classList?.contains('has-focus-strip');
+  if (!hideBackTwin) {
+    html += `<a href="${escapeHtml(backHref)}" class="report-back-to-brief">← Back to Governance</a>`;
+  }
   html += `<div class="report-filter-strip-summary current-sprint-filter-strip-summary applied-filters-chips-row">${shellSummaryHtml}</div>`;
   html += '</div>';
   html += '<div class="header-scope-mount" id="current-sprint-scope-mount" aria-label="Sprint scope"></div>';

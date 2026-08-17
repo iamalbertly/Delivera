@@ -203,6 +203,9 @@ async function submitClusterDismiss(gi, reason) {
 }
 
 export function bindProofInteractions() {
+  if (!govPage.els.proofRisks) return;
+  if (govPage.els.proofRisks.dataset.proofBound === '1') return;
+  govPage.els.proofRisks.dataset.proofBound = '1';
   govPage.els.proofRisks.onclick = async (event) => {
     const why = event.target.closest('[data-why]');
     if (why) { toggleDetail(why.getAttribute('data-why')); return; }

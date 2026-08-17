@@ -73,6 +73,7 @@ export const COPY = {
   cacheRefreshMsg: 'Showing last verified answer · refreshing proof',
   preparedSprintTruth: 'Showing last verified · refreshing quietly',
   openProof: 'Open proof',
+  kanbanSprintUnavailable: 'Non-scrum board — sprint view unavailable',
   overflowMore: 'More',
   statusBlocked: 'Blocked',
   statusWatch: 'Watch',

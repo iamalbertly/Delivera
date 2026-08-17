@@ -29,6 +29,7 @@ Authenticated pages use a Jira-style top bar (`#app-top-chrome`, `Delivera-Share
 - Sidebar toggle, workspace context, search, **Create**, notifications, help, settings, avatar
 - Left sidebar: context card + data pulse only (nav links hidden on desktop)
 - Duplicate page-level **Create** buttons are suppressed when top chrome is present
+- **FocusStrip SSOT** (`Delivera-Shared-Focus-Strip-01Render-UI.js`): one squad pill + one next-surface link lives **inside** `#app-sub-chrome-slot` on Sprint / Actions / Settings (not a third fixed bar). Governance keeps the scope bar. In-page Actions identity twins and Sprint “Back to Governance” hide when the strip is present.
 - **Mobile/tablet (≤768px):** search collapses to a 36px icon (`.is-collapsed`); brand slot hides; focus expands search to a second row (`body.top-search-active`) and grows chrome height to 98px. Help and avatar hide at ≤480px. `Escape` dismisses expanded search.
 - **Brief notifications:** dock stays collapsed until the bell is tapped; on governance mobile it opens as a bottom sheet so it does not cover the scope **Refresh** row.
 - **Brief mobile with owner clusters:** full command card hides; owner action clusters become the primary above-fold surface.
@@ -67,15 +68,16 @@ Details: [`context.md`](context.md). Brief SSOT gate: `npm run test:journey:brie
 
 Meeting-safe PI decision loop owned by Active Loop (presentation contract v5): delivery H1 + delivery bento (Evidenced / Diverting / At risk / Unverified) → one primary CTA → squad matrix (Evidenced / Diverted / Slip / Next) → epic commitment rail (start→end + child done/total from timelineChips + epic activity) → spotlight → resolution drawer. Legacy brief chrome is a degraded fallback only (lazy-loaded). Full invariants, diagnosis codes, registry participation, release schema (`20260730a`), continuity (`squad` write, `spotlight` read alias), and backlog live in [`context.md`](context.md) (Governance Layer + UX reliability).
 
-**Above-fold SSOT:** delivery-first H1 (not “N of M verified”); one `[data-loop-primary]`; `{Squad} today` chip is Sprint continuity only; matrix preferred Next = `Open`; enriched bento shows stories done + epics closed; epic rail hydrates from brief chips with honest `No Jira target · N/M children` when end date missing; single `verdictLabel` drives drawer title/tone (no verified vs cannot-verify contradiction); format-alignment chip from ad-hoc epics; Proof tools rail appears only in squad tunnel (not portfolio first fold).
+**Above-fold SSOT:** delivery-first H1 (not “N of M verified”); one `[data-loop-primary]` (disabled when Jira access failed); `{Squad} today` chip is Sprint continuity only; matrix preferred Next = `Open`; Alignment chip only when hygiene/ad-hoc is actually at risk (no “Alignment OK” wallpaper); Proof tools rail appears only in squad tunnel; proof list is the risk **superset** (`partitionBriefSurfaces.proofRows`) with `renderIssueIdentityHtml` + one **Open proof**; `#gov-supporting-evidence` stays collapsed when Active Loop is ready. Cache-first paint hides `#gov-loading` on a valid envelope. Journey: `npm run test:journey:governance-ux-masterplan-round4`.
 
 **Epic title period SSOT** (`lib/Delivera-Governance-EpicHygiene-01Score-SSOT.js`): aligned naming is `FY27 Q2 – Squad – Platform – Commitment title`. `parseEpicTitleParts` / `periodFromEpicSummary` beat Fix Version / label-only PI metadata. Domain stamps child counts + start/end on `expectedVsActual`. Non-aligned titles surface as ad-hoc / slip signals (`formatAligned: false`).
 
 **Issue identity SSOT:** Jira keys, epic keys, and sprint ids always render with a human title (or sprint name) via `renderIssueIdentityHtml` / `renderSprintIdentityHtml`, linking to `/report?issueKey=` or Current Sprint continuity — never bare codes alone. Epic rail chips use the same identity helper.
 
 **Focused gates (prefer locally — saves Vercel / API credits):**
-- `npm run test:journey:governance-delivery-trust-masterplan` — verdict SSOT, enriched bento, identity, drawer/nudge, logcat (includes epic-title unit pre-step)
+- `npm run test:journey:governance-ux-masterplan-round4` — risk superset, squad tunnel, proof links, FocusStrip, Actions/Settings friction (fail-fast, `--max-failures=1`)
 - `npm run test:journey:governance-firstviewport-value-dedupe` — delivery H1, CTA dedupe, epic rail, continuity
+- `npm run test:journey:governance-delivery-trust-masterplan` — verdict SSOT, enriched bento, identity, drawer/nudge, logcat (includes epic-title unit pre-step)
 - `npm run test:journey:customer-growth-squadtunnel-continuity-masterplan` — squad tunnel + continuity
 - `npm run test:current-sprint:shell-release` — Sprint shell continuity
 - `npm run test:friction:focused` — Sprint shell + Governance release + Settings registry

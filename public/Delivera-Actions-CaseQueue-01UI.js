@@ -2,7 +2,7 @@ import { escapeHtml, renderIssueIdentityHtml } from './Delivera-Shared-Dom-Escap
 import { openPromiseDrawer } from './Delivera-App-Governance-ActiveLoop-01UI.js?v=20260810b';
 import {
   governanceSpotlightHref,
-  currentSprintSquadHref,
+  persistLastFocusSquad,
   renderSquadIdentityStrip,
   resolveFocusSquadKey,
   rewriteContinuityUrl,
@@ -48,6 +48,11 @@ function topUrgencyLabel(items) {
 
 function renderIdentityStrip() {
   if (!identityMount) return;
+  if (document.querySelector('[data-focus-strip="1"]')) {
+    identityMount.innerHTML = '';
+    identityMount.hidden = true;
+    return;
+  }
   if (!selectedSquad) {
     identityMount.innerHTML = '';
     identityMount.hidden = true;
@@ -173,6 +178,7 @@ function render() {
   mount.querySelectorAll('[data-action-case]').forEach((row) => {
     row.addEventListener('click', (event) => {
       if (event.target.closest('a, button, select, label')) return;
+      persistLastFocusSquad(row.dataset.actionSquad || selectedSquad);
       const picker = row.querySelector('[data-action-case-picker]');
       const caseId = picker?.value || row.dataset.actionCase;
       const detailHref = picker?.selectedOptions?.[0]?.dataset?.detailHref || row.dataset.actionDetail;

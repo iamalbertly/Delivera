@@ -33,6 +33,7 @@ export function renderAlignmentChip(brief) {
   if (weak) parts.push(`${weak} weak`);
   const label = parts.length ? parts.join(' · ') : (COPY.alignmentChipOk || 'Alignment OK');
   const alert = adHocN > 0 || weak > 0 || (score != null && score < 70);
+  if (!alert) return '';
   const hint = escapeHtml([
     COPY.alignmentChipHint || 'Epic naming vs PI baseline',
     nonAligned ? `${nonAligned} without FY/Qn naming` : '',
@@ -111,9 +112,14 @@ export function renderEpicHygienePanel() {
 
 export function bindEpicHygieneInteractions(root, brief) {
   if (!root || !brief) return;
-  root.querySelector('#gov-epic-suggestions-open')?.addEventListener('click', () => openSuggestionsDrawer(brief));
-  root.querySelectorAll('[data-adhoc-open]').forEach((btn) => {
-    btn.addEventListener('click', () => openAdHocDrawer(brief));
+  root.__deliveraHygieneBrief = brief;
+  if (root.dataset.hygieneBound === '1') return;
+  root.dataset.hygieneBound = '1';
+  root.addEventListener('click', (event) => {
+    const current = root.__deliveraHygieneBrief;
+    if (!current) return;
+    if (event.target.closest('#gov-epic-suggestions-open')) openSuggestionsDrawer(current);
+    if (event.target.closest('[data-adhoc-open]')) openAdHocDrawer(current);
   });
 }
 
