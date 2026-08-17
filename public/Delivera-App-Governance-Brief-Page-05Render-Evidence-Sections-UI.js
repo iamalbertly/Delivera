@@ -5,6 +5,8 @@ import { escapeHtml, truthChip, renderStructuredEvidence } from './Delivera-App-
 import { COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 import { govPage, projectsCsv, whyItMatters } from './Delivera-Governance-Brief-Page-01Context.js?v=20260729k';
 import { openEvidenceDrawer } from './Delivera-App-Governance-Brief-16Render-EvidenceDrawer-UI.js';
+import { formatRiskRelevanceLine } from './Delivera-App-Governance-Brief-06Surface-Dedupe-SSOT.js';
+import { renderIssueIdentityHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
 import {
   GOV_EVIDENCE_TAB_KEY,
   activateTabStrip,
@@ -82,39 +84,48 @@ function evidenceRowFor(brief, issueKey) {
 export function renderProofRisks(risks, opts = {}) {
   govPage.proofRisks = risks;
   if (opts.hideWhenPreview && risks.length) {
-    govPage.els.proofRisks.innerHTML = '';
-    govPage.els.proofRisks.hidden = true;
-    return;
+    // Right rail owns above-fold preview; keep authoritative superset in collapsed supporting evidence.
+    govPage.els.proofRisks.hidden = false;
   }
-  govPage.els.proofRisks.hidden = false;
   if (!risks.length) {
     govPage.els.proofRisks.innerHTML = '<p class="governance-empty">Nothing needs attention in this window.</p>';
     return;
   }
+  const brief = govPage.lastBrief || {};
+  const evidenceDegraded = Boolean(brief?.meta?.evidenceDegraded);
   const items = risks.map((r, idx) => {
-    const ev = evidenceRowFor(govPage.lastBrief, r.issueKey);
+    const ev = evidenceRowFor(brief, r.issueKey);
+    const rowDegraded = evidenceDegraded || !ev || !String(ev?.whyFlagged || r.evidence || '').trim();
+    const degradedBadge = rowDegraded
+      ? `<span class="gov-proof-incomplete-badge" data-proof-incomplete="1">${escapeHtml(COPY.proofIncomplete || 'Proof incomplete')}</span>`
+      : '';
     const keyLabel = r.issueKey
-      ? (r.issueUrl
-        ? `<a href="${escapeHtml(r.issueUrl)}" target="_blank" rel="noopener" id="gov-risk-${escapeHtml(r.issueKey)}" data-issue-key="${escapeHtml(r.issueKey)}" class="gov-issue-key-link">${escapeHtml(r.issueKey)}</a>`
-        : escapeHtml(r.issueKey))
+      ? renderIssueIdentityHtml(r.issueKey, {
+        title: r.displayTitle || r.summary || '',
+        jiraUrl: r.issueUrl || '',
+        href: `/report?issueKey=${encodeURIComponent(r.issueKey)}`,
+      }).replace(
+        'class="delivera-issue-key"',
+        `class="delivera-issue-key gov-issue-key-link" id="gov-risk-${escapeHtml(r.issueKey)}"`,
+      )
       : escapeHtml(r.squad || 'Portfolio');
     const proofLine = r.evidence || ev?.whyFlagged || '';
+    const relevance = formatRiskRelevanceLine(r);
     return `
-      <li class="governance-risk" data-escalation="${escapeHtml(r.escalation || 'watch')}" id="gov-risk-card-${idx}">
+      <li class="governance-risk${rowDegraded ? ' is-proof-degraded' : ''}" data-escalation="${escapeHtml(r.escalation || 'watch')}" id="gov-risk-card-${idx}">
         <div class="governance-risk-head">
           <span class="governance-risk-key">${keyLabel}</span>
+          ${degradedBadge}
           <span class="governance-risk-lane">${escapeHtml(r.decisionNeededFrom || 'Scrum Master')}</span>
         </div>
+        ${relevance ? `<p class="gov-risk-relevance">${escapeHtml(relevance)}</p>` : ''}
         <p><strong>${escapeHtml(COPY.problem)}:</strong> ${escapeHtml(r.displayTitle || r.summary || r.riskLabel || '')}</p>
         <p><strong>${escapeHtml(COPY.whyItMatters)}:</strong> ${escapeHtml(whyItMatters(r))}</p>
         <p><strong>${escapeHtml(COPY.owner)}:</strong> ${escapeHtml(r.decisionNeededFrom || r.assigneeName || '')}</p>
         <p><strong>${escapeHtml(COPY.nextMove)}:</strong> ${escapeHtml(r.recommendedAction || '')}</p>
         <p class="gov-risk-proof-line"><strong>${escapeHtml(COPY.proofLine)}:</strong> ${escapeHtml(proofLine)}</p>
         <div class="governance-risk-tools">
-          ${r.issueKey ? `<button type="button" class="btn btn-link btn-compact" data-copy-msg="${idx}">Copy message</button>` : ''}
-          ${r.issueKey ? `<button type="button" class="btn btn-link btn-compact" data-nudge="${idx}">${escapeHtml(COPY.draftNudge)}</button>` : ''}
-          <button type="button" class="btn btn-link btn-compact" data-mark-wrong="${idx}">${escapeHtml(COPY.markAsWrong)}</button>
-          <button type="button" class="btn btn-link btn-compact" data-why="${idx}" aria-expanded="false">Why flagged?</button>
+          <button type="button" class="btn btn-secondary btn-compact" data-open-proof="${idx}"${rowDegraded ? ' disabled title="Refresh proof before acting"' : ''}>${escapeHtml(COPY.openProof || 'Open proof')}</button>
         </div>
         <div class="gov-mark-wrong-panel" data-wrong-panel="${idx}" hidden></div>
         <div class="governance-risk-detail" data-detail="${idx}" hidden>${renderStructuredEvidence(ev, r)}</div>
@@ -134,7 +145,7 @@ export function renderEvidenceTable(brief) {
   }
   const body = rows.map((r) => `
     <tr>
-      <td><a href="/governance#gov-risk-${escapeHtml(r.issueKey)}">${escapeHtml(r.issueKey)}</a></td>
+      <td>${renderIssueIdentityHtml(r.issueKey, { href: `/governance#gov-risk-${encodeURIComponent(r.issueKey || '')}` })}</td>
       <td>${escapeHtml(r.statusNow || 'Not in this window')}</td>
       <td>${escapeHtml(r.statusLastWeek || 'No prior status in window')}</td>
       <td>${escapeHtml(r.whyFlagged || 'No flag reason recorded')}</td>

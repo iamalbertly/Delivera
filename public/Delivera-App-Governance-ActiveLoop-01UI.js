@@ -2,6 +2,7 @@ import { escapeHtml } from './Delivera-App-Governance-Brief-Page-02Render-Decisi
 import { openRightDrawer, closeAllGovernanceOverlays } from './Delivera-App-Shared-RightDrawer-01UI.js';
 import {
   currentSprintSquadHref,
+  actionsSquadHref,
   persistLastFocusSquad,
   readContinuityTokens,
   renderIdentityLinkRow,
@@ -22,9 +23,9 @@ import {
   promiseAlignmentSummary,
 } from './Delivera-Governance-PI-Commitment-Pack-01Build-SSOT.js';
 import { renderEpicCommitmentRailHtml } from './Delivera-App-Governance-Brief-19Render-PIConfidenceStrip-UI.js';
-import { bindEpicHygieneInteractions, renderAdHocChip } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
+import { bindEpicHygieneInteractions, renderAlignmentChip } from './Delivera-App-Governance-Brief-20Render-EpicHygienePanel-UI.js';
 import { renderIssueIdentityHtml, renderSprintIdentityHtml } from './Delivera-Shared-Dom-Escape-Helpers.js';
-import { businessTitleFromSummary } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
+import { businessTitleFromSummary, COPY } from './Delivera-App-Shared-Delivery-Copy-01Language-SSOT.js';
 
 // SIZE-EXEMPT: cohesive ActiveLoop story orchestrator (load/cache, spotlight URL, decision drawers); helpers live in Commitment-Pack / Continuity / Cache Guard SSOTs.
 
@@ -93,12 +94,12 @@ function broadcastFocus() {
 }
 
 const actionLabels = {
-  'send-nudge': 'Send nudge',
-  'pull-fresh-evidence': 'Pull fresh proof for this promise',
+  'send-nudge': COPY.roleVerbPo || 'Confirm evidence',
+  'pull-fresh-evidence': COPY.roleVerbRte || 'Escalate cross-squad ripple',
   'approve-match': 'Approve match',
   'amend-contract': 'Amend contract',
-  'assign-owner': 'Resolve owner route',
-  'accept-risk': 'Accept risk',
+  'assign-owner': COPY.roleVerbSm || 'Unblock sprint work',
+  'accept-risk': COPY.roleVerbPmo || 'Review portfolio risk',
   'recheck-promise': 'Re-check this promise',
   'escalate-owner': 'Escalate owner',
 };
@@ -501,7 +502,7 @@ function deliveryBentoHtml(answer, coverage) {
     : '';
   const attentionCell = inTunnel
     ? ''
-    : `<div class="gov-delivery-cell" data-delivery-cell="attention"><strong>${kpis.attentionCount}</strong><small>At risk</small></div>`;
+    : `<div class="gov-delivery-cell" data-delivery-cell="attention"><strong data-outcome-risk="1">${kpis.attentionCount}</strong><small>At risk</small></div>`;
   return `<div class="gov-delivery-bento" data-gov-delivery-bento="1" data-bento-scope="${isSquadScoped ? 'squad' : 'portfolio'}" data-bento-squad="${escapeHtml(isSquadScoped ? railKey : '')}" aria-label="PI delivery pulse">
     <div class="gov-delivery-cell" data-delivery-cell="delivered"><strong>${escapeHtml(delivered)}</strong><small>Delivered · ${escapeHtml(deliveredDetail)}</small></div>
     <div class="gov-delivery-cell" data-delivery-cell="diverted"><strong>${kpis.divertingCount}</strong><small>Diverting${divertedDetail ? ` · ${escapeHtml(divertedDetail)}` : ''}</small></div>
@@ -614,19 +615,23 @@ function refreshDecisionSurface(answer = activeAnswer) {
   broadcastFocus();
 }
 
-/** Inject format-alignment chip when brief arrives after hero paint (zero extra click). */
-function hydrateAdHocChip(brief = null) {
+/** Inject alignment chip when brief arrives after hero paint (zero extra click). */
+function hydrateAlignmentChip(brief = null) {
   const b = brief || sharedStoryState.lastBrief;
   if (!b || spotlightKey || activeLens === 'squad') return;
   const hero = document.querySelector('.gov-active-loop-hero');
   const copy = hero?.querySelector('.gov-loop-copy');
-  if (!copy || copy.querySelector('[data-adhoc-open], .gov-adhoc-chip')) return;
-  const chip = renderAdHocChip(b);
+  if (!copy || copy.querySelector('[data-adhoc-open], .gov-alignment-chip, .gov-adhoc-chip')) return;
+  const chip = renderAlignmentChip(b);
   if (!chip) return;
   const anchor = copy.querySelector('[data-gov-why-once="1"]');
   if (anchor) anchor.insertAdjacentHTML('afterend', chip);
   else copy.insertAdjacentHTML('beforeend', chip);
   bindEpicHygieneInteractions(hero || copy, b);
+}
+
+function hydrateAdHocChip(brief = null) {
+  hydrateAlignmentChip(brief);
 }
 
 /** Re-render epic rail only when brief arrives after Active Loop (no second H1). */
@@ -654,6 +659,32 @@ export function hydrateEpicCommitmentRail(brief = null) {
     strip.toggleAttribute('data-pi-strip-empty', true);
     strip.hidden = true;
   }
+}
+
+function nudgeCommandmentHtml(answer, focusSquad) {
+  const reality = focusSquad?.sprintReality || {};
+  const expired = reality.state === 'expired'
+    || (Number(reality.daysRemaining) < 0)
+    || /expired|timebox|ended/i.test(String(reality.copy || ''));
+  if (!expired) return '';
+  const squad = focusSquad?.squad || spotlightKey || '';
+  const href = actionsSquadHref(squad, { source: 'nudge-commandment' });
+  const copy = COPY.nudgeCommandment || 'Sprint timebox ended — close or carry work via Actions.';
+  return `<div class="gov-nudge-commandment" role="alert" data-nudge-commandment="1"><p>${escapeHtml(copy)}</p><a class="btn btn-compact btn-secondary" href="${escapeHtml(href)}">${escapeHtml(COPY.reviewActions || 'Review actions')}</a></div>`;
+}
+
+function paintCacheSkeleton(answer) {
+  const mount = document.getElementById('gov-active-loop-mount');
+  if (!mount || mount.querySelector('[data-gov-value-first="1"]')) return;
+  const count = (answer?.squads || []).reduce((n, s) => n + (Number(s.attentionCount) || 0), 0);
+  mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-cached-skeleton" data-gov-cache-skeleton="1" data-gov-value-first="1" aria-busy="true">
+    <div class="gov-story-mission"><span>Portfolio mission</span><strong>${escapeHtml(answer?.missionHeader || 'Refreshing verified proof…')}</strong></div>
+    <div class="gov-loop-decision-bento gov-delivery-bento" data-gov-delivery-bento="1">
+      <div class="gov-delivery-cell"><strong>—</strong><small>Delivered</small></div>
+      <div class="gov-delivery-cell"><strong>${count || '—'}</strong><small>At risk</small></div>
+    </div>
+  </section>`;
+  document.body.classList.add('governance-active-loop-ready');
 }
 
 function heroFreshnessMeta(answer) {
@@ -705,13 +736,15 @@ function renderHero(answer) {
     ? (focusSquad.contractState?.detail || focusSquad.sprintReality?.copy || 'Squad evidence remains isolated from portfolio peers.')
     : (answer.lensSummaries?.overall || sourceLine || 'Stored squad truth is compared across the included portfolio.');
   const quietMeta = [sourceLine, answer.deliveraDid ? `✓ ${answer.deliveraDid}` : ''].filter(Boolean).join(' · ');
-  const adHocChip = !isSquadView && sharedStoryState.lastBrief ? renderAdHocChip(sharedStoryState.lastBrief) : '';
+  const adHocChip = !isSquadView && sharedStoryState.lastBrief ? renderAlignmentChip(sharedStoryState.lastBrief) : '';
   const jiraDegraded = freshness.state === 'failed' || answerHasAccessBlock(answer);
+  const nudgeCommandment = isSquadView && focusSquad ? nudgeCommandmentHtml(answer, focusSquad) : '';
   const degradeBanner = jiraDegraded
     ? '<p class="gov-loop-stale-warning" role="alert" data-jira-degraded="1">Jira access limited — showing last verified proof. Refresh when access restores.</p>'
     : '';
   mount.innerHTML = `<section class="gov-active-loop-hero gov-story-v2 is-${freshness.state}" data-active-lens="${escapeHtml(activeLens)}" data-fiscal-period="${escapeHtml(answer.contract?.piName || '')}" data-testid="governance-active-loop" data-gov-value-first="1" aria-labelledby="gov-loop-answer">
     ${degradeBanner}
+    ${nudgeCommandment}
     <div class="gov-story-mission"><span>${escapeHtml(missionKicker)}</span><strong>${escapeHtml(answer.missionHeader || 'Active PI contract governance')}</strong>${heroFreshnessMeta(answer)}</div>
     <div class="gov-loop-copy"><div class="gov-loop-kicker"><span>${isSquadView ? 'Selected squad delivery' : 'PI delivery answer'}</span></div><h1 id="gov-loop-answer" data-gov-delivery-h1="1">${escapeHtml(squadVerdict)}</h1><p class="gov-loop-cause" data-gov-why-once="1"><strong>Why:</strong> ${escapeHtml(causeLine)}</p>${adHocChip}${spotlightKey ? '' : heroIdentityLinks(answer)}<p class="gov-loop-source gov-loop-meta-quiet" data-testid="governance-source-line">${escapeHtml(quietMeta)}</p></div>
     <div class="gov-loop-decision-bento">
@@ -1006,8 +1039,11 @@ function squadAccordionHtml(squadKey, { locked = false } = {}) {
     || (summary.sprintReality?.daysRemaining != null ? `${summary.sprintReality.daysRemaining}d left` : 'Sprint unverified');
   const epicLines = promises.slice(0, 2).map((promise) => {
     const title = businessTitleFromSummary(promise.originalText || promise.summary || '', 56);
-    const key = promise.issueKey || 'Unlinked';
-    return `<li><strong>${escapeHtml(key)}</strong> · ${escapeHtml(title)}</li>`;
+    const key = promise.issueKey || '';
+    const identity = key
+      ? `<li>${renderIssueIdentityHtml(key, { title })}</li>`
+      : `<li>${escapeHtml(title || 'Unlinked commitment')}</li>`;
+    return identity;
   }).join('') || '<li>No verified PI commitments yet.</li>';
   const baselineMissing = summary.baselineCoverage?.state === 'missing';
   return `<div class="gov-squad-accordion-body" data-accordion-locked="${locked ? 'true' : 'false'}">
@@ -1830,14 +1866,14 @@ export async function loadActiveGovernanceLoop({ projects, quarter = '', force =
   const loadingTitle = loadingEl?.querySelector('[data-gov-loading-title]');
   const loadingMsg = loadingEl?.querySelector('.gov-loading-msg');
   if (cached) {
-    // Cache-first: paint hero immediately, hide cold empty state — reconcile network quietly.
-    if (loadingTitle) loadingTitle.textContent = 'Refreshing verified proof…';
-    if (loadingMsg) loadingMsg.textContent = 'Showing last verified answer while fresh evidence loads.';
+    if (loadingTitle) loadingTitle.textContent = COPY.cacheRefreshTitle || 'Refreshing verified proof…';
+    if (loadingMsg) loadingMsg.textContent = COPY.cacheRefreshMsg || 'Showing last verified answer · refreshing proof';
     if (loadingEl) {
       loadingEl.dataset.govLoadingMode = 'restore';
       loadingEl.hidden = true;
       loadingEl.setAttribute('aria-hidden', 'true');
     }
+    paintCacheSkeleton(cached);
     renderActiveGovernanceLoop(cached);
   } else {
     if (loadingTitle) loadingTitle.textContent = 'Building first verified answer…';
@@ -1908,6 +1944,13 @@ window.addEventListener('storage', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeSquadAccordion({ onlyPeek: false });
   if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); void openDiagnostics(); }
+});
+window.addEventListener('delivera:governance-proof-count', (event) => {
+  const count = Number(event?.detail?.count);
+  if (!Number.isFinite(count)) return;
+  document.querySelectorAll('[data-delivery-cell="attention"] [data-outcome-risk="1"], [data-delivery-cell="attention"] strong').forEach((el) => {
+    el.textContent = String(count);
+  });
 });
 document.addEventListener('pointerdown', (event) => {
   if (event.target.closest('[data-story-squad-wrap], [data-squad-accordion], [data-full-squad-detail]')) return;

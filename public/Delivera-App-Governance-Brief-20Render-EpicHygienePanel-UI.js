@@ -18,6 +18,28 @@ export function renderAdHocChip(brief) {
   return `<button type="button" class="gov-adhoc-chip gov-adhoc-chip--alert" data-adhoc-open data-hover-proof="ad-hoc" title="${hint}">${COPY.adHocChip}: ${n}${nonAligned ? ` · ${nonAligned} non-aligned` : ''}</button>`;
 }
 
+/** Merged Alignment chip — ad-hoc + epic hygiene SSOT in one hero control. */
+export function renderAlignmentChip(brief) {
+  const adHoc = brief?.meta?.adHocEpics || [];
+  const hygiene = brief?.meta?.epicHygiene;
+  const adHocN = adHoc.length;
+  const nonAligned = adHoc.filter((e) => e.formatAligned === false).length;
+  const weak = (hygiene?.weak || []).length;
+  const score = hygiene?.score;
+  const parts = [];
+  if (score != null) parts.push(`Naming ${score}%`);
+  if (adHocN) parts.push(`${adHocN} ad-hoc`);
+  if (nonAligned) parts.push(`${nonAligned} misaligned`);
+  if (weak) parts.push(`${weak} weak`);
+  const label = parts.length ? parts.join(' · ') : (COPY.alignmentChipOk || 'Alignment OK');
+  const alert = adHocN > 0 || weak > 0 || (score != null && score < 70);
+  const hint = escapeHtml([
+    COPY.alignmentChipHint || 'Epic naming vs PI baseline',
+    nonAligned ? `${nonAligned} without FY/Qn naming` : '',
+  ].filter(Boolean).join(' · '));
+  return `<button type="button" class="gov-alignment-chip${alert ? ' gov-alignment-chip--alert' : ''}" data-adhoc-open data-hover-proof="alignment" title="${hint}">${escapeHtml(COPY.alignmentChip || 'Alignment')}: ${escapeHtml(label)}</button>`;
+}
+
 function openAdHocDrawer(brief) {
   const adHoc = brief?.meta?.adHocEpics || [];
   const projectsCsv = (brief?.projects || []).join(',') || 'MPSA,MAS';

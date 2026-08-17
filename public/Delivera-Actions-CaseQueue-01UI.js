@@ -170,6 +170,15 @@ function render() {
       if (option?.dataset?.detailHref != null) row.dataset.actionDetail = option.dataset.detailHref;
     });
   });
+  mount.querySelectorAll('[data-action-case]').forEach((row) => {
+    row.addEventListener('click', (event) => {
+      if (event.target.closest('a, button, select, label')) return;
+      const picker = row.querySelector('[data-action-case-picker]');
+      const caseId = picker?.value || row.dataset.actionCase;
+      const detailHref = picker?.selectedOptions?.[0]?.dataset?.detailHref || row.dataset.actionDetail;
+      openPromiseDrawer(caseId, { detailHref });
+    });
+  });
   mount.querySelectorAll('[data-action-case] button').forEach((button) => button.addEventListener('click', () => {
     const row = button.closest('[data-action-case]');
     const picker = row?.querySelector('[data-action-case-picker]');

@@ -440,6 +440,12 @@ export const specMetadata = {
     layer: 'cross-surface-ux',
     page: '/governance',
   },
+  'tests/Delivera-Governance-UX-MasterPlan-Round4-Realtime-Logcat-Validation-Tests.spec.js': {
+    journey: 'journey.governance-ux-masterplan-round4',
+    layer: 'cross-surface-ux',
+    page: '/governance,/current-sprint,/actions,/settings',
+    priority: 'P0',
+  },
   'tests/Delivera-Governance-Delivery-Trust-MasterPlan-Realtime-Logcat-Validation-Tests.spec.js': {
     journey: 'journey.governance-delivery-trust-masterplan',
     layer: 'cross-surface-ux',
@@ -743,6 +749,13 @@ export const journeyBuckets = {
     label: 'Governance FirstViewport – Delivery H1, CTA dedupe, epic rail',
     specs: Object.keys(specMetadata).filter(
       (spec) => specMetadata[spec].journey === 'journey.governance-firstviewport-value-dedupe-masterplan',
+    ),
+  },
+  'journey.governance-ux-masterplan-round4': {
+    id: 'journey.governance-ux-masterplan-round4',
+    label: 'Governance UX Round4 – risk truth, focus strip, friction cuts',
+    specs: Object.keys(specMetadata).filter(
+      (spec) => specMetadata[spec].journey === 'journey.governance-ux-masterplan-round4',
     ),
   },
   'journey.governance-delivery-trust-masterplan': {

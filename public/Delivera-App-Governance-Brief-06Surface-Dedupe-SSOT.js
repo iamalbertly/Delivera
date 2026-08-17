@@ -1,7 +1,23 @@
 /**
  * SSOT: partition brief risks into non-overlapping UI surfaces.
  */
+import { readContinuityTokens } from './Delivera-Shared-Continuity-Link-01Build.js';
+
 const ESC_ORDER = { escalate: 0, 'act-today': 1, watch: 2 };
+
+const RISK_TYPE_LABELS = {
+  'stale-in-progress': 'Stale in progress',
+  'late-scope': 'Added after sprint start',
+  'missing-owner': 'No owner',
+  'po-decision-needed': 'Product Owner decision needed',
+  dependency: 'Cross-team dependency',
+  'no-active-sprint': 'No active sprint',
+  'missing-estimate': 'Missing estimate',
+  'no-log': 'No time logged',
+  carryover: 'Carryover from prior sprint',
+  'data-confidence-gap': 'Data confidence gap',
+  'insufficient-delivery-evidence': 'Insufficient delivery evidence',
+};
 
 function riskKey(r) {
   if (r.issueKey) return String(r.issueKey).toUpperCase();
@@ -26,13 +42,7 @@ function normPk(value) {
   return String(value || '').trim().toUpperCase();
 }
 
-/** Client port of risksForSquad — filter risks to selected project keys. */
-export function filterRisksForProjects(risks = [], projectKeys = []) {
-  const keys = (Array.isArray(projectKeys) ? projectKeys : [])
-    .map(normPk)
-    .filter(Boolean);
-  if (!keys.length || keys.length > 1) return risks;
-  const PK = keys[0];
+function filterRisksForSingleProject(risks, PK) {
   const prefix = `${PK}-`;
   return risks.filter((r) => {
     const ik = normPk(r.issueKey);
@@ -43,26 +53,75 @@ export function filterRisksForProjects(risks = [], projectKeys = []) {
   });
 }
 
+/** Resolve spotlight/squad tunnel key — wins over multi-project CSV. */
+export function resolveRiskFocusKey(projectKeys = null) {
+  const continuity = typeof window !== 'undefined' ? readContinuityTokens() : { squad: '', view: '' };
+  const fromUrl = normPk(continuity.squad);
+  if (fromUrl && (continuity.view === 'squad' || continuity.view === '')) return fromUrl;
+  if (fromUrl) return fromUrl;
+  const keys = (Array.isArray(projectKeys) ? projectKeys : [])
+    .map(normPk)
+    .filter(Boolean);
+  if (keys.length === 1) return keys[0];
+  return '';
+}
+
+/** Client port of risksForSquad — filter risks to selected project keys or focus override. */
+export function filterRisksForProjects(risks = [], projectKeys = [], focusKey = '') {
+  const focus = normPk(focusKey);
+  if (focus) return filterRisksForSingleProject(risks, focus);
+  const keys = (Array.isArray(projectKeys) ? projectKeys : [])
+    .map(normPk)
+    .filter(Boolean);
+  if (!keys.length || keys.length > 1) return risks;
+  return filterRisksForSingleProject(risks, keys[0]);
+}
+
+export function riskTypeLabelClient(riskType) {
+  return RISK_TYPE_LABELS[String(riskType || '').toLowerCase()] || 'Delivery risk';
+}
+
+/** One deterministic relevance line per risk card. */
+export function formatRiskRelevanceLine(risk = {}) {
+  const typeLabel = riskTypeLabelClient(risk.riskType || risk.rule || '');
+  const squad = normPk(risk.squad || risk.projectKey || '');
+  const age = Number(risk.ageHours);
+  const agePart = Number.isFinite(age) && age > 0 ? `${Math.round(age)}h` : '';
+  if (!risk.issueKey && squad) {
+    const rule = String(risk.riskType || risk.rule || '').trim();
+    return [typeLabel, agePart, squad, rule && rule !== typeLabel.toLowerCase() ? rule.replace(/-/g, ' ') : ''].filter(Boolean).join(' · ');
+  }
+  return [typeLabel, agePart, squad].filter(Boolean).join(' · ');
+}
+
+/** Authoritative unique risk count for bento / proof list sync. */
+export function countUniqueProofRows(surfaces = {}) {
+  return Array.isArray(surfaces.proofRows) ? surfaces.proofRows.length : 0;
+}
+
 /**
- * @returns {{ doNowActions, drawerIssues, measurementRisks, proofRows }}
+ * @returns {{ doNowActions, drawerIssues, measurementRisks, proofRows, proofCount }}
  */
 export function partitionBriefSurfaces(brief, projectKeys = null) {
-  const seen = new Set();
   const selected = projectKeys ?? (Array.isArray(brief?.projects) ? brief.projects : []);
-  const poolTop = filterRisksForProjects(brief?.topRisks || [], selected);
-  const poolPortfolio = filterRisksForProjects(brief?.portfolioRisks || [], selected);
+  const focusKey = resolveRiskFocusKey(selected);
+  const filterKeys = focusKey ? [focusKey] : selected;
+  const poolTop = filterRisksForProjects(brief?.topRisks || [], filterKeys, focusKey);
+  const poolPortfolio = filterRisksForProjects(brief?.portfolioRisks || [], filterKeys, focusKey);
+  const poolRisks = filterRisksForProjects(brief?.risks || [], filterKeys, focusKey);
   const all = sortRisks([...poolTop, ...poolPortfolio]);
 
   const measurementRisks = all.filter(isMeasurement).slice(0, 4);
   const deliveryPool = all.filter((r) => isDelivery(r) && !isMeasurement(r));
 
+  const doNowSeen = new Set();
   const drawerIssues = [];
   const doNowActions = [];
 
   for (const r of deliveryPool) {
     const key = riskKey(r);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (doNowSeen.has(key)) continue;
+    doNowSeen.add(key);
     drawerIssues.push(r);
     if (doNowActions.length < 3 && (r.issueKey || r.recommendedAction)) {
       doNowActions.push({
@@ -76,16 +135,22 @@ export function partitionBriefSurfaces(brief, projectKeys = null) {
     }
   }
 
+  const proofSeen = new Set();
   const proofRows = [];
-  const poolRisks = filterRisksForProjects(brief?.risks || [], selected);
   for (const r of sortRisks([...poolTop, ...poolPortfolio, ...poolRisks])) {
     const key = riskKey(r);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (proofSeen.has(key)) continue;
+    proofSeen.add(key);
     proofRows.push(r);
   }
 
-  return { doNowActions, drawerIssues, measurementRisks, proofRows };
+  return {
+    doNowActions,
+    drawerIssues,
+    measurementRisks,
+    proofRows,
+    proofCount: proofRows.length,
+  };
 }
 
 /**

@@ -479,7 +479,7 @@ export function renderHeaderBar(data, options = {}) {
   });
 
   const leanAttr = viewportLean ? ' data-viewport-lean="true"' : '';
-  let html = `<div class="current-sprint-header-bar report-shell-top current-sprint-report-shell"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}">`;
+  let html = `<div class="current-sprint-header-bar report-shell-top current-sprint-report-shell"${leanAttr} data-context-bar="true" data-sprint-id="${escapeHtml(sprint.id || '')}" data-edge-state="${escapeHtml(edgeStateAttr)}" data-default-risk-tags="${escapeHtml(defaultRiskTags.join(' '))}" data-cockpit-issue-key="${escapeHtml(cockpitAction.issueKey || '')}">`;
   html += '<div class="header-row report-shell-top-row current-sprint-shell-top-row">';
   html += '<div class="report-shell-title-block current-sprint-shell-title-block">';
   html += `<h2 title="${escapeHtml(sprintIdentityLine)}">Today for ${titleSquadHtml}</h2>`;
@@ -1180,6 +1180,16 @@ export function wireHeaderBarHandlers() {
     const urlRisk = String(new URL(location.href).searchParams.get('risk') || '').trim().toLowerCase();
     if (urlRisk === 'blocker' || (defaultTags.includes('blocker') && initialMode === 'all')) {
       applyHeaderRiskAction(['blocker'], urlRisk === 'blocker' ? 'url-risk-blocker' : 'default-blockers-first');
+    }
+    const cockpitKey = String(headerBar.getAttribute('data-cockpit-issue-key') || '').trim();
+    if (cockpitKey) {
+      window.setTimeout(() => {
+        try {
+          const esc = globalThis.CSS?.escape ? CSS.escape(cockpitKey) : cockpitKey.replace(/[^A-Za-z0-9_-]/g, '');
+          const row = document.querySelector(`#work-risks-table tbody [data-issue-key="${esc}"], #stories-table tbody tr[data-issue-key="${esc}"], tr[data-issue-key="${esc}"]`);
+          if (row) row.classList.add('issue-preview-source-row');
+        } catch (_) {}
+      }, 280);
     }
   } else {
     applyRoleMode(headerFilterUiState.roleMode || initialMode, { silent: true, applyPreset: false });

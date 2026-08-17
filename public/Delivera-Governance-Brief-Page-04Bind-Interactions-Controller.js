@@ -227,6 +227,14 @@ export function bindProofInteractions() {
     }
     const nudge = event.target.closest('[data-nudge]');
     if (nudge) { openNudgeBox(nudge.getAttribute('data-nudge')); return; }
+    const openProof = event.target.closest('[data-open-proof]');
+    if (openProof) {
+      const risk = riskByProofIndex(openProof.getAttribute('data-open-proof'));
+      const rows = govPage.lastBrief?.evidencePack?.rows || [];
+      openEvidenceDrawer(govPage.lastBrief, risk?.issueKey
+        ? rows.filter((row) => String(row.issueKey).toUpperCase() === String(risk.issueKey).toUpperCase())
+        : rows);
+    }
   };
 }
 

@@ -27,6 +27,10 @@ function riskPriorityWeight(row) {
 }
 
 export function renderWorkRisksMerged(data) {
+  const cockpitKey = String(data?.decisionCockpit?.nextBestAction?.issueKey || '').trim();
+  if (cockpitKey && data?.decisionCockpit?.nextBestAction?.summary) {
+    return '';
+  }
   const rows = buildMergedWorkRiskRows(data);
   const verdictInfo = deriveSprintVerdict(data);
   const sprintState = String(data?.sprint?.state || '').toLowerCase();
@@ -54,7 +58,7 @@ export function renderWorkRisksMerged(data) {
 
   let html = '<div class="work-risks-inline-explainer" id="stuck-card" data-mobile-collapse="true">';
   html += '<div class="work-risks-inline-summary">';
-  html += '<span class="work-risks-inline-label">Work risks<span class="visually-hidden"> Remediation queue</span></span>';
+  html += '<span class="work-risks-inline-label">Remediation queue<span class="visually-hidden"> Work risks</span></span>';
   html += '<span class="work-risks-inline-copy">' + escapeHtml(remediationLine) + '</span>';
   if (scopeChanges.length > 0 || excludedParents > 0) {
     const metaParts = [];

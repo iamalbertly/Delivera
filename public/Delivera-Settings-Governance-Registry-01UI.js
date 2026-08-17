@@ -86,8 +86,14 @@ function auditHistory() {
   return `<ol class="registry-audit-list">${entries.map((entry) => `<li><strong>${escapeHtml(entry.squadKeys?.join(', ') || 'Organization')}</strong><span>${escapeHtml(entry.reason || 'Reason unavailable')}</span><small>${escapeHtml(new Date(entry.at).toLocaleString())} · ${escapeHtml(entry.actor || 'authorized admin')}</small></li>`).join('')}</ol>`;
 }
 
-function renderBand(title, description, items, emptyCopy = 'Nothing to review right now.') {
-  return `<section class="registry-band" data-registry-band><header class="registry-band-head"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span data-registry-band-count>${items.length} / ${items.length}</span></header>${items.length ? `<div class="registry-list">${items.map(row).join('')}</div>` : `<p class="governance-empty">${escapeHtml(emptyCopy)}</p>`}</section>`;
+function renderBand(title, description, items, emptyCopy = 'Nothing to review right now.', { collapsed = false } = {}) {
+  const body = items.length
+    ? `<div class="registry-list">${items.map(row).join('')}</div>`
+    : `<p class="governance-empty">${escapeHtml(emptyCopy)}</p>`;
+  if (collapsed && items.length) {
+    return `<details class="registry-band" data-registry-band><summary class="registry-band-head"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span data-registry-band-count>${items.length} / ${items.length}</span></summary>${body}</details>`;
+  }
+  return `<section class="registry-band" data-registry-band><header class="registry-band-head"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span data-registry-band-count>${items.length} / ${items.length}</span></header>${body}</section>`;
 }
 
 function render() {
@@ -107,9 +113,9 @@ function render() {
   mount.innerHTML = `<div class="registry-head"><div><p class="surface-eyebrow">Organization truth</p><h2 id="governance-registry-title">PI participation and owner routes</h2><p>${canManageOrganizationSettings ? 'Change participation once, close owner-route gaps fast, and publish trusted organization truth across Delivera.' : 'Organization settings are read-only for this account. An authorized super admin publishes changes once for every Delivera surface.'}</p></div><span>Registry v${Number(registry.version) || 1}</span></div>
     ${findControl}
     ${bulkFirst}
-    ${renderBand('Participation exceptions', 'These squads are excluded or pending onboarding, so this band should stay intentionally small.', participationExceptions, 'No participation exceptions are active.')}
-    ${renderBand('Owner-route gaps', 'Fix missing PO and SM routes before the full registry list so actions can land on the right people.', ownerRouteGaps, 'All visible squads have PO and SM routes.')}
-    ${renderBand('Platform health / audit', 'Healthy squads remain editable here, but the first attention should go to the exception and owner-gap bands above.', platformHealthy, 'No fully routed PI-governed squads are available yet.')}
+    ${renderBand('Participation exceptions', 'These squads are excluded or pending onboarding, so this band should stay intentionally small.', participationExceptions, 'No participation exceptions are active.', { collapsed: false })}
+    ${renderBand('Owner-route gaps', 'Fix missing PO and SM routes before the full registry list so actions can land on the right people.', ownerRouteGaps, 'All visible squads have PO and SM routes.', { collapsed: ownerRouteGaps.length === 0 })}
+    ${renderBand('Platform health / audit', 'Healthy squads remain editable here, but the first attention should go to the exception and owner-gap bands above.', platformHealthy, 'No fully routed PI-governed squads are available yet.', { collapsed: true })}
     <details class="registry-audit"><summary>Recent organization changes</summary>${auditHistory()}</details>`;
   wireRows();
   wireBulk();

@@ -44,9 +44,15 @@ body.governance-page .gov-action-card {
   border-radius: 12px;
 }
 
-body.governance-page .governance-risk[data-escalation="escalate"],
+body.governance-page .governance-risk[data-escalation="escalate"] {
+  border-left: 4px solid var(--tone-critical, #dc2626);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone-critical, #dc2626) 18%, transparent);
+}
 body.governance-page .governance-risk[data-escalation="act-today"] {
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid #d97706;
+}
+body.governance-page .gov-delivery-cell[data-delivery-cell="attention"] strong {
+  color: var(--tone-critical, #dc2626);
 }
 
 body.governance-page .governance-risk-summary,

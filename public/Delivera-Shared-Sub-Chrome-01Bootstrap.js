@@ -2,6 +2,7 @@
  * Global sub-chrome bootstrap — Brief queue / Gaps / PI pills on all non-Brief surfaces.
  */
 import { mountGlobalAgentBar, updateGlobalAgentBar } from './Delivera-App-Governance-GlobalAgentBar-01UI.js';
+import { bootstrapFocusStrip } from './Delivera-Shared-Focus-Strip-01Render-UI.js';
 import { readSharedProjectsCsv } from './Delivera-Shared-Storage-Keys.js';
 
 function projectsFromStorage() {
@@ -24,7 +25,7 @@ function runBootstrapFetch() {
 export async function bootstrapSubChrome() {
   if (document.body?.classList?.contains('login-page')) return;
   if (document.body?.classList?.contains('governance-page')) return;
-  if (document.body?.classList?.contains('settings-page')) return;
+  bootstrapFocusStrip();
   mountGlobalAgentBar();
   if (bootstrapStarted) return;
   const defer = () => runBootstrapFetch();
